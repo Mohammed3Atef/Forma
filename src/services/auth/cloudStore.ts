@@ -150,7 +150,7 @@ export const useCloud = create<CloudState>((set, get) => ({
       const { SyncEngine } = await import('@/data/sync/SyncEngine');
       const result = await new SyncEngine(user.uid).sync();
       if (result.offline) return; // not a real sync — don't claim "synced"
-      console.info(`[sync] done · pushed ${result.pushed}, pulled ${result.pulled} → users/${user.uid}`);
+      console.info(`[sync] done · pushed ${result.pushed}, pulled ${result.pulled} → clientData/${user.uid}`);
       if (result.pulled > 0) await refreshStoresAfterPull();
       set({ lastSync: Date.now() });
     } catch (e) {

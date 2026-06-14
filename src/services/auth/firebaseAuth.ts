@@ -34,4 +34,8 @@ export const firebaseAuth = {
     const { auth } = ensureFirebase();
     return auth.currentUser?.uid ?? null;
   },
+  currentEmail(): string | null {
+    const { auth } = ensureFirebase();
+    return auth.currentUser?.email ?? null;
+  },
 };

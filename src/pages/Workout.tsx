@@ -5,6 +5,7 @@ import { useWorkout } from '@/stores/workoutStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { TrainingGuideSheet } from '@/components/TrainingGuideSheet';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
 
 const COLORS = ['#AE7E56', '#BF6E4E', '#D4A46A', '#2E5D3C', '#C69975'];
 
@@ -16,7 +17,14 @@ export function Workout() {
   const rawActive = useWorkout((s) => s.active);
   const active = rawActive && (rawActive.startedAt || rawActive.finished) ? rawActive : null;
 
-  if (!plan) return <p className="pt-10 text-center text-earth-muted">{t('progress.noData')}</p>;
+  if (!plan) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('gt.routines')} eyebrow={t('workout.weeklyPlan')} />
+        <WaitingForCoach messageKey="clientCoach.waitingWorkout" />
+      </div>
+    );
+  }
 
   const activeDay = active ? plan.days.find((d) => d.id === active.dayId) : null;
 

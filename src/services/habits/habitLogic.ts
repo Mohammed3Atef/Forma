@@ -61,18 +61,23 @@ export function buildChecklist(input: DayInputs): DailyChecklist {
     }
   }
 
-  // Water target.
-  setItem('water', (nutritionLog?.waterMl ?? 0) >= targets.waterMl);
-  // Creatine.
-  setItem('creatine', !!nutritionLog?.creatineTaken);
+  // Water target — only a checklist item when the coach has set a water target
+  // (otherwise `0 >= 0` would auto-complete it for a client with no plan).
+  if (targets.waterMl > 0) {
+    setItem('water', (nutritionLog?.waterMl ?? 0) >= targets.waterMl);
+  }
+  // (Creatine is no longer a hardcoded item — coaches add it as a supplement.)
 
   // Cardio + steps are ONE goal (the 40-min treadmill is the 10k steps): the
-  // item is done when EITHER the steps target OR the cardio-minutes target is met.
-  const totalSteps = cardioForDay.reduce((a, c) => a + (c.steps ?? 0), 0);
-  const totalCardioSec = cardioForDay.reduce((a, c) => a + c.durationSec, 0);
-  const stepsMet = totalSteps >= targets.steps;
-  const cardioMet = totalCardioSec >= targets.cardioMinutes * 60;
-  setItem('cardio', stepsMet || cardioMet);
+  // item is done when EITHER the steps target OR the cardio-minutes target is
+  // met. Only a checklist item when the coach has set a steps/cardio target.
+  if (targets.steps > 0 || targets.cardioMinutes > 0) {
+    const totalSteps = cardioForDay.reduce((a, c) => a + (c.steps ?? 0), 0);
+    const totalCardioSec = cardioForDay.reduce((a, c) => a + c.durationSec, 0);
+    const stepsMet = targets.steps > 0 && totalSteps >= targets.steps;
+    const cardioMet = targets.cardioMinutes > 0 && totalCardioSec >= targets.cardioMinutes * 60;
+    setItem('cardio', stepsMet || cardioMet);
+  }
 
   const keys = Object.keys(items);
   const doneCount = keys.filter((k) => items[k].done).length;

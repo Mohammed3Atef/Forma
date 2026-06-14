@@ -17,9 +17,9 @@ export default defineConfig({
       injectRegister: false, // registered manually in src/main.tsx (with update polling)
       includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg'],
       manifest: {
-        name: 'Gym Tracker',
-        short_name: 'Gym',
-        description: 'Track workouts, nutrition, cardio and progress — offline.',
+        name: 'Forma',
+        short_name: 'Forma',
+        description: 'Forma — mobile-first fitness coaching platform.',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',

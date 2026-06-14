@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
 import { uid } from '@/lib/utils';
 
 export function Nutrition() {
@@ -18,7 +19,6 @@ export function Nutrition() {
   const toggleMeal = useNutrition((s) => s.toggleMeal);
   const toggleSupplement = useNutrition((s) => s.toggleSupplement);
   const addWater = useNutrition((s) => s.addWater);
-  const setCreatine = useNutrition((s) => s.setCreatine);
   const addCustomFood = useNutrition((s) => s.addCustomFood);
   const removeCustomFood = useNutrition((s) => s.removeCustomFood);
   const replaceItem = useNutrition((s) => s.replaceItem);
@@ -37,7 +37,15 @@ export function Nutrition() {
   const [editor, setEditor] = useState<EditorMode | null>(null);
   const [form, setForm] = useState({ name: '', quantity: '', protein: '', carbs: '', fats: '' });
 
-  if (!plan || !log || !targets) return <p className="text-slate-400">{t('progress.noData')}</p>;
+  if (!plan) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('nutrition.title')} eyebrow={t('nutrition.title')} />
+        <WaitingForCoach messageKey="clientCoach.waitingNutrition" />
+      </div>
+    );
+  }
+  if (!log || !targets) return <p className="text-slate-400">{t('progress.noData')}</p>;
 
   const openEditor = (mode: EditorMode, prefill?: { name: string; quantity: string; protein: number; carbs: number; fats: number }) => {
     setForm(
@@ -293,59 +301,61 @@ export function Nutrition() {
         <Icon name="plus" size={18} /> {t('nutrition.addFood')}
       </button>
 
-      {/* Supplements + creatine */}
-      <div className="card">
-        <h2 className="mb-2 font-bold">{t('nutrition.supplements')}</h2>
-        <ul className="space-y-2">
-          {plan.supplements.map((s) => {
-            const taken = !!log.supplementsTaken[s.id];
-            return (
-              <li key={s.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon name="pill" size={18} className="text-slate-400" />
-                  <div>
-                    <p className="text-sm font-medium">{s.name}</p>
-                    <p className="text-xs text-slate-500">{loc(s.dose)}</p>
+      {/* Supplements — only the ones the coach assigned. */}
+      {plan.supplements.length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 font-bold">{t('nutrition.supplements')}</h2>
+          <ul className="space-y-2">
+            {plan.supplements.map((s) => {
+              const taken = !!log.supplementsTaken[s.id];
+              return (
+                <li key={s.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon name="pill" size={18} className="text-slate-400" />
+                    <div>
+                      <p className="text-sm font-medium">{s.name}</p>
+                      <p className="text-xs text-slate-500">{loc(s.dose)}</p>
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void toggleSupplement(s.id)}
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${taken ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
-                >
-                  <Icon name="check" size={16} />
-                </button>
-              </li>
-            );
-          })}
-          <li className="flex items-center justify-between border-t border-white/5 pt-2">
-            <span className="text-sm font-medium">{t('nutrition.creatineTaken')}</span>
-            <button
-              type="button"
-              onClick={() => void setCreatine(!log.creatineTaken)}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg ${log.creatineTaken ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
-            >
-              <Icon name="check" size={16} />
-            </button>
-          </li>
-        </ul>
-      </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleSupplement(s.id)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${taken ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
+                  >
+                    <Icon name="check" size={16} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
-      {/* Notes */}
-      <div className="card text-sm text-slate-300">
-        <h2 className="mb-2 font-bold">{t('nutrition.notes')}</h2>
-        <ul className="list-inside list-disc space-y-1">
-          {plan.generalNotes.map((n, i) => (
-            <li key={i}>{loc(n)}</li>
-          ))}
-        </ul>
-        <h3 className="mb-1 mt-3 font-semibold text-slate-400">{t('nutrition.beverages')}</h3>
-        <ul className="list-inside list-disc space-y-1">
-          {plan.beverageNotes.map((n, i) => (
-            <li key={i}>{loc(n)}</li>
-          ))}
-        </ul>
-      </div>
+      {/* Notes — only when the coach added any. */}
+      {(plan.generalNotes.length > 0 || plan.beverageNotes.length > 0) && (
+        <div className="card text-sm text-slate-300">
+          {plan.generalNotes.length > 0 && (
+            <>
+              <h2 className="mb-2 font-bold">{t('nutrition.notes')}</h2>
+              <ul className="list-inside list-disc space-y-1">
+                {plan.generalNotes.map((n, i) => (
+                  <li key={i}>{loc(n)}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {plan.beverageNotes.length > 0 && (
+            <>
+              <h3 className="mb-1 mt-3 font-semibold text-slate-400">{t('nutrition.beverages')}</h3>
+              <ul className="list-inside list-disc space-y-1">
+                {plan.beverageNotes.map((n, i) => (
+                  <li key={i}>{loc(n)}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       <Sheet
         open={!!editor}

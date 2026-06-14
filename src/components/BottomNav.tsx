@@ -1,17 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon, type IconName } from './Icon';
+import { Icon } from './Icon';
+import { CLIENT_NAV, type NavItem } from '@/config/nav';
 
-const ITEMS: { to: string; icon: IconName; key: string }[] = [
-  { to: '/', icon: 'home', key: 'home' },
-  { to: '/workout', icon: 'dumbbell', key: 'workout' },
-  { to: '/nutrition', icon: 'meal', key: 'nutrition' },
-  { to: '/cardio', icon: 'activity', key: 'cardio' },
-  { to: '/progress', icon: 'chart', key: 'progress' },
-  { to: '/settings', icon: 'user', key: 'settings' },
-];
-
-export function BottomNav() {
+export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   const { t } = useTranslation();
   return (
     <nav
@@ -19,11 +11,11 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-between px-2 pb-2 pt-2.5">
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <li key={item.key} className="flex-1">
             <NavLink
               to={item.to}
-              end={item.to === '/'}
+              end={item.end ?? false}
               className={({ isActive }) =>
                 `flex flex-col items-center gap-1.5 py-1.5 ${isActive ? 'text-white' : 'text-earth-subtle'}`
               }

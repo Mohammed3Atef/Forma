@@ -1,21 +1,186 @@
 rules_version = '2';
 
-// Gym Tracker — each signed-in user can read/write ONLY their own data.
-// `write` covers create, update and delete (needed for clear-day / reset-cloud).
+// Forma — role-based access control.
+// The frontend only HIDES UI; these rules are the real enforcement boundary.
+// Role/permission baselines mirror src/services/auth/roles.ts — keep in sync.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-
-      // All nested subcollections: profile, settings, workoutLogs,
-      // nutritionLogs, cardioLogs, weightLogs, progressPhotos,
-      // dailyChecklists, videoAssets, reminders, …
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+    // ---- helpers ---------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function meExists() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function myRole() {
+      return meExists() ? me().role : 'none';
+    }
+    function isActive() {
+      return meExists() && me().accountStatus == 'active';
+    }
+    function isSuperAdmin() {
+      return isActive() && myRole() == 'super_admin';
+    }
+    function isAdmin() {
+      return isActive() && (myRole() == 'admin' || myRole() == 'super_admin');
+    }
+    function isCoach() {
+      return isActive() && myRole() == 'coach';
+    }
+    function myPermissions() {
+      return isActive() ? me().permissions : [];
+    }
+    // Effective permission = role baseline OR explicit grant.
+    function hasPermission(p) {
+      return isActive() && (
+        isSuperAdmin()
+        || (isAdmin() && p in [
+              'users.read', 'users.create', 'users.manageRoles', 'users.manageStatus',
+              'coaches.assign', 'clients.readAll', 'flags.manage', 'audit.read'])
+        || (isCoach() && p in ['users.read'])
+        || (p in myPermissions())
+      );
+    }
+    // Coach assigned to this client via an active relationship (deterministic id).
+    function isAssignedCoach(clientId) {
+      return isCoach()
+        && exists(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId))
+        && get(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId)).data.status == 'active';
     }
 
-    // Anything outside /users/{uid} is denied by default.
+    // ---- users (identity / access control) -------------------------------
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || hasPermission('users.read'));
+
+      // Self sign-up: only with locked defaults on your OWN doc.
+      function isSelfProvisionDefaults() {
+        return request.auth.uid == uid
+          && request.resource.data.role == 'client'
+          && request.resource.data.accountStatus in ['pending', 'active']
+          && request.resource.data.permissions.size() == 0
+          && request.resource.data.createdBy == 'self';
+      }
+      // Admin-provisioned: super_admin may create any role; admin only client/coach.
+      // A coach may create a CLIENT assigned to themselves (coach-driven onboarding).
+      allow create: if isSignedIn() && (
+        isSelfProvisionDefaults()
+        || isSuperAdmin()
+        || (hasPermission('users.create') && request.resource.data.role in ['client', 'coach'])
+        || (isCoach()
+            && request.resource.data.role == 'client'
+            && request.resource.data.accountStatus == 'active'
+            && request.resource.data.permissions.size() == 0
+            && request.resource.data.assignedCoachId == request.auth.uid
+            && request.resource.data.createdBy == request.auth.uid)
+      );
+
+      allow update: if isSignedIn() && (
+        // Self: must not touch any control field.
+        (request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.permissions == resource.data.permissions
+          && request.resource.data.accountStatus == resource.data.accountStatus
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', ''))
+        // Status change (role & permissions unchanged).
+        || (hasPermission('users.manageStatus')
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.permissions == resource.data.permissions)
+        // Coach assignment change (role/permissions/status unchanged).
+        || (hasPermission('coaches.assign')
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.permissions == resource.data.permissions
+            && request.resource.data.accountStatus == resource.data.accountStatus)
+        // Role/permission change: super_admin anything; admin only among client/coach.
+        || isSuperAdmin()
+        || (hasPermission('users.manageRoles')
+            && request.resource.data.role in ['client', 'coach']
+            && resource.data.role in ['client', 'coach'])
+      );
+
+      // Prefer status 'disabled' over hard delete; only super_admin may delete.
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---- coachClients (assignment relationships) -------------------------
+    match /coachClients/{relId} {
+      allow read: if isSignedIn() && (
+        resource.data.coachId == request.auth.uid
+        || resource.data.clientId == request.auth.uid
+        || hasPermission('users.read'));
+      // Admins assign anyone; a coach may link a client to themselves.
+      allow create: if hasPermission('coaches.assign')
+        || (isCoach() && request.resource.data.coachId == request.auth.uid);
+      allow update, delete: if hasPermission('coaches.assign')
+        || (isCoach() && resource.data.coachId == request.auth.uid);
+    }
+
+    // ---- clientData (fitness data) ---------------------------------------
+    // Owner full access; assigned coach + admins read; coach/admin writes are
+    // narrowed to plans/notes/targets by the specific matches below.
+    match /clientData/{clientId}/{document=**} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId
+        || isAssignedCoach(clientId)
+        || hasPermission('clients.readAll'));
+      allow write: if isActive() && request.auth.uid == clientId;
+    }
+    // Coach-authored rich plans (clientData/{clientId}/plan/{workout|nutrition}).
+    match /clientData/{clientId}/plan/{doc} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    // Profile: the client owns it, but a coach may set it at account creation.
+    match /clientData/{clientId}/profile/{doc} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
+      allow write: if request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    match /clientData/{clientId}/workoutPlans/{id} {
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    match /clientData/{clientId}/nutritionPlans/{id} {
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    match /clientData/{clientId}/coachNotes/{id} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    match /clientData/{clientId}/coachTargets/{id} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+
+    // ---- planTemplates (coach-owned) -------------------------------------
+    match /planTemplates/{id} {
+      allow read: if isSignedIn() && (resource.data.coachId == request.auth.uid || hasPermission('users.read'));
+      allow create: if isCoach() && request.resource.data.coachId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.coachId == request.auth.uid;
+    }
+
+    // ---- adminAuditLogs (best-effort, create-only, immutable) ------------
+    match /adminAuditLogs/{logId} {
+      allow read: if hasPermission('audit.read');
+      allow create: if isActive()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole == myRole();
+      allow update, delete: if false;
+    }
+
+    // ---- featureFlags ----------------------------------------------------
+    match /featureFlags/{flagId} {
+      allow read: if isSignedIn();
+      allow write: if hasPermission('flags.manage');
+    }
+
+    // Everything else is denied by default.
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
 import { useCloud } from '@/services/auth/cloudStore';
@@ -22,18 +22,30 @@ export function Onboarding() {
   const [creds, setCreds] = useState({ email: '', password: '' });
   const [busy, setBusy] = useState(false);
 
-  const needed = loaded && profile != null && profile.name.trim() === '';
+  // Prefill anything the coach already set (without clobbering live typing).
+  useEffect(() => {
+    if (!profile) return;
+    setForm((f) => ({
+      name: f.name || profile.name || '',
+      weight: f.weight || (profile.weightKg > 0 ? String(profile.weightKg) : ''),
+      height: f.height || (profile.heightCm > 0 ? String(profile.heightCm) : ''),
+      age: f.age || (profile.age > 0 ? String(profile.age) : ''),
+    }));
+  }, [profile]);
+
+  // Required until the essentials exist — name + body stats. A coach may have
+  // pre-filled these at account creation; otherwise the client must complete it.
+  const incomplete =
+    profile != null && (profile.name.trim() === '' || profile.weightKg <= 0 || profile.heightCm <= 0);
+  const needed = loaded && incomplete;
   if (!needed) return null;
 
   const saveProfile = async () => {
     const name = form.name.trim();
-    if (!name) return;
-    await updateProfile({
-      name,
-      weightKg: parseDecimal(form.weight),
-      heightCm: parseDecimal(form.height),
-      age: Math.round(parseDecimal(form.age)),
-    });
+    const weightKg = parseDecimal(form.weight);
+    const heightCm = parseDecimal(form.height);
+    if (!name || weightKg <= 0 || heightCm <= 0) return;
+    await updateProfile({ name, weightKg, heightCm, age: Math.round(parseDecimal(form.age)) });
   };
 
   const auth = async (create: boolean) => {
@@ -50,7 +62,7 @@ export function Onboarding() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <p className="eyebrow">{t('app.name')}</p>
+        <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-48 max-w-[58%] rounded-2xl" />
         <h1 className="h1">{t('onboard.welcome')}</h1>
         <p className="text-sm text-earth-muted">{t('onboard.intro')}</p>
 
@@ -83,12 +95,12 @@ export function Onboarding() {
             <button
               type="button"
               onClick={() => void saveProfile()}
-              disabled={!form.name.trim()}
+              disabled={!form.name.trim() || parseDecimal(form.weight) <= 0 || parseDecimal(form.height) <= 0}
               className="btn-primary btn-lg w-full disabled:opacity-40"
             >
               {t('onboard.getStarted')}
             </button>
-            {cloud.available && (
+            {cloud.available && !cloud.user && (
               <button type="button" onClick={() => setMode('signin')} className="btn-ghost w-full">
                 {t('onboard.haveAccount')}
               </button>

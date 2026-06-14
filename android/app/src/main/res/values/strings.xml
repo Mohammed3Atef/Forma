@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Forma</string>
+    <string name="title_activity_main">Forma</string>
+    <string name="package_name">ca.myrocky.forma</string>
+    <string name="custom_url_scheme">ca.myrocky.forma</string>
+</resources>

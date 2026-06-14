@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
 import { bootstrapData } from '@/data/bootstrap';
 import { useSettings } from '@/stores/settingsStore';
 import { useWorkout } from '@/stores/workoutStore';
@@ -9,32 +8,25 @@ import { useVideos } from '@/stores/videoStore';
 import { useHabits } from '@/stores/habitStore';
 import { useReminders } from '@/services/reminders/reminderStore';
 import { useCloud } from '@/services/auth/cloudStore';
+import { useSession } from '@/services/auth/sessionStore';
 import { useDay } from '@/stores/dayStore';
 import { useMeasurements } from '@/stores/measurementStore';
 import { setupPersistentStorage } from '@/lib/storage';
-import { AppShell } from '@/components/AppShell';
+import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
-import { Onboarding } from '@/components/Onboarding';
 import { Splash } from '@/components/Splash';
-import { Home } from '@/pages/Home';
-import { Workout } from '@/pages/Workout';
-import { RoutineDetail } from '@/pages/RoutineDetail';
-import { ExerciseLibrary } from '@/pages/ExerciseLibrary';
-import { ExerciseDetail } from '@/pages/ExerciseDetail';
-import { WorkoutSession } from '@/pages/WorkoutSession';
-import { Nutrition } from '@/pages/Nutrition';
-import { Cardio } from '@/pages/Cardio';
-import { Progress } from '@/pages/Progress';
-import { History } from '@/pages/History';
-import { ProgressPhotos } from '@/pages/ProgressPhotos';
-import { Measurements } from '@/pages/Measurements';
-import { Settings } from '@/pages/Settings';
-import { VideoManager } from '@/pages/VideoManager';
-import { ImportData } from '@/pages/ImportData';
+import { ClientApp } from '@/apps/ClientApp';
+import { CoachApp } from '@/apps/CoachApp';
+import { AdminApp } from '@/apps/AdminApp';
+import { Login } from '@/pages/auth/Login';
+import { AccountPending } from '@/pages/auth/AccountPending';
+import { AccountSuspended } from '@/pages/auth/AccountSuspended';
 
 export function App() {
   const [ready, setReady] = useState(false);
   const selectedDay = useDay((s) => s.selected);
+  const phase = useSession((s) => s.phase);
+  const role = useSession((s) => s.account?.role ?? 'client');
 
   // When the focused day changes, reload all day-scoped data for that date.
   useEffect(() => {
@@ -59,7 +51,9 @@ export function App() {
       await useHabits.getState().refresh();
       await useReminders.getState().load();
       useReminders.getState().start();
-      useCloud.getState().init();
+      useSession.getState().init(); // role / identity → drives routing
+      useCloud.getState().init(); // client's own local-first cloud sync
+      void initNative(); // native status bar + splash (Capacitor only)
       // Ask the OS not to evict our IndexedDB/CacheStorage data (login, videos,
       // photos). Retries on first user gesture if the browser defers the grant.
       setupPersistentStorage();
@@ -71,30 +65,22 @@ export function App() {
     };
   }, []);
 
-  if (!ready) return <Splash />;
+  if (!ready || phase === 'loading') return <Splash />;
+
+  // Role-based routing: the session phase + role select which app mounts. Each
+  // app owns its own <Routes> with absolute paths and a catch-all redirect.
+  let body: ReactNode;
+  if (phase === 'anonymous') body = <Login />;
+  else if (phase === 'pending') body = <AccountPending />;
+  else if (phase === 'suspended') body = <AccountSuspended />;
+  else if (role === 'coach') body = <CoachApp />;
+  else if (role === 'admin' || role === 'super_admin') body = <AdminApp />;
+  else body = <ClientApp />;
 
   return (
     <>
-    <DialogHost />
-    <Onboarding />
-    <Routes>
-      <Route path="/" element={<AppShell showDayNav><Home /></AppShell>} />
-      <Route path="/workout" element={<AppShell><Workout /></AppShell>} />
-      <Route path="/workout/routine/:dayId" element={<AppShell><RoutineDetail /></AppShell>} />
-      <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
-      <Route path="/workout/exercise/:exId" element={<AppShell><ExerciseDetail /></AppShell>} />
-      <Route path="/workout/session" element={<AppShell hideNav><WorkoutSession /></AppShell>} />
-      <Route path="/nutrition" element={<AppShell showDayNav><Nutrition /></AppShell>} />
-      <Route path="/cardio" element={<AppShell showDayNav><Cardio /></AppShell>} />
-      <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
-      <Route path="/history" element={<AppShell><History /></AppShell>} />
-      <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
-      <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
-      <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
-      <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
-      <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
-      <Route path="*" element={<AppShell><Home /></AppShell>} />
-    </Routes>
+      <DialogHost />
+      {body}
     </>
   );
 }

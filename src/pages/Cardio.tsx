@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CardioType } from '@/types';
 import { useCardio } from '@/stores/cardioStore';
@@ -11,6 +12,9 @@ import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
 import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
+import { cloudAvailable } from '@/data/dataSource';
+import { useSession } from '@/services/auth/sessionStore';
+import { fetchMyCardioPlan } from '@/services/platform/clientCoachApi';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
 /** Types where a constant speed/incline makes distance & calories computable. */
@@ -88,11 +92,32 @@ export function Cardio() {
     setLogOpen(false);
   };
 
+  const uid = useSession((s) => s.uid);
+  const cardioPlanEnabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const cardioPlan = useQuery({
+    queryKey: ['myCardioPlan', uid],
+    queryFn: () => fetchMyCardioPlan(uid!),
+    enabled: cardioPlanEnabled,
+  });
+
   const selected = useDay((s) => s.selected);
   const todaySteps = stepsFor(selected);
   const todayCardioMin = Math.round(cardioSecFor(selected) / 60);
+  const stepsTarget = targets?.steps ?? 0;
+  const cardioTarget = targets?.cardioMinutes ?? 0;
+  const hasGoal = stepsTarget > 0 || cardioTarget > 0;
   const activityMet =
-    todaySteps >= (targets?.steps ?? Infinity) || todayCardioMin >= (targets?.cardioMinutes ?? Infinity);
+    hasGoal &&
+    ((stepsTarget > 0 && todaySteps >= stepsTarget) || (cardioTarget > 0 && todayCardioMin >= cardioTarget));
+  // Subtitle reflects the COACH-ASSIGNED targets, not a hardcoded goal.
+  const goalHint = hasGoal
+    ? [
+        stepsTarget > 0 ? t('cardio.goalSteps', { n: stepsTarget.toLocaleString() }) : null,
+        cardioTarget > 0 ? t('cardio.goalCardio', { n: cardioTarget }) : null,
+      ]
+        .filter(Boolean)
+        .join(` ${t('cardio.goalJoin')} `)
+    : t('cardio.goalUnset');
 
   return (
     <div className="anim-rise space-y-4">
@@ -105,7 +130,7 @@ export function Cardio() {
             <Icon name="activity" size={22} className="text-brand" />
             <div>
               <p className="font-semibold">{t('cardio.goal')}</p>
-              <p className="text-xs text-slate-400">{t('cardio.goalHint')}</p>
+              <p className="text-xs text-slate-400">{goalHint}</p>
             </div>
           </div>
           {activityMet && (
@@ -118,25 +143,43 @@ export function Cardio() {
           <div>
             <p className="text-xl font-bold">
               {todaySteps.toLocaleString()}
-              <span className="text-sm font-normal text-slate-400"> / {targets?.steps.toLocaleString()}</span>
+              {stepsTarget > 0 && <span className="text-sm font-normal text-slate-400"> / {stepsTarget.toLocaleString()}</span>}
             </p>
             <p className="mb-1 text-xs text-slate-400">{t('cardio.steps')}</p>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, (todaySteps / (targets?.steps || 1)) * 100)}%` }} />
+              <div className="h-full rounded-full bg-accent" style={{ width: `${stepsTarget > 0 ? Math.min(100, (todaySteps / stepsTarget) * 100) : 0}%` }} />
             </div>
           </div>
           <div>
             <p className="text-xl font-bold">
               {todayCardioMin}
-              <span className="text-sm font-normal text-slate-400"> / {targets?.cardioMinutes} {t('common.min')}</span>
+              {cardioTarget > 0 && <span className="text-sm font-normal text-slate-400"> / {cardioTarget} {t('common.min')}</span>}
             </p>
             <p className="mb-1 text-xs text-slate-400">{t('cardio.minutes')}</p>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, (todayCardioMin / (targets?.cardioMinutes || 1)) * 100)}%` }} />
+              <div className="h-full rounded-full bg-brand" style={{ width: `${cardioTarget > 0 ? Math.min(100, (todayCardioMin / cardioTarget) * 100) : 0}%` }} />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Coach-prescribed cardio plan (read-only). */}
+      {cardioPlan.data && cardioPlan.data.sessions.length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 font-bold">{t('clientCoach.cardioPlan')}</h2>
+          <ul className="divide-y divide-line-soft">
+            {cardioPlan.data.sessions.map((s) => (
+              <li key={s.id} className="py-2.5 first:pt-0 last:pb-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{t(`cardio.types.${s.type}`)} · {s.durationMin} {t('common.min')}</span>
+                  {s.frequency && <span className="font-mono text-[11px] text-brand">{s.frequency}</span>}
+                </div>
+                {s.notes && <p className="mt-0.5 text-[13px] text-earth-muted">{s.notes}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Live cardio timer */}
       <div className="card text-center">

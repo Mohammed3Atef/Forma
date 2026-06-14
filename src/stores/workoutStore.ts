@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  Exercise,
   ExerciseLog,
   SetLog,
   WorkoutDay,
@@ -45,25 +46,23 @@ interface WorkoutState {
   previousFor: (exerciseId: string) => PrevPerf | null;
 }
 
-function buildSets(workingSets: number, repRange: string): SetLog[] {
+/** Coach-set warm-up count, falling back to the legacy free-text or a default. */
+export function warmupCountOf(ex: Pick<Exercise, 'warmupSetCount' | 'warmupSets' | 'workingSets'>): number {
+  if (typeof ex.warmupSetCount === 'number' && ex.warmupSetCount >= 0) return ex.warmupSetCount;
+  const parsed = parseInt(ex.warmupSets ?? '', 10);
+  if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
+  return ex.workingSets > 0 ? 1 : 0;
+}
+
+/** Build the session's sets: `warmupCount` warm-ups, then `workingCount` working sets. */
+function buildSets(warmupCount: number, workingCount: number, repRange: string): SetLog[] {
   const sets: SetLog[] = [];
-  // One warm-up set for resistance exercises (mobility has 0 working sets).
-  if (workingSets > 0) {
-    sets.push({ setIndex: 0, type: 'warmup', targetReps: repRange, actualReps: null, weightKg: null, rpe: null, done: false });
-  }
-  const count = workingSets > 0 ? workingSets : 1;
-  const startType = workingSets > 0 ? 'working' : 'warmup';
-  for (let i = 0; i < count; i += 1) {
-    sets.push({
-      setIndex: sets.length,
-      type: startType,
-      targetReps: repRange,
-      actualReps: null,
-      weightKg: null,
-      rpe: null,
-      done: false,
-    });
-  }
+  const push = (type: 'warmup' | 'working') =>
+    sets.push({ setIndex: sets.length, type, targetReps: repRange, actualReps: null, weightKg: null, rpe: null, done: false });
+  for (let i = 0; i < Math.max(0, warmupCount); i += 1) push('warmup');
+  for (let i = 0; i < Math.max(0, workingCount); i += 1) push('working');
+  // Safety: never produce an empty exercise.
+  if (sets.length === 0) push(workingCount > 0 ? 'working' : 'warmup');
   return sets;
 }
 
@@ -80,7 +79,7 @@ function buildSession(plan: WorkoutPlan, day: WorkoutDay, date: string): Workout
   const exercises: ExerciseLog[] = day.exerciseIds.flatMap((exId) => {
     const ex = plan.exercises[exId];
     if (!ex) return [];
-    return [{ exerciseId: exId, sets: buildSets(ex.workingSets, ex.repRange), done: false }];
+    return [{ exerciseId: exId, sets: buildSets(warmupCountOf(ex), ex.workingSets, ex.repRange), done: false }];
   });
   return {
     id: date,
@@ -296,9 +295,7 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
     if (!ex) return;
     const newLog: ExerciseLog = {
       exerciseId,
-      sets: [
-        { setIndex: 0, type: 'working', targetReps: ex.repRange, actualReps: null, weightKg: null, rpe: null, done: false },
-      ],
+      sets: buildSets(warmupCountOf(ex), ex.workingSets, ex.repRange),
       done: false,
     };
     const next = { ...active, exercises: [...active.exercises, newLog], updatedAt: Date.now(), dirty: true };
@@ -357,7 +354,7 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
       }
       const ex = plan.exercises[id];
       if (!ex) return []; // tolerate plans referencing a removed exercise
-      return [{ exerciseId: id, sets: buildSets(ex.workingSets, ex.repRange), done: false }];
+      return [{ exerciseId: id, sets: buildSets(warmupCountOf(ex), ex.workingSets, ex.repRange), done: false }];
     });
     const extras = active.exercises.filter((e) => present.has(e.exerciseId));
     const next = { ...active, exercises: [...ordered, ...extras], updatedAt: Date.now(), dirty: true };

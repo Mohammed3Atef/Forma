@@ -52,6 +52,11 @@ export function ExerciseDetail() {
     .filter(Boolean);
 
   const openVideo = () => {
+    // Coach-assigned direct video URL takes priority over the local library.
+    if (ex.videoUrl) {
+      window.open(ex.videoUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setVideo(byExercise(exId));
     setVideoOpen(true);
   };

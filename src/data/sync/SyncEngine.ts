@@ -98,7 +98,10 @@ export class SyncEngine {
   constructor(private uid: string) {}
 
   private path(name: string): string {
-    return `users/${this.uid}/${name}`;
+    // Forma: a client's fitness data lives under clientData/{uid} so assigned
+    // coaches/admins can read it (governed by firestore.rules). The identity
+    // doc users/{uid} holds role/status only and is never synced here.
+    return `clientData/${this.uid}/${name}`;
   }
 
   async pushCollection(name: CollName): Promise<number> {
@@ -196,7 +199,7 @@ export class SyncEngine {
           syncedAt: serverTimestamp(),
         };
         await setDoc(doc(db, this.path('deletions'), `${t.collection}__${t.id}`), marker);
-        await deleteDoc(doc(db, `users/${this.uid}/${t.collection}/${t.id}`));
+        await deleteDoc(doc(db, this.path(t.collection), t.id));
         await clearTombstone(t.collection, t.id);
         flushed += 1;
       } catch {
@@ -239,14 +242,37 @@ export class SyncEngine {
     // Include legacy/auxiliary collections that may exist in older accounts.
     const names = [...COLLECTIONS, 'videoAssets', 'deletions'];
     for (const name of names) {
-      const snap = await getDocs(collection(db, `users/${this.uid}/${name}`));
+      const snap = await getDocs(collection(db, this.path(name)));
       await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
     }
-    await deleteDoc(doc(db, `users/${this.uid}/profile/main`)).catch(() => undefined);
-    await deleteDoc(doc(db, `users/${this.uid}/settings/app`)).catch(() => undefined);
+    await deleteDoc(doc(db, this.path('profile'), 'main')).catch(() => undefined);
+    await deleteDoc(doc(db, this.path('settings'), 'app')).catch(() => undefined);
     await clearAllTombstones();
     await syncMeta.removeItem(`pullCursor:${this.uid}`);
     await syncMeta.removeItem(`pullCursorV2:${this.uid}`);
+  }
+
+  /**
+   * One-time migration to the clientData/{uid} layout: the remote path moved
+   * from users/{uid}/<coll> to clientData/{uid}/<coll>. Rather than copy cloud
+   * docs across (which other devices may not have), we re-mark every local
+   * record dirty so the next push re-uploads it to the new path, and reset the
+   * pull cursor so we also pick up anything already written under clientData
+   * (e.g. coach-authored plans). The local store is the source of truth, so no
+   * local data is touched beyond flipping the dirty flag.
+   */
+  private async migrateToClientData(): Promise<void> {
+    const flagKey = `clientDataMigrated:${this.uid}`;
+    if (await syncMeta.getItem<boolean>(flagKey)) return;
+    for (const name of COLLECTIONS) {
+      const repo = repoFor(name);
+      const all = await repo.getAll();
+      for (const rec of all) {
+        if (!rec.dirty) await repo.put({ ...rec, dirty: true });
+      }
+    }
+    await syncMeta.removeItem(`pullCursorV2:${this.uid}`);
+    await syncMeta.setItem(flagKey, true);
   }
 
   /** Full bidirectional sync pass. */
@@ -263,11 +289,12 @@ export class SyncEngine {
     let maxSyncedAt = lastPulled;
     // Local deletions FIRST, so pulling can't re-add records we just deleted;
     // then remote deletions, so we don't pull docs another device removed.
+    await this.migrateToClientData();
     await this.flushDeletions();
     const remoteDeletes = await this.pullDeletions(since);
     maxSyncedAt = Math.max(maxSyncedAt, remoteDeletes.maxSyncedAt);
-    await this.syncSingleton<UserProfile>(`users/${this.uid}/profile/main`, ds.profile);
-    await this.syncSingleton<AppSettings>(`users/${this.uid}/settings/app`, ds.settings);
+    await this.syncSingleton<UserProfile>(`${this.path('profile')}/main`, ds.profile);
+    await this.syncSingleton<AppSettings>(`${this.path('settings')}/app`, ds.settings);
     let pushed = 0;
     let pulled = remoteDeletes.applied;
     for (const name of COLLECTIONS) {

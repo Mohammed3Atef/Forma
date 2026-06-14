@@ -33,6 +33,164 @@ export interface UserProfile {
 }
 
 // ---------------------------------------------------------------------------
+// Accounts, roles & access control (Forma platform)
+// ---------------------------------------------------------------------------
+
+/** Platform roles, from most to least privileged. */
+export type Role = 'super_admin' | 'admin' | 'coach' | 'client';
+
+/** Lifecycle state of an account. Only `active` accounts may use the platform. */
+export type AccountStatus = 'active' | 'suspended' | 'pending' | 'disabled';
+
+/**
+ * Granular permission keys. Each role implies a baseline set (see
+ * `ROLE_PERMISSIONS` in src/services/auth/roles.ts); `UserRecord.permissions`
+ * can grant extras beyond that baseline. Firestore rules enforce the same set.
+ */
+export type Permission =
+  | 'users.read' // list/read other users' identity docs
+  | 'users.create' // provision new accounts
+  | 'users.manageRoles' // change role / permissions on other users
+  | 'users.manageStatus' // suspend / disable / reactivate accounts
+  | 'coaches.assign' // create/transfer coach⇄client relationships
+  | 'clients.readAll' // read ANY client's clientData (admin oversight)
+  | 'clients.writeAll' // write plans/notes to ANY client
+  | 'flags.manage' // manage the featureFlags collection
+  | 'audit.read'; // read adminAuditLogs
+
+/**
+ * Identity / access-control document at `users/{uid}`. Deliberately separate
+ * from `UserProfile` (the fitness profile, which lives at
+ * `clientData/{uid}/profile`). A user can never elevate their own role,
+ * permissions, or status — that is enforced in firestore.rules.
+ */
+export interface UserRecord {
+  id: string; // == Firebase Auth uid
+  email: string;
+  displayName: string;
+  role: Role;
+  accountStatus: AccountStatus;
+  permissions: Permission[];
+  featureFlags: Record<string, boolean>;
+  createdBy: string; // actor uid, or 'self' for open sign-up
+  assignedCoachId?: string; // clients managed by a coach
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type CoachClientStatus = 'active' | 'pending' | 'ended';
+
+/** Coach⇄client link. Doc id is deterministic: `${coachId}__${clientId}`. */
+export interface CoachClientRelationship {
+  id: string;
+  coachId: string;
+  clientId: string;
+  status: CoachClientStatus;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Best-effort audit record (client-written; immutable once created). */
+export interface AuditLog {
+  id: string;
+  actorId: string;
+  actorRole: Role;
+  action: string;
+  targetUserId: string;
+  metadata: Record<string, unknown>;
+  createdAt: number;
+}
+
+export type FeatureFlagScope = 'global' | 'coach' | 'client';
+
+export interface FeatureFlag {
+  id: string;
+  enabled: boolean;
+  scope: FeatureFlagScope;
+  targetId?: string; // uid the flag applies to when scope is 'coach' | 'client'
+  updatedAt: number;
+}
+
+/** A coach's note about a client. Lives at `clientData/{clientId}/coachNotes`. */
+export interface CoachNote {
+  id: string;
+  clientId: string;
+  authorId: string;
+  authorRole: Role;
+  body: string;
+  /** Distinguishes one-off notes from broadcast announcements. */
+  kind?: 'note' | 'announcement';
+  createdAt: number;
+  updatedAt: number;
+  dirty?: boolean;
+}
+
+export type PlanKind = 'workout' | 'nutrition';
+
+/**
+ * A plan a coach assigns to a client. Lives at
+ * `clientData/{clientId}/workoutPlans` or `/nutritionPlans`. Kept intentionally
+ * simple (title + description) so it's authorable on mobile; the client reads
+ * these in their app.
+ */
+export interface AssignedPlan {
+  id: string;
+  clientId: string;
+  kind: PlanKind;
+  title: string;
+  description: string;
+  assignedBy: string;
+  assignedAt: number;
+  updatedAt: number;
+}
+
+/** One prescribed cardio session in a coach's cardio plan. */
+export interface CardioSession {
+  id: string;
+  type: CardioType;
+  durationMin: number;
+  /** Free-text frequency, e.g. "3×/week" or "after every workout". */
+  frequency: string;
+  notes: string;
+}
+
+/** Coach-authored cardio plan at `clientData/{clientId}/plan/cardio`. */
+export interface CardioPlan {
+  id: string;
+  name: string;
+  sessions: CardioSession[];
+  updatedAt: number;
+}
+
+/** A coach's reusable plan template at top-level `planTemplates` (owned by coachId). */
+export interface PlanTemplate {
+  id: string;
+  coachId: string;
+  kind: PlanKind;
+  title: string;
+  description: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Coach-assigned daily targets. Singleton doc `current` at
+ * `clientData/{clientId}/coachTargets`. The client app reads and applies these.
+ */
+export interface CoachTargets {
+  id: string; // always 'current'
+  clientId: string;
+  waterMl?: number;
+  steps?: number;
+  cardioMin?: number;
+  calories?: number;
+  protein?: number;
+  updatedBy: string;
+  updatedAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // Workout plan
 // ---------------------------------------------------------------------------
 
@@ -42,6 +200,8 @@ export interface Exercise {
   targetMuscle: string;
   /** Free-text describing warm-up sets, e.g. "1 set, 15-20 reps". */
   warmupSets: string;
+  /** Coach-set number of warm-up sets (overrides the free-text `warmupSets`). */
+  warmupSetCount?: number;
   /** Number of working sets prescribed. */
   workingSets: number;
   /** Free-text rep range, e.g. "8-12" or "AMRAP". */
@@ -54,6 +214,8 @@ export interface Exercise {
   /** Default rest in seconds for this exercise. */
   restSec: number;
   videoId: string | null;
+  /** Coach-assigned direct video URL (YouTube or file), shown to the client. */
+  videoUrl?: string | null;
 }
 
 export interface WorkoutDay {

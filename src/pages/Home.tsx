@@ -12,6 +12,8 @@ import { ProgressRing } from '@/components/ProgressRing';
 import { StatTile } from '@/components/StatTile';
 import { BarChart } from '@/components/charts';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
+import { CoachCard } from '@/components/CoachCard';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
 import { logVolume, logSetCount } from '@/lib/calc';
 import { formatDuration, weekStartOf } from '@/lib/utils';
 import type { WorkoutDay, WorkoutPlan } from '@/types';
@@ -151,6 +153,12 @@ export function Home() {
         </div>
       </header>
 
+      {/* Coach announcements / assigned plans (only when the client has a coach) */}
+      <CoachCard />
+
+      {/* No plan yet — make it clear the client is waiting on their coach. */}
+      {!plan && <WaitingForCoach />}
+
       {/* Weekly goal — tap through to the history/calendar of completed workouts */}
       <button
         type="button"
@@ -242,22 +250,19 @@ export function Home() {
         <StatTile icon="timer" value={week.timeMin} unit="m" label={t('gt.time')} />
       </div>
 
-      {/* Today (our daily tracking, folded into the design) */}
-      <button type="button" onClick={() => navigate('/nutrition')} className="card-tap mt-3 flex w-full items-center gap-4 text-start">
-        <ProgressRing
-          value={checklist ? checklist.completionPct / 100 : 0}
-          size={56}
-          stroke={6}
-          label={`${checklist?.completionPct ?? 0}%`}
-        />
-        <div className="flex-1">
-          <h2 className="h2">{t('home.dailyChecklist')}</h2>
-          <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
-            {Math.round(consumed.calories)} / {targets?.calories ?? 0} kcal · {todaySteps.toLocaleString()} {t('home.steps').toLowerCase()}
-          </p>
-        </div>
-        <Icon name="chevron" size={18} className="text-earth-subtle" />
-      </button>
+      {/* Today's daily checklist — only meaningful once a plan/targets exist. */}
+      {plan && checklist && Object.keys(checklist.items).length > 0 && (
+        <button type="button" onClick={() => navigate('/nutrition')} className="card-tap mt-3 flex w-full items-center gap-4 text-start">
+          <ProgressRing value={checklist.completionPct / 100} size={56} stroke={6} label={`${checklist.completionPct}%`} />
+          <div className="flex-1">
+            <h2 className="h2">{t('home.dailyChecklist')}</h2>
+            <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
+              {Math.round(consumed.calories)} / {targets?.calories ?? 0} kcal · {todaySteps.toLocaleString()} {t('home.steps').toLowerCase()}
+            </p>
+          </div>
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
+        </button>
+      )}
 
       {/* Volume trend */}
       {finished.length > 0 && (
