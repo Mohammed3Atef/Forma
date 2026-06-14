@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Gym Tracker — each signed-in user can read/write ONLY their own data.
+// `write` covers create, update and delete (needed for clear-day / reset-cloud).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // All nested subcollections: profile, settings, workoutLogs,
+      // nutritionLogs, cardioLogs, weightLogs, progressPhotos,
+      // dailyChecklists, videoAssets, reminders, …
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Anything outside /users/{uid} is denied by default.
+  }
+}

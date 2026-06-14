@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --experimental-strip-types scripts/importSheet.ts 1Sn4Vs7pI8xXIti4uRlthh2Q027KKFDjv7_T8aQF1weg 1520884540)",
+      "Bash(node -e \"const d=require\\('/tmp/training.json'\\); console.log\\('rows:', d.rowCount\\); d.rows.forEach\\(\\(r,i\\)=>{const c=r.map\\(x=>x.trim\\(\\)\\).filter\\(Boolean\\); if\\(c.length\\) console.log\\(i, JSON.stringify\\(c\\).slice\\(0,200\\)\\);}\\);\")",
+      "Bash(node -e \"const d=require\\('./training-raw.json'\\); console.log\\('rows:', d.rowCount\\); d.rows.forEach\\(\\(r,i\\)=>{const c=r.map\\(x=>x.trim\\(\\)\\); const nonEmpty=c.filter\\(Boolean\\); if\\(nonEmpty.length\\) console.log\\(i+':', JSON.stringify\\(c\\)\\);}\\);\")",
+      "Bash(node scripts/extractFromXlsx.mjs)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

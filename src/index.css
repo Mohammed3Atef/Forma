@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --ease-card: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface text-white font-sans antialiased;
+  /* Safe-area aware for notched phones */
+  padding-top: env(safe-area-inset-top);
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* RTL: Arabic font + direction handled via [dir="rtl"] on <html> */
+html[dir='rtl'] body {
+  @apply font-arabic;
+}
+/* Arabic has no letter-case — neutralise the design's uppercase UI labels. */
+html[dir='rtl'] .eyebrow,
+html[dir='rtl'] .ui-label,
+html[dir='rtl'] .btn,
+html[dir='rtl'] .seg button,
+html[dir='rtl'] .stat-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: theme('fontFamily.arabic');
+}
+
+/* Hide number-input spinners (we use custom steppers) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+@layer components {
+  /* ---- Surfaces ---- */
+  .card {
+    @apply rounded-xl2 border border-line bg-surface-card p-5;
+  }
+  .card-tap {
+    @apply card transition-all duration-300 ease-card active:scale-[0.985] active:border-line;
+  }
+
+  /* ---- Eyebrow / labels (DM Mono — the signature) ---- */
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand;
+  }
+  .ui-label {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-earth-muted;
+  }
+
+  /* ---- Headings ---- */
+  .h1 {
+    @apply font-display text-[30px] font-bold leading-[1.04] tracking-[-0.03em];
+  }
+  .h2 {
+    @apply font-display text-lg font-semibold tracking-[-0.02em];
+  }
+
+  /* ---- Buttons (pill, DM Mono uppercase) ---- */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-6
+      font-mono text-[13px] font-medium uppercase tracking-[0.04em]
+      transition-transform duration-200 ease-card active:scale-[0.975] disabled:opacity-50;
+    min-height: 3rem;
+  }
+  .btn-lg {
+    min-height: var(--btn-lg, 3.25rem);
+  }
+  .btn-primary {
+    @apply btn border border-brand bg-brand text-white hover:bg-brand-hover;
+  }
+  .btn-light {
+    @apply btn border border-white bg-white text-black;
+  }
+  .btn-ghost {
+    @apply btn border border-white/35 bg-transparent text-white hover:bg-white/5;
+  }
+  .btn-danger {
+    @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
+  }
+
+  /* Circular icon-only button (42px ring style from the design). */
+  .icon-btn {
+    @apply inline-flex shrink-0 items-center justify-center rounded-full border border-white/15
+      bg-transparent text-white transition-transform duration-200 ease-card
+      hover:bg-white/5 active:scale-90 disabled:opacity-40;
+  }
+
+  /* ---- Inputs ---- */
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface-raised px-4 py-3 text-white
+      placeholder:text-earth-subtle focus:border-brand/60 focus:outline-none;
+  }
+  .label {
+    @apply mb-1 block font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-earth-muted;
+  }
+
+  /* ---- Stat tile ---- */
+  .stat-tile {
+    @apply flex flex-col gap-2.5 rounded-2xl border border-line bg-surface-card p-4 pb-[18px];
+  }
+  .stat-num {
+    @apply font-mono text-[34px] font-medium leading-[0.9] tracking-[-0.03em] text-white;
+  }
+  .stat-unit {
+    @apply ml-0.5 font-mono text-sm font-normal text-earth-muted;
+  }
+  .stat-label {
+    @apply font-mono text-[10.5px] uppercase tracking-[0.08em] text-earth-muted;
+  }
+
+  /* ---- Section heading ---- */
+  .sec-head {
+    @apply mb-3.5 mt-7 flex items-baseline justify-between;
+  }
+  .sec-link {
+    @apply font-mono text-[11px] uppercase tracking-[0.04em] text-brand;
+  }
+
+  /* ---- List row ---- */
+  .row {
+    @apply flex items-center gap-3.5 border-b border-line-soft py-3.5 last:border-b-0;
+  }
+  .row-av {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-raised text-brand;
+  }
+
+  /* ---- Chips ---- */
+  .chip {
+    @apply shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted;
+  }
+  .chip-on {
+    @apply border-white bg-white text-black;
+  }
+
+  /* ---- Segmented control ---- */
+  .seg {
+    @apply flex gap-1 rounded-full border border-line bg-surface-card p-1;
+  }
+  .seg button {
+    @apply h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
+  }
+  .seg button.on {
+    @apply bg-brand text-white;
+  }
+
+  /* ---- Progress bar ---- */
+  .prog {
+    @apply h-1.5 overflow-hidden rounded-full bg-white/10;
+  }
+  .prog > span {
+    @apply block h-full rounded-full bg-brand;
+  }
+}
+
+/* Animated progress rings use this for smooth transitions */
+.ring-track {
+  transition: stroke-dashoffset 0.4s var(--ease-card);
+}
+
+/* ---- Motion (gated by prefers-reduced-motion) ---- */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheetRise {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+/* Opacity-only so a page wrapper never becomes the containing block for a
+   fixed-position child (which would trap bottom sheets / fixed CTAs). */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.anim-rise {
+  animation: riseIn 0.45s var(--ease-card) both;
+}
+.anim-fade {
+  animation: fadeIn 0.3s var(--ease-card) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise,
+  .anim-fade,
+  .ring-track {
+    animation: none;
+    transition: none;
+  }
+}
