@@ -1,15 +1,31 @@
-# 🏋️ Gym Tracker
+# Forma — Train. Track. Transform.
 
-A mobile-first, offline-capable **PWA** to run your gym workouts, follow your nutrition plan, track cardio/steps/weight, watch exercise videos offline, and keep daily habit streaks — built from a coaching Google Sheet.
+A **mobile-first, multi-role fitness coaching platform** (PWA + Capacitor-ready). Coaches build and assign training, nutrition and cardio plans; clients follow and log them; admins and super-admins govern the platform. Every permission is enforced in **Firestore security rules**, not just the UI.
 
-Seeded with the real **5-day split (Push A / Pull A / Legs / Push B / Pull B)**, a **1815 kcal** nutrition plan, and the coach's **29 exercise videos** (real YouTube links pulled from the sheet). Every value is editable and re-importable.
-
+- **Roles:** `super_admin` · `admin` · `coach` · `client` — each routed to its own mobile experience after login.
+- **Coach-driven:** a client starts empty and only ever sees what their coach assigned or what they themselves logged. No demo/seed data on the platform.
 - **Frontend:** React 18 + TypeScript (strict) + Vite
 - **Styling:** Tailwind CSS (dark, mobile-first, RTL-ready)
-- **State:** Zustand · **Charts:** Recharts · **i18n:** react-i18next (EN/AR)
-- **Storage:** localForage (IndexedDB) + Cache API — **local-first**
-- **PWA:** vite-plugin-pwa (Workbox), installable, offline app shell
-- **Cloud (optional):** Firebase Auth + Firestore + Storage with last-write-wins sync
+- **State:** Zustand (client local-first data) + React Query (admin/coach online reads)
+- **i18n:** react-i18next (EN/AR with RTL) · **Charts:** lightweight in-house SVG
+- **Backend:** Firebase Auth + Firestore (rules-enforced RBAC). Storage optional later.
+- **Client storage:** localForage (IndexedDB) + Cache API — offline-capable, last-write-wins sync
+- **PWA:** vite-plugin-pwa (Workbox), installable. **Native:** Capacitor (Android project scaffolded).
+
+> Full setup & operations runbook: [`docs/FORMA.md`](docs/FORMA.md).
+
+---
+
+## Roles at a glance
+
+| Role | Lands on | Can |
+| --- | --- | --- |
+| **super_admin** | `/admin` | Everything: accounts, roles & permissions, coach⇄client assignment/transfer, feature flags, audit logs, analytics, read any client. |
+| **admin** | `/admin` | Manage clients/coaches (client & coach roles only), suspend/reactivate, assign/transfer, **view-only** client details, analytics, audit. |
+| **coach** | `/coach` | Their assigned clients only: author workout / nutrition / cardio plans, set targets, notes & announcements, view day-by-day activity, create clients. |
+| **client** | `/` | Follow the assigned plan, track workouts / nutrition / cardio / water / steps / weight, daily checklist & streaks, progress photos, coach notes. |
+
+Role→permission baselines live in [`src/services/auth/roles.ts`](src/services/auth/roles.ts) and are mirrored in [`firestore.rules`](firestore.rules) — keep the two in sync.
 
 ---
 
@@ -17,166 +33,118 @@ Seeded with the real **5-day split (Push A / Pull A / Legs / Push B / Pull B)**,
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173 — runs immediately, no backend needed
+npm run dev          # http://localhost:5173
 ```
 
-The app opens straight to the dashboard with a local profile (no login). All data
-lives in your browser's IndexedDB. Build/preview the installable PWA:
+- **Without Firebase env vars** → runs **local-only** as a standalone single-user tracker (the original offline app, seeded with demo data). Great for UI work.
+- **With Firebase configured** → the full coach-driven platform: login is required and you're routed by role.
 
 ```bash
-npm run build
-npm run preview
+npm run build        # type-check + production build + PWA service worker
+npm run preview      # serve the production build
 ```
 
-> Install it: open in Chrome/Edge/Android → "Install app" / "Add to Home Screen".
-> On iOS Safari → Share → Add to Home Screen (standalone + splash supported).
+Configure Firebase by copying your web-app config into `.env` (see [`.env.example`](.env.example)); the keys are read in [`src/data/adapters/firebase/config.ts`](src/data/adapters/firebase/config.ts).
 
 ---
 
-## Features
+## What the coach controls (and the client consumes)
 
-| Module | What it does |
-| --- | --- |
-| **Home** | Today's workout, nutrition summary, body weight, streaks, steps, cardio, macro rings, quick actions, **daily checklist** (completion %, missed items, next reminder). |
-| **Workout** | Weekly PPL plan → single-screen **session** built for the gym: big ± steppers, **previous-session ghost values**, tap-to-complete sets, sticky session + rest timers, **auto-save every change**, **session recovery** after restart, wake-lock, vibration. |
-| **Nutrition** | Meals by slot, mark-eaten, custom foods, macro rings vs targets, water tracker, supplements & creatine log, coach notes. |
-| **Cardio** | Live cardio timer (walking/treadmill/running/cycling/other), manual logging, step entry, daily history. |
-| **Progress** | Recharts: body weight, per-exercise top-set progression, weekly completion, steps trend. Plus **Progress Photos** (front/side/back, stored locally, before/after compare). |
-| **Habits** | Auto-checked daily checklist + 5 streak types + local reminders (Service-Worker notifications with in-app fallback). |
-| **Videos** | Per-exercise video manager: download direct files for **offline playback**, YouTube/blocked sources fall back to online + instructions. Swappable storage backend. |
-| **Settings** | Profile, EN/AR + RTL, dark theme, targets, rest default, wake-lock/vibration/notification toggles, reminders, optional cloud sign-in. |
+Everything the client sees is **coach-authored** or **client-logged** — nothing is hardcoded:
+
+- **Workout plan** — days → exercises with independent **warm-up** and **working** set counts (warm-up-only / working-only supported), reps, rest, video URL, instructions.
+- **Nutrition plan** — meals → foods with macros, daily macro targets, water target, supplements.
+- **Cardio plan** — prescribed sessions (type, duration, frequency, notes) + numeric cardio/step/water targets.
+- **Targets, coach notes & announcements**, and an optional starting **profile** (otherwise the client is required to complete name + body stats on first login).
+
+The client's **logs** (sets performed, food eaten, water, weight, measurements, photos) are the only client-owned data; they sync to the cloud and feed the coach's **day-by-day activity view** (per-set weight × reps) and the admin's read-only client view.
 
 ---
 
-## Project structure
+## Architecture
+
+- **Role-based routing** — after auth, [`src/App.tsx`](src/App.tsx) mounts one of `ClientApp` / `CoachApp` / `AdminApp` ([`src/apps/`](src/apps/)) by role + account status; [`useSession`](src/services/auth/sessionStore.ts) is the identity source of truth.
+- **Permission-gated UI** — `can()` / `useCan()` ([`src/services/auth/permissions.ts`](src/services/auth/permissions.ts)) hide controls; the backend rules are the real boundary.
+- **Client data = local-first** — Zustand stores + `getDataSource()` (IndexedDB) + a last-write-wins [`SyncEngine`](src/data/sync/SyncEngine.ts) mirroring to `clientData/{uid}`.
+- **Platform reads = online** — admin/coach read other users via React Query over thin Firestore services in [`src/services/platform/`](src/services/platform/) (`accountsApi`, `coachApi`, `planApi`, `auditApi`, `flagsApi`, `analyticsApi`, `coachClientsApi`).
+- **Per-account isolation** — switching accounts on one device wipes the previous user's local data (`scopeLocalToUser`) so nothing leaks between accounts.
+- **Account creation without Cloud Functions** — admins/coaches create accounts via a throwaway secondary Firebase app ([`createUserSecondary.ts`](src/services/accounts/createUserSecondary.ts)) so the actor's own session is preserved.
+
+### Project structure
 
 ```
 src/
-  types/                 # All domain interfaces (strict)
-  lib/                   # utils, haptics
-  i18n/                  # en.json, ar.json, RTL switching
-  data/
-    repositories.ts      # DataSource + Repository interfaces
-    dataSource.ts        # factory (local default; firebase when configured)
-    bootstrap.ts         # idempotent first-run seeding
-    blobStore.ts         # IndexedDB blobs (videos, photos)
-    seed/                # parsed Google Sheet data
-    adapters/local/      # localForage implementations
-    adapters/firebase/   # firebase init + config (optional)
-    sync/SyncEngine.ts   # last-write-wins sync
-  stores/                # zustand: settings, workout, nutrition, cardio, timer, habit, video, photo
+  apps/                  ClientApp, CoachApp, AdminApp (role shells + routes)
+  pages/
+    auth/                Login, AccountPending, AccountSuspended
+    coach/               clients, client detail, activity view, workout/nutrition/cardio editors, templates…
+    admin/               overview, accounts, client detail, assignments, governance, analytics
+    (client tracker)     Home, Workout, WorkoutSession, Nutrition, Cardio, Progress, CoachInbox…
   services/
-    habits/              # pure checklist + streak logic
-    video/               # IVideoStore abstraction + Cache API impl
-    reminders/           # reminder scheduler + notifications
-    auth/                # optional Firebase auth + cloud store
-    sheetParser.ts       # CSV / video-links parsing
-  components/            # Icon, ProgressRing, NumberStepper, Sheet, ExerciseCard, …
-  pages/                 # Home, Workout, WorkoutSession, Nutrition, Cardio, Progress,
-                         # ProgressPhotos, Settings, VideoManager, ImportData
-scripts/
-  importSheet.ts         # CLI: sheet/CSV → JSON
-  extractVideoLinks.gs   # Apps Script: dump real video hyperlinks → JSON
-  makeIcons.mjs          # generate PWA icons
+    auth/                sessionStore, roles, permissions, firebaseAuth, cloudStore
+    accounts/            accountService, createUserSecondary
+    platform/            accounts/coach/plan/audit/flags/analytics APIs + queryClient + clientSync
+    habits/ reminders/ video/
+  stores/                Zustand: settings, workout, nutrition, cardio, habit, photo, …
+  data/
+    repositories.ts, dataSource.ts, bootstrap.ts
+    adapters/local/      localForage implementations
+    adapters/firebase/   firebase init + config
+    sync/SyncEngine.ts   last-write-wins sync (→ clientData/{uid})
+  components/            AppShell, BrandBar, BottomNav, TopBar, Sheet, charts, …
+  config/nav.ts          per-role bottom-nav tabs
+  types/index.ts         all domain + RBAC types
+firestore.rules          full RBAC enforcement
+capacitor.config.ts      native shell config (android/ scaffolded)
+docs/FORMA.md            setup & operations
 ```
 
 ---
 
-## Importing / refreshing your data
+## Data model (Firestore)
 
-The seed already contains your sheet's 5-day plan, nutrition, and the **29 real
-video links**. Those links were extracted from the sheet's **XLSX export** —
-Google strips inserted hyperlinks from CSV/HTML, but XLSX keeps them as
-`=HYPERLINK()` formulas. To regenerate after the coach updates the sheet:
-
-```bash
-node scripts/extractFromXlsx.mjs       # → writes video-links.json (name → url)
+```
+users/{uid}                              identity: role, accountStatus, permissions, featureFlags, createdBy, assignedCoachId?
+coachClients/{coachId__clientId}         coach⇄client relationship (status)
+clientData/{clientId}/profile|settings   client fitness profile + app settings
+clientData/{clientId}/{workoutLogs|nutritionLogs|cardioLogs|weightLogs|measurementLogs|dailyChecklists|progressPhotos|reminders}
+clientData/{clientId}/plan/workout       coach-authored WorkoutPlan
+clientData/{clientId}/plan/nutrition     coach-authored MealPlan
+clientData/{clientId}/plan/cardio        coach-authored CardioPlan
+clientData/{clientId}/coachNotes|coachTargets        coach notes / targets
+planTemplates/{id}                       coach-owned reusable templates
+adminAuditLogs/{id}                      admin action trail
+featureFlags/{id}                        global / per-coach / per-client toggles
 ```
 
-Then either bump `SEED_VERSION` in `src/data/bootstrap.ts` and update
-`src/data/seed/videoAssets.seed.ts`, **or** paste the JSON into the app via
-**Settings → Import data** (preview the matches, tap Import).
-
-Other helpers:
-- `scripts/extractVideoLinks.gs` — Apps Script alternative (run inside the sheet) if you prefer.
-- `node --experimental-strip-types scripts/importSheet.ts <sheetId> <gid>` — dump a public tab as CSV → JSON.
-
 ---
-
-## Videos & offline
-
-The coach's 29 videos are **YouTube links**. The app embeds and plays them
-in-app when you tap the ▶ on an exercise (Video Manager or inside a session).
-
-**About "offline":** YouTube videos **cannot be saved as local files** — that
-breaks YouTube's Terms of Service and there's no direct file URL to fetch. So
-they require internet to play. For true offline, ask the coach for the raw
-`.mp4`/`.webm` files and paste a direct URL in the Video Manager — the app
-then downloads and caches it in IndexedDB for offline playback.
-
-`IVideoStore` (`src/services/video/`) abstracts this:
-
-- **Direct files** (`.mp4`/`.webm`) → downloaded into IndexedDB (Cache API),
-  played offline via object URLs, with progress + status badges.
-- **YouTube / unknown** → embedded online, with a clear offline fallback note.
-- Swap `CacheVideoStore` for a Firebase-Storage-backed store later without
-  touching any UI.
-
----
-
-## Enabling cloud sync (optional)
-
-Local-first works with **zero** setup. To add backup/sync across devices:
-
-1. Create a Firebase project → enable **Authentication (Email/Password)**,
-   **Cloud Firestore**, and **Storage**.
-2. Copy your web app config into `.env` (see [`.env.example`](.env.example)).
-3. Deploy the security rules in [`firestore.rules`](firestore.rules).
-4. Restart `npm run dev`. A **Sign in** button appears in **Settings → Cloud**.
-   Offline edits are flushed on reconnect; conflicts resolve last-write-wins by
-   `updatedAt`. Reads always come from the local store, so the UI stays instant.
-
-> Firestore is initialised with `ignoreUndefinedProperties`, so optional empty
-> fields don't break a sync.
 
 ## Deploying
 
-### Vercel (hosting)
-Vercel auto-detects Vite (build `npm run build`, output `dir` `dist`). Two things matter:
-
-1. **Environment variables** — add every `VITE_FIREBASE_*` var (from `.env`) in
-   **Vercel → Project → Settings → Environment Variables** for *Production* (and
-   *Preview*). The local `.env` is git-ignored and is **not** used by Vercel
-   builds, so cloud sync only works once these are set there.
-2. [`vercel.json`](vercel.json) (committed) handles the **SPA fallback** (deep
-   links / refresh) and the **cache headers** so the service worker updates
-   without reinstalling (`sw.js`/manifest = no-cache, `/assets/*` = immutable).
-
-Firestore **rules and the database itself still live in Firebase** even when
-hosting on Vercel — deploy rules with the Firebase CLI:
+### Security rules + indexes (required)
+The rules are the real access boundary. Deploy them (and the composite index) whenever they change:
 
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-(Firebase Hosting users can instead use the committed [`firebase.json`](firebase.json).)
+### First super admin (one-time, no Cloud Functions)
+1. Sign up in the app → this creates `users/{uid}` as a `client` with status `pending`.
+2. In the Firebase console → Firestore → that `users/{uid}` doc, set `role: super_admin` and `accountStatus: active`.
+3. Reload → you land on the Super Admin dashboard and can create/manage everyone in-app.
 
-### Firestore schema
+### Web hosting (Vercel or Firebase Hosting)
+Vite build → `dist`. On Vercel, add every `VITE_FIREBASE_*` env var (Production + Preview); [`vercel.json`](vercel.json) handles SPA fallback + service-worker cache headers. Firestore rules/data still live in Firebase regardless of host.
 
+### Android (Capacitor)
+The native project is scaffolded under `android/`.
+
+```bash
+npm run cap:sync       # build web + copy into native
+npm run cap:android    # build + sync + open Android Studio
 ```
-users/{uid}                          UserProfile + AppSettings
-users/{uid}/workoutPlans/{id}        WorkoutPlan
-users/{uid}/workoutLogs/{date}       WorkoutLog
-users/{uid}/nutritionPlans/{id}      MealPlan
-users/{uid}/nutritionLogs/{date}     NutritionLog
-users/{uid}/cardioLogs/{id}          CardioLog
-users/{uid}/weightLogs/{date}        WeightLog
-users/{uid}/videoAssets/{id}         VideoAsset (metadata; blobs stay local/Storage)
-users/{uid}/progressPhotos/{id}      ProgressPhoto (metadata; image blobs local/Storage)
-users/{uid}/dailyChecklists/{date}   DailyChecklist
-users/{uid}/reminders/{id}           Reminder
-users/{uid}/settings/app             AppSettings
-```
+
+Build/run the APK from Android Studio (needs the Android SDK + JDK).
 
 ---
 
@@ -186,18 +154,25 @@ users/{uid}/settings/app             AppSettings
 | --- | --- |
 | `npm run dev` | Start the dev server. |
 | `npm run build` | Type-check + production build + PWA service worker. |
-| `npm run preview` | Serve the production build locally. |
+| `npm run preview` | Serve the production build. |
 | `npm run lint` | TypeScript type-check only. |
-| `node scripts/makeIcons.mjs` | Regenerate PWA icons. |
-| `node scripts/extractFromXlsx.mjs` | Pull real video links from the sheet's XLSX export → `video-links.json`. |
+| `npm run cap:sync` | Build web + `cap sync` to native projects. |
+| `npm run cap:android` | Build + sync Android + open Android Studio. |
+
+---
+
+## Known limitations (rules-only architecture, no Cloud Functions)
+
+Acceptable trade-offs today; add Firebase Cloud Functions later to close them:
+
+- **Forced sign-out on suspend** — a suspended user is blocked by rules immediately but keeps a valid ID token (~1h) until it expires.
+- **Audit logs are best-effort** — client-written, create-only and immutable, but a privileged client could omit one. Server-written logs would be tamper-proof.
+- **Invites** — admin/coach-created accounts use a temporary password rather than an emailed invite link.
+- **Coach viewing progress-photo images** — photo metadata syncs, but the JPEG bytes are device-local; add Firebase Storage to share images.
 
 ---
 
 ## Notes
 
-- **Single user / personal app:** no mandatory login; the local profile is the
-  identity. Firebase auth is purely opt-in.
-- **Privacy:** progress photos and downloaded videos never leave the device
-  unless you enable cloud sync.
-- Coaching plan period in the source sheet ends **2026-07-30** — re-import a new
-  plan after that via the Import screen.
+- **Privacy:** a client's logs/photos never leave their device unless cloud sync is active for their (active) account.
+- **Local-only mode** (no Firebase) keeps the original standalone tracker working for development and offline-only use.
