@@ -36,6 +36,8 @@ export function Nutrition() {
     | { type: 'replace'; itemId: string };
   const [editor, setEditor] = useState<EditorMode | null>(null);
   const [form, setForm] = useState({ name: '', quantity: '', protein: '', carbs: '', fats: '' });
+  // The planned item being swapped (approved alternatives sheet).
+  const [swapItem, setSwapItem] = useState<FoodItem | null>(null);
 
   if (!plan) {
     return (
@@ -79,10 +81,21 @@ export function Nutrition() {
       fats,
       calories: Math.round(protein * 4 + carbs * 4 + fats * 9),
     };
-    if (editor.type === 'replace') await replaceItem(editor.itemId, food);
+    if (editor.type === 'replace')
+      await replaceItem(editor.itemId, food, { source: 'client_custom_substitution', pendingApproval: !!policy?.requireCoachApproval });
     else if (editor.type === 'addMeal') await addMealItem(editor.mealId, food);
     else await addCustomFood(food);
     setEditor(null);
+  };
+
+  // Coach substitution policy (carried on the synced meal plan).
+  const policy = plan.substitutionPolicy;
+  const canSwap = !!policy?.allowClientSubstitutions;
+  const canCustom = (item: FoodItem) => canSwap && !!policy?.allowCustomFoods && !!item.allowCustomSubstitution;
+
+  const pickAlternative = async (item: FoodItem, alt: FoodItem) => {
+    await replaceItem(item.id, { ...alt, id: alt.id || uid('food') }, { source: 'approved_substitution' });
+    setSwapItem(null);
   };
 
   const waterPct = Math.min(1, log.waterMl / (targets.waterMl || 1));
@@ -175,6 +188,9 @@ export function Nutrition() {
                 {meal.items.map((item) => {
                   const overridden = item.id in log.itemOverrides;
                   const replacement = overridden ? log.itemOverrides[item.id] : undefined;
+                  const sub = log.substitutions?.[item.id];
+                  const hasApproved = (item.allowedAlternatives?.length ?? 0) > 0;
+                  const swapAvailable = canSwap && (hasApproved || canCustom(item));
                   return (
                     <li key={item.id} className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -191,6 +207,15 @@ export function Nutrition() {
                             </p>
                           </>
                         )}
+                        {sub && (
+                          <span
+                            data-testid="sub-badge"
+                            className={`mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] ${sub.source === 'approved_substitution' ? 'bg-success/20 text-success' : 'bg-warn/15 text-warn'}`}
+                          >
+                            {sub.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')}
+                            {sub.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : ''}
+                          </span>
+                        )}
                         {overridden && !replacement && (
                           <p className="text-[11px] text-slate-500">{t('nutrition.removed')}</p>
                         )}
@@ -198,7 +223,7 @@ export function Nutrition() {
                       <div className="flex shrink-0 items-center gap-1">
                         {overridden ? (
                           <>
-                            {replacement && (
+                            {replacement && canCustom(item) && (
                               <button
                                 type="button"
                                 onClick={() => openEditor({ type: 'replace', itemId: item.id }, { name: loc(replacement.name), quantity: replacement.quantity, protein: replacement.protein, carbs: replacement.carbs, fats: replacement.fats })}
@@ -208,25 +233,22 @@ export function Nutrition() {
                                 <Icon name="edit" size={14} />
                               </button>
                             )}
-                            <button type="button" onClick={() => void resetItem(item.id)} className="icon-btn h-8 w-8" aria-label={t('nutrition.reset')}>
+                            <button type="button" onClick={() => void resetItem(item.id)} className="icon-btn h-8 w-8" aria-label={t('nutrition.reset')} data-testid="sub-reset">
                               <Icon name="chevron" size={14} className="rotate-180" />
                             </button>
                           </>
-                        ) : (
+                        ) : canSwap ? (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => openEditor({ type: 'replace', itemId: item.id }, { name: loc(item.name), quantity: item.quantity, protein: item.protein, carbs: item.carbs, fats: item.fats })}
-                              className="icon-btn h-8 w-8"
-                              aria-label={t('nutrition.replace')}
-                            >
-                              <Icon name="edit" size={14} />
-                            </button>
+                            {swapAvailable && (
+                              <button type="button" onClick={() => setSwapItem(item)} className="icon-btn h-8 w-8" aria-label={t('nutritionSub.swap')} data-testid="client-swap">
+                                <Icon name="rotate" size={14} />
+                              </button>
+                            )}
                             <button type="button" onClick={() => void removeItem(item.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                               <Icon name="close" size={14} />
                             </button>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </li>
                   );
@@ -383,6 +405,54 @@ export function Nutrition() {
             {editor?.type === 'replace' ? t('nutrition.replace') : t('common.add')}
           </button>
         </div>
+      </Sheet>
+
+      {/* Swap a planned item for a coach-approved alternative (or a custom food). */}
+      <Sheet open={!!swapItem} onClose={() => setSwapItem(null)} title={t('nutritionSub.swap')}>
+        {swapItem && (
+          <div className="space-y-3" data-testid="swap-sheet">
+            {(swapItem.allowedAlternatives?.length ?? 0) > 0 ? (
+              <>
+                <p className="label">{t('nutritionSub.approvedAlternatives')}</p>
+                <div className="card divide-y divide-line-soft">
+                  {swapItem.allowedAlternatives!.map((alt) => (
+                    <button
+                      key={alt.id}
+                      type="button"
+                      data-testid="swap-approved-item"
+                      className="row w-full text-start"
+                      onClick={() => void pickAlternative(swapItem, alt)}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{loc(alt.name)}</span>
+                        <span className="block truncate text-[12px] text-earth-subtle" dir="ltr">
+                          {alt.quantity ? `${alt.quantity} · ` : ''}{alt.calories} kcal · P{alt.protein} C{alt.carbs} F{alt.fats}
+                        </span>
+                      </span>
+                      <Icon name="check" size={18} className="text-brand" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-earth-muted">{t('nutritionSub.noApproved')}</p>
+            )}
+            {canCustom(swapItem) && (
+              <button
+                type="button"
+                data-testid="swap-custom"
+                className="btn-ghost w-full"
+                onClick={() => {
+                  const it = swapItem;
+                  setSwapItem(null);
+                  openEditor({ type: 'replace', itemId: it.id }, { name: loc(it.name), quantity: it.quantity, protein: it.protein, carbs: it.carbs, fats: it.fats });
+                }}
+              >
+                <Icon name="plus" size={16} /> {t('nutritionSub.customFood')}
+              </button>
+            )}
+          </div>
+        )}
       </Sheet>
     </div>
   );

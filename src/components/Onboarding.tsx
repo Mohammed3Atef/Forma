@@ -60,7 +60,7 @@ export function Onboarding() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black px-5 py-12">
+    <div data-testid="onboarding-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-black px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
         <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-48 max-w-[58%] rounded-2xl" />
         <h1 className="h1">{t('onboard.welcome')}</h1>

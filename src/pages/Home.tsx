@@ -125,7 +125,7 @@ export function Home() {
   });
 
   return (
-    <div className="anim-rise space-y-4 pt-2">
+    <div className="anim-rise space-y-4 pt-2" data-testid="client-home">
       {/* Greeting */}
       <header className="flex items-start justify-between pt-2">
         <div className="min-w-0">

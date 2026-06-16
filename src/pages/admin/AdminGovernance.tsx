@@ -38,7 +38,7 @@ export function AdminGovernance() {
 
   return (
     <>
-      <TopBar title={t('admin.governance')} eyebrow={t('platform.superAdmin')} />
+      <TopBar testId="admin-governance" title={t('admin.governance')} eyebrow={t('platform.superAdmin')} />
 
       {/* Feature flags */}
       <div className="mb-2 flex items-center justify-between">
@@ -112,7 +112,7 @@ export function AdminGovernance() {
               logs.map((log) => (
                 <div key={log.id} className="py-2.5 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between">
-                    <span className="truncate text-sm font-medium">{log.action}</span>
+                    <span className="truncate text-sm font-medium">{t(log.action, { defaultValue: log.action.replace(/\./g, ' ') })}</span>
                     <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(log.createdAt).toLocaleString()}</span>
                   </div>
                   <div className="truncate text-[12px] text-earth-subtle">

@@ -78,6 +78,121 @@ export interface UserRecord {
   updatedAt: number;
 }
 
+// ---------------------------------------------------------------------------
+// Client onboarding assessment
+// ---------------------------------------------------------------------------
+
+export type Gender = 'male' | 'female';
+export type AssessmentGoal =
+  | 'fat_loss'
+  | 'muscle_gain'
+  | 'recomp'
+  | 'strength'
+  | 'general_fitness'
+  | 'endurance';
+export type OccupationType = 'desk' | 'moderate' | 'physical';
+export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
+export type TrainingLocation = 'commercial_gym' | 'home_gym' | 'both';
+export type InjuryArea = 'shoulder' | 'elbow' | 'wrist' | 'back' | 'knee' | 'ankle';
+export type FoodBudget = 'low' | 'medium' | 'high';
+export type AssessmentChallenge =
+  | 'consistency'
+  | 'time'
+  | 'hunger'
+  | 'eating_out'
+  | 'travel'
+  | 'motivation'
+  | 'other';
+
+export interface AssessmentBasic {
+  fullName: string;
+  dateOfBirth: string; // ISO YYYY-MM-DD
+  age: number; // derived from dateOfBirth on submit
+  gender: Gender;
+  heightCm: number;
+  weightKg: number;
+}
+export interface AssessmentGoals {
+  primaryGoal: AssessmentGoal;
+  /** Optional ordered priorities (most → least important). */
+  goalPriorities?: AssessmentGoal[];
+  targetWeightKg?: number;
+  deadlineMonths?: number;
+}
+export interface AssessmentLifestyle {
+  occupation: OccupationType;
+  sleepHours: number; // 4–12
+  activityLevel: ActivityLevel;
+  trainingDaysPerWeek: number; // 1–7
+}
+export interface AssessmentTraining {
+  level: TrainingLevel;
+  location: TrainingLocation;
+}
+export interface AssessmentHealth {
+  injuries: InjuryArea[];
+  noInjuries: boolean;
+  injuryDetails?: string;
+  hasMedicalConditions: boolean;
+  medicalDetails?: string;
+}
+export interface AssessmentNutrition {
+  likes: string[];
+  dislikes: string[];
+  allergies: string[];
+  /** Foods the client won't give up — helps build a realistic plan. */
+  mustHaveFoods: string[];
+  budget: FoodBudget;
+  mealsPerDay: number; // 2–6
+}
+export interface AssessmentMotivation {
+  biggestChallenge: AssessmentChallenge;
+  commitmentLevel: number; // 1–10
+}
+export interface AssessmentPhotos {
+  front?: string;
+  side?: string;
+  back?: string;
+}
+
+/**
+ * Lifecycle of the onboarding assessment. `not_started` = no doc; `in_progress`
+ * = client saved a draft; `submitted` = client finished; `reviewed` = the coach
+ * has reviewed it. Legacy docs (no `status`, `completed:true`) read as
+ * `submitted` via `assessmentStatus()` in src/lib/assessment.ts.
+ */
+export type AssessmentStatus = 'not_started' | 'in_progress' | 'submitted' | 'reviewed';
+
+/**
+ * Mandatory client onboarding assessment, stored in structured sections at
+ * `clientData/{clientId}/profile/assessment`. Client-owned (writes their own
+ * until the coach marks it reviewed); the assigned coach + admins read it, and
+ * the assigned coach writes the review fields (coachNotes / reviewed / reset).
+ */
+export interface ClientAssessment {
+  basic: AssessmentBasic;
+  goals: AssessmentGoals;
+  lifestyle: AssessmentLifestyle;
+  training: AssessmentTraining;
+  health: AssessmentHealth;
+  nutrition: AssessmentNutrition;
+  motivation: AssessmentMotivation;
+  progressPhotos: AssessmentPhotos;
+  /** 0–100; set to 100 on completion (room for partial-completion UI later). */
+  completionPercentage: number;
+  completed: boolean;
+  completedAt: number | null;
+  updatedAt: number;
+  // ---- review loop (additive; legacy docs derive status from `completed`) ----
+  status?: AssessmentStatus;
+  submittedAt?: number | null;
+  /** Coach review metadata. */
+  reviewedAt?: number | null;
+  reviewedBy?: string | null;
+  /** Free-text notes the coach records while reviewing. */
+  coachNotes?: string;
+}
+
 export type CoachClientStatus = 'active' | 'pending' | 'ended';
 
 /** Coach⇄client link. Doc id is deterministic: `${coachId}__${clientId}`. */
@@ -160,6 +275,7 @@ export interface CardioPlan {
   id: string;
   name: string;
   sessions: CardioSession[];
+  meta?: AssignedPlanMeta;
   updatedAt: number;
 }
 
@@ -216,6 +332,24 @@ export interface Exercise {
   videoId: string | null;
   /** Coach-assigned direct video URL (YouTube or file), shown to the client. */
   videoUrl?: string | null;
+  // ---- Coach exercise-library fields (optional; used when authoring) -------
+  /** Body part / category, e.g. "Chest", "Back". */
+  category?: string;
+  /** Equipment, e.g. "Barbell", "Dumbbell", "Machine", "Bodyweight". */
+  equipment?: string;
+  /** Free-form tags for search/filter. */
+  tags?: string[];
+  /** Coach progression guidance shown to the client. */
+  progressionNotes?: string;
+}
+
+/** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */
+export type SectionKind = 'normal' | 'warmup' | 'working' | 'mobility' | 'finisher';
+export interface WorkoutSection {
+  id: string;
+  title: string;
+  kind: SectionKind;
+  exerciseIds: string[];
 }
 
 export interface WorkoutDay {
@@ -223,7 +357,23 @@ export interface WorkoutDay {
   dayIndex: number;
   title: string;
   focus: string;
+  /** Canonical flat ordered exercise list (always = `sections` flattened). */
   exerciseIds: string[];
+  /** Optional section grouping (coach-authored). Absent on seed/legacy plans. */
+  sections?: WorkoutSection[];
+}
+
+/**
+ * Metadata on an assigned client plan that was created from a coach template.
+ * The assigned plan is an independent SNAPSHOT — never live-linked to the
+ * template. `isCustomized` flips true once the coach edits the assigned copy.
+ */
+export interface AssignedPlanMeta {
+  sourceTemplateId?: string;
+  sourceTemplateName?: string;
+  assignedAt: number;
+  assignedBy: string;
+  isCustomized: boolean;
 }
 
 export interface WorkoutPlan {
@@ -232,6 +382,60 @@ export interface WorkoutPlan {
   days: WorkoutDay[];
   exercises: Record<string, Exercise>;
   weeklyVolume?: Record<string, string>;
+  meta?: AssignedPlanMeta;
+  updatedAt: number;
+}
+
+export type WorkoutGoal = 'hypertrophy' | 'fat_loss' | 'strength' | 'beginner' | 'advanced' | 'custom';
+export type SplitType = 'ppl' | 'upper_lower' | 'full_body' | 'bro_split' | 'custom';
+
+/** A coach-owned reusable workout template at `coachAssets/{coachId}/workoutTemplates`. */
+export interface WorkoutTemplate {
+  id: string;
+  coachId: string;
+  name: string;
+  goal: WorkoutGoal;
+  splitType: SplitType;
+  days: WorkoutDay[];
+  exercises: Record<string, Exercise>;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Coach-owned reusable food at `coachAssets/{coachId}/foods` (nutrition architecture). */
+export interface LibraryFood extends FoodItem {
+  category?: string;
+  tags?: string[];
+}
+
+/**
+ * A coach-owned group of interchangeable foods at `coachAssets/{coachId}/foodGroups`.
+ * Attaching a group to a planned meal item snapshots its `foods` onto the item
+ * as `allowedAlternatives` (the client swaps among them without changing the plan).
+ */
+export interface FoodGroup {
+  id: string;
+  coachId: string;
+  name: string;
+  foods: LibraryFood[];
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** How a logged meal item compares to the coach's plan (for adherence). */
+export type SubstitutionSource = 'matched_plan' | 'approved_substitution' | 'client_custom_substitution';
+
+/** Coach-owned reusable nutrition template at `coachAssets/{coachId}/nutritionTemplates`. */
+export interface NutritionTemplate {
+  id: string;
+  coachId: string;
+  name: string;
+  meals: Meal[];
+  targets: Macros;
+  supplements: Supplement[];
+  waterTargetMl: number;
+  createdAt: number;
   updatedAt: number;
 }
 
@@ -293,6 +497,13 @@ export interface FoodItem {
   carbs: number;
   fats: number;
   calories: number;
+  // ---- approved alternatives (planned items only; snapshotted onto the plan) ----
+  /** Provenance: the coach FoodGroup this item's alternatives were copied from. */
+  allowedAlternativeGroupId?: string;
+  /** Coach-approved swaps for this item, denormalized so the client can read them. */
+  allowedAlternatives?: FoodItem[];
+  /** Whether the client may swap this item for a free-text custom food. */
+  allowCustomSubstitution?: boolean;
 }
 
 export interface Meal {
@@ -317,7 +528,38 @@ export interface MealPlan {
   waterTargetMl: number;
   beverageNotes: LocalizedText[];
   generalNotes: LocalizedText[];
+  meta?: AssignedPlanMeta;
+  /** Coach policy governing client food substitutions for this plan. */
+  substitutionPolicy?: SubstitutionPolicy;
   updatedAt: number;
+}
+
+/** Coach controls for whether/how the client may swap planned foods. */
+export interface SubstitutionPolicy {
+  allowClientSubstitutions: boolean;
+  allowCustomFoods: boolean;
+  requireCoachApproval: boolean;
+}
+
+/** The three plan kinds that can be versioned (cardio is not a `PlanKind`). */
+export type PlanVersionKind = 'workout' | 'nutrition' | 'cardio';
+
+/**
+ * A point-in-time snapshot of one of a client's plans, stored at
+ * `clientData/{clientId}/planVersions/{versionId}` (coach-owned, client reads).
+ * The assigned `plan/{kind}` doc always equals the `active` version's snapshot —
+ * that's the single source the client tracker reads.
+ */
+export interface PlanVersion {
+  id: string;
+  kind: PlanVersionKind;
+  versionNumber: number;
+  name: string;
+  createdAt: number;
+  createdBy: string;
+  reason?: string;
+  snapshot: WorkoutPlan | MealPlan | CardioPlan;
+  active: boolean;
 }
 
 export interface NutritionLog {
@@ -334,6 +576,12 @@ export interface NutritionLog {
    * The original stays in the plan and is shown struck-through.
    */
   itemOverrides: Record<string, FoodItem | null>;
+  /**
+   * Adherence tag for each swapped item (keyed by the original planned item id):
+   * whether it was an approved alternative or a custom food, and whether it's
+   * flagged for coach review. Items with no entry are `matched_plan`.
+   */
+  substitutions?: Record<string, { source: Exclude<SubstitutionSource, 'matched_plan'>; pendingApproval?: boolean }>;
   /** Extra foods added to a planned meal for that day (keyed by mealId). */
   extraItems: Record<string, FoodItem[]>;
   waterMl: number;

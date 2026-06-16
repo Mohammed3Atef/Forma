@@ -7,6 +7,7 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   const { t } = useTranslation();
   return (
     <nav
+      data-testid="bottom-nav"
       className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black from-[58%] via-black/90 to-transparent"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
@@ -16,6 +17,7 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
             <NavLink
               to={item.to}
               end={item.end ?? false}
+              data-testid={`nav-${item.key}`}
               className={({ isActive }) =>
                 `flex flex-col items-center gap-1.5 py-1.5 ${isActive ? 'text-white' : 'text-earth-subtle'}`
               }

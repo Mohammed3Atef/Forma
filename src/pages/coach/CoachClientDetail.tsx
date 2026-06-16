@@ -10,6 +10,7 @@ import {
   addCoachNote,
   fetchClientLogs,
   fetchClientProfile,
+  getClientAssessment,
   getCoachTargets,
   listCoachNotes,
   setCoachTargets,
@@ -17,8 +18,16 @@ import {
 } from '@/services/platform/coachApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { fetchUser } from '@/services/platform/accountsApi';
+import { assessmentStatus } from '@/lib/assessment';
 import { Icon, type IconName } from '@/components/Icon';
-import type { WeightLog, WorkoutLog } from '@/types';
+import type { AssessmentStatus, WeightLog, WorkoutLog } from '@/types';
+
+const ASSESS_PILL: Record<AssessmentStatus, string> = {
+  not_started: 'border-line text-earth-subtle',
+  in_progress: 'border-warn/50 text-warn',
+  submitted: 'border-brand/50 text-brand',
+  reviewed: 'border-success/50 text-success',
+};
 
 export function CoachClientDetail() {
   const { t } = useTranslation();
@@ -39,6 +48,8 @@ export function CoachClientDetail() {
   const mealPlan = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
   const cardioPlan = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
   const targets = useQuery({ queryKey: ['coachTargets', clientId], queryFn: () => getCoachTargets(clientId), enabled: !!clientId });
+  const assessment = useQuery({ queryKey: ['clientAssessment', clientId], queryFn: () => getClientAssessment(clientId), enabled: !!clientId });
+  const assessStatus = assessmentStatus(assessment.data);
 
   const plansCount = (workoutPlan.data ? 1 : 0) + (mealPlan.data ? 1 : 0);
   const finishedWorkouts = (workouts.data ?? []).filter((w) => w.finished).length;
@@ -48,7 +59,7 @@ export function CoachClientDetail() {
 
   return (
     <>
-      <TopBar title={name} eyebrow={profile.data?.goal ? t(`settings.goals.${profile.data.goal}`) : t('platform.coachPortal')} onBack={() => navigate('/coach')} />
+      <TopBar testId="coach-client-detail" title={name} eyebrow={profile.data?.goal ? t(`settings.goals.${profile.data.goal}`) : t('platform.coachPortal')} onBack={() => navigate('/coach')} />
 
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile icon="dumbbell" value={finishedWorkouts} label={t('coach.recentWorkouts')} />
@@ -59,13 +70,31 @@ export function CoachClientDetail() {
 
       {/* Primary actions: view the client's activity, or manage their plan. */}
       <div className="mt-5 grid grid-cols-2 gap-2.5">
-        <button type="button" onClick={() => navigate(`/coach/client/${clientId}/activity`)} className="btn-primary">
+        <button type="button" data-testid="coach-view-activity" onClick={() => navigate(`/coach/client/${clientId}/activity`)} className="btn-primary">
           {t('activity.view')}
         </button>
-        <button type="button" onClick={() => setSheet('manage')} className="btn-ghost">
+        <button type="button" data-testid="coach-manage" onClick={() => setSheet('manage')} className="btn-ghost">
           {t('coach.manage')}
         </button>
       </div>
+
+      {/* Client onboarding assessment (read-only) */}
+      <button
+        type="button"
+        data-testid="coach-view-assessment"
+        onClick={() => navigate(`/coach/client/${clientId}/assessment`)}
+        className="card-tap mt-2.5 flex w-full items-center gap-3 text-start"
+      >
+        <span className="row-av bg-brand/15 text-brand">
+          <Icon name="list" size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('assessment.title')}</span>
+          <span className="block text-[13px] text-earth-muted">{t('assessment.coachHint')}</span>
+        </span>
+        <span data-testid="assessment-status-badge" className={`chip ${ASSESS_PILL[assessStatus]}`}>{t(`assessment.status.${assessStatus}`)}</span>
+        <Icon name="chevron" size={18} />
+      </button>
 
       {/* Targets (read-only summary) */}
       <h2 className="h2 mb-2 mt-6">{t('coach.targets')}</h2>
@@ -138,8 +167,8 @@ function NoteSheet({ open, onClose, clientId, author, onSaved }: { open: boolean
   });
   return (
     <Sheet open={open} onClose={onClose} title={t('coach.addNote')}>
-      <textarea className="input min-h-28" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
-      <button type="button" disabled={!body.trim() || mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
+      <textarea className="input min-h-28" data-testid="coach-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
+      <button type="button" data-testid="coach-note-save" disabled={!body.trim() || mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
         {t('common.save')}
       </button>
     </Sheet>
@@ -180,8 +209,8 @@ function ManageSheet({
   // through to "no plan").
   const planSub = (assigned: boolean, name?: string) =>
     assigned ? name?.trim() || t('coach.planEdit') : t('coach.noPlanAssigned');
-  const row = (icon: IconName, title: string, sub: string, onClick: () => void) => (
-    <button type="button" onClick={onClick} className="row w-full text-start">
+  const row = (icon: IconName, title: string, sub: string, onClick: () => void, testId?: string) => (
+    <button type="button" data-testid={testId} onClick={onClick} className="row w-full text-start">
       <span className="row-av bg-brand/15 text-brand">
         <Icon name={icon} size={18} />
       </span>
@@ -195,11 +224,11 @@ function ManageSheet({
   return (
     <Sheet open={open} onClose={onClose} title={t('coach.manage')}>
       <div className="card divide-y divide-line-soft">
-        {row('dumbbell', t('coach.kind.workout'), planSub(workoutAssigned, workoutName), onWorkout)}
-        {row('meal', t('coach.kind.nutrition'), planSub(nutritionAssigned, nutritionName), onNutrition)}
-        {row('activity', t('coach.kind.cardio'), cardioAssigned ? t('coach.sessionsCount', { n: cardioCount ?? 0 }) : t('coach.noPlanAssigned'), onCardio)}
-        {row('target', t('coach.setTargets'), t('coach.targets'), onTargets)}
-        {row('edit', t('coach.addNote'), t('coach.notes'), onNote)}
+        {row('dumbbell', t('coach.kind.workout'), planSub(workoutAssigned, workoutName), onWorkout, 'coach-edit-workout')}
+        {row('meal', t('coach.kind.nutrition'), planSub(nutritionAssigned, nutritionName), onNutrition, 'coach-edit-nutrition')}
+        {row('activity', t('coach.kind.cardio'), cardioAssigned ? t('coach.sessionsCount', { n: cardioCount ?? 0 }) : t('coach.noPlanAssigned'), onCardio, 'coach-edit-cardio')}
+        {row('target', t('coach.setTargets'), t('coach.targets'), onTargets, 'coach-set-targets')}
+        {row('edit', t('coach.addNote'), t('coach.notes'), onNote, 'coach-add-note')}
       </div>
     </Sheet>
   );
@@ -230,7 +259,7 @@ function TargetsSheet({ open, onClose, clientId, updatedBy, current, onSaved }: 
   const field = (key: keyof typeof form, label: string) => (
     <div>
       <label className="label">{label}</label>
-      <input className="input" inputMode="numeric" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+      <input className="input" data-testid={`targets-${key}`} inputMode="numeric" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
     </div>
   );
   return (
@@ -242,7 +271,7 @@ function TargetsSheet({ open, onClose, clientId, updatedBy, current, onSaved }: 
         {field('calories', t('nutrition.calories'))}
         {field('protein', t('nutrition.protein'))}
       </div>
-      <button type="button" disabled={mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-4 w-full disabled:opacity-40">
+      <button type="button" data-testid="coach-targets-save" disabled={mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-4 w-full disabled:opacity-40">
         {t('common.save')}
       </button>
     </Sheet>

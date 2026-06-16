@@ -7,7 +7,7 @@ export function AccountSuspended() {
   const { t } = useTranslation();
   const signOut = useSession((s) => s.signOut);
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black px-8 text-center">
+    <div data-testid="account-suspended" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black px-8 text-center">
       <span className="text-danger">
         <Icon name="info" size={40} />
       </span>

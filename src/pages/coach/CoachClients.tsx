@@ -36,13 +36,13 @@ export function CoachClients() {
   }, [clients.data, search]);
 
   return (
-    <>
+    <div data-testid="coach-clients">
       <TopBar
         title={t('coach.clients')}
         eyebrow={t('platform.coachPortal')}
         right={
           <div className="flex items-center gap-1.5">
-            <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={() => setAdding(true)}>
+            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={() => setAdding(true)}>
               <Icon name="plus" size={20} />
             </button>
             <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
@@ -66,7 +66,7 @@ export function CoachClients() {
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((c) => (
-            <button key={c.id} type="button" onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
+            <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
               <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{c.displayName || c.email}</span>
@@ -87,7 +87,7 @@ export function CoachClients() {
           }}
         />
       </Sheet>
-    </>
+    </div>
   );
 }
 
@@ -146,6 +146,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
   return (
     <form
       className="space-y-3"
+      data-testid="coach-add-client-form"
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
@@ -153,9 +154,9 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
       }}
     >
       <p className="text-sm text-earth-muted">{t('coach.addClientHint')}</p>
-      <input className="input" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-      <input className="input" type="email" autoComplete="off" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-      <input className="input" type="password" autoComplete="new-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <input className="input" data-testid="coach-add-name" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <input className="input" type="email" autoComplete="off" data-testid="coach-add-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      <input className="input" type="password" autoComplete="new-password" data-testid="coach-add-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
 
       <p className="label pt-1">{t('coach.profileOptional')}</p>
       <div className="grid grid-cols-3 gap-2">
@@ -174,8 +175,8 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
         ))}
       </select>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
-      <button type="submit" disabled={!valid || mut.isPending} className="btn-primary w-full disabled:opacity-40">
+      {error && <p className="text-sm text-danger" data-testid="coach-add-error">{error}</p>}
+      <button type="submit" disabled={!valid || mut.isPending} data-testid="coach-add-submit" className="btn-primary w-full disabled:opacity-40">
         {mut.isPending ? t('auth.working') : t('coach.createClient')}
       </button>
     </form>

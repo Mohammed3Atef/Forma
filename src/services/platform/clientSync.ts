@@ -2,7 +2,7 @@ import localforage from 'localforage';
 import { getDataSource } from '@/data/dataSource';
 import { SEED_PROFILE, SEED_SETTINGS } from '@/data/seed/defaults';
 import { getClientMealPlan, getClientWorkoutPlan } from './planApi';
-import { fetchMyCoachTargets } from './clientCoachApi';
+import { fetchMyCoachTargets, fetchMyProfile } from './clientCoachApi';
 import type { DailyTargets } from '@/types';
 
 const meta = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
@@ -57,11 +57,30 @@ export async function scopeLocalToUser(uid: string, displayName: string): Promis
  */
 export async function loadCoachAssignedContent(uid: string): Promise<void> {
   const ds = getDataSource();
-  const [wp, mp, ct] = await Promise.all([
-    getClientWorkoutPlan(uid),
-    getClientMealPlan(uid),
-    fetchMyCoachTargets(uid),
-  ]);
+  // These are network reads. Offline (or on a transient error) we must NOT throw
+  // — the caller still needs to load the local stores from IndexedDB, and the
+  // last-synced plan/profile/targets already live there. Degrade gracefully.
+  let wp, mp, ct, remoteProfile;
+  try {
+    [wp, mp, ct, remoteProfile] = await Promise.all([
+      getClientWorkoutPlan(uid),
+      getClientMealPlan(uid),
+      fetchMyCoachTargets(uid),
+      fetchMyProfile(uid),
+    ]);
+  } catch {
+    return; // keep whatever is already mirrored locally
+  }
+
+  // Apply the client's own profile deterministically (last-write-wins) so the
+  // profile-completion gate reflects real values right after scopeLocalToUser
+  // reset it — without waiting for the next background sync tick.
+  if (remoteProfile) {
+    const localProfile = await ds.profile.get();
+    if (!localProfile || remoteProfile.updatedAt >= (localProfile.updatedAt ?? 0)) {
+      await ds.profile.set(remoteProfile);
+    }
+  }
 
   // Workout plan — mirror the coach's plan, or clear local plans if none.
   const localPlans = await ds.workoutPlans.getAll();

@@ -20,7 +20,7 @@ interface AppShellProps {
 export function AppShell({ children, hideNav, showDayNav, navItems = CLIENT_NAV }: AppShellProps) {
   const timerActive = useTimer((s) => s.running || s.paused);
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col">
+    <div className="mx-auto flex min-h-full max-w-md flex-col" data-testid="app-shell">
       {!hideNav && <BrandBar />}
       <ReminderBanner />
       <main className={`flex-1 px-5 pt-1 ${hideNav ? 'pb-4' : 'pb-28'}`}>

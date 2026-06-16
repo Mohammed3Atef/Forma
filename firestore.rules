@@ -52,6 +52,13 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId))
         && get(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId)).data.status == 'active';
     }
+    // Collections under clientData the client may READ but never WRITE — they are
+    // coach-owned. Everything else under clientData (logs, settings, reminders,
+    // deletions, …) is the client's own. Daily nutrition substitutions live in
+    // nutritionLogs/{date}, which the client owns — NOT in plan/nutrition.
+    function isCoachOwnedColl(coll) {
+      return coll in ['plan', 'coachNotes', 'coachTargets', 'workoutPlans', 'nutritionPlans', 'planVersions'];
+    }
 
     // ---- users (identity / access control) -------------------------------
     match /users/{uid} {
@@ -87,20 +94,24 @@ service cloud.firestore {
           && request.resource.data.accountStatus == resource.data.accountStatus
           && request.resource.data.createdBy == resource.data.createdBy
           && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', ''))
-        // Status change (role & permissions unchanged).
-        || (hasPermission('users.manageStatus')
-            && request.resource.data.role == resource.data.role
-            && request.resource.data.permissions == resource.data.permissions)
-        // Coach assignment change (role/permissions/status unchanged).
-        || (hasPermission('coaches.assign')
-            && request.resource.data.role == resource.data.role
-            && request.resource.data.permissions == resource.data.permissions
-            && request.resource.data.accountStatus == resource.data.accountStatus)
-        // Role/permission change: super_admin anything; admin only among client/coach.
+        // Super admin: unrestricted.
         || isSuperAdmin()
-        || (hasPermission('users.manageRoles')
-            && request.resource.data.role in ['client', 'coach']
-            && resource.data.role in ['client', 'coach'])
+        // Admin-level actions apply ONLY to client/coach targets — an admin can
+        // never modify an admin or super_admin account.
+        || (resource.data.role in ['client', 'coach'] && (
+              // Status change (role & permissions unchanged).
+              (hasPermission('users.manageStatus')
+                && request.resource.data.role == resource.data.role
+                && request.resource.data.permissions == resource.data.permissions)
+              // Coach assignment change (role/permissions/status unchanged).
+              || (hasPermission('coaches.assign')
+                && request.resource.data.role == resource.data.role
+                && request.resource.data.permissions == resource.data.permissions
+                && request.resource.data.accountStatus == resource.data.accountStatus)
+              // Role change, limited to client/coach.
+              || (hasPermission('users.manageRoles')
+                && request.resource.data.role in ['client', 'coach'])
+           ))
       );
 
       // Prefer status 'disabled' over hard delete; only super_admin may delete.
@@ -121,49 +132,60 @@ service cloud.firestore {
     }
 
     // ---- clientData (fitness data) ---------------------------------------
-    // Owner full access; assigned coach + admins read; coach/admin writes are
-    // narrowed to plans/notes/targets by the specific matches below.
+    // Read: owner, assigned coach, or admin oversight. (Recursive so it also
+    // covers the singletons profile/main, settings/app and tombstones.)
     match /clientData/{clientId}/{document=**} {
       allow read: if isSignedIn() && (
         request.auth.uid == clientId
         || isAssignedCoach(clientId)
         || hasPermission('clients.readAll'));
-      allow write: if isActive() && request.auth.uid == clientId;
     }
-    // Coach-authored rich plans (clientData/{clientId}/plan/{workout|nutrition}).
-    match /clientData/{clientId}/plan/{doc} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
-      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
-    }
-    // Profile: the client owns it, but a coach may set it at account creation.
-    match /clientData/{clientId}/profile/{doc} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
-      allow write: if request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.writeAll');
-    }
-    match /clientData/{clientId}/workoutPlans/{id} {
-      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
-    }
-    match /clientData/{clientId}/nutritionPlans/{id} {
-      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
-    }
-    match /clientData/{clientId}/coachNotes/{id} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
-      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
-    }
-    match /clientData/{clientId}/coachTargets/{id} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.readAll'));
-      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    // Write is scoped per collection so the client can manage their OWN data but
+    // never the coach-owned source plans/notes/targets (which are read-only to
+    // them). All client data is exactly one collection deep.
+    match /clientData/{clientId}/{coll}/{docId} {
+      // The client owns their logs, profile, settings, reminders, deletions… —
+      // including nutritionLogs/{date} (daily meal swaps / substitutions).
+      // The onboarding assessment is carved out below (status-aware lock).
+      allow write: if isActive() && request.auth.uid == clientId
+        && !isCoachOwnedColl(coll)
+        && !(coll == 'profile' && docId == 'assessment');
+      // The assigned coach (or an admin with clients.writeAll) authors the
+      // coach-owned docs, and may set the client's starting profile.
+      allow write: if (isAssignedCoach(clientId) || hasPermission('clients.writeAll'))
+        && (isCoachOwnedColl(coll) || coll == 'profile');
     }
 
-    // ---- planTemplates (coach-owned) -------------------------------------
+    // ---- onboarding assessment (status-aware) ----------------------------
+    // The client may create + edit their assessment until the coach has marked
+    // it `reviewed`; the assigned coach (or admin clients.writeAll) writes the
+    // review fields (coachNotes / reviewed / reset). Admins are read-only.
+    match /clientData/{clientId}/profile/assessment {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId
+        || isAssignedCoach(clientId)
+        || hasPermission('clients.readAll'));
+      allow create: if isActive() && request.auth.uid == clientId;
+      allow update: if isActive() && request.auth.uid == clientId
+        && resource.data.status != 'reviewed';
+      allow update: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+
+    // ---- planTemplates (coach-owned, legacy) -----------------------------
     match /planTemplates/{id} {
       allow read: if isSignedIn() && (resource.data.coachId == request.auth.uid || hasPermission('users.read'));
       allow create: if isCoach() && request.resource.data.coachId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.coachId == request.auth.uid;
+    }
+
+    // ---- coachAssets (coach-owned exercise library + templates) ----------
+    // The coach owns everything under their own coachAssets/{coachId} subtree
+    // (exercises, workoutTemplates, nutritionTemplates, foods). Admins may read
+    // for oversight; assigning to a client writes the client plan, which is
+    // separately gated by isAssignedCoach on clientData/{clientId}/plan.
+    match /coachAssets/{coachId}/{document=**} {
+      allow read: if isSignedIn() && (request.auth.uid == coachId || hasPermission('users.read'));
+      allow write: if isActive() && request.auth.uid == coachId;
     }
 
     // ---- adminAuditLogs (best-effort, create-only, immutable) ------------

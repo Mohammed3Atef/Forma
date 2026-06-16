@@ -90,11 +90,12 @@ export function AdminAccounts() {
   return (
     <>
       <TopBar
+        testId="admin-accounts"
         title={t('admin.accounts')}
         eyebrow={t(actorRole === 'super_admin' ? 'platform.superAdmin' : 'platform.admin')}
         right={
           canCreate ? (
-            <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('admin.createAccount')} onClick={() => setCreating(true)}>
+            <button type="button" data-testid="admin-create-account" className="icon-btn h-[42px] w-[42px]" aria-label={t('admin.createAccount')} onClick={() => setCreating(true)}>
               <Icon name="plus" size={20} />
             </button>
           ) : undefined
@@ -133,7 +134,7 @@ export function AdminAccounts() {
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((u) => (
-            <button key={u.id} type="button" onClick={() => setSelected(u)} className="row w-full text-start">
+            <button key={u.id} type="button" data-testid="account-row" data-account-id={u.id} data-account-role={u.role} onClick={() => setSelected(u)} className="row w-full text-start">
               <span className="row-av font-serif">{(u.displayName || u.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{u.displayName || u.email}</span>
@@ -213,7 +214,7 @@ function AccountActions({
   const roles = assignableRoles(actorRole);
 
   if (!manageable) {
-    return <p className="py-4 text-sm text-earth-muted">{t('admin.cannotEditSuper')}</p>;
+    return <p className="py-4 text-sm text-earth-muted" data-testid="cannot-edit-account">{t('admin.cannotEditSuper')}</p>;
   }
 
   const changeStatus = async (s: AccountStatus) => {
@@ -244,11 +245,12 @@ function AccountActions({
       {canRoles && roles.length > 0 && (
         <div>
           <div className="label mb-2">{t('admin.changeRole')}</div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="role-options">
             {roles.map((r) => (
               <button
                 key={r}
                 type="button"
+                data-testid={`set-role-${r}`}
                 disabled={busy}
                 onClick={() => void changeRole(r)}
                 className={`chip ${target.role === r ? 'chip-on' : ''}`}
@@ -263,11 +265,12 @@ function AccountActions({
       {canStatus && (
         <div>
           <div className="label mb-2">{t('admin.status')}</div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-testid="status-options">
             {STATUSES.map((s) => (
               <button
                 key={s}
                 type="button"
+                data-testid={`set-status-${s}`}
                 disabled={busy}
                 onClick={() => void changeStatus(s)}
                 className={`chip ${target.accountStatus === s ? 'chip-on' : ''}`}
@@ -315,27 +318,28 @@ function CreateAccountForm({
   return (
     <form
       className="space-y-3"
+      data-testid="create-account-form"
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
         if (valid) mut.mutate();
       }}
     >
-      <input className="input" type="email" autoComplete="off" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-      <input className="input" placeholder={t('settings.name')} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
-      <input className="input" type="password" autoComplete="new-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <input className="input" type="email" autoComplete="off" data-testid="create-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      <input className="input" data-testid="create-name" placeholder={t('settings.name')} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+      <input className="input" type="password" autoComplete="new-password" data-testid="create-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       <div>
         <div className="label mb-2">{t('platform.role')}</div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-testid="create-role-options">
           {roles.map((r) => (
-            <button key={r} type="button" onClick={() => setForm({ ...form, role: r })} className={`chip ${form.role === r ? 'chip-on' : ''}`}>
+            <button key={r} type="button" data-testid={`create-role-${r}`} onClick={() => setForm({ ...form, role: r })} className={`chip ${form.role === r ? 'chip-on' : ''}`}>
               {t(`roles.${r}`)}
             </button>
           ))}
         </div>
       </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
-      <button type="submit" disabled={!valid || mut.isPending} className="btn-primary w-full disabled:opacity-40">
+      {error && <p className="text-sm text-danger" data-testid="create-error">{error}</p>}
+      <button type="submit" data-testid="create-submit" disabled={!valid || mut.isPending} className="btn-primary w-full disabled:opacity-40">
         {mut.isPending ? t('auth.working') : t('admin.createAccount')}
       </button>
     </form>

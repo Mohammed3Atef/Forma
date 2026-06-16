@@ -8,10 +8,14 @@ import { RoleAccount } from '@/pages/RoleAccount';
 import { CoachClients } from '@/pages/coach/CoachClients';
 import { CoachClientDetail } from '@/pages/coach/CoachClientDetail';
 import { CoachClientActivity } from '@/pages/coach/CoachClientActivity';
+import { CoachClientAssessment } from '@/pages/coach/CoachClientAssessment';
 import { CoachWorkoutEditor } from '@/pages/coach/CoachWorkoutEditor';
 import { CoachNutritionEditor } from '@/pages/coach/CoachNutritionEditor';
 import { CoachCardioEditor } from '@/pages/coach/CoachCardioEditor';
 import { CoachTemplates } from '@/pages/coach/CoachTemplates';
+import { CoachWorkoutTemplateEditor } from '@/pages/coach/CoachWorkoutTemplateEditor';
+import { CoachExerciseLibrary } from '@/pages/coach/CoachExerciseLibrary';
+import { PlanVersionHistory } from '@/pages/coach/PlanVersionHistory';
 import { CoachAdherence } from '@/pages/coach/CoachAdherence';
 import { CoachMessages } from '@/pages/coach/CoachMessages';
 
@@ -28,10 +32,14 @@ export function CoachApp() {
         <Route path="/coach" element={shell(<CoachClients />)} />
         <Route path="/coach/client/:clientId" element={shell(<CoachClientDetail />)} />
         <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
+        <Route path="/coach/client/:clientId/assessment" element={shell(<CoachClientAssessment />)} />
         <Route path="/coach/client/:clientId/workout" element={shell(<CoachWorkoutEditor />)} />
         <Route path="/coach/client/:clientId/nutrition" element={shell(<CoachNutritionEditor />)} />
         <Route path="/coach/client/:clientId/cardio" element={shell(<CoachCardioEditor />)} />
+        <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />
+        <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
         <Route path="/coach/templates" element={shell(<CoachTemplates />)} />
+        <Route path="/coach/templates/:templateId" element={shell(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />

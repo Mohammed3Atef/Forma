@@ -17,6 +17,7 @@ import { listRelationshipsForCoach } from './coachClientsApi';
 import type {
   AssignedPlan,
   CardioLog,
+  ClientAssessment,
   CoachNote,
   CoachTargets,
   DailyChecklist,
@@ -54,6 +55,40 @@ export async function fetchClientProfile(clientId: string): Promise<UserProfile 
   const { db } = ensureFirebase();
   const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'main'));
   return snap.exists() ? (snap.data() as UserProfile) : null;
+}
+
+/** Read a client's onboarding assessment (coach/admin oversight, read-only). */
+export async function getClientAssessment(clientId: string): Promise<ClientAssessment | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'assessment'));
+  return snap.exists() ? (snap.data() as ClientAssessment) : null;
+}
+
+/** Coach records review notes on a client's assessment (merge, doesn't reset status). */
+export async function setAssessmentCoachNotes(clientId: string, coachNotes: string): Promise<void> {
+  const { db } = ensureFirebase();
+  await setDoc(doc(db, CLIENT, clientId, 'profile', 'assessment'), { coachNotes, updatedAt: Date.now() }, { merge: true });
+}
+
+/** Coach marks the assessment reviewed (locks further client edits until reset). */
+export async function markAssessmentReviewed(clientId: string, reviewerId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  await setDoc(
+    doc(db, CLIENT, clientId, 'profile', 'assessment'),
+    { status: 'reviewed', reviewedAt: now, reviewedBy: reviewerId, updatedAt: now },
+    { merge: true },
+  );
+}
+
+/** Coach re-opens the assessment so the client can edit + resubmit. */
+export async function resetAssessment(clientId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  await setDoc(
+    doc(db, CLIENT, clientId, 'profile', 'assessment'),
+    { status: 'in_progress', completed: false, reviewedAt: null, reviewedBy: null, updatedAt: Date.now() },
+    { merge: true },
+  );
 }
 
 /** Coach sets the client's initial fitness profile (optional, at creation). */

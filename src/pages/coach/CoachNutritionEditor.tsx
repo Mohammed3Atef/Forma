@@ -5,10 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { VersionActions } from '@/components/coach/VersionActions';
+import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
+import { listFoodGroups } from '@/services/platform/coachAssetsApi';
 import { confirmDialog } from '@/stores/dialogStore';
-import type { FoodItem, Meal, MealPlan, MealSlot, Supplement } from '@/types';
+import type { FoodItem, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
 
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack', 'postWorkout'];
 
@@ -34,20 +37,38 @@ interface FoodForm {
   protein: string;
   carbs: string;
   fats: string;
+  groupId: string | null;
+  allowCustom: boolean;
 }
-const blankFood = (): FoodForm => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '' });
+const blankFood = (): FoodForm => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '', groupId: null, allowCustom: false });
 const num = (s: string) => Math.max(0, Number(s) || 0);
+/** Strip a library food down to a plain plan FoodItem (no undefined keys). */
+const cleanFood = (f: FoodItem): FoodItem => ({
+  id: f.id || uid('food'),
+  name: f.name,
+  quantity: f.quantity,
+  protein: f.protein,
+  carbs: f.carbs,
+  fats: f.fats,
+  calories: f.calories,
+});
+const DEFAULT_POLICY: SubstitutionPolicy = { allowClientSubstitutions: false, allowCustomFoods: false, requireCoachApproval: false };
 
 export function CoachNutritionEditor() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '' } = useParams();
+  const coachId = useSession((s) => s.account?.id ?? '');
 
   const query = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
+  const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [editing, setEditing] = useState<{ mealId: string; form: FoodForm } | null>(null);
   const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string } | null>(null);
+
+  const policy = { ...DEFAULT_POLICY, ...(plan?.substitutionPolicy ?? {}) };
+  const setPolicy = (patch: Partial<SubstitutionPolicy>) => plan && setPlan({ ...plan, substitutionPolicy: { ...policy, ...patch } });
 
   useEffect(() => {
     if (plan === null) setPlan(query.data ?? emptyPlan());
@@ -80,6 +101,7 @@ export function CoachNutritionEditor() {
     if (!editing) return;
     const { mealId, form } = editing;
     const id = form.id ?? uid('food');
+    const grp = form.groupId ? (groups.data ?? []).find((g) => g.id === form.groupId) : undefined;
     const food: FoodItem = {
       id,
       name: { en: form.name.trim(), ar: form.name.trim() },
@@ -88,6 +110,9 @@ export function CoachNutritionEditor() {
       protein: num(form.protein),
       carbs: num(form.carbs),
       fats: num(form.fats),
+      // Snapshot the alternatives group's foods onto the item (independent copy).
+      ...(grp ? { allowedAlternativeGroupId: grp.id, allowedAlternatives: grp.foods.map(cleanFood) } : {}),
+      ...(form.allowCustom ? { allowCustomSubstitution: true } : {}),
     };
     setPlan({
       ...plan,
@@ -116,11 +141,12 @@ export function CoachNutritionEditor() {
   return (
     <>
       <TopBar
+        testId="coach-nutrition-editor"
         title={t('coachEditor.nutritionTitle')}
         eyebrow={t('platform.coachPortal')}
         onBack={() => navigate(`/coach/client/${clientId}`)}
         right={
-          <button type="button" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
+          <button type="button" data-testid="nutrition-save" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
             {t('common.save')}
           </button>
         }
@@ -132,7 +158,10 @@ export function CoachNutritionEditor() {
         </p>
       )}
 
-      <input className="input mb-4" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.planNamePlaceholder')} />
+      <input className="input mb-2" data-testid="nutrition-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.planNamePlaceholder')} />
+      <div className="mb-4">
+        <VersionActions clientId={clientId} kind="nutrition" plan={plan} createdBy={coachId} />
+      </div>
 
       {/* Daily targets */}
       <h2 className="h2 mb-2">{t('coach.targets')}</h2>
@@ -140,13 +169,23 @@ export function CoachNutritionEditor() {
         {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
           <div key={k}>
             <label className="label">{t(`nutrition.${k}`)}</label>
-            <input className="input" inputMode="numeric" value={plan.targets[k] || ''} onChange={(e) => setTarget(k, e.target.value)} />
+            <input className="input" data-testid={`nutrition-target-${k}`} inputMode="numeric" value={plan.targets[k] || ''} onChange={(e) => setTarget(k, e.target.value)} />
           </div>
         ))}
         <div className="col-span-2">
           <label className="label">{t('coachEditor.waterTargetMl')}</label>
-          <input className="input" inputMode="numeric" value={plan.waterTargetMl || ''} onChange={(e) => setPlan({ ...plan, waterTargetMl: num(e.target.value) })} />
+          <input className="input" data-testid="nutrition-water-target" inputMode="numeric" value={plan.waterTargetMl || ''} onChange={(e) => setPlan({ ...plan, waterTargetMl: num(e.target.value) })} />
         </div>
+      </div>
+
+      {/* Substitution policy */}
+      <h2 className="h2 mb-2">{t('coachSettings.substitutions')}</h2>
+      <div className="card mb-5 flex flex-wrap gap-2" data-testid="sub-policy">
+        {(['allowClientSubstitutions', 'allowCustomFoods', 'requireCoachApproval'] as const).map((k) => (
+          <button key={k} type="button" data-testid={`policy-${k}`} onClick={() => setPolicy({ [k]: !policy[k] })} className={`chip ${policy[k] ? 'chip-on' : ''}`}>
+            {t(`coachSettings.${k}`)}
+          </button>
+        ))}
       </div>
 
       {/* Meals */}
@@ -172,7 +211,7 @@ export function CoachNutritionEditor() {
                   <button
                     type="button"
                     className="min-w-0 flex-1 text-start"
-                    onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) } })}
+                    onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), groupId: f.allowedAlternativeGroupId ?? null, allowCustom: !!f.allowCustomSubstitution } })}
                   >
                     <span className="block truncate font-medium">{f.name.en || t('coachEditor.untitledFood')}</span>
                     <span className="block truncate text-[12px] text-earth-subtle">{f.quantity} · {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
@@ -183,14 +222,14 @@ export function CoachNutritionEditor() {
                 </div>
               ))}
             </div>
-            <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setEditing({ mealId: meal.id, form: blankFood() })}>
+            <button type="button" data-testid="nutrition-add-food" className="btn-ghost mt-3 w-full" onClick={() => setEditing({ mealId: meal.id, form: blankFood() })}>
               {t('coachEditor.addFood')}
             </button>
           </div>
         ))}
       </div>
 
-      <button type="button" className="btn-ghost mt-4 w-full" onClick={addMeal}>
+      <button type="button" data-testid="nutrition-add-meal" className="btn-ghost mt-4 w-full" onClick={addMeal}>
         {t('coachEditor.addMeal')}
       </button>
 
@@ -231,18 +270,38 @@ export function CoachNutritionEditor() {
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.food')}>
         {editing && (
-          <div className="space-y-3">
-            <input className="input" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
-            <input className="input" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
+          <div className="space-y-3" data-testid="food-form">
+            <input className="input" data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
+            <input className="input" data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
             <div className="grid grid-cols-2 gap-2">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
                 <div key={k}>
                   <label className="label">{t(`nutrition.${k}`)}</label>
-                  <input className="input" inputMode="numeric" value={editing.form[k]} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, [k]: e.target.value } })} />
+                  <input className="input" data-testid={`food-${k}`} inputMode="numeric" value={editing.form[k]} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, [k]: e.target.value } })} />
                 </div>
               ))}
             </div>
-            <button type="button" disabled={!editing.form.name.trim()} onClick={saveFood} className="btn-primary w-full disabled:opacity-40">
+
+            {/* Approved alternatives (snapshotted from a coach food group) */}
+            <div>
+              <label className="label mb-1.5 block">{t('nutritionSub.approvedAlternatives')}</label>
+              <div className="flex flex-wrap gap-2" data-testid="meal-allowed-group">
+                <button type="button" className={`chip ${!editing.form.groupId ? 'chip-on' : ''}`} onClick={() => setEditing({ ...editing, form: { ...editing.form, groupId: null } })}>
+                  {t('nutritionSub.noGroup')}
+                </button>
+                {(groups.data ?? []).map((g) => (
+                  <button key={g.id} type="button" data-testid={`group-opt-${g.id}`} className={`chip ${editing.form.groupId === g.id ? 'chip-on' : ''}`} onClick={() => setEditing({ ...editing, form: { ...editing.form, groupId: g.id } })}>
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+              {(groups.data?.length ?? 0) === 0 && <p className="mt-1 text-[12px] text-earth-subtle">{t('coachFoods.noGroups')}</p>}
+            </div>
+            <button type="button" data-testid="food-allow-custom" className={`chip ${editing.form.allowCustom ? 'chip-on' : ''}`} onClick={() => setEditing({ ...editing, form: { ...editing.form, allowCustom: !editing.form.allowCustom } })}>
+              {t('coachSettings.allowCustomFoods')}
+            </button>
+
+            <button type="button" data-testid="food-save" disabled={!editing.form.name.trim()} onClick={saveFood} className="btn-primary w-full disabled:opacity-40">
               {t('common.save')}
             </button>
           </div>

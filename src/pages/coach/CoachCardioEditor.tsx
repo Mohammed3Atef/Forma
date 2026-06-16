@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { VersionActions } from '@/components/coach/VersionActions';
+import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
 import { getClientCardioPlan, saveClientCardioPlan } from '@/services/platform/planApi';
 import type { CardioPlan, CardioSession, CardioType } from '@/types';
@@ -29,6 +31,7 @@ export function CoachCardioEditor() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '' } = useParams();
+  const coachId = useSession((s) => s.account?.id ?? '');
 
   const query = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
   const [plan, setPlan] = useState<CardioPlan | null>(null);
@@ -69,11 +72,12 @@ export function CoachCardioEditor() {
   return (
     <>
       <TopBar
+        testId="coach-cardio-editor"
         title={t('coachEditor.cardioTitle')}
         eyebrow={t('platform.coachPortal')}
         onBack={() => navigate(`/coach/client/${clientId}`)}
         right={
-          <button type="button" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
+          <button type="button" data-testid="cardio-save" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
             {t('common.save')}
           </button>
         }
@@ -85,7 +89,10 @@ export function CoachCardioEditor() {
         </p>
       )}
 
-      <input className="input mb-4" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.cardioNamePlaceholder')} />
+      <input className="input mb-2" data-testid="cardio-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.cardioNamePlaceholder')} />
+      <div className="mb-3">
+        <VersionActions clientId={clientId} kind="cardio" plan={plan} createdBy={coachId} />
+      </div>
       <p className="mb-4 text-[13px] text-earth-muted">{t('coachEditor.cardioHint')}</p>
 
       <div className="card divide-y divide-line-soft">
@@ -105,16 +112,16 @@ export function CoachCardioEditor() {
           <p className="py-2 text-sm text-earth-muted">{t('coachEditor.noSessions')}</p>
         )}
       </div>
-      <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setEditing(blankSess())}>
+      <button type="button" data-testid="cardio-add-session" className="btn-ghost mt-3 w-full" onClick={() => setEditing(blankSess())}>
         {t('coachEditor.addSession')}
       </button>
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.session')}>
         {editing && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-3" data-testid="cardio-session-form">
+            <div className="flex flex-wrap gap-2" data-testid="cardio-type-options">
               {TYPES.map((ty) => (
-                <button key={ty} type="button" onClick={() => setEditing({ ...editing, type: ty })} className={`chip ${editing.type === ty ? 'chip-on' : ''}`}>
+                <button key={ty} type="button" data-testid={`cardio-type-${ty}`} onClick={() => setEditing({ ...editing, type: ty })} className={`chip ${editing.type === ty ? 'chip-on' : ''}`}>
                   {t(`cardio.types.${ty}`)}
                 </button>
               ))}
@@ -122,15 +129,15 @@ export function CoachCardioEditor() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="label">{t('cardio.duration')} ({t('common.min')})</label>
-                <input className="input" inputMode="numeric" value={editing.durationMin} onChange={(e) => setEditing({ ...editing, durationMin: e.target.value })} />
+                <input className="input" data-testid="sess-duration" inputMode="numeric" value={editing.durationMin} onChange={(e) => setEditing({ ...editing, durationMin: e.target.value })} />
               </div>
               <div>
                 <label className="label">{t('coachEditor.frequency')}</label>
-                <input className="input" value={editing.frequency} onChange={(e) => setEditing({ ...editing, frequency: e.target.value })} />
+                <input className="input" data-testid="sess-frequency" value={editing.frequency} onChange={(e) => setEditing({ ...editing, frequency: e.target.value })} />
               </div>
             </div>
-            <textarea className="input min-h-20" placeholder={t('coachEditor.instructions')} value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
-            <button type="button" onClick={saveSession} className="btn-primary w-full">
+            <textarea className="input min-h-20" data-testid="sess-notes" placeholder={t('coachEditor.instructions')} value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+            <button type="button" data-testid="sess-save" onClick={saveSession} className="btn-primary w-full">
               {t('common.save')}
             </button>
           </div>

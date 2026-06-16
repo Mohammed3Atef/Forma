@@ -3,9 +3,12 @@ import { Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { Onboarding } from '@/components/Onboarding';
+import { Splash } from '@/components/Splash';
 import { queryClient } from '@/services/platform/queryClient';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
+import { useAssessmentStatus } from '@/hooks/useAssessmentStatus';
+import { AssessmentWizard } from '@/pages/onboarding/AssessmentWizard';
 import { loadCoachAssignedContent, scopeLocalToUser } from '@/services/platform/clientSync';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition } from '@/stores/nutritionStore';
@@ -38,14 +41,29 @@ import { ImportData } from '@/pages/ImportData';
  * default client bottom-nav tabs.
  */
 export function ClientApp() {
-  // Pull coach-authored content (plan, meals, targets) into the local store on
-  // mount and whenever the app regains focus, then refresh the tracker stores.
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ClientGate />
+    </QueryClientProvider>
+  );
+}
+
+/**
+ * Gates the client dashboard behind the mandatory onboarding assessment, and
+ * mirrors coach-authored content into the local store. Runs inside the query
+ * provider so the assessment status hook is available.
+ */
+function ClientGate() {
+  const { enabled, isLoading, submitted, blocked } = useAssessmentStatus();
+  const uid = useSession((s) => s.uid) ?? '';
+  const displayName = useSession((s) => s.account?.displayName) ?? '';
+
+  // Pull coach-authored content (plan, meals, targets, profile) into the local
+  // store on mount, when the assessment becomes complete, and on refocus.
   useEffect(() => {
     if (!cloudAvailable()) return;
-    const uid = useSession.getState().uid;
     if (!uid || uid === 'local-user') return;
     let cancelled = false;
-    const displayName = useSession.getState().account?.displayName ?? '';
     const refresh = async () => {
       // Isolate this device's local store to the current account, then mirror
       // the coach-assigned plan/targets in.
@@ -72,10 +90,18 @@ export function ClientApp() {
       cancelled = true;
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [submitted, uid, displayName]);
+
+  // Mandatory onboarding gate (platform clients): block the dashboard until the
+  // assessment is submitted, but only on a DEFINITIVE read (`blocked`) so an
+  // offline/errored read never re-traps a returning client behind the wizard.
+  // A coach `reset` flips it back and re-gates the app. Local-only mode keeps
+  // the simple profile overlay.
+  if (enabled && isLoading) return <Splash />;
+  if (blocked) return <AssessmentWizard uid={uid} displayName={displayName} />;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <Onboarding />
       <Routes>
         <Route path="/" element={<AppShell showDayNav><Home /></AppShell>} />
@@ -96,6 +122,6 @@ export function ClientApp() {
         <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
         <Route path="*" element={<AppShell><Home /></AppShell>} />
       </Routes>
-    </QueryClientProvider>
+    </>
   );
 }

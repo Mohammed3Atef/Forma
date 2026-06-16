@@ -65,12 +65,21 @@ export function Workout() {
                 <Icon name="chevron" size={18} className="text-earth-subtle" />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {day.exerciseIds.slice(0, 4).map((id) => (
-                  <span key={id} className="rounded-full border border-line bg-surface-raised px-2.5 py-1 font-mono text-[10.5px] text-earth-muted">
-                    {plan.exercises[id]?.name}
-                  </span>
-                ))}
-                {day.exerciseIds.length > 4 && (
+                {day.sections?.length
+                  ? day.sections
+                      .filter((s) => s.exerciseIds.length > 0)
+                      .slice(0, 4)
+                      .map((s) => (
+                        <span key={s.id} className="rounded-full border border-line bg-surface-raised px-2.5 py-1 font-mono text-[10.5px] text-earth-muted">
+                          {s.title || t(`coachEditor.sectionKinds.${s.kind}`)}
+                        </span>
+                      ))
+                  : day.exerciseIds.slice(0, 4).map((id) => (
+                      <span key={id} className="rounded-full border border-line bg-surface-raised px-2.5 py-1 font-mono text-[10.5px] text-earth-muted">
+                        {plan.exercises[id]?.name}
+                      </span>
+                    ))}
+                {!day.sections?.length && day.exerciseIds.length > 4 && (
                   <span className="rounded-full border border-line bg-surface-raised px-2.5 py-1 font-mono text-[10.5px] text-brand">
                     +{day.exerciseIds.length - 4}
                   </span>

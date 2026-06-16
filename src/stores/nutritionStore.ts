@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { FoodItem, Macros, MealPlan, NutritionLog } from '@/types';
+
+type SubstitutionTag = NonNullable<NutritionLog['substitutions']>[string];
 import { getDataSource } from '@/data/dataSource';
 import { today } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
@@ -16,7 +18,7 @@ interface NutritionState {
   addCustomFood: (food: FoodItem) => Promise<void>;
   removeCustomFood: (id: string) => Promise<void>;
   /** Replace a planned item for this day (original kept, shown struck-through). */
-  replaceItem: (originalId: string, food: FoodItem) => Promise<void>;
+  replaceItem: (originalId: string, food: FoodItem, tag?: SubstitutionTag) => Promise<void>;
   /** Remove a planned item for this day. */
   removeItem: (originalId: string) => Promise<void>;
   /** Undo a replace/remove and restore the original item for this day. */
@@ -198,12 +200,16 @@ export const useNutrition = create<NutritionState>((set, get) => ({
     await getDataSource().nutritionLogs.put(next);
   },
 
-  async replaceItem(originalId, food) {
+  async replaceItem(originalId, food, tag) {
     const cur = get().log;
     if (!cur) return;
+    const subs = { ...(cur.substitutions ?? {}) };
+    if (tag) subs[originalId] = tag;
+    else delete subs[originalId];
     const next: NutritionLog = {
       ...cur,
       itemOverrides: { ...cur.itemOverrides, [originalId]: food },
+      substitutions: subs,
       updatedAt: Date.now(),
       dirty: true,
     };
@@ -215,9 +221,12 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   async removeItem(originalId) {
     const cur = get().log;
     if (!cur) return;
+    const subs = { ...(cur.substitutions ?? {}) };
+    delete subs[originalId];
     const next: NutritionLog = {
       ...cur,
       itemOverrides: { ...cur.itemOverrides, [originalId]: null },
+      substitutions: subs,
       updatedAt: Date.now(),
       dirty: true,
     };
@@ -231,7 +240,9 @@ export const useNutrition = create<NutritionState>((set, get) => ({
     if (!cur) return;
     const overrides = { ...cur.itemOverrides };
     delete overrides[originalId];
-    const next: NutritionLog = { ...cur, itemOverrides: overrides, updatedAt: Date.now(), dirty: true };
+    const subs = { ...(cur.substitutions ?? {}) };
+    delete subs[originalId];
+    const next: NutritionLog = { ...cur, itemOverrides: overrides, substitutions: subs, updatedAt: Date.now(), dirty: true };
     set({ log: next });
     await getDataSource().nutritionLogs.put(next);
     notifyHabitChange();

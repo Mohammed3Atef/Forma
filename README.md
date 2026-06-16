@@ -52,9 +52,12 @@ Configure Firebase by copying your web-app config into `.env` (see [`.env.exampl
 
 Everything the client sees is **coach-authored** or **client-logged** — nothing is hardcoded:
 
-- **Workout plan** — days → exercises with independent **warm-up** and **working** set counts (warm-up-only / working-only supported), reps, rest, video URL, instructions.
-- **Nutrition plan** — meals → foods with macros, daily macro targets, water target, supplements.
+- **Onboarding assessment** — the client completes a step-by-step assessment (save-draft + submit); the coach reviews it, adds notes, marks it **reviewed** (which locks client edits) or **resets** it, then builds plans from it.
+- **Reusable library** — coach-owned **exercises**, **workout templates**, **foods**, and **food-alternative groups** under `coachAssets`. Templates/library items **snapshot** into the client's plan (never live-linked).
+- **Workout plan** — days → sections → exercises with independent **warm-up** and **working** set counts (warm-up-only / working-only supported), reps, rest, video URL, instructions.
+- **Nutrition plan** — meals → foods with macros, daily macro targets, water target, supplements, and a **substitution policy** with coach-approved **alternatives** per food (client swaps among them without changing the plan; swaps are tagged for adherence).
 - **Cardio plan** — prescribed sessions (type, duration, frequency, notes) + numeric cardio/step/water targets.
+- **Plan versioning** — every plan editor can **save a new version**; the active version is what the client sees, and the coach can **restore** any earlier one from the history.
 - **Targets, coach notes & announcements**, and an optional starting **profile** (otherwise the client is required to complete name + body stats on first login).
 
 The client's **logs** (sets performed, food eaten, water, weight, measurements, photos) are the only client-owned data; they sync to the cloud and feed the coach's **day-by-day activity view** (per-set weight × reps) and the admin's read-only client view.
@@ -106,13 +109,17 @@ docs/FORMA.md            setup & operations
 ```
 users/{uid}                              identity: role, accountStatus, permissions, featureFlags, createdBy, assignedCoachId?
 coachClients/{coachId__clientId}         coach⇄client relationship (status)
-clientData/{clientId}/profile|settings   client fitness profile + app settings
+clientData/{clientId}/profile/main       client fitness profile
+clientData/{clientId}/profile/assessment onboarding assessment + status + coach review fields
+clientData/{clientId}/settings/app       app settings
 clientData/{clientId}/{workoutLogs|nutritionLogs|cardioLogs|weightLogs|measurementLogs|dailyChecklists|progressPhotos|reminders}
-clientData/{clientId}/plan/workout       coach-authored WorkoutPlan
-clientData/{clientId}/plan/nutrition     coach-authored MealPlan
+clientData/{clientId}/plan/workout       coach-authored WorkoutPlan (active version)
+clientData/{clientId}/plan/nutrition     coach-authored MealPlan (+ substitutionPolicy)
 clientData/{clientId}/plan/cardio        coach-authored CardioPlan
+clientData/{clientId}/planVersions/{id}  plan version history (coach-write, client-read)
 clientData/{clientId}/coachNotes|coachTargets        coach notes / targets
-planTemplates/{id}                       coach-owned reusable templates
+coachAssets/{coachId}/{exercises|workoutTemplates|nutritionTemplates|foods|foodGroups}  coach-owned reusable assets
+planTemplates/{id}                       legacy coach-owned templates (superseded by coachAssets)
 adminAuditLogs/{id}                      admin action trail
 featureFlags/{id}                        global / per-coach / per-client toggles
 ```

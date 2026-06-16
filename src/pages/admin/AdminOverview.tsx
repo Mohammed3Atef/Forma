@@ -18,6 +18,7 @@ export function AdminOverview() {
   return (
     <>
       <TopBar
+        testId="admin-overview"
         title={t('admin.overview')}
         eyebrow={t(isSuper ? 'platform.superAdmin' : 'platform.admin')}
         right={
@@ -46,7 +47,7 @@ export function AdminOverview() {
         {recent.data?.logs.length ? (
           recent.data.logs.map((log) => (
             <div key={log.id} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-              <span className="truncate text-sm">{log.action}</span>
+              <span className="truncate text-sm">{t(log.action, { defaultValue: log.action.replace(/\./g, ' ') })}</span>
               <span className="font-mono text-[11px] text-earth-subtle">
                 {new Date(log.createdAt).toLocaleDateString()}
               </span>

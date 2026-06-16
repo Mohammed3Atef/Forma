@@ -21,6 +21,7 @@ export const CLIENT_NAV: NavItem[] = [
 
 export const COACH_NAV: NavItem[] = [
   { to: '/coach', icon: 'user', key: 'coachClients', end: true },
+  { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
   { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
   { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
   { to: '/coach/messages', icon: 'info', key: 'coachMessages' },

@@ -34,6 +34,7 @@ export function Login() {
 
         <form
           className="card space-y-3"
+          data-testid="login-form"
           onSubmit={(e) => {
             e.preventDefault();
             void submit();
@@ -43,6 +44,7 @@ export function Login() {
             className="input"
             type="email"
             autoComplete="email"
+            data-testid="login-email"
             placeholder={t('settings.email')}
             value={creds.email}
             onChange={(e) => setCreds({ ...creds, email: e.target.value })}
@@ -51,19 +53,21 @@ export function Login() {
             className="input"
             type="password"
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            data-testid="login-password"
             placeholder={t('settings.password')}
             value={creds.password}
             onChange={(e) => setCreds({ ...creds, password: e.target.value })}
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <p className="text-sm text-danger" data-testid="login-error">{error}</p>}
           {busy && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}
-          <button type="submit" disabled={busy} className="btn-primary btn-lg w-full disabled:opacity-40">
+          <button type="submit" disabled={busy} data-testid="login-submit" className="btn-primary btn-lg w-full disabled:opacity-40">
             {t(mode === 'signup' ? 'settings.signUp' : 'onboard.signIn')}
           </button>
         </form>
 
         <button
           type="button"
+          data-testid="login-toggle-mode"
           onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
           className="btn-ghost w-full"
         >

@@ -1,6 +1,6 @@
-import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, writeBatch } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import type { AssignedPlan, CardioPlan, CoachNote, CoachTargets, PlanKind } from '@/types';
+import type { ClientAssessment, AssignedPlan, CardioPlan, CoachNote, CoachTargets, PlanKind, UserProfile } from '@/types';
 
 /**
  * Owner-side reads of coach-authored content for the signed-in client. Kept
@@ -34,4 +34,57 @@ export async function fetchMyCardioPlan(clientId: string): Promise<CardioPlan | 
   const { db } = ensureFirebase();
   const snap = await getDoc(doc(db, CLIENT, clientId, 'plan', 'cardio'));
   return snap.exists() ? (snap.data() as CardioPlan) : null;
+}
+
+export async function fetchMyProfile(clientId: string): Promise<UserProfile | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'main'));
+  return snap.exists() ? (snap.data() as UserProfile) : null;
+}
+
+export async function fetchMyAssessment(clientId: string): Promise<ClientAssessment | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'assessment'));
+  return snap.exists() ? (snap.data() as ClientAssessment) : null;
+}
+
+/**
+ * Persist an in-progress assessment draft to Firestore (status `in_progress`)
+ * so the coach can see the client has started, and so progress survives across
+ * devices. Does NOT touch profile/main (that's derived only on submit). The
+ * rules allow this only while the assessment is not yet `reviewed`.
+ */
+export async function saveAssessmentProgress(clientId: string, assessment: ClientAssessment): Promise<void> {
+  const { db } = ensureFirebase();
+  await setDoc(
+    doc(db, CLIENT, clientId, 'profile', 'assessment'),
+    { ...assessment, status: 'in_progress', completed: false, updatedAt: Date.now() },
+    { merge: true },
+  );
+}
+
+/**
+ * Atomically persists the submitted onboarding assessment AND the derived
+ * fitness profile (profile/main) in a single Firestore batch — both writes
+ * succeed or neither does, so the client is never marked "assessed" with a
+ * stale/blank profile. Both live under the client-owned `profile/*` subtree.
+ */
+export async function submitAssessment(
+  clientId: string,
+  assessment: ClientAssessment,
+  profile: UserProfile,
+): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  const batch = writeBatch(db);
+  batch.set(doc(db, CLIENT, clientId, 'profile', 'assessment'), {
+    ...assessment,
+    status: 'submitted',
+    completed: true,
+    completedAt: now,
+    submittedAt: now,
+    updatedAt: now,
+  });
+  batch.set(doc(db, CLIENT, clientId, 'profile', 'main'), { ...profile, id: clientId, updatedAt: now });
+  await batch.commit();
 }

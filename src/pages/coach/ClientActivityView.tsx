@@ -38,6 +38,9 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
   const totalSteps = (d?.cardio ?? []).reduce((a, c) => a + (c.steps ?? 0), 0);
   const totalCardioMin = Math.round((d?.cardio ?? []).reduce((a, c) => a + c.durationSec, 0) / 60);
   const mealsEaten = d?.nutrition ? Object.values(d.nutrition.mealsEaten).filter(Boolean).length : 0;
+  const subs = d?.nutrition?.substitutions ?? {};
+  const overrides = d?.nutrition?.itemOverrides ?? {};
+  const subEntries = Object.entries(subs);
 
   const label = (() => {
     const [y, m, dd] = date.split('-').map(Number);
@@ -125,6 +128,23 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
                   <Mini label={t('nutrition.carbs')} value={`${Math.round(consumed.carbs)}`} />
                   <Mini label={t('nutrition.fats')} value={`${Math.round(consumed.fats)}`} />
                 </div>
+                {subEntries.length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t border-line-soft pt-3" data-testid="activity-substitutions">
+                    <p className="label">{t('nutritionSub.substitutions')}</p>
+                    {subEntries.map(([origId, tag]) => {
+                      const repl = overrides[origId];
+                      return (
+                        <div key={origId} className="flex items-center justify-between gap-2 text-[13px]">
+                          <span className="min-w-0 truncate">{repl ? repl.name.en : t('nutrition.removed')}</span>
+                          <span className={`chip ${tag.source === 'approved_substitution' ? 'border-success/50 text-success' : 'border-warn/50 text-warn'}`}>
+                            {tag.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')}
+                            {tag.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : ''}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
               <EmptyCard text={t('activity.noNutrition')} />

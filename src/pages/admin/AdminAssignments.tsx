@@ -94,7 +94,7 @@ export function AdminAssignments() {
 
   return (
     <>
-      <TopBar title={t('admin.assignments')} eyebrow={t('platform.superAdmin')} />
+      <TopBar testId="admin-assignments" title={t('admin.assignments')} eyebrow={t('platform.superAdmin')} />
 
       <div className="relative mb-4">
         <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
@@ -110,7 +110,7 @@ export function AdminAssignments() {
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((c) => (
-            <button key={c.id} type="button" onClick={() => setSelected(c)} className="row w-full text-start">
+            <button key={c.id} type="button" data-testid="assign-client-row" data-client-id={c.id} data-assigned-coach={c.assignedCoachId ?? ''} onClick={() => setSelected(c)} className="row w-full text-start">
               <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{c.displayName || c.email}</span>
@@ -134,6 +134,8 @@ export function AdminAssignments() {
                   <button
                     key={co.id}
                     type="button"
+                    data-testid="assign-coach-row"
+                    data-coach-id={co.id}
                     disabled={assignMut.isPending}
                     onClick={() => void pickCoach(co.id)}
                     className="row w-full text-start"
@@ -151,7 +153,7 @@ export function AdminAssignments() {
               <p className="text-sm text-earth-muted">{t('admin.noCoaches')}</p>
             )}
             {selected.assignedCoachId && (
-              <button type="button" disabled={unassignMut.isPending} onClick={() => void doUnassign()} className="btn-danger w-full">
+              <button type="button" data-testid="assign-unassign" disabled={unassignMut.isPending} onClick={() => void doUnassign()} className="btn-danger w-full">
                 {t('admin.unassign')}
               </button>
             )}

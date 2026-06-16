@@ -2,217 +2,170 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
-import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { PlanBuilder } from '@/components/workout/PlanBuilder';
+import { VersionActions } from '@/components/coach/VersionActions';
+import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
-import { warmupCountOf } from '@/stores/workoutStore';
 import { getClientWorkoutPlan, saveClientWorkoutPlan } from '@/services/platform/planApi';
+import { saveClientPlanAsTemplate } from '@/services/platform/coachAssetsApi';
 import { confirmDialog } from '@/stores/dialogStore';
-import type { Exercise, WorkoutDay, WorkoutPlan } from '@/types';
+import type { Exercise, SplitType, WorkoutDay, WorkoutGoal, WorkoutPlan } from '@/types';
+
+const draftStore = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
+const GOALS: WorkoutGoal[] = ['hypertrophy', 'fat_loss', 'strength', 'beginner', 'advanced', 'custom'];
+const SPLITS: SplitType[] = ['ppl', 'upper_lower', 'full_body', 'bro_split', 'custom'];
 
 function emptyPlan(): WorkoutPlan {
   return { id: uid('wplan'), name: '', days: [], exercises: {}, updatedAt: Date.now() };
 }
-
-interface ExForm {
-  id: string | null;
-  name: string;
-  targetMuscle: string;
-  warmupSets: string;
-  workingSets: string;
-  repRange: string;
-  restSec: string;
-  videoUrl: string;
-  notes: string;
-}
-
-const blankEx = (): ExForm => ({ id: null, name: '', targetMuscle: '', warmupSets: '1', workingSets: '3', repRange: '8-12', restSec: '90', videoUrl: '', notes: '' });
 
 export function CoachWorkoutEditor() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '' } = useParams();
+  const coachId = useSession((s) => s.account?.id ?? '');
+  const draftKey = `workoutDraft:${clientId}`;
 
   const query = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
-  const [editing, setEditing] = useState<{ dayId: string; form: ExForm } | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [asTemplate, setAsTemplate] = useState(false);
 
   useEffect(() => {
-    if (plan === null) setPlan(query.data ?? emptyPlan());
-  }, [query.data, plan]);
+    if (plan !== null || query.isLoading) return;
+    void draftStore.getItem<WorkoutPlan>(draftKey).then((draft) => {
+      if (draft) {
+        setPlan(draft);
+        setDirty(true);
+      } else {
+        setPlan(query.data ?? emptyPlan());
+      }
+    });
+  }, [query.isLoading, query.data, plan, draftKey]);
+
+  // Autosave draft locally on every change.
+  useEffect(() => {
+    if (plan && dirty) void draftStore.setItem(draftKey, plan);
+  }, [plan, dirty, draftKey]);
 
   const save = useMutation({
-    mutationFn: () => saveClientWorkoutPlan(clientId, plan!),
-    onSuccess: () => {
+    mutationFn: () => {
+      const p = plan!;
+      // Editing an assigned (from-template) plan marks it customized.
+      const next = p.meta ? { ...p, meta: { ...p.meta, isCustomized: true } } : p;
+      return saveClientWorkoutPlan(clientId, next);
+    },
+    onSuccess: async () => {
+      await draftStore.removeItem(draftKey);
+      setDirty(false);
       void qc.invalidateQueries({ queryKey: ['clientWorkoutPlan', clientId] });
       navigate(`/coach/client/${clientId}`);
     },
   });
 
+  const exit = async () => {
+    if (dirty && !(await confirmDialog({ title: t('coachEditor.unsavedTitle'), message: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave'), danger: true }))) return;
+    navigate(`/coach/client/${clientId}`);
+  };
+
   if (!plan) return null;
 
-  const addDay = () =>
-    setPlan({
-      ...plan,
-      days: [...plan.days, { id: uid('day'), dayIndex: plan.days.length, title: `${t('coachEditor.day')} ${plan.days.length + 1}`, focus: '', exerciseIds: [] }],
-    });
-
-  const patchDay = (dayId: string, patch: Partial<WorkoutDay>) =>
-    setPlan({ ...plan, days: plan.days.map((d) => (d.id === dayId ? { ...d, ...patch } : d)) });
-
-  const removeDay = async (day: WorkoutDay) => {
-    if (!(await confirmDialog({ title: t('coachEditor.removeDay'), message: day.title, danger: true }))) return;
-    const exercises = { ...plan.exercises };
-    day.exerciseIds.forEach((id) => delete exercises[id]);
-    setPlan({ ...plan, exercises, days: plan.days.filter((d) => d.id !== day.id) });
+  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => {
+    setPlan((p) => (p ? { ...p, days, exercises } : p));
+    setDirty(true);
   };
 
-  const saveExercise = () => {
-    if (!editing) return;
-    const { dayId, form } = editing;
-    const id = form.id ?? uid('ex');
-    const warmupSetCount = Math.max(0, Number(form.warmupSets) || 0);
-    const ex: Exercise = {
-      id,
-      name: form.name.trim(),
-      targetMuscle: form.targetMuscle.trim(),
-      warmupSets: String(warmupSetCount),
-      warmupSetCount,
-      workingSets: Math.max(0, Number(form.workingSets) || 0),
-      repRange: form.repRange.trim(),
-      rir: '',
-      tempo: '',
-      notes: { en: form.notes.trim(), ar: form.notes.trim() },
-      restSec: Math.max(0, Number(form.restSec) || 0),
-      videoId: null,
-      videoUrl: form.videoUrl.trim() || null,
-    };
-    const exercises = { ...plan.exercises, [id]: ex };
-    const days = plan.days.map((d) =>
-      d.id === dayId && !d.exerciseIds.includes(id) ? { ...d, exerciseIds: [...d.exerciseIds, id] } : d,
-    );
-    setPlan({ ...plan, exercises, days });
-    setEditing(null);
-  };
-
-  const removeExercise = (dayId: string, exId: string) => {
-    const exercises = { ...plan.exercises };
-    delete exercises[exId];
-    setPlan({
-      ...plan,
-      exercises,
-      days: plan.days.map((d) => (d.id === dayId ? { ...d, exerciseIds: d.exerciseIds.filter((x) => x !== exId) } : d)),
-    });
-  };
+  const header = (
+    <div className="space-y-2">
+      {save.isError && (
+        <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{(save.error as Error)?.message || t('coachEditor.saveFailed')}</p>
+      )}
+      {plan.meta?.sourceTemplateName && (
+        <p className="text-[12px] text-earth-subtle">
+          {t('coachEditor.fromTemplate', { name: plan.meta.sourceTemplateName })}
+          {plan.meta.isCustomized ? ` · ${t('coachEditor.customized')}` : ''}
+        </p>
+      )}
+      <input
+        className="input"
+        data-testid="workout-plan-name"
+        value={plan.name}
+        onChange={(e) => {
+          setPlan({ ...plan, name: e.target.value });
+          setDirty(true);
+        }}
+        placeholder={t('coachEditor.planNamePlaceholder')}
+      />
+      <div className="flex items-center justify-between">
+        {dirty ? <p className="text-[12px] text-warn" data-testid="workout-unsaved">{t('coachEditor.unsavedIndicator')}</p> : <span />}
+        <button type="button" className="chip" data-testid="save-as-template" onClick={() => setAsTemplate(true)}>
+          {t('coachEditor.saveAsTemplate')}
+        </button>
+      </div>
+      <VersionActions clientId={clientId} kind="workout" plan={plan} createdBy={coachId} />
+    </div>
+  );
 
   return (
     <>
       <TopBar
+        testId="coach-workout-editor"
         title={t('coachEditor.workoutTitle')}
         eyebrow={t('platform.coachPortal')}
-        onBack={() => navigate(`/coach/client/${clientId}`)}
+        onBack={() => void exit()}
         right={
-          <button type="button" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
-            {t('common.save')}
+          <button type="button" data-testid="workout-save" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
+            {t('coachEditor.saveAssigned')}
           </button>
         }
       />
-
-      {save.isError && (
-        <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          {(save.error as Error)?.message || t('coachEditor.saveFailed')}
-        </p>
-      )}
-
-      <label className="label" htmlFor="wp-name">{t('coachEditor.planName')}</label>
-      <input id="wp-name" className="input mb-5" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.planNamePlaceholder')} />
-
-      <div className="space-y-4">
-        {plan.days.map((day) => (
-          <div key={day.id} className="card">
-            <div className="mb-3 flex items-center gap-2">
-              <input className="input flex-1" value={day.title} onChange={(e) => patchDay(day.id, { title: e.target.value })} placeholder={t('coachEditor.dayTitle')} />
-              <button type="button" className="text-danger" aria-label={t('coachEditor.removeDay')} onClick={() => void removeDay(day)}>
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-            <input className="input mb-3" value={day.focus} onChange={(e) => patchDay(day.id, { focus: e.target.value })} placeholder={t('coachEditor.dayFocus')} />
-
-            <div className="divide-y divide-line-soft">
-              {day.exerciseIds.map((exId) => {
-                const ex = plan.exercises[exId];
-                if (!ex) return null;
-                return (
-                  <div key={exId} className="flex items-center gap-3 py-2.5">
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 text-start"
-                      onClick={() =>
-                        setEditing({
-                          dayId: day.id,
-                          form: { id: ex.id, name: ex.name, targetMuscle: ex.targetMuscle, warmupSets: String(warmupCountOf(ex)), workingSets: String(ex.workingSets), repRange: ex.repRange, restSec: String(ex.restSec), videoUrl: ex.videoUrl ?? '', notes: ex.notes.en },
-                        })
-                      }
-                    >
-                      <span className="block truncate font-medium">{ex.name || t('coachEditor.untitledExercise')}</span>
-                      <span className="block truncate text-[12px] text-earth-subtle">
-                        {warmupCountOf(ex) > 0 && `${warmupCountOf(ex)} ${t('coachEditor.warmupShort')} + `}
-                        {ex.workingSets} × {ex.repRange} · {ex.restSec}s{ex.videoUrl ? ' · 🎬' : ''}
-                      </span>
-                    </button>
-                    <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => removeExercise(day.id, exId)}>
-                      <Icon name="minus" size={18} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setEditing({ dayId: day.id, form: blankEx() })}>
-              {t('coachEditor.addExercise')}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <button type="button" className="btn-ghost mt-4 w-full" onClick={addDay}>
-        {t('coachEditor.addDay')}
-      </button>
-
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.exercise')}>
-        {editing && (
-          <div className="space-y-3">
-            <input className="input" placeholder={t('coachEditor.exerciseName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
-            <input className="input" placeholder={t('coachEditor.targetMuscle')} value={editing.form.targetMuscle} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, targetMuscle: e.target.value } })} />
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="label">{t('coachEditor.warmupSets')}</label>
-                <input className="input" inputMode="numeric" value={editing.form.warmupSets} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, warmupSets: e.target.value } })} />
-              </div>
-              <div>
-                <label className="label">{t('coachEditor.workingSets')}</label>
-                <input className="input" inputMode="numeric" value={editing.form.workingSets} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, workingSets: e.target.value } })} />
-              </div>
-              <div>
-                <label className="label">{t('coachEditor.reps')}</label>
-                <input className="input" value={editing.form.repRange} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, repRange: e.target.value } })} />
-              </div>
-              <div>
-                <label className="label">{t('coachEditor.restSec')}</label>
-                <input className="input" inputMode="numeric" value={editing.form.restSec} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, restSec: e.target.value } })} />
-              </div>
-            </div>
-            <p className="text-[12px] text-earth-subtle">{t('coachEditor.setsHint')}</p>
-            <input className="input" placeholder={t('coachEditor.videoUrl')} value={editing.form.videoUrl} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, videoUrl: e.target.value } })} />
-            <textarea className="input min-h-24" placeholder={t('coachEditor.instructions')} value={editing.form.notes} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, notes: e.target.value } })} />
-            <button type="button" disabled={!editing.form.name.trim()} onClick={saveExercise} className="btn-primary w-full disabled:opacity-40">
-              {t('common.save')}
-            </button>
-          </div>
-        )}
+      <PlanBuilder days={plan.days} exercises={plan.exercises} onChange={change} coachId={coachId} header={header} />
+      <Sheet open={asTemplate} onClose={() => setAsTemplate(false)} title={t('coachEditor.saveAsTemplate')}>
+        <SaveAsTemplateForm coachId={coachId} plan={plan} onDone={() => setAsTemplate(false)} />
       </Sheet>
     </>
+  );
+}
+
+function SaveAsTemplateForm({ coachId, plan, onDone }: { coachId: string; plan: WorkoutPlan; onDone: () => void }) {
+  const { t } = useTranslation();
+  const [name, setName] = useState(plan.name);
+  const [goal, setGoal] = useState<WorkoutGoal>('hypertrophy');
+  const [split, setSplit] = useState<SplitType>('ppl');
+  const mut = useMutation({
+    mutationFn: () => saveClientPlanAsTemplate(coachId, plan, name.trim(), goal, split),
+    onSuccess: onDone,
+  });
+  return (
+    <div className="space-y-3">
+      <input className="input" data-testid="template-from-plan-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('workoutTemplate.namePlaceholder')} />
+      <div>
+        <div className="label mb-1.5">{t('workoutTemplate.goal')}</div>
+        <div className="flex flex-wrap gap-2">
+          {GOALS.map((g) => (
+            <button key={g} type="button" className={`chip ${goal === g ? 'chip-on' : ''}`} onClick={() => setGoal(g)}>
+              {t(`workoutTemplate.goals.${g}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="label mb-1.5">{t('workoutTemplate.split')}</div>
+        <div className="flex flex-wrap gap-2">
+          {SPLITS.map((s) => (
+            <button key={s} type="button" className={`chip ${split === s ? 'chip-on' : ''}`} onClick={() => setSplit(s)}>
+              {t(`workoutTemplate.splits.${s}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <button type="button" disabled={!name.trim() || mut.isPending} onClick={() => mut.mutate()} className="btn-primary w-full disabled:opacity-40">
+        {t('common.save')}
+      </button>
+    </div>
   );
 }

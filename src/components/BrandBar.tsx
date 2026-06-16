@@ -6,6 +6,7 @@
 export function BrandBar() {
   return (
     <header
+      data-testid="brand-bar"
       className="sticky top-0 z-30 flex items-center justify-center gap-2.5 bg-surface/85 px-5 pt-3 backdrop-blur-md"
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >

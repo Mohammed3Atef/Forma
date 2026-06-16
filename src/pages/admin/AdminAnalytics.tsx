@@ -20,7 +20,7 @@ export function AdminAnalytics() {
 
   return (
     <>
-      <TopBar title={t('admin.analytics')} eyebrow={t('platform.platform')} />
+      <TopBar testId="admin-analytics" title={t('admin.analytics')} eyebrow={t('platform.platform')} />
 
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile icon="user" value={d?.total ?? '—'} label={t('admin.totalAccounts')} />

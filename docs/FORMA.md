@@ -67,15 +67,38 @@ There are no Cloud Functions, so the first super admin is promoted manually:
 ```
 users/{uid}                              identity: role, accountStatus, permissions, featureFlags, createdBy, assignedCoachId?
 coachClients/{coachId__clientId}         coach⇄client relationship (status)
-clientData/{clientId}/profile|settings   client fitness profile + app settings
+clientData/{clientId}/profile/main       client fitness profile
+clientData/{clientId}/profile/assessment onboarding assessment + status (not_started|in_progress|submitted|reviewed) + coach review fields
+clientData/{clientId}/settings/app       app settings (targets mirrored here)
 clientData/{clientId}/{workoutLogs|nutritionLogs|cardioLogs|weightLogs|measurementLogs|dailyChecklists|progressPhotos|reminders}
-clientData/{clientId}/plan/workout       coach-authored WorkoutPlan (days/exercises/sets/reps/rest/video)
-clientData/{clientId}/plan/nutrition     coach-authored MealPlan (meals/foods/macros/water)
+clientData/{clientId}/plan/workout       coach-authored WorkoutPlan (days/sections/exercises/sets/reps/rest/video)
+clientData/{clientId}/plan/nutrition     coach-authored MealPlan (meals/foods/macros/water + substitutionPolicy)
+clientData/{clientId}/plan/cardio        coach-authored CardioPlan (sessions)
+clientData/{clientId}/planVersions/{id}  plan version history (coach-write, client-read); active version mirrors plan/{kind}
 clientData/{clientId}/coachNotes|coachTargets        coach notes / targets
-planTemplates/{id}                       coach-owned reusable templates
+coachAssets/{coachId}/exercises|workoutTemplates|nutritionTemplates|foods|foodGroups   coach-owned reusable assets
+planTemplates/{id}                       legacy coach-owned templates (superseded by coachAssets)
 adminAuditLogs/{id}                      admin action trail
 featureFlags/{id}                        global / per-coach / per-client toggles
 ```
+
+**Assessment review loop.** The onboarding assessment (`profile/assessment`) carries an
+explicit `status`: the client may create/edit it until the coach marks it `reviewed`
+(rule-enforced), the coach adds review notes / marks reviewed / resets it, and admins
+are read-only. Submitting unlocks the client dashboard; a coach `reset` re-gates it.
+
+**Plan versioning.** Coaches "Save as new version" from any plan editor → a numbered
+snapshot in `planVersions` (active one mirrored into `plan/{kind}`, which is all the
+client reads). Restoring an older version swaps the client's active plan. Clients never
+write versions.
+
+**Food alternatives.** Coaches keep a food library + interchangeable `foodGroups`.
+Attaching a group to a planned meal item **snapshots** its foods onto the item
+(`allowedAlternatives`), so the client swaps among coach-approved options without
+touching the plan — the swap lives only in `nutritionLogs/{date}` (`itemOverrides` +
+a `substitutions` adherence tag: `approved_substitution` / `client_custom_substitution`).
+The per-plan `substitutionPolicy` governs whether swaps / custom foods are allowed and
+whether custom swaps are flagged for coach review.
 
 **Coach-driven content.** Forma is not a personal tracker: a platform client starts
 completely empty (no plan, meals, targets, videos, or demo data — seeding is disabled
