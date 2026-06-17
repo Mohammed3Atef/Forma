@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients, saveClientProfile } from '@/services/platform/coachApi';
 import { createAccount } from '@/services/accounts/createUserSecondary';
@@ -19,6 +20,8 @@ const ACCT_PILL: Record<AccountStatus, string> = {
   suspended: 'border-danger/50 text-danger',
   disabled: 'border-danger/50 text-danger',
 };
+const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'pending', 'suspended', 'disabled'];
+const PAGE = 20;
 
 export function CoachClients() {
   const { t } = useTranslation();
@@ -26,6 +29,8 @@ export function CoachClients() {
   const qc = useQueryClient();
   const coachId = useSession((s) => s.account?.id);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
+  const [visible, setVisible] = useState(PAGE);
   const [adding, setAdding] = useState(false);
 
   const clients = useQuery({
@@ -37,9 +42,17 @@ export function CoachClients() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = clients.data ?? [];
-    if (!q) return list;
-    return list.filter((c) => (c.displayName || c.email).toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
-  }, [clients.data, search]);
+    return list.filter((c) => {
+      if (statusFilter !== 'all' && c.accountStatus !== statusFilter) return false;
+      if (!q) return true;
+      return (c.displayName || c.email).toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || (c.phone ?? '').includes(q);
+    });
+  }, [clients.data, search, statusFilter]);
+
+  // Reset the page window whenever the filter/search changes.
+  useEffect(() => { setVisible(PAGE); }, [search, statusFilter]);
+  const shown = filtered.slice(0, visible);
+  const sentinel = useInfiniteScroll(() => setVisible((v) => v + PAGE), visible < filtered.length);
 
   return (
     <div data-testid="coach-clients">
@@ -58,11 +71,25 @@ export function CoachClients() {
         }
       />
 
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
           <Icon name="search" size={18} />
         </span>
         <input className="input ps-10" placeholder={t('coach.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+        {STATUS_FILTERS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            data-testid={`client-status-filter-${s}`}
+            onClick={() => setStatusFilter(s)}
+            className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}
+          >
+            {s === 'all' ? t('admin.allStatuses') : t(`subscription.acct.${s}`)}
+          </button>
+        ))}
       </div>
 
       {clients.isLoading ? (
@@ -70,21 +97,25 @@ export function CoachClients() {
       ) : filtered.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{t('coach.noClients')}</div>
       ) : (
-        <div className="card divide-y divide-line-soft">
-          {filtered.map((c) => (
-            <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
-              <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{c.displayName || c.email}</span>
-                <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>
-              </span>
-              {c.accountStatus !== 'active' && (
+        <>
+          <div className="card divide-y divide-line-soft">
+            {shown.map((c) => (
+              <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
+                <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{c.displayName || c.email}</span>
+                  <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>
+                </span>
                 <span className={`chip ${ACCT_PILL[c.accountStatus]}`}>{t(`subscription.acct.${c.accountStatus}`)}</span>
-              )}
-              <Icon name="chevron" size={18} />
-            </button>
-          ))}
-        </div>
+                <Icon name="chevron" size={18} />
+              </button>
+            ))}
+          </div>
+          <div ref={sentinel} />
+          {visible < filtered.length && (
+            <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setVisible((v) => v + PAGE)}>{t('common.showMore')}</button>
+          )}
+        </>
       )}
 
       <Sheet open={adding} onClose={() => setAdding(false)} title={t('coach.addClient')}>
@@ -106,6 +137,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
     name: '',
     email: '',
     password: '',
+    phone: '',
     age: '',
     weight: '',
     height: '',
@@ -121,6 +153,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
         email: form.email.trim(),
         password: form.password,
         displayName: form.name,
+        phone: form.phone.trim() || undefined,
         role: 'client',
         accountStatus: 'active',
         createdBy: coachId,
@@ -166,6 +199,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
       <input className="input" data-testid="coach-add-name" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       <input className="input" type="email" autoComplete="off" data-testid="coach-add-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       <input className="input" type="password" autoComplete="new-password" data-testid="coach-add-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="coach-add-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
 
       <p className="label pt-1">{t('coach.profileOptional')}</p>
       <div className="grid grid-cols-3 gap-2">

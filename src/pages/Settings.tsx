@@ -5,6 +5,7 @@ import type { ActivityLevel, Goal, Locale, ReminderKind } from '@/types';
 import { useSettings } from '@/stores/settingsStore';
 import { useReminders } from '@/services/reminders/reminderStore';
 import { useCloud } from '@/services/auth/cloudStore';
+import { useSession } from '@/services/auth/sessionStore';
 import { useDay } from '@/stores/dayStore';
 import { useNutrition } from '@/stores/nutritionStore';
 import { useCardio } from '@/stores/cardioStore';
@@ -57,6 +58,11 @@ export function Settings() {
   const requestPermission = useReminders((s) => s.requestPermission);
 
   const cloud = useCloud();
+  const account = useSession((s) => s.account);
+  const updateContact = useSession((s) => s.updateContact);
+  const accountPhone = account?.phone ?? '';
+  const [phone, setPhone] = useState(accountPhone);
+  useEffect(() => { setPhone(accountPhone); }, [accountPhone]);
   const [authOpen, setAuthOpen] = useState(false);
   const [creds, setCreds] = useState({ email: '', password: '', create: false });
   const [newRem, setNewRem] = useState<{ kind: ReminderKind; time: string }>({ kind: 'meal', time: '09:00' });
@@ -218,6 +224,21 @@ export function Settings() {
           <label className="label">{t('settings.name')}</label>
           <input className="input" value={profile.name} onChange={(e) => void updateProfile({ name: e.target.value })} />
         </div>
+        {account && account.id !== 'local-user' && (
+          <div>
+            <label className="label">{t('settings.phone')}</label>
+            <input
+              className="input"
+              type="tel"
+              inputMode="tel"
+              dir="ltr"
+              data-testid="settings-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => { if (phone.trim() !== accountPhone) void updateContact(phone); }}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className="label">{t('settings.age')}</label>

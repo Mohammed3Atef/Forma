@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -67,6 +68,18 @@ export async function setAccountStatus(target: UserRecord, status: AccountStatus
     targetUserId: target.id,
     metadata: { from: target.accountStatus, to: status },
   });
+}
+
+/**
+ * Hard-deletes the identity doc at `users/{uid}` (super-admin only, per rules).
+ * NOTE: this is a client-side SPA — it cannot remove the Firebase Auth user or
+ * the client's `clientData/*`; those remain. Prefer `accountStatus: 'disabled'`
+ * for reversible deactivation; use delete only to purge a record entirely.
+ */
+export async function deleteUser(target: UserRecord): Promise<void> {
+  const { db } = ensureFirebase();
+  await deleteDoc(doc(db, USERS, target.id));
+  await writeAudit({ action: 'user.delete', targetUserId: target.id, metadata: { role: target.role, email: target.email } });
 }
 
 export async function setRole(target: UserRecord, role: Role): Promise<void> {

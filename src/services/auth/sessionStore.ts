@@ -21,10 +21,12 @@ interface SessionState {
   error: string | null;
   init: () => void;
   /** Resolves true on success; on failure sets `error` and resolves false. */
-  signIn: (email: string, password: string, create?: boolean) => Promise<boolean>;
+  signIn: (email: string, password: string, create?: boolean, phone?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   /** Re-reads the identity doc for the current uid and recomputes `phase`. */
   refreshAccount: () => Promise<void>;
+  /** Update the signed-in user's own contact phone (allowed by self-update rules). */
+  updateContact: (phone: string) => Promise<void>;
 }
 
 /** Synthetic account used in local-only mode (no Firebase configured). */
@@ -76,7 +78,7 @@ export const useSession = create<SessionState>((set, get) => ({
     });
   },
 
-  async signIn(email, password, create) {
+  async signIn(email, password, create, phone) {
     set({ error: null });
     try {
       const [{ firebaseAuth }, accounts] = await Promise.all([
@@ -85,7 +87,7 @@ export const useSession = create<SessionState>((set, get) => ({
       ]);
       if (create) {
         const user = await firebaseAuth.signUp(email, password);
-        await accounts.provisionSelf(user.uid, email);
+        await accounts.provisionSelf(user.uid, email, phone);
         set({ uid: user.uid });
       } else {
         const user = await firebaseAuth.signIn(email, password);
@@ -126,5 +128,16 @@ export const useSession = create<SessionState>((set, get) => ({
       console.error('[session] failed to load account:', e);
       set({ error: e instanceof Error ? e.message : 'Failed to load account' });
     }
+  },
+
+  async updateContact(phone) {
+    const account = get().account;
+    if (!account || account.id === LOCAL_ACCOUNT.id) return;
+    const { ensureFirebase } = await import('@/data/adapters/firebase/firebase');
+    const { doc, setDoc } = await import('firebase/firestore');
+    const { db } = ensureFirebase();
+    const trimmed = phone.trim();
+    await setDoc(doc(db, 'users', account.id), { phone: trimmed, updatedAt: Date.now() }, { merge: true });
+    set({ account: { ...account, phone: trimmed } });
   },
 }));

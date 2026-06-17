@@ -12,14 +12,14 @@ export function Login() {
   const signIn = useSession((s) => s.signIn);
   const error = useSession((s) => s.error);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [creds, setCreds] = useState({ email: '', password: '' });
+  const [creds, setCreds] = useState({ email: '', password: '', phone: '' });
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!creds.email.trim() || !creds.password) return;
     setBusy(true);
     try {
-      await signIn(creds.email.trim(), creds.password, mode === 'signup');
+      await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined);
     } finally {
       setBusy(false);
     }
@@ -58,6 +58,18 @@ export function Login() {
             value={creds.password}
             onChange={(e) => setCreds({ ...creds, password: e.target.value })}
           />
+          {mode === 'signup' && (
+            <input
+              className="input"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              data-testid="login-phone"
+              placeholder={t('settings.phone')}
+              value={creds.phone}
+              onChange={(e) => setCreds({ ...creds, phone: e.target.value })}
+            />
+          )}
           {error && <p className="text-sm text-danger" data-testid="login-error">{error}</p>}
           {busy && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}
           <button type="submit" disabled={busy} data-testid="login-submit" className="btn-primary btn-lg w-full disabled:opacity-40">

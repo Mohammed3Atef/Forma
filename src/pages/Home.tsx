@@ -8,6 +8,7 @@ import { useCardio } from '@/stores/cardioStore';
 import { useHabits } from '@/stores/habitStore';
 import { useDay } from '@/stores/dayStore';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useActiveCheckIn } from '@/hooks/useActiveCheckIn';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
 import { StatTile } from '@/components/StatTile';
@@ -39,6 +40,7 @@ export function Home() {
   const startSession = useWorkout((s) => s.startSession);
   const setDay = useDay((s) => s.setDay);
   const { readOnly } = useSubscription();
+  const { checkIn } = useActiveCheckIn();
 
   const mealPlan = useNutrition((s) => s.plan);
   const nutritionLog = useNutrition((s) => s.log);
@@ -155,6 +157,25 @@ export function Home() {
           <SyncStatusBadge />
         </div>
       </header>
+
+      {/* Weekly check-in requested by the coach — prominent call to action */}
+      {checkIn?.status === 'requested' && (
+        <button
+          type="button"
+          data-testid="home-checkin"
+          onClick={() => navigate(`/check-in/${checkIn.id}`)}
+          className="card-tap flex w-full items-center gap-4 border border-brand/40 text-start"
+        >
+          <span className="row-av bg-brand/15 text-brand">
+            <Icon name="calendar" size={20} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="eyebrow mb-1 block text-brand">{t('checkin.requiredTitle')}</span>
+            <span className="block text-sm text-earth-muted">{t('checkin.requiredBody')}</span>
+          </span>
+          <Icon name="chevron" size={18} />
+        </button>
+      )}
 
       {/* Coach announcements / assigned plans (only when the client has a coach) */}
       <CoachCard />

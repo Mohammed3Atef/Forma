@@ -9,6 +9,7 @@ import { CoachClients } from '@/pages/coach/CoachClients';
 import { CoachClientDetail } from '@/pages/coach/CoachClientDetail';
 import { CoachClientActivity } from '@/pages/coach/CoachClientActivity';
 import { CoachViewLayout } from '@/pages/coach/CoachViewLayout';
+import { CoachCheckIns } from '@/pages/coach/CoachCheckIns';
 import { CoachClientAssessment } from '@/pages/coach/CoachClientAssessment';
 import { CoachWorkoutEditor } from '@/pages/coach/CoachWorkoutEditor';
 import { CoachNutritionEditor } from '@/pages/coach/CoachNutritionEditor';
@@ -37,6 +38,7 @@ export function CoachApp() {
         <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/assessment" element={shell(<CoachClientAssessment />)} />
+        <Route path="/coach/client/:clientId/checkins" element={shell(<CoachCheckIns />)} />
         <Route path="/coach/client/:clientId/workout" element={shell(<CoachWorkoutEditor />)} />
         <Route path="/coach/client/:clientId/nutrition" element={shell(<CoachNutritionEditor />)} />
         <Route path="/coach/client/:clientId/cardio" element={shell(<CoachCardioEditor />)} />

@@ -11,6 +11,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import {
   createUser,
+  deleteUser,
   fetchUsersPage,
   setAccountStatus,
   setRole,
@@ -19,6 +20,7 @@ import { confirmDialog } from '@/stores/dialogStore';
 import type { AccountStatus, Role, UserRecord } from '@/types';
 
 const ROLE_FILTERS: (Role | 'all')[] = ['all', 'super_admin', 'admin', 'coach', 'client'];
+const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'pending', 'suspended', 'disabled'];
 const STATUSES: AccountStatus[] = ['active', 'pending', 'suspended', 'disabled'];
 
 /** Roles the actor is allowed to assign. */
@@ -45,6 +47,7 @@ export function AdminAccounts() {
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
   const [selected, setSelected] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -60,10 +63,11 @@ export function AdminAccounts() {
     const q = search.trim().toLowerCase();
     return all.filter((u) => {
       if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+      if (statusFilter !== 'all' && u.accountStatus !== statusFilter) return false;
       if (!q) return true;
-      return u.email.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q);
+      return u.email.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q) || (u.phone ?? '').includes(q);
     });
-  }, [all, roleFilter, search]);
+  }, [all, roleFilter, statusFilter, search]);
 
   const sentinel = useInfiniteScroll(() => void list.fetchNextPage(), !!list.hasNextPage && !list.isFetchingNextPage);
 
@@ -81,6 +85,13 @@ export function AdminAccounts() {
   });
   const roleMut = useMutation({
     mutationFn: ({ target, role }: { target: UserRecord; role: Role }) => setRole(target, role),
+    onSuccess: () => {
+      refresh();
+      setSelected(null);
+    },
+  });
+  const deleteMut = useMutation({
+    mutationFn: (target: UserRecord) => deleteUser(target),
     onSuccess: () => {
       refresh();
       setSelected(null);
@@ -114,7 +125,7 @@ export function AdminAccounts() {
         />
       </div>
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
         {ROLE_FILTERS.map((r) => (
           <button
             key={r}
@@ -123,6 +134,19 @@ export function AdminAccounts() {
             className={`chip whitespace-nowrap ${roleFilter === r ? 'chip-on' : ''}`}
           >
             {r === 'all' ? t('admin.allRoles') : t(`roles.${r}`)}
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+        {STATUS_FILTERS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            data-testid={`status-filter-${s}`}
+            onClick={() => setStatusFilter(s)}
+            className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}
+          >
+            {s === 'all' ? t('admin.allStatuses') : t(`platform.status.${s}`)}
           </button>
         ))}
       </div>
@@ -138,9 +162,13 @@ export function AdminAccounts() {
               <span className="row-av font-serif">{(u.displayName || u.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{u.displayName || u.email}</span>
-                <span className="block truncate text-[13px] text-earth-muted">{t(`roles.${u.role}`)}</span>
+                <span className="block truncate text-[13px] text-earth-muted">{u.email}</span>
+                {u.phone && <span className="block truncate font-mono text-[11px] text-earth-subtle" dir="ltr">{u.phone}</span>}
               </span>
-              <StatusBadge status={u.accountStatus} />
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                <StatusBadge status={u.accountStatus} />
+                <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-earth-subtle">{t(`roles.${u.role}`)}</span>
+              </span>
             </button>
           ))}
         </div>
@@ -162,7 +190,8 @@ export function AdminAccounts() {
               actorRole={actorRole}
               onSetStatus={(status) => statusMut.mutate({ target: selected, status })}
               onSetRole={(role) => roleMut.mutate({ target: selected, role })}
-              busy={statusMut.isPending || roleMut.isPending}
+              onDelete={() => deleteMut.mutate(selected)}
+              busy={statusMut.isPending || roleMut.isPending || deleteMut.isPending}
             />
           </div>
         )}
@@ -199,12 +228,14 @@ function AccountActions({
   actorRole,
   onSetStatus,
   onSetRole,
+  onDelete,
   busy,
 }: {
   target: UserRecord;
   actorRole: Role | undefined;
   onSetStatus: (s: AccountStatus) => void;
   onSetRole: (r: Role) => void;
+  onDelete: () => void;
   busy: boolean;
 }) {
   const { t } = useTranslation();
@@ -216,6 +247,16 @@ function AccountActions({
   if (!manageable) {
     return <p className="py-4 text-sm text-earth-muted" data-testid="cannot-edit-account">{t('admin.cannotEditSuper')}</p>;
   }
+
+  const doDelete = async () => {
+    const ok = await confirmDialog({
+      title: t('admin.deleteAccount'),
+      message: t('admin.confirmDelete', { name: target.displayName || target.email }),
+      confirmLabel: t('common.delete'),
+      danger: true,
+    });
+    if (ok) onDelete();
+  };
 
   const changeStatus = async (s: AccountStatus) => {
     if (s === target.accountStatus) return;
@@ -240,7 +281,10 @@ function AccountActions({
 
   return (
     <div className="space-y-5">
-      <div className="text-sm text-earth-muted">{target.email}</div>
+      <div className="text-sm text-earth-muted">
+        {target.email}
+        {target.phone && <span className="mt-0.5 block font-mono text-[12px]" dir="ltr">{target.phone}</span>}
+      </div>
 
       {canRoles && roles.length > 0 && (
         <div>
@@ -281,6 +325,16 @@ function AccountActions({
           </div>
         </div>
       )}
+
+      {/* Hard delete — super admin only (rules enforce it too). */}
+      {actorRole === 'super_admin' && (
+        <div className="border-t border-line-soft pt-4">
+          <button type="button" data-testid="delete-account" disabled={busy} className="btn-ghost w-full text-danger disabled:opacity-40" onClick={() => void doDelete()}>
+            <Icon name="close" size={16} /> {t('admin.deleteAccount')}
+          </button>
+          <p className="mt-1 text-[12px] text-earth-subtle">{t('admin.deleteHint')}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -296,7 +350,7 @@ function CreateAccountForm({
 }) {
   const { t } = useTranslation();
   const roles = assignableRoles(actorRole);
-  const [form, setForm] = useState({ email: '', password: '', displayName: '', role: (roles[0] ?? 'client') as Role });
+  const [form, setForm] = useState({ email: '', password: '', displayName: '', phone: '', role: (roles[0] ?? 'client') as Role });
   const [error, setError] = useState<string | null>(null);
 
   const mut = useMutation({
@@ -305,6 +359,7 @@ function CreateAccountForm({
         email: form.email.trim(),
         password: form.password,
         displayName: form.displayName,
+        phone: form.phone.trim() || undefined,
         role: form.role,
         accountStatus: 'active',
         createdBy,
@@ -327,6 +382,7 @@ function CreateAccountForm({
     >
       <input className="input" type="email" autoComplete="off" data-testid="create-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       <input className="input" data-testid="create-name" placeholder={t('settings.name')} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+      <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="create-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       <input className="input" type="password" autoComplete="new-password" data-testid="create-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       <div>
         <div className="label mb-2">{t('platform.role')}</div>

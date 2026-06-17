@@ -33,6 +33,7 @@ export const CLIENT_MENU: NavItem[] = [
   { to: '/cardio', icon: 'activity', key: 'cardio' },
   { to: '/progress', icon: 'chart', key: 'progress' },
   { to: '/history', icon: 'calendar', key: 'history' },
+  { to: '/check-ins', icon: 'calendar', key: 'checkins' },
   { to: '/coach-notes', icon: 'info', key: 'coachNotes' },
   { to: '/notifications', icon: 'bell', key: 'notifications' },
   { to: '/settings', icon: 'user', key: 'settings' },

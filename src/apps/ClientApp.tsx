@@ -36,6 +36,8 @@ import { Settings } from '@/pages/Settings';
 import { VideoManager } from '@/pages/VideoManager';
 import { ImportData } from '@/pages/ImportData';
 import { Notifications } from '@/pages/Notifications';
+import { CheckIn } from '@/pages/CheckIn';
+import { CheckInHistory } from '@/pages/CheckInHistory';
 
 /**
  * The client experience — the original single-user tracker, unchanged. Mounted
@@ -109,6 +111,8 @@ function ClientGate() {
         <Route path="/" element={<AppShell showDayNav><Home /></AppShell>} />
         <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
         <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
+        <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
+        <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
         <Route path="/workout" element={<AppShell><Workout /></AppShell>} />
         <Route path="/workout/routine/:dayId" element={<AppShell><RoutineDetail /></AppShell>} />
         <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />

@@ -68,6 +68,7 @@ export interface UserRecord {
   id: string; // == Firebase Auth uid
   email: string;
   displayName: string;
+  phone?: string; // contact number, collected at sign-up / account creation
   role: Role;
   accountStatus: AccountStatus;
   permissions: Permission[];
@@ -344,7 +345,10 @@ export type NotificationType =
   | 'measurement_added'
   | 'assessment_reviewed'
   | 'freeze_requested'
-  | 'assessment_submitted';
+  | 'assessment_submitted'
+  | 'checkin_requested'
+  | 'checkin_submitted'
+  | 'checkin_reviewed';
 
 /**
  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and
@@ -369,6 +373,37 @@ export interface AppNotification {
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
+  updatedAt: number;
+}
+
+/** Weekly check-in lifecycle: coach requests → client submits → coach reviews. */
+export type CheckInStatus = 'requested' | 'submitted' | 'reviewed';
+
+/**
+ * One weekly check-in, at `clientData/{clientId}/checkIns/{weekStart}` (one per
+ * ISO week; the doc id IS the weekStart date). The coach creates it (`requested`),
+ * the client fills + submits it once (`submitted`), and the coach reviews it with
+ * feedback (`reviewed`). Online read (React Query) — not in the local SyncEngine.
+ */
+export interface WeeklyCheckIn {
+  id: string; // == weekStart (YYYY-MM-DD, Monday)
+  clientId: string;
+  coachId: string;
+  weekStart: string; // YYYY-MM-DD (Mon)
+  weekEnd: string; // YYYY-MM-DD (Sun)
+  status: CheckInStatus;
+  submittedAt?: number;
+  reviewedAt?: number;
+  currentWeight?: number; // kg, decimal
+  adherenceTraining?: number; // 0..100
+  adherenceNutrition?: number; // 0..100
+  hungerLevel?: number; // 1..10
+  energyLevel?: number; // 1..10
+  sleepQuality?: number; // 1..10
+  notes?: string;
+  progressPhotos: { front?: string; side?: string; back?: string }; // Bunny CDN urls
+  coachFeedback?: string;
+  createdAt: number;
   updatedAt: number;
 }
 

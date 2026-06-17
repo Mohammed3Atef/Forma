@@ -45,6 +45,17 @@ export function weekStartOf(d: Date): Date {
   return s;
 }
 
+/**
+ * The training-week range (start..end, inclusive) for a day key, following the
+ * app's Saturday→Friday convention (see WEEK_STARTS_ON). Used as the weekly
+ * check-in's deterministic id (weekStart) + label.
+ */
+export function weekRange(key = today()): { weekStart: string; weekEnd: string } {
+  const [y, m, d] = key.split('-').map(Number);
+  const weekStart = dayKey(weekStartOf(new Date(y, m - 1, d)));
+  return { weekStart, weekEnd: addDays(weekStart, 6) };
+}
+
 /** Inclusive difference in whole days between two day keys (a - b). */
 export function diffDays(a: string, b: string): number {
   const [ay, am, ad] = a.split('-').map(Number);

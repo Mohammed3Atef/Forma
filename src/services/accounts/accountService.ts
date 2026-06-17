@@ -29,7 +29,7 @@ export async function fetchUserRecord(uid: string): Promise<UserRecord | null> {
  * no permissions. Idempotent — returns the existing record if one is present so
  * it never clobbers an admin-assigned role.
  */
-export async function provisionSelf(uid: string, email: string): Promise<UserRecord> {
+export async function provisionSelf(uid: string, email: string, phone?: string): Promise<UserRecord> {
   const existing = await fetchUserRecord(uid);
   if (existing) return existing;
 
@@ -43,6 +43,7 @@ export async function provisionSelf(uid: string, email: string): Promise<UserRec
     permissions: [],
     featureFlags: {},
     createdBy: 'self',
+    ...(phone?.trim() ? { phone: phone.trim() } : {}),
     createdAt: now,
     updatedAt: now,
   };

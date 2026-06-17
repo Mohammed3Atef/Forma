@@ -57,7 +57,7 @@ service cloud.firestore {
     // deletions, …) is the client's own. Daily nutrition substitutions live in
     // nutritionLogs/{date}, which the client owns — NOT in plan/nutrition.
     function isCoachOwnedColl(coll) {
-      return coll in ['plan', 'coachNotes', 'coachTargets', 'workoutPlans', 'nutritionPlans', 'planVersions'];
+      return coll in ['plan', 'coachNotes', 'coachTargets', 'workoutPlans', 'nutritionPlans', 'planVersions', 'checkIns'];
     }
 
     // ---- users (identity / access control) -------------------------------
@@ -176,6 +176,12 @@ service cloud.firestore {
     // own seen via the generic clientData write rule.
     match /clientData/{clientId}/notifications/{docId} {
       allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    // Weekly check-ins: the coach creates the request + writes review feedback
+    // (granted by the coach branch since checkIns is in isCoachOwnedColl); the
+    // client may submit their OWN check-in once, only while it's still 'requested'.
+    match /clientData/{clientId}/checkIns/{docId} {
+      allow update: if isActive() && request.auth.uid == clientId && resource.data.status == 'requested';
     }
 
     // ---- onboarding assessment (status-aware) ----------------------------

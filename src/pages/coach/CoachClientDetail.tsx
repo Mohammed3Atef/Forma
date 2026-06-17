@@ -59,6 +59,12 @@ export function CoachClientDetail() {
     <>
       <TopBar testId="coach-client-detail" title={name} eyebrow={profile.data?.goal ? t(`settings.goals.${profile.data.goal}`) : t('platform.coachPortal')} onBack={() => navigate('/coach')} />
 
+      {user.data?.phone && (
+        <a href={`tel:${user.data.phone}`} className="mb-3 inline-flex items-center gap-1.5 text-[13px] text-brand-light" dir="ltr">
+          <Icon name="info" size={14} /> {user.data.phone}
+        </a>
+      )}
+
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile icon="dumbbell" value={finishedWorkouts} label={t('coach.recentWorkouts')} />
         <StatTile icon="scale" value={lastWeight ?? '—'} unit={lastWeight ? t('common.kg') : undefined} label={t('coach.lastWeight')} />
@@ -91,6 +97,23 @@ export function CoachClientDetail() {
           <span className="block text-[13px] text-earth-muted">{t('assessment.coachHint')}</span>
         </span>
         <span data-testid="assessment-status-badge" className={`chip ${ASSESS_PILL[assessStatus]}`}>{t(`assessment.status.${assessStatus}`)}</span>
+        <Icon name="chevron" size={18} />
+      </button>
+
+      {/* Weekly check-ins */}
+      <button
+        type="button"
+        data-testid="coach-view-checkins"
+        onClick={() => navigate(`/coach/client/${clientId}/checkins`)}
+        className="card-tap mt-2.5 flex w-full items-center gap-3 text-start"
+      >
+        <span className="row-av bg-brand/15 text-brand">
+          <Icon name="calendar" size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('checkin.title')}</span>
+          <span className="block text-[13px] text-earth-muted">{t('checkin.coachHint')}</span>
+        </span>
         <Icon name="chevron" size={18} />
       </button>
 

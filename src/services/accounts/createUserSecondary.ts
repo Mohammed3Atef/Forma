@@ -14,6 +14,7 @@ export interface CreateAccountParams {
   email: string;
   password: string;
   displayName?: string;
+  phone?: string;
   role: Role;
   accountStatus?: AccountStatus;
   permissions?: Permission[];
@@ -33,7 +34,7 @@ export interface CreateAccountParams {
  * to set a non-default role.
  */
 export async function createAccount(params: CreateAccountParams): Promise<UserRecord> {
-  const { email, password, displayName, role, accountStatus, permissions, createdBy, assignedCoachId } = params;
+  const { email, password, displayName, phone, role, accountStatus, permissions, createdBy, assignedCoachId } = params;
   const cfg = {
     apiKey: firebaseConfig.apiKey!,
     authDomain: firebaseConfig.authDomain,
@@ -57,6 +58,7 @@ export async function createAccount(params: CreateAccountParams): Promise<UserRe
       permissions: permissions ?? [],
       featureFlags: {},
       createdBy,
+      ...(phone?.trim() ? { phone: phone.trim() } : {}),
       ...(assignedCoachId ? { assignedCoachId } : {}),
       createdAt: now,
       updatedAt: now,

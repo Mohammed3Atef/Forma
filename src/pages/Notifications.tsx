@@ -18,6 +18,9 @@ const ICON: Record<NotificationType, IconName> = {
   assessment_reviewed: 'check',
   freeze_requested: 'info',
   assessment_submitted: 'list',
+  checkin_requested: 'calendar',
+  checkin_submitted: 'calendar',
+  checkin_reviewed: 'check',
 };
 
 /** Map a client screen + day to a route; day-scoped screens also set the active day. */

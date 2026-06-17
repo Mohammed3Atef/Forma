@@ -19,9 +19,9 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
   if (a.lifestyle.activityLevel === 'sedentary') badges.push({ key: 'lowActivity' });
 
   const Row = ({ label, value }: { label: string; value: ReactNode }) => (
-    <div className="flex items-start justify-between gap-4 py-2 first:pt-0 last:pb-0">
-      <span className="shrink-0 text-[13px] text-earth-muted">{label}</span>
-      <span className="text-end text-sm font-medium">{value || '—'}</span>
+    <div className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+      <span className="min-w-0 flex-1 text-[13px] text-earth-muted">{label}</span>
+      <span className="min-w-0 shrink-0 break-words text-end text-sm font-medium">{value || '—'}</span>
     </div>
   );
   const Section = ({ title, children }: { title: string; children: ReactNode }) => (
