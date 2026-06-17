@@ -20,7 +20,8 @@ test.describe('Arabic / RTL', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
     // Navigation still works and major pages render without horizontal scroll.
-    for (const key of ['home', 'workout', 'nutrition', 'cardio', 'progress'] as const) {
+    // (Cardio now lives in the nav menu, not the bottom bar — covered elsewhere.)
+    for (const key of ['home', 'nutrition', 'workout', 'progress'] as const) {
       await page.getByTestId(TID.navItem(key)).click();
       await page.waitForTimeout(400);
       await expect(page.locator('body')).toContainText(/\S/);

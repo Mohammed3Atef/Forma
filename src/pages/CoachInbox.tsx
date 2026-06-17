@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { useCoachContent } from '@/hooks/useCoachContent';
 
 export function CoachInbox() {
@@ -16,6 +17,9 @@ export function CoachInbox() {
         <div className="card py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</div>
       ) : (
         <div className="space-y-6">
+          {/* Subscription + freeze request */}
+          <ClientSubscriptionSection />
+
           {/* Coach targets */}
           {targets && (
             <section>

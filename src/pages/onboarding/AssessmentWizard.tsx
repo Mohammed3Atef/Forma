@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
@@ -6,6 +6,8 @@ import { Icon } from '@/components/Icon';
 import { Slider } from '@/components/Slider';
 import { TagInput } from '@/components/TagInput';
 import { saveAssessmentProgress, submitAssessment } from '@/services/platform/clientCoachApi';
+import { downscaleImage } from '@/lib/image';
+import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
 import type {
   ActivityLevel,
   AssessmentChallenge,
@@ -130,6 +132,16 @@ export function AssessmentWizard({ uid, displayName }: { uid: string; displayNam
   const patch = <K extends SectionKey>(key: K, value: Partial<ClientAssessment[K]>) =>
     setA((prev) => ({ ...prev, [key]: { ...prev[key], ...value } }));
 
+  // Replace (not merge) progressPhotos so removing a pose deletes the key —
+  // a stored `undefined` would be rejected by Firestore on submit.
+  const setPhoto = (pose: 'front' | 'side' | 'back', url?: string) =>
+    setA((prev) => {
+      const photos = { ...prev.progressPhotos };
+      if (url) photos[pose] = url;
+      else delete photos[pose];
+      return { ...prev, progressPhotos: photos };
+    });
+
   const firstInvalidStep = (): number => {
     for (let i = 0; i < STEP_COUNT; i += 1) if (!stepValid(i, a)) return i;
     return -1;
@@ -243,7 +255,9 @@ export function AssessmentWizard({ uid, displayName }: { uid: string; displayNam
           </header>
 
           {/* Body — scrolls inside the card */}
-          <main className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">{renderStep(step, a, patch, t)}</main>
+          <main className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            {step === 7 ? <PhotosStep a={a} uid={uid} setPhoto={setPhoto} /> : renderStep(step, a, patch, t)}
+          </main>
 
           {/* Footer — Back / Next-or-Submit, never covers inputs */}
           <footer className="border-t border-line-soft px-5 py-3">
@@ -480,16 +494,65 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
       );
     case 7:
     default:
-      return (
-        <div className="space-y-3">
-          <p className="text-sm text-earth-muted">{t('assessment.photosHint')}</p>
-          {(['front', 'side', 'back'] as const).map((pose) => (
-            <div key={pose} className="card flex items-center justify-between opacity-60">
-              <span className="font-medium">{t(`progress.${pose}`)}</span>
-              <span className="font-mono text-[11px] text-earth-subtle">{t('assessment.photosSoon')}</span>
-            </div>
-          ))}
-        </div>
-      );
+      return null; // Step 7 (photos) is rendered by <PhotosStep> (needs hooks + uid).
   }
+}
+
+/** Optional progress-photo upload step (front/side/back → Bunny CDN). */
+function PhotosStep({ a, uid, setPhoto }: { a: ClientAssessment; uid: string; setPhoto: (pose: 'front' | 'side' | 'back', url?: string) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-earth-muted">{t('assessment.photosHint')}</p>
+      {!isBunnyConfigured() && <p className="text-[12px] text-earth-subtle">{t('upload.notConfigured')}</p>}
+      {(['front', 'side', 'back'] as const).map((pose) => (
+        <PhotoPicker key={pose} pose={pose} uid={uid} url={a.progressPhotos[pose]} onChange={(url) => setPhoto(pose, url)} />
+      ))}
+    </div>
+  );
+}
+
+function PhotoPicker({ pose, uid, url, onChange }: { pose: 'front' | 'side' | 'back'; uid: string; url?: string; onChange: (url?: string) => void }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await downscaleImage(file);
+      const { url: uploaded } = await uploadImageToBunny(blob, { folder: `Forma/${uid}/assessment` });
+      onChange(uploaded);
+    } catch (err) {
+      setError(t(`upload.${err instanceof UploadError ? err.code : 'failed'}`));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium">{t(`progress.${pose}`)}</span>
+        <div className="flex items-center gap-2">
+          {url && <img src={url} alt={pose} className="h-12 w-9 rounded object-cover" />}
+          <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onFile(e)} />
+          <button type="button" disabled={busy || !isBunnyConfigured()} className="chip disabled:opacity-40" onClick={() => ref.current?.click()}>
+            {busy ? t('upload.uploading') : url ? t('upload.replace') : t('upload.addPhoto')}
+          </button>
+          {url && (
+            <button type="button" className="text-danger" aria-label={t('upload.remove')} onClick={() => onChange(undefined)}>
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+      {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
+    </div>
+  );
 }

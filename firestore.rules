@@ -112,6 +112,14 @@ service cloud.firestore {
               || (hasPermission('users.manageRoles')
                 && request.resource.data.role in ['client', 'coach'])
            ))
+        // Assigned coach may change ONLY the account status of their OWN client
+        // (freeze/pending/trash) — never role, permissions, or assignment.
+        || (isAssignedCoach(uid)
+            && resource.data.role == 'client'
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.permissions == resource.data.permissions
+            && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', '')
+            && request.resource.data.accountStatus in ['active', 'suspended', 'pending', 'disabled'])
       );
 
       // Prefer status 'disabled' over hard delete; only super_admin may delete.
@@ -156,6 +164,20 @@ service cloud.firestore {
         && (isCoachOwnedColl(coll) || coll == 'profile');
     }
 
+    // ---- coach-writable client collections -------------------------------
+    // The client can already write these via the generic rule above (neither is
+    // coach-owned); these blocks ADD the assigned coach (or admin clients.writeAll).
+    // Coach may record body measurements for their client (client still owns theirs).
+    match /clientData/{clientId}/measurementLogs/{docId} {
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+    // In-app notifications: the coach creates client-bound alerts (and marks
+    // coach-bound ones seen); the client writes coach-bound alerts + marks their
+    // own seen via the generic clientData write rule.
+    match /clientData/{clientId}/notifications/{docId} {
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+
     // ---- onboarding assessment (status-aware) ----------------------------
     // The client may create + edit their assessment until the coach has marked
     // it `reviewed`; the assigned coach (or admin clients.writeAll) writes the
@@ -169,6 +191,18 @@ service cloud.firestore {
       allow update: if isActive() && request.auth.uid == clientId
         && resource.data.status != 'reviewed';
       allow update: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+
+    // ---- subscription freeze requests ------------------------------------
+    // The client creates/cancels their own request via the generic clientData
+    // write rule above (subscriptionRequest is not coach-owned); the assigned
+    // coach (or admin) writes the decision here.
+    match /clientData/{clientId}/subscriptionRequest/{docId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == clientId
+        || isAssignedCoach(clientId)
+        || hasPermission('clients.readAll'));
+      allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
     }
 
     // ---- planTemplates (coach-owned, legacy) -----------------------------

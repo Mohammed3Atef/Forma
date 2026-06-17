@@ -50,7 +50,8 @@ test.describe('Offline & sync (client)', () => {
 
   test.beforeEach(async ({ login, page }) => {
     await login('client');
-    await page.getByTestId(TID.navItem('cardio')).waitFor({ timeout: 25_000 });
+    // Cardio now lives in the nav menu (not the bottom bar); home is a bar tab.
+    await page.getByTestId(TID.navItem('home')).waitFor({ timeout: 25_000 });
     // Ensure the coach-content pull finished and no overlay is intercepting.
     await waitNoOverlay(page);
   });

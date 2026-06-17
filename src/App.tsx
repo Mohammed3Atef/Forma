@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { bootstrapData } from '@/data/bootstrap';
+import { cloudAvailable } from '@/data/dataSource';
 import { useSettings } from '@/stores/settingsStore';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition } from '@/stores/nutritionStore';
@@ -35,6 +36,18 @@ export function App() {
     void useWorkout.getState().loadDay(selectedDay);
     void useHabits.getState().refresh(selectedDay);
   }, [selectedDay, ready]);
+
+  // Re-read the identity doc when the app returns to the foreground, so a
+  // coach's account-status change (suspend / pending / reactivate) takes effect
+  // on the client's next focus instead of waiting for a full reload.
+  useEffect(() => {
+    if (!cloudAvailable()) return; // local-only mode has no identity doc to re-read
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void useSession.getState().refreshAccount();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   useEffect(() => {
     let mounted = true;

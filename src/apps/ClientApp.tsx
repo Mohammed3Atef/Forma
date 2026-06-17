@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
+import { ClientNotesProvider } from '@/components/ClientNotesProvider';
 import { Onboarding } from '@/components/Onboarding';
 import { Splash } from '@/components/Splash';
 import { queryClient } from '@/services/platform/queryClient';
@@ -34,6 +35,7 @@ import { Measurements } from '@/pages/Measurements';
 import { Settings } from '@/pages/Settings';
 import { VideoManager } from '@/pages/VideoManager';
 import { ImportData } from '@/pages/ImportData';
+import { Notifications } from '@/pages/Notifications';
 
 /**
  * The client experience — the original single-user tracker, unchanged. Mounted
@@ -101,11 +103,12 @@ function ClientGate() {
   if (blocked) return <AssessmentWizard uid={uid} displayName={displayName} />;
 
   return (
-    <>
+    <ClientNotesProvider>
       <Onboarding />
       <Routes>
         <Route path="/" element={<AppShell showDayNav><Home /></AppShell>} />
         <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
+        <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
         <Route path="/workout" element={<AppShell><Workout /></AppShell>} />
         <Route path="/workout/routine/:dayId" element={<AppShell><RoutineDetail /></AppShell>} />
         <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
@@ -122,6 +125,6 @@ function ClientGate() {
         <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
         <Route path="*" element={<AppShell><Home /></AppShell>} />
       </Routes>
-    </>
+    </ClientNotesProvider>
   );
 }

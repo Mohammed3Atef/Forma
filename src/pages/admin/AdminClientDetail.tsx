@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
-import { getClientAssessment, getCoachTargets } from '@/services/platform/coachApi';
+import { getClientAssessment } from '@/services/platform/coachApi';
 import { ClientActivityView } from '@/pages/coach/ClientActivityView';
 import { AssessmentView } from '@/components/AssessmentView';
 
@@ -18,7 +18,6 @@ export function AdminClientDetail() {
   const wPlan = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
   const mPlan = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
   const cPlan = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
-  const targets = useQuery({ queryKey: ['coachTargets', clientId], queryFn: () => getCoachTargets(clientId), enabled: !!clientId });
   const assessment = useQuery({ queryKey: ['clientAssessment', clientId], queryFn: () => getClientAssessment(clientId), enabled: !!clientId });
 
   const name = user.data?.displayName || user.data?.email || t('coach.client');
@@ -41,9 +40,9 @@ export function AdminClientDetail() {
         {planRow(t('coach.kind.cardio'), !!cPlan.data, t('coach.sessionsCount', { n: cPlan.data?.sessions.length ?? 0 }))}
       </div>
       <div className="card mb-6 grid grid-cols-3 gap-3 text-center">
-        <Target label={t('coach.water')} value={targets.data?.waterMl} unit="ml" />
-        <Target label={t('coach.steps')} value={targets.data?.steps} />
-        <Target label={t('coach.cardio')} value={targets.data?.cardioMin} unit={t('common.min')} />
+        <Target label={t('nutrition.calories')} value={mPlan.data?.targets.calories} />
+        <Target label={t('nutrition.protein')} value={mPlan.data?.targets.protein} unit="g" />
+        <Target label={t('coach.water')} value={mPlan.data?.waterTargetMl} unit="ml" />
       </div>
 
       <h2 className="h2 mb-2">{t('assessment.title')}</h2>

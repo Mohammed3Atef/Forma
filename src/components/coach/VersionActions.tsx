@@ -1,16 +1,21 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Sheet } from '@/components/Sheet';
-import { Icon } from '@/components/Icon';
-import { saveAsNewVersion } from '@/services/platform/planVersionsApi';
-import type { CardioPlan, MealPlan, PlanVersionKind, WorkoutPlan } from '@/types';
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Sheet } from "@/components/Sheet";
+import { Icon } from "@/components/Icon";
+import { saveAsNewVersion } from "@/services/platform/planVersionsApi";
+import type {
+  CardioPlan,
+  MealPlan,
+  PlanVersionKind,
+  WorkoutPlan,
+} from "@/types";
 
 const PLAN_QUERY_KEY: Record<PlanVersionKind, string> = {
-  workout: 'clientWorkoutPlan',
-  nutrition: 'clientMealPlan',
-  cardio: 'clientCardioPlan',
+  workout: "clientWorkoutPlan",
+  nutrition: "clientMealPlan",
+  cardio: "clientCardioPlan",
 };
 
 /**
@@ -33,12 +38,12 @@ export function VersionActions({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
 
   const save = useMutation({
     mutationFn: () => saveAsNewVersion(clientId, kind, plan, createdBy, reason),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['planVersions', clientId, kind] });
+      void qc.invalidateQueries({ queryKey: ["planVersions", clientId, kind] });
       void qc.invalidateQueries({ queryKey: [PLAN_QUERY_KEY[kind], clientId] });
       setOpen(false);
       navigate(`/coach/client/${clientId}`);
@@ -47,20 +52,52 @@ export function VersionActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" data-testid="version-save-new" className="chip" onClick={() => setOpen(true)}>
-        <Icon name="download" size={14} /> {t('planVersions.saveAsVersion')}
+      <button
+        type="button"
+        data-testid="version-save-new"
+        className="chip flex gap-2 items-center"
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="download" size={14} /> {t("planVersions.saveAsVersion")}
       </button>
-      <button type="button" data-testid="version-history" className="chip" onClick={() => navigate(`/coach/client/${clientId}/versions/${kind}`)}>
-        <Icon name="list" size={14} /> {t('planVersions.history')}
+      <button
+        type="button"
+        data-testid="version-history"
+        className="chip flex gap-2 items-center"
+        onClick={() => navigate(`/coach/client/${clientId}/versions/${kind}`)}
+      >
+        <Icon name="list" size={14} /> {t("planVersions.history")}
       </button>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('planVersions.saveAsVersion')}>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("planVersions.saveAsVersion")}
+      >
         <div className="space-y-3">
-          <p className="text-[13px] text-earth-muted">{t('planVersions.saveAsVersionHint')}</p>
-          <input className="input" data-testid="version-reason" placeholder={t('planVersions.reasonPlaceholder')} value={reason} onChange={(e) => setReason(e.target.value)} />
-          {save.isError && <p className="text-sm text-danger">{(save.error as Error)?.message}</p>}
-          <button type="button" data-testid="version-save-confirm" className="btn-primary w-full disabled:opacity-40" disabled={save.isPending} onClick={() => save.mutate()}>
-            {t('planVersions.saveAsVersion')}
+          <p className="text-[13px] text-earth-muted">
+            {t("planVersions.saveAsVersionHint")}
+          </p>
+          <input
+            className="input"
+            data-testid="version-reason"
+            placeholder={t("planVersions.reasonPlaceholder")}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          {save.isError && (
+            <p className="text-sm text-danger">
+              {(save.error as Error)?.message}
+            </p>
+          )}
+          <button
+            type="button"
+            data-testid="version-save-confirm"
+            className="btn-primary w-full disabled:opacity-40"
+            disabled={save.isPending}
+            onClick={() => save.mutate()}
+          >
+            {t("planVersions.saveAsVersion")}
           </button>
         </div>
       </Sheet>

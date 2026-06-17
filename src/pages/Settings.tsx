@@ -15,6 +15,7 @@ import { clearAllLocalData, clearDayData } from '@/data/reset';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
+import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { shortDate } from '@/lib/utils';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
@@ -182,6 +183,9 @@ export function Settings() {
         <StatTile icon="arrowUp" value={stats.volumeT} unit="t" label={t('gt.lifetimeVolume')} />
         <StatTile icon="trophy" value={stats.prs} label={t('gt.personalRecords')} />
       </div>
+
+      {/* Subscription + freeze request (self-hides until a coach sets a term) */}
+      <ClientSubscriptionSection />
 
       {/* Training links */}
       <div className="sec-head"><h2 className="h2">{t('gt.training')}</h2></div>

@@ -39,6 +39,33 @@ export const TID = {
   coachClientDetail: 'coach-client-detail',
   coachViewActivity: 'coach-view-activity',
 
+  // Coach: subscription + account management --------------------------------
+  coachSubscription: 'coach-subscription',
+  subStatus: 'sub-status',
+  subSetTerm: 'sub-set-term',
+  subFreeze: 'sub-freeze',
+  subUnfreeze: 'sub-unfreeze',
+  subEnd: 'sub-end',
+  termStart: 'term-start',
+  termMonths: 'term-months',
+  termSave: 'term-save',
+  freezeFrom: 'freeze-from',
+  freezeUntil: 'freeze-until',
+  freezeSave: 'freeze-save',
+  acctStatus: 'acct-status',
+  acctAction: (s: string) => `acct-${s}`,
+  freezeRequest: 'freeze-request',
+  freezeReqNote: 'freeze-note',
+  freezeAccept: 'freeze-accept',
+  freezeReject: 'freeze-reject',
+  // Client: subscription + freeze request
+  subscriptionBanner: 'subscription-banner',
+  clientSubscription: 'client-subscription',
+  clientSubStatus: 'client-sub-status',
+  freezeReason: 'freeze-reason',
+  freezeSubmit: 'freeze-submit',
+  freezeCancel: 'freeze-cancel',
+
   // Coach: assessment review ------------------------------------------------
   coachViewAssessment: 'coach-view-assessment',
   coachClientAssessment: 'coach-client-assessment',
@@ -59,12 +86,9 @@ export const TID = {
   coachEditWorkout: 'coach-edit-workout',
   coachEditNutrition: 'coach-edit-nutrition',
   coachEditCardio: 'coach-edit-cardio',
-  coachSetTargets: 'coach-set-targets',
   coachAddNote: 'coach-add-note',
   coachNoteBody: 'coach-note-body',
   coachNoteSave: 'coach-note-save',
-  coachTargetsField: (k: string) => `targets-${k}`,
-  coachTargetsSave: 'coach-targets-save',
 
   // Coach: workout editor (drill-down PlanBuilder) ---------------------------
   coachWorkoutEditor: 'coach-workout-editor',

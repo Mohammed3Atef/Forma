@@ -9,10 +9,16 @@ import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients, saveClientProfile } from '@/services/platform/coachApi';
 import { createAccount } from '@/services/accounts/createUserSecondary';
 import { linkCoachClient } from '@/services/platform/coachClientsApi';
-import type { ActivityLevel, Goal } from '@/types';
+import type { AccountStatus, ActivityLevel, Goal } from '@/types';
 
 const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
 const ACTIVITIES: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+const ACCT_PILL: Record<AccountStatus, string> = {
+  active: 'border-success/50 text-success',
+  pending: 'border-warn/50 text-warn',
+  suspended: 'border-danger/50 text-danger',
+  disabled: 'border-danger/50 text-danger',
+};
 
 export function CoachClients() {
   const { t } = useTranslation();
@@ -72,6 +78,9 @@ export function CoachClients() {
                 <span className="block truncate font-medium">{c.displayName || c.email}</span>
                 <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>
               </span>
+              {c.accountStatus !== 'active' && (
+                <span className={`chip ${ACCT_PILL[c.accountStatus]}`}>{t(`subscription.acct.${c.accountStatus}`)}</span>
+              )}
               <Icon name="chevron" size={18} />
             </button>
           ))}

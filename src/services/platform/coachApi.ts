@@ -14,6 +14,8 @@ import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { uid } from '@/lib/utils';
 import { fetchUser } from './accountsApi';
 import { listRelationshipsForCoach } from './coachClientsApi';
+import { writeAudit } from './auditApi';
+import { notify } from './notificationsApi';
 import type {
   AssignedPlan,
   CardioLog,
@@ -21,9 +23,14 @@ import type {
   CoachNote,
   CoachTargets,
   DailyChecklist,
+  FreezeRequest,
+  MeasurementLog,
+  NoteEntityType,
+  NoteScreen,
   NutritionLog,
   PlanKind,
   PlanTemplate,
+  ProgressPhoto,
   Role,
   UserProfile,
   UserRecord,
@@ -79,6 +86,7 @@ export async function markAssessmentReviewed(clientId: string, reviewerId: strin
     { status: 'reviewed', reviewedAt: now, reviewedBy: reviewerId, updatedAt: now },
     { merge: true },
   );
+  await notify({ clientId, forRole: 'client', type: 'assessment_reviewed', route: '/coach-notes', createdBy: reviewerId });
 }
 
 /** Coach re-opens the assessment so the client can edit + resubmit. */
@@ -89,6 +97,31 @@ export async function resetAssessment(clientId: string): Promise<void> {
     { status: 'in_progress', completed: false, reviewedAt: null, reviewedBy: null, updatedAt: Date.now() },
     { merge: true },
   );
+}
+
+// ---- subscription freeze requests ------------------------------------------
+
+/** Read a client's pending/last freeze request (coach oversight). */
+export async function getClientFreezeRequest(clientId: string): Promise<FreezeRequest | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, CLIENT, clientId, 'subscriptionRequest', 'current'));
+  return snap.exists() ? (snap.data() as FreezeRequest) : null;
+}
+
+/** Coach records the decision on a client's freeze request (applying the freeze is done separately). */
+export async function resolveFreezeRequest(
+  clientId: string,
+  decidedBy: string,
+  outcome: 'accepted' | 'rejected',
+  coachNote: string,
+): Promise<void> {
+  const { db } = ensureFirebase();
+  await setDoc(
+    doc(db, CLIENT, clientId, 'subscriptionRequest', 'current'),
+    { status: outcome, decidedAt: Date.now(), decidedBy, coachNote: coachNote.trim(), updatedAt: Date.now() },
+    { merge: true },
+  );
+  await notify({ clientId, forRole: 'client', type: 'freeze_decided', body: coachNote.trim().slice(0, 140), route: '/coach-notes', createdBy: decidedBy });
 }
 
 /** Coach sets the client's initial fitness profile (optional, at creation). */
@@ -134,6 +167,64 @@ export async function fetchClientDay(clientId: string, date: string): Promise<Cl
   };
 }
 
+// ---- client data for the read-only "view as client" screens ----------------
+
+/** A client's full body-measurement history (oldest → newest by date). */
+export async function fetchClientMeasurements(clientId: string): Promise<MeasurementLog[]> {
+  const { db } = ensureFirebase();
+  const snap = await getDocs(query(collection(db, CLIENT, clientId, 'measurementLogs'), orderBy('date', 'asc')));
+  return snap.docs.map((d) => d.data() as MeasurementLog);
+}
+
+/** A client's progress photos (newest first). Coach sees only CDN-uploaded ones. */
+export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto[]> {
+  const { db } = ensureFirebase();
+  const snap = await getDocs(query(collection(db, CLIENT, clientId, 'progressPhotos'), orderBy('date', 'desc')));
+  return snap.docs.map((d) => d.data() as ProgressPhoto);
+}
+
+/** A client's cardio history (newest first). */
+export async function fetchClientCardioLogs(clientId: string, max = 120): Promise<CardioLog[]> {
+  return fetchClientLogs<CardioLog>(clientId, 'cardioLogs', max);
+}
+
+/** A client's bodyweight history (newest first). */
+export async function fetchClientWeightLogs(clientId: string, max = 120): Promise<WeightLog[]> {
+  return fetchClientLogs<WeightLog>(clientId, 'weightLogs', max);
+}
+
+/**
+ * Coach records a body-measurement entry for a client at
+ * `clientData/{clientId}/measurementLogs/{date}`. Read-merges the existing day so
+ * partial entries don't wipe other body parts. `dirty:false` — this is an
+ * authoritative write the client will PULL (it is not the coach's own local data).
+ */
+export async function saveClientMeasurement(
+  clientId: string,
+  date: string,
+  values: Record<string, number>,
+  updatedBy: string,
+): Promise<void> {
+  const { db } = ensureFirebase();
+  const ref = doc(db, CLIENT, clientId, 'measurementLogs', date);
+  const existing = await getDoc(ref);
+  const prev = existing.exists() ? (existing.data() as MeasurementLog) : null;
+  const clean: Record<string, number> = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (typeof v === 'number' && !Number.isNaN(v) && v > 0) clean[k] = v;
+  }
+  const log: MeasurementLog = {
+    id: date,
+    date,
+    values: { ...prev?.values, ...clean },
+    updatedAt: Date.now(),
+    dirty: false,
+  };
+  await setDoc(ref, log);
+  await writeAudit({ action: 'client.measurement', targetUserId: clientId, metadata: { date, by: updatedBy } });
+  await notify({ clientId, forRole: 'client', type: 'measurement_added', screen: 'measurements', date, createdBy: updatedBy });
+}
+
 // ---- coach notes -----------------------------------------------------------
 
 export async function listCoachNotes(clientId: string): Promise<CoachNote[]> {
@@ -142,17 +233,42 @@ export async function listCoachNotes(clientId: string): Promise<CoachNote[]> {
   return snap.docs.map((d) => d.data() as CoachNote);
 }
 
+/** Optional entity anchor for a coach note (where it's attached + the deep-link target). */
+export interface NoteAnchor {
+  screen?: NoteScreen;
+  date?: string;
+  entityType?: NoteEntityType;
+  entityId?: string;
+}
+
 export async function addCoachNote(
   clientId: string,
   body: string,
   author: Author,
   kind: 'note' | 'announcement' = 'note',
+  anchor?: NoteAnchor,
 ): Promise<void> {
   const { db } = ensureFirebase();
   const id = uid('note');
   const now = Date.now();
   const note: CoachNote = { id, clientId, authorId: author.id, authorRole: author.role, body, kind, createdAt: now, updatedAt: now };
+  // Only persist anchor fields that are present (Firestore rejects undefined).
+  if (anchor?.screen) note.screen = anchor.screen;
+  if (anchor?.date) note.date = anchor.date;
+  if (anchor?.entityType) note.entityType = anchor.entityType;
+  if (anchor?.entityId) note.entityId = anchor.entityId;
   await setDoc(doc(db, CLIENT, clientId, 'coachNotes', id), note);
+  await notify({
+    clientId,
+    forRole: 'client',
+    type: 'coach_note',
+    body: body.trim().slice(0, 140),
+    screen: anchor?.screen,
+    date: anchor?.date,
+    entityType: anchor?.entityType,
+    entityId: anchor?.entityId,
+    createdBy: author.id,
+  });
 }
 
 /** Sends an announcement note to every client in the list. */
@@ -186,6 +302,15 @@ export async function assignPlan(
     updatedAt: now,
   };
   await setDoc(doc(db, CLIENT, clientId, planCollection(data.kind), id), plan);
+  await notify({
+    clientId,
+    forRole: 'client',
+    type: 'plan_assigned',
+    body: data.title,
+    screen: data.kind === 'workout' ? 'workout' : 'nutrition',
+    route: data.kind === 'workout' ? '/workout' : '/nutrition',
+    createdBy: data.assignedBy,
+  });
 }
 
 export async function deleteAssignedPlan(clientId: string, kind: PlanKind, id: string): Promise<void> {
@@ -247,4 +372,5 @@ export async function setCoachTargets(
     if (typeof targets[k] === 'number' && !Number.isNaN(targets[k])) clean[k] = targets[k];
   }
   await setDoc(doc(db, CLIENT, clientId, 'coachTargets', 'current'), clean);
+  await notify({ clientId, forRole: 'client', type: 'targets_updated', screen: 'nutrition', route: '/nutrition', createdBy: updatedBy });
 }

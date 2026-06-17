@@ -10,6 +10,7 @@ import { useDay } from '@/stores/dayStore';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
+import { EntityNotes } from '@/components/EntityNotes';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
 import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
 import { cloudAvailable } from '@/data/dataSource';
@@ -175,6 +176,7 @@ export function Cardio() {
                   {s.frequency && <span className="font-mono text-[11px] text-brand">{s.frequency}</span>}
                 </div>
                 {s.notes && <p className="mt-0.5 text-[13px] text-earth-muted">{s.notes}</p>}
+                <EntityNotes screen="cardio" entityType="cardio_session" entityId={s.id} />
               </li>
             ))}
           </ul>

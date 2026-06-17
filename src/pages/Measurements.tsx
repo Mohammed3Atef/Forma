@@ -1,31 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { MeasurementKey } from '@/types';
 import { useMeasurements } from '@/stores/measurementStore';
 import { useDay } from '@/stores/dayStore';
 import { useSettings } from '@/stores/settingsStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { MeasurementForm, MEASUREMENT_KEYS as KEYS } from '@/components/MeasurementForm';
+import { EntityNotes } from '@/components/EntityNotes';
 import { shortDate } from '@/lib/utils';
-
-// Full-body measurement list (cm).
-const KEYS: MeasurementKey[] = [
-  'neck',
-  'shoulders',
-  'chest',
-  'upperBack',
-  'arm',
-  'forearm',
-  'wrist',
-  'waist',
-  'abdomen',
-  'hips',
-  'glutes',
-  'thigh',
-  'calf',
-  'ankle',
-];
 
 export function Measurements() {
   const { t, i18n } = useTranslation();
@@ -47,25 +30,6 @@ export function Measurements() {
     });
 
   const existing = forDate(selected);
-  const [form, setForm] = useState<Record<string, string>>({});
-  useEffect(() => {
-    const seed: Record<string, string> = {};
-    for (const k of KEYS) {
-      const v = existing?.values[k];
-      seed[k] = v != null ? String(v) : '';
-    }
-    setForm(seed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, existing?.updatedAt]);
-
-  const submit = async () => {
-    const values: Record<string, number> = {};
-    for (const k of KEYS) {
-      const n = Number(form[k]);
-      if (form[k] && !Number.isNaN(n)) values[k] = n;
-    }
-    await save(selected, values);
-  };
 
   const dates = useMemo(() => logs.map((l) => l.date), [logs]);
   const [dateA, setDateA] = useState('');
@@ -88,27 +52,12 @@ export function Measurements() {
       <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
 
       {/* Entry form for the selected day */}
-      <div className="card">
-        <h2 className="mb-1 font-bold">{t('measure.forDay')}</h2>
-        <p className="mb-3 text-xs text-slate-400">{shortDate(selected, i18n.language)} · cm</p>
-        <div className="grid grid-cols-3 gap-2">
-          {KEYS.map((k) => (
-            <div key={k}>
-              <label className="label truncate">{labelOf(k)}</label>
-              <input
-                className="input h-11 text-center"
-                inputMode="decimal"
-                placeholder="0"
-                value={form[k] ?? ''}
-                onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-              />
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={() => void submit()} className="btn-primary btn-lg mt-3 w-full">
-          {t('common.save')}
-        </button>
-      </div>
+      <MeasurementForm
+        date={selected}
+        existing={existing}
+        onSave={(d, v) => save(d, v)}
+        extras={(k) => <EntityNotes screen="measurements" date={selected} entityType="measurement" entityId={k} />}
+      />
 
       {/* Comparison */}
       {dates.length >= 2 && (

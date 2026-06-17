@@ -8,6 +8,7 @@ import { RoleAccount } from '@/pages/RoleAccount';
 import { CoachClients } from '@/pages/coach/CoachClients';
 import { CoachClientDetail } from '@/pages/coach/CoachClientDetail';
 import { CoachClientActivity } from '@/pages/coach/CoachClientActivity';
+import { CoachViewLayout } from '@/pages/coach/CoachViewLayout';
 import { CoachClientAssessment } from '@/pages/coach/CoachClientAssessment';
 import { CoachWorkoutEditor } from '@/pages/coach/CoachWorkoutEditor';
 import { CoachNutritionEditor } from '@/pages/coach/CoachNutritionEditor';
@@ -18,6 +19,7 @@ import { CoachExerciseLibrary } from '@/pages/coach/CoachExerciseLibrary';
 import { PlanVersionHistory } from '@/pages/coach/PlanVersionHistory';
 import { CoachAdherence } from '@/pages/coach/CoachAdherence';
 import { CoachMessages } from '@/pages/coach/CoachMessages';
+import { Notifications } from '@/pages/Notifications';
 
 /**
  * Coach portal shell. Manages the coach's assigned clients (plans, targets,
@@ -32,6 +34,8 @@ export function CoachApp() {
         <Route path="/coach" element={shell(<CoachClients />)} />
         <Route path="/coach/client/:clientId" element={shell(<CoachClientDetail />)} />
         <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
+        <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
+        <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/assessment" element={shell(<CoachClientAssessment />)} />
         <Route path="/coach/client/:clientId/workout" element={shell(<CoachWorkoutEditor />)} />
         <Route path="/coach/client/:clientId/nutrition" element={shell(<CoachNutritionEditor />)} />
@@ -42,6 +46,7 @@ export function CoachApp() {
         <Route path="/coach/templates/:templateId" element={shell(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
+        <Route path="/coach/notifications" element={shell(<Notifications />)} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
         <Route path="*" element={<Navigate to="/coach" replace />} />
       </Routes>

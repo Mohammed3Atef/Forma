@@ -7,6 +7,7 @@ import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
 import { useCardio } from '@/stores/cardioStore';
 import { useHabits } from '@/stores/habitStore';
 import { useDay } from '@/stores/dayStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
 import { StatTile } from '@/components/StatTile';
@@ -37,6 +38,7 @@ export function Home() {
   const active = useWorkout((s) => s.active);
   const startSession = useWorkout((s) => s.startSession);
   const setDay = useDay((s) => s.setDay);
+  const { readOnly } = useSubscription();
 
   const mealPlan = useNutrition((s) => s.plan);
   const nutritionLog = useNutrition((s) => s.log);
@@ -103,6 +105,7 @@ export function Home() {
   const [hover, setHover] = useState(false);
 
   const startSuggested = async () => {
+    if (readOnly) return; // subscription paused/ended → workouts are view-only
     if (active && !active.finished) {
       navigate('/workout/session');
       return;
@@ -204,7 +207,8 @@ export function Home() {
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
           onClick={() => void startSuggested()}
-          className="relative w-full overflow-hidden rounded-hero border border-brand/25 p-6 text-start transition-transform active:scale-[0.99]"
+          disabled={readOnly}
+          className={`relative w-full overflow-hidden rounded-hero border border-brand/25 p-6 text-start transition-transform active:scale-[0.99] ${readOnly ? 'opacity-50' : ''}`}
           style={{
             background:
               'radial-gradient(120% 120% at 85% 0%, rgba(174,126,86,0.22), transparent 50%), linear-gradient(150deg,#3a3d2e,#262820,#15150d)',

@@ -1,9 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWorkout, warmupCountOf } from "@/stores/workoutStore";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Icon } from "@/components/Icon";
 import { TopBar } from "@/components/TopBar";
 import { StatTile } from "@/components/StatTile";
+import { EntityNotes } from "@/components/EntityNotes";
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import type { Exercise, WorkoutDay, WorkoutSection } from "@/types";
 
@@ -19,6 +21,7 @@ export function RoutineDetail() {
   const { dayId } = useParams();
   const plan = useWorkout((s) => s.plan);
   const startSession = useWorkout((s) => s.startSession);
+  const { readOnly, status } = useSubscription();
 
   const day = plan?.days.find((d) => d.id === dayId);
   if (!plan || !day) {
@@ -47,8 +50,8 @@ export function RoutineDetail() {
     if (!ex) return null;
     const warm = warmupCountOf(ex);
     return (
+      <div key={id}>
       <button
-        key={id}
         type="button"
         onClick={() => navigate(`/workout/exercise/${id}`)}
         className="row w-full text-start"
@@ -77,6 +80,8 @@ export function RoutineDetail() {
         </div>
         <Icon name="chevron" size={16} className="text-earth-subtle" />
       </button>
+        <EntityNotes screen="workout" entityType="exercise" entityId={id} />
+      </div>
     );
   };
 
@@ -107,12 +112,13 @@ export function RoutineDetail() {
             <div>{section.exerciseIds.map(renderExercise)}</div>
           </div>
         ))}
+        <EntityNotes screen="workout" entityType="workout_day" entityId={day.id} />
       </div>
 
       {/* Fixed start button with gradient fade */}
       <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[75px] pt-8">
-        <button type="button" onClick={() => void start()} className="btn-primary w-full">
-          <Icon name="play" size={15} /> {t("gt.startThisWorkout")}
+        <button type="button" onClick={() => void start()} disabled={readOnly} className="btn-primary w-full disabled:opacity-40">
+          <Icon name="play" size={15} /> {readOnly ? t(`subscription.status.${status}`) : t("gt.startThisWorkout")}
         </button>
       </div>
     </div>

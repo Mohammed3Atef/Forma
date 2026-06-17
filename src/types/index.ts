@@ -195,14 +195,77 @@ export interface ClientAssessment {
 
 export type CoachClientStatus = 'active' | 'pending' | 'ended';
 
+/** Coaching subscription lifecycle (stored on the coach⇄client relationship). */
+export type SubscriptionStatus = 'active' | 'frozen' | 'ended';
+
+/**
+ * A client's coaching subscription, kept on the `coachClients/{coachId__clientId}`
+ * relationship (coach-owned, client-readable). A freeze pauses the term and
+ * extends `endAt` by the frozen duration. `status` is the coach's explicit state;
+ * use `effectiveSubscriptionStatus()` to fold in the current date.
+ */
+export interface Subscription {
+  startAt: number;
+  endAt: number;
+  months?: number; // original term, for display
+  price?: number; // amount the coach charges for this term (coach-set, client-read)
+  currency?: string; // e.g. "EGP", "USD" — coach-set
+  status: SubscriptionStatus;
+  frozenFrom?: number | null;
+  frozenUntil?: number | null;
+  note?: string; // coach note (e.g. why frozen)
+  updatedAt: number;
+}
+
+/**
+ * An archived subscription term, kept on the relationship's `subscriptionHistory`
+ * so coach and client can see how long / how much the client has subscribed. A
+ * prior term is archived when the coach starts a new term (different start date).
+ */
+export interface SubscriptionPeriod {
+  startAt: number;
+  endAt: number;
+  months?: number;
+  price?: number;
+  currency?: string;
+  status: SubscriptionStatus; // terminal state when archived (typically 'ended')
+  endedAt: number; // when this period was closed/archived
+}
+
 /** Coach⇄client link. Doc id is deterministic: `${coachId}__${clientId}`. */
 export interface CoachClientRelationship {
   id: string;
   coachId: string;
   clientId: string;
   status: CoachClientStatus;
+  /** Coaching subscription term + freeze state (absent until the coach sets it). */
+  subscription?: Subscription;
+  /** Past subscription terms (newest pushed last), for the history view. */
+  subscriptionHistory?: SubscriptionPeriod[];
   createdBy: string;
   createdAt: number;
+  updatedAt: number;
+}
+
+export type FreezeRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+
+/**
+ * A client-initiated request to freeze their subscription, at
+ * `clientData/{clientId}/subscriptionRequest/current`. The client writes the
+ * request (status `pending`/`cancelled`); the assigned coach writes the decision
+ * (`accepted`/`rejected` + `coachNote`) and, on accept, applies the freeze.
+ */
+export interface FreezeRequest {
+  id: string; // always 'current'
+  clientId: string;
+  from?: number | null;
+  until?: number | null;
+  reason: string;
+  status: FreezeRequestStatus;
+  requestedAt: number;
+  decidedAt?: number | null;
+  decidedBy?: string | null;
+  coachNote?: string;
   updatedAt: number;
 }
 
@@ -227,6 +290,25 @@ export interface FeatureFlag {
   updatedAt: number;
 }
 
+/** Which client-app screen a note/notification points at. */
+export type NoteScreen = 'nutrition' | 'workout' | 'cardio' | 'progress' | 'measurements' | 'photos';
+
+/**
+ * The kind of entity a coach note is attached to. Notes are anchored by
+ * (entityType, entityId) — NEVER by screen coordinates — so they render next to
+ * the right item on any device/layout and survive UI redesigns.
+ */
+export type NoteEntityType =
+  | 'meal'
+  | 'food'
+  | 'exercise'
+  | 'workout_day'
+  | 'cardio_session'
+  | 'measurement'
+  | 'weight_entry'
+  | 'progress_photo'
+  | 'checkin';
+
 /** A coach's note about a client. Lives at `clientData/{clientId}/coachNotes`. */
 export interface CoachNote {
   id: string;
@@ -236,9 +318,58 @@ export interface CoachNote {
   body: string;
   /** Distinguishes one-off notes from broadcast announcements. */
   kind?: 'note' | 'announcement';
+  // ---- entity anchoring (all optional; legacy/general notes have none) ----
+  /** Client screen the note belongs to (drives notification deep-link). */
+  screen?: NoteScreen;
+  /** Day the note refers to (for day-scoped entities). */
+  date?: DayKey;
+  /** What the note is attached to. */
+  entityType?: NoteEntityType;
+  /** Stable id of the anchored entity (meal id, exercise id, photo id, measurement key…). */
+  entityId?: string;
+  /** Reserved for a future visual-placement hint; unused today. */
+  anchor?: { placement?: 'inline' | 'above' | 'below' | 'badge' };
   createdAt: number;
   updatedAt: number;
   dirty?: boolean;
+}
+
+/** Why a notification was raised. The first group targets the client, the second the coach. */
+export type NotificationType =
+  | 'coach_note'
+  | 'plan_assigned'
+  | 'targets_updated'
+  | 'subscription_updated'
+  | 'freeze_decided'
+  | 'measurement_added'
+  | 'assessment_reviewed'
+  | 'freeze_requested'
+  | 'assessment_submitted';
+
+/**
+ * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and
+ * is written by whichever party acted (coach or client) — `forRole` says who
+ * should see it. Read-state lives here (`seenAt`). The deep-link target mirrors
+ * the note anchoring fields so tapping a notification jumps to the exact place.
+ */
+export interface AppNotification {
+  id: string;
+  clientId: string;
+  forRole: 'client' | 'coach';
+  type: NotificationType;
+  /** Short preview text; the title is derived from `type` via i18n at render time. */
+  body?: string;
+  // ---- deep-link target ----
+  screen?: NoteScreen;
+  date?: DayKey;
+  entityType?: NoteEntityType;
+  entityId?: string;
+  /** Explicit fallback route when there's no screen/entity mapping. */
+  route?: string;
+  seenAt?: number | null;
+  createdAt: number;
+  createdBy: string;
+  updatedAt: number;
 }
 
 export type PlanKind = 'workout' | 'nutrition';
@@ -688,6 +819,8 @@ export interface ProgressPhoto {
   pose: PhotoPose;
   /** Key into the local blob store (IndexedDB). */
   localKey: string;
+  /** Public Bunny CDN URL (set after a best-effort upload; lets the coach / other devices view it). */
+  cdnUrl?: string;
   weightKg?: number;
   note?: string;
   updatedAt: number;

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { StatTile } from '@/components/StatTile';
+import { EntityNotes } from '@/components/EntityNotes';
 import { fetchClientDay } from '@/services/platform/coachApi';
 import { getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { computeConsumed } from '@/stores/nutritionStore';
@@ -106,10 +107,12 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
                             </span>
                           ))}
                         </div>
+                        <EntityNotes screen="workout" date={date} entityType="exercise" entityId={ex.exerciseId} label={exerciseName(ex.exerciseId)} />
                       </div>
                     );
                   })}
                 </div>
+                <EntityNotes screen="workout" date={date} entityType="workout_day" entityId={d.workout.dayId} label={wPlan.data?.days.find((dy) => dy.id === d.workout!.dayId)?.title} />
               </div>
             ) : (
               <EmptyCard text={t('activity.noWorkout')} />

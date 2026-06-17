@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import type { FoodItem } from '@/types';
 import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
 import { useSettings } from '@/stores/settingsStore';
+import { useSubscription } from '@/hooks/useSubscription';
+import { EntityNotes } from '@/components/EntityNotes';
 import { useLocalized } from '@/hooks/useLocalized';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
@@ -28,6 +30,7 @@ export function Nutrition() {
   const removeMealItem = useNutrition((s) => s.removeMealItem);
   const consumed = useMemo(() => computeConsumed(plan, log), [plan, log]);
   const targets = useSettings((s) => s.settings?.targets);
+  const { readOnly } = useSubscription();
 
   // Food editor — handles replacing a planned item, adding to a meal, or a custom snack.
   type EditorMode =
@@ -135,11 +138,11 @@ export function Nutrition() {
         </div>
         <div className="flex gap-2">
           {[250, 500, 1000].map((ml) => (
-            <button key={ml} type="button" onClick={() => void addWater(ml)} className="btn-ghost h-11 flex-1 text-sm">
+            <button key={ml} type="button" disabled={readOnly} onClick={() => void addWater(ml)} className="btn-ghost h-11 flex-1 text-sm disabled:opacity-40">
               +{ml}
             </button>
           ))}
-          <button type="button" onClick={() => void addWater(-250)} className="icon-btn h-11 w-11">
+          <button type="button" disabled={readOnly} onClick={() => void addWater(-250)} className="icon-btn h-11 w-11 disabled:opacity-40">
             <Icon name="minus" size={16} />
           </button>
         </div>
@@ -177,8 +180,9 @@ export function Nutrition() {
                 </div>
                 <button
                   type="button"
+                  disabled={readOnly}
                   onClick={() => void toggleMeal(meal.id)}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl ${eaten ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl disabled:opacity-40 ${eaten ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
                   aria-label={t('nutrition.markEaten')}
                 >
                   <Icon name="check" size={20} />
@@ -192,7 +196,8 @@ export function Nutrition() {
                   const hasApproved = (item.allowedAlternatives?.length ?? 0) > 0;
                   const swapAvailable = canSwap && (hasApproved || canCustom(item));
                   return (
-                    <li key={item.id} className="flex items-start justify-between gap-2">
+                    <li key={item.id}>
+                      <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         {/* Original — struck-through when replaced/removed for the day */}
                         <p className={overridden ? 'text-slate-500 line-through' : ''}>
@@ -220,7 +225,7 @@ export function Nutrition() {
                           <p className="text-[11px] text-slate-500">{t('nutrition.removed')}</p>
                         )}
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
+                      {!readOnly && <div className="flex shrink-0 items-center gap-1">
                         {overridden ? (
                           <>
                             {replacement && canCustom(item) && (
@@ -249,7 +254,9 @@ export function Nutrition() {
                             </button>
                           </>
                         ) : null}
+                      </div>}
                       </div>
+                      <EntityNotes screen="nutrition" entityType="food" entityId={item.id} />
                     </li>
                   );
                 })}
@@ -263,7 +270,7 @@ export function Nutrition() {
                         {f.quantity ? `${f.quantity} · ` : ''}{f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
+                    {!readOnly && <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         onClick={() => openEditor({ type: 'addMeal', mealId: meal.id, foodId: f.id }, { name: loc(f.name), quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats })}
@@ -275,14 +282,17 @@ export function Nutrition() {
                       <button type="button" onClick={() => void removeMealItem(meal.id, f.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                         <Icon name="close" size={14} />
                       </button>
-                    </div>
+                    </div>}
                   </li>
                 ))}
               </ul>
 
-              <button type="button" onClick={() => openEditor({ type: 'addMeal', mealId: meal.id })} className="mt-2 text-xs font-medium text-brand-light">
-                + {t('nutrition.addFood')}
-              </button>
+              {!readOnly && (
+                <button type="button" onClick={() => openEditor({ type: 'addMeal', mealId: meal.id })} className="mt-2 text-xs font-medium text-brand-light">
+                  + {t('nutrition.addFood')}
+                </button>
+              )}
+              <EntityNotes screen="nutrition" entityType="meal" entityId={meal.id} />
             </section>
           );
         })}
@@ -301,7 +311,7 @@ export function Nutrition() {
                     {f.quantity ? `${f.quantity} · ` : ''}{f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                {!readOnly && <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"
                     onClick={() => openEditor({ type: 'custom', foodId: f.id }, { name: loc(f.name), quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats })}
@@ -313,15 +323,17 @@ export function Nutrition() {
                   <button type="button" onClick={() => void removeCustomFood(f.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                     <Icon name="close" size={14} />
                   </button>
-                </div>
+                </div>}
               </li>
             ))}
           </ul>
         </div>
       )}
-      <button type="button" onClick={() => openEditor({ type: 'custom' })} className="btn-ghost w-full">
-        <Icon name="plus" size={18} /> {t('nutrition.addFood')}
-      </button>
+      {!readOnly && (
+        <button type="button" onClick={() => openEditor({ type: 'custom' })} className="btn-ghost w-full">
+          <Icon name="plus" size={18} /> {t('nutrition.addFood')}
+        </button>
+      )}
 
       {/* Supplements — only the ones the coach assigned. */}
       {plan.supplements.length > 0 && (
@@ -341,8 +353,9 @@ export function Nutrition() {
                   </div>
                   <button
                     type="button"
+                    disabled={readOnly}
                     onClick={() => void toggleSupplement(s.id)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${taken ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg disabled:opacity-40 ${taken ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-400'}`}
                   >
                     <Icon name="check" size={16} />
                   </button>

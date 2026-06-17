@@ -12,6 +12,7 @@ import { debounce, today } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
 import { useDay } from './dayStore';
 import { recordDeletion } from '@/data/sync/tombstones';
+import { isSubscriptionReadOnly } from './subscriptionGate';
 
 /** Last performed weight×reps for an exercise, for the "previous" ghost column. */
 export interface PrevPerf {
@@ -141,6 +142,7 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
   },
 
   async startSession(dayId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → workouts are view-only
     const { plan, logs } = get();
     if (!plan) return;
     const day = plan.days.find((d) => d.id === dayId);

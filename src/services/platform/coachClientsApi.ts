@@ -2,6 +2,7 @@ import {
   collection,
   deleteField,
   doc,
+  getDoc,
   getDocs,
   query,
   setDoc,
@@ -9,8 +10,10 @@ import {
   where,
 } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
+import { addMonths } from '@/lib/subscription';
 import { writeAudit } from './auditApi';
-import type { CoachClientRelationship } from '@/types';
+import { notify } from './notificationsApi';
+import type { CoachClientRelationship, Subscription, SubscriptionPeriod } from '@/types';
 
 const REL = 'coachClients';
 const USERS = 'users';
@@ -91,4 +94,122 @@ export async function unassignClient(clientId: string, coachId: string, createdB
   await updateDoc(doc(db, REL, relId(coachId, clientId)), { status: 'ended', updatedAt: now }).catch(() => undefined);
   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: deleteField(), updatedAt: now });
   await writeAudit({ action: 'coach.unassign', targetUserId: clientId, metadata: { coachId, createdBy } });
+}
+
+// ---- subscription (lives on the relationship; coach-owned, client-readable) ----
+
+export async function getRelationship(coachId: string, clientId: string): Promise<CoachClientRelationship | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, REL, relId(coachId, clientId)));
+  return snap.exists() ? (snap.data() as CoachClientRelationship) : null;
+}
+
+/** Snapshot a subscription into a history period (omitting undefined fields). */
+function toPeriod(sub: Subscription, endedAt: number): SubscriptionPeriod {
+  const p: SubscriptionPeriod = { startAt: sub.startAt, endAt: sub.endAt, status: 'ended', endedAt };
+  if (typeof sub.months === 'number') p.months = sub.months;
+  if (typeof sub.price === 'number') p.price = sub.price;
+  if (sub.currency) p.currency = sub.currency;
+  return p;
+}
+
+/**
+ * Set (or reset) the subscription term: starts active, ends after `months`.
+ * Optionally carries the price/currency. Starting a NEW term (different start
+ * date) archives the prior term into `subscriptionHistory` so the history view
+ * shows every period the client subscribed for; same-start edits update in place.
+ */
+export async function setSubscriptionTerm(
+  coachId: string,
+  clientId: string,
+  startAt: number,
+  months: number,
+  price?: number,
+  currency?: string,
+): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  const rel = await getRelationship(coachId, clientId);
+  const prev = rel?.subscription;
+  // Preserve an existing price unless a new one is provided.
+  const effPrice = typeof price === 'number' ? price : prev?.price;
+  const effCurrency = currency ?? prev?.currency;
+  const sub: Subscription = {
+    startAt,
+    endAt: addMonths(startAt, months),
+    months,
+    status: 'active',
+    frozenFrom: null,
+    frozenUntil: null,
+    updatedAt: now,
+    ...(typeof effPrice === 'number' ? { price: effPrice } : {}),
+    ...(effCurrency ? { currency: effCurrency } : {}),
+  };
+  const history = [...(rel?.subscriptionHistory ?? [])];
+  if (prev && prev.startAt !== startAt) history.push(toPeriod(prev, now));
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: sub, subscriptionHistory: history, updatedAt: now });
+  await writeAudit({ action: 'sub.setTerm', targetUserId: clientId, metadata: { months, price: effPrice ?? null } });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+/** Set/update the subscription price in place (no new term, no history entry). */
+export async function setSubscriptionPrice(coachId: string, clientId: string, price: number, currency?: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  if (!rel?.subscription) throw new Error('No subscription to price');
+  const now = Date.now();
+  const next: Subscription = {
+    ...rel.subscription,
+    price,
+    ...(currency ? { currency } : {}),
+    updatedAt: now,
+  };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.setPrice', targetUserId: clientId, metadata: { price, currency: currency ?? null } });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+/** Freeze the subscription for [from, until); extends the term by the frozen days. */
+export async function freezeSubscription(coachId: string, clientId: string, from: number, until: number, note?: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  if (!rel?.subscription) throw new Error('No subscription to freeze');
+  const now = Date.now();
+  const extendBy = Math.max(0, until - from);
+  const next: Subscription = {
+    ...rel.subscription,
+    status: 'frozen',
+    frozenFrom: from,
+    frozenUntil: until,
+    endAt: rel.subscription.endAt + extendBy,
+    ...(note?.trim() ? { note: note.trim() } : {}),
+    updatedAt: now,
+  };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.freeze', targetUserId: clientId, metadata: { from, until } });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+/** Lift a freeze and resume the subscription. */
+export async function unfreezeSubscription(coachId: string, clientId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  if (!rel?.subscription) return;
+  const now = Date.now();
+  const next: Subscription = { ...rel.subscription, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.unfreeze', targetUserId: clientId, metadata: {} });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+/** End the subscription now. */
+export async function endSubscription(coachId: string, clientId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  const now = Date.now();
+  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
+  const next: Subscription = { ...base, status: 'ended', endAt: now, frozenFrom: null, frozenUntil: null, updatedAt: now };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.end', targetUserId: clientId, metadata: {} });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
 }

@@ -4,6 +4,9 @@ import { getDataSource } from '@/data/dataSource';
 import { blobStore } from '@/data/blobStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { today, uid } from '@/lib/utils';
+import { downscaleImage } from '@/lib/image';
+import { isBunnyConfigured, uploadImageToBunny } from '@/services/platform/bunnyUploadApi';
+import { useSession } from '@/services/auth/sessionStore';
 
 interface PhotoState {
   photos: ProgressPhoto[];
@@ -40,6 +43,21 @@ export const usePhotos = create<PhotoState>((set, get) => ({
     if (opts?.note) photo.note = opts.note;
     await getDataSource().progressPhotos.put(photo);
     set({ photos: [photo, ...get().photos] });
+
+    // Best-effort CDN upload so the coach / a second device can see the image.
+    // Failures are swallowed — the local blob still works and metadata syncs.
+    const owner = useSession.getState().uid;
+    if (isBunnyConfigured() && owner && owner !== 'local-user') {
+      try {
+        const blob = await downscaleImage(file);
+        const { url } = await uploadImageToBunny(blob, { folder: `Forma/${owner}` });
+        const updated: ProgressPhoto = { ...photo, cdnUrl: url, updatedAt: Date.now(), dirty: true };
+        await getDataSource().progressPhotos.put(updated);
+        set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
+      } catch {
+        /* offline / upload failed — keep local copy */
+      }
+    }
   },
 
   async remove(id) {
@@ -50,7 +68,9 @@ export const usePhotos = create<PhotoState>((set, get) => ({
     set({ photos: get().photos.filter((p) => p.id !== id) });
   },
 
-  url(photo) {
-    return blobStore.objectUrl(photo.localKey);
+  // Local blob first (instant + offline); fall back to the CDN URL for records
+  // synced from another device or shown to the coach.
+  async url(photo) {
+    return (await blobStore.objectUrl(photo.localKey)) ?? photo.cdnUrl ?? null;
   },
 }));

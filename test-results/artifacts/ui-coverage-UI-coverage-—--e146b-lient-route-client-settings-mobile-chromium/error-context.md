@@ -20,234 +20,221 @@ Expected: true
 Received: false
 ```
 
-```
-Error: client-settings: bottom nav missing
-
-expect(received).toBe(expected) // Object.is equality
-
-Expected: true
-Received: false
-```
-
 # Page snapshot
 
 ```yaml
 - generic [ref=e3]:
   - banner [ref=e4]:
     - img "Forma" [ref=e5]
-  - main [ref=e6]:
-    - generic [ref=e7]:
-      - generic [ref=e8]:
-        - generic [ref=e10]:
-          - generic [ref=e11]: Athlete
-          - heading "Profile" [level=1] [ref=e12]
+    - button "Menu" [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
         - generic [ref=e13]:
-          - img [ref=e14]
+          - generic [ref=e14]: Athlete
+          - heading "Profile" [level=1] [ref=e15]
+        - generic [ref=e16]:
+          - img [ref=e17]
           - text: Syncing…
-      - generic [ref=e16]:
-        - generic [ref=e17]: QU
-        - generic [ref=e18]:
-          - heading "QA UI 1781620544775" [level=2] [ref=e19]
-          - paragraph [ref=e20]: Member since Jun 2026 · kg
-      - generic [ref=e21]:
-        - generic [ref=e22]:
-          - img [ref=e24]
-          - generic [ref=e26]: "0"
-          - generic [ref=e27]: Total workouts
-        - generic [ref=e28]:
-          - img [ref=e30]
-          - generic [ref=e32]: "0"
-          - generic [ref=e33]: Day streak
-        - generic [ref=e34]:
-          - img [ref=e36]
-          - generic [ref=e38]: 0t
-          - generic [ref=e39]: Lifetime volume
-        - generic [ref=e40]:
-          - img [ref=e42]
-          - generic [ref=e44]: "0"
-          - generic [ref=e45]: Personal records
-      - heading "Training" [level=2] [ref=e47]
-      - generic [ref=e48]:
-        - button "Routines 0" [ref=e49] [cursor=pointer]:
-          - img [ref=e51]
-          - generic [ref=e53]: Routines
-          - generic [ref=e54]: "0"
-          - img [ref=e55]
-        - button "Exercise library 0" [ref=e57] [cursor=pointer]:
-          - img [ref=e59]
-          - generic [ref=e61]: Exercise library
-          - generic [ref=e62]: "0"
-          - img [ref=e63]
-        - button "Measurements" [ref=e65] [cursor=pointer]:
-          - img [ref=e67]
-          - generic [ref=e69]: Measurements
+      - generic [ref=e19]:
+        - generic [ref=e20]: QU
+        - generic [ref=e21]:
+          - heading "QA UI 1781707487149" [level=2] [ref=e22]
+          - paragraph [ref=e23]: Member since Jun 2026 · kg
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - img [ref=e27]
+          - generic [ref=e29]: "0"
+          - generic [ref=e30]: Total workouts
+        - generic [ref=e31]:
+          - img [ref=e33]
+          - generic [ref=e35]: "0"
+          - generic [ref=e36]: Day streak
+        - generic [ref=e37]:
+          - img [ref=e39]
+          - generic [ref=e41]: 0t
+          - generic [ref=e42]: Lifetime volume
+        - generic [ref=e43]:
+          - img [ref=e45]
+          - generic [ref=e47]: "0"
+          - generic [ref=e48]: Personal records
+      - heading "Training" [level=2] [ref=e50]
+      - generic [ref=e51]:
+        - button "Routines 0" [ref=e52] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e56]: Routines
+          - generic [ref=e57]: "0"
+          - img [ref=e58]
+        - button "Exercise library 0" [ref=e60] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e64]: Exercise library
+          - generic [ref=e65]: "0"
+          - img [ref=e66]
+        - button "Measurements" [ref=e68] [cursor=pointer]:
           - img [ref=e70]
-      - heading "Settings" [level=2] [ref=e73]
-      - generic [ref=e74]:
-        - heading "Profile" [level=2] [ref=e75]
-        - generic [ref=e76]:
-          - generic [ref=e77]: Name
-          - textbox [ref=e78]: QA UI 1781620544775
+          - generic [ref=e72]: Measurements
+          - img [ref=e73]
+      - heading "Settings" [level=2] [ref=e76]
+      - generic [ref=e77]:
+        - heading "Profile" [level=2] [ref=e78]
         - generic [ref=e79]:
-          - generic [ref=e80]:
-            - generic [ref=e81]: Age
-            - textbox [ref=e82]: "30"
+          - generic [ref=e80]: Name
+          - textbox [ref=e81]: QA UI 1781707487149
+        - generic [ref=e82]:
           - generic [ref=e83]:
-            - generic [ref=e84]: Weight
-            - textbox [ref=e85]: "80"
+            - generic [ref=e84]: Age
+            - textbox [ref=e85]: "30"
           - generic [ref=e86]:
-            - generic [ref=e87]: Height
-            - textbox [ref=e88]: "178"
-        - generic [ref=e89]:
-          - generic [ref=e90]: Goal
-          - combobox [ref=e91]:
+            - generic [ref=e87]: Weight
+            - textbox [ref=e88]: "80"
+          - generic [ref=e89]:
+            - generic [ref=e90]: Height
+            - textbox [ref=e91]: "178"
+        - generic [ref=e92]:
+          - generic [ref=e93]: Goal
+          - combobox [ref=e94]:
             - option "Muscle gain"
             - option "Fat loss"
             - option "Recomposition" [selected]
             - option "Maintenance"
             - option "Strength"
-        - generic [ref=e92]:
-          - generic [ref=e93]: Activity level
-          - combobox [ref=e94]:
+        - generic [ref=e95]:
+          - generic [ref=e96]: Activity level
+          - combobox [ref=e97]:
             - option "Sedentary"
             - option "Light"
             - option "Moderate" [selected]
             - option "Active"
             - option "Very active"
-      - generic [ref=e95]:
-        - heading "Preferences" [level=2] [ref=e96]
-        - generic [ref=e97]:
-          - generic [ref=e98]: Language
-          - generic [ref=e99]:
-            - button "English" [ref=e100] [cursor=pointer]
-            - button "العربية" [ref=e101] [cursor=pointer]
-        - generic [ref=e102]:
-          - generic [ref=e103]: Default rest (sec)
-          - textbox [ref=e104]: "90"
+      - generic [ref=e98]:
+        - heading "Preferences" [level=2] [ref=e99]
+        - generic [ref=e100]:
+          - generic [ref=e101]: Language
+          - generic [ref=e102]:
+            - button "English" [ref=e103] [cursor=pointer]
+            - button "العربية" [ref=e104] [cursor=pointer]
         - generic [ref=e105]:
-          - generic [ref=e106]: Weekly workout goal
-          - textbox [ref=e107]: "5"
+          - generic [ref=e106]: Default rest (sec)
+          - textbox [ref=e107]: "90"
         - generic [ref=e108]:
-          - generic [ref=e109]: Keep screen awake during workout
-          - switch [checked] [ref=e110] [cursor=pointer]
-        - generic [ref=e112]:
-          - generic [ref=e113]: Vibration
-          - switch [checked] [ref=e114] [cursor=pointer]
-        - generic [ref=e116]:
-          - generic [ref=e117]: Notifications
-          - switch [ref=e118] [cursor=pointer]
-      - generic [ref=e120]:
-        - heading "Daily targets" [level=2] [ref=e121]
-        - generic [ref=e122]:
-          - generic [ref=e123]:
-            - generic [ref=e124]: Calories
-            - textbox [ref=e125]: "0"
+          - generic [ref=e109]: Weekly workout goal
+          - textbox [ref=e110]: "5"
+        - generic [ref=e111]:
+          - generic [ref=e112]: Keep screen awake during workout
+          - switch [checked] [ref=e113] [cursor=pointer]
+        - generic [ref=e115]:
+          - generic [ref=e116]: Vibration
+          - switch [checked] [ref=e117] [cursor=pointer]
+        - generic [ref=e119]:
+          - generic [ref=e120]: Notifications
+          - switch [ref=e121] [cursor=pointer]
+      - generic [ref=e123]:
+        - heading "Daily targets" [level=2] [ref=e124]
+        - generic [ref=e125]:
           - generic [ref=e126]:
-            - generic [ref=e127]: Protein
+            - generic [ref=e127]: Calories
             - textbox [ref=e128]: "0"
           - generic [ref=e129]:
-            - generic [ref=e130]: Carbs
+            - generic [ref=e130]: Protein
             - textbox [ref=e131]: "0"
           - generic [ref=e132]:
-            - generic [ref=e133]: Fats
+            - generic [ref=e133]: Carbs
             - textbox [ref=e134]: "0"
           - generic [ref=e135]:
-            - generic [ref=e136]: Water
+            - generic [ref=e136]: Fats
             - textbox [ref=e137]: "0"
           - generic [ref=e138]:
-            - generic [ref=e139]: Steps
+            - generic [ref=e139]: Water
             - textbox [ref=e140]: "0"
           - generic [ref=e141]:
-            - generic [ref=e142]: Cardio
+            - generic [ref=e142]: Steps
             - textbox [ref=e143]: "0"
-      - generic [ref=e144]:
-        - heading "Reminders" [level=2] [ref=e145]
-        - generic [ref=e146]:
-          - textbox [ref=e147]: 09:00
-          - combobox [ref=e148]:
+          - generic [ref=e144]:
+            - generic [ref=e145]: Cardio
+            - textbox [ref=e146]: "0"
+      - generic [ref=e147]:
+        - heading "Reminders" [level=2] [ref=e148]
+        - generic [ref=e149]:
+          - textbox [ref=e150]: 09:00
+          - combobox [ref=e151]:
             - option "Meal" [selected]
             - option "Supplements"
             - option "Creatine"
             - option "Water"
             - option "Workout"
             - option "Cardio / walk"
-          - button "Add" [ref=e149] [cursor=pointer]:
-            - img [ref=e150]
+          - button "Add" [ref=e152] [cursor=pointer]:
+            - img [ref=e153]
             - text: Add
-        - paragraph [ref=e152]: Enable notifications ↑
-      - generic [ref=e153]:
-        - button "Video manager" [ref=e154] [cursor=pointer]:
-          - generic [ref=e155]:
-            - img [ref=e156]
+        - paragraph [ref=e155]: Enable notifications ↑
+      - generic [ref=e156]:
+        - button "Video manager" [ref=e157] [cursor=pointer]:
+          - generic [ref=e158]:
+            - img [ref=e159]
             - text: Video manager
-          - img [ref=e158]
-        - button "Import data" [ref=e160] [cursor=pointer]:
-          - generic [ref=e161]:
-            - img [ref=e162]
+          - img [ref=e161]
+        - button "Import data" [ref=e163] [cursor=pointer]:
+          - generic [ref=e164]:
+            - img [ref=e165]
             - text: Import data
-          - img [ref=e164]
-        - button "Update the app" [ref=e166] [cursor=pointer]:
-          - generic [ref=e167]:
-            - img [ref=e168]
+          - img [ref=e167]
+        - button "Update the app" [ref=e169] [cursor=pointer]:
+          - generic [ref=e170]:
+            - img [ref=e171]
             - text: Update the app
-          - img [ref=e170]
-      - generic [ref=e172]:
-        - generic [ref=e173]:
-          - heading "Cloud backup & sync" [level=2] [ref=e174]
-          - generic [ref=e175]:
-            - img [ref=e176]
+          - img [ref=e173]
+      - generic [ref=e175]:
+        - generic [ref=e176]:
+          - heading "Cloud backup & sync" [level=2] [ref=e177]
+          - generic [ref=e178]:
+            - img [ref=e179]
             - text: Syncing…
-        - generic [ref=e178]:
-          - paragraph [ref=e179]:
-            - img [ref=e180]
+        - generic [ref=e181]:
+          - paragraph [ref=e182]:
+            - img [ref=e183]
             - text: Syncing…
-          - paragraph [ref=e182]: qa-ui+1781620544775475@forma-e2e.test
-          - generic [ref=e183]:
-            - button "…" [disabled] [ref=e184]
-            - button "Sign out" [ref=e185] [cursor=pointer]
-      - generic [ref=e186]:
-        - heading "Data" [level=2] [ref=e187]
-        - paragraph [ref=e188]:
-          - img [ref=e189]
-          - text: Offline storage is protected — your data, videos & photos persist.
-        - button "Clear this day's data Tue 16 Jun" [ref=e191] [cursor=pointer]:
-          - generic [ref=e192]:
-            - img [ref=e193]
+          - paragraph [ref=e185]: qa-ui+1781707487149816@forma-e2e.test
+          - generic [ref=e186]:
+            - button "…" [disabled] [ref=e187]
+            - button "Sign out" [ref=e188] [cursor=pointer]
+      - generic [ref=e189]:
+        - heading "Data" [level=2] [ref=e190]
+        - paragraph [ref=e191]:
+          - img [ref=e192]
+          - text: Install the app (Add to Home Screen) so your data isn't cleared when closed.
+        - button "Clear this day's data Wed 17 Jun" [ref=e194] [cursor=pointer]:
+          - generic [ref=e195]:
+            - img [ref=e196]
             - text: Clear this day's data
-          - generic [ref=e195]: Tue 16 Jun
-        - button "Reset all data (start fresh)" [ref=e196] [cursor=pointer]
-  - navigation [ref=e197]:
-    - list [ref=e198]:
-      - listitem [ref=e199]:
-        - link "Home" [ref=e200] [cursor=pointer]:
+          - generic [ref=e198]: Wed 17 Jun
+        - button "Reset all data (start fresh)" [ref=e199] [cursor=pointer]
+  - navigation [ref=e200]:
+    - list [ref=e201]:
+      - listitem [ref=e202]:
+        - link "Home" [ref=e203] [cursor=pointer]:
           - /url: /
-          - img [ref=e202]
-          - generic [ref=e204]: Home
-      - listitem [ref=e205]:
-        - link "Workout" [ref=e206] [cursor=pointer]:
-          - /url: /workout
-          - img [ref=e208]
-          - generic [ref=e210]: Workout
-      - listitem [ref=e211]:
-        - link "Nutrition" [ref=e212] [cursor=pointer]:
+          - img [ref=e205]
+          - generic [ref=e207]: Home
+      - listitem [ref=e208]:
+        - link "Nutrition" [ref=e209] [cursor=pointer]:
           - /url: /nutrition
-          - img [ref=e214]
-          - generic [ref=e216]: Nutrition
-      - listitem [ref=e217]:
-        - link "Cardio" [ref=e218] [cursor=pointer]:
-          - /url: /cardio
-          - img [ref=e220]
-          - generic [ref=e222]: Cardio
-      - listitem [ref=e223]:
-        - link "Progress" [ref=e224] [cursor=pointer]:
+          - img [ref=e211]
+          - generic [ref=e213]: Nutrition
+      - listitem [ref=e214]:
+        - link "Workout" [ref=e215] [cursor=pointer]:
+          - /url: /workout
+          - img [ref=e216]
+      - listitem [ref=e218]:
+        - link "Progress" [ref=e219] [cursor=pointer]:
           - /url: /progress
-          - img [ref=e226]
-          - generic [ref=e228]: Progress
-      - listitem [ref=e229]:
-        - link "Settings" [ref=e230] [cursor=pointer]:
+          - img [ref=e221]
+          - generic [ref=e223]: Progress
+      - listitem [ref=e224]:
+        - link "Profile" [ref=e225] [cursor=pointer]:
           - /url: /settings
-          - img [ref=e232]
-          - generic [ref=e234]: Settings
+          - img [ref=e227]
+          - generic [ref=e229]: Profile
 ```
 
 # Test source
@@ -294,13 +281,13 @@ Received: false
   39  |   const findings = await auditPage(page, spec.route, capture);
   40  |   await test.info().attach(`audit-${spec.label}`, { body: JSON.stringify(findings, null, 2), contentType: 'application/json' });
   41  | 
-  42  |   expect.soft(findings.rendered, `${spec.label}: page crashed / rendered empty`).toBe(true);
+> 42  |   expect.soft(findings.rendered, `${spec.label}: page crashed / rendered empty`).toBe(true);
+      |                                                                                  ^ Error: client-settings: page crashed / rendered empty
   43  |   expect.soft(findings.consoleErrors, `${spec.label}: console errors\n${findings.consoleErrors.join('\n')}`).toEqual([]);
   44  |   expect.soft(findings.missingTranslations, `${spec.label}: raw i18n keys leaked\n${findings.missingTranslations.join(', ')}`).toEqual([]);
   45  |   expect.soft(findings.horizontalOverflowPx, `${spec.label}: horizontal scroll ${findings.horizontalOverflowPx}px`).toBeLessThanOrEqual(2);
   46  |   if (spec.expectNav) {
-> 47  |     expect.soft(await page.getByTestId(TID.bottomNav).isVisible(), `${spec.label}: bottom nav missing`).toBe(true);
-      |                                                                                                         ^ Error: client-settings: bottom nav missing
+  47  |     expect.soft(await page.getByTestId(TID.bottomNav).isVisible(), `${spec.label}: bottom nav missing`).toBe(true);
   48  |   }
   49  | }
   50  | 

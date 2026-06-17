@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { EntityNotes } from '@/components/EntityNotes';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -57,6 +58,7 @@ export function ProgressPhotos() {
   const navigate = useNavigate();
   const [pose, setPose] = useState<PhotoPose>('front');
   const [compare, setCompare] = useState(false);
+  const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -87,8 +89,14 @@ export function ProgressPhotos() {
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) await add(pose, file);
     e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      await add(pose, file);
+    } finally {
+      setBusy(false);
+    }
   };
 
   // Open the picker: camera (`capture`) or the gallery / file chooser.
@@ -118,13 +126,14 @@ export function ProgressPhotos() {
           {t('progress.addPhoto')} — {t(`progress.${pose}`)}
         </p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => pickPhoto(false)} className="btn-primary btn-lg flex-1">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary btn-lg flex-1 disabled:opacity-40">
             <Icon name="image" size={18} /> {t('progress.gallery')}
           </button>
-          <button type="button" onClick={() => pickPhoto(true)} className="btn-ghost btn-lg flex-1">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-ghost btn-lg flex-1 disabled:opacity-40">
             <Icon name="camera" size={18} /> {t('progress.camera')}
           </button>
         </div>
+        {busy && <p className="mt-2 text-center text-xs text-earth-muted">{t('upload.uploading')}</p>}
       </div>
 
       <button type="button" onClick={() => setCompare((v) => !v)} className="btn-ghost w-full" disabled={dates.length < 2}>
@@ -174,6 +183,9 @@ export function ProgressPhotos() {
               </div>
             ))}
           </div>
+          {items.map((ph) => (
+            <EntityNotes key={`n-${ph.id}`} screen="photos" date={date} entityType="progress_photo" entityId={ph.id} />
+          ))}
         </div>
       ))}
 

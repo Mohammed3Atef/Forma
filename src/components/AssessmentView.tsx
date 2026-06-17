@@ -89,6 +89,22 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
         <Row label={t('assessment.challengeQ')} value={t(`assessment.challenges.${a.motivation.biggestChallenge}`)} />
         <Row label={t('assessment.commitmentQ')} value={`${a.motivation.commitmentLevel}/10`} />
       </Section>
+
+      {(['front', 'side', 'back'] as const).some((p) => a.progressPhotos?.[p]) && (
+        <section>
+          <h2 className="h2 mb-2">{t('assessment.steps.7')}</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {(['front', 'side', 'back'] as const).map((pose) =>
+              a.progressPhotos?.[pose] ? (
+                <a key={pose} href={a.progressPhotos[pose]} target="_blank" rel="noreferrer" className="block">
+                  <img src={a.progressPhotos[pose]} alt={pose} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                  <span className="mt-1 block text-center text-[11px] text-earth-subtle">{t(`progress.${pose}`)}</span>
+                </a>
+              ) : null,
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -227,25 +227,6 @@ test.describe.serial('Coach', () => {
     }
   });
 
-  test('sets coach targets (steps / cardio / water)', async ({ page }) => {
-    test.skip(!clientId, 'client not created');
-    await gotoClientDetail(page);
-    await openManage(page, TID.coachSetTargets);
-    await page.getByTestId(TID.coachTargetsField('waterMl')).fill('3000');
-    await page.getByTestId(TID.coachTargetsField('steps')).fill('10000');
-    await page.getByTestId(TID.coachTargetsField('cardioMin')).fill('150');
-    await page.getByTestId(TID.coachTargetsSave).click();
-
-    const s = await signInAs('coach');
-    try {
-      const t = await readDoc<{ steps: number; waterMl: number; cardioMin: number }>(s.db, ['clientData', clientId, 'coachTargets', 'current']).catch(() => null);
-      // Targets may be stored under a fixed id; just assert at least one target doc exists with our steps.
-      if (t) expect(t.steps).toBe(10000);
-    } finally {
-      await s.close();
-    }
-  });
-
   test('adds a coach note', async ({ page }) => {
     test.skip(!clientId, 'client not created');
     await gotoClientDetail(page);

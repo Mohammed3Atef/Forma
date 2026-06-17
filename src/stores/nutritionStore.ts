@@ -5,6 +5,7 @@ type SubstitutionTag = NonNullable<NutritionLog['substitutions']>[string];
 import { getDataSource } from '@/data/dataSource';
 import { today } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
+import { isSubscriptionReadOnly } from './subscriptionGate';
 
 interface NutritionState {
   plan: MealPlan | null;
@@ -120,6 +121,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async toggleMeal(mealId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = {
@@ -134,6 +136,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async toggleSupplement(suppId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = {
@@ -148,6 +151,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async addWater(ml) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = {
@@ -162,6 +166,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async setCreatine(taken) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = { ...cur, creatineTaken: taken, updatedAt: Date.now(), dirty: true };
@@ -171,6 +176,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async addCustomFood(food) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     // Upsert by id so the same call adds OR edits an existing custom food.
@@ -188,6 +194,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async removeCustomFood(id) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = {
@@ -201,6 +208,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async replaceItem(originalId, food, tag) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const subs = { ...(cur.substitutions ?? {}) };
@@ -219,6 +227,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async removeItem(originalId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const subs = { ...(cur.substitutions ?? {}) };
@@ -236,6 +245,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async resetItem(originalId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const overrides = { ...cur.itemOverrides };
@@ -249,6 +259,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async addMealItem(mealId, food) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const list = cur.extraItems[mealId] ?? [];
@@ -266,6 +277,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
   },
 
   async removeMealItem(mealId, foodId) {
+    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
     const cur = get().log;
     if (!cur) return;
     const next: NutritionLog = {

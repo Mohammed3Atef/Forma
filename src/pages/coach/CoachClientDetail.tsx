@@ -11,14 +11,13 @@ import {
   fetchClientLogs,
   fetchClientProfile,
   getClientAssessment,
-  getCoachTargets,
   listCoachNotes,
-  setCoachTargets,
   type Author,
 } from '@/services/platform/coachApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { assessmentStatus } from '@/lib/assessment';
+import { CoachSubscriptionPanel } from '@/pages/coach/CoachSubscriptionPanel';
 import { Icon, type IconName } from '@/components/Icon';
 import type { AssessmentStatus, WeightLog, WorkoutLog } from '@/types';
 
@@ -37,7 +36,7 @@ export function CoachClientDetail() {
   const account = useSession((s) => s.account);
   const author: Author = { id: account?.id ?? 'self', role: account?.role ?? 'coach' };
 
-  const [sheet, setSheet] = useState<'note' | 'targets' | 'manage' | null>(null);
+  const [sheet, setSheet] = useState<'note' | 'manage' | null>(null);
 
   const user = useQuery({ queryKey: ['user', clientId], queryFn: () => fetchUser(clientId), enabled: !!clientId });
   const profile = useQuery({ queryKey: ['clientProfile', clientId], queryFn: () => fetchClientProfile(clientId), enabled: !!clientId });
@@ -47,7 +46,6 @@ export function CoachClientDetail() {
   const workoutPlan = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
   const mealPlan = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
   const cardioPlan = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
-  const targets = useQuery({ queryKey: ['coachTargets', clientId], queryFn: () => getCoachTargets(clientId), enabled: !!clientId });
   const assessment = useQuery({ queryKey: ['clientAssessment', clientId], queryFn: () => getClientAssessment(clientId), enabled: !!clientId });
   const assessStatus = assessmentStatus(assessment.data);
 
@@ -70,7 +68,7 @@ export function CoachClientDetail() {
 
       {/* Primary actions: view the client's activity, or manage their plan. */}
       <div className="mt-5 grid grid-cols-2 gap-2.5">
-        <button type="button" data-testid="coach-view-activity" onClick={() => navigate(`/coach/client/${clientId}/activity`)} className="btn-primary">
+        <button type="button" data-testid="coach-view-activity" onClick={() => navigate(`/coach/client/${clientId}/view`)} className="btn-primary">
           {t('activity.view')}
         </button>
         <button type="button" data-testid="coach-manage" onClick={() => setSheet('manage')} className="btn-ghost">
@@ -96,13 +94,16 @@ export function CoachClientDetail() {
         <Icon name="chevron" size={18} />
       </button>
 
-      {/* Targets (read-only summary) */}
+      {/* Subscription, account status + freeze requests */}
+      <CoachSubscriptionPanel clientId={clientId} coachId={account?.id ?? ''} account={user.data ?? null} />
+
+      {/* Targets (read-only summary) — sourced from the nutrition plan, the single targets editor. */}
       <h2 className="h2 mb-2 mt-6">{t('coach.targets')}</h2>
       <div className="card">
         <div className="grid grid-cols-3 gap-3 text-center">
-          <TargetCell label={t('coach.water')} value={targets.data?.waterMl} unit="ml" />
-          <TargetCell label={t('coach.steps')} value={targets.data?.steps} />
-          <TargetCell label={t('coach.cardio')} value={targets.data?.cardioMin} unit={t('common.min')} />
+          <TargetCell label={t('nutrition.calories')} value={mealPlan.data?.targets.calories} />
+          <TargetCell label={t('nutrition.protein')} value={mealPlan.data?.targets.protein} unit="g" />
+          <TargetCell label={t('coach.water')} value={mealPlan.data?.waterTargetMl} unit="ml" />
         </div>
       </div>
 
@@ -133,11 +134,9 @@ export function CoachClientDetail() {
         onWorkout={() => navigate(`/coach/client/${clientId}/workout`)}
         onNutrition={() => navigate(`/coach/client/${clientId}/nutrition`)}
         onCardio={() => navigate(`/coach/client/${clientId}/cardio`)}
-        onTargets={() => setSheet('targets')}
         onNote={() => setSheet('note')}
       />
       <NoteSheet open={sheet === 'note'} onClose={() => setSheet(null)} clientId={clientId} author={author} onSaved={() => void qc.invalidateQueries({ queryKey: ['coachNotes', clientId] })} />
-      <TargetsSheet open={sheet === 'targets'} onClose={() => setSheet(null)} clientId={clientId} updatedBy={author.id} current={targets.data ?? null} onSaved={() => void qc.invalidateQueries({ queryKey: ['coachTargets', clientId] })} />
     </>
   );
 }
@@ -187,7 +186,6 @@ function ManageSheet({
   onWorkout,
   onNutrition,
   onCardio,
-  onTargets,
   onNote,
 }: {
   open: boolean;
@@ -201,7 +199,6 @@ function ManageSheet({
   onWorkout: () => void;
   onNutrition: () => void;
   onCardio: () => void;
-  onTargets: () => void;
   onNote: () => void;
 }) {
   const { t } = useTranslation();
@@ -227,53 +224,8 @@ function ManageSheet({
         {row('dumbbell', t('coach.kind.workout'), planSub(workoutAssigned, workoutName), onWorkout, 'coach-edit-workout')}
         {row('meal', t('coach.kind.nutrition'), planSub(nutritionAssigned, nutritionName), onNutrition, 'coach-edit-nutrition')}
         {row('activity', t('coach.kind.cardio'), cardioAssigned ? t('coach.sessionsCount', { n: cardioCount ?? 0 }) : t('coach.noPlanAssigned'), onCardio, 'coach-edit-cardio')}
-        {row('target', t('coach.setTargets'), t('coach.targets'), onTargets, 'coach-set-targets')}
         {row('edit', t('coach.addNote'), t('coach.notes'), onNote, 'coach-add-note')}
       </div>
-    </Sheet>
-  );
-}
-
-function TargetsSheet({ open, onClose, clientId, updatedBy, current, onSaved }: { open: boolean; onClose: () => void; clientId: string; updatedBy: string; current: { waterMl?: number; steps?: number; cardioMin?: number; calories?: number; protein?: number } | null; onSaved: () => void }) {
-  const { t } = useTranslation();
-  const [form, setForm] = useState({
-    waterMl: current?.waterMl?.toString() ?? '',
-    steps: current?.steps?.toString() ?? '',
-    cardioMin: current?.cardioMin?.toString() ?? '',
-    calories: current?.calories?.toString() ?? '',
-    protein: current?.protein?.toString() ?? '',
-  });
-  const num = (s: string) => (s.trim() === '' ? undefined : Number(s));
-  const mut = useMutation({
-    mutationFn: () =>
-      setCoachTargets(
-        clientId,
-        { waterMl: num(form.waterMl), steps: num(form.steps), cardioMin: num(form.cardioMin), calories: num(form.calories), protein: num(form.protein) },
-        updatedBy,
-      ),
-    onSuccess: () => {
-      onSaved();
-      onClose();
-    },
-  });
-  const field = (key: keyof typeof form, label: string) => (
-    <div>
-      <label className="label">{label}</label>
-      <input className="input" data-testid={`targets-${key}`} inputMode="numeric" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
-    </div>
-  );
-  return (
-    <Sheet open={open} onClose={onClose} title={t('coach.setTargets')}>
-      <div className="grid grid-cols-2 gap-3">
-        {field('waterMl', `${t('coach.water')} (ml)`)}
-        {field('steps', t('coach.steps'))}
-        {field('cardioMin', `${t('coach.cardio')} (${t('common.min')})`)}
-        {field('calories', t('nutrition.calories'))}
-        {field('protein', t('nutrition.protein'))}
-      </div>
-      <button type="button" data-testid="coach-targets-save" disabled={mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-4 w-full disabled:opacity-40">
-        {t('common.save')}
-      </button>
     </Sheet>
   );
 }

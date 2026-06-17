@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { VideoAsset } from '@/types';
 import { useWorkout } from '@/stores/workoutStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useSettings } from '@/stores/settingsStore';
 import { useDay } from '@/stores/dayStore';
 import { useTimer } from '@/stores/timerStore';
@@ -43,6 +44,7 @@ export function WorkoutSession() {
   const finishSession = useWorkout((s) => s.finishSession);
   const previousFor = useWorkout((s) => s.previousFor);
 
+  const { readOnly: subReadOnly, ended: subEnded } = useSubscription();
   const restDefault = useSettings((s) => s.settings?.restDefaultSec ?? 90);
   const startRest = useTimer((s) => s.startRest);
   const timerOn = useTimer((s) => s.running || s.paused);
@@ -104,6 +106,19 @@ export function WorkoutSession() {
   useEffect(() => {
     if (unfinished) setDay(unfinished.date);
   }, [unfinished, setDay]);
+
+  // Subscription frozen/ended → workout logging is paused (view-only). Block the
+  // session surface so no sets can be recorded.
+  if (subReadOnly) {
+    return (
+      <div className="space-y-4 pt-16 text-center">
+        <p className="text-earth-muted">{t(subEnded ? 'subscription.bannerEnded' : 'subscription.bannerFrozen')}</p>
+        <button type="button" onClick={() => navigate('/workout')} className="btn-primary mx-auto">
+          {t('nav.workout')}
+        </button>
+      </div>
+    );
+  }
 
   if (!plan || (!active && !unfinished)) {
     return (
