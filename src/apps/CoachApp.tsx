@@ -20,6 +20,7 @@ import { CoachExerciseLibrary } from '@/pages/coach/CoachExerciseLibrary';
 import { PlanVersionHistory } from '@/pages/coach/PlanVersionHistory';
 import { CoachAdherence } from '@/pages/coach/CoachAdherence';
 import { CoachMessages } from '@/pages/coach/CoachMessages';
+import { CoachMessageThread } from '@/pages/coach/CoachMessageThread';
 import { Notifications } from '@/pages/Notifications';
 
 /**
@@ -48,6 +49,7 @@ export function CoachApp() {
         <Route path="/coach/templates/:templateId" element={shell(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
+        <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
         <Route path="/coach/notifications" element={shell(<Notifications />)} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
         <Route path="*" element={<Navigate to="/coach" replace />} />

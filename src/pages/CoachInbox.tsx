@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { Icon } from '@/components/Icon';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { useCoachContent } from '@/hooks/useCoachContent';
+import { clientNoteRoute } from '@/lib/noteTarget';
 
 export function CoachInbox() {
   const { t } = useTranslation();
@@ -17,6 +19,13 @@ export function CoachInbox() {
         <div className="card py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</div>
       ) : (
         <div className="space-y-6">
+          {/* Message your coach */}
+          <button type="button" data-testid="open-messages" onClick={() => navigate('/messages')} className="card-tap flex w-full items-center gap-3 text-start">
+            <span className="row-av bg-brand/15 text-brand"><Icon name="info" size={18} /></span>
+            <span className="min-w-0 flex-1 font-medium">{t('messages.title')}</span>
+            <Icon name="chevron" size={18} className="text-earth-subtle" />
+          </button>
+
           {/* Subscription + freeze request */}
           <ClientSubscriptionSection />
 
@@ -57,13 +66,25 @@ export function CoachInbox() {
             <h2 className="h2 mb-2">{t('clientCoach.notes')}</h2>
             <div className="card divide-y divide-line-soft">
               {notes.length ? (
-                notes.map((n) => (
-                  <div key={n.id} className="py-3 first:pt-0 last:pb-0">
-                    {n.kind === 'announcement' && <span className="eyebrow mb-1 block text-brand">{t('clientCoach.announcement')}</span>}
-                    <p className="whitespace-pre-wrap text-sm">{n.body}</p>
-                    <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(n.createdAt).toLocaleDateString()}</span>
-                  </div>
-                ))
+                notes.map((n) => {
+                  const anchored = !!(n.entityType && n.entityId);
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      disabled={!anchored}
+                      onClick={() => anchored && navigate(clientNoteRoute(n))}
+                      className="flex w-full items-start gap-2 py-3 text-start first:pt-0 last:pb-0 disabled:cursor-default"
+                    >
+                      <span className="min-w-0 flex-1">
+                        {n.kind === 'announcement' && <span className="eyebrow mb-1 block text-brand">{t('clientCoach.announcement')}</span>}
+                        <span className="block whitespace-pre-wrap text-sm">{n.body}</span>
+                        <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(n.createdAt).toLocaleDateString()}</span>
+                      </span>
+                      {anchored && <Icon name="chevron" size={16} className="mt-0.5 shrink-0 text-earth-subtle" />}
+                    </button>
+                  );
+                })
               ) : (
                 <p className="py-2 text-sm text-earth-muted">{t('clientCoach.noNotes')}</p>
               )}

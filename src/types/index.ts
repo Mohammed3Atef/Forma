@@ -69,6 +69,8 @@ export interface UserRecord {
   email: string;
   displayName: string;
   phone?: string; // contact number, collected at sign-up / account creation
+  photoUrl?: string; // avatar (Bunny CDN url); falls back to initials
+  timezone?: string; // IANA tz (coach-set; display-only for now)
   role: Role;
   accountStatus: AccountStatus;
   permissions: Permission[];
@@ -162,7 +164,7 @@ export interface AssessmentPhotos {
  * has reviewed it. Legacy docs (no `status`, `completed:true`) read as
  * `submitted` via `assessmentStatus()` in src/lib/assessment.ts.
  */
-export type AssessmentStatus = 'not_started' | 'in_progress' | 'submitted' | 'reviewed';
+export type AssessmentStatus = 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review';
 
 /**
  * Mandatory client onboarding assessment, stored in structured sections at
@@ -348,7 +350,8 @@ export type NotificationType =
   | 'assessment_submitted'
   | 'checkin_requested'
   | 'checkin_submitted'
-  | 'checkin_reviewed';
+  | 'checkin_reviewed'
+  | 'message_received';
 
 /**
  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and
@@ -403,6 +406,28 @@ export interface WeeklyCheckIn {
   notes?: string;
   progressPhotos: { front?: string; side?: string; back?: string }; // Bunny CDN urls
   coachFeedback?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Optional category for a coach broadcast message (plain 1:1 chat omits it). */
+export type MessageCategory = 'message' | 'announcement' | 'offer' | 'reminder' | 'update';
+
+/**
+ * A single chat message in the 1:1 coach⇄client thread at
+ * `clientData/{clientId}/messages/{id}`. Both parties read+write. `seenAt` is set
+ * when the OTHER party opens the thread (Sent → Seen). Broadcasts are normal
+ * messages fanned into each client's thread with `broadcast: true` + a category.
+ */
+export interface Message {
+  id: string;
+  clientId: string;
+  fromUserId: string;
+  fromRole: Role;
+  body: string;
+  category?: MessageCategory;
+  broadcast?: boolean;
+  seenAt?: number | null;
   createdAt: number;
   updatedAt: number;
 }

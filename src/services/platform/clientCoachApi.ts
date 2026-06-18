@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, writeBatch } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { notify } from './notificationsApi';
-import type { ClientAssessment, AssignedPlan, CardioPlan, CoachClientRelationship, CoachNote, CoachTargets, FreezeRequest, PlanKind, UserProfile } from '@/types';
+import type { ClientAssessment, AssignedPlan, CardioPlan, CoachClientRelationship, CoachNote, CoachTargets, FreezeRequest, PlanKind, UserProfile, UserRecord } from '@/types';
 
 /**
  * Owner-side reads of coach-authored content for the signed-in client. Kept
@@ -77,14 +77,23 @@ export async function submitAssessment(
 ): Promise<void> {
   const { db } = ensureFirebase();
   const now = Date.now();
+  const ref = doc(db, CLIENT, clientId, 'profile', 'assessment');
+  // Living assessment: editing a reviewed assessment flips it to
+  // 'updated_after_review' and PRESERVES the coach's review feedback/date.
+  const prevSnap = await getDoc(ref);
+  const prev = prevSnap.exists() ? (prevSnap.data() as ClientAssessment) : null;
+  const wasReviewed = prev?.status === 'reviewed' || prev?.status === 'updated_after_review';
   const batch = writeBatch(db);
-  batch.set(doc(db, CLIENT, clientId, 'profile', 'assessment'), {
+  batch.set(ref, {
     ...assessment,
-    status: 'submitted',
+    status: wasReviewed ? 'updated_after_review' : 'submitted',
     completed: true,
     completedAt: now,
-    submittedAt: now,
+    submittedAt: prev?.submittedAt ?? now,
     updatedAt: now,
+    ...(prev?.coachNotes != null ? { coachNotes: prev.coachNotes } : {}),
+    ...(prev?.reviewedAt != null ? { reviewedAt: prev.reviewedAt } : {}),
+    ...(prev?.reviewedBy != null ? { reviewedBy: prev.reviewedBy } : {}),
   });
   batch.set(doc(db, CLIENT, clientId, 'profile', 'main'), { ...profile, id: clientId, updatedAt: now });
   await batch.commit();
@@ -92,6 +101,13 @@ export async function submitAssessment(
 }
 
 // ---- subscription (read-only) + freeze requests ----------------------------
+
+/** Read the assigned coach's public record (name/phone/photo) for the "Your Coach" card. */
+export async function fetchMyCoach(coachId: string): Promise<UserRecord | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, 'users', coachId));
+  return snap.exists() ? (snap.data() as UserRecord) : null;
+}
 
 /** Read the client's coach relationship (for the subscription banner). */
 export async function fetchMyRelationship(coachId: string, clientId: string): Promise<CoachClientRelationship | null> {

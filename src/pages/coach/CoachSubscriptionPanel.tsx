@@ -111,7 +111,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
             <button type="button" className="chip" data-testid="sub-set-term" onClick={() => setSheet('term')}>{t('subscription.setTerm')}</button>
             {sub && <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>}
             {sub && status === 'frozen' ? (
-              <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={() => unfreeze.mutate()}>{t('subscription.unfreeze')}</button>
+              <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreeze'), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
             ) : sub && status === 'active' ? (
               <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
             ) : null}

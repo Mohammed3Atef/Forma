@@ -8,13 +8,14 @@ import { EntityNotesProvider, type NoteAnchorCtx } from '@/components/EntityNote
 import { ClientActivityView } from '@/pages/coach/ClientActivityView';
 import { CoachViewNutrition } from '@/pages/coach/CoachViewNutrition';
 import { CoachViewMeasurements } from '@/pages/coach/CoachViewMeasurements';
+import { CoachViewCardio } from '@/pages/coach/CoachViewCardio';
 import { CoachViewPhotos } from '@/pages/coach/CoachViewPhotos';
 import { CoachViewProgress } from '@/pages/coach/CoachViewProgress';
 import { useSession } from '@/services/auth/sessionStore';
 import { addCoachNote, listCoachNotes, type Author } from '@/services/platform/coachApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 
-const TABS = ['activity', 'nutrition', 'measurements', 'photos', 'progress'] as const;
+const TABS = ['activity', 'nutrition', 'cardio', 'measurements', 'photos', 'progress'] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -76,6 +77,7 @@ export function CoachViewLayout() {
       <EntityNotesProvider notes={notesQ.data ?? []} onAdd={(ctx) => { setBody(''); setPending(ctx); }}>
         {activeTab === 'activity' && <ClientActivityView clientId={clientId} />}
         {activeTab === 'nutrition' && <CoachViewNutrition clientId={clientId} />}
+        {activeTab === 'cardio' && <CoachViewCardio clientId={clientId} />}
         {activeTab === 'measurements' && <CoachViewMeasurements clientId={clientId} />}
         {activeTab === 'photos' && <CoachViewPhotos clientId={clientId} />}
         {activeTab === 'progress' && <CoachViewProgress clientId={clientId} />}

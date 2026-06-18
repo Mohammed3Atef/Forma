@@ -7,6 +7,7 @@ import { EntityNotes } from '@/components/EntityNotes';
 import { fetchClientDay } from '@/services/platform/coachApi';
 import { getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { computeConsumed } from '@/stores/nutritionStore';
+import { warmupCountOf } from '@/stores/workoutStore';
 import { logSetCount, logVolume } from '@/lib/calc';
 import { today } from '@/lib/utils';
 
@@ -91,26 +92,59 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
                   <Mini label={t('gt.duration')} value={`${Math.round(d.workout.durationSec / 60)}m`} />
                 </div>
                 <div className="divide-y divide-line-soft">
-                  {d.workout.exercises.map((ex) => {
-                    const done = ex.sets.filter((s) => s.done).length;
-                    return (
-                      <div key={ex.exerciseId} className="py-2.5">
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium">{exerciseName(ex.exerciseId)}</span>
-                          <span className="font-mono text-[11px] text-earth-subtle">{done}/{ex.sets.length}</span>
+                  {(() => {
+                    // Overlay the full plan day with the logged sets so the coach sees
+                    // every planned exercise as completed or pending.
+                    const planDay = wPlan.data?.days.find((dy) => dy.id === d.workout!.dayId);
+                    const planIds = planDay?.exerciseIds ?? [];
+                    const loggedById = new Map(d.workout!.exercises.map((e) => [e.exerciseId, e]));
+                    const ids = [...planIds, ...d.workout!.exercises.map((e) => e.exerciseId).filter((id) => !planIds.includes(id))];
+                    return ids.map((id) => {
+                      const logEx = loggedById.get(id);
+                      const planEx = wPlan.data?.exercises[id];
+                      if (logEx) {
+                        const done = logEx.sets.filter((s) => s.done).length;
+                        return (
+                          <div key={id} className="py-2.5">
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                              <span className="min-w-0 flex-1 truncate text-sm font-medium">{exerciseName(id)}</span>
+                              <span className="font-mono text-[11px] text-earth-subtle">{done}/{logEx.sets.length}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {logEx.sets.map((s, i) => (
+                                <span key={i} className={`chip text-[11px] ${s.done ? 'chip-on' : s.type === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
+                                  {s.type === 'warmup' && <span className="me-1 opacity-70">{t('coachEditor.warmupShort')}</span>}
+                                  {s.weightKg != null ? `${s.weightKg}${t('common.kg')}` : '—'} × {s.actualReps ?? (s.targetReps || '—')}
+                                </span>
+                              ))}
+                            </div>
+                            <EntityNotes screen="workout" date={date} entityType="exercise" entityId={id} label={exerciseName(id)} />
+                          </div>
+                        );
+                      }
+                      // Planned but not logged this session → show as pending.
+                      const warm = planEx ? warmupCountOf(planEx) : 0;
+                      const work = planEx?.workingSets ?? 0;
+                      const placeholders = [...Array<string>(warm).fill('warmup'), ...Array<string>(Math.max(work, warm === 0 ? 1 : 0)).fill('working')];
+                      return (
+                        <div key={id} className="py-2.5 opacity-70">
+                          <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <span className="min-w-0 flex-1 truncate text-sm font-medium">{exerciseName(id)}</span>
+                            <span className="font-mono text-[11px] text-earth-subtle">0/{placeholders.length}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {placeholders.map((typ, i) => (
+                              <span key={i} className={`chip text-[11px] ${typ === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
+                                {typ === 'warmup' && <span className="me-1 opacity-70">{t('coachEditor.warmupShort')}</span>}
+                                — × {planEx?.repRange && planEx.repRange !== '-' ? planEx.repRange : '—'}
+                              </span>
+                            ))}
+                          </div>
+                          <EntityNotes screen="workout" date={date} entityType="exercise" entityId={id} label={exerciseName(id)} />
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ex.sets.map((s, i) => (
-                            <span key={i} className={`chip text-[11px] ${s.done ? 'chip-on' : ''}`}>
-                              {s.type === 'warmup' && <span className="me-1 opacity-70">{t('coachEditor.warmupShort')}</span>}
-                              {s.weightKg != null ? `${s.weightKg}${t('common.kg')}` : '—'} × {s.actualReps ?? (s.targetReps || '—')}
-                            </span>
-                          ))}
-                        </div>
-                        <EntityNotes screen="workout" date={date} entityType="exercise" entityId={ex.exerciseId} label={exerciseName(ex.exerciseId)} />
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
                 <EntityNotes screen="workout" date={date} entityType="workout_day" entityId={d.workout.dayId} label={wPlan.data?.days.find((dy) => dy.id === d.workout!.dayId)?.title} />
               </div>

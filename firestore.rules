@@ -52,6 +52,14 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId))
         && get(/databases/$(database)/documents/coachClients/$(request.auth.uid + '__' + clientId)).data.status == 'active';
     }
+    // The signed-in CLIENT's own assigned coach (active relationship) — lets a
+    // client read their coach's public record (name / phone / photo) for the
+    // "Your Coach" card. Deterministic id: coachId + '__' + me.
+    function isMyCoach(coachId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid))
+        && get(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid)).data.status == 'active';
+    }
     // Collections under clientData the client may READ but never WRITE — they are
     // coach-owned. Everything else under clientData (logs, settings, reminders,
     // deletions, …) is the client's own. Daily nutrition substitutions live in
@@ -62,7 +70,7 @@ service cloud.firestore {
 
     // ---- users (identity / access control) -------------------------------
     match /users/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || hasPermission('users.read'));
+      allow read: if isSignedIn() && (request.auth.uid == uid || hasPermission('users.read') || isMyCoach(uid));
 
       // Self sign-up: only with locked defaults on your OWN doc.
       function isSelfProvisionDefaults() {
@@ -183,6 +191,12 @@ service cloud.firestore {
     match /clientData/{clientId}/checkIns/{docId} {
       allow update: if isActive() && request.auth.uid == clientId && resource.data.status == 'requested';
     }
+    // Messages: the 1:1 coach⇄client thread — both the client and the assigned
+    // coach (or admin clients.writeAll) read + write; either can mark messages seen.
+    match /clientData/{clientId}/messages/{docId} {
+      allow read, write: if isSignedIn()
+        && (request.auth.uid == clientId || isAssignedCoach(clientId) || hasPermission('clients.writeAll'));
+    }
 
     // ---- onboarding assessment (status-aware) ----------------------------
     // The client may create + edit their assessment until the coach has marked
@@ -194,8 +208,9 @@ service cloud.firestore {
         || isAssignedCoach(clientId)
         || hasPermission('clients.readAll'));
       allow create: if isActive() && request.auth.uid == clientId;
-      allow update: if isActive() && request.auth.uid == clientId
-        && resource.data.status != 'reviewed';
+      // Living assessment: the client may always edit their own answers (editing
+      // a reviewed doc flips it to 'updated_after_review'); the coach reviews.
+      allow update: if isActive() && request.auth.uid == clientId;
       allow update: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
     }
 

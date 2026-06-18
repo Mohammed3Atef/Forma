@@ -9,6 +9,9 @@ import { useHabits } from '@/stores/habitStore';
 import { useDay } from '@/stores/dayStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useActiveCheckIn } from '@/hooks/useActiveCheckIn';
+import { useSession } from '@/services/auth/sessionStore';
+import { Avatar } from '@/components/Avatar';
+import { CoachInfoCard } from '@/components/CoachInfoCard';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
 import { StatTile } from '@/components/StatTile';
@@ -24,9 +27,6 @@ function parseDay(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
-function initials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || 'A';
-}
 
 export function Home() {
   const { t, i18n } = useTranslation();
@@ -41,6 +41,7 @@ export function Home() {
   const setDay = useDay((s) => s.setDay);
   const { readOnly } = useSubscription();
   const { checkIn } = useActiveCheckIn();
+  const photoUrl = useSession((s) => s.account?.photoUrl);
 
   const mealPlan = useNutrition((s) => s.plan);
   const nutritionLog = useNutrition((s) => s.log);
@@ -146,14 +147,7 @@ export function Home() {
           </h1>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/settings')}
-            className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-line bg-surface-card font-mono text-xs font-medium text-brand"
-            aria-label={t('gt.profile')}
-          >
-            {initials(profile?.name ?? 'A')}
-          </button>
+          <Avatar name={profile?.name} photoUrl={photoUrl} size="sm" rounded="rounded-full" onClick={() => navigate('/settings')} />
           <SyncStatusBadge />
         </div>
       </header>
@@ -176,6 +170,9 @@ export function Home() {
           <Icon name="chevron" size={18} />
         </button>
       )}
+
+      {/* Your coach (compact) */}
+      <CoachInfoCard compact />
 
       {/* Coach announcements / assigned plans (only when the client has a coach) */}
       <CoachCard />

@@ -6,11 +6,13 @@ import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
+import { confirmDelete } from '@/stores/dialogStore';
+import { viewImages } from '@/stores/imageViewerStore';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
 /** Resolves a stored photo blob to an object URL and renders it. */
-function PhotoImg({ photo, className }: { photo: ProgressPhoto; className?: string }) {
+function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; className?: string; onView?: (url: string) => void }) {
   const { t } = useTranslation();
   const url = usePhotos((s) => s.url);
   const [src, setSrc] = useState<string | null>(null);
@@ -44,7 +46,7 @@ function PhotoImg({ photo, className }: { photo: ProgressPhoto; className?: stri
     );
   }
   if (!src) return <div className={`animate-pulse bg-surface-raised ${className}`} />;
-  return <img src={src} alt={photo.pose} className={className} />;
+  return <img src={src} alt={photo.pose} className={className} onClick={onView ? () => onView(src) : undefined} />;
 }
 
 export function ProgressPhotos() {
@@ -159,8 +161,8 @@ export function ProgressPhotos() {
               <div key={p}>
                 <p className="mb-1 text-xs uppercase text-slate-400">{t(`progress.${p}`)}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-xl object-cover" /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
-                  {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-xl object-cover" /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
+                  {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
+                  {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
                 </div>
               </div>
             );
@@ -175,9 +177,9 @@ export function ProgressPhotos() {
           <div className="grid grid-cols-3 gap-2">
             {items.map((ph) => (
               <div key={ph.id} className="relative">
-                <PhotoImg photo={ph} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                <PhotoImg photo={ph} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} />
                 <span className="absolute bottom-1 start-1 rounded bg-black/60 px-1 text-[10px]">{t(`progress.${ph.pose}`)}</span>
-                <button type="button" onClick={() => void remove(ph.id)} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger">
+                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger">
                   <Icon name="close" size={14} />
                 </button>
               </div>

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { EntityNotes } from '@/components/EntityNotes';
 import { Icon } from '@/components/Icon';
+import { viewImages } from '@/stores/imageViewerStore';
 import { fetchClientPhotos } from '@/services/platform/coachApi';
 import { shortDate } from '@/lib/utils';
 import type { ProgressPhoto } from '@/types';
@@ -35,7 +36,7 @@ export function CoachViewPhotos({ clientId }: { clientId: string }) {
               <div key={p.id} className="space-y-1">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-raised">
                   {p.cdnUrl ? (
-                    <img src={p.cdnUrl} alt={p.pose} className="h-full w-full object-cover" loading="lazy" />
+                    <img src={p.cdnUrl} alt={p.pose} className="h-full w-full object-cover" loading="lazy" onClick={() => viewImages(p.cdnUrl!)} />
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-earth-subtle">
                       <Icon name="image" size={18} />

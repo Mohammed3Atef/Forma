@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
+import { useFocus } from '@/stores/focusStore';
 import type { CoachNote, NoteEntityType, NoteScreen } from '@/types';
 
 export interface NoteAnchorCtx {
@@ -40,9 +41,30 @@ export function EntityNotes({ entityType, entityId, screen, date, label }: NoteA
   const { t } = useTranslation();
   const { notes, onAdd } = useContext(EntityNotesContext);
   const mine = notes.filter((n) => n.entityType === entityType && n.entityId === entityId);
+
+  // Deep-link focus: when a notification targets this entity, scroll to it and
+  // flash a highlight ring, then clear the transient focus target.
+  const focusType = useFocus((s) => s.entityType);
+  const focusId = useFocus((s) => s.entityId);
+  const clearFocus = useFocus((s) => s.clearFocus);
+  const ref = useRef<HTMLDivElement>(null);
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    if (focusType !== entityType || focusId !== entityId) return;
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlight(true);
+    const t1 = setTimeout(() => setHighlight(false), 2500);
+    const t2 = setTimeout(() => clearFocus(), 2600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [focusType, focusId, entityType, entityId, clearFocus]);
+
   if (mine.length === 0 && !onAdd) return null;
   return (
-    <div className="mt-1.5 space-y-1.5" data-testid={`entity-notes-${entityType}-${entityId}`}>
+    <div
+      ref={ref}
+      className={`mt-1.5 space-y-1.5 rounded-lg transition-shadow ${highlight ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : ''}`}
+      data-testid={`entity-notes-${entityType}-${entityId}`}
+    >
       {mine.map((n) => (
         <div key={n.id} className="flex items-start gap-1.5 rounded-lg border border-brand/25 bg-brand/5 px-2.5 py-1.5 text-[12.5px] text-earth-muted">
           <Icon name="info" size={13} className="mt-0.5 shrink-0 text-brand" />

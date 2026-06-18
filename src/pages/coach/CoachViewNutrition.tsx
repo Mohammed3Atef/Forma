@@ -57,17 +57,22 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
               </div>
               <ul className="space-y-1.5 text-sm text-slate-300">
                 {meal.items.map((item) => {
-                  const overridden = log?.itemOverrides && item.id in log.itemOverrides;
+                  const overridden = !!(log?.itemOverrides && item.id in log.itemOverrides);
                   const replacement = overridden ? log!.itemOverrides![item.id] : undefined;
+                  const removed = overridden && !replacement;
+                  // ✅ eaten · 🔄 replaced · ⬜ removed/not-eaten
+                  const mark = removed ? '⬜' : replacement ? '🔄' : eaten(meal.id) ? '✅' : '⬜';
                   return (
                     <li key={item.id}>
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className="select-none">{mark}</span>
                         <span className={overridden ? 'text-slate-500 line-through' : ''}>
                           {loc(item.name)}
                           {item.quantity && <span className="text-slate-500"> · {item.quantity}</span>}
+                          {removed && <span className="ms-1 text-[11px] text-slate-500">({t('nutrition.removed')})</span>}
                         </span>
                       </div>
-                      {replacement && <p className="text-brand-light">↳ {loc(replacement.name)}</p>}
+                      {replacement && <p className="ms-6 text-brand-light">↳ {loc(replacement.name)}</p>}
                       <EntityNotes screen="nutrition" date={date} entityType="food" entityId={item.id} label={loc(item.name)} />
                     </li>
                   );

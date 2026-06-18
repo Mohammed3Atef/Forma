@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
+import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSession } from '@/services/auth/sessionStore';
@@ -159,7 +160,7 @@ export function AdminAccounts() {
         <div className="card divide-y divide-line-soft">
           {filtered.map((u) => (
             <button key={u.id} type="button" data-testid="account-row" data-account-id={u.id} data-account-role={u.role} onClick={() => setSelected(u)} className="row w-full text-start">
-              <span className="row-av font-serif">{(u.displayName || u.email || '?').charAt(0).toUpperCase()}</span>
+              <Avatar name={u.displayName || u.email} photoUrl={u.photoUrl} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{u.displayName || u.email}</span>
                 <span className="block truncate text-[13px] text-earth-muted">{u.email}</span>

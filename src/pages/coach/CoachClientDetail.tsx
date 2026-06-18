@@ -26,6 +26,7 @@ const ASSESS_PILL: Record<AssessmentStatus, string> = {
   in_progress: 'border-warn/50 text-warn',
   submitted: 'border-brand/50 text-brand',
   reviewed: 'border-success/50 text-success',
+  updated_after_review: 'border-warn/50 text-warn',
 };
 
 export function CoachClientDetail() {

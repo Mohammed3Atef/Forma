@@ -19,6 +19,10 @@
     "coachNotes": "المدرّب",
     "notifications": "الإشعارات",
     "checkins": "المتابعات",
+    "messages": "الرسائل",
+    "exerciseLibrary": "مكتبة التمارين",
+    "measurements": "القياسات",
+    "settingsApp": "الإعدادات",
     "menu": "القائمة",
     "coachClients": "المتدربون",
     "coachLibrary": "المكتبة",
@@ -53,7 +57,24 @@
     "no": "لا",
     "of": "من",
     "previous": "السابق",
-    "showMore": "عرض المزيد"
+    "next": "التالي",
+    "showMore": "عرض المزيد",
+    "confirmTitle": "هل أنت متأكد؟",
+    "confirmDeleteName": "حذف {{name}}؟ لا يمكن التراجع.",
+    "confirmDeleteGeneric": "حذف هذا؟ لا يمكن التراجع."
+  },
+  "imageViewer": { "close": "إغلاق" },
+  "coachInfo": { "yourCoach": "مدرّبك", "message": "مراسلة", "callCoach": "اتصال" },
+  "messages": {
+    "title": "الرسائل",
+    "send": "إرسال",
+    "placeholder": "اكتب رسالة…",
+    "sent": "أُرسلت",
+    "seen": "تمت القراءة",
+    "broadcast": "بث",
+    "recipients": "المستلمون",
+    "noMessages": "لا توجد رسائل بعد.",
+    "category": { "announcement": "إعلان", "offer": "عرض", "reminder": "تذكير", "update": "تحديث" }
   },
   "home": {
     "todaysWorkout": "تمرين اليوم",
@@ -203,6 +224,8 @@
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
     "phone": "رقم الهاتف",
+    "timezone": "المنطقة الزمنية",
+    "settingsTab": "الإعدادات",
     "preferences": "التفضيلات",
     "synced": "محفوظ ومتزامن",
     "syncing": "جاري المزامنة…",
@@ -511,6 +534,7 @@
     "inProgress": "قيد التنفيذ",
     "noWorkout": "لا يوجد تمرين مسجّل في هذا اليوم",
     "noNutrition": "لا توجد وجبات مسجّلة في هذا اليوم",
+    "noCardio": "لا يوجد كارديو لهذا اليوم",
     "mealsEaten": "{{n}} وجبات مأكولة",
     "activityBody": "النشاط والجسم"
   },
@@ -733,6 +757,7 @@
     "unfreeze": "إلغاء التجميد",
     "end": "إنهاء الاشتراك",
     "confirmEnd": "إنهاء اشتراك هذا المتدرب الآن؟",
+    "confirmUnfreeze": "استئناف اشتراك هذا المتدرب الآن؟",
     "startDate": "تاريخ البدء",
     "months": "الأشهر",
     "from": "من",
@@ -778,6 +803,7 @@
     "tabs": {
       "activity": "النشاط",
       "nutrition": "التغذية",
+      "cardio": "الكارديو",
       "measurements": "القياسات",
       "photos": "الصور",
       "progress": "التقدّم"
@@ -805,7 +831,8 @@
       "assessment_submitted": "تم إرسال التقييم",
       "checkin_requested": "طلب متابعة أسبوعية",
       "checkin_submitted": "تم إرسال المتابعة",
-      "checkin_reviewed": "تمت مراجعة المتابعة"
+      "checkin_reviewed": "تمت مراجعة المتابعة",
+      "message_received": "رسالة جديدة"
     }
   },
   "checkin": {
@@ -856,10 +883,16 @@
       "not_started": "لم يبدأ",
       "in_progress": "قيد التنفيذ",
       "submitted": "تم الإرسال",
-      "reviewed": "تمت المراجعة"
+      "reviewed": "تمت المراجعة",
+      "updated_after_review": "محدّث"
     },
     "coachNotes": "ملاحظات مراجعة المدرّب",
     "coachNotesPlaceholder": "ملاحظات لنفسك حول تقييم هذا المتدرب…",
+    "coachFeedback": "ملاحظات المدرّب",
+    "lastUpdated": "آخر تحديث",
+    "reviewedOn": "تمت المراجعة في",
+    "editAssessment": "تعديل التقييم",
+    "viewAssessment": "عرض التقييم",
     "markReviewed": "وضع علامة تمت المراجعة",
     "reviewed": "تمت المراجعة",
     "reset": "إعادة تعيين التقييم",

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
+import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSession } from '@/services/auth/sessionStore';
@@ -101,7 +102,7 @@ export function CoachClients() {
           <div className="card divide-y divide-line-soft">
             {shown.map((c) => (
               <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
-                <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
+                <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{c.displayName || c.email}</span>
                   <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>

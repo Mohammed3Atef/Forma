@@ -5,6 +5,7 @@ import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
 import { useSettings } from '@/stores/settingsStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { EntityNotes } from '@/components/EntityNotes';
+import { confirmDelete } from '@/stores/dialogStore';
 import { useLocalized } from '@/hooks/useLocalized';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
@@ -249,7 +250,7 @@ export function Nutrition() {
                                 <Icon name="rotate" size={14} />
                               </button>
                             )}
-                            <button type="button" onClick={() => void removeItem(item.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
+                            <button type="button" onClick={async () => { if (await confirmDelete()) void removeItem(item.id); }} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                               <Icon name="close" size={14} />
                             </button>
                           </>
@@ -279,7 +280,7 @@ export function Nutrition() {
                       >
                         <Icon name="edit" size={14} />
                       </button>
-                      <button type="button" onClick={() => void removeMealItem(meal.id, f.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
+                      <button type="button" onClick={async () => { if (await confirmDelete()) void removeMealItem(meal.id, f.id); }} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                         <Icon name="close" size={14} />
                       </button>
                     </div>}
@@ -320,7 +321,7 @@ export function Nutrition() {
                   >
                     <Icon name="edit" size={14} />
                   </button>
-                  <button type="button" onClick={() => void removeCustomFood(f.id)} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
+                  <button type="button" onClick={async () => { if (await confirmDelete()) void removeCustomFood(f.id); }} className="icon-btn h-8 w-8 text-danger" aria-label={t('common.delete')}>
                     <Icon name="close" size={14} />
                   </button>
                 </div>}

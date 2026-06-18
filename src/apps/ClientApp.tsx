@@ -33,11 +33,14 @@ import { History } from '@/pages/History';
 import { ProgressPhotos } from '@/pages/ProgressPhotos';
 import { Measurements } from '@/pages/Measurements';
 import { Settings } from '@/pages/Settings';
+import { ClientSettings } from '@/pages/ClientSettings';
 import { VideoManager } from '@/pages/VideoManager';
 import { ImportData } from '@/pages/ImportData';
 import { Notifications } from '@/pages/Notifications';
 import { CheckIn } from '@/pages/CheckIn';
 import { CheckInHistory } from '@/pages/CheckInHistory';
+import { MyAssessment } from '@/pages/MyAssessment';
+import { Messages } from '@/pages/Messages';
 
 /**
  * The client experience — the original single-user tracker, unchanged. Mounted
@@ -113,6 +116,8 @@ function ClientGate() {
         <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
         <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
         <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
+        <Route path="/assessment" element={<AppShell><MyAssessment /></AppShell>} />
+        <Route path="/messages" element={<AppShell><Messages /></AppShell>} />
         <Route path="/workout" element={<AppShell><Workout /></AppShell>} />
         <Route path="/workout/routine/:dayId" element={<AppShell><RoutineDetail /></AppShell>} />
         <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
@@ -125,6 +130,7 @@ function ClientGate() {
         <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
         <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
         <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
+        <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
         <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
         <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
         <Route path="*" element={<AppShell><Home /></AppShell>} />

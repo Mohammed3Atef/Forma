@@ -19,6 +19,10 @@
     "coachNotes": "Coach",
     "notifications": "Notifications",
     "checkins": "Check-Ins",
+    "messages": "Messages",
+    "exerciseLibrary": "Exercise Library",
+    "measurements": "Measurements",
+    "settingsApp": "Settings",
     "menu": "Menu",
     "coachClients": "Clients",
     "coachLibrary": "Library",
@@ -53,7 +57,24 @@
     "no": "No",
     "of": "of",
     "previous": "Previous",
-    "showMore": "Show more"
+    "next": "Next",
+    "showMore": "Show more",
+    "confirmTitle": "Are you sure?",
+    "confirmDeleteName": "Delete {{name}}? This can't be undone.",
+    "confirmDeleteGeneric": "Delete this? This can't be undone."
+  },
+  "imageViewer": { "close": "Close" },
+  "coachInfo": { "yourCoach": "Your coach", "message": "Message", "callCoach": "Call" },
+  "messages": {
+    "title": "Messages",
+    "send": "Send",
+    "placeholder": "Type a message…",
+    "sent": "Sent",
+    "seen": "Seen",
+    "broadcast": "Broadcast",
+    "recipients": "Recipients",
+    "noMessages": "No messages yet.",
+    "category": { "announcement": "Announcement", "offer": "Offer", "reminder": "Reminder", "update": "Update" }
   },
   "home": {
     "todaysWorkout": "Today's workout",
@@ -203,6 +224,8 @@
     "email": "Email",
     "password": "Password",
     "phone": "Phone number",
+    "timezone": "Timezone",
+    "settingsTab": "Settings",
     "preferences": "Preferences",
     "synced": "Backed up & syncing",
     "syncing": "Syncing…",
@@ -511,6 +534,7 @@
     "inProgress": "In progress",
     "noWorkout": "No workout logged this day",
     "noNutrition": "No meals logged this day",
+    "noCardio": "No cardio for this day",
     "mealsEaten": "{{n}} meals eaten",
     "activityBody": "Activity & body"
   },
@@ -733,6 +757,7 @@
     "unfreeze": "Unfreeze",
     "end": "End subscription",
     "confirmEnd": "End this client's subscription now?",
+    "confirmUnfreeze": "Resume this client's subscription now?",
     "startDate": "Start date",
     "months": "Months",
     "from": "From",
@@ -778,6 +803,7 @@
     "tabs": {
       "activity": "Activity",
       "nutrition": "Nutrition",
+      "cardio": "Cardio",
       "measurements": "Measurements",
       "photos": "Photos",
       "progress": "Progress"
@@ -805,7 +831,8 @@
       "assessment_submitted": "Assessment submitted",
       "checkin_requested": "Weekly check-in requested",
       "checkin_submitted": "Check-in submitted",
-      "checkin_reviewed": "Check-in reviewed"
+      "checkin_reviewed": "Check-in reviewed",
+      "message_received": "New message"
     }
   },
   "checkin": {
@@ -861,10 +888,16 @@
       "not_started": "Not started",
       "in_progress": "In progress",
       "submitted": "Submitted",
-      "reviewed": "Reviewed"
+      "reviewed": "Reviewed",
+      "updated_after_review": "Updated"
     },
     "coachNotes": "Coach review notes",
     "coachNotesPlaceholder": "Notes for yourself about this client's assessment…",
+    "coachFeedback": "Coach feedback",
+    "lastUpdated": "Last updated",
+    "reviewedOn": "Reviewed on",
+    "editAssessment": "Edit assessment",
+    "viewAssessment": "View assessment",
     "markReviewed": "Mark reviewed",
     "reviewed": "Reviewed",
     "reset": "Reset assessment",

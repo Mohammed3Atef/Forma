@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { viewImages } from '@/stores/imageViewerStore';
 import type { WeeklyCheckIn } from '@/types';
 
 /** Read-only display of a submitted check-in's answers + photos (coach review + client view). */
@@ -31,11 +32,11 @@ export function CheckInSummary({ checkIn }: { checkIn: WeeklyCheckIn }) {
       )}
       {poses.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {poses.map((p) => (
-            <div key={p} className="space-y-1">
+          {poses.map((p, i) => (
+            <button key={p} type="button" className="space-y-1" onClick={() => viewImages(poses.map((q) => photos[q]!).filter(Boolean), i)}>
               <img src={photos[p]} alt={p} className="aspect-[3/4] w-full rounded-xl object-cover" loading="lazy" />
               <span className="block text-center text-[10px] uppercase text-earth-subtle">{t(`progress.${p}`)}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}

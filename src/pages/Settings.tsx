@@ -1,242 +1,103 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { ActivityLevel, Goal, Locale, ReminderKind } from '@/types';
+import type { ActivityLevel, Goal } from '@/types';
 import { useSettings } from '@/stores/settingsStore';
-import { useReminders } from '@/services/reminders/reminderStore';
-import { useCloud } from '@/services/auth/cloudStore';
 import { useSession } from '@/services/auth/sessionStore';
-import { useDay } from '@/stores/dayStore';
-import { useNutrition } from '@/stores/nutritionStore';
-import { useCardio } from '@/stores/cardioStore';
-import { useWorkout } from '@/stores/workoutStore';
-import { useHabits } from '@/stores/habitStore';
-import { usePhotos } from '@/stores/photoStore';
-import { clearAllLocalData, clearDayData } from '@/data/reset';
-import { confirmDialog, alertDialog } from '@/stores/dialogStore';
-import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
+import { cloudAvailable } from '@/data/dataSource';
+import { fetchMyAssessment } from '@/services/platform/clientCoachApi';
+import { assessmentStatus } from '@/lib/assessment';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
-import { shortDate } from '@/lib/utils';
+import { CoachInfoCard } from '@/components/CoachInfoCard';
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { Icon } from '@/components/Icon';
-import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
-import { StatTile } from '@/components/StatTile';
-import { logVolume, prByExercise } from '@/lib/calc';
 
 const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
 const ACTIVITY: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative h-7 w-12 rounded-full transition-colors ${on ? 'bg-brand' : 'bg-surface-raised'}`}
-      role="switch"
-      aria-checked={on}
-    >
-      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${on ? 'start-6' : 'start-1'}`} />
-    </button>
-  );
-}
-
+/** Lean client Profile: identity, subscription, assessment summary, coach. Settings live at /settings/app. */
 export function Settings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const profile = useSettings((s) => s.profile);
   const settings = useSettings((s) => s.settings);
   const updateProfile = useSettings((s) => s.updateProfile);
-  const updateSettings = useSettings((s) => s.updateSettings);
-  const updateTargets = useSettings((s) => s.updateTargets);
-  const setLocale = useSettings((s) => s.setLocale);
-
-  const reminders = useReminders((s) => s.reminders);
-  const updateReminder = useReminders((s) => s.update);
-  const addReminder = useReminders((s) => s.add);
-  const removeReminder = useReminders((s) => s.remove);
-  const requestPermission = useReminders((s) => s.requestPermission);
-
-  const cloud = useCloud();
   const account = useSession((s) => s.account);
   const updateContact = useSession((s) => s.updateContact);
+  const updateSelf = useSession((s) => s.updateSelf);
+
   const accountPhone = account?.phone ?? '';
   const [phone, setPhone] = useState(accountPhone);
   useEffect(() => { setPhone(accountPhone); }, [accountPhone]);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [creds, setCreds] = useState({ email: '', password: '', create: false });
-  const [newRem, setNewRem] = useState<{ kind: ReminderKind; time: string }>({ kind: 'meal', time: '09:00' });
-  const triggersAvailable = 'Notification' in window && 'showTrigger' in Notification.prototype;
-  const [persisted, setPersisted] = useState(true);
-  useEffect(() => {
-    void ensurePersistentStorage().then(() => isStoragePersisted().then(setPersisted));
-  }, []);
 
-  const selectedDay = useDay((s) => s.selected);
-  const logs = useWorkout((s) => s.logs);
-  const plan = useWorkout((s) => s.plan);
-  const streaks = useHabits((s) => s.streaks);
-  const stats = useMemo(() => {
-    const fin = logs.filter((l) => l.finished);
-    return {
-      workouts: fin.length,
-      volumeT: (fin.reduce((v, l) => v + logVolume(l), 0) / 1000).toFixed(0),
-      prs: prByExercise(logs).size,
-    };
-  }, [logs]);
+  const uid = account?.id ?? '';
+  const cloud = cloudAvailable() && !!uid && uid !== 'local-user';
+  const assessment = useQuery({ queryKey: ['assessment', uid], queryFn: () => fetchMyAssessment(uid), enabled: cloud });
+  const aStatus = assessmentStatus(assessment.data);
 
   if (!profile || !settings) return null;
 
-  const initials =
-    profile.name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || 'A';
-  const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale === 'ar' ? 'ar-EG' : 'en-US', {
-    month: 'short',
-    year: 'numeric',
-  });
-
-  const enableNotifications = async () => {
-    const granted = await requestPermission();
-    await updateSettings({ notificationsEnabled: granted });
-  };
-
-  const clearDay = async () => {
-    const ok = await confirmDialog({
-      title: t('settings.clearDay'),
-      message: t('settings.clearDayConfirm', { date: shortDate(selectedDay, settings.locale) }),
-      confirmLabel: t('common.delete'),
-      danger: true,
-    });
-    if (!ok) return;
-    await clearDayData(selectedDay);
-    // Reload the affected day-scoped stores.
-    await Promise.all([
-      useNutrition.getState().load(selectedDay),
-      useWorkout.getState().load(),
-      useCardio.getState().load(),
-      usePhotos.getState().load(),
-    ]);
-    useWorkout.getState().loadDay(selectedDay);
-    await useHabits.getState().refresh(selectedDay);
-    // Push the deletion to the cloud now (if signed in & online) so it sticks.
-    if (cloud.user) void cloud.syncNow(true);
-  };
-
-  // Pull the latest build: unregister the service worker + clear the app/cache
-  // storage, then reload. Keeps IndexedDB (your data, downloaded videos, login).
-  const forceUpdate = async () => {
-    const ok = await confirmDialog({
-      title: t('settings.forceUpdate'),
-      message: t('settings.forceUpdateConfirm'),
-      confirmLabel: t('settings.forceUpdate'),
-    });
-    if (!ok) return;
-    try {
-      const regs = (await navigator.serviceWorker?.getRegistrations()) ?? [];
-      await Promise.all(regs.map((r) => r.unregister()));
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    } catch {
-      /* ignore */
-    }
-    window.location.reload();
-  };
-
-  const resetAll = async () => {
-    const ok = await confirmDialog({
-      title: t('settings.resetAll'),
-      message: t('settings.resetConfirm'),
-      confirmLabel: t('settings.resetAll'),
-      danger: true,
-    });
-    if (!ok) return;
-    // Also wipe the cloud backup so data doesn't sync back — but stay signed in.
-    if (cloud.user) {
-      if (!navigator.onLine) {
-        await alertDialog({ title: t('settings.resetAll'), message: t('settings.resetOffline') });
-      } else {
-        try {
-          await cloud.wipeCloud();
-        } catch {
-          /* ignore — local clear still proceeds */
-        }
-      }
-    }
-    await clearAllLocalData();
-    window.location.reload();
-  };
+  const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' });
 
   return (
     <div className="anim-rise space-y-4 pb-4">
-      <TopBar title={t('gt.profile')} eyebrow={t('gt.athlete')} right={<SyncStatusBadge />} />
+      <TopBar
+        title={t('gt.profile')}
+        eyebrow={t('gt.athlete')}
+        right={
+          <div className="flex items-center gap-1.5">
+            <SyncStatusBadge />
+            <button type="button" data-testid="open-settings" aria-label={t('settings.title')} onClick={() => navigate('/settings/app')} className="icon-btn h-[42px] w-[42px]">
+              <Icon name="settings" size={20} />
+            </button>
+          </div>
+        }
+      />
 
-      {/* Profile summary card */}
-      <div className="card flex items-center gap-4">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand font-serif text-2xl italic text-white">
-          {initials}
-        </span>
-        <div className="min-w-0">
+      {/* Identity summary + avatar */}
+      <div className="card space-y-3">
+        {cloud ? (
+          <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} folder={`Forma/${uid}/avatar`} onChange={(url) => void updateSelf({ photoUrl: url })} />
+        ) : null}
+        <div>
           <h2 className="truncate font-display text-lg font-semibold">{profile.name}</h2>
           <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.memberSince', { date: memberSince, unit: t('common.kg') })}</p>
         </div>
       </div>
 
-      {/* Lifetime stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatTile icon="dumbbell" value={stats.workouts} label={t('gt.totalWorkouts')} />
-        <StatTile icon="flame" value={streaks.workout.current} label={t('gt.dayStreak')} />
-        <StatTile icon="arrowUp" value={stats.volumeT} unit="t" label={t('gt.lifetimeVolume')} />
-        <StatTile icon="trophy" value={stats.prs} label={t('gt.personalRecords')} />
-      </div>
-
-      {/* Subscription + freeze request (self-hides until a coach sets a term) */}
+      {/* Subscription (self-hides until a coach sets a term) */}
       <ClientSubscriptionSection />
 
-      {/* Training links */}
-      <div className="sec-head"><h2 className="h2">{t('gt.training')}</h2></div>
-      <div className="card divide-y divide-line-soft p-0">
-        <button type="button" onClick={() => navigate('/workout')} className="flex w-full items-center gap-3 px-5 py-4 text-start">
-          <span className="row-av h-9 w-9"><Icon name="list" size={16} /></span>
-          <span className="flex-1 font-display text-[15px] font-medium">{t('gt.routines')}</span>
-          <span className="font-mono text-[12px] text-earth-muted">{plan?.days.length ?? 0}</span>
-          <Icon name="chevron" size={16} className="text-earth-subtle" />
-        </button>
-        <button type="button" onClick={() => navigate('/workout/library')} className="flex w-full items-center gap-3 px-5 py-4 text-start">
-          <span className="row-av h-9 w-9"><Icon name="search" size={16} /></span>
-          <span className="flex-1 font-display text-[15px] font-medium">{t('gt.exerciseLibrary')}</span>
-          <span className="font-mono text-[12px] text-earth-muted">{plan ? Object.keys(plan.exercises).length : 0}</span>
-          <Icon name="chevron" size={16} className="text-earth-subtle" />
-        </button>
-        <button type="button" onClick={() => navigate('/progress/measurements')} className="flex w-full items-center gap-3 px-5 py-4 text-start">
-          <span className="row-av h-9 w-9"><Icon name="ruler" size={16} /></span>
-          <span className="flex-1 font-display text-[15px] font-medium">{t('gt.measurements')}</span>
-          <Icon name="chevron" size={16} className="text-earth-subtle" />
-        </button>
-      </div>
+      {/* Your coach */}
+      <CoachInfoCard />
 
-      <div className="sec-head"><h2 className="h2">{t('settings.title')}</h2></div>
+      {/* Assessment summary */}
+      {cloud && assessment.data && (
+        <button type="button" data-testid="profile-assessment" onClick={() => navigate('/assessment')} className="card-tap flex w-full items-center gap-3 text-start">
+          <span className="row-av bg-brand/15 text-brand"><Icon name="list" size={18} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t('assessment.title')}</span>
+            <span className="block text-[13px] text-earth-muted">{t('assessment.lastUpdated')}: {assessment.data.updatedAt ? new Date(assessment.data.updatedAt).toLocaleDateString(i18n.language) : '—'}</span>
+          </span>
+          <span className="chip">{t(`assessment.status.${aStatus}`)}</span>
+          <Icon name="chevron" size={16} className="text-earth-subtle" />
+        </button>
+      )}
 
-      {/* Profile */}
+      {/* Identity / body */}
       <section className="card space-y-3">
         <h2 className="font-bold">{t('settings.profile')}</h2>
         <div>
           <label className="label">{t('settings.name')}</label>
           <input className="input" value={profile.name} onChange={(e) => void updateProfile({ name: e.target.value })} />
         </div>
-        {account && account.id !== 'local-user' && (
+        {cloud && (
           <div>
             <label className="label">{t('settings.phone')}</label>
-            <input
-              className="input"
-              type="tel"
-              inputMode="tel"
-              dir="ltr"
-              data-testid="settings-phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onBlur={() => { if (phone.trim() !== accountPhone) void updateContact(phone); }}
-            />
+            <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void updateContact(phone); }} />
           </div>
         )}
         <div className="grid grid-cols-3 gap-2">
@@ -250,7 +111,7 @@ export function Settings() {
           </div>
           <div>
             <label className="label">{t('settings.height')}</label>
-            <input className="input" inputMode="numeric" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: Number(e.target.value) || 0 })} />
+            <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: Number(e.target.value) || 0 })} />
           </div>
         </div>
         <div>
@@ -266,191 +127,6 @@ export function Settings() {
           </select>
         </div>
       </section>
-
-      {/* Preferences */}
-      <section className="card space-y-3">
-        <h2 className="font-bold">{t('settings.preferences')}</h2>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.language')}</span>
-          <div className="flex gap-1">
-            {(['en', 'ar'] as Locale[]).map((l) => (
-              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${settings.locale === l ? 'bg-brand text-slate-950' : 'bg-surface-raised'}`}>
-                {l === 'en' ? 'English' : 'العربية'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.restDefault')}</span>
-          <input className="input h-10 w-24 text-center" inputMode="numeric" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Number(e.target.value) || 0 })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.weeklyGoal')}</span>
-          <input
-            className="input h-10 w-24 text-center"
-            inputMode="numeric"
-            value={settings.weeklyWorkoutGoal ?? 5}
-            onChange={(e) => void updateSettings({ weeklyWorkoutGoal: Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)) })}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.keepAwake')}</span>
-          <Toggle on={settings.keepAwakeDuringWorkout} onClick={() => void updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.vibration')}</span>
-          <Toggle on={settings.vibrationEnabled} onClick={() => void updateSettings({ vibrationEnabled: !settings.vibrationEnabled })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.notifications')}</span>
-          <Toggle on={settings.notificationsEnabled} onClick={() => void (settings.notificationsEnabled ? updateSettings({ notificationsEnabled: false }) : enableNotifications())} />
-        </div>
-      </section>
-
-      {/* Daily targets */}
-      <section className="card space-y-3">
-        <h2 className="font-bold">{t('settings.targets')}</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {([
-            ['calories', t('nutrition.calories')],
-            ['protein', t('nutrition.protein')],
-            ['carbs', t('nutrition.carbs')],
-            ['fats', t('nutrition.fats')],
-            ['waterMl', t('nutrition.water')],
-            ['steps', t('cardio.steps')],
-            ['cardioMinutes', t('home.cardio')],
-          ] as const).map(([key, label]) => (
-            <div key={key}>
-              <label className="label">{label}</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                value={settings.targets[key]}
-                onChange={(e) => void updateTargets({ [key]: Number(e.target.value) || 0 })}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Reminders */}
-      <section className="card space-y-2">
-        <h2 className="font-bold">{t('settings.reminders')}</h2>
-        {reminders.map((r) => (
-          <div key={r.id} className="flex items-center gap-2">
-            <input
-              type="time"
-              value={r.time}
-              onChange={(e) => void updateReminder({ ...r, time: e.target.value })}
-              className="input h-10 w-28 py-1"
-            />
-            <span className="flex-1 truncate text-sm">{t(`reminderKinds.${r.kind}`)}</span>
-            <Toggle on={r.enabled} onClick={() => void updateReminder({ ...r, enabled: !r.enabled })} />
-            <button type="button" onClick={() => void removeReminder(r.id)} className="icon-btn h-9 w-9 text-danger" aria-label={t('common.delete')}>
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-        ))}
-
-        {/* Add a new reminder */}
-        <div className="flex items-center gap-2 border-t border-white/5 pt-2">
-          <input type="time" value={newRem.time} onChange={(e) => setNewRem({ ...newRem, time: e.target.value })} className="input h-10 w-28 py-1" />
-          <select value={newRem.kind} onChange={(e) => setNewRem({ ...newRem, kind: e.target.value as ReminderKind })} className="input h-10 flex-1 py-1 text-sm">
-            {(['meal', 'supplements', 'creatine', 'water', 'workout', 'cardio'] as ReminderKind[]).map((k) => (
-              <option key={k} value={k}>{t(`reminderKinds.${k}`)}</option>
-            ))}
-          </select>
-          <button type="button" onClick={() => void addReminder(newRem.kind, newRem.time, t(`reminderKinds.${newRem.kind}`))} className="btn-primary h-10 px-3 text-sm">
-            <Icon name="plus" size={16} /> {t('common.add')}
-          </button>
-        </div>
-
-        {!settings.notificationsEnabled && (
-          <p className="text-xs text-slate-500">{t('settings.enableNotifications')} ↑</p>
-        )}
-        {settings.notificationsEnabled && !triggersAvailable && (
-          <p className="text-xs text-slate-500">{t('settings.notifWhileOpen')}</p>
-        )}
-      </section>
-
-      {/* Links */}
-      <section className="space-y-2">
-        <button type="button" onClick={() => navigate('/settings/videos')} className="card flex w-full items-center justify-between">
-          <span className="flex items-center gap-2"><Icon name="video" size={18} /> {t('settings.videos')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
-        </button>
-        <button type="button" onClick={() => navigate('/settings/import')} className="card flex w-full items-center justify-between">
-          <span className="flex items-center gap-2"><Icon name="download" size={18} /> {t('settings.import')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
-        </button>
-        {/* Force the latest build (clears the cached app + service worker, KEEPS your data). */}
-        <button type="button" onClick={() => void forceUpdate()} className="card flex w-full items-center justify-between">
-          <span className="flex items-center gap-2"><Icon name="timer" size={18} /> {t('settings.forceUpdate')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
-        </button>
-      </section>
-
-      {/* Cloud */}
-      <section className="card">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="font-bold">{t('settings.cloud')}</h2>
-          <SyncStatusBadge />
-        </div>
-        {!cloud.available ? (
-          <p className="text-sm text-slate-400">{t('settings.localOnly')}</p>
-        ) : cloud.user ? (
-          <div className="space-y-2">
-            {cloud.error ? (
-              <p className="text-sm font-medium text-danger">
-                <span className="flex items-center gap-1.5"><Icon name="close" size={16} /> {t('cloudState.error')}</span>
-                <span className="mt-1 block break-words text-xs font-normal text-slate-400">{cloud.error}</span>
-              </p>
-            ) : (
-              <p className="flex items-center gap-1.5 text-sm font-medium text-brand">
-                <Icon name="check" size={16} /> {cloud.syncing ? t('settings.syncing') : t('settings.synced')}
-              </p>
-            )}
-            <p className="text-sm text-slate-300">{cloud.user.email}</p>
-            {cloud.lastSync && <p className="text-xs text-slate-500">{t('settings.lastSync')}: {new Date(cloud.lastSync).toLocaleTimeString()}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => void cloud.syncNow(true)} disabled={cloud.syncing} className="btn-primary flex-1">
-                {cloud.syncing ? '…' : t('settings.syncNow')}
-              </button>
-              <button type="button" onClick={() => void cloud.signOut()} className="btn-ghost flex-1">{t('settings.signOut')}</button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" onClick={() => setAuthOpen(true)} className="btn-ghost mt-2 w-full">{t('settings.signIn')}</button>
-        )}
-      </section>
-
-      {/* Data — danger zone */}
-      <section className="card space-y-2">
-        <h2 className="mb-1 font-bold text-danger">{t('settings.data')}</h2>
-        <p className={`flex items-center gap-1.5 text-xs ${persisted ? 'text-brand' : 'text-warn'}`}>
-          <Icon name={persisted ? 'check' : 'flame'} size={14} />
-          {persisted ? t('settings.storagePersisted') : t('settings.storageAtRisk')}
-        </p>
-        <button type="button" onClick={() => void clearDay()} className="btn-ghost w-full justify-between text-sm">
-          <span className="flex items-center gap-2"><Icon name="close" size={16} /> {t('settings.clearDay')}</span>
-          <span className="text-xs text-slate-400">{shortDate(selectedDay, settings.locale)}</span>
-        </button>
-        <button type="button" onClick={() => void resetAll()} className="btn-danger w-full text-sm">
-          {t('settings.resetAll')}
-        </button>
-      </section>
-
-      <Sheet open={authOpen} onClose={() => setAuthOpen(false)} title={t('settings.cloud')}>
-        <div className="space-y-3">
-          <input className="input" type="email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
-          <input className="input" type="password" placeholder={t('settings.password')} value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} />
-          {cloud.error && <p className="text-sm text-danger">{cloud.error}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => void cloud.signIn(creds.email, creds.password, false).then((ok) => ok && setAuthOpen(false))} className="btn-primary flex-1">{t('settings.signIn')}</button>
-            <button type="button" onClick={() => void cloud.signIn(creds.email, creds.password, true).then((ok) => ok && setAuthOpen(false))} className="btn-ghost flex-1">{t('settings.signUp')}</button>
-          </div>
-        </div>
-      </Sheet>
     </div>
   );
 }

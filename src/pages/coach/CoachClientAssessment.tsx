@@ -21,6 +21,7 @@ const PILL: Record<AssessmentStatus, string> = {
   in_progress: 'border-warn/50 text-warn',
   submitted: 'border-brand/50 text-brand',
   reviewed: 'border-success/50 text-success',
+  updated_after_review: 'border-warn/50 text-warn',
 };
 
 /** Coach review of a client's onboarding assessment: read answers, add notes, mark reviewed / reset, build plans. */

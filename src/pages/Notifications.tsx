@@ -5,7 +5,7 @@ import { TopBar } from '@/components/TopBar';
 import { Icon, type IconName } from '@/components/Icon';
 import { useNotifications } from '@/hooks/useNotifications';
 import { markNotificationSeen } from '@/services/platform/notificationsApi';
-import { useDay } from '@/stores/dayStore';
+import { clientNoteRoute } from '@/lib/noteTarget';
 import type { AppNotification, NotificationType } from '@/types';
 
 const ICON: Record<NotificationType, IconName> = {
@@ -21,16 +21,7 @@ const ICON: Record<NotificationType, IconName> = {
   checkin_requested: 'calendar',
   checkin_submitted: 'calendar',
   checkin_reviewed: 'check',
-};
-
-/** Map a client screen + day to a route; day-scoped screens also set the active day. */
-const SCREEN_ROUTE: Record<string, string> = {
-  nutrition: '/nutrition',
-  workout: '/workout',
-  cardio: '/cardio',
-  progress: '/progress',
-  measurements: '/progress/measurements',
-  photos: '/progress/photos',
+  message_received: 'info',
 };
 
 function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -54,12 +45,13 @@ export function Notifications() {
       await markNotificationSeen(n.clientId, n.id).catch(() => undefined);
       void qc.invalidateQueries({ queryKey: ['notifications'] });
     }
-    // Coach notifications carry an explicit coach route; client ones map screen→route.
-    const route = n.route ?? (n.screen ? SCREEN_ROUTE[n.screen] : undefined);
-    if (!isCoach && n.date && n.screen && ['nutrition', 'cardio', 'measurements', 'workout'].includes(n.screen)) {
-      useDay.getState().setDay(n.date);
+    // Coach notifications carry an explicit coach route; client ones resolve the
+    // screen/day/entity (and arm scroll-to-highlight) via clientNoteRoute.
+    if (isCoach) {
+      navigate(n.route ?? '/coach');
+      return;
     }
-    navigate(route ?? (isCoach ? '/coach' : '/'));
+    navigate(clientNoteRoute(n));
   };
 
   return (

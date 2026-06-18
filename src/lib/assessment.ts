@@ -13,5 +13,5 @@ export function assessmentStatus(a: ClientAssessment | null | undefined): Assess
 /** Whether the assessment is far enough along to unlock the client dashboard. */
 export function assessmentSubmitted(a: ClientAssessment | null | undefined): boolean {
   const s = assessmentStatus(a);
-  return s === 'submitted' || s === 'reviewed';
+  return s === 'submitted' || s === 'reviewed' || s === 'updated_after_review';
 }

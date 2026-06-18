@@ -15,6 +15,7 @@ import { useMeasurements } from '@/stores/measurementStore';
 import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
+import { ImageViewer } from '@/components/ImageViewer';
 import { Splash } from '@/components/Splash';
 import { ClientApp } from '@/apps/ClientApp';
 import { CoachApp } from '@/apps/CoachApp';
@@ -93,6 +94,7 @@ export function App() {
   return (
     <>
       <DialogHost />
+      <ImageViewer />
       {body}
     </>
   );

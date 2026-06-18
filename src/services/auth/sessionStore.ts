@@ -27,6 +27,8 @@ interface SessionState {
   refreshAccount: () => Promise<void>;
   /** Update the signed-in user's own contact phone (allowed by self-update rules). */
   updateContact: (phone: string) => Promise<void>;
+  /** Patch the signed-in user's own non-control profile fields (name/phone/photo/timezone). */
+  updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone'>>) => Promise<void>;
 }
 
 /** Synthetic account used in local-only mode (no Firebase configured). */
@@ -131,13 +133,21 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   async updateContact(phone) {
+    await get().updateSelf({ phone: phone.trim() });
+  },
+
+  async updateSelf(patch) {
     const account = get().account;
     if (!account || account.id === LOCAL_ACCOUNT.id) return;
     const { ensureFirebase } = await import('@/data/adapters/firebase/firebase');
-    const { doc, setDoc } = await import('firebase/firestore');
+    const { doc, setDoc, deleteField } = await import('firebase/firestore');
     const { db } = ensureFirebase();
-    const trimmed = phone.trim();
-    await setDoc(doc(db, 'users', account.id), { phone: trimmed, updatedAt: Date.now() }, { merge: true });
-    set({ account: { ...account, phone: trimmed } });
+    // Build the Firestore patch (undefined → deleteField so clearing a photo works).
+    const fields: Record<string, unknown> = { updatedAt: Date.now() };
+    for (const k of ['displayName', 'phone', 'photoUrl', 'timezone'] as const) {
+      if (k in patch) fields[k] = patch[k] === undefined ? deleteField() : patch[k];
+    }
+    await setDoc(doc(db, 'users', account.id), fields, { merge: true });
+    set({ account: { ...account, ...patch } });
   },
 }));

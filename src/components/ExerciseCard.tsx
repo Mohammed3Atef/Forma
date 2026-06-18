@@ -139,10 +139,11 @@ export function ExerciseCard({
             return (
               <li
                 key={set.setIndex}
-                className={`${GRID} rounded-xl px-1 py-1.5 ${set.done ? "bg-success/15" : ""}`}
+                className={`${GRID} rounded-xl px-1 py-1.5 ${set.done ? "bg-success/15" : isWarm ? "border-s-2 border-warn/60 bg-warn/10" : ""}`}
               >
                 <span
                   className={`font-mono text-sm font-medium ml-[4px] ${set.done ? "text-brand" : isWarm ? "text-warn" : "text-earth-muted"}`}
+                  aria-label={isWarm ? t("workout.warmup") : undefined}
                 >
                   {label}
                 </span>

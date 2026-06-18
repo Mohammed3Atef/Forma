@@ -11,6 +11,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
+import { confirmDelete } from '@/stores/dialogStore';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
 import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
 import { cloudAvailable } from '@/data/dataSource';
@@ -235,7 +236,7 @@ export function Cardio() {
                 {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
                 {c.steps != null && <span>{c.steps.toLocaleString()} {t('cardio.steps')}</span>}
                 {c.distanceKm != null && <span>{c.distanceKm} km</span>}
-                <button type="button" onClick={() => void removeCardio(c.id)} className="text-danger">
+                <button type="button" onClick={async () => { if (await confirmDelete()) void removeCardio(c.id); }} className="text-danger">
                   <Icon name="close" size={16} />
                 </button>
               </div>

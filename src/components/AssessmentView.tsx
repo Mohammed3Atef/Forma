@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { viewImages } from '@/stores/imageViewerStore';
 import type { ClientAssessment } from '@/types';
 
 /** Read-only render of a client's onboarding assessment (coach + admin). */
@@ -94,14 +95,19 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
         <section>
           <h2 className="h2 mb-2">{t('assessment.steps.7')}</h2>
           <div className="grid grid-cols-3 gap-2">
-            {(['front', 'side', 'back'] as const).map((pose) =>
-              a.progressPhotos?.[pose] ? (
-                <a key={pose} href={a.progressPhotos[pose]} target="_blank" rel="noreferrer" className="block">
-                  <img src={a.progressPhotos[pose]} alt={pose} className="aspect-[3/4] w-full rounded-xl object-cover" />
-                  <span className="mt-1 block text-center text-[11px] text-earth-subtle">{t(`progress.${pose}`)}</span>
-                </a>
-              ) : null,
-            )}
+            {(() => {
+              const urls = (['front', 'side', 'back'] as const).map((p) => a.progressPhotos?.[p]).filter((u): u is string => !!u);
+              return (['front', 'side', 'back'] as const).map((pose) => {
+                const url = a.progressPhotos?.[pose];
+                if (!url) return null;
+                return (
+                  <button key={pose} type="button" className="block" onClick={() => viewImages(urls, urls.indexOf(url))}>
+                    <img src={url} alt={pose} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                    <span className="mt-1 block text-center text-[11px] text-earth-subtle">{t(`progress.${pose}`)}</span>
+                  </button>
+                );
+              });
+            })()}
           </div>
         </section>
       )}

@@ -29,14 +29,18 @@ export const CLIENT_NAV: NavItem[] = [
 export const CLIENT_MENU: NavItem[] = [
   { to: '/', icon: 'home', key: 'home', end: true },
   { to: '/workout', icon: 'dumbbell', key: 'workout' },
+  { to: '/workout/library', icon: 'search', key: 'exerciseLibrary' },
   { to: '/nutrition', icon: 'meal', key: 'nutrition' },
   { to: '/cardio', icon: 'activity', key: 'cardio' },
   { to: '/progress', icon: 'chart', key: 'progress' },
+  { to: '/progress/measurements', icon: 'ruler', key: 'measurements' },
   { to: '/history', icon: 'calendar', key: 'history' },
   { to: '/check-ins', icon: 'calendar', key: 'checkins' },
+  { to: '/messages', icon: 'info', key: 'messages' },
   { to: '/coach-notes', icon: 'info', key: 'coachNotes' },
   { to: '/notifications', icon: 'bell', key: 'notifications' },
   { to: '/settings', icon: 'user', key: 'settings' },
+  { to: '/settings/app', icon: 'settings', key: 'settingsApp' },
 ];
 
 export const COACH_NAV: NavItem[] = [

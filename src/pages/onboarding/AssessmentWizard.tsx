@@ -93,12 +93,12 @@ function stepValid(step: number, a: ClientAssessment): boolean {
   }
 }
 
-export function AssessmentWizard({ uid, displayName }: { uid: string; displayName: string }) {
+export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: string; displayName: string; initial?: ClientAssessment; onDone?: () => void }) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const draftKey = `assessmentDraft:${uid}`;
 
-  const [a, setA] = useState<ClientAssessment>(() => emptyAssessment(displayName));
+  const [a, setA] = useState<ClientAssessment>(() => initial ?? emptyAssessment(displayName));
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -107,8 +107,13 @@ export function AssessmentWizard({ uid, displayName }: { uid: string; displayNam
   const [savingDraft, setSavingDraft] = useState(false);
   const [savedTick, setSavedTick] = useState(false);
 
-  // Load any saved draft so an interrupted assessment resumes where it left off.
+  // Edit mode (`initial` provided) seeds from the saved assessment — skip the
+  // local draft. Onboarding mode resumes any interrupted draft.
   useEffect(() => {
+    if (initial) {
+      setHydrated(true);
+      return;
+    }
     let cancelled = false;
     void draftStore.getItem<{ a: ClientAssessment; step: number }>(draftKey).then((saved) => {
       if (cancelled) return;
@@ -121,7 +126,7 @@ export function AssessmentWizard({ uid, displayName }: { uid: string; displayNam
     return () => {
       cancelled = true;
     };
-  }, [draftKey]);
+  }, [draftKey, initial]);
 
   // Persist progress locally on every change (after the initial hydrate).
   useEffect(() => {
@@ -191,6 +196,8 @@ export function AssessmentWizard({ uid, displayName }: { uid: string; displayNam
       };
       await submitAssessment(uid, finalAssessment, profile);
       await draftStore.removeItem(draftKey);
+      await qc.invalidateQueries({ queryKey: ['assessment', uid] });
+      if (onDone) { onDone(); return; }
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to submit');
