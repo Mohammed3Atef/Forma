@@ -79,12 +79,21 @@ function ThreadRow({ client, onOpen }: { client: UserRecord; onOpen: () => void 
   const meta = useQuery({ queryKey: ['threadMeta', client.id], queryFn: () => threadMeta(client.id), refetchInterval: 30_000 });
   const last = meta.data?.last;
   const unread = meta.data?.unreadForCoach ?? 0;
+  // An attachment-only message has an empty body — show a media label instead
+  // of a blank preview (e.g. "📷 Photo").
+  const preview = !last
+    ? t('messages.noMessages')
+    : last.body?.trim()
+      ? last.body
+      : last.attachment
+        ? t(`messages.${last.attachment.kind === 'image' ? 'photoMsg' : last.attachment.kind === 'video' ? 'videoMsg' : 'fileMsg'}`)
+        : t('messages.noMessages');
   return (
     <button type="button" data-testid="thread-row" onClick={onOpen} className="row w-full text-start">
       <Avatar name={client.displayName || client.email} photoUrl={client.photoUrl} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{client.displayName || client.email}</span>
-        <span className="block truncate text-[13px] text-earth-muted">{last?.body ?? t('messages.noMessages')}</span>
+        <span className="block truncate text-[13px] text-earth-muted">{preview}</span>
       </span>
       {unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">{unread}</span>}
       <Icon name="chevron" size={18} className="text-earth-subtle" />

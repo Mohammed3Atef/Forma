@@ -16,6 +16,7 @@ import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
 import { ImageViewer } from '@/components/ImageViewer';
+import { VideoPopup } from '@/components/VideoPopup';
 import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { Splash } from '@/components/Splash';
@@ -104,6 +105,7 @@ export function App() {
       <ScrollToTop />
       <DialogHost />
       <ImageViewer />
+      <VideoPopup />
       {body}
       <MustChangePasswordPrompt />
     </>

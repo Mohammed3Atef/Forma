@@ -76,6 +76,9 @@
     "broadcast": "بث",
     "recipients": "المستلمون",
     "noMessages": "لا توجد رسائل بعد.",
+    "photoMsg": "📷 صورة",
+    "videoMsg": "🎬 فيديو",
+    "fileMsg": "📎 مرفق",
     "category": { "announcement": "إعلان", "offer": "عرض", "reminder": "تذكير", "update": "تحديث" }
   },
   "home": {
@@ -143,6 +146,7 @@
     "replace": "استبدال",
     "reset": "استرجاع",
     "removed": "محذوف اليوم",
+    "addedByClient": "أضافه المتدرب",
     "addWater": "أضف ماء",
     "notes": "ملاحظات",
     "beverages": "المشروبات",
@@ -552,6 +556,7 @@
     "nextDay": "اليوم التالي",
     "session": "جلسة",
     "finished": "مكتملة",
+    "notFinished": "لم تكتمل",
     "inProgress": "قيد التنفيذ",
     "noWorkout": "لا يوجد تمرين مسجّل في هذا اليوم",
     "noNutrition": "لا توجد وجبات مسجّلة في هذا اليوم",
@@ -638,6 +643,8 @@
     "addFood": "إضافة طعام",
     "food": "طعام",
     "foodName": "اسم الطعام",
+    "chooseFood": "اختر من أطعمتك",
+    "searchFoods": "ابحث في أطعمتك…",
     "quantity": "الكمية (مثال: ١٠٠ غ)",
     "untitledFood": "طعام بدون اسم",
     "waterTargetMl": "هدف الماء (مل)",
@@ -645,6 +652,8 @@
     "supplement": "مكمّل",
     "suppName": "اسم المكمّل (مثال: كرياتين)",
     "suppDose": "الجرعة (مثال: ٥ غ يوميًا)",
+    "suppTiming": "وقت التناول (مثال: قبل التمرين)",
+    "chooseSupp": "اختر من مكملاتك",
     "addSupp": "إضافة مكمّل",
     "noSupps": "لا توجد مكمّلات",
     "untitledSupp": "مكمّل بدون اسم",
@@ -658,7 +667,7 @@
   },
   "coachLib": {
     "title": "المكتبة",
-    "tabs": { "exercises": "التمارين", "foods": "الأطعمة", "groups": "مجموعات الأطعمة" },
+    "tabs": { "exercises": "التمارين", "foods": "الأطعمة", "groups": "مجموعات الأطعمة", "supplements": "المكملات" },
     "exercise": "تمرين",
     "newExercise": "تمرين جديد",
     "search": "ابحث عن تمارين",
@@ -685,6 +694,11 @@
     "untitledGroup": "مجموعة بدون اسم",
     "foodCount": "{{n}} أطعمة",
     "noGroups": "لا توجد مجموعات أطعمة بعد"
+  },
+  "coachSupps": {
+    "search": "ابحث في المكملات",
+    "newSupp": "مكمّل جديد",
+    "empty": "أضف أول مكمّل"
   },
   "nutritionSub": {
     "swap": "تبديل الطعام",

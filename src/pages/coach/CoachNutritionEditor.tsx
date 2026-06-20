@@ -9,7 +9,7 @@ import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
-import { listFoodGroups } from '@/services/platform/coachAssetsApi';
+import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import type { FoodItem, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
 
@@ -63,9 +63,12 @@ export function CoachNutritionEditor() {
 
   const query = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
   const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
+  const lib = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
+  const suppLib = useQuery({ queryKey: ['supplements', coachId], queryFn: () => listSupplements(coachId), enabled: !!coachId });
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [editing, setEditing] = useState<{ mealId: string; form: FoodForm } | null>(null);
-  const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string } | null>(null);
+  const [pick, setPick] = useState('');
+  const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string; timing: string } | null>(null);
 
   const policy = { ...DEFAULT_POLICY, ...(plan?.substitutionPolicy ?? {}) };
   const setPolicy = (patch: Partial<SubstitutionPolicy>) => plan && setPlan({ ...plan, substitutionPolicy: { ...policy, ...patch } });
@@ -129,7 +132,12 @@ export function CoachNutritionEditor() {
   const saveSupp = () => {
     if (!supp) return;
     const id = supp.id ?? uid('supp');
-    const s: Supplement = { id, name: supp.name.trim(), dose: { en: supp.dose.trim(), ar: supp.dose.trim() } };
+    const s: Supplement = {
+      id,
+      name: supp.name.trim(),
+      dose: { en: supp.dose.trim(), ar: supp.dose.trim() },
+      ...(supp.timing.trim() ? { timing: { en: supp.timing.trim(), ar: supp.timing.trim() } } : {}),
+    };
     setPlan({
       ...plan,
       supplements: plan.supplements.some((x) => x.id === id) ? plan.supplements.map((x) => (x.id === id ? s : x)) : [...plan.supplements, s],
@@ -239,9 +247,9 @@ export function CoachNutritionEditor() {
         {plan.supplements.length ? (
           plan.supplements.map((s) => (
             <div key={s.id} className="flex items-center gap-3 py-2.5">
-              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setSupp({ id: s.id, name: s.name, dose: s.dose.en })}>
+              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setSupp({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
                 <span className="block truncate font-medium">{s.name || t('coachEditor.untitledSupp')}</span>
-                {s.dose.en && <span className="block truncate text-[12px] text-earth-subtle">{s.dose.en}</span>}
+                {(s.dose.en || s.timing?.en) && <span className="block truncate text-[12px] text-earth-subtle">{[s.dose.en, s.timing?.en].filter(Boolean).join(' · ')}</span>}
               </button>
               <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => removeSupp(s.id)}>
                 <Icon name="minus" size={18} />
@@ -252,15 +260,30 @@ export function CoachNutritionEditor() {
           <p className="py-2 text-sm text-earth-muted">{t('coachEditor.noSupps')}</p>
         )}
       </div>
-      <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setSupp({ id: null, name: '', dose: '' })}>
+      <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setSupp({ id: null, name: '', dose: '', timing: '' })}>
         {t('coachEditor.addSupp')}
       </button>
 
       <Sheet open={!!supp} onClose={() => setSupp(null)} title={t('coachEditor.supplement')}>
         {supp && (
           <div className="space-y-3">
+            {/* Pick from the coach's saved supplements — fills the fields below. */}
+            {(suppLib.data?.length ?? 0) > 0 && (
+              <div>
+                <label className="label mb-1.5 block">{t('coachEditor.chooseSupp')}</label>
+                <div className="flex flex-wrap gap-2" data-testid="supp-picker">
+                  {(suppLib.data ?? []).map((s) => (
+                    <button key={s.id} type="button" className="chip" onClick={() => setSupp({ ...supp, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="my-3 h-px bg-line-soft" />
+              </div>
+            )}
             <input className="input" placeholder={t('coachEditor.suppName')} value={supp.name} onChange={(e) => setSupp({ ...supp, name: e.target.value })} />
             <input className="input" placeholder={t('coachEditor.suppDose')} value={supp.dose} onChange={(e) => setSupp({ ...supp, dose: e.target.value })} />
+            <input className="input" placeholder={t('coachEditor.suppTiming')} value={supp.timing} onChange={(e) => setSupp({ ...supp, timing: e.target.value })} />
             <button type="button" disabled={!supp.name.trim()} onClick={saveSupp} className="btn-primary w-full disabled:opacity-40">
               {t('common.save')}
             </button>
@@ -268,9 +291,38 @@ export function CoachNutritionEditor() {
         )}
       </Sheet>
 
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.food')}>
+      <Sheet open={!!editing} onClose={() => { setEditing(null); setPick(''); }} title={t('coachEditor.food')}>
         {editing && (
           <div className="space-y-3" data-testid="food-form">
+            {/* Pick from the coach's saved foods — fills the form below (an editable
+                snapshot, so tweaking it here never changes the library entry). */}
+            {(lib.data?.length ?? 0) > 0 && (
+              <div data-testid="food-library-picker">
+                <label className="label mb-1.5 block">{t('coachEditor.chooseFood')}</label>
+                <input className="input mb-2" placeholder={t('coachEditor.searchFoods')} value={pick} onChange={(e) => setPick(e.target.value)} />
+                <div className="max-h-44 space-y-1 overflow-y-auto">
+                  {(lib.data ?? [])
+                    .filter((f) => { const q = pick.trim().toLowerCase(); return !q || (f.name.en || '').toLowerCase().includes(q) || (f.name.ar || '').includes(pick.trim()); })
+                    .slice(0, 40)
+                    .map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        data-testid="food-lib-option"
+                        className="row w-full text-start"
+                        onClick={() => setEditing({ ...editing, form: { ...editing.form, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) } })}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{f.name.en || f.name.ar}</span>
+                          <span className="block truncate text-[12px] text-earth-subtle">{f.quantity} · {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
+                        </span>
+                        <Icon name="plus" size={16} className="text-brand" />
+                      </button>
+                    ))}
+                </div>
+                <div className="my-3 h-px bg-line-soft" />
+              </div>
+            )}
             <input className="input" data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
             <input className="input" data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
             <div className="grid grid-cols-2 gap-2">

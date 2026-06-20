@@ -305,6 +305,8 @@ export type NoteScreen = 'nutrition' | 'workout' | 'cardio' | 'progress' | 'meas
 export type NoteEntityType =
   | 'meal'
   | 'food'
+  | 'water'
+  | 'supplement'
   | 'exercise'
   | 'workout_day'
   | 'cardio_session'
@@ -718,6 +720,14 @@ export interface Supplement {
   id: string;
   name: string;
   dose: LocalizedText;
+  /** When / how to take it, e.g. "before workout", "after dinner". Coach free-text. */
+  timing?: LocalizedText;
+}
+
+/** A coach-owned reusable supplement at `coachAssets/{coachId}/supplements`. */
+export interface LibrarySupplement extends Supplement {
+  category?: string;
+  tags?: string[];
 }
 
 export interface MealPlan {

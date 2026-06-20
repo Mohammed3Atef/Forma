@@ -76,6 +76,9 @@
     "broadcast": "Broadcast",
     "recipients": "Recipients",
     "noMessages": "No messages yet.",
+    "photoMsg": "📷 Photo",
+    "videoMsg": "🎬 Video",
+    "fileMsg": "📎 Attachment",
     "category": { "announcement": "Announcement", "offer": "Offer", "reminder": "Reminder", "update": "Update" }
   },
   "home": {
@@ -143,6 +146,7 @@
     "replace": "Replace",
     "reset": "Reset",
     "removed": "Removed today",
+    "addedByClient": "Added by client",
     "addWater": "Add water",
     "notes": "Notes",
     "beverages": "Beverages",
@@ -552,6 +556,7 @@
     "nextDay": "Next day",
     "session": "Session",
     "finished": "Finished",
+    "notFinished": "Not finished",
     "inProgress": "In progress",
     "noWorkout": "No workout logged this day",
     "noNutrition": "No meals logged this day",
@@ -638,6 +643,8 @@
     "addFood": "Add food",
     "food": "Food",
     "foodName": "Food name",
+    "chooseFood": "Choose from your foods",
+    "searchFoods": "Search your foods…",
     "quantity": "Quantity (e.g. 100 g)",
     "untitledFood": "Untitled food",
     "waterTargetMl": "Water target (ml)",
@@ -645,6 +652,8 @@
     "supplement": "Supplement",
     "suppName": "Supplement name (e.g. Creatine)",
     "suppDose": "Dose (e.g. 5 g daily)",
+    "suppTiming": "When to take (e.g. before workout)",
+    "chooseSupp": "Choose from your supplements",
     "addSupp": "Add supplement",
     "noSupps": "No supplements assigned",
     "untitledSupp": "Untitled supplement",
@@ -658,7 +667,7 @@
   },
   "coachLib": {
     "title": "Library",
-    "tabs": { "exercises": "Exercises", "foods": "Foods", "groups": "Food groups" },
+    "tabs": { "exercises": "Exercises", "foods": "Foods", "groups": "Food groups", "supplements": "Supplements" },
     "exercise": "Exercise",
     "newExercise": "New exercise",
     "search": "Search exercises",
@@ -685,6 +694,11 @@
     "untitledGroup": "Untitled group",
     "foodCount": "{{n}} foods",
     "noGroups": "No food groups yet"
+  },
+  "coachSupps": {
+    "search": "Search supplements",
+    "newSupp": "New supplement",
+    "empty": "Add your first supplement"
   },
   "nutritionSub": {
     "swap": "Swap food",

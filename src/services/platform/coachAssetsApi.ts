@@ -6,6 +6,7 @@ import type {
   Exercise,
   FoodGroup,
   LibraryFood,
+  LibrarySupplement,
   MealPlan,
   NutritionTemplate,
   WorkoutDay,
@@ -195,6 +196,24 @@ export async function saveFoodGroup(group: FoodGroup): Promise<void> {
 export async function deleteFoodGroup(coachId: string, groupId: string): Promise<void> {
   const { db } = ensureFirebase();
   await deleteDoc(doc(db, ASSETS, coachId, 'foodGroups', groupId));
+}
+
+// ---- Supplement library ----------------------------------------------------
+
+export async function listSupplements(coachId: string): Promise<LibrarySupplement[]> {
+  const { db } = ensureFirebase();
+  const snap = await getDocs(collection(db, ASSETS, coachId, 'supplements'));
+  return snap.docs.map((d) => d.data() as LibrarySupplement).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function saveSupplement(coachId: string, supp: LibrarySupplement): Promise<void> {
+  const { db } = ensureFirebase();
+  await setDoc(doc(db, ASSETS, coachId, 'supplements', supp.id), supp);
+}
+
+export async function deleteSupplement(coachId: string, suppId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  await deleteDoc(doc(db, ASSETS, coachId, 'supplements', suppId));
 }
 
 // ---- Nutrition templates (architecture; assign reuses MealPlan) ------------

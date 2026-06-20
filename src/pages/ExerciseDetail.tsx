@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { BarChart } from '@/components/charts';
 import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
+import { playVideo } from '@/stores/videoPopupStore';
 import { useLocalized } from '@/hooks/useLocalized';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise, exerciseTrend } from '@/lib/calc';
@@ -53,8 +54,9 @@ export function ExerciseDetail() {
 
   const openVideo = () => {
     // Coach-assigned direct video URL takes priority over the local library.
+    // Plays in an in-app popup (window.open would exit a standalone PWA).
     if (ex.videoUrl) {
-      window.open(ex.videoUrl, '_blank', 'noopener,noreferrer');
+      playVideo(ex.videoUrl);
       return;
     }
     setVideo(byExercise(exId));

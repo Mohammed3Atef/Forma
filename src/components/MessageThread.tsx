@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { Message, MessageCategory, Role } from "@/types";
@@ -66,6 +66,37 @@ export function MessageThread({
     refetchInterval: 20_000,
   });
   const messages = q.data ?? [];
+  // Are we pinned to the newest message? Stays true on open / after sending;
+  // flips false when the user scrolls up so lazy-loading media can't yank them.
+  const stick = useRef(true);
+
+  const scrollToBottom = useCallback(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight });
+    const main = document.querySelector("main");
+    main?.scrollTo({ top: main.scrollHeight });
+    stick.current = true;
+  }, []);
+
+  // Reset the pin whenever the thread changes (component is reused across routes).
+  useEffect(() => {
+    stick.current = true;
+  }, [clientId]);
+
+  // Track distance from the bottom so we only auto-scroll while already there.
+  useEffect(() => {
+    const onScroll = () => {
+      const dist = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+      stick.current = dist < 120;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Re-pin after a message's image/video loads and grows the thread (the initial
+  // scroll happens before media has height) — only while still at the bottom.
+  const onMediaLoad = useCallback(() => {
+    if (stick.current) scrollToBottom();
+  }, [scrollToBottom]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -74,17 +105,16 @@ export function MessageThread({
         qc.invalidateQueries({ queryKey: ["messages", clientId] }),
       );
     }
-    // Jump to the newest message at the bottom. Deferred a frame so it runs
-    // AFTER the route-change <ScrollToTop> (which resets to top synchronously)
-    // and after the new bubbles are laid out. Scroll both the window and any
-    // scrollable <main> so it works regardless of which element scrolls.
-    const id = requestAnimationFrame(() => {
-      window.scrollTo({ top: document.documentElement.scrollHeight });
-      const main = document.querySelector("main");
-      main?.scrollTo({ top: main.scrollHeight });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [clientId, meRole, messages, qc]);
+    if (messages.length === 0) return;
+    // Jump to the newest message on open, when I send, or while I'm already at
+    // the bottom. Deferred a frame so it runs AFTER the route-change
+    // <ScrollToTop> (which resets to top synchronously) and after layout.
+    const lastMine = messages[messages.length - 1]?.fromRole === meRole;
+    if (stick.current || lastMine) {
+      const id = requestAnimationFrame(scrollToBottom);
+      return () => cancelAnimationFrame(id);
+    }
+  }, [clientId, meRole, messages, qc, scrollToBottom]);
 
   const send = useMutation({
     mutationFn: () => sendMessage(clientId, { id: meId, role: meRole }, body),
@@ -165,7 +195,7 @@ export function MessageThread({
                 {media && m.attachment ? (
                   <>
                     <div className="max-w-[80%] w-fit">
-                      <Attachment attachment={m.attachment} />
+                      <Attachment attachment={m.attachment} onLoad={onMediaLoad} />
                     </div>
                     {m.body && (
                       <div className={`mt-1 max-w-[80%] w-fit rounded-2xl px-3 py-2 text-sm ${bubbleClass}`}>
@@ -258,11 +288,15 @@ export function MessageThread({
   );
 }
 
-/** Renders a message attachment: tappable image, inline video, or file link. */
+/** Renders a message attachment: tappable image, inline video, or file link.
+ * `onLoad` fires once the media has dimensions so the thread can re-pin to the
+ * bottom (media loads after the initial scroll). */
 function Attachment({
   attachment,
+  onLoad,
 }: {
   attachment: NonNullable<Message["attachment"]>;
+  onLoad?: () => void;
 }) {
   const { url, kind, name } = attachment;
   if (kind === "image") {
@@ -277,12 +311,13 @@ function Attachment({
           alt={name ?? ""}
           className="max-h-60 rounded-xl object-cover"
           loading="lazy"
+          onLoad={onLoad}
         />
       </button>
     );
   }
   if (kind === "video") {
-    return <video src={url} controls className="mb-1 max-h-60 rounded-xl" />;
+    return <video src={url} controls className="mb-1 max-h-60 rounded-xl" onLoadedMetadata={onLoad} />;
   }
   return (
     <a

@@ -17,7 +17,13 @@ export function CoachMessageThread() {
 
   return (
     <div className="anim-rise">
-      <TopBar title={name} eyebrow={t('coach.messages')} onBack={() => navigate('/coach/messages')} sticky />
+      <TopBar
+        title={name}
+        eyebrow={t('coach.messages')}
+        onBack={() => navigate('/coach/messages')}
+        onTitleClick={() => navigate(`/coach/client/${clientId}`)}
+        sticky
+      />
       <MessageThread clientId={clientId} meId={account?.id ?? ''} meRole={account?.role ?? 'coach'} />
     </div>
   );
