@@ -218,6 +218,7 @@ export function Nutrition() {
         </div>
         <EntityNotes
           screen="nutrition"
+          date={log.date}
           entityType="water"
           entityId="water"
         />
@@ -412,6 +413,7 @@ export function Nutrition() {
                       </div>
                       <EntityNotes
                         screen="nutrition"
+                        date={log.date}
                         entityType="food"
                         entityId={item.id}
                       />
@@ -488,6 +490,7 @@ export function Nutrition() {
               )}
               <EntityNotes
                 screen="nutrition"
+                date={log.date}
                 entityType="meal"
                 entityId={meal.id}
               />
@@ -593,6 +596,7 @@ export function Nutrition() {
                   </div>
                   <EntityNotes
                     screen="nutrition"
+                    date={log.date}
                     entityType="supplement"
                     entityId={s.id}
                   />

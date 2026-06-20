@@ -68,7 +68,13 @@ export function EntityNotes({
   const { t } = useTranslation();
   const { notes, onAdd } = useContext(EntityNotesContext);
   const mine = notes.filter(
-    (n) => n.entityType === entityType && n.entityId === entityId,
+    (n) =>
+      n.entityType === entityType &&
+      n.entityId === entityId &&
+      // A dated note belongs to the day it was written — show it only on that
+      // day. Undated (legacy / plan-level) notes, and surfaces that don't supply
+      // a date, stay unrestricted so nothing silently disappears.
+      (!n.date || !date || n.date === date),
   );
 
   // Deep-link focus: when a notification targets this entity, scroll to it and

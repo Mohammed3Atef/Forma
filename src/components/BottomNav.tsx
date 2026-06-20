@@ -2,9 +2,11 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { CLIENT_NAV, type NavItem } from '@/config/nav';
+import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
 
 export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   const { t } = useTranslation();
+  const coachUnread = useCoachMessageUnread(); // 0 unless a coach is signed in
   return (
     <nav
       data-testid="bottom-nav"
@@ -41,8 +43,16 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
               >
                 {({ isActive }) => (
                   <>
-                    <span className={isActive ? 'text-brand' : ''}>
+                    <span className={`relative ${isActive ? 'text-brand' : ''}`}>
                       <Icon name={item.icon} size={22} />
+                      {item.key === 'coachMessages' && coachUnread > 0 && (
+                        <span
+                          data-testid="nav-messages-badge"
+                          className="absolute -end-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white"
+                        >
+                          {coachUnread > 9 ? '9+' : coachUnread}
+                        </span>
+                      )}
                     </span>
                     <span className="font-mono text-[9.5px] uppercase tracking-[0.06em]">
                       {t(`nav.${item.key}`)}

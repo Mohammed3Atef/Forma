@@ -87,6 +87,13 @@ export async function coachClientIds(coachId: string): Promise<string[]> {
   return snap.docs.map((d) => (d.data() as CoachClientRelationship).clientId);
 }
 
+/** Total unread messages addressed to the coach across all their client threads. */
+export async function coachUnreadCount(coachId: string): Promise<number> {
+  const ids = await coachClientIds(coachId);
+  const metas = await Promise.all(ids.map((id) => threadMeta(id)));
+  return metas.reduce((sum, m) => sum + m.unreadForCoach, 0);
+}
+
 /** Send a broadcast message to many clients' threads (announcement/offer/reminder/update). */
 export async function broadcast(clientIds: string[], from: { id: string; role: Role }, body: string, category: MessageCategory): Promise<void> {
   await Promise.all(clientIds.map((cid) => sendMessage(cid, from, body, { category, broadcast: true })));
