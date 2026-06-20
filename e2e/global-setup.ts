@@ -14,6 +14,9 @@ async function ensureClientProfile(): Promise<void> {
   const s = await signInAs('client');
   const now = Date.now();
   try {
+    // A phone on the identity doc so the post-login "complete account" gate
+    // (clients must provide a phone) doesn't block the client UI suites.
+    await setDoc(doc(s.db, 'users', s.uid), { phone: '+10000000000', updatedAt: now }, { merge: true });
     await setDoc(doc(s.db, 'clientData', s.uid, 'profile', 'main'), {
       id: s.uid,
       name: 'QA Client',

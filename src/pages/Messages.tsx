@@ -17,7 +17,7 @@ export function Messages() {
 
   return (
     <div className="anim-rise">
-      <TopBar title={t('messages.title')} eyebrow={coach.data?.displayName ?? t('coachInfo.yourCoach')} onBack={() => navigate('/')} />
+      <TopBar title={t('messages.title')} eyebrow={coach.data?.displayName ?? t('coachInfo.yourCoach')} onBack={() => navigate('/')} sticky />
       {!coachId ? (
         <p className="py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</p>
       ) : (

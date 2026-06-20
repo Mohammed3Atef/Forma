@@ -16,11 +16,14 @@ import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
 import { ImageViewer } from '@/components/ImageViewer';
+import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { Splash } from '@/components/Splash';
 import { ClientApp } from '@/apps/ClientApp';
 import { CoachApp } from '@/apps/CoachApp';
 import { AdminApp } from '@/apps/AdminApp';
 import { Login } from '@/pages/auth/Login';
+import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
 import { AccountSuspended } from '@/pages/auth/AccountSuspended';
 
@@ -29,6 +32,10 @@ export function App() {
   const selectedDay = useDay((s) => s.selected);
   const phase = useSession((s) => s.phase);
   const role = useSession((s) => s.account?.role ?? 'client');
+  const account = useSession((s) => s.account);
+  // A signed-in client with no phone must provide one before using the app
+  // (coaches/admins get theirs through the create-account form).
+  const needsContact = cloudAvailable() && !!account && account.id !== 'local-user' && account.role === 'client' && !account.phone;
 
   // When the focused day changes, reload all day-scoped data for that date.
   useEffect(() => {
@@ -87,15 +94,18 @@ export function App() {
   if (phase === 'anonymous') body = <Login />;
   else if (phase === 'pending') body = <AccountPending />;
   else if (phase === 'suspended') body = <AccountSuspended />;
+  else if (needsContact) body = <CompleteAccount />;
   else if (role === 'coach') body = <CoachApp />;
   else if (role === 'admin' || role === 'super_admin') body = <AdminApp />;
   else body = <ClientApp />;
 
   return (
     <>
+      <ScrollToTop />
       <DialogHost />
       <ImageViewer />
       {body}
+      <MustChangePasswordPrompt />
     </>
   );
 }

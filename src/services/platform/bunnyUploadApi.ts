@@ -91,6 +91,55 @@ export async function uploadImageToBunny(file: Blob, opts: { folder: string }): 
   return { url: `${publicBase}/${path}`, size: file.size };
 }
 
+/** How an attachment should be rendered. */
+export type AttachmentKind = 'image' | 'video' | 'file';
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+export function attachmentKind(mime: string): AttachmentKind {
+  if (ALLOWED_MIME.has(mime)) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  return 'file';
+}
+
+function fileExt(name: string, mime: string): string {
+  const m = name.match(/\.([a-z0-9]+)$/i);
+  if (m) return m[1].toLowerCase();
+  if (mime.startsWith('image/')) return extFor(mime);
+  return mime.split('/')[1] || 'bin';
+}
+
+/**
+ * Upload an arbitrary attachment (image / video / document) to Bunny storage,
+ * unmodified, and return its public URL + kind + display name. Used by the
+ * messenger. Images aren't downscaled here — the caller may downscale first.
+ */
+export async function uploadFileToBunny(file: File, opts: { folder: string }): Promise<UploadResult & { kind: AttachmentKind; name: string }> {
+  const { zone, apiKey, cdnUrl, region } = cfg();
+  if (!zone || !apiKey || !cdnUrl) throw new UploadError('notConfigured');
+  const kind = attachmentKind(file.type);
+  if (file.size > (kind === 'video' ? MAX_VIDEO_BYTES : MAX_FILE_BYTES)) throw new UploadError('tooLarge');
+
+  const folder = opts.folder.replace(/^\/+|\/+$/g, '');
+  const path = `${folder}/${randomKey()}.${fileExt(file.name, file.type)}`;
+  const storageHost = region && region !== 'de' ? `storage.${region}.bunnycdn.com` : 'storage.bunnycdn.com';
+  let res: Response;
+  try {
+    res = await fetch(`https://${storageHost}/${zone}/${path}`, {
+      method: 'PUT',
+      headers: { AccessKey: apiKey, 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+  } catch (e) {
+    throw new UploadError('failed', e instanceof Error ? e.message : 'network error');
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new UploadError('failed', `Bunny upload failed (${res.status}): ${text || res.statusText}`);
+  }
+  return { url: `${cdnUrl.replace(/\/$/, '')}/${path}`, size: file.size, kind, name: file.name };
+}
+
 // ---- Listing (super-admin media gallery) -----------------------------------
 
 interface BunnyListItem {

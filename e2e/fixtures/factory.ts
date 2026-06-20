@@ -44,6 +44,7 @@ export async function createClientViaApi(
     id: uid,
     email: opts.email,
     displayName: opts.displayName,
+    phone: '+10000000000',
     role: 'client',
     accountStatus: 'active',
     permissions: [],

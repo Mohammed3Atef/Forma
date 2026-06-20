@@ -216,10 +216,21 @@ input[type='number'] {
   animation: fadeIn 0.3s var(--ease-card) both;
 }
 
+/* Attention pulse for coach broadcast messages (announcement/offer/…). The
+   glow colour is set per-category via the `--flash` custom property. */
+@keyframes flashAttn {
+  0%, 100% { box-shadow: 0 0 0 0 var(--flash, rgba(174, 126, 86, 0.5)); }
+  50% { box-shadow: 0 0 0 4px var(--flash, rgba(174, 126, 86, 0.5)); }
+}
+.flash-attn {
+  animation: flashAttn 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-rise,
   .anim-fade,
-  .ring-track {
+  .ring-track,
+  .flash-attn {
     animation: none;
     transition: none;
   }

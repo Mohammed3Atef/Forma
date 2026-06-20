@@ -66,14 +66,14 @@ test.describe.serial('Subscriptions & account lifecycle', () => {
     await page.getByTestId(TID.subUnfreeze).click();
     await expect(page.getByTestId(TID.subStatus)).toHaveText(/active/i, { timeout: 10_000 });
 
-    // Suspend the account (danger → confirm), verify, then restore.
-    await page.getByTestId(TID.acctAction('suspended')).click();
+    // Freeze the account (danger → confirm), verify, then unfreeze.
+    await page.getByTestId(TID.acctAction('freeze')).click();
     await page.getByTestId(TID.confirmAccept).click();
     await expect.poll(async () => {
       const s = await signInAs('coach');
       try { return (await readDoc<U>(s.db, ['users', client.uid]))?.accountStatus; } finally { await s.close(); }
     }, { timeout: 15_000 }).toBe('suspended');
-    await page.getByTestId(TID.acctAction('active')).click();
+    await page.getByTestId(TID.acctAction('unfreeze')).click();
     await expect(page.getByTestId(TID.acctStatus)).toHaveText(/active/i, { timeout: 10_000 });
   });
 

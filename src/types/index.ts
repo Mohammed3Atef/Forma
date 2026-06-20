@@ -71,6 +71,7 @@ export interface UserRecord {
   phone?: string; // contact number, collected at sign-up / account creation
   photoUrl?: string; // avatar (Bunny CDN url); falls back to initials
   timezone?: string; // IANA tz (coach-set; display-only for now)
+  mustChangePassword?: boolean; // set when an admin/coach provisions with a temp password
   role: Role;
   accountStatus: AccountStatus;
   permissions: Permission[];
@@ -419,12 +420,21 @@ export type MessageCategory = 'message' | 'announcement' | 'offer' | 'reminder' 
  * when the OTHER party opens the thread (Sent → Seen). Broadcasts are normal
  * messages fanned into each client's thread with `broadcast: true` + a category.
  */
+/** A CDN-hosted attachment on a message (image / video / document). */
+export interface MessageAttachment {
+  url: string;
+  kind: 'image' | 'video' | 'file';
+  name?: string;
+  size?: number;
+}
+
 export interface Message {
   id: string;
   clientId: string;
   fromUserId: string;
   fromRole: Role;
   body: string;
+  attachment?: MessageAttachment;
   category?: MessageCategory;
   broadcast?: boolean;
   seenAt?: number | null;

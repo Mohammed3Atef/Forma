@@ -1,25 +1,57 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
+import { passwordError } from '@/lib/password';
+import { alertDialog } from '@/stores/dialogStore';
 
 /**
- * Full-screen sign-in / sign-up for platform accounts. Shown when the session
- * is anonymous. On success the session phase changes and the role router swaps
- * in the appropriate app — no manual navigation needed here.
+ * Full-screen sign-in / sign-up for platform accounts. Sign-up requires a phone
+ * number (used for coach offers / data later) and a policy-checked password
+ * entered twice. Includes a "forgot password" reset flow.
  */
 export function Login() {
   const { t } = useTranslation();
   const signIn = useSession((s) => s.signIn);
+  const resetPassword = useSession((s) => s.resetPassword);
   const error = useSession((s) => s.error);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [creds, setCreds] = useState({ email: '', password: '', phone: '' });
+  const [creds, setCreds] = useState({ email: '', password: '', confirm: '', phone: '' });
   const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const validateSignup = (): string | null => {
+    if (!creds.phone.trim()) return t('auth.phoneRequired');
+    const pwErr = passwordError(creds.password);
+    if (pwErr) return t(`auth.pw${pwErr}`);
+    if (creds.password !== creds.confirm) return t('auth.pwMismatch');
+    return null;
+  };
 
   const submit = async () => {
+    setLocalError(null);
     if (!creds.email.trim() || !creds.password) return;
+    if (mode === 'signup') {
+      const err = validateSignup();
+      if (err) { setLocalError(err); return; }
+    }
     setBusy(true);
     try {
       await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const forgot = async () => {
+    const email = creds.email.trim();
+    if (!email) { setLocalError(t('auth.enterEmailFirst')); return; }
+    setBusy(true);
+    setLocalError(null);
+    try {
+      await resetPassword(email);
+      await alertDialog({ title: t('auth.forgotPassword'), message: t('auth.resetSent', { email }) });
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : 'Failed');
     } finally {
       setBusy(false);
     }
@@ -32,57 +64,32 @@ export function Login() {
         <h1 className="h1">{t(mode === 'signup' ? 'auth.createAccount' : 'auth.welcomeBack')}</h1>
         <p className="text-sm text-earth-muted">{t('auth.intro')}</p>
 
-        <form
-          className="card space-y-3"
-          data-testid="login-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-        >
-          <input
-            className="input"
-            type="email"
-            autoComplete="email"
-            data-testid="login-email"
-            placeholder={t('settings.email')}
-            value={creds.email}
-            onChange={(e) => setCreds({ ...creds, email: e.target.value })}
-          />
-          <input
-            className="input"
-            type="password"
-            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            data-testid="login-password"
-            placeholder={t('settings.password')}
-            value={creds.password}
-            onChange={(e) => setCreds({ ...creds, password: e.target.value })}
-          />
+        <form className="card space-y-3" data-testid="login-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+          <input className="input" type="email" autoComplete="email" data-testid="login-email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
           {mode === 'signup' && (
-            <input
-              className="input"
-              type="tel"
-              autoComplete="tel"
-              inputMode="tel"
-              data-testid="login-phone"
-              placeholder={t('settings.phone')}
-              value={creds.phone}
-              onChange={(e) => setCreds({ ...creds, phone: e.target.value })}
-            />
+            <input className="input" type="tel" autoComplete="tel" inputMode="tel" dir="ltr" data-testid="login-phone" placeholder={t('settings.phone')} value={creds.phone} onChange={(e) => setCreds({ ...creds, phone: e.target.value })} />
           )}
-          {error && <p className="text-sm text-danger" data-testid="login-error">{error}</p>}
+          <input className="input" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} data-testid="login-password" placeholder={t('settings.password')} value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} />
+          {mode === 'signup' && (
+            <>
+              <input className="input" type="password" autoComplete="new-password" data-testid="login-confirm" placeholder={t('auth.confirmPassword')} value={creds.confirm} onChange={(e) => setCreds({ ...creds, confirm: e.target.value })} />
+              <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
+            </>
+          )}
+          {(localError || error) && <p className="text-sm text-danger" data-testid="login-error">{localError ?? error}</p>}
           {busy && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}
           <button type="submit" disabled={busy} data-testid="login-submit" className="btn-primary btn-lg w-full disabled:opacity-40">
             {t(mode === 'signup' ? 'settings.signUp' : 'onboard.signIn')}
           </button>
         </form>
 
-        <button
-          type="button"
-          data-testid="login-toggle-mode"
-          onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
-          className="btn-ghost w-full"
-        >
+        {mode === 'signin' && (
+          <button type="button" data-testid="login-forgot" onClick={() => void forgot()} disabled={busy} className="block w-full text-center text-sm text-brand-light">
+            {t('auth.forgotPassword')}
+          </button>
+        )}
+
+        <button type="button" data-testid="login-toggle-mode" onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setLocalError(null); }} className="btn-ghost w-full">
           {t(mode === 'signup' ? 'auth.haveAccount' : 'auth.needAccount')}
         </button>
       </div>

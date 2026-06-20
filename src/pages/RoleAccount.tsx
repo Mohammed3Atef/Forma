@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Locale } from '@/types';
 import { TopBar } from '@/components/TopBar';
 import { AvatarPicker } from '@/components/AvatarPicker';
+import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { useSession } from '@/services/auth/sessionStore';
 import { useSettings } from '@/stores/settingsStore';
 import { confirmDialog } from '@/stores/dialogStore';
@@ -17,6 +18,7 @@ export function RoleAccount() {
   const setLocale = useSettings((s) => s.setLocale);
 
   const editable = !!account && account.id !== 'local-user';
+  const [pwOpen, setPwOpen] = useState(false);
   const [name, setName] = useState(account?.displayName ?? '');
   const [phone, setPhone] = useState(account?.phone ?? '');
   const [timezone, setTimezone] = useState(account?.timezone ?? '');
@@ -78,9 +80,17 @@ export function RoleAccount() {
         </div>
       </section>
 
+      {editable && (
+        <button type="button" data-testid="change-password" className="btn-ghost mt-4 w-full" onClick={() => setPwOpen(true)}>
+          {t('auth.changePassword')}
+        </button>
+      )}
+
       <button type="button" onClick={() => void onSignOut()} className="btn-danger mt-4 w-full">
         {t('settings.signOut')}
       </button>
+
+      <ChangePasswordSheet open={pwOpen} onClose={() => setPwOpen(false)} />
     </>
   );
 }

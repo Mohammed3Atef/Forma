@@ -1,78 +1,297 @@
-import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import type { Role } from '@/types';
-import { listMessages, markThreadSeen, sendMessage } from '@/services/platform/messagesApi';
-import { Icon } from '@/components/Icon';
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import type { Message, MessageCategory, Role } from "@/types";
+import {
+  listMessages,
+  markThreadSeen,
+  sendMessage,
+} from "@/services/platform/messagesApi";
+import {
+  isBunnyConfigured,
+  uploadFileToBunny,
+  UploadError,
+} from "@/services/platform/bunnyUploadApi";
+import { downscaleImage } from "@/lib/image";
+import { viewImages } from "@/stores/imageViewerStore";
+import { alertDialog } from "@/stores/dialogStore";
+import { Icon } from "@/components/Icon";
+
+/** Per-category bubble styling + attention-flash colour for coach broadcasts. */
+const CATEGORY: Record<MessageCategory, { bubble: string; flash: string }> = {
+  message: { bubble: "", flash: "" },
+  announcement: {
+    bubble: "border border-brand/60 bg-brand/15 text-white",
+    flash: "rgba(174,126,86,0.55)",
+  },
+  offer: {
+    bubble: "border border-success/60 bg-success/15 text-white",
+    flash: "rgba(34,197,94,0.5)",
+  },
+  reminder: {
+    bubble: "border border-warn/60 bg-warn/15 text-white",
+    flash: "rgba(245,158,11,0.5)",
+  },
+  update: {
+    bubble: "border border-sky-400/60 bg-sky-400/15 text-white",
+    flash: "rgba(56,189,248,0.5)",
+  },
+};
 
 /**
  * 1:1 chat thread for a client, shared by the client and coach screens. `meRole`
- * aligns bubbles (mine right) and drives the seen-receipt. Polls every 20s and
- * marks the other party's messages seen on open.
+ * aligns bubbles (mine right) and drives the seen-receipt. Input is pinned above
+ * the bottom nav. Broadcast messages are colour-coded by category and pulse to
+ * draw the recipient's attention. Polls every 20s; marks seen on open.
  */
-export function MessageThread({ clientId, meId, meRole }: { clientId: string; meId: string; meRole: Role }) {
+export function MessageThread({
+  clientId,
+  meId,
+  meRole,
+}: {
+  clientId: string;
+  meId: string;
+  meRole: Role;
+}) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
-  const [body, setBody] = useState('');
-  const endRef = useRef<HTMLDivElement>(null);
+  const [body, setBody] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const q = useQuery({ queryKey: ['messages', clientId], queryFn: () => listMessages(clientId), enabled: !!clientId, refetchInterval: 20_000 });
+  const q = useQuery({
+    queryKey: ["messages", clientId],
+    queryFn: () => listMessages(clientId),
+    enabled: !!clientId,
+    refetchInterval: 20_000,
+  });
   const messages = q.data ?? [];
 
-  // Mark the other party's messages seen whenever new ones arrive.
   useEffect(() => {
     if (!clientId) return;
     if (messages.some((m) => m.fromRole !== meRole && !m.seenAt)) {
-      void markThreadSeen(clientId, meRole).then(() => qc.invalidateQueries({ queryKey: ['messages', clientId] }));
+      void markThreadSeen(clientId, meRole).then(() =>
+        qc.invalidateQueries({ queryKey: ["messages", clientId] }),
+      );
     }
-    endRef.current?.scrollIntoView({ block: 'end' });
+    // Jump to the newest message at the bottom. Deferred a frame so it runs
+    // AFTER the route-change <ScrollToTop> (which resets to top synchronously)
+    // and after the new bubbles are laid out. Scroll both the window and any
+    // scrollable <main> so it works regardless of which element scrolls.
+    const id = requestAnimationFrame(() => {
+      window.scrollTo({ top: document.documentElement.scrollHeight });
+      const main = document.querySelector("main");
+      main?.scrollTo({ top: main.scrollHeight });
+    });
+    return () => cancelAnimationFrame(id);
   }, [clientId, meRole, messages, qc]);
 
   const send = useMutation({
     mutationFn: () => sendMessage(clientId, { id: meId, role: meRole }, body),
-    onSuccess: () => { setBody(''); void qc.invalidateQueries({ queryKey: ['messages', clientId] }); },
+    onSuccess: () => {
+      setBody("");
+      void qc.invalidateQueries({ queryKey: ["messages", clientId] });
+    },
   });
 
+  // Upload a picked file to the CDN and send it as an attachment (image / video
+  // / document). Images are downscaled first; the current text becomes a caption.
+  const onAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const isImage = file.type.startsWith("image/");
+      const blob = isImage
+        ? new File([await downscaleImage(file)], file.name, {
+            type: "image/webp",
+          })
+        : file;
+      const { url, kind, name, size } = await uploadFileToBunny(blob, {
+        folder: `Forma/${clientId}/messages`,
+      });
+      await sendMessage(clientId, { id: meId, role: meRole }, body, {
+        attachment: { url, kind, name, size },
+      });
+      setBody("");
+      void qc.invalidateQueries({ queryKey: ["messages", clientId] });
+    } catch (err) {
+      await alertDialog({
+        title: t("messages.title"),
+        message: t(
+          `upload.${err instanceof UploadError ? err.code : "failed"}`,
+        ),
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-[60vh] flex-col">
-      <div className="flex-1 space-y-2 py-2">
+    <>
+      {/* Fill the area below the header and bottom-anchor the messages, so a short
+          thread sits just above the composer (no empty gap) and a long one scrolls.
+          pb clears the fixed composer; main already adds pb-28 for the bottom nav. */}
+      <div className="flex min-h-[calc(100dvh-12rem)] flex-col justify-end gap-2 pb-8 pt-2">
         {q.isLoading ? (
-          <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+          <p className="py-8 text-center text-sm text-earth-muted">
+            {t("auth.working")}
+          </p>
         ) : messages.length === 0 ? (
-          <p className="py-10 text-center text-sm text-earth-muted">{t('messages.noMessages')}</p>
+          <p className="py-10 text-center text-sm text-earth-muted">
+            {t("messages.noMessages")}
+          </p>
         ) : (
           messages.map((m) => {
             const mine = m.fromRole === meRole;
+            const cat = m.broadcast && m.category ? m.category : null;
+            const style = cat ? CATEGORY[cat] : null;
+            // Colour + pulse a broadcast for its recipient (not the sender's own copy).
+            const flash = cat && !mine ? "flash-attn" : "";
+            const bubbleClass =
+              style?.bubble ||
+              (mine
+                ? "bg-brand text-slate-950"
+                : "bg-surface-raised text-white");
+            // Image/video render bare (no bubble background); a caption gets its own bubble.
+            const media = !!m.attachment && m.attachment.kind !== "file";
             return (
-              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`} data-testid="message-bubble">
-                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-brand text-slate-950' : 'bg-surface-raised text-white'}`}>
-                  {m.broadcast && m.category && <span className="mb-0.5 block text-[10px] font-semibold uppercase opacity-70">{t(`messages.category.${m.category}`)}</span>}
-                  <p className="whitespace-pre-wrap">{m.body}</p>
-                  <span className={`mt-0.5 block text-[10px] ${mine ? 'text-slate-950/60' : 'text-earth-subtle'}`} dir="ltr">
-                    {new Date(m.createdAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
-                    {mine && <span className="ms-1">{m.seenAt ? t('messages.seen') : t('messages.sent')}</span>}
+              <div
+                key={m.id}
+                className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
+                data-testid="message-bubble"
+              >
+                {media && m.attachment ? (
+                  <>
+                    <div className="max-w-[80%] w-fit">
+                      <Attachment attachment={m.attachment} />
+                    </div>
+                    {m.body && (
+                      <div className={`mt-1 max-w-[80%] w-fit rounded-2xl px-3 py-2 text-sm ${bubbleClass}`}>
+                        <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    className={`max-w-[80%] w-fit rounded-2xl px-3 py-2 text-sm ${bubbleClass} ${flash}`}
+                    style={
+                      flash
+                        ? ({ "--flash": style?.flash } as CSSProperties)
+                        : undefined
+                    }
+                  >
+                    {cat && (
+                      <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                        {t(`messages.category.${cat}`)}
+                      </span>
+                    )}
+                    {m.attachment && <Attachment attachment={m.attachment} />}
+                    {m.body && (
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    )}
+                  </div>
+                )}
+                <span className="mt-1 flex items-center gap-1.5 px-1 text-[10px] text-earth-subtle">
+                  <span dir="ltr">
+                    {new Date(m.createdAt).toLocaleTimeString(i18n.language, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
-                </div>
+                  {mine && (
+                    <span>
+                      · {m.seenAt ? t("messages.seen") : t("messages.sent")}
+                    </span>
+                  )}
+                </span>
               </div>
             );
           })
         )}
-        <div ref={endRef} />
       </div>
 
-      <div className="sticky bottom-0 flex items-end gap-2 bg-surface/90 py-2 backdrop-blur">
-        <textarea
-          className="input max-h-32 min-h-11 flex-1 resize-none py-2.5"
-          data-testid="message-input"
-          rows={1}
-          placeholder={t('messages.placeholder')}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
-        <button type="button" data-testid="message-send" disabled={!body.trim() || send.isPending} onClick={() => send.mutate()} className="btn-primary h-11 w-11 shrink-0 px-0 disabled:opacity-40" aria-label={t('messages.send')}>
-          <Icon name="chevron" size={20} />
-        </button>
+      {/* Input pinned above the bottom nav */}
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[78px] pt-4">
+        <div className="flex items-end gap-2 bg-black pt-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,video/*,application/pdf"
+            className="hidden"
+            onChange={(e) => void onAttach(e)}
+          />
+          {isBunnyConfigured() && (
+            <button
+              type="button"
+              data-testid="message-attach"
+              disabled={uploading || send.isPending}
+              onClick={() => fileRef.current?.click()}
+              className="icon-btn h-11 w-11 shrink-0 disabled:opacity-40"
+              aria-label={t("messages.attach")}
+            >
+              <Icon name={uploading ? "timer" : "image"} size={20} />
+            </button>
+          )}
+          <textarea
+            className="input max-h-32 min-h-11 flex-1 resize-none py-2.5"
+            data-testid="message-input"
+            rows={1}
+            placeholder={t("messages.placeholder")}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
+          <button
+            type="button"
+            data-testid="message-send"
+            disabled={!body.trim() || send.isPending}
+            onClick={() => send.mutate()}
+            className="btn-primary h-11 w-11 shrink-0 px-0 disabled:opacity-40"
+            aria-label={t("messages.send")}
+          >
+            <Icon name="chevron" size={20} />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+/** Renders a message attachment: tappable image, inline video, or file link. */
+function Attachment({
+  attachment,
+}: {
+  attachment: NonNullable<Message["attachment"]>;
+}) {
+  const { url, kind, name } = attachment;
+  if (kind === "image") {
+    return (
+      <button
+        type="button"
+        className="mb-1 block"
+        onClick={() => viewImages(url)}
+      >
+        <img
+          src={url}
+          alt={name ?? ""}
+          className="max-h-60 rounded-xl object-cover"
+          loading="lazy"
+        />
+      </button>
+    );
+  }
+  if (kind === "video") {
+    return <video src={url} controls className="mb-1 max-h-60 rounded-xl" />;
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="mb-1 flex items-center gap-2 rounded-lg bg-black/20 px-2.5 py-2 text-[13px] underline"
+    >
+      <Icon name="download" size={16} /> {name ?? "file"}
+    </a>
   );
 }

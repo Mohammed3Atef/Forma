@@ -95,39 +95,50 @@ service cloud.firestore {
       );
 
       allow update: if isSignedIn() && (
-        // Self: must not touch any control field.
+        // Self: must not touch any control field. Reads use .get() with defaults
+        // so a legacy doc missing a control field doesn't raise a rule error —
+        // equality still blocks any change to role/permissions/status/etc.
         (request.auth.uid == uid
-          && request.resource.data.role == resource.data.role
-          && request.resource.data.permissions == resource.data.permissions
-          && request.resource.data.accountStatus == resource.data.accountStatus
-          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.get('role', '') == resource.data.get('role', '')
+          && request.resource.data.get('permissions', []) == resource.data.get('permissions', [])
+          && request.resource.data.get('accountStatus', '') == resource.data.get('accountStatus', '')
+          && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '')
           && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', ''))
+        // Assigned coach may change ONLY the account status of their OWN client
+        // (freeze/trash/reactivate) — never role, permissions, or assignment.
+        // Evaluated EARLY (right after self) on purpose: a coach's write must
+        // short-circuit here BEFORE the read-heavy admin hasPermission() chain
+        // below. Each hasPermission() re-derives isActive/isSuperAdmin/isAdmin/
+        // isCoach (many get(users/me) reads); running all three first blows past
+        // Firestore's 10 document-access limit per evaluation, which errors the
+        // whole rule and denies with "Missing or insufficient permissions" even
+        // though every condition here is satisfied. Field reads use .get() with
+        // defaults so a legacy doc missing a field doesn't raise a rule error;
+        // equality is still enforced, so no privilege escalation is possible.
+        || (isAssignedCoach(uid)
+            && resource.data.get('role', '') == 'client'
+            && request.resource.data.get('role', '') == resource.data.get('role', '')
+            && request.resource.data.get('permissions', []) == resource.data.get('permissions', [])
+            && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', '')
+            && request.resource.data.accountStatus in ['active', 'suspended', 'pending', 'disabled'])
         // Super admin: unrestricted.
         || isSuperAdmin()
         // Admin-level actions apply ONLY to client/coach targets — an admin can
         // never modify an admin or super_admin account.
-        || (resource.data.role in ['client', 'coach'] && (
+        || (resource.data.get('role', '') in ['client', 'coach'] && (
               // Status change (role & permissions unchanged).
               (hasPermission('users.manageStatus')
-                && request.resource.data.role == resource.data.role
-                && request.resource.data.permissions == resource.data.permissions)
+                && request.resource.data.get('role', '') == resource.data.get('role', '')
+                && request.resource.data.get('permissions', []) == resource.data.get('permissions', []))
               // Coach assignment change (role/permissions/status unchanged).
               || (hasPermission('coaches.assign')
-                && request.resource.data.role == resource.data.role
-                && request.resource.data.permissions == resource.data.permissions
+                && request.resource.data.get('role', '') == resource.data.get('role', '')
+                && request.resource.data.get('permissions', []) == resource.data.get('permissions', [])
                 && request.resource.data.accountStatus == resource.data.accountStatus)
               // Role change, limited to client/coach.
               || (hasPermission('users.manageRoles')
-                && request.resource.data.role in ['client', 'coach'])
+                && request.resource.data.get('role', '') in ['client', 'coach'])
            ))
-        // Assigned coach may change ONLY the account status of their OWN client
-        // (freeze/pending/trash) — never role, permissions, or assignment.
-        || (isAssignedCoach(uid)
-            && resource.data.role == 'client'
-            && request.resource.data.role == resource.data.role
-            && request.resource.data.permissions == resource.data.permissions
-            && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', '')
-            && request.resource.data.accountStatus in ['active', 'suspended', 'pending', 'disabled'])
       );
 
       // Prefer status 'disabled' over hard delete; only super_admin may delete.

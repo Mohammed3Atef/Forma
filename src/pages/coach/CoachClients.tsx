@@ -11,6 +11,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients, saveClientProfile } from '@/services/platform/coachApi';
 import { createAccount } from '@/services/accounts/createUserSecondary';
 import { linkCoachClient } from '@/services/platform/coachClientsApi';
+import { passwordError } from '@/lib/password';
 import type { AccountStatus, ActivityLevel, Goal } from '@/types';
 
 const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
@@ -21,7 +22,9 @@ const ACCT_PILL: Record<AccountStatus, string> = {
   suspended: 'border-danger/50 text-danger',
   disabled: 'border-danger/50 text-danger',
 };
-const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'pending', 'suspended', 'disabled'];
+// Coaches manage a simple Active / Frozen (suspended) / Trashed (disabled)
+// lifecycle — 'pending' is an admin/signup state, not exposed here.
+const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
 const PAGE = 20;
 
 export function CoachClients() {
@@ -184,7 +187,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
     onError: (e) => setError(e instanceof Error ? e.message : 'Failed'),
   });
 
-  const valid = form.name.trim() && form.email.trim().length > 3 && form.password.length >= 6;
+  const valid = form.name.trim() && form.email.trim().length > 3 && form.phone.trim() && !passwordError(form.password);
 
   return (
     <form
@@ -201,6 +204,7 @@ function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => voi
       <input className="input" type="email" autoComplete="off" data-testid="coach-add-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       <input className="input" type="password" autoComplete="new-password" data-testid="coach-add-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="coach-add-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
 
       <p className="label pt-1">{t('coach.profileOptional')}</p>
       <div className="grid grid-cols-3 gap-2">

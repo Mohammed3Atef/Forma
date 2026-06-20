@@ -18,6 +18,7 @@ import {
   setRole,
 } from '@/services/platform/accountsApi';
 import { confirmDialog } from '@/stores/dialogStore';
+import { passwordError } from '@/lib/password';
 import type { AccountStatus, Role, UserRecord } from '@/types';
 
 const ROLE_FILTERS: (Role | 'all')[] = ['all', 'super_admin', 'admin', 'coach', 'client'];
@@ -369,7 +370,7 @@ function CreateAccountForm({
     onError: (e) => setError(e instanceof Error ? e.message : 'Failed'),
   });
 
-  const valid = form.email.trim().length > 3 && form.password.length >= 6;
+  const valid = form.email.trim().length > 3 && form.phone.trim().length > 0 && !passwordError(form.password);
 
   return (
     <form
@@ -385,6 +386,7 @@ function CreateAccountForm({
       <input className="input" data-testid="create-name" placeholder={t('settings.name')} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
       <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="create-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       <input className="input" type="password" autoComplete="new-password" data-testid="create-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
       <div>
         <div className="label mb-2">{t('platform.role')}</div>
         <div className="flex flex-wrap gap-2" data-testid="create-role-options">

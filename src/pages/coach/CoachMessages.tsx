@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import { broadcast, threadMeta } from '@/services/platform/messagesApi';
+import { broadcast, threadMeta, type ThreadMeta } from '@/services/platform/messagesApi';
 import { alertDialog } from '@/stores/dialogStore';
 
 const CATEGORIES: MessageCategory[] = ['announcement', 'offer', 'reminder', 'update'];
@@ -23,7 +23,25 @@ export function CoachMessages() {
   const [broadcasting, setBroadcasting] = useState(false);
 
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
-  const list = clients.data ?? [];
+  const clientList = clients.data ?? [];
+  const clientIds = clientList.map((c) => c.id).join(',');
+
+  // Last message + unread per client, in one query, so the inbox can sort
+  // conversations newest-activity first.
+  const metas = useQuery({
+    queryKey: ['threadMetas', coachId, clientIds],
+    queryFn: async () => {
+      const entries = await Promise.all(clientList.map(async (c) => [c.id, await threadMeta(c.id)] as const));
+      return Object.fromEntries(entries) as Record<string, ThreadMeta>;
+    },
+    enabled: clientList.length > 0,
+    refetchInterval: 30_000,
+  });
+
+  const list = useMemo(() => {
+    const m = metas.data ?? {};
+    return [...clientList].sort((a, b) => (m[b.id]?.last?.createdAt ?? 0) - (m[a.id]?.last?.createdAt ?? 0));
+  }, [clientList, metas.data]);
 
   return (
     <>

@@ -2,7 +2,7 @@ import { collection, doc, getDocs, orderBy, query, setDoc, where, writeBatch } f
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { uid } from '@/lib/utils';
 import { notify } from './notificationsApi';
-import type { CoachClientRelationship, Message, MessageCategory, Role } from '@/types';
+import type { CoachClientRelationship, Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 const CLIENT = 'clientData';
 const COLL = 'messages';
@@ -20,7 +20,7 @@ export async function sendMessage(
   clientId: string,
   from: { id: string; role: Role },
   body: string,
-  opts?: { category?: MessageCategory; broadcast?: boolean },
+  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment },
 ): Promise<void> {
   const { db } = ensureFirebase();
   const id = uid('msg');
@@ -37,13 +37,16 @@ export async function sendMessage(
   };
   if (opts?.category) doc_.category = opts.category;
   if (opts?.broadcast) doc_.broadcast = true;
+  if (opts?.attachment) doc_.attachment = opts.attachment;
   await setDoc(doc(db, CLIENT, clientId, COLL, id), doc_);
   const toCoach = from.role !== 'coach';
+  // Preview text: the message body, else the attachment kind.
+  const preview = body.trim() || (opts?.attachment ? `📎 ${opts.attachment.name ?? opts.attachment.kind}` : '');
   await notify({
     clientId,
     forRole: toCoach ? 'coach' : 'client',
     type: 'message_received',
-    body: body.trim().slice(0, 140),
+    body: preview.slice(0, 140),
     route: toCoach ? `/coach/messages/${clientId}` : '/messages',
     createdBy: from.id,
   });

@@ -70,8 +70,10 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
 
   const changeStatus = async (s: AccountStatus) => {
     if (!account) return;
-    const danger = s === 'suspended' || s === 'disabled';
-    if (danger && !(await confirmDialog({ title: t(`subscription.acct.${s}`), message: t('subscription.confirmStatus'), danger: true }))) return;
+    // Coaches get a simple Freeze / Trash lifecycle; reactivating ('active') is
+    // safe and needs no confirm, the two destructive transitions do.
+    if (s === 'disabled' && !(await confirmDialog({ title: t('subscription.acctAction.trash'), message: t('subscription.confirmTrash'), danger: true }))) return;
+    if (s === 'suspended' && !(await confirmDialog({ title: t('subscription.acctAction.freeze'), message: t('subscription.confirmFreeze'), danger: true }))) return;
     setStatus.mutate(s);
   };
   const doEnd = async () => {
@@ -127,18 +129,27 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         <div className="card space-y-3">
           <span data-testid="acct-status" className={`chip ${ACCT_PILL[acctStatus]}`}>{t(`subscription.acct.${acctStatus}`)}</span>
           <div className="flex flex-wrap gap-2">
-            {(['active', 'pending', 'suspended', 'disabled'] as AccountStatus[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                data-testid={`acct-${s}`}
-                disabled={setStatus.isPending || acctStatus === s}
-                onClick={() => void changeStatus(s)}
-                className={`chip ${s === 'suspended' || s === 'disabled' ? 'text-danger' : ''} disabled:opacity-40`}
-              >
-                {t(`subscription.acctAction.${s}`)}
+            {/* Freeze ⇄ Unfreeze (hidden once trashed — restore first). */}
+            {acctStatus !== 'disabled' &&
+              (acctStatus === 'suspended' ? (
+                <button type="button" data-testid="acct-unfreeze" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="chip disabled:opacity-40">
+                  {t('subscription.acctAction.unfreeze')}
+                </button>
+              ) : (
+                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending} onClick={() => void changeStatus('suspended')} className="chip text-warn disabled:opacity-40">
+                  {t('subscription.acctAction.freeze')}
+                </button>
+              ))}
+            {/* Trash ⇄ Restore */}
+            {acctStatus === 'disabled' ? (
+              <button type="button" data-testid="acct-restore" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="chip disabled:opacity-40">
+                {t('subscription.acctAction.restore')}
               </button>
-            ))}
+            ) : (
+              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending} onClick={() => void changeStatus('disabled')} className="chip text-danger disabled:opacity-40">
+                {t('subscription.acctAction.trash')}
+              </button>
+            )}
           </div>
           {setStatus.isError && <p className="text-[12px] text-danger" data-testid="acct-error">{t('subscription.statusError')}</p>}
           <p className="text-[12px] text-earth-subtle">{t('subscription.deleteHint')}</p>

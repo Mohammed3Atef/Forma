@@ -58,6 +58,9 @@ export async function createAccount(params: CreateAccountParams): Promise<UserRe
       permissions: permissions ?? [],
       featureFlags: {},
       createdBy,
+      // Admin/coach-provisioned accounts use a temporary password → prompt the
+      // user to set their own on first login.
+      mustChangePassword: true,
       ...(phone?.trim() ? { phone: phone.trim() } : {}),
       ...(assignedCoachId ? { assignedCoachId } : {}),
       createdAt: now,

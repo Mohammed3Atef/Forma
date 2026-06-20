@@ -29,6 +29,10 @@ interface SessionState {
   updateContact: (phone: string) => Promise<void>;
   /** Patch the signed-in user's own non-control profile fields (name/phone/photo/timezone). */
   updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone'>>) => Promise<void>;
+  /** Send a password-reset email (works while signed out). */
+  resetPassword: (email: string) => Promise<void>;
+  /** Change the signed-in user's password + clear the must-change flag. */
+  changePassword: (newPassword: string) => Promise<void>;
 }
 
 /** Synthetic account used in local-only mode (no Firebase configured). */
@@ -149,5 +153,28 @@ export const useSession = create<SessionState>((set, get) => ({
     }
     await setDoc(doc(db, 'users', account.id), fields, { merge: true });
     set({ account: { ...account, ...patch } });
+  },
+
+  async resetPassword(email) {
+    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
+    await firebaseAuth.resetPassword(email.trim());
+  },
+
+  async changePassword(newPassword) {
+    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
+    await firebaseAuth.changePassword(newPassword);
+    // Clear the must-change flag (best-effort) so the prompt doesn't reappear.
+    const account = get().account;
+    if (account && account.id !== LOCAL_ACCOUNT.id) {
+      try {
+        const { ensureFirebase } = await import('@/data/adapters/firebase/firebase');
+        const { doc, setDoc } = await import('firebase/firestore');
+        const { db } = ensureFirebase();
+        await setDoc(doc(db, 'users', account.id), { mustChangePassword: false, updatedAt: Date.now() }, { merge: true });
+        set({ account: { ...account, mustChangePassword: false } });
+      } catch {
+        /* non-fatal */
+      }
+    }
   },
 }));

@@ -11,6 +11,7 @@ import { assessmentStatus } from '@/lib/assessment';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { CoachInfoCard } from '@/components/CoachInfoCard';
+import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
@@ -32,6 +33,7 @@ export function Settings() {
   const accountPhone = account?.phone ?? '';
   const [phone, setPhone] = useState(accountPhone);
   useEffect(() => { setPhone(accountPhone); }, [accountPhone]);
+  const [pwOpen, setPwOpen] = useState(false);
 
   const uid = account?.id ?? '';
   const cloud = cloudAvailable() && !!uid && uid !== 'local-user';
@@ -126,7 +128,14 @@ export function Settings() {
             {ACTIVITY.map((a) => <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>)}
           </select>
         </div>
+        {cloud && (
+          <button type="button" data-testid="change-password" className="btn-ghost w-full" onClick={() => setPwOpen(true)}>
+            <Icon name="settings" size={16} /> {t('auth.changePassword')}
+          </button>
+        )}
       </section>
+
+      <ChangePasswordSheet open={pwOpen} onClose={() => setPwOpen(false)} />
     </div>
   );
 }

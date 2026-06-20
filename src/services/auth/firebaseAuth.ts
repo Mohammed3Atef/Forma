@@ -1,8 +1,10 @@
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   type User,
 } from 'firebase/auth';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
@@ -25,6 +27,17 @@ export const firebaseAuth = {
   async signOutUser(): Promise<void> {
     const { auth } = ensureFirebase();
     await signOut(auth);
+  },
+  /** Send a password-reset email (works while signed out). */
+  async resetPassword(email: string): Promise<void> {
+    const { auth } = ensureFirebase();
+    await sendPasswordResetEmail(auth, email);
+  },
+  /** Change the signed-in user's password (requires a recent login). */
+  async changePassword(newPassword: string): Promise<void> {
+    const { auth } = ensureFirebase();
+    if (!auth.currentUser) throw new Error('Not signed in');
+    await updatePassword(auth.currentUser, newPassword);
   },
   onChange(cb: (user: User | null) => void): () => void {
     const { auth } = ensureFirebase();
