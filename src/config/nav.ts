@@ -81,6 +81,7 @@ export const ADMIN_NAV: NavItem[] = [
 /** Super admin gets an extra Media/Images tab (oversight of all uploads). */
 export const SUPER_ADMIN_NAV: NavItem[] = [
   ...ADMIN_NAV,
+  { to: '/admin/coaches', icon: 'trophy', key: 'adminCoaches' },
   { to: '/admin/media', icon: 'image', key: 'adminImages' },
 ];
 

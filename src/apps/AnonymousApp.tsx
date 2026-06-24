@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Login } from '@/pages/auth/Login';
 import { Landing } from '@/pages/marketing/Landing';
+import { AcceptInvite } from '@/pages/auth/AcceptInvite';
 
 /**
  * Signed-out routes. Web visitors land on the marketing page at "/"; the auth
@@ -21,6 +22,7 @@ export function AnonymousApp() {
     <Routes>
       <Route path="/" element={isStandalone ? <Navigate to="/login" replace /> : <Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/invite/:code" element={<AcceptInvite />} />
       <Route path="*" element={<Login />} />
     </Routes>
   );

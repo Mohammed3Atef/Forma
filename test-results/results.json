@@ -75,139 +75,55 @@
   },
   "suites": [
     {
-      "title": "ui-coverage.spec.ts",
-      "file": "ui-coverage.spec.ts",
+      "title": "_shots.spec.ts",
+      "file": "_shots.spec.ts",
       "column": 0,
       "line": 0,
-      "specs": [],
-      "suites": [
+      "specs": [
         {
-          "title": "UI coverage — admin",
-          "file": "ui-coverage.spec.ts",
-          "line": 109,
-          "column": 6,
-          "specs": [
+          "title": "shots",
+          "ok": true,
+          "tags": [],
+          "tests": [
             {
-              "title": "admin routes",
-              "ok": false,
-              "tags": [],
-              "tests": [
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
                 {
-                  "timeout": 120000,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11208,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-06-24T19:21:10.428Z",
                   "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 6982,
-                      "error": {
-                        "message": "Error: admin-analytics: console errors\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
-                        "stack": "Error: admin-analytics: console errors\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at smoke (D:\\Gym\\e2e\\ui-coverage.spec.ts:43:110)\n    at D:\\Gym\\e2e\\ui-coverage.spec.ts:124:32",
-                        "location": {
-                          "file": "D:\\Gym\\e2e\\ui-coverage.spec.ts",
-                          "column": 110,
-                          "line": 43
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 41 |\u001b[39m\n \u001b[90m 42 |\u001b[39m   expect\u001b[33m.\u001b[39msoft(findings\u001b[33m.\u001b[39mrendered\u001b[33m,\u001b[39m \u001b[32m`${spec.label}: page crashed / rendered empty`\u001b[39m)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 43 |\u001b[39m   expect\u001b[33m.\u001b[39msoft(findings\u001b[33m.\u001b[39mconsoleErrors\u001b[33m,\u001b[39m \u001b[32m`${spec.label}: console errors\\n${findings.consoleErrors.join('\\n')}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                                                              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 44 |\u001b[39m   expect\u001b[33m.\u001b[39msoft(findings\u001b[33m.\u001b[39mmissingTranslations\u001b[33m,\u001b[39m \u001b[32m`${spec.label}: raw i18n keys leaked\\n${findings.missingTranslations.join(', ')}`\u001b[39m)\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m\n \u001b[90m 45 |\u001b[39m   expect\u001b[33m.\u001b[39msoft(findings\u001b[33m.\u001b[39mhorizontalOverflowPx\u001b[33m,\u001b[39m \u001b[32m`${spec.label}: horizontal scroll ${findings.horizontalOverflowPx}px`\u001b[39m)\u001b[33m.\u001b[39mtoBeLessThanOrEqual(\u001b[35m2\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 46 |\u001b[39m   \u001b[36mif\u001b[39m (spec\u001b[33m.\u001b[39mexpectNav) {\u001b[0m"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "D:\\Gym\\e2e\\ui-coverage.spec.ts",
-                            "column": 110,
-                            "line": 43
-                          },
-                          "message": "Error: admin-analytics: console errors\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\nFailed to load resource: the server responded with a status of 429 ()\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+   \"Failed to load resource: the server responded with a status of 429 ()\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  41 |\n  42 |   expect.soft(findings.rendered, `${spec.label}: page crashed / rendered empty`).toBe(true);\n> 43 |   expect.soft(findings.consoleErrors, `${spec.label}: console errors\\n${findings.consoleErrors.join('\\n')}`).toEqual([]);\n     |                                                                                                              ^\n  44 |   expect.soft(findings.missingTranslations, `${spec.label}: raw i18n keys leaked\\n${findings.missingTranslations.join(', ')}`).toEqual([]);\n  45 |   expect.soft(findings.horizontalOverflowPx, `${spec.label}: horizontal scroll ${findings.horizontalOverflowPx}px`).toBeLessThanOrEqual(2);\n  46 |   if (spec.expectNav) {\n    at smoke (D:\\Gym\\e2e\\ui-coverage.spec.ts:43:110)\n    at D:\\Gym\\e2e\\ui-coverage.spec.ts:124:32"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-21T15:11:05.971Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "audit-admin-overview",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4iLAogICJyZW5kZXJlZCI6IHRydWUsCiAgImNvbnNvbGVFcnJvcnMiOiBbXSwKICAibWlzc2luZ1RyYW5zbGF0aW9ucyI6IFtdLAogICJob3Jpem9udGFsT3ZlcmZsb3dQeCI6IDAKfQ=="
-                        },
-                        {
-                          "name": "audit-admin-accounts",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4vYWNjb3VudHMiLAogICJyZW5kZXJlZCI6IHRydWUsCiAgImNvbnNvbGVFcnJvcnMiOiBbXSwKICAibWlzc2luZ1RyYW5zbGF0aW9ucyI6IFtdLAogICJob3Jpem9udGFsT3ZlcmZsb3dQeCI6IDAKfQ=="
-                        },
-                        {
-                          "name": "audit-admin-assignments",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4vYXNzaWdubWVudHMiLAogICJyZW5kZXJlZCI6IHRydWUsCiAgImNvbnNvbGVFcnJvcnMiOiBbXSwKICAibWlzc2luZ1RyYW5zbGF0aW9ucyI6IFtdLAogICJob3Jpem9udGFsT3ZlcmZsb3dQeCI6IDAKfQ=="
-                        },
-                        {
-                          "name": "audit-admin-governance",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4vZ292ZXJuYW5jZSIsCiAgInJlbmRlcmVkIjogdHJ1ZSwKICAiY29uc29sZUVycm9ycyI6IFtdLAogICJtaXNzaW5nVHJhbnNsYXRpb25zIjogW10sCiAgImhvcml6b250YWxPdmVyZmxvd1B4IjogMAp9"
-                        },
-                        {
-                          "name": "audit-admin-analytics",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4vYW5hbHl0aWNzIiwKICAicmVuZGVyZWQiOiB0cnVlLAogICJjb25zb2xlRXJyb3JzIjogWwogICAgIkZhaWxlZCB0byBsb2FkIHJlc291cmNlOiB0aGUgc2VydmVyIHJlc3BvbmRlZCB3aXRoIGEgc3RhdHVzIG9mIDQyOSAoKSIsCiAgICAiRmFpbGVkIHRvIGxvYWQgcmVzb3VyY2U6IHRoZSBzZXJ2ZXIgcmVzcG9uZGVkIHdpdGggYSBzdGF0dXMgb2YgNDI5ICgpIiwKICAgICJGYWlsZWQgdG8gbG9hZCByZXNvdXJjZTogdGhlIHNlcnZlciByZXNwb25kZWQgd2l0aCBhIHN0YXR1cyBvZiA0MjkgKCkiLAogICAgIkZhaWxlZCB0byBsb2FkIHJlc291cmNlOiB0aGUgc2VydmVyIHJlc3BvbmRlZCB3aXRoIGEgc3RhdHVzIG9mIDQyOSAoKSIsCiAgICAiRmFpbGVkIHRvIGxvYWQgcmVzb3VyY2U6IHRoZSBzZXJ2ZXIgcmVzcG9uZGVkIHdpdGggYSBzdGF0dXMgb2YgNDI5ICgpIgogIF0sCiAgIm1pc3NpbmdUcmFuc2xhdGlvbnMiOiBbXSwKICAiaG9yaXpvbnRhbE92ZXJmbG93UHgiOiAwCn0="
-                        },
-                        {
-                          "name": "audit-admin-client-detail",
-                          "contentType": "application/json",
-                          "body": "ewogICJyb3V0ZSI6ICIvYWRtaW4vY2xpZW50cy9MemsyTVJIQUthWjFTamRFajBiTFQzbFJYVjgzIiwKICAicmVuZGVyZWQiOiB0cnVlLAogICJjb25zb2xlRXJyb3JzIjogW10sCiAgIm1pc3NpbmdUcmFuc2xhdGlvbnMiOiBbXSwKICAiaG9yaXpvbnRhbE92ZXJmbG93UHgiOiAwCn0="
-                        },
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "D:\\Gym\\test-results\\artifacts\\ui-coverage-UI-coverage-—-admin-admin-routes-mobile-chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "D:\\Gym\\test-results\\artifacts\\ui-coverage-UI-coverage-—-admin-admin-routes-mobile-chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "D:\\Gym\\test-results\\artifacts\\ui-coverage-UI-coverage-—-admin-admin-routes-mobile-chromium\\error-context.md"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "D:\\Gym\\test-results\\artifacts\\ui-coverage-UI-coverage-—-admin-admin-routes-mobile-chromium\\trace.zip"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "D:\\Gym\\e2e\\ui-coverage.spec.ts",
-                        "column": 110,
-                        "line": 43
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
+                  "attachments": []
                 }
               ],
-              "id": "ff0a45a3de6881ba2daa-563cf015fd44e3a953ab",
-              "file": "ui-coverage.spec.ts",
-              "line": 115,
-              "column": 3
+              "status": "expected"
             }
-          ]
+          ],
+          "id": "e6d2d13dd7ed0f9f3e8e-222f9d1de57e1f6941ad",
+          "file": "_shots.spec.ts",
+          "line": 5,
+          "column": 1
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-21T15:10:46.678Z",
-    "duration": 29001.271,
-    "expected": 0,
+    "startTime": "2026-06-24T19:20:45.813Z",
+    "duration": 36347.066999999995,
+    "expected": 1,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

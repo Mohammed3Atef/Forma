@@ -51,3 +51,33 @@ export async function provisionSelf(uid: string, email: string, phone?: string):
   await setDoc(doc(db, USERS, uid), record);
   return record;
 }
+
+/**
+ * Coach self-signup variant: provisions `users/{uid}` with role `coach`,
+ * `accountStatus: 'active'`, `createdBy: 'self'`, no permissions — the locked
+ * defaults the widened `isSelfProvisionDefaults()` rule permits. Idempotent
+ * (returns an existing record untouched). The caller separately creates the
+ * coach's auto trial plan (`coachPlans/{uid}`).
+ */
+export async function provisionSelfCoach(uid: string, email: string, phone?: string): Promise<UserRecord> {
+  const existing = await fetchUserRecord(uid);
+  if (existing) return existing;
+
+  const now = Date.now();
+  const record: UserRecord = {
+    id: uid,
+    email,
+    displayName: email ? email.split('@')[0] : 'Coach',
+    role: 'coach',
+    accountStatus: 'active',
+    permissions: [],
+    featureFlags: {},
+    createdBy: 'self',
+    ...(phone?.trim() ? { phone: phone.trim() } : {}),
+    createdAt: now,
+    updatedAt: now,
+  };
+  const { db } = ensureFirebase();
+  await setDoc(doc(db, USERS, uid), record);
+  return record;
+}

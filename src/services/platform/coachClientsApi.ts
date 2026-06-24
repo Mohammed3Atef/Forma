@@ -13,7 +13,8 @@ import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { addMonths } from '@/lib/subscription';
 import { writeAudit } from './auditApi';
 import { notify } from './notificationsApi';
-import type { CoachClientRelationship, Subscription, SubscriptionPeriod } from '@/types';
+import { bumpActiveClientCount } from './coachPlanApi';
+import type { CoachClientRelationship, Subscription, SubscriptionPeriod, SubscriptionStatus } from '@/types';
 
 const REL = 'coachClients';
 const USERS = 'users';
@@ -38,8 +39,11 @@ export async function linkCoachClient(coachId: string, clientId: string, created
   const { db } = ensureFirebase();
   const now = Date.now();
   const id = relId(coachId, clientId);
-  const rel: CoachClientRelationship = { id, coachId, clientId, status: 'active', createdBy, createdAt: now, updatedAt: now };
+  // Every linked client gets a subscription state (default 14-day trial).
+  const subscription: Subscription = { startAt: now, endAt: now + 14 * 86_400_000, status: 'trial', updatedAt: now };
+  const rel: CoachClientRelationship = { id, coachId, clientId, status: 'active', subscription, createdBy, createdAt: now, updatedAt: now };
   await setDoc(doc(db, REL, id), rel);
+  await bumpActiveClientCount(coachId, 1);
 }
 
 /** Assigns a client to a coach (idempotent on the deterministic id). */
@@ -58,6 +62,7 @@ export async function assignClientToCoach(coachId: string, clientId: string, cre
   };
   await setDoc(doc(db, REL, id), rel);
   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: coachId, updatedAt: now });
+  await bumpActiveClientCount(coachId, 1);
   await writeAudit({ action: 'coach.assign', targetUserId: clientId, metadata: { coachId } });
 }
 
@@ -84,6 +89,8 @@ export async function transferClient(
     updatedAt: now,
   } satisfies CoachClientRelationship);
   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: toCoachId, updatedAt: now });
+  if (fromCoachId && fromCoachId !== toCoachId) await bumpActiveClientCount(fromCoachId, -1);
+  if (fromCoachId !== toCoachId) await bumpActiveClientCount(toCoachId, 1);
   await writeAudit({ action: 'coach.transfer', targetUserId: clientId, metadata: { from: fromCoachId ?? null, to: toCoachId } });
 }
 
@@ -93,6 +100,7 @@ export async function unassignClient(clientId: string, coachId: string, createdB
   const now = Date.now();
   await updateDoc(doc(db, REL, relId(coachId, clientId)), { status: 'ended', updatedAt: now }).catch(() => undefined);
   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: deleteField(), updatedAt: now });
+  await bumpActiveClientCount(coachId, -1);
   await writeAudit({ action: 'coach.unassign', targetUserId: clientId, metadata: { coachId, createdBy } });
 }
 
@@ -211,5 +219,33 @@ export async function endSubscription(coachId: string, clientId: string): Promis
   const next: Subscription = { ...base, status: 'ended', endAt: now, frozenFrom: null, frozenUntil: null, updatedAt: now };
   await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
   await writeAudit({ action: 'sub.end', targetUserId: clientId, metadata: {} });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+const SUB_DAY = 86_400_000;
+
+/** Cancel the subscription now (tracking only — no refund/payment). */
+export async function cancelSubscription(coachId: string, clientId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  const now = Date.now();
+  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
+  const next: Subscription = { ...base, status: 'cancelled', cancelledAt: now, frozenFrom: null, frozenUntil: null, updatedAt: now };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.cancel', targetUserId: clientId, metadata: {} });
+  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+}
+
+/** Extend the term by N days (reactivates an expired/cancelled term). Tracking only. */
+export async function extendSubscription(coachId: string, clientId: string, days: number): Promise<void> {
+  const { db } = ensureFirebase();
+  const rel = await getRelationship(coachId, clientId);
+  const now = Date.now();
+  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
+  const from = Math.max(base.endAt, now);
+  const status: SubscriptionStatus = base.status === 'trial' ? 'trial' : 'active';
+  const next: Subscription = { ...base, status, endAt: from + days * SUB_DAY, cancelledAt: null, frozenFrom: null, frozenUntil: null, updatedAt: now };
+  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
+  await writeAudit({ action: 'sub.extend', targetUserId: clientId, metadata: { days } });
   await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
 }

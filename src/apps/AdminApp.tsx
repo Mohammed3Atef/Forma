@@ -13,6 +13,8 @@ import { AdminAssignments } from '@/pages/admin/AdminAssignments';
 import { AdminGovernance } from '@/pages/admin/AdminGovernance';
 import { AdminAnalytics } from '@/pages/admin/AdminAnalytics';
 import { AdminMedia } from '@/pages/admin/AdminMedia';
+import { AdminCoaches } from '@/pages/admin/AdminCoaches';
+import { AdminCoachDetail } from '@/pages/admin/AdminCoachDetail';
 
 /**
  * Admin / super-admin shell. Both roles share the `/admin/*` prefix and nav;
@@ -35,6 +37,8 @@ export function AdminApp() {
         <Route path="/admin/assignments" element={shell(<AdminAssignments />)} />
         <Route path="/admin/governance" element={shell(<AdminGovernance />)} />
         <Route path="/admin/analytics" element={shell(<AdminAnalytics />)} />
+        <Route path="/admin/coaches" element={shell(<AdminCoaches />)} />
+        <Route path="/admin/coaches/:coachId" element={shell(<AdminCoachDetail />)} />
         <Route path="/admin/media" element={shell(<AdminMedia />)} />
         <Route path="/admin/settings" element={shell(<RoleAccount />)} />
         <Route path="*" element={<Navigate to="/admin" replace />} />

@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getFirestore as getFirestoreFor } from 'firebase/firestore';
 import { firebaseEnvConfig } from './env';
 import type { FbSession } from './firestore';
 
@@ -106,6 +106,110 @@ export async function createClientViaApi(
   }
 
   return { uid, email: opts.email, password: opts.password, displayName: opts.displayName };
+}
+
+/**
+ * Generate a pending signup invite directly via the Firebase SDK from a COACH
+ * session (mirrors inviteApi.createInvite). Returns the code + link. Requires a
+ * signed-in coach whose context the rules vet.
+ */
+export function inviteCode(len = 8): string {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < len; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return out;
+}
+
+export interface NewInvite {
+  code: string;
+  coachId: string;
+  subStatus?: string;
+}
+
+export async function createInvite(
+  coach: FbSession,
+  opts: { email?: string; displayName?: string; phone?: string; coachName?: string; expiresAt?: number | null; subStatus?: string; subMonths?: number; subTrialDays?: number } = {},
+): Promise<NewInvite> {
+  const code = inviteCode();
+  const now = Date.now();
+  await setDoc(doc(coach.db, 'signupInvites', code), {
+    code,
+    coachId: coach.uid,
+    status: 'pending',
+    claimedByUid: null,
+    createdAt: now,
+    claimedAt: null,
+    expiresAt: opts.expiresAt === undefined ? now + 14 * 86_400_000 : opts.expiresAt,
+    subStatus: opts.subStatus ?? 'trial',
+    ...(opts.subMonths != null ? { subMonths: opts.subMonths } : {}),
+    ...(opts.subTrialDays != null ? { subTrialDays: opts.subTrialDays } : {}),
+    ...(opts.coachName ? { coachName: opts.coachName } : {}),
+    ...(opts.email ? { email: opts.email } : {}),
+    ...(opts.displayName ? { displayName: opts.displayName } : {}),
+    ...(opts.phone ? { phone: opts.phone } : {}),
+  });
+  return { code, coachId: coach.uid, subStatus: opts.subStatus ?? 'trial' };
+}
+
+/**
+ * Claim an invite end-to-end as a NEW client: mint the auth user, sign in as
+ * them, then (in the client's own context) create the identity doc with
+ * assignedCoachId, the coachClients relationship, and flip the invite to
+ * claimed — exactly the path AcceptInvite drives. Returns the new client creds.
+ *
+ * Mirrors the rules' invite-driven self-assignment: every write here is made
+ * from the freshly-created CLIENT's authenticated context.
+ */
+function claimSub(subStatus: string | undefined, now: number) {
+  const s = subStatus ?? 'trial';
+  if (s === 'pending') return { startAt: now, endAt: now, status: 'pending', updatedAt: now };
+  if (s === 'active') return { startAt: now, endAt: now + 30 * 86_400_000, months: 1, status: 'active', updatedAt: now };
+  return { startAt: now, endAt: now + 14 * 86_400_000, status: 'trial', updatedAt: now };
+}
+
+export async function claimInvite(
+  invite: NewInvite,
+  opts: { email: string; password: string; displayName: string; phone?: string },
+): Promise<NewClient> {
+  const app = initializeApp(firebaseEnvConfig(), `claim-${Date.now()}-${Math.random()}`);
+  try {
+    const auth = getAuth(app);
+    const cred = await createUserWithEmailAndPassword(auth, opts.email, opts.password);
+    const uid = cred.user.uid;
+    const db = getFirestoreFor(app);
+    const now = Date.now();
+    await setDoc(doc(db, 'users', uid), {
+      id: uid,
+      email: opts.email,
+      displayName: opts.displayName,
+      phone: opts.phone ?? '+10000000000',
+      role: 'client',
+      accountStatus: 'active',
+      permissions: [],
+      featureFlags: {},
+      createdBy: 'self',
+      assignedCoachId: invite.coachId,
+      inviteCode: invite.code,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await setDoc(doc(db, 'coachClients', `${invite.coachId}__${uid}`), {
+      id: `${invite.coachId}__${uid}`,
+      coachId: invite.coachId,
+      clientId: uid,
+      status: 'active',
+      createdBy: uid,
+      inviteCode: invite.code,
+      subscription: claimSub(invite.subStatus, now),
+      createdAt: now,
+      updatedAt: now,
+    });
+    await setDoc(doc(db, 'signupInvites', invite.code), { status: 'claimed', claimedByUid: uid, claimedAt: now }, { merge: true });
+    await signOut(auth).catch(() => undefined);
+    return { uid, email: opts.email, password: opts.password, displayName: opts.displayName };
+  } finally {
+    await deleteApp(app).catch(() => undefined);
+  }
 }
 
 /** Deterministic-ish unique email for a throwaway test client. */

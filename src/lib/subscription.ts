@@ -12,9 +12,27 @@ export function effectiveSubscriptionStatus(
   now = Date.now(),
 ): SubscriptionStatus | 'none' {
   if (!sub) return 'none';
-  if (sub.status === 'ended' || now >= sub.endAt) return 'ended';
+  if (sub.status === 'cancelled') return 'cancelled';
+  if (sub.status === 'ended') return 'ended';
+  if (sub.status === 'expired') return 'expired';
+  if (sub.status === 'pending') return 'pending';
   if (sub.status === 'frozen' && (sub.frozenUntil == null || now < sub.frozenUntil)) return 'frozen';
-  return 'active';
+  if (now >= sub.endAt) return 'expired'; // trial/active term lapsed
+  return sub.status === 'trial' ? 'trial' : 'active';
+}
+
+export type SubscriptionAccess = 'full' | 'limited' | 'readonly';
+
+/**
+ * Access the effective status grants the client:
+ *  - full: trial / active
+ *  - limited: pending / none (no proper subscription -> limited screen)
+ *  - readonly: expired / cancelled / frozen / ended (plans view-only)
+ */
+export function subscriptionAccess(status: SubscriptionStatus | 'none'): SubscriptionAccess {
+  if (status === 'trial' || status === 'active') return 'full';
+  if (status === 'pending' || status === 'none') return 'limited';
+  return 'readonly';
 }
 
 /** Whole days remaining in the term (0 once past). */

@@ -22,6 +22,7 @@ const ICON: Record<NotificationType, IconName> = {
   checkin_submitted: 'calendar',
   checkin_reviewed: 'check',
   message_received: 'info',
+  trial_expiring: 'timer',
 };
 
 function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {

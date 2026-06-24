@@ -21,7 +21,7 @@ interface SessionState {
   error: string | null;
   init: () => void;
   /** Resolves true on success; on failure sets `error` and resolves false. */
-  signIn: (email: string, password: string, create?: boolean, phone?: string) => Promise<boolean>;
+  signIn: (email: string, password: string, create?: boolean, phone?: string, role?: 'client' | 'coach') => Promise<boolean>;
   signOut: () => Promise<void>;
   /** Re-reads the identity doc for the current uid and recomputes `phase`. */
   refreshAccount: () => Promise<void>;
@@ -84,7 +84,7 @@ export const useSession = create<SessionState>((set, get) => ({
     });
   },
 
-  async signIn(email, password, create, phone) {
+  async signIn(email, password, create, phone, role) {
     set({ error: null });
     try {
       const [{ firebaseAuth }, accounts] = await Promise.all([
@@ -93,7 +93,19 @@ export const useSession = create<SessionState>((set, get) => ({
       ]);
       if (create) {
         const user = await firebaseAuth.signUp(email, password);
-        await accounts.provisionSelf(user.uid, email, phone);
+        if (role === 'coach') {
+          await accounts.provisionSelfCoach(user.uid, email, phone);
+          // Auto trial plan (Layer A). Best-effort: a failure here must not block
+          // the coach from signing in — backfill/reconcile can repair it.
+          try {
+            const { createTrialPlan } = await import('@/services/platform/coachPlanApi');
+            await createTrialPlan(user.uid);
+          } catch (e) {
+            console.warn('[session] coach trial plan not created (non-fatal):', e);
+          }
+        } else {
+          await accounts.provisionSelf(user.uid, email, phone);
+        }
         set({ uid: user.uid });
       } else {
         const user = await firebaseAuth.signIn(email, password);

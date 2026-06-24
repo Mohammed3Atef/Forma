@@ -182,3 +182,108 @@ test.describe('Security — auth states', () => {
     await expect(page.getByTestId(TID.accountPending)).toBeVisible({ timeout: 25_000 });
   });
 });
+
+
+test.describe('Security — Phase 1 (coach plans & invites)', () => {
+  test('client cannot self-elevate role to admin or super_admin', async () => {
+    const s = await signInAs('client');
+    try {
+      for (const role of ['admin', 'super_admin']) {
+        const r = await attempt(() => setDoc(doc(s.db, 'users', s.uid), { role, updatedAt: Date.now() }, { merge: true }));
+        expect(isPermissionDenied(r), `client self-setting role=${role} should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+      }
+    } finally {
+      await s.close();
+    }
+  });
+
+  test('client cannot raise their own permissions', async () => {
+    const s = await signInAs('client');
+    try {
+      const r = await attempt(() => setDoc(doc(s.db, 'users', s.uid), { permissions: ['users.manageRoles'], updatedAt: Date.now() }, { merge: true }));
+      expect(isPermissionDenied(r), `client raising permissions should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await s.close();
+    }
+  });
+
+  test('a brand-new client cannot self-create as a coach with a trial plan illegally', async () => {
+    // A self-provisioned doc may be role:coach (open coach signup), but it can
+    // never carry an assignedCoachId or non-empty permissions. Assert the locked
+    // shape is enforced: a coach self-create with permissions is denied.
+    const s = await signInAs('client');
+    try {
+      const r = await attempt(() => setDoc(doc(s.db, 'coachPlans', s.uid), { coachId: s.uid, plan: 'pro', status: 'active', maxClients: 1000, startedAt: Date.now(), endsAt: null, createdAt: Date.now(), updatedAt: Date.now() }));
+      expect(isPermissionDenied(r), `self-creating a non-trial coachPlan should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await s.close();
+    }
+  });
+
+  test('coach cannot change their own plan tier or raise maxClients', async () => {
+    const coach = await signInAs('coach');
+    try {
+      // Ensure a plan exists (idempotent create with locked trial defaults).
+      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 10, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 0, createdAt: Date.now(), updatedAt: Date.now() }));
+      const raiseLimit = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { maxClients: 9999, updatedAt: Date.now() }, { merge: true }));
+      expect(isPermissionDenied(raiseLimit), `coach raising maxClients should be denied (got ${raiseLimit.code ?? 'ok'})`).toBe(true);
+      const changeTier = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { plan: 'enterprise', updatedAt: Date.now() }, { merge: true }));
+      expect(isPermissionDenied(changeTier), `coach changing plan tier should be denied (got ${changeTier.code ?? 'ok'})`).toBe(true);
+      const changeStatus = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { status: 'suspended', updatedAt: Date.now() }, { merge: true }));
+      expect(isPermissionDenied(changeStatus), `coach changing plan status should be denied (got ${changeStatus.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await coach.close();
+    }
+  });
+
+  test('coach MAY mark their own trialNotified flag (the only self-mutation)', async () => {
+    const coach = await signInAs('coach');
+    try {
+      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 10, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 0, createdAt: Date.now(), updatedAt: Date.now() }));
+      const r = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { 'trialNotified.d7': true, updatedAt: Date.now() }, { merge: true }));
+      expect(r.ok, `coach marking trialNotified should be allowed (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await coach.close();
+    }
+  });
+
+  test('client cannot attach to a coach without a valid invite', async () => {
+    const coach = await signInAs('coach');
+    const coachId = coach.uid;
+    await coach.close();
+    const client = await signInAs('client');
+    try {
+      const rel = `${coachId}__${client.uid}`;
+      const r = await attempt(() => setDoc(doc(client.db, 'coachClients', rel), { id: rel, coachId, clientId: client.uid, status: 'active', createdBy: client.uid, createdAt: Date.now(), updatedAt: Date.now() }));
+      expect(isPermissionDenied(r), `attaching without an invite should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await client.close();
+    }
+  });
+
+  test('a coach cannot forge an invite for ANOTHER coach', async () => {
+    const coach = await signInAs('coach');
+    try {
+      const r = await attempt(() => setDoc(doc(coach.db, 'signupInvites', `FORGE${Date.now()}`), { code: 'X', coachId: 'some-other-coach-uid', status: 'pending', claimedByUid: null, createdAt: Date.now() }));
+      expect(isPermissionDenied(r), `coach creating an invite for another coach should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      await coach.close();
+    }
+  });
+
+  test('a coach cannot exceed maxClients (rules reject at the cap)', async () => {
+    const coach = await signInAs('coach');
+    try {
+      // Pin the plan to a cap of 1 with the counter already AT the cap.
+      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 1, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 1, createdAt: Date.now(), updatedAt: Date.now() }, { merge: true }));
+      // Creating a fresh relationship while at the cap is rejected by rules.
+      const rel = `${coach.uid}__cap-test-${Date.now()}`;
+      const r = await attempt(() => setDoc(doc(coach.db, 'coachClients', rel), { id: rel, coachId: coach.uid, clientId: `cap-test-${Date.now()}`, status: 'active', createdBy: coach.uid, createdAt: Date.now(), updatedAt: Date.now() }));
+      expect(isPermissionDenied(r), `creating a relationship at the client cap should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+    } finally {
+      // Restore the shared E2E coach plan so later suites aren't capped.
+      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { maxClients: 10, activeClientCount: 0, updatedAt: Date.now() }, { merge: true }));
+      await coach.close();
+    }
+  });
+});

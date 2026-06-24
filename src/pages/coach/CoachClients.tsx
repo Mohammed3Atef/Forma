@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,32 +11,27 @@ import { DetailPanel } from '@/components/ui/DetailPanel';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
-import { listMyClients, saveClientProfile } from '@/services/platform/coachApi';
+import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
-import { createAccount } from '@/services/accounts/createUserSecondary';
-import { linkCoachClient } from '@/services/platform/coachClientsApi';
-import { passwordError } from '@/lib/password';
+import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { shortDate } from '@/lib/utils';
-import type { AccountStatus, ActivityLevel, Goal } from '@/types';
+import type { AccountStatus, SignupInvite } from '@/types';
 
-const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
-const ACTIVITIES: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 const ACCT_PILL: Record<AccountStatus, string> = {
   active: 'border-success/50 text-success',
   pending: 'border-warn/50 text-warn',
   suspended: 'border-danger/50 text-danger',
   disabled: 'border-danger/50 text-danger',
 };
-// Coaches manage a simple Active / Frozen (suspended) / Trashed (disabled)
-// lifecycle — 'pending' is an admin/signup state, not exposed here.
 const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
 const PAGE = 20;
 
 export function CoachClients() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const coachId = useSession((s) => s.account?.id);
+  const coachName = useSession((s) => s.account?.displayName ?? '');
   const isDesktop = useIsDesktop();
   const [params] = useSearchParams();
   const [search, setSearch] = useState(() => params.get('q') ?? '');
@@ -50,14 +45,22 @@ export function CoachClients() {
     queryFn: () => listMyClients(coachId!),
     enabled: !!coachId,
   });
-  // Desktop CRM table needs adherence / assessment / last-activity per client —
-  // reuse the dashboard aggregate (shared cache). Mobile never pays for it.
   const dash = useQuery({
     queryKey: ['coachDashboard', coachId],
     queryFn: () => getCoachDashboard(coachId!),
     enabled: !!coachId && isDesktop,
     staleTime: 60_000,
   });
+
+  const plan = useQuery({
+    queryKey: ['coachPlan', coachId],
+    queryFn: () => getCoachPlan(coachId!),
+    enabled: !!coachId,
+    staleTime: 60_000,
+  });
+  const maxClients = plan.data?.maxClients ?? Infinity;
+  const usedClients = plan.data?.activeClientCount ?? (clients.data?.filter((c) => c.accountStatus !== 'disabled').length ?? 0);
+  const atLimit = Number.isFinite(maxClients) && usedClients >= maxClients;
 
   const matches = (name: string, email: string, phone: string | undefined, q: string) =>
     (name || email).toLowerCase().includes(q) || email.toLowerCase().includes(q) || (phone ?? '').includes(q);
@@ -78,7 +81,6 @@ export function CoachClients() {
     });
   }, [dash.data, search, statusFilter]);
 
-  // Reset the page window whenever the filter/search changes.
   useEffect(() => { setVisible(PAGE); }, [search, statusFilter]);
   const shown = filtered.slice(0, visible);
   const sentinel = useInfiniteScroll(() => setVisible((v) => v + PAGE), visible < filtered.length);
@@ -150,11 +152,17 @@ export function CoachClients() {
         }
       />
 
+      {Number.isFinite(maxClients) && (
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-line-soft px-3 py-2 text-[13px]" data-testid="coach-client-usage">
+          <span className="text-earth-muted">{t('coachTrial.usage', { used: usedClients, max: maxClients })}</span>
+          {atLimit && <span className="text-warn" data-testid="coach-client-limit">{t('coachTrial.limitReached')}</span>}
+        </div>
+      )}
+
       {searchBar}
       {filterBar}
 
       {isDesktop ? (
-        /* Desktop CRM master-detail */
         <div className="flex gap-5">
           <div className="min-w-0 flex-1">
             <DataTable
@@ -200,20 +208,131 @@ export function CoachClients() {
       )}
 
       <Sheet open={adding} onClose={() => setAdding(false)} title={t('coach.addClient')}>
-        <AddClientForm
-          coachId={coachId ?? ''}
-          onDone={() => {
-            setAdding(false);
-            void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
-            void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
-          }}
-        />
+        {adding && <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />}
       </Sheet>
     </div>
   );
 }
 
-/** Desktop master-detail preview of the selected client. */
+function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: string; coachName: string; atLimit: boolean; maxClients: number }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [copied, setCopied] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState({ name: '', email: '', phone: '' });
+  const [subPlan, setSubPlan] = useState<'trial' | 'pending' | '1m' | '3m'>('trial');
+  const [price, setPrice] = useState('');
+  // Invites generated in THIS session; on close, revoke any that weren't copied
+  // (abandoned links) so stale links don't pile up. Copying a link = keep it.
+  const generated = useRef<Set<string>>(new Set());
+  const kept = useRef<Set<string>>(new Set());
+  useEffect(() => () => {
+    for (const code of generated.current) {
+      if (!kept.current.has(code)) void revokeInvite(code).catch(() => undefined);
+    }
+  }, []);
+
+  const pending = useQuery({
+    queryKey: ['pendingInvites', coachId],
+    queryFn: () => listPendingInvites(coachId),
+    enabled: !!coachId,
+  });
+
+  const gen = useMutation({
+    mutationFn: () => {
+      const sub =
+        subPlan === 'pending' ? { subStatus: 'pending' as const }
+        : subPlan === '1m' ? { subStatus: 'active' as const, subMonths: 1 }
+        : subPlan === '3m' ? { subStatus: 'active' as const, subMonths: 3 }
+        : { subStatus: 'trial' as const, subTrialDays: 14 };
+      return createInvite(coachId, {
+        coachName,
+        displayName: prefill.name.trim() || undefined,
+        email: prefill.email.trim() || undefined,
+        phone: prefill.phone.trim() || undefined,
+        ...sub,
+        ...(price.trim() ? { subPrice: Number(price) || undefined } : {}),
+      });
+    },
+    onSuccess: (inv) => {
+      generated.current.add(inv.code);
+      setPrefill({ name: '', email: '', phone: '' });
+      setPrice('');
+      void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
+    },
+  });
+  const revoke = useMutation({
+    mutationFn: (code: string) => revokeInvite(code),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
+  });
+
+  const copy = async (code: string) => {
+    const link = inviteLink(code);
+    kept.current.add(code);
+    try {
+      await navigator.clipboard?.writeText(link);
+      setCopied(code);
+      setTimeout(() => setCopied((c) => (c === code ? null : c)), 2000);
+    } catch {
+      /* clipboard blocked — the link text is still visible to copy manually */
+    }
+  };
+
+  return (
+    <div className="space-y-4" data-testid="coach-invite-panel">
+      <p className="text-sm text-earth-muted">{t('invite.panelHint')}</p>
+
+      {atLimit ? (
+        <p className="text-sm text-warn" data-testid="coach-invite-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
+      ) : (
+        <div className="space-y-2">
+          <input className="input" data-testid="coach-invite-name" placeholder={`${t('settings.name')} (${t('invite.optional')})`} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
+          <input className="input" type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={`${t('settings.email')} (${t('invite.optional')})`} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
+          <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={`${t('settings.phone')} (${t('invite.optional')})`} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
+          <label className="label pt-1">{t('invite.subTitle')}</label>
+          <select className="input" data-testid="coach-invite-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
+            <option value="trial">{t('invite.subTrial')}</option>
+            <option value="1m">{t('invite.sub1m')}</option>
+            <option value="3m">{t('invite.sub3m')}</option>
+            <option value="pending">{t('invite.subPending')}</option>
+          </select>
+          {subPlan !== 'pending' && (
+            <input className="input" inputMode="decimal" data-testid="coach-invite-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+          )}
+          <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
+            {gen.isPending ? t('auth.working') : t('invite.generate')}
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="label">{t('invite.pending')}</p>
+        {pending.isLoading ? (
+          <p className="text-sm text-earth-muted">{t('auth.working')}</p>
+        ) : (pending.data ?? []).length === 0 ? (
+          <p className="text-sm text-earth-subtle" data-testid="coach-invite-empty">{t('invite.none')}</p>
+        ) : (
+          <div className="card divide-y divide-line-soft">
+            {(pending.data ?? []).map((inv: SignupInvite) => (
+              <div key={inv.code} className="flex items-center gap-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-mono text-sm">{inv.code}</span>
+                  <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
+                </span>
+                <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
+                  {copied === inv.code ? t('invite.copied') : t('invite.copy')}
+                </button>
+                <button type="button" data-testid="coach-invite-revoke" className="btn-ghost h-8 px-3 text-[11px] text-danger" onClick={() => revoke.mutate(inv.code)}>
+                  {t('invite.revoke')}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
   const { t, i18n } = useTranslation();
   const c = row.client;
@@ -247,101 +366,5 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-earth-subtle">{label}</span>
       <span className="text-end font-medium">{value}</span>
     </div>
-  );
-}
-
-function AddClientForm({ coachId, onDone }: { coachId: string; onDone: () => void }) {
-  const { t } = useTranslation();
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    phone: '',
-    age: '',
-    weight: '',
-    height: '',
-    goal: 'recomp' as Goal,
-    activity: 'moderate' as ActivityLevel,
-  });
-  const [error, setError] = useState<string | null>(null);
-  const num = (s: string) => Math.max(0, Number(s) || 0);
-
-  const mut = useMutation({
-    mutationFn: async () => {
-      const record = await createAccount({
-        email: form.email.trim(),
-        password: form.password,
-        displayName: form.name,
-        phone: form.phone.trim() || undefined,
-        role: 'client',
-        accountStatus: 'active',
-        createdBy: coachId,
-        assignedCoachId: coachId,
-      });
-      await linkCoachClient(coachId, record.id, coachId);
-      // Optional starting profile — best-effort; the client can complete it on
-      // first login if left blank.
-      try {
-        await saveClientProfile(record.id, {
-          id: record.id,
-          name: form.name.trim(),
-          age: num(form.age),
-          weightKg: num(form.weight),
-          heightCm: num(form.height),
-          goal: form.goal,
-          activityLevel: form.activity,
-          locale: 'en',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-      } catch (e) {
-        console.warn('[coach] initial profile not saved:', e);
-      }
-    },
-    onSuccess: onDone,
-    onError: (e) => setError(e instanceof Error ? e.message : 'Failed'),
-  });
-
-  const valid = form.name.trim() && form.email.trim().length > 3 && form.phone.trim() && !passwordError(form.password);
-
-  return (
-    <form
-      className="space-y-3"
-      data-testid="coach-add-client-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        setError(null);
-        if (valid) mut.mutate();
-      }}
-    >
-      <p className="text-sm text-earth-muted">{t('coach.addClientHint')}</p>
-      <input className="input" data-testid="coach-add-name" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-      <input className="input" type="email" autoComplete="off" data-testid="coach-add-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-      <input className="input" type="password" autoComplete="new-password" data-testid="coach-add-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-      <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="coach-add-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-      <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
-
-      <p className="label pt-1">{t('coach.profileOptional')}</p>
-      <div className="grid grid-cols-3 gap-2">
-        <input className="input" inputMode="numeric" placeholder={t('settings.age')} value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
-        <input className="input" inputMode="decimal" placeholder={`${t('settings.weight')} (${t('common.kg')})`} value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
-        <input className="input" inputMode="numeric" placeholder={`${t('settings.height')} (cm)`} value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} />
-      </div>
-      <select className="input" value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value as Goal })}>
-        {GOALS.map((g) => (
-          <option key={g} value={g}>{t(`settings.goals.${g}`)}</option>
-        ))}
-      </select>
-      <select className="input" value={form.activity} onChange={(e) => setForm({ ...form, activity: e.target.value as ActivityLevel })}>
-        {ACTIVITIES.map((a) => (
-          <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>
-        ))}
-      </select>
-
-      {error && <p className="text-sm text-danger" data-testid="coach-add-error">{error}</p>}
-      <button type="submit" disabled={!valid || mut.isPending} data-testid="coach-add-submit" className="btn-primary w-full disabled:opacity-40">
-        {mut.isPending ? t('auth.working') : t('coach.createClient')}
-      </button>
-    </form>
   );
 }

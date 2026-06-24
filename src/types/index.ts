@@ -78,8 +78,80 @@ export interface UserRecord {
   featureFlags: Record<string, boolean>;
   createdBy: string; // actor uid, or 'self' for open sign-up
   assignedCoachId?: string; // clients managed by a coach
+  /** Invite code used at signup (invite-driven self-assignment); audit/trace only. */
+  inviteCode?: string;
+  // Coach profile (all optional; populated as the coach completes onboarding).
+  bio?: string;
+  specialty?: string;
+  yearsExperience?: number;
+  instagram?: string;
+  whatsapp?: string;
+  /** Coach onboarding checklist progress (Phase 1). Derived from real data where possible. */
+  onboarding?: CoachOnboarding;
   createdAt: number;
   updatedAt: number;
+}
+
+/** Coach onboarding checklist state, stored on the coach's own `users/{uid}` doc. */
+export interface CoachOnboarding {
+  profileDone?: boolean;
+  firstClientDone?: boolean;
+  firstTemplateDone?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Coach plan (Layer A — the coach's own subscription to Forma). NEW collection
+// `coachPlans/{coachId}`. Distinct from the per-client `Subscription` (Layer B).
+// ---------------------------------------------------------------------------
+
+export type CoachPlanTier = 'trial' | 'starter' | 'pro' | 'enterprise';
+export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
+
+export interface CoachPlan {
+  coachId: string; // == doc id
+  plan: CoachPlanTier;
+  status: CoachPlanStatus;
+  maxClients: number; // trial = 10
+  startedAt: number;
+  endsAt: number | null; // trial = startedAt + 15d; paid tiers null until later
+  /** Trial-expiry notification bookkeeping — each flag fires its reminder once. */
+  trialNotified?: { d7?: boolean; d3?: boolean; d1?: boolean };
+  /** Maintained client-usage counter; rules reject a new relationship at the cap. */
+  activeClientCount?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// Client invitations (Phase 1). NEW collection `signupInvites/{code}`. A coach
+// generates a single-use code; the visitor claims it at `/invite/:code`, sets a
+// password, and is auto-assigned to that coach.
+// ---------------------------------------------------------------------------
+
+export type SignupInviteStatus = 'pending' | 'claimed' | 'revoked';
+
+export interface SignupInvite {
+  code: string; // == doc id
+  coachId: string;
+  /** Coach display name, denormalised so the pre-auth claim screen can show it without a users read. */
+  coachName?: string;
+  email?: string;
+  displayName?: string;
+  phone?: string;
+  // Client subscription the coach chose on this invite; applied on claim so no
+  // invited client is ever assigned without a subscription state. Defaults to trial.
+  subStatus?: SubscriptionStatus;
+  subPlanName?: string;
+  subPrice?: number;
+  subCurrency?: string;
+  subBillingCycle?: BillingCycle;
+  subMonths?: number; // for an 'active' term (1 or 3)
+  subTrialDays?: number; // for a 'trial' (default 14)
+  status: SignupInviteStatus;
+  claimedByUid?: string | null;
+  createdAt: number;
+  claimedAt?: number | null;
+  expiresAt?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +272,9 @@ export interface ClientAssessment {
 export type CoachClientStatus = 'active' | 'pending' | 'ended';
 
 /** Coaching subscription lifecycle (stored on the coach⇄client relationship). */
-export type SubscriptionStatus = 'active' | 'frozen' | 'ended';
+export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'custom';
+/** Coaching subscription state. trial/active = full; pending = limited; expired/cancelled/frozen = read-only (full gating lands in Phase 2). */
+export type SubscriptionStatus = 'trial' | 'active' | 'pending' | 'expired' | 'cancelled' | 'frozen' | 'ended';
 
 /**
  * A client's coaching subscription, kept on the `coachClients/{coachId__clientId}`
@@ -214,6 +288,9 @@ export interface Subscription {
   months?: number; // original term, for display
   price?: number; // amount the coach charges for this term (coach-set, client-read)
   currency?: string; // e.g. "EGP", "USD" — coach-set
+  planName?: string; // coach-facing label
+  billingCycle?: BillingCycle;
+  cancelledAt?: number | null;
   status: SubscriptionStatus;
   frozenFrom?: number | null;
   frozenUntil?: number | null;
@@ -246,6 +323,8 @@ export interface CoachClientRelationship {
   subscription?: Subscription;
   /** Past subscription terms (newest pushed last), for the history view. */
   subscriptionHistory?: SubscriptionPeriod[];
+  /** Invite code that established the relationship (invite-driven self-claim). */
+  inviteCode?: string;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -354,7 +433,8 @@ export type NotificationType =
   | 'checkin_requested'
   | 'checkin_submitted'
   | 'checkin_reviewed'
-  | 'message_received';
+  | 'message_received'
+  | 'trial_expiring';
 
 /**
  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
+import { SubscriptionGate } from '@/components/SubscriptionGate';
 import { ClientNotesProvider } from '@/components/ClientNotesProvider';
 import { Onboarding } from '@/components/Onboarding';
 import { Splash } from '@/components/Splash';
@@ -111,20 +112,20 @@ function ClientGate() {
     <ClientNotesProvider>
       <Onboarding />
       <Routes>
-        <Route path="/" element={<AppShell showDayNav><Home /></AppShell>} />
+        <Route path="/" element={<AppShell showDayNav><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
         <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
         <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
         <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
         <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
         <Route path="/assessment" element={<AppShell><MyAssessment /></AppShell>} />
         <Route path="/messages" element={<AppShell><Messages /></AppShell>} />
-        <Route path="/workout" element={<AppShell><Workout /></AppShell>} />
-        <Route path="/workout/routine/:dayId" element={<AppShell><RoutineDetail /></AppShell>} />
+        <Route path="/workout" element={<AppShell><SubscriptionGate><Workout /></SubscriptionGate></AppShell>} />
+        <Route path="/workout/routine/:dayId" element={<AppShell><SubscriptionGate><RoutineDetail /></SubscriptionGate></AppShell>} />
         <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
         <Route path="/workout/exercise/:exId" element={<AppShell><ExerciseDetail /></AppShell>} />
-        <Route path="/workout/session" element={<AppShell hideNav><WorkoutSession /></AppShell>} />
-        <Route path="/nutrition" element={<AppShell showDayNav><Nutrition /></AppShell>} />
-        <Route path="/cardio" element={<AppShell showDayNav><Cardio /></AppShell>} />
+        <Route path="/workout/session" element={<AppShell hideNav><SubscriptionGate><WorkoutSession /></SubscriptionGate></AppShell>} />
+        <Route path="/nutrition" element={<AppShell showDayNav><SubscriptionGate><Nutrition /></SubscriptionGate></AppShell>} />
+        <Route path="/cardio" element={<AppShell showDayNav><SubscriptionGate><Cardio /></SubscriptionGate></AppShell>} />
         <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
         <Route path="/history" element={<AppShell><History /></AppShell>} />
         <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
@@ -133,7 +134,7 @@ function ClientGate() {
         <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
         <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
         <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
-        <Route path="*" element={<AppShell><Home /></AppShell>} />
+        <Route path="*" element={<AppShell><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
       </Routes>
     </ClientNotesProvider>
   );

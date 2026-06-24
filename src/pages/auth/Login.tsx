@@ -18,6 +18,7 @@ export function Login() {
   const [params] = useSearchParams();
   const [mode, setMode] = useState<'signin' | 'signup'>(params.get('signup') === '1' ? 'signup' : 'signin');
   const [creds, setCreds] = useState({ email: '', password: '', confirm: '', phone: '' });
+  const [signupRole, setSignupRole] = useState<'client' | 'coach'>('client');
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -38,7 +39,7 @@ export function Login() {
     }
     setBusy(true);
     try {
-      await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined);
+      await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined, signupRole);
     } finally {
       setBusy(false);
     }
@@ -67,6 +68,23 @@ export function Login() {
         <p className="text-sm text-earth-muted">{t('auth.intro')}</p>
 
         <form className="card space-y-3" data-testid="login-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+          {mode === 'signup' && (
+            <div data-testid="signup-role" className="grid grid-cols-2 gap-2">
+              {(['client', 'coach'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  data-testid={`signup-role-${r}`}
+                  aria-pressed={signupRole === r}
+                  onClick={() => setSignupRole(r)}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${signupRole === r ? 'border-brand bg-brand/10 text-brand' : 'border-line-soft text-earth-muted'}`}
+                >
+                  {t(`auth.role.${r}`)}
+                </button>
+              ))}
+            </div>
+          )}
+          {mode === 'signup' && <p className="text-[12px] text-earth-subtle">{t(`auth.roleHint.${signupRole}`)}</p>}
           <input className="input" type="email" autoComplete="email" data-testid="login-email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
           {mode === 'signup' && (
             <input className="input" type="tel" autoComplete="tel" inputMode="tel" dir="ltr" data-testid="login-phone" placeholder={t('settings.phone')} value={creds.phone} onChange={(e) => setCreds({ ...creds, phone: e.target.value })} />

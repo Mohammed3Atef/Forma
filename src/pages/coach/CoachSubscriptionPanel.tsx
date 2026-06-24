@@ -6,7 +6,9 @@ import { SubscriptionHistory } from '@/components/SubscriptionHistory';
 import { confirmDialog } from '@/stores/dialogStore';
 import { setAccountStatus } from '@/services/platform/accountsApi';
 import {
+  cancelSubscription,
   endSubscription,
+  extendSubscription,
   freezeSubscription,
   getRelationship,
   setSubscriptionPrice,
@@ -19,8 +21,12 @@ import type { AccountStatus, UserRecord } from '@/types';
 
 const SUB_PILL: Record<string, string> = {
   none: 'border-line text-earth-subtle',
+  trial: 'border-brand/50 text-brand',
   active: 'border-success/50 text-success',
+  pending: 'border-warn/50 text-warn',
   frozen: 'border-warn/50 text-warn',
+  expired: 'border-danger/50 text-danger',
+  cancelled: 'border-danger/50 text-danger',
   ended: 'border-danger/50 text-danger',
 };
 const ACCT_PILL: Record<AccountStatus, string> = {
@@ -60,6 +66,8 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   });
   const unfreeze = useMutation({ mutationFn: () => unfreezeSubscription(coachId, clientId), onSuccess: invalidate });
   const end = useMutation({ mutationFn: () => endSubscription(coachId, clientId), onSuccess: invalidate });
+  const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: invalidate });
+  const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: invalidate });
   const decide = useMutation({
     mutationFn: ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) =>
       resolveFreezeRequest(clientId, coachId, outcome, note).then(async () => {
@@ -118,6 +126,9 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
               <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
             ) : null}
             {sub && status !== 'ended' && <button type="button" className="chip text-danger" data-testid="sub-end" disabled={end.isPending} onClick={() => void doEnd()}>{t('subscription.end')}</button>}
+            {sub && (status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => extend.mutate(30)}>{t('subscription.extend')}</button>}
+            {sub && (status === 'active' || status === 'trial') && <button type="button" className="chip text-danger" data-testid="sub-cancel" disabled={cancel.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>}
+            {sub && (status === 'expired' || status === 'cancelled' || status === 'ended') && <button type="button" className="chip" data-testid="sub-renew" onClick={() => setSheet('term')}>{t('subscription.renew')}</button>}
           </div>
           <SubscriptionHistory sub={sub} history={rel.data?.subscriptionHistory} />
         </div>

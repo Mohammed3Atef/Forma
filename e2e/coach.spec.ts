@@ -1,7 +1,7 @@
 import { test, expect, type Page } from './fixtures/test';
 import { TID } from './fixtures/selectors';
 import { signInAs, findUserByEmail, findCoachClientRel, readDoc, attempt, isPermissionDenied, setDoc, doc } from './fixtures/firestore';
-import { uniqueEmail } from './fixtures/factory';
+import { uniqueEmail, createClientViaApi } from './fixtures/factory';
 
 /**
  * COACH — the core authoring role. Creates a client through the real UI, then
@@ -29,6 +29,19 @@ async function openManage(page: Page, action: string): Promise<void> {
 }
 
 test.describe.serial('Coach', () => {
+  // Seed the working client through the API (admin/coach path) so the authoring
+  // tests below have a client to operate on. The COACH UI "add client" flow is
+  // now invite-based (no temp passwords) and is asserted separately.
+  test.beforeAll(async () => {
+    const s = await signInAs('coach');
+    try {
+      const c = await createClientViaApi(s, { email: clientEmail, password: PW, displayName: clientName });
+      clientId = c.uid;
+    } finally {
+      await s.close();
+    }
+  });
+
   test.beforeEach(async ({ login }) => {
     await login('coach');
   });
@@ -39,27 +52,28 @@ test.describe.serial('Coach', () => {
     await expect(page.getByTestId(TID.coachAddClient)).toBeVisible();
   });
 
-  test('creates a client (name + email + temp password); active + auto-assigned', async ({ page }) => {
+  test('Add Client opens the INVITE flow (no temp password) and generates an invite', async ({ page }) => {
     await page.goto('/coach');
     await page.getByTestId(TID.coachAddClient).click();
-    await expect(page.getByTestId(TID.coachAddForm)).toBeVisible();
-    await page.getByTestId(TID.coachAddName).fill(clientName);
-    await page.getByTestId(TID.coachAddEmail).fill(clientEmail);
-    await page.getByTestId(TID.coachAddPassword).fill(PW);
-    await page.getByTestId(TID.coachAddPhone).fill('+15551234567');
-    await page.getByTestId(TID.coachAddSubmit).click();
-    await expect(page.getByTestId(TID.coachAddForm)).toBeHidden({ timeout: 25_000 });
+    // The invite panel is the add-client flow — no temp-password field exists.
+    await expect(page.getByTestId(TID.coachInvitePanel)).toBeVisible();
+    await expect(page.getByTestId(TID.coachAddPassword)).toHaveCount(0);
+    await page.getByTestId(TID.coachInviteGenerate).click();
+    await expect(page.getByTestId(TID.coachInviteRow).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId(TID.coachInviteRow).first().getByTestId(TID.coachInviteCopy)).toBeVisible();
+  });
 
+  test('seeded client is active + auto-assigned to this coach', async ({ page }) => {
+    test.skip(!clientId, 'client not seeded');
     // Appears in the coach's own list.
+    await page.goto('/coach');
     const row = page.locator('[data-testid="coach-client-row"]', { hasText: clientName }).first();
     await expect(row).toBeVisible({ timeout: 20_000 });
 
-    // Verify active + assigned to THIS coach + relationship doc exists.
     const s = await signInAs('coach');
     try {
       const rec = await findUserByEmail(s.db, clientEmail);
       expect(rec, 'client identity doc').not.toBeNull();
-      clientId = rec!.id;
       expect(rec!.role).toBe('client');
       expect(rec!.accountStatus).toBe('active');
       expect(rec!.assignedCoachId).toBe(s.uid);

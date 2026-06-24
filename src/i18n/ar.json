@@ -112,6 +112,7 @@
     "adminAssignments": "الإسناد",
     "adminGovernance": "الإعدادات",
     "adminAnalytics": "التحليلات",
+    "adminCoaches": "المدرّبون",
     "adminImages": "الصور"
   },
   "common": {
@@ -549,7 +550,12 @@
     "pendingBody": "حسابك بانتظار الموافقة. ستحصل على صلاحية الدخول بمجرد تفعيله من قبل المسؤول.",
     "checkAgain": "تحقّق مجددًا",
     "suspendedTitle": "الحساب غير متاح",
-    "suspendedBody": "حسابك موقوف حاليًا. يُرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
+    "suspendedBody": "حسابك موقوف حاليًا. يُرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ.",
+    "role": { "client": "متدرّب", "coach": "مدرّب" },
+    "roleHint": {
+      "client": "تابع تدريبك مع مدرّبك.",
+      "coach": "أدِر متدربيك وابدأ فترة تجريبية مجانية."
+    }
   },
   "roles": {
     "super_admin": "مشرف عام",
@@ -790,7 +796,49 @@
     "needsReview": "بحاجة لمراجعة",
     "substitutions": "التبديلات"
   },
+  "adminCoaches": {
+    "title": "المدرّبون",
+    "coach": "المدرّب",
+    "plan": "الخطة",
+    "clientsUsed": "العملاء المستخدمون",
+    "registered": "تاريخ التسجيل",
+    "totalCoaches": "إجمالي المدرّبين",
+    "trial": "تجريبي",
+    "active": "نشط",
+    "expired": "منتهٍ",
+    "totalClients": "إجمالي العملاء",
+    "conversion": "تجريبي←نشط",
+    "none": "لا يوجد مدرّبون بعد.",
+    "trialDaysLeft": "أيام التجربة المتبقية",
+    "accountStatus": "الحساب",
+    "changeTier": "تغيير الخطة",
+    "actions": "إجراءات",
+    "extendTrial": "تمديد التجربة +15 يوم",
+    "suspend": "إيقاف المدرّب",
+    "confirmSuspend": "إيقاف هذا المدرّب؟ سيفقد الوصول حتى إعادة التفعيل.",
+    "reactivate": "إعادة تفعيل المدرّب",
+    "clientLimit": "حد العملاء",
+    "setLimit": "تعيين الحد",
+    "tier": { "trial": "تجريبي", "starter": "مبتدئ", "pro": "احترافي", "enterprise": "مؤسسات", "none": "لا خطة" },
+    "state": { "trial": "تجريبي", "active": "نشط", "expired": "منتهٍ", "suspended": "موقوف", "none": "لا خطة" }
+  },
   "coachDash": {
+    "revenue": "الإيرادات (تتبع)",
+    "monthlyRevenue": "الإيراد الشهري",
+    "expectedRevenue": "الإيراد المتوقع",
+    "lostRevenue": "الإيراد المفقود",
+    "subscriptions": "الاشتراكات",
+    "expiring": "تنتهي خلال 7 / 30 يوم",
+    "expiringHint": "قريبًا / هذا الشهر",
+    "growth": "النمو والاحتفاظ",
+    "newClients": "عملاء جدد (30 يوم)",
+    "newHint": "{{today}} اليوم · {{week}} هذا الأسبوع",
+    "retention": "الاحتفاظ (30 يوم)",
+    "churn": "معدل الفقد (30 يوم)",
+    "activity": "نشاطك",
+    "templates": "القوالب",
+    "assessmentsReviewed": "التقييمات المراجَعة",
+    "sendBroadcast": "إرسال إشعار جماعي",
     "title": "لوحة التحكم",
     "totalClients": "إجمالي المتدربين",
     "activeClients": "المتدربون النشطون",
@@ -894,7 +942,7 @@
   "subscription": {
     "title": "الاشتراك",
     "accountTitle": "حالة الحساب",
-    "status": { "none": "لا يوجد اشتراك", "active": "نشط", "frozen": "مُجمّد", "ended": "منتهٍ" },
+    "status": { "none": "لا يوجد اشتراك", "trial": "تجريبي", "active": "نشط", "pending": "قيد الإعداد", "expired": "منتهي الصلاحية", "cancelled": "ملغى", "frozen": "مُجمّد", "ended": "منتهٍ" },
     "none": "لم يُحدّد اشتراك — اضغط تحديد المدة للبدء.",
     "daysLeft": "{{n}} يوم متبقٍ",
     "frozenUntil": "مُجمّد حتى {{date}}",
@@ -930,6 +978,15 @@
     "cancelRequest": "إلغاء الطلب",
     "bannerFrozen": "اشتراكك متوقف مؤقتًا. الخطط للعرض فقط — تواصل مع مدرّبك.",
     "bannerEnded": "انتهى اشتراكك. تواصل مع مدرّبك للتجديد.",
+    "bannerExpired": "انتهت صلاحية اشتراكك. الخطط للعرض فقط — تواصل مع مدرّبك للتجديد.",
+    "bannerCancelled": "تم إلغاء اشتراكك. الخطط للعرض فقط — تواصل مع مدرّبك.",
+    "extend": "تمديد +30 يوم",
+    "cancel": "إلغاء",
+    "confirmCancel": "إلغاء اشتراك هذا العميل؟ ستصبح خططه للعرض فقط.",
+    "renew": "تجديد",
+    "pendingTitle": "الاشتراك قيد الإعداد",
+    "pendingBody": "مدرّبك يقوم بإعداد اشتراكك. ستحصل على الوصول الكامل بمجرد تفعيله. يمكنك مراسلة مدرّبك في هذه الأثناء.",
+    "contactCoach": "راسل مدرّبك",
     "price": "السعر",
     "setPrice": "تحديد السعر",
     "currency": "العملة",
@@ -980,7 +1037,8 @@
       "checkin_requested": "طلب متابعة أسبوعية",
       "checkin_submitted": "تم إرسال المتابعة",
       "checkin_reviewed": "تمت مراجعة المتابعة",
-      "message_received": "رسالة جديدة"
+      "message_received": "رسالة جديدة",
+      "trial_expiring": "الفترة التجريبية تنتهي قريبًا"
     }
   },
   "checkin": {
@@ -1198,5 +1256,43 @@
     "confirmUnassign": "إزالة المدرّب من {{name}}؟",
     "clientDetail": "تفاصيل المتدرب",
     "viewClientDetails": "عرض تفاصيل المتدرب"
+  },
+  "invite": {
+    "optional": "اختياري",
+    "subTitle": "اشتراك العميل",
+    "subTrial": "تجريبي (14 يوم)",
+    "sub1m": "شهر واحد",
+    "sub3m": "3 أشهر",
+    "subPending": "قيد الإعداد (لاحقًا)",
+    "priceOptional": "السعر (اختياري)",
+    "title": "انضم إلى مدرّبك",
+    "intro": "اختر كلمة مرور لإنشاء حسابك.",
+    "fromCoach": "دعاك {{coach}} للتدرّب معه.",
+    "join": "إنشاء الحساب",
+    "invalidTitle": "الدعوة غير متاحة",
+    "invalidBody": "رابط الدعوة غير صالح أو منتهي الصلاحية أو تم استخدامه من قبل.",
+    "inviteByLink": "دعوة عبر رابط",
+    "panelHint": "أنشئ رابطًا لمرة واحدة لدعوة متدرّب. يختار كلمة المرور الخاصة به ويُضاف إليك تلقائيًا.",
+    "generate": "إنشاء رابط دعوة",
+    "pending": "الدعوات المعلّقة",
+    "none": "لا توجد دعوات معلّقة.",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "revoke": "إلغاء"
+  },
+  "coachOnboard": {
+    "title": "لنبدأ",
+    "progress": "{{done}} / {{total}} مكتمل",
+    "profile": "أكمل ملفك كمدرّب",
+    "firstClient": "أضف أول متدرّب",
+    "firstTemplate": "أنشئ أول قالب"
+  },
+  "coachTrial": {
+    "active": "الفترة التجريبية نشطة",
+    "daysLeft": "باقي {{n}} يوم في فترتك التجريبية",
+    "expired": "انتهت فترتك التجريبية",
+    "usage": "{{used}} / {{max}} متدرّب مُستخدَم",
+    "limitReached": "تم بلوغ الحد الأقصى للمتدربين",
+    "limitBody": "لقد وصلت إلى حد خطتك البالغ {{max}} متدرّب. قم بالترقية لإضافة المزيد."
   }
 }

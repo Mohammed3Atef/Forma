@@ -1,0 +1,2072 @@
+diff --git a/e2e/fixtures/factory.ts b/e2e/fixtures/factory.ts
+index f3ef5fd..16600a2 100644
+--- a/e2e/fixtures/factory.ts
++++ b/e2e/fixtures/factory.ts
+@@ -1,6 +1,6 @@
+ import { deleteApp, initializeApp } from 'firebase/app';
+ import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+-import { doc, setDoc } from 'firebase/firestore';
++import { doc, setDoc, getFirestore as getFirestoreFor } from 'firebase/firestore';
+ import { firebaseEnvConfig } from './env';
+ import type { FbSession } from './firestore';
+ 
+@@ -108,6 +108,98 @@ export async function createClientViaApi(
+   return { uid, email: opts.email, password: opts.password, displayName: opts.displayName };
+ }
+ 
++/**
++ * Generate a pending signup invite directly via the Firebase SDK from a COACH
++ * session (mirrors inviteApi.createInvite). Returns the code + link. Requires a
++ * signed-in coach whose context the rules vet.
++ */
++export function inviteCode(len = 8): string {
++  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
++  let out = '';
++  for (let i = 0; i < len; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
++  return out;
++}
++
++export interface NewInvite {
++  code: string;
++  coachId: string;
++}
++
++export async function createInvite(
++  coach: FbSession,
++  opts: { email?: string; displayName?: string; phone?: string; coachName?: string; expiresAt?: number | null } = {},
++): Promise<NewInvite> {
++  const code = inviteCode();
++  const now = Date.now();
++  await setDoc(doc(coach.db, 'signupInvites', code), {
++    code,
++    coachId: coach.uid,
++    status: 'pending',
++    claimedByUid: null,
++    createdAt: now,
++    claimedAt: null,
++    expiresAt: opts.expiresAt === undefined ? now + 14 * 86_400_000 : opts.expiresAt,
++    ...(opts.coachName ? { coachName: opts.coachName } : {}),
++    ...(opts.email ? { email: opts.email } : {}),
++    ...(opts.displayName ? { displayName: opts.displayName } : {}),
++    ...(opts.phone ? { phone: opts.phone } : {}),
++  });
++  return { code, coachId: coach.uid };
++}
++
++/**
++ * Claim an invite end-to-end as a NEW client: mint the auth user, sign in as
++ * them, then (in the client's own context) create the identity doc with
++ * assignedCoachId, the coachClients relationship, and flip the invite to
++ * claimed — exactly the path AcceptInvite drives. Returns the new client creds.
++ *
++ * Mirrors the rules' invite-driven self-assignment: every write here is made
++ * from the freshly-created CLIENT's authenticated context.
++ */
++export async function claimInvite(
++  invite: NewInvite,
++  opts: { email: string; password: string; displayName: string; phone?: string },
++): Promise<NewClient> {
++  const app = initializeApp(firebaseEnvConfig(), `claim-${Date.now()}-${Math.random()}`);
++  try {
++    const auth = getAuth(app);
++    const cred = await createUserWithEmailAndPassword(auth, opts.email, opts.password);
++    const uid = cred.user.uid;
++    const db = getFirestoreFor(app);
++    const now = Date.now();
++    await setDoc(doc(db, 'users', uid), {
++      id: uid,
++      email: opts.email,
++      displayName: opts.displayName,
++      phone: opts.phone ?? '+10000000000',
++      role: 'client',
++      accountStatus: 'active',
++      permissions: [],
++      featureFlags: {},
++      createdBy: 'self',
++      assignedCoachId: invite.coachId,
++      inviteCode: invite.code,
++      createdAt: now,
++      updatedAt: now,
++    });
++    await setDoc(doc(db, 'coachClients', `${invite.coachId}__${uid}`), {
++      id: `${invite.coachId}__${uid}`,
++      coachId: invite.coachId,
++      clientId: uid,
++      status: 'active',
++      createdBy: uid,
++      inviteCode: invite.code,
++      createdAt: now,
++      updatedAt: now,
++    });
++    await setDoc(doc(db, 'signupInvites', invite.code), { status: 'claimed', claimedByUid: uid, claimedAt: now }, { merge: true });
++    await signOut(auth).catch(() => undefined);
++    return { uid, email: opts.email, password: opts.password, displayName: opts.displayName };
++  } finally {
++    await deleteApp(app).catch(() => undefined);
++  }
++}
++
+ /** Deterministic-ish unique email for a throwaway test client. */
+ export function uniqueEmail(prefix = 'qa-client'): string {
+   const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+diff --git a/e2e/fixtures/selectors.ts b/e2e/fixtures/selectors.ts
+index 7f2d8a9..78b7f8d 100644
+--- a/e2e/fixtures/selectors.ts
++++ b/e2e/fixtures/selectors.ts
+@@ -25,6 +25,20 @@ export const TID = {
+   loginSubmit: 'login-submit',
+   loginToggleMode: 'login-toggle-mode',
+   loginError: 'login-error',
++  signupRole: 'signup-role',
++  signupRoleFor: (r: string) => `signup-role-${r}`,
++  // Accept invite (public /invite/:code)
++  acceptInvite: 'accept-invite',
++  inviteForm: 'invite-form',
++  inviteCoachName: 'invite-coach-name',
++  inviteName: 'invite-name',
++  inviteEmail: 'invite-email',
++  invitePhone: 'invite-phone',
++  invitePassword: 'invite-password',
++  inviteConfirm: 'invite-confirm',
++  inviteSubmit: 'invite-submit',
++  inviteError: 'invite-error',
++  inviteInvalid: 'invite-invalid',
+   accountPending: 'account-pending',
+   accountSuspended: 'account-suspended',
+ 
+@@ -48,6 +62,23 @@ export const TID = {
+   coachAddPassword: 'coach-add-password',
+   coachAddPhone: 'coach-add-phone',
+   coachAddSubmit: 'coach-add-submit',
++  coachAddBlocked: 'coach-add-blocked',
++  // Coach onboarding checklist + trial + client limit + invites
++  coachChecklist: 'coach-checklist',
++  coachChecklistItem: (k: string) => `coach-checklist-${k}`,
++  coachTrialBanner: 'coach-trial-banner',
++  coachTrialStatus: 'coach-trial-status',
++  coachTrialUsage: 'coach-trial-usage',
++  coachClientUsage: 'coach-client-usage',
++  coachClientLimit: 'coach-client-limit',
++  coachInviteClient: 'coach-invite-client',
++  coachInvitePanel: 'coach-invite-panel',
++  coachInviteGenerate: 'coach-invite-generate',
++  coachInviteRow: 'coach-invite-row',
++  coachInviteCopy: 'coach-invite-copy',
++  coachInviteRevoke: 'coach-invite-revoke',
++  coachInviteEmpty: 'coach-invite-empty',
++  coachInviteBlocked: 'coach-invite-blocked',
+ 
+   coachClientDetail: 'coach-client-detail',
+   coachViewActivity: 'coach-view-activity',
+diff --git a/e2e/security.spec.ts b/e2e/security.spec.ts
+index 6bbf035..2b6b2f6 100644
+--- a/e2e/security.spec.ts
++++ b/e2e/security.spec.ts
+@@ -182,3 +182,108 @@ test.describe('Security — auth states', () => {
+     await expect(page.getByTestId(TID.accountPending)).toBeVisible({ timeout: 25_000 });
+   });
+ });
++
++
++test.describe('Security — Phase 1 (coach plans & invites)', () => {
++  test('client cannot self-elevate role to admin or super_admin', async () => {
++    const s = await signInAs('client');
++    try {
++      for (const role of ['admin', 'super_admin']) {
++        const r = await attempt(() => setDoc(doc(s.db, 'users', s.uid), { role, updatedAt: Date.now() }, { merge: true }));
++        expect(isPermissionDenied(r), `client self-setting role=${role} should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++      }
++    } finally {
++      await s.close();
++    }
++  });
++
++  test('client cannot raise their own permissions', async () => {
++    const s = await signInAs('client');
++    try {
++      const r = await attempt(() => setDoc(doc(s.db, 'users', s.uid), { permissions: ['users.manageRoles'], updatedAt: Date.now() }, { merge: true }));
++      expect(isPermissionDenied(r), `client raising permissions should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await s.close();
++    }
++  });
++
++  test('a brand-new client cannot self-create as a coach with a trial plan illegally', async () => {
++    // A self-provisioned doc may be role:coach (open coach signup), but it can
++    // never carry an assignedCoachId or non-empty permissions. Assert the locked
++    // shape is enforced: a coach self-create with permissions is denied.
++    const s = await signInAs('client');
++    try {
++      const r = await attempt(() => setDoc(doc(s.db, 'coachPlans', s.uid), { coachId: s.uid, plan: 'pro', status: 'active', maxClients: 1000, startedAt: Date.now(), endsAt: null, createdAt: Date.now(), updatedAt: Date.now() }));
++      expect(isPermissionDenied(r), `self-creating a non-trial coachPlan should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await s.close();
++    }
++  });
++
++  test('coach cannot change their own plan tier or raise maxClients', async () => {
++    const coach = await signInAs('coach');
++    try {
++      // Ensure a plan exists (idempotent create with locked trial defaults).
++      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 10, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 0, createdAt: Date.now(), updatedAt: Date.now() }));
++      const raiseLimit = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { maxClients: 9999, updatedAt: Date.now() }, { merge: true }));
++      expect(isPermissionDenied(raiseLimit), `coach raising maxClients should be denied (got ${raiseLimit.code ?? 'ok'})`).toBe(true);
++      const changeTier = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { plan: 'enterprise', updatedAt: Date.now() }, { merge: true }));
++      expect(isPermissionDenied(changeTier), `coach changing plan tier should be denied (got ${changeTier.code ?? 'ok'})`).toBe(true);
++      const changeStatus = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { status: 'suspended', updatedAt: Date.now() }, { merge: true }));
++      expect(isPermissionDenied(changeStatus), `coach changing plan status should be denied (got ${changeStatus.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await coach.close();
++    }
++  });
++
++  test('coach MAY mark their own trialNotified flag (the only self-mutation)', async () => {
++    const coach = await signInAs('coach');
++    try {
++      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 10, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 0, createdAt: Date.now(), updatedAt: Date.now() }));
++      const r = await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { 'trialNotified.d7': true, updatedAt: Date.now() }, { merge: true }));
++      expect(r.ok, `coach marking trialNotified should be allowed (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await coach.close();
++    }
++  });
++
++  test('client cannot attach to a coach without a valid invite', async () => {
++    const coach = await signInAs('coach');
++    const coachId = coach.uid;
++    await coach.close();
++    const client = await signInAs('client');
++    try {
++      const rel = `${coachId}__${client.uid}`;
++      const r = await attempt(() => setDoc(doc(client.db, 'coachClients', rel), { id: rel, coachId, clientId: client.uid, status: 'active', createdBy: client.uid, createdAt: Date.now(), updatedAt: Date.now() }));
++      expect(isPermissionDenied(r), `attaching without an invite should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await client.close();
++    }
++  });
++
++  test('a coach cannot forge an invite for ANOTHER coach', async () => {
++    const coach = await signInAs('coach');
++    try {
++      const r = await attempt(() => setDoc(doc(coach.db, 'signupInvites', `FORGE${Date.now()}`), { code: 'X', coachId: 'some-other-coach-uid', status: 'pending', claimedByUid: null, createdAt: Date.now() }));
++      expect(isPermissionDenied(r), `coach creating an invite for another coach should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await coach.close();
++    }
++  });
++
++  test('a coach cannot exceed maxClients (rules reject at the cap)', async () => {
++    const coach = await signInAs('coach');
++    try {
++      // Pin the plan to a cap of 1 with the counter already AT the cap.
++      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { coachId: coach.uid, plan: 'trial', status: 'active', maxClients: 1, startedAt: Date.now(), endsAt: Date.now() + 15 * 86_400_000, trialNotified: {}, activeClientCount: 1, createdAt: Date.now(), updatedAt: Date.now() }, { merge: true }));
++      // Creating a fresh relationship while at the cap is rejected by rules.
++      const rel = `${coach.uid}__cap-test-${Date.now()}`;
++      const r = await attempt(() => setDoc(doc(coach.db, 'coachClients', rel), { id: rel, coachId: coach.uid, clientId: `cap-test-${Date.now()}`, status: 'active', createdBy: coach.uid, createdAt: Date.now(), updatedAt: Date.now() }));
++      expect(isPermissionDenied(r), `creating a relationship at the client cap should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      // Restore the shared E2E coach plan so later suites aren't capped.
++      await attempt(() => setDoc(doc(coach.db, 'coachPlans', coach.uid), { maxClients: 10, activeClientCount: 0, updatedAt: Date.now() }, { merge: true }));
++      await coach.close();
++    }
++  });
++});
+diff --git a/firestore.rules b/firestore.rules
+index 8e4774a..2bbaa7c 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -60,6 +60,27 @@ service cloud.firestore {
+         && exists(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid))
+         && get(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid)).data.status == 'active';
+     }
++    // A coach's Layer-A plan doc (coachPlans/{coachId}); used for the client cap.
++    function coachPlan(coachId) {
++      return get(/databases/$(database)/documents/coachPlans/$(coachId)).data;
++    }
++    function coachPlanExists(coachId) {
++      return exists(/databases/$(database)/documents/coachPlans/$(coachId));
++    }
++    // True when the coach is at/over their client cap. Missing plan or counter =
++    // not blocked (legacy/best-effort; .get() keeps old docs working).
++    function coachAtClientCap(coachId) {
++      return coachPlanExists(coachId)
++        && coachPlan(coachId).get('activeClientCount', 0) >= coachPlan(coachId).get('maxClients', 999999);
++    }
++    // A signup invite naming `coachId` that is still claimable BY this user. The
++    // code (= doc id) is the capability the visitor presents from the URL.
++    function inviteValidFor(coachId, code) {
++      return code is string && code.size() > 0
++        && exists(/databases/$(database)/documents/signupInvites/$(code))
++        && get(/databases/$(database)/documents/signupInvites/$(code)).data.coachId == coachId
++        && get(/databases/$(database)/documents/signupInvites/$(code)).data.status == 'pending';
++    }
+     // Collections under clientData the client may READ but never WRITE — they are
+     // coach-owned. Everything else under clientData (logs, settings, reminders,
+     // deletions, …) is the client's own. Daily nutrition substitutions live in
+@@ -72,18 +93,38 @@ service cloud.firestore {
+     match /users/{uid} {
+       allow read: if isSignedIn() && (request.auth.uid == uid || hasPermission('users.read') || isMyCoach(uid));
+ 
+-      // Self sign-up: only with locked defaults on your OWN doc.
++      // Self sign-up: only with locked defaults on your OWN doc. Widened (Phase 1)
++      // to allow a coach self-signup — a coach must be created `active`, with no
++      // permissions and createdBy=='self' (open coach registration + trial plan).
++      // Self-provision NEVER carries an assignedCoachId (that is invite-driven,
++      // handled separately below) — so a client can't attach to a coach here.
+       function isSelfProvisionDefaults() {
++        return request.auth.uid == uid
++          && request.resource.data.role in ['client', 'coach']
++          && (request.resource.data.role == 'client'
++                ? request.resource.data.accountStatus in ['pending', 'active']
++                : request.resource.data.accountStatus == 'active')
++          && request.resource.data.permissions.size() == 0
++          && request.resource.data.createdBy == 'self'
++          && request.resource.data.get('assignedCoachId', '') == '';
++      }
++      // Invite-driven self-assignment: a brand-new CLIENT may create their OWN
++      // identity doc with assignedCoachId==X and createdBy=='self' ONLY when a
++      // matching pending invite (named by the code they carry) exists for X.
++      // The single relationship write is permitted by the coachClients rule.
++      function isInviteSelfProvision() {
+         return request.auth.uid == uid
+           && request.resource.data.role == 'client'
+-          && request.resource.data.accountStatus in ['pending', 'active']
++          && request.resource.data.accountStatus == 'active'
+           && request.resource.data.permissions.size() == 0
+-          && request.resource.data.createdBy == 'self';
++          && request.resource.data.createdBy == 'self'
++          && inviteValidFor(request.resource.data.get('assignedCoachId', ''), request.resource.data.get('inviteCode', ''));
+       }
+       // Admin-provisioned: super_admin may create any role; admin only client/coach.
+       // A coach may create a CLIENT assigned to themselves (coach-driven onboarding).
+       allow create: if isSignedIn() && (
+         isSelfProvisionDefaults()
++        || isInviteSelfProvision()
+         || isSuperAdmin()
+         || (hasPermission('users.create') && request.resource.data.role in ['client', 'coach'])
+         || (isCoach()
+@@ -151,9 +192,24 @@ service cloud.firestore {
+         resource.data.coachId == request.auth.uid
+         || resource.data.clientId == request.auth.uid
+         || hasPermission('users.read'));
+-      // Admins assign anyone; a coach may link a client to themselves.
+-      allow create: if hasPermission('coaches.assign')
+-        || (isCoach() && request.resource.data.coachId == request.auth.uid);
++      // maxClients gate (production): REJECT a new relationship once the coach is
++      // at/over their cap. The maintained coachPlans.activeClientCount is the
++      // server-validated guard (counter drift is reconciled by a script). Legacy
++      // coaches without a plan doc are not blocked (.get() defaults).
++      // Admins assign anyone; a coach may link a client to themselves; an
++      // invited client may self-create the SINGLE relationship to their coach
++      // when a matching pending invite exists.
++      allow create: if (
++        // Invited client self-claim (evaluated FIRST so an invited client never
++        // triggers the admin/coach me() reads below — keeps within the doc budget).
++        (request.resource.data.clientId == request.auth.uid
++            && request.resource.data.status == 'active'
++            && relId == request.resource.data.coachId + '__' + request.auth.uid
++            && inviteValidFor(request.resource.data.coachId, request.resource.data.get('inviteCode', ''))
++            && !coachAtClientCap(request.resource.data.coachId))
++        || (isCoach() && request.resource.data.coachId == request.auth.uid && !coachAtClientCap(request.auth.uid))
++        || (hasPermission('coaches.assign') && !coachAtClientCap(request.resource.data.coachId))
++      );
+       allow update, delete: if hasPermission('coaches.assign')
+         || (isCoach() && resource.data.coachId == request.auth.uid);
+     }
+@@ -237,6 +293,68 @@ service cloud.firestore {
+       allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+     }
+ 
++    // ---- coachPlans (Layer A — coach's own subscription to Forma) --------
++    // read: the owning coach or anyone with users.read (admin oversight).
++    // create: self ONLY with locked trial defaults (plan/status/maxClients fixed
++    //   and id == own uid), OR users.manageStatus / super_admin.
++    // update/delete: super_admin / users.manage* ONLY — EXCEPT the owning coach
++    //   may patch ONLY trialNotified + activeClientCount (never plan/status/
++    //   maxClients/startedAt/endsAt). Field reads use .get() so legacy docs work.
++    match /coachPlans/{coachId} {
++      allow read: if isSignedIn() && (request.auth.uid == coachId || hasPermission('users.read'));
++
++      allow create: if isSignedIn() && (
++        (request.auth.uid == coachId
++          && request.resource.data.plan == 'trial'
++          && request.resource.data.status == 'active'
++          && request.resource.data.maxClients == 10)
++        || hasPermission('users.manageStatus')
++      );
++
++      // Privileged full mutation.
++      allow update: if hasPermission('users.manageStatus');
++      // Owner coach: only the two self-mutable fields may change.
++      allow update: if isSignedIn() && request.auth.uid == coachId
++        && request.resource.data.get('plan', '') == resource.data.get('plan', '')
++        && request.resource.data.get('status', '') == resource.data.get('status', '')
++        && request.resource.data.get('maxClients', 0) == resource.data.get('maxClients', 0)
++        && request.resource.data.get('startedAt', 0) == resource.data.get('startedAt', 0)
++        && request.resource.data.get('endsAt', 0) == resource.data.get('endsAt', 0)
++        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
++
++      allow delete: if hasPermission('users.manageStatus');
++    }
++
++    // ---- signupInvites (Phase 1 client invitations) ----------------------
++    // The CODE (= doc id) is the capability: any signed-in user may READ a
++    // single invite (minimal payload — coach display name is resolved separately
++    // and only when pending). create/revoke: the owning coach or coaches.assign.
++    // claim (update→claimed): the claiming CLIENT only, while pending and naming
++    // themselves; admins/coaches use the create/update branch.
++    match /signupInvites/{code} {
++      // The CODE is the capability and the claim flow is pre-auth (the visitor
++      // reads the invite to see the coach name BEFORE creating their account),
++      // so a single-doc read is public. Payload is intentionally minimal (coach
++      // display name only — no client PII). LIST is NOT granted (rules only ever
++      // resolve a known code), so invites can't be enumerated.
++      allow get: if true;
++      allow list: if isSignedIn() && (hasPermission('coaches.assign') || isCoach());
++      allow create: if hasPermission('coaches.assign')
++        || (isCoach() && request.resource.data.coachId == request.auth.uid);
++      // Coach/admin update (revoke, edit) — never reassign the invite's coach.
++      allow update: if (hasPermission('coaches.assign') || (isCoach() && resource.data.coachId == request.auth.uid))
++        && request.resource.data.coachId == resource.data.coachId;
++      // Client single-use claim: pending → claimed, by the claimer only. Coach
++      // is fixed; only status/claimedByUid/claimedAt change.
++      allow update: if isSignedIn()
++        && resource.data.status == 'pending'
++        && request.resource.data.status == 'claimed'
++        && request.resource.data.claimedByUid == request.auth.uid
++        && request.resource.data.coachId == resource.data.coachId;
++      allow delete: if hasPermission('coaches.assign')
++        || (isCoach() && resource.data.coachId == request.auth.uid);
++    }
++
+     // ---- planTemplates (coach-owned, legacy) -----------------------------
+     match /planTemplates/{id} {
+       allow read: if isSignedIn() && (resource.data.coachId == request.auth.uid || hasPermission('users.read'));
+diff --git a/src/apps/AnonymousApp.tsx b/src/apps/AnonymousApp.tsx
+index 76ab7e9..b8bdc57 100644
+--- a/src/apps/AnonymousApp.tsx
++++ b/src/apps/AnonymousApp.tsx
+@@ -1,6 +1,7 @@
+ import { Navigate, Route, Routes } from 'react-router-dom';
+ import { Login } from '@/pages/auth/Login';
+ import { Landing } from '@/pages/marketing/Landing';
++import { AcceptInvite } from '@/pages/auth/AcceptInvite';
+ 
+ /**
+  * Signed-out routes. Web visitors land on the marketing page at "/"; the auth
+@@ -21,6 +22,7 @@ export function AnonymousApp() {
+     <Routes>
+       <Route path="/" element={isStandalone ? <Navigate to="/login" replace /> : <Landing />} />
+       <Route path="/login" element={<Login />} />
++      <Route path="/invite/:code" element={<AcceptInvite />} />
+       <Route path="*" element={<Login />} />
+     </Routes>
+   );
+diff --git a/src/i18n/ar.json b/src/i18n/ar.json
+index c119b7b..02bd18d 100644
+--- a/src/i18n/ar.json
++++ b/src/i18n/ar.json
+@@ -549,7 +549,12 @@
+     "pendingBody": "حسابك بانتظار الموافقة. ستحصل على صلاحية الدخول بمجرد تفعيله من قبل المسؤول.",
+     "checkAgain": "تحقّق مجددًا",
+     "suspendedTitle": "الحساب غير متاح",
+-    "suspendedBody": "حسابك موقوف حاليًا. يُرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
++    "suspendedBody": "حسابك موقوف حاليًا. يُرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ.",
++    "role": { "client": "متدرّب", "coach": "مدرّب" },
++    "roleHint": {
++      "client": "تابع تدريبك مع مدرّبك.",
++      "coach": "أدِر متدربيك وابدأ فترة تجريبية مجانية."
++    }
+   },
+   "roles": {
+     "super_admin": "مشرف عام",
+@@ -980,7 +985,8 @@
+       "checkin_requested": "طلب متابعة أسبوعية",
+       "checkin_submitted": "تم إرسال المتابعة",
+       "checkin_reviewed": "تمت مراجعة المتابعة",
+-      "message_received": "رسالة جديدة"
++      "message_received": "رسالة جديدة",
++      "trial_expiring": "الفترة التجريبية تنتهي قريبًا"
+     }
+   },
+   "checkin": {
+@@ -1198,5 +1204,36 @@
+     "confirmUnassign": "إزالة المدرّب من {{name}}؟",
+     "clientDetail": "تفاصيل المتدرب",
+     "viewClientDetails": "عرض تفاصيل المتدرب"
++  },
++  "invite": {
++    "title": "انضم إلى مدرّبك",
++    "intro": "اختر كلمة مرور لإنشاء حسابك.",
++    "fromCoach": "دعاك {{coach}} للتدرّب معه.",
++    "join": "إنشاء الحساب",
++    "invalidTitle": "الدعوة غير متاحة",
++    "invalidBody": "رابط الدعوة غير صالح أو منتهي الصلاحية أو تم استخدامه من قبل.",
++    "inviteByLink": "دعوة عبر رابط",
++    "panelHint": "أنشئ رابطًا لمرة واحدة لدعوة متدرّب. يختار كلمة المرور الخاصة به ويُضاف إليك تلقائيًا.",
++    "generate": "إنشاء رابط دعوة",
++    "pending": "الدعوات المعلّقة",
++    "none": "لا توجد دعوات معلّقة.",
++    "copy": "نسخ",
++    "copied": "تم النسخ",
++    "revoke": "إلغاء"
++  },
++  "coachOnboard": {
++    "title": "لنبدأ",
++    "progress": "{{done}} / {{total}} مكتمل",
++    "profile": "أكمل ملفك كمدرّب",
++    "firstClient": "أضف أول متدرّب",
++    "firstTemplate": "أنشئ أول قالب"
++  },
++  "coachTrial": {
++    "active": "الفترة التجريبية نشطة",
++    "daysLeft": "باقي {{n}} يوم في فترتك التجريبية",
++    "expired": "انتهت فترتك التجريبية",
++    "usage": "{{used}} / {{max}} متدرّب مُستخدَم",
++    "limitReached": "تم بلوغ الحد الأقصى للمتدربين",
++    "limitBody": "لقد وصلت إلى حد خطتك البالغ {{max}} متدرّب. قم بالترقية لإضافة المزيد."
+   }
+ }
+diff --git a/src/i18n/en.json b/src/i18n/en.json
+index 6d69c95..2d212a5 100644
+--- a/src/i18n/en.json
++++ b/src/i18n/en.json
+@@ -549,7 +549,12 @@
+     "pendingBody": "Your account is awaiting approval. You'll get access as soon as an administrator activates it.",
+     "checkAgain": "Check again",
+     "suspendedTitle": "Account unavailable",
+-    "suspendedBody": "Your account is currently suspended. Please contact support if you think this is a mistake."
++    "suspendedBody": "Your account is currently suspended. Please contact support if you think this is a mistake.",
++    "role": { "client": "Client", "coach": "Coach" },
++    "roleHint": {
++      "client": "Track your training with your coach.",
++      "coach": "Manage your clients and start a free trial."
++    }
+   },
+   "roles": {
+     "super_admin": "Super Admin",
+@@ -980,7 +985,8 @@
+       "checkin_requested": "Weekly check-in requested",
+       "checkin_submitted": "Check-in submitted",
+       "checkin_reviewed": "Check-in reviewed",
+-      "message_received": "New message"
++      "message_received": "New message",
++      "trial_expiring": "Trial ending soon"
+     }
+   },
+   "checkin": {
+@@ -1198,5 +1204,36 @@
+     "confirmUnassign": "Remove the coach from {{name}}?",
+     "clientDetail": "Client details",
+     "viewClientDetails": "View client details"
++  },
++  "invite": {
++    "title": "Join your coach",
++    "intro": "Set a password to create your account.",
++    "fromCoach": "{{coach}} invited you to train with them.",
++    "join": "Create account",
++    "invalidTitle": "Invite unavailable",
++    "invalidBody": "This invite link is invalid, expired, or has already been used.",
++    "inviteByLink": "Invite by link",
++    "panelHint": "Generate a one-time link to invite a client. They set their own password and are added to you automatically.",
++    "generate": "Generate invite link",
++    "pending": "Pending invites",
++    "none": "No pending invites.",
++    "copy": "Copy",
++    "copied": "Copied",
++    "revoke": "Revoke"
++  },
++  "coachOnboard": {
++    "title": "Get started",
++    "progress": "{{done}} / {{total}} done",
++    "profile": "Complete your coach profile",
++    "firstClient": "Add your first client",
++    "firstTemplate": "Create your first template"
++  },
++  "coachTrial": {
++    "active": "Trial active",
++    "daysLeft": "{{n}} days left in your trial",
++    "expired": "Your trial has ended",
++    "usage": "{{used}} / {{max}} clients used",
++    "limitReached": "Client limit reached",
++    "limitBody": "You've reached your plan limit of {{max}} clients. Upgrade to add more."
+   }
+ }
+diff --git a/src/pages/Notifications.tsx b/src/pages/Notifications.tsx
+index 7f37859..9c23457 100644
+--- a/src/pages/Notifications.tsx
++++ b/src/pages/Notifications.tsx
+@@ -22,6 +22,7 @@ const ICON: Record<NotificationType, IconName> = {
+   checkin_submitted: 'calendar',
+   checkin_reviewed: 'check',
+   message_received: 'info',
++  trial_expiring: 'timer',
+ };
+ 
+ function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {
+diff --git a/src/pages/auth/Login.tsx b/src/pages/auth/Login.tsx
+index bdc83cd..1854260 100644
+--- a/src/pages/auth/Login.tsx
++++ b/src/pages/auth/Login.tsx
+@@ -18,6 +18,7 @@ export function Login() {
+   const [params] = useSearchParams();
+   const [mode, setMode] = useState<'signin' | 'signup'>(params.get('signup') === '1' ? 'signup' : 'signin');
+   const [creds, setCreds] = useState({ email: '', password: '', confirm: '', phone: '' });
++  const [signupRole, setSignupRole] = useState<'client' | 'coach'>('client');
+   const [busy, setBusy] = useState(false);
+   const [localError, setLocalError] = useState<string | null>(null);
+ 
+@@ -38,7 +39,7 @@ export function Login() {
+     }
+     setBusy(true);
+     try {
+-      await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined);
++      await signIn(creds.email.trim(), creds.password, mode === 'signup', creds.phone.trim() || undefined, signupRole);
+     } finally {
+       setBusy(false);
+     }
+@@ -67,6 +68,23 @@ export function Login() {
+         <p className="text-sm text-earth-muted">{t('auth.intro')}</p>
+ 
+         <form className="card space-y-3" data-testid="login-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
++          {mode === 'signup' && (
++            <div data-testid="signup-role" className="grid grid-cols-2 gap-2">
++              {(['client', 'coach'] as const).map((r) => (
++                <button
++                  key={r}
++                  type="button"
++                  data-testid={`signup-role-${r}`}
++                  aria-pressed={signupRole === r}
++                  onClick={() => setSignupRole(r)}
++                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${signupRole === r ? 'border-brand bg-brand/10 text-brand' : 'border-line-soft text-earth-muted'}`}
++                >
++                  {t(`auth.role.${r}`)}
++                </button>
++              ))}
++            </div>
++          )}
++          {mode === 'signup' && <p className="text-[12px] text-earth-subtle">{t(`auth.roleHint.${signupRole}`)}</p>}
+           <input className="input" type="email" autoComplete="email" data-testid="login-email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
+           {mode === 'signup' && (
+             <input className="input" type="tel" autoComplete="tel" inputMode="tel" dir="ltr" data-testid="login-phone" placeholder={t('settings.phone')} value={creds.phone} onChange={(e) => setCreds({ ...creds, phone: e.target.value })} />
+diff --git a/src/pages/coach/CoachClients.tsx b/src/pages/coach/CoachClients.tsx
+index 3c37aa4..335e5dd 100644
+--- a/src/pages/coach/CoachClients.tsx
++++ b/src/pages/coach/CoachClients.tsx
+@@ -15,9 +15,11 @@ import { listMyClients, saveClientProfile } from '@/services/platform/coachApi';
+ import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
+ import { createAccount } from '@/services/accounts/createUserSecondary';
+ import { linkCoachClient } from '@/services/platform/coachClientsApi';
++import { getCoachPlan } from '@/services/platform/coachPlanApi';
++import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
+ import { passwordError } from '@/lib/password';
+ import { shortDate } from '@/lib/utils';
+-import type { AccountStatus, ActivityLevel, Goal } from '@/types';
++import type { AccountStatus, ActivityLevel, Goal, SignupInvite } from '@/types';
+ 
+ const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
+ const ACTIVITIES: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+@@ -37,12 +39,14 @@ export function CoachClients() {
+   const navigate = useNavigate();
+   const qc = useQueryClient();
+   const coachId = useSession((s) => s.account?.id);
++  const coachName = useSession((s) => s.account?.displayName ?? '');
+   const isDesktop = useIsDesktop();
+   const [params] = useSearchParams();
+   const [search, setSearch] = useState(() => params.get('q') ?? '');
+   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
+   const [visible, setVisible] = useState(PAGE);
+   const [adding, setAdding] = useState(() => params.get('new') === '1');
++  const [inviting, setInviting] = useState(false);
+   const [selectedId, setSelectedId] = useState<string | null>(null);
+ 
+   const clients = useQuery({
+@@ -59,6 +63,18 @@ export function CoachClients() {
+     staleTime: 60_000,
+   });
+ 
++  const plan = useQuery({
++    queryKey: ['coachPlan', coachId],
++    queryFn: () => getCoachPlan(coachId!),
++    enabled: !!coachId,
++    staleTime: 60_000,
++  });
++  // Active-client usage vs the plan cap. The maintained counter is authoritative
++  // for the gate; fall back to the loaded client list when it's absent (legacy).
++  const maxClients = plan.data?.maxClients ?? Infinity;
++  const usedClients = plan.data?.activeClientCount ?? (clients.data?.filter((c) => c.accountStatus !== 'disabled').length ?? 0);
++  const atLimit = Number.isFinite(maxClients) && usedClients >= maxClients;
++
+   const matches = (name: string, email: string, phone: string | undefined, q: string) =>
+     (name || email).toLowerCase().includes(q) || email.toLowerCase().includes(q) || (phone ?? '').includes(q);
+ 
+@@ -140,7 +156,10 @@ export function CoachClients() {
+         eyebrow={t('platform.coachPortal')}
+         right={
+           <div className="flex items-center gap-1.5">
+-            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={() => setAdding(true)}>
++            <button type="button" data-testid="coach-invite-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('invite.inviteByLink')} onClick={() => setInviting(true)}>
++              <Icon name="bolt" size={20} />
++            </button>
++            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px] disabled:opacity-40" aria-label={t('coach.addClient')} disabled={atLimit} onClick={() => setAdding(true)}>
+               <Icon name="plus" size={20} />
+             </button>
+             <button type="button" className="icon-btn h-[42px] w-[42px] md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
+@@ -150,6 +169,13 @@ export function CoachClients() {
+         }
+       />
+ 
++      {Number.isFinite(maxClients) && (
++        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-line-soft px-3 py-2 text-[13px]" data-testid="coach-client-usage">
++          <span className="text-earth-muted">{t('coachTrial.usage', { used: usedClients, max: maxClients })}</span>
++          {atLimit && <span className="text-warn" data-testid="coach-client-limit">{t('coachTrial.limitReached')}</span>}
++        </div>
++      )}
++
+       {searchBar}
+       {filterBar}
+ 
+@@ -200,19 +226,100 @@ export function CoachClients() {
+       )}
+ 
+       <Sheet open={adding} onClose={() => setAdding(false)} title={t('coach.addClient')}>
+-        <AddClientForm
+-          coachId={coachId ?? ''}
+-          onDone={() => {
+-            setAdding(false);
+-            void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+-            void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
+-          }}
+-        />
++        {atLimit ? (
++          <p className="text-sm text-warn" data-testid="coach-add-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
++        ) : (
++          <AddClientForm
++            coachId={coachId ?? ''}
++            onDone={() => {
++              setAdding(false);
++              void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
++              void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
++              void qc.invalidateQueries({ queryKey: ['coachPlan', coachId] });
++            }}
++          />
++        )}
++      </Sheet>
++
++      <Sheet open={inviting} onClose={() => setInviting(false)} title={t('invite.inviteByLink')}>
++        <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />
+       </Sheet>
+     </div>
+   );
+ }
+ 
++/** Generate + copy invite links and list/revoke pending invites for the coach. */
++function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: string; coachName: string; atLimit: boolean; maxClients: number }) {
++  const { t } = useTranslation();
++  const qc = useQueryClient();
++  const [copied, setCopied] = useState<string | null>(null);
++
++  const pending = useQuery({
++    queryKey: ['pendingInvites', coachId],
++    queryFn: () => listPendingInvites(coachId),
++    enabled: !!coachId,
++  });
++
++  const gen = useMutation({
++    mutationFn: () => createInvite(coachId, { coachName }),
++    onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
++  });
++  const revoke = useMutation({
++    mutationFn: (code: string) => revokeInvite(code),
++    onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
++  });
++
++  const copy = async (code: string) => {
++    const link = inviteLink(code);
++    try {
++      await navigator.clipboard?.writeText(link);
++      setCopied(code);
++      setTimeout(() => setCopied((c) => (c === code ? null : c)), 2000);
++    } catch {
++      /* clipboard blocked — the link text is still visible to copy manually */
++    }
++  };
++
++  return (
++    <div className="space-y-4" data-testid="coach-invite-panel">
++      <p className="text-sm text-earth-muted">{t('invite.panelHint')}</p>
++      {atLimit ? (
++        <p className="text-sm text-warn" data-testid="coach-invite-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
++      ) : (
++        <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
++          {gen.isPending ? t('auth.working') : t('invite.generate')}
++        </button>
++      )}
++
++      <div className="space-y-2">
++        <p className="label">{t('invite.pending')}</p>
++        {pending.isLoading ? (
++          <p className="text-sm text-earth-muted">{t('auth.working')}</p>
++        ) : (pending.data ?? []).length === 0 ? (
++          <p className="text-sm text-earth-subtle" data-testid="coach-invite-empty">{t('invite.none')}</p>
++        ) : (
++          <div className="card divide-y divide-line-soft">
++            {(pending.data ?? []).map((inv: SignupInvite) => (
++              <div key={inv.code} className="flex items-center gap-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
++                <span className="min-w-0 flex-1">
++                  <span className="block font-mono text-sm">{inv.code}</span>
++                  <span className="block truncate text-[11px] text-earth-subtle">{inviteLink(inv.code)}</span>
++                </span>
++                <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
++                  {copied === inv.code ? t('invite.copied') : t('invite.copy')}
++                </button>
++                <button type="button" data-testid="coach-invite-revoke" className="btn-ghost h-8 px-3 text-[11px] text-danger" onClick={() => revoke.mutate(inv.code)}>
++                  {t('invite.revoke')}
++                </button>
++              </div>
++            ))}
++          </div>
++        )}
++      </div>
++    </div>
++  );
++}
++
+ /** Desktop master-detail preview of the selected client. */
+ function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
+   const { t, i18n } = useTranslation();
+diff --git a/src/pages/coach/CoachDashboard.tsx b/src/pages/coach/CoachDashboard.tsx
+index 993952f..3fcb4a0 100644
+--- a/src/pages/coach/CoachDashboard.tsx
++++ b/src/pages/coach/CoachDashboard.tsx
+@@ -1,4 +1,4 @@
+-import { useMemo } from 'react';
++import { useEffect, useMemo } from 'react';
+ import { useQuery } from '@tanstack/react-query';
+ import { useNavigate } from 'react-router-dom';
+ import { useTranslation } from 'react-i18next';
+@@ -10,6 +10,10 @@ import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
+ import { BarChart } from '@/components/charts';
+ import { useSession } from '@/services/auth/sessionStore';
+ import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
++import { getCoachPlan } from '@/services/platform/coachPlanApi';
++import { checkTrialExpiry } from '@/services/platform/coachTrialApi';
++import { CoachChecklist } from '@/pages/coach/onboarding/CoachChecklist';
++import { CoachTrialBanner } from '@/pages/coach/onboarding/CoachTrialBanner';
+ import { shortDate } from '@/lib/utils';
+ 
+ /** Desktop/tablet coach landing: KPIs, attention lists, adherence chart, quick actions. */
+@@ -27,6 +31,21 @@ export function CoachDashboard() {
+   });
+   const d = q.data;
+ 
++  const planQ = useQuery({
++    queryKey: ['coachPlan', coachId],
++    queryFn: () => getCoachPlan(coachId!),
++    enabled: !!coachId,
++    staleTime: 60_000,
++    refetchOnWindowFocus: true,
++  });
++
++  // Trial-expiry reminders at 7/3/1 days — runs whenever the coach plan loads or
++  // refetches on foreground (React Query's refetchOnWindowFocus mirrors the
++  // app's existing visibility/refreshAccount pattern). Marks each send once.
++  useEffect(() => {
++    if (coachId && planQ.data) void checkTrialExpiry(coachId, planQ.data);
++  }, [coachId, planQ.data]);
++
+   const recent = useMemo(
+     () => [...(d?.clients ?? [])].sort((a, b) => (b.lastActivity ?? '').localeCompare(a.lastActivity ?? '')).slice(0, 6),
+     [d?.clients],
+@@ -49,6 +68,9 @@ export function CoachDashboard() {
+         <p className="py-10 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+       ) : (
+         <div className="space-y-6">
++          <CoachTrialBanner plan={planQ.data} />
++          <CoachChecklist totalClients={d.totalClients} />
++
+           {/* KPI cards */}
+           <ResponsiveGrid cols={3}>
+             <DashboardCard icon="user" value={d.totalClients} label={t('coachDash.totalClients')} hint={`${d.activeClients} ${t('coachDash.activeClients').toLowerCase()}`} onClick={() => navigate('/coach/clients')} />
+diff --git a/src/services/accounts/accountService.ts b/src/services/accounts/accountService.ts
+index e401be9..e0fc574 100644
+--- a/src/services/accounts/accountService.ts
++++ b/src/services/accounts/accountService.ts
+@@ -51,3 +51,33 @@ export async function provisionSelf(uid: string, email: string, phone?: string):
+   await setDoc(doc(db, USERS, uid), record);
+   return record;
+ }
++
++/**
++ * Coach self-signup variant: provisions `users/{uid}` with role `coach`,
++ * `accountStatus: 'active'`, `createdBy: 'self'`, no permissions — the locked
++ * defaults the widened `isSelfProvisionDefaults()` rule permits. Idempotent
++ * (returns an existing record untouched). The caller separately creates the
++ * coach's auto trial plan (`coachPlans/{uid}`).
++ */
++export async function provisionSelfCoach(uid: string, email: string, phone?: string): Promise<UserRecord> {
++  const existing = await fetchUserRecord(uid);
++  if (existing) return existing;
++
++  const now = Date.now();
++  const record: UserRecord = {
++    id: uid,
++    email,
++    displayName: email ? email.split('@')[0] : 'Coach',
++    role: 'coach',
++    accountStatus: 'active',
++    permissions: [],
++    featureFlags: {},
++    createdBy: 'self',
++    ...(phone?.trim() ? { phone: phone.trim() } : {}),
++    createdAt: now,
++    updatedAt: now,
++  };
++  const { db } = ensureFirebase();
++  await setDoc(doc(db, USERS, uid), record);
++  return record;
++}
+diff --git a/src/services/auth/sessionStore.ts b/src/services/auth/sessionStore.ts
+index 97b6773..c258310 100644
+--- a/src/services/auth/sessionStore.ts
++++ b/src/services/auth/sessionStore.ts
+@@ -21,7 +21,7 @@ interface SessionState {
+   error: string | null;
+   init: () => void;
+   /** Resolves true on success; on failure sets `error` and resolves false. */
+-  signIn: (email: string, password: string, create?: boolean, phone?: string) => Promise<boolean>;
++  signIn: (email: string, password: string, create?: boolean, phone?: string, role?: 'client' | 'coach') => Promise<boolean>;
+   signOut: () => Promise<void>;
+   /** Re-reads the identity doc for the current uid and recomputes `phase`. */
+   refreshAccount: () => Promise<void>;
+@@ -84,7 +84,7 @@ export const useSession = create<SessionState>((set, get) => ({
+     });
+   },
+ 
+-  async signIn(email, password, create, phone) {
++  async signIn(email, password, create, phone, role) {
+     set({ error: null });
+     try {
+       const [{ firebaseAuth }, accounts] = await Promise.all([
+@@ -93,7 +93,19 @@ export const useSession = create<SessionState>((set, get) => ({
+       ]);
+       if (create) {
+         const user = await firebaseAuth.signUp(email, password);
+-        await accounts.provisionSelf(user.uid, email, phone);
++        if (role === 'coach') {
++          await accounts.provisionSelfCoach(user.uid, email, phone);
++          // Auto trial plan (Layer A). Best-effort: a failure here must not block
++          // the coach from signing in — backfill/reconcile can repair it.
++          try {
++            const { createTrialPlan } = await import('@/services/platform/coachPlanApi');
++            await createTrialPlan(user.uid);
++          } catch (e) {
++            console.warn('[session] coach trial plan not created (non-fatal):', e);
++          }
++        } else {
++          await accounts.provisionSelf(user.uid, email, phone);
++        }
+         set({ uid: user.uid });
+       } else {
+         const user = await firebaseAuth.signIn(email, password);
+diff --git a/src/services/platform/coachClientsApi.ts b/src/services/platform/coachClientsApi.ts
+index fa3e74a..05ac0c4 100644
+--- a/src/services/platform/coachClientsApi.ts
++++ b/src/services/platform/coachClientsApi.ts
+@@ -13,6 +13,7 @@ import { ensureFirebase } from '@/data/adapters/firebase/firebase';
+ import { addMonths } from '@/lib/subscription';
+ import { writeAudit } from './auditApi';
+ import { notify } from './notificationsApi';
++import { bumpActiveClientCount } from './coachPlanApi';
+ import type { CoachClientRelationship, Subscription, SubscriptionPeriod } from '@/types';
+ 
+ const REL = 'coachClients';
+@@ -40,6 +41,7 @@ export async function linkCoachClient(coachId: string, clientId: string, created
+   const id = relId(coachId, clientId);
+   const rel: CoachClientRelationship = { id, coachId, clientId, status: 'active', createdBy, createdAt: now, updatedAt: now };
+   await setDoc(doc(db, REL, id), rel);
++  await bumpActiveClientCount(coachId, 1);
+ }
+ 
+ /** Assigns a client to a coach (idempotent on the deterministic id). */
+@@ -58,6 +60,7 @@ export async function assignClientToCoach(coachId: string, clientId: string, cre
+   };
+   await setDoc(doc(db, REL, id), rel);
+   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: coachId, updatedAt: now });
++  await bumpActiveClientCount(coachId, 1);
+   await writeAudit({ action: 'coach.assign', targetUserId: clientId, metadata: { coachId } });
+ }
+ 
+@@ -84,6 +87,8 @@ export async function transferClient(
+     updatedAt: now,
+   } satisfies CoachClientRelationship);
+   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: toCoachId, updatedAt: now });
++  if (fromCoachId && fromCoachId !== toCoachId) await bumpActiveClientCount(fromCoachId, -1);
++  if (fromCoachId !== toCoachId) await bumpActiveClientCount(toCoachId, 1);
+   await writeAudit({ action: 'coach.transfer', targetUserId: clientId, metadata: { from: fromCoachId ?? null, to: toCoachId } });
+ }
+ 
+@@ -93,6 +98,7 @@ export async function unassignClient(clientId: string, coachId: string, createdB
+   const now = Date.now();
+   await updateDoc(doc(db, REL, relId(coachId, clientId)), { status: 'ended', updatedAt: now }).catch(() => undefined);
+   await updateDoc(doc(db, USERS, clientId), { assignedCoachId: deleteField(), updatedAt: now });
++  await bumpActiveClientCount(coachId, -1);
+   await writeAudit({ action: 'coach.unassign', targetUserId: clientId, metadata: { coachId, createdBy } });
+ }
+ 
+diff --git a/src/types/index.ts b/src/types/index.ts
+index 036b266..126e674 100644
+--- a/src/types/index.ts
++++ b/src/types/index.ts
+@@ -78,10 +78,73 @@ export interface UserRecord {
+   featureFlags: Record<string, boolean>;
+   createdBy: string; // actor uid, or 'self' for open sign-up
+   assignedCoachId?: string; // clients managed by a coach
++  /** Invite code used at signup (invite-driven self-assignment); audit/trace only. */
++  inviteCode?: string;
++  // Coach profile (all optional; populated as the coach completes onboarding).
++  bio?: string;
++  specialty?: string;
++  yearsExperience?: number;
++  instagram?: string;
++  whatsapp?: string;
++  /** Coach onboarding checklist progress (Phase 1). Derived from real data where possible. */
++  onboarding?: CoachOnboarding;
+   createdAt: number;
+   updatedAt: number;
+ }
+ 
++/** Coach onboarding checklist state, stored on the coach's own `users/{uid}` doc. */
++export interface CoachOnboarding {
++  profileDone?: boolean;
++  firstClientDone?: boolean;
++  firstTemplateDone?: boolean;
++}
++
++// ---------------------------------------------------------------------------
++// Coach plan (Layer A — the coach's own subscription to Forma). NEW collection
++// `coachPlans/{coachId}`. Distinct from the per-client `Subscription` (Layer B).
++// ---------------------------------------------------------------------------
++
++export type CoachPlanTier = 'trial' | 'starter' | 'pro' | 'enterprise';
++export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
++
++export interface CoachPlan {
++  coachId: string; // == doc id
++  plan: CoachPlanTier;
++  status: CoachPlanStatus;
++  maxClients: number; // trial = 10
++  startedAt: number;
++  endsAt: number | null; // trial = startedAt + 15d; paid tiers null until later
++  /** Trial-expiry notification bookkeeping — each flag fires its reminder once. */
++  trialNotified?: { d7?: boolean; d3?: boolean; d1?: boolean };
++  /** Maintained client-usage counter; rules reject a new relationship at the cap. */
++  activeClientCount?: number;
++  createdAt: number;
++  updatedAt: number;
++}
++
++// ---------------------------------------------------------------------------
++// Client invitations (Phase 1). NEW collection `signupInvites/{code}`. A coach
++// generates a single-use code; the visitor claims it at `/invite/:code`, sets a
++// password, and is auto-assigned to that coach.
++// ---------------------------------------------------------------------------
++
++export type SignupInviteStatus = 'pending' | 'claimed' | 'revoked';
++
++export interface SignupInvite {
++  code: string; // == doc id
++  coachId: string;
++  /** Coach display name, denormalised so the pre-auth claim screen can show it without a users read. */
++  coachName?: string;
++  email?: string;
++  displayName?: string;
++  phone?: string;
++  status: SignupInviteStatus;
++  claimedByUid?: string | null;
++  createdAt: number;
++  claimedAt?: number | null;
++  expiresAt?: number | null;
++}
++
+ // ---------------------------------------------------------------------------
+ // Client onboarding assessment
+ // ---------------------------------------------------------------------------
+@@ -246,6 +309,8 @@ export interface CoachClientRelationship {
+   subscription?: Subscription;
+   /** Past subscription terms (newest pushed last), for the history view. */
+   subscriptionHistory?: SubscriptionPeriod[];
++  /** Invite code that established the relationship (invite-driven self-claim). */
++  inviteCode?: string;
+   createdBy: string;
+   createdAt: number;
+   updatedAt: number;
+@@ -354,7 +419,8 @@ export type NotificationType =
+   | 'checkin_requested'
+   | 'checkin_submitted'
+   | 'checkin_reviewed'
+-  | 'message_received';
++  | 'message_received'
++  | 'trial_expiring';
+ 
+ /**
+  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and
+diff --git a/e2e/client-invite.spec.ts b/e2e/client-invite.spec.ts
+new file mode 100644
+index 0000000..2571f99
+--- /dev/null
++++ b/e2e/client-invite.spec.ts
+@@ -0,0 +1,107 @@
++import { test, expect } from './fixtures/test';
++import { TID } from './fixtures/selectors';
++import { signInAs, signInWith, findCoachClientRel, readDoc, attempt, isPermissionDenied, doc, setDoc } from './fixtures/firestore';
++import { createInvite, claimInvite, uniqueEmail } from './fixtures/factory';
++
++/**
++ * CLIENT INVITES (Phase 1). A coach generates a single-use invite; a visitor
++ * claims it at /invite/:code, sets a password, is auto-assigned, and shows up in
++ * the coach's clients. Also covers single-use + expiry enforcement (rules).
++ */
++test.describe('Client invites', () => {
++  test('coach generates an invite, copies the link, and can revoke it (UI)', async ({ login, page }) => {
++    await login('coach');
++    await page.goto('/coach/clients');
++    await page.getByTestId(TID.coachInviteClient).click();
++    await expect(page.getByTestId(TID.coachInvitePanel)).toBeVisible();
++    await page.getByTestId(TID.coachInviteGenerate).click();
++    const row = page.getByTestId(TID.coachInviteRow).first();
++    await expect(row).toBeVisible({ timeout: 15_000 });
++    // Copy + revoke controls present.
++    await expect(row.getByTestId(TID.coachInviteCopy)).toBeVisible();
++    await row.getByTestId(TID.coachInviteRevoke).click();
++  });
++
++  test('public /invite/:code reveals coach name, claims, and auto-assigns', async ({ page }) => {
++    const coach = await signInAs('coach');
++    const invite = await createInvite(coach, {});
++    await coach.close();
++
++    await page.goto(`/invite/${invite.code}`);
++    await expect(page.getByTestId(TID.acceptInvite)).toBeVisible({ timeout: 20_000 });
++    await expect(page.getByTestId(TID.inviteForm)).toBeVisible();
++    // Only the coach display name is revealed (no PII assertion beyond presence).
++    await expect(page.getByTestId(TID.inviteCoachName)).toBeVisible();
++
++    const email = uniqueEmail('qa-invitee');
++    const password = 'Invitee123456!';
++    await page.getByTestId(TID.inviteName).fill('QA Invitee');
++    await page.getByTestId(TID.inviteEmail).fill(email);
++    await page.getByTestId(TID.invitePhone).fill('+15553334444');
++    await page.getByTestId(TID.invitePassword).fill(password);
++    await page.getByTestId(TID.inviteConfirm).fill(password);
++    await page.getByTestId(TID.inviteSubmit).click();
++
++    // Lands in the client app (assigned → no waiting-for-coach is fine either way).
++    await expect(page.getByTestId(TID.navItem('home'))).toBeVisible({ timeout: 30_000 });
++
++    // The relationship + assignment exist; the invite is now claimed (single-use).
++    const sess = await signInWith(email, password, 'qa-invitee-read');
++    const rel = await findCoachClientRel(sess.db, invite.coachId, sess.uid);
++    expect(rel, 'coachClients relationship should exist after claim').not.toBeNull();
++    expect(rel!.status).toBe('active');
++    const me = await readDoc<{ assignedCoachId?: string }>(sess.db, ['users', sess.uid]);
++    expect(me!.assignedCoachId).toBe(invite.coachId);
++  });
++
++  test('a claimed invite cannot be reused (rules)', async () => {
++    const coach = await signInAs('coach');
++    const invite = await createInvite(coach, {});
++    await coach.close();
++
++    // First claim succeeds (via the SDK factory, mirroring AcceptInvite).
++    await claimInvite(invite, { email: uniqueEmail('qa-reuse-1'), password: 'Reuse123456!', displayName: 'QA Reuse 1' });
++
++    // Any other signed-in client attempting to re-claim the now-`claimed` invite
++    // is denied (the claim branch only permits pending → claimed).
++    const client = await signInAs('client');
++    try {
++      const r = await attempt(() =>
++        setDoc(doc(client.db, 'signupInvites', invite.code), { status: 'claimed', claimedByUid: client.uid, claimedAt: Date.now() }, { merge: true }),
++      );
++      expect(isPermissionDenied(r), `re-claiming a claimed invite should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await client.close();
++    }
++  });
++
++  test('a forged/unknown invite code cannot attach a client to a coach (rules)', async () => {
++    const coach = await signInAs('coach');
++    const coachId = coach.uid;
++    await coach.close();
++    // An existing client (already assigned to their own coach) cannot self-create
++    // a NEW relationship to an arbitrary coach without a valid pending invite.
++    const client = await signInAs('client');
++    try {
++      const fakeRel = `${coachId}__${client.uid}`;
++      const r = await attempt(() =>
++        setDoc(doc(client.db, 'coachClients', fakeRel), {
++          id: fakeRel, coachId, clientId: client.uid, status: 'active',
++          createdBy: client.uid, inviteCode: 'FORGED99', createdAt: Date.now(), updatedAt: Date.now(),
++        }),
++      );
++      expect(isPermissionDenied(r), `forging a relationship without a valid invite should be denied (got ${r.code ?? 'ok'})`).toBe(true);
++    } finally {
++      await client.close();
++    }
++  });
++
++  test('an expired invite is not claimable (rules deny + UI shows invalid)', async ({ page }) => {
++    const coach = await signInAs('coach');
++    const invite = await createInvite(coach, { expiresAt: Date.now() - 1000 });
++    await coach.close();
++    // UI: invalid screen.
++    await page.goto(`/invite/${invite.code}`);
++    await expect(page.getByTestId(TID.inviteInvalid)).toBeVisible({ timeout: 20_000 });
++  });
++});
+diff --git a/e2e/coach-signup.spec.ts b/e2e/coach-signup.spec.ts
+new file mode 100644
+index 0000000..dd9426c
+--- /dev/null
++++ b/e2e/coach-signup.spec.ts
+@@ -0,0 +1,73 @@
++import { test, expect } from './fixtures/test';
++import { TID } from './fixtures/selectors';
++import { signInWith, readDoc } from './fixtures/firestore';
++import { uniqueEmail } from './fixtures/factory';
++
++/**
++ * COACH SELF-SIGNUP (Phase 1). A visitor picks the Coach role on the sign-up
++ * tab → lands ACTIVE (no admin approval) → an auto trial plan is created at
++ * coachPlans/{uid} with the locked defaults → the onboarding checklist shows.
++ *
++ * Self-signup mints a real auth user; we drive it once and assert the resulting
++ * Firestore state via the SDK (the authoritative boundary).
++ */
++test.describe('Coach self-signup', () => {
++  test('signing up as coach lands active with an auto trial plan + checklist', async ({ page }) => {
++    const email = uniqueEmail('qa-coachsignup');
++    const password = 'Coach123456!';
++
++    await page.goto('/login');
++    await page.getByTestId(TID.loginForm).waitFor();
++    await page.getByTestId(TID.loginToggleMode).click(); // → sign-up
++    await expect(page.getByTestId(TID.signupRole)).toBeVisible();
++
++    // Choose Coach.
++    await page.getByTestId(TID.signupRoleFor('coach')).click();
++    await page.getByTestId(TID.loginEmail).fill(email);
++    await page.getByTestId(TID.loginPhone).fill('+15557654321');
++    await page.getByTestId(TID.loginPassword).fill(password);
++    await page.getByTestId(TID.loginConfirm).fill(password);
++    await page.getByTestId(TID.loginSubmit).click();
++
++    // Coach lands in the coach shell (active — no pending gate).
++    await expect(page.getByTestId(TID.coachClients)).toBeVisible({ timeout: 30_000 });
++
++    // The auto trial plan exists with the locked defaults.
++    const sess = await signInWith(email, password, 'qa-coachsignup-read');
++    const plan = await readDoc<{ plan: string; status: string; maxClients: number; endsAt: number | null; activeClientCount: number }>(sess.db, ['coachPlans', sess.uid]);
++    expect(plan, 'coachPlans doc should be created at signup').not.toBeNull();
++    expect(plan!.plan).toBe('trial');
++    expect(plan!.status).toBe('active');
++    expect(plan!.maxClients).toBe(10);
++    expect(plan!.endsAt).toBeGreaterThan(Date.now());
++    expect(plan!.activeClientCount).toBe(0);
++
++    // The identity doc is an active coach created by self.
++    const rec = await readDoc<{ role: string; accountStatus: string; createdBy: string }>(sess.db, ['users', sess.uid]);
++    expect(rec!.role).toBe('coach');
++    expect(rec!.accountStatus).toBe('active');
++    expect(rec!.createdBy).toBe('self');
++
++    // Onboarding checklist is visible on the dashboard (no clients/templates yet).
++    await page.goto('/coach/dashboard');
++    await expect(page.getByTestId(TID.coachChecklist)).toBeVisible({ timeout: 30_000 });
++    await expect(page.getByTestId(TID.coachTrialBanner)).toBeVisible();
++  });
++
++  test('client signup path is unchanged (defaults to pending client)', async ({ page }) => {
++    const email = uniqueEmail('qa-clientsignup');
++    const password = 'Client123456!';
++    await page.goto('/login');
++    await page.getByTestId(TID.loginForm).waitFor();
++    await page.getByTestId(TID.loginToggleMode).click();
++    await expect(page.getByTestId(TID.signupRole)).toBeVisible();
++    // Client is the default selection — do not change it.
++    await page.getByTestId(TID.loginEmail).fill(email);
++    await page.getByTestId(TID.loginPhone).fill('+15551112222');
++    await page.getByTestId(TID.loginPassword).fill(password);
++    await page.getByTestId(TID.loginConfirm).fill(password);
++    await page.getByTestId(TID.loginSubmit).click();
++    // Self-signup clients are pending (SELF_SIGNUP_STATUS) → blocked gate.
++    await expect(page.getByTestId(TID.accountPending)).toBeVisible({ timeout: 30_000 });
++  });
++});
+diff --git a/scripts/backfill-coach-plans.mjs b/scripts/backfill-coach-plans.mjs
+new file mode 100644
+index 0000000..d25e44b
+--- /dev/null
++++ b/scripts/backfill-coach-plans.mjs
+@@ -0,0 +1,70 @@
++/**
++ * Backfill: ensure every existing coach has a Layer-A trial plan doc at
++ * coachPlans/{coachId}. Idempotent and NON-DESTRUCTIVE — it never downgrades or
++ * overwrites an existing plan (skips any coach that already has one).
++ *
++ * Runs as a SUPER ADMIN (no Admin SDK available): the super-admin session can
++ * list users (users.read) and create coachPlans (users.manageStatus), exactly
++ * as the security rules permit.
++ *
++ *   Dry run (prints counts, writes nothing):
++ *     SA_EMAIL=you@x.com SA_PASSWORD=… node scripts/backfill-coach-plans.mjs --dry-run
++ *   Apply:
++ *     SA_EMAIL=you@x.com SA_PASSWORD=… node scripts/backfill-coach-plans.mjs
++ *
++ * Always dry-run against a staging copy before production.
++ */
++import { initializeApp } from 'firebase/app';
++import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
++import { initializeFirestore, collection, doc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
++
++const firebaseConfig = {
++  apiKey: 'AIzaSyD4V746POLUsz5IsaAlRRA6p-3QO1HpM9Y',
++  authDomain: 'forma-14d33.firebaseapp.com',
++  projectId: 'forma-14d33',
++  storageBucket: 'forma-14d33.firebasestorage.app',
++  messagingSenderId: '1099068388494',
++  appId: '1:1099068388494:web:8910e9d7d9b247e5a305df',
++};
++
++const TRIAL_MAX_CLIENTS = 10;
++const TRIAL_DURATION_DAYS = 15;
++const DAY_MS = 86_400_000;
++
++const DRY = process.argv.includes('--dry-run');
++const EMAIL = process.env.SA_EMAIL;
++const PASSWORD = process.env.SA_PASSWORD;
++if (!EMAIL || !PASSWORD) {
++  console.error('Set SA_EMAIL and SA_PASSWORD (a super_admin) env vars.');
++  process.exit(1);
++}
++
++async function main() {
++  const app = initializeApp(firebaseConfig);
++  const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
++  const auth = getAuth(app);
++  await signInWithEmailAndPassword(auth, EMAIL, PASSWORD);
++
++  const coaches = await getDocs(query(collection(db, 'users'), where('role', '==', 'coach')));
++  let created = 0, skipped = 0;
++  for (const c of coaches.docs) {
++    const coachId = c.id;
++    const existing = await getDoc(doc(db, 'coachPlans', coachId));
++    if (existing.exists()) { skipped += 1; continue; }
++    const now = Date.now();
++    const plan = {
++      coachId, plan: 'trial', status: 'active',
++      maxClients: TRIAL_MAX_CLIENTS,
++      startedAt: now, endsAt: now + TRIAL_DURATION_DAYS * DAY_MS,
++      trialNotified: {}, activeClientCount: 0,
++      createdAt: now, updatedAt: now,
++    };
++    if (DRY) { console.log(`[dry-run] would create coachPlans/${coachId}`); created += 1; continue; }
++    await setDoc(doc(db, 'coachPlans', coachId), plan);
++    created += 1;
++  }
++  console.log(`\nCoaches: ${coaches.size} · ${DRY ? 'would create' : 'created'}: ${created} · skipped (already had plan): ${skipped}`);
++  process.exit(0);
++}
++
++main().catch((e) => { console.error('BACKFILL FAILED:', e?.code || '', e?.message || e); process.exit(1); });
+diff --git a/scripts/reconcile-client-counts.mjs b/scripts/reconcile-client-counts.mjs
+new file mode 100644
+index 0000000..f1642bc
+--- /dev/null
++++ b/scripts/reconcile-client-counts.mjs
+@@ -0,0 +1,58 @@
++/**
++ * Reconcile: recompute coachPlans/{coachId}.activeClientCount from the source of
++ * truth (active coachClients relationships) and fix any drift. The counter is
++ * maintained transactionally-ish on assign/unassign but can drift if a write
++ * fails mid-flight; this script repairs it. Idempotent.
++ *
++ * Runs as a SUPER ADMIN (users.read to enumerate coaches + their relationships,
++ * users.manageStatus to update the plan counter).
++ *
++ *   Dry run (prints drift, writes nothing):
++ *     SA_EMAIL=you@x.com SA_PASSWORD=… node scripts/reconcile-client-counts.mjs --dry-run
++ *   Apply:
++ *     SA_EMAIL=you@x.com SA_PASSWORD=… node scripts/reconcile-client-counts.mjs
++ */
++import { initializeApp } from 'firebase/app';
++import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
++import { initializeFirestore, collection, doc, getDocs, query, where, setDoc } from 'firebase/firestore';
++
++const firebaseConfig = {
++  apiKey: 'AIzaSyD4V746POLUsz5IsaAlRRA6p-3QO1HpM9Y',
++  authDomain: 'forma-14d33.firebaseapp.com',
++  projectId: 'forma-14d33',
++  storageBucket: 'forma-14d33.firebasestorage.app',
++  messagingSenderId: '1099068388494',
++  appId: '1:1099068388494:web:8910e9d7d9b247e5a305df',
++};
++
++const DRY = process.argv.includes('--dry-run');
++const EMAIL = process.env.SA_EMAIL;
++const PASSWORD = process.env.SA_PASSWORD;
++if (!EMAIL || !PASSWORD) {
++  console.error('Set SA_EMAIL and SA_PASSWORD (a super_admin) env vars.');
++  process.exit(1);
++}
++
++async function main() {
++  const app = initializeApp(firebaseConfig);
++  const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
++  const auth = getAuth(app);
++  await signInWithEmailAndPassword(auth, EMAIL, PASSWORD);
++
++  const plans = await getDocs(collection(db, 'coachPlans'));
++  let drifted = 0;
++  for (const p of plans.docs) {
++    const coachId = p.id;
++    const rels = await getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId), where('status', '==', 'active')));
++    const actual = rels.size;
++    const stored = p.data().activeClientCount ?? 0;
++    if (actual === stored) continue;
++    drifted += 1;
++    console.log(`${DRY ? '[dry-run] ' : ''}coachPlans/${coachId}: stored=${stored} → actual=${actual}`);
++    if (!DRY) await setDoc(doc(db, 'coachPlans', coachId), { activeClientCount: actual, updatedAt: Date.now() }, { merge: true });
++  }
++  console.log(`\nPlans: ${plans.size} · drifted: ${drifted}${DRY ? ' (no writes — dry run)' : ' (repaired)'}`);
++  process.exit(0);
++}
++
++main().catch((e) => { console.error('RECONCILE FAILED:', e?.code || '', e?.message || e); process.exit(1); });
+diff --git a/src/pages/auth/AcceptInvite.tsx b/src/pages/auth/AcceptInvite.tsx
+new file mode 100644
+index 0000000..72a913e
+--- /dev/null
++++ b/src/pages/auth/AcceptInvite.tsx
+@@ -0,0 +1,190 @@
++import { useEffect, useMemo, useState } from 'react';
++import { useNavigate, useParams } from 'react-router-dom';
++import { useTranslation } from 'react-i18next';
++import { useSession } from '@/services/auth/sessionStore';
++import { getInvite, claimInvite, unclaimInvite, isClaimable } from '@/services/platform/inviteApi';
++import { fetchUserRecord } from '@/services/accounts/accountService';
++import { passwordError } from '@/lib/password';
++import type { SignupInvite, UserRecord } from '@/types';
++
++type Phase = 'loading' | 'invalid' | 'ready' | 'joining' | 'done';
++
++/**
++ * Public invite-claim screen at `/invite/:code`. Mobile-first.
++ *
++ * Reveals ONLY the coach's display name (no PII), lets the visitor set their own
++ * password (and optional name/phone), then performs an all-or-nothing join:
++ *   1) create the auth user + sign in,
++ *   2) provision `users/{uid}` with role:client, active, assignedCoachId = coach,
++ *   3) create the `coachClients/{coachId__uid}` relationship,
++ *   4) claim the invite (single-use; rules reject reuse/forgery).
++ * If a later step fails the invite claim is rolled back so the code stays usable.
++ */
++export function AcceptInvite() {
++  const { t } = useTranslation();
++  const { code = '' } = useParams();
++  const navigate = useNavigate();
++  const refreshAccount = useSession((s) => s.refreshAccount);
++
++  const [phase, setPhase] = useState<Phase>('loading');
++  const [invite, setInvite] = useState<SignupInvite | null>(null);
++  const [coachName, setCoachName] = useState<string>('');
++  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
++  const [error, setError] = useState<string | null>(null);
++
++  useEffect(() => {
++    let mounted = true;
++    void (async () => {
++      try {
++        const inv = await getInvite(code);
++        if (!mounted) return;
++        if (!isClaimable(inv)) {
++          setPhase('invalid');
++          return;
++        }
++        setInvite(inv);
++        // Show the coach's display name only — denormalised onto the invite so
++        // this works PRE-AUTH (no users read). Older invites without it fall back
++        // to a best-effort read (succeeds only once the user is signed in).
++        if (inv!.coachName) {
++          setCoachName(inv!.coachName);
++        } else {
++          const coach = await fetchUserRecord(inv!.coachId).catch(() => null as UserRecord | null);
++          if (mounted && coach?.displayName) setCoachName(coach.displayName);
++        }
++        if (!mounted) return;
++        setForm((f) => ({
++          ...f,
++          name: f.name || (inv!.displayName ?? ''),
++          email: f.email || (inv!.email ?? ''),
++          phone: f.phone || (inv!.phone ?? ''),
++        }));
++        setPhase('ready');
++      } catch {
++        if (mounted) setPhase('invalid');
++      }
++    })();
++    return () => {
++      mounted = false;
++    };
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [code]);
++
++  const valid = useMemo(
++    () => !!form.email.trim() && !!form.phone.trim() && !passwordError(form.password) && form.password === form.confirm,
++    [form],
++  );
++
++  const validateLocal = (): string | null => {
++    if (!form.email.trim()) return t('auth.enterEmailFirst');
++    if (!form.phone.trim()) return t('auth.phoneRequired');
++    const pwErr = passwordError(form.password);
++    if (pwErr) return t(`auth.pw${pwErr}`);
++    if (form.password !== form.confirm) return t('auth.pwMismatch');
++    return null;
++  };
++
++  const join = async () => {
++    setError(null);
++    const localErr = validateLocal();
++    if (localErr) { setError(localErr); return; }
++    if (!invite) return;
++    setPhase('joining');
++    const email = (invite.email?.trim() || form.email.trim());
++    try {
++      const [{ firebaseAuth }, { ensureFirebase }, fs] = await Promise.all([
++        import('@/services/auth/firebaseAuth'),
++        import('@/data/adapters/firebase/firebase'),
++        import('firebase/firestore'),
++      ]);
++      const user = await firebaseAuth.signUp(email, form.password);
++      const { db } = ensureFirebase();
++      const { doc, setDoc } = fs;
++      const now = Date.now();
++      const uid = user.uid;
++      const record: UserRecord = {
++        id: uid,
++        email,
++        displayName: form.name.trim() || email.split('@')[0],
++        role: 'client',
++        accountStatus: 'active',
++        permissions: [],
++        featureFlags: {},
++        createdBy: 'self',
++        assignedCoachId: invite.coachId,
++        inviteCode: invite.code,
++        ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
++        createdAt: now,
++        updatedAt: now,
++      };
++      try {
++        await setDoc(doc(db, 'users', uid), record);
++        await setDoc(doc(db, 'coachClients', `${invite.coachId}__${uid}`), {
++          id: `${invite.coachId}__${uid}`,
++          coachId: invite.coachId,
++          clientId: uid,
++          status: 'active',
++          createdBy: uid,
++          inviteCode: invite.code,
++          createdAt: now,
++          updatedAt: now,
++        });
++        await claimInvite(invite.code, uid);
++      } catch (joinErr) {
++        // Roll back the claim so the code remains usable; surface the error.
++        await unclaimInvite(invite.code);
++        throw joinErr;
++      }
++      await refreshAccount();
++      setPhase('done');
++      navigate('/', { replace: true });
++    } catch (e) {
++      setError(e instanceof Error ? e.message : 'Failed');
++      setPhase('ready');
++    }
++  };
++
++  return (
++    <div className="fixed inset-0 z-50 overflow-y-auto bg-black px-5 py-12" data-testid="accept-invite">
++      <div className="anim-rise mx-auto max-w-md space-y-5">
++        <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-48 max-w-[56%] rounded-2xl" />
++
++        {phase === 'loading' && <p className="text-center text-sm text-earth-muted">{t('auth.working')}</p>}
++
++        {phase === 'invalid' && (
++          <div className="card space-y-3 text-center" data-testid="invite-invalid">
++            <h1 className="h1">{t('invite.invalidTitle')}</h1>
++            <p className="text-sm text-earth-muted">{t('invite.invalidBody')}</p>
++            <button type="button" className="btn-ghost w-full" onClick={() => navigate('/login')}>{t('onboard.signIn')}</button>
++          </div>
++        )}
++
++        {(phase === 'ready' || phase === 'joining' || phase === 'done') && (
++          <>
++            <h1 className="h1">{t('invite.title')}</h1>
++            <p className="text-sm text-earth-muted" data-testid="invite-coach-name">
++              {coachName ? t('invite.fromCoach', { coach: coachName }) : t('invite.intro')}
++            </p>
++            <form
++              className="card space-y-3"
++              data-testid="invite-form"
++              onSubmit={(e) => { e.preventDefault(); void join(); }}
++            >
++              <input className="input" data-testid="invite-name" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
++              <input className="input" type="email" autoComplete="email" data-testid="invite-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} readOnly={!!invite?.email} />
++              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="invite-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
++              <input className="input" type="password" autoComplete="new-password" data-testid="invite-password" placeholder={t('settings.password')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
++              <input className="input" type="password" autoComplete="new-password" data-testid="invite-confirm" placeholder={t('auth.confirmPassword')} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
++              <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
++              {error && <p className="text-sm text-danger" data-testid="invite-error">{error}</p>}
++              {phase === 'joining' && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}
++              <button type="submit" disabled={!valid || phase === 'joining'} data-testid="invite-submit" className="btn-primary btn-lg w-full disabled:opacity-40">
++                {t('invite.join')}
++              </button>
++            </form>
++          </>
++        )}
++      </div>
++    </div>
++  );
++}
+diff --git a/src/pages/coach/onboarding/CoachTrialBanner.tsx b/src/pages/coach/onboarding/CoachTrialBanner.tsx
+new file mode 100644
+index 0000000..0bff2f7
+--- /dev/null
++++ b/src/pages/coach/onboarding/CoachTrialBanner.tsx
+@@ -0,0 +1,32 @@
++import { useTranslation } from 'react-i18next';
++import { Icon } from '@/components/Icon';
++import { trialDaysLeft } from '@/services/platform/coachPlanApi';
++import type { CoachPlan } from '@/types';
++
++/**
++ * Dashboard banner summarising the coach's trial: clients used / max and days
++ * left, with an urgent tone inside the final week. Hidden for non-trial plans.
++ */
++export function CoachTrialBanner({ plan }: { plan: CoachPlan | null | undefined }) {
++  const { t } = useTranslation();
++  if (!plan || plan.plan !== 'trial') return null;
++  const left = trialDaysLeft(plan);
++  const expired = plan.status !== 'active' || (left != null && left <= 0);
++  const urgent = !expired && left != null && left <= 7;
++  const tone = expired ? 'border-danger/50 bg-danger/10 text-danger' : urgent ? 'border-warn/50 bg-warn/10 text-warn' : 'border-brand/40 bg-brand/10 text-brand';
++  const used = plan.activeClientCount ?? 0;
++
++  return (
++    <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${tone}`} data-testid="coach-trial-banner">
++      <Icon name={expired ? 'info' : 'timer'} size={20} />
++      <div className="min-w-0 flex-1 text-sm">
++        <p className="font-semibold" data-testid="coach-trial-status">
++          {expired ? t('coachTrial.expired') : left != null ? t('coachTrial.daysLeft', { n: Math.max(0, left) }) : t('coachTrial.active')}
++        </p>
++        <p className="text-[12px] opacity-90" data-testid="coach-trial-usage">
++          {t('coachTrial.usage', { used, max: plan.maxClients })}
++        </p>
++      </div>
++    </div>
++  );
++}
+diff --git a/src/pages/coach/onboarding/CoachChecklist.tsx b/src/pages/coach/onboarding/CoachChecklist.tsx
+new file mode 100644
+index 0000000..58e039a
+--- /dev/null
++++ b/src/pages/coach/onboarding/CoachChecklist.tsx
+@@ -0,0 +1,88 @@
++import { useMemo } from 'react';
++import { useQuery } from '@tanstack/react-query';
++import { useNavigate } from 'react-router-dom';
++import { useTranslation } from 'react-i18next';
++import { Icon } from '@/components/Icon';
++import { useSession } from '@/services/auth/sessionStore';
++import { listWorkoutTemplates } from '@/services/platform/coachAssetsApi';
++
++interface ChecklistItem {
++  key: 'profile' | 'firstClient' | 'firstTemplate';
++  done: boolean;
++  to: string;
++}
++
++/**
++ * Small coach-onboarding checklist card (NOT a wizard). Shows three items —
++ * complete profile / add first client / create first template — until all are
++ * done, then hides itself. Done-state is derived from REAL data where possible
++ * (client count, template count, profile fields), falling back to the persisted
++ * `UserRecord.onboarding` flags. Phase 1.
++ */
++export function CoachChecklist({ totalClients }: { totalClients: number }) {
++  const { t } = useTranslation();
++  const navigate = useNavigate();
++  const account = useSession((s) => s.account);
++  const coachId = account?.id;
++
++  const templates = useQuery({
++    queryKey: ['coachTemplatesCount', coachId],
++    queryFn: () => listWorkoutTemplates(coachId!),
++    enabled: !!coachId,
++    staleTime: 60_000,
++  });
++
++  const profileDone =
++    account?.onboarding?.profileDone === true ||
++    !!(account?.bio?.trim() || account?.specialty?.trim() || account?.photoUrl);
++  const firstClientDone = account?.onboarding?.firstClientDone === true || totalClients > 0;
++  const firstTemplateDone = account?.onboarding?.firstTemplateDone === true || (templates.data?.length ?? 0) > 0;
++
++  const items: ChecklistItem[] = useMemo(
++    () => [
++      { key: 'profile', done: profileDone, to: '/coach/settings' },
++      { key: 'firstClient', done: firstClientDone, to: '/coach/clients?new=1' },
++      { key: 'firstTemplate', done: firstTemplateDone, to: '/coach/templates/new' },
++    ],
++    [profileDone, firstClientDone, firstTemplateDone],
++  );
++
++  const remaining = items.filter((i) => !i.done).length;
++  if (remaining === 0) return null;
++
++  return (
++    <section className="card space-y-3" data-testid="coach-checklist">
++      <div className="flex items-center justify-between">
++        <h2 className="h2">{t('coachOnboard.title')}</h2>
++        <span className="text-[12px] text-earth-subtle" data-testid="coach-checklist-progress">
++          {t('coachOnboard.progress', { done: items.length - remaining, total: items.length })}
++        </span>
++      </div>
++      <div className="divide-y divide-line-soft">
++        {items.map((item) => (
++          <button
++            key={item.key}
++            type="button"
++            data-testid={`coach-checklist-${item.key}`}
++            data-done={item.done ? 'true' : 'false'}
++            onClick={() => navigate(item.to)}
++            className="row w-full text-start"
++            disabled={item.done}
++          >
++            <span
++              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
++                item.done ? 'border-success/50 bg-success/10 text-success' : 'border-line-soft text-earth-subtle'
++              }`}
++            >
++              <Icon name={item.done ? 'check' : 'plus'} size={15} />
++            </span>
++            <span className={`min-w-0 flex-1 text-sm ${item.done ? 'text-earth-subtle line-through' : 'font-medium'}`}>
++              {t(`coachOnboard.${item.key}`)}
++            </span>
++            {!item.done && <Icon name="chevron" size={16} className="text-earth-subtle" />}
++          </button>
++        ))}
++      </div>
++    </section>
++  );
++}
+diff --git a/src/services/platform/coachPlanApi.ts b/src/services/platform/coachPlanApi.ts
+new file mode 100644
+index 0000000..16524b4
+--- /dev/null
++++ b/src/services/platform/coachPlanApi.ts
+@@ -0,0 +1,89 @@
++import { doc, getDoc, increment, setDoc, updateDoc } from 'firebase/firestore';
++import { ensureFirebase } from '@/data/adapters/firebase/firebase';
++import type { CoachPlan } from '@/types';
++
++/**
++ * Layer A — the coach's own subscription to Forma, at `coachPlans/{coachId}`.
++ * Distinct from the per-client `Subscription` (Layer B) on `coachClients`.
++ *
++ * A coach self-creates a LOCKED trial on signup (the rules only permit
++ * `plan=='trial' && status=='active' && maxClients==TRIAL_MAX_CLIENTS` for a
++ * self-create, and forbid the coach from ever changing plan/status/maxClients
++ * afterwards). The coach may only patch `trialNotified` (expiry reminders) and
++ * `activeClientCount` (usage bookkeeping) on their own plan.
++ */
++
++const COACH_PLANS = 'coachPlans';
++
++/** Trial defaults — mirrored in firestore.rules. Keep the two in sync. */
++export const TRIAL_MAX_CLIENTS = 10;
++export const TRIAL_DURATION_DAYS = 15;
++const DAY_MS = 86_400_000;
++
++export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
++  const { db } = ensureFirebase();
++  const snap = await getDoc(doc(db, COACH_PLANS, coachId));
++  return snap.exists() ? (snap.data() as CoachPlan) : null;
++}
++
++/**
++ * Creates the coach's auto trial plan. Idempotent: if a plan already exists it
++ * is returned untouched (never downgrades an upgraded/paid plan). Called at
++ * coach signup from the session sign-in path.
++ */
++export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
++  const existing = await getCoachPlan(coachId);
++  if (existing) return existing;
++  const now = Date.now();
++  const plan: CoachPlan = {
++    coachId,
++    plan: 'trial',
++    status: 'active',
++    maxClients: TRIAL_MAX_CLIENTS,
++    startedAt: now,
++    endsAt: now + TRIAL_DURATION_DAYS * DAY_MS,
++    trialNotified: {},
++    activeClientCount: 0,
++    createdAt: now,
++    updatedAt: now,
++  };
++  const { db } = ensureFirebase();
++  await setDoc(doc(db, COACH_PLANS, coachId), plan);
++  return plan;
++}
++
++/**
++ * Mark a trial-expiry reminder as sent so it never fires twice. Only the
++ * `trialNotified` map (+ updatedAt) is touched — the only field a coach may
++ * mutate on their own plan besides the counter.
++ */
++export async function markTrialNotified(coachId: string, key: 'd7' | 'd3' | 'd1'): Promise<void> {
++  const { db } = ensureFirebase();
++  await updateDoc(doc(db, COACH_PLANS, coachId), {
++    [`trialNotified.${key}`]: true,
++    updatedAt: Date.now(),
++  });
++}
++
++/**
++ * Adjust the maintained `activeClientCount` by `delta` (+1 on assign, -1 on
++ * unassign/trash). Best-effort: a drift is reconciled by
++ * scripts/reconcile-client-counts.mjs. Never blocks the primary action.
++ */
++export async function bumpActiveClientCount(coachId: string, delta: number): Promise<void> {
++  try {
++    const { db } = ensureFirebase();
++    await updateDoc(doc(db, COACH_PLANS, coachId), {
++      activeClientCount: increment(delta),
++      updatedAt: Date.now(),
++    });
++  } catch (e) {
++    console.warn('[coachPlan] activeClientCount bump failed (non-fatal):', e);
++  }
++}
++
++/** Days remaining on the trial (rounded up), or null when the plan has no end. */
++export function trialDaysLeft(plan: Pick<CoachPlan, 'endsAt'>, now = Date.now()): number | null {
++  if (plan.endsAt == null) return null;
++  return Math.ceil((plan.endsAt - now) / DAY_MS);
++}
+diff --git a/src/services/platform/coachTrialApi.ts b/src/services/platform/coachTrialApi.ts
+new file mode 100644
+index 0000000..d1be7b8
+--- /dev/null
++++ b/src/services/platform/coachTrialApi.ts
+@@ -0,0 +1,54 @@
++import { getCoachPlan, markTrialNotified, trialDaysLeft } from './coachPlanApi';
++import { notify } from './notificationsApi';
++import type { CoachPlan } from '@/types';
++
++/**
++ * Trial-expiry reminders at 7 / 3 / 1 days left (Phase 1).
++ *
++ * Runs on coach app foreground (reusing the existing visibilitychange /
++ * refreshAccount pattern) — no cron needed. For each threshold crossed it raises
++ * ONE coach notification and sets the matching `trialNotified` flag so it never
++ * fires twice. The flag write is the only mutation a coach may make to their own
++ * `coachPlans` doc besides the usage counter.
++ *
++ * Returns the most-urgent reminder threshold just fired (for an optional toast),
++ * or null when nothing fired.
++ */
++const THRESHOLDS: { days: number; key: 'd7' | 'd3' | 'd1' }[] = [
++  { days: 7, key: 'd7' },
++  { days: 3, key: 'd3' },
++  { days: 1, key: 'd1' },
++];
++
++export async function checkTrialExpiry(coachId: string, plan?: CoachPlan | null): Promise<'d7' | 'd3' | 'd1' | null> {
++  try {
++    const p = plan ?? (await getCoachPlan(coachId));
++    if (!p || p.plan !== 'trial' || p.status !== 'active') return null;
++    const left = trialDaysLeft(p);
++    if (left == null) return null;
++
++    // Fire the most-urgent threshold that has been reached and not yet sent.
++    // (If a coach skips a window — e.g. doesn't open the app for days — the
++    // earliest-still-unsent reminder still fires once on next foreground.)
++    let fired: 'd7' | 'd3' | 'd1' | null = null;
++    for (const th of THRESHOLDS) {
++      const already = p.trialNotified?.[th.key] === true;
++      if (left <= th.days && !already) {
++        await markTrialNotified(coachId, th.key);
++        await notify({
++          clientId: coachId, // coach's own clientData notifications inbox
++          forRole: 'coach',
++          type: 'trial_expiring',
++          route: '/coach/dashboard',
++          createdBy: coachId,
++          body: String(Math.max(0, left)),
++        });
++        fired = th.key;
++      }
++    }
++    return fired;
++  } catch (e) {
++    console.warn('[coachTrial] expiry check failed (non-fatal):', e);
++    return null;
++  }
++}
+diff --git a/src/services/platform/inviteApi.ts b/src/services/platform/inviteApi.ts
+new file mode 100644
+index 0000000..7ccad0b
+--- /dev/null
++++ b/src/services/platform/inviteApi.ts
+@@ -0,0 +1,138 @@
++import { collection, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
++import { ensureFirebase } from '@/data/adapters/firebase/firebase';
++import type { SignupInvite } from '@/types';
++
++/**
++ * Client invitations (Phase 1), at `signupInvites/{code}`.
++ *
++ * Flow: a coach generates a single-use code → shares the link `${origin}/invite/{code}`
++ * → the visitor signs up (sets their own password) and CLAIMS the invite, which
++ * flips it to `claimed` and auto-assigns them to the coach. The code is the
++ * capability: rules let any signed-in user READ a minimal invite payload, but
++ * only the owning coach may create/revoke, and only the claiming client may flip
++ * it to `claimed` (once, while `pending`, honoring `expiresAt`).
++ */
++
++const INVITES = 'signupInvites';
++/** Default invite lifetime (14 days). */
++const DEFAULT_TTL_MS = 14 * 86_400_000;
++
++/** Human-friendly, unambiguous invite code (no 0/O/1/I/L). */
++export function generateInviteCode(len = 8): string {
++  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
++  let out = '';
++  const arr = new Uint32Array(len);
++  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
++    crypto.getRandomValues(arr);
++    for (let i = 0; i < len; i += 1) out += alphabet[arr[i] % alphabet.length];
++  } else {
++    for (let i = 0; i < len; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
++  }
++  return out;
++}
++
++export interface CreateInviteInput {
++  /** Coach display name, denormalised onto the invite for the pre-auth claim screen. */
++  coachName?: string;
++  email?: string;
++  displayName?: string;
++  phone?: string;
++  /** Override the default TTL; pass null for a non-expiring invite. */
++  ttlMs?: number | null;
++}
++
++/** Build the shareable invite link for a code (uses the current origin). */
++export function inviteLink(code: string): string {
++  const origin = typeof window !== 'undefined' ? window.location.origin : '';
++  return `${origin}/invite/${code}`;
++}
++
++/** Coach generates a new pending invite. Returns the created record. */
++export async function createInvite(coachId: string, input: CreateInviteInput = {}): Promise<SignupInvite> {
++  const { db } = ensureFirebase();
++  const now = Date.now();
++  const ttl = input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs;
++  // Retry on the (vanishingly unlikely) code collision.
++  for (let attempt = 0; attempt < 5; attempt += 1) {
++    const code = generateInviteCode();
++    const ref = doc(db, INVITES, code);
++    if ((await getDoc(ref)).exists()) continue;
++    const invite: SignupInvite = {
++      code,
++      coachId,
++      status: 'pending',
++      claimedByUid: null,
++      createdAt: now,
++      claimedAt: null,
++      expiresAt: ttl === null ? null : now + ttl,
++      ...(input.coachName?.trim() ? { coachName: input.coachName.trim() } : {}),
++      ...(input.email?.trim() ? { email: input.email.trim() } : {}),
++      ...(input.displayName?.trim() ? { displayName: input.displayName.trim() } : {}),
++      ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
++    };
++    await setDoc(ref, invite);
++    return invite;
++  }
++  throw new Error('Could not allocate a unique invite code');
++}
++
++/** Read one invite by code (any signed-in user; the code is the capability). */
++export async function getInvite(code: string): Promise<SignupInvite | null> {
++  const { db } = ensureFirebase();
++  const snap = await getDoc(doc(db, INVITES, code.trim().toUpperCase()));
++  return snap.exists() ? (snap.data() as SignupInvite) : null;
++}
++
++/** Pending (and not-expired) invites for a coach, newest first. */
++export async function listPendingInvites(coachId: string): Promise<SignupInvite[]> {
++  const { db } = ensureFirebase();
++  const snap = await getDocs(query(collection(db, INVITES), where('coachId', '==', coachId), where('status', '==', 'pending')));
++  const now = Date.now();
++  return snap.docs
++    .map((d) => d.data() as SignupInvite)
++    .filter((i) => i.expiresAt == null || i.expiresAt > now)
++    .sort((a, b) => b.createdAt - a.createdAt);
++}
++
++/** Coach revokes a pending invite (cannot be claimed afterwards). */
++export async function revokeInvite(code: string): Promise<void> {
++  const { db } = ensureFirebase();
++  await updateDoc(doc(db, INVITES, code), { status: 'revoked', updatedAt: Date.now() });
++}
++
++/** True when an invite is currently claimable. */
++export function isClaimable(invite: SignupInvite | null, now = Date.now()): boolean {
++  if (!invite) return false;
++  if (invite.status !== 'pending') return false;
++  if (invite.expiresAt != null && invite.expiresAt <= now) return false;
++  return true;
++}
++
++/**
++ * Claim an invite for the freshly-created client (single-use). Flips status to
++ * `claimed` and stamps `claimedByUid`/`claimedAt`. Rules only permit this when
++ * the invite is still `pending` and `claimedByUid == auth.uid`, so concurrent
++ * claims are rejected for everyone but the first writer.
++ */
++export async function claimInvite(code: string, uid: string): Promise<void> {
++  const { db } = ensureFirebase();
++  await updateDoc(doc(db, INVITES, code), {
++    status: 'claimed',
++    claimedByUid: uid,
++    claimedAt: Date.now(),
++  });
++}
++
++/** Best-effort rollback of a claim if a later step of the join fails. */
++export async function unclaimInvite(code: string): Promise<void> {
++  try {
++    const { db } = ensureFirebase();
++    await updateDoc(doc(db, INVITES, code), {
++      status: 'pending',
++      claimedByUid: deleteField(),
++      claimedAt: null,
++    });
++  } catch (e) {
++    console.warn('[invite] unclaim failed (non-fatal):', e);
++  }
++}

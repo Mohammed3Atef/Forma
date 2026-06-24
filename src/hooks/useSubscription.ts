@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyRelationship } from '@/services/platform/clientCoachApi';
-import { effectiveSubscriptionStatus } from '@/lib/subscription';
+import { effectiveSubscriptionStatus, subscriptionAccess } from '@/lib/subscription';
 import { setSubscriptionReadOnly } from '@/stores/subscriptionGate';
 
 /**
@@ -23,7 +23,8 @@ export function useSubscription() {
   const sub = q.data?.subscription ?? null;
   const history = q.data?.subscriptionHistory ?? [];
   const status = effectiveSubscriptionStatus(sub);
-  const readOnly = status === 'frozen' || status === 'ended';
+  const access = subscriptionAccess(status);
+  const readOnly = access === 'readonly';
 
   // Mirror into the synchronous gate so data stores can block plan logging.
   useEffect(() => {
@@ -34,8 +35,10 @@ export function useSubscription() {
     sub,
     history,
     status,
+    access,
+    limited: access === 'limited',
     loading: enabled && q.isLoading,
-    /** Frozen or ended → coach plans are paused (read-only / hidden). */
+    /** expired/cancelled/frozen/ended -> coach plans are view-only. */
     readOnly,
     ended: status === 'ended',
   };

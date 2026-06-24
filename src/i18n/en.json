@@ -112,6 +112,7 @@
     "adminAssignments": "Assign",
     "adminGovernance": "Settings",
     "adminAnalytics": "Analytics",
+    "adminCoaches": "Coaches",
     "adminImages": "Images"
   },
   "common": {
@@ -549,7 +550,12 @@
     "pendingBody": "Your account is awaiting approval. You'll get access as soon as an administrator activates it.",
     "checkAgain": "Check again",
     "suspendedTitle": "Account unavailable",
-    "suspendedBody": "Your account is currently suspended. Please contact support if you think this is a mistake."
+    "suspendedBody": "Your account is currently suspended. Please contact support if you think this is a mistake.",
+    "role": { "client": "Client", "coach": "Coach" },
+    "roleHint": {
+      "client": "Track your training with your coach.",
+      "coach": "Manage your clients and start a free trial."
+    }
   },
   "roles": {
     "super_admin": "Super Admin",
@@ -790,7 +796,49 @@
     "needsReview": "Needs review",
     "substitutions": "Substitutions"
   },
+  "adminCoaches": {
+    "title": "Coaches",
+    "coach": "Coach",
+    "plan": "Plan",
+    "clientsUsed": "Clients used",
+    "registered": "Registered",
+    "totalCoaches": "Total coaches",
+    "trial": "Trial",
+    "active": "Active",
+    "expired": "Expired",
+    "totalClients": "Total clients",
+    "conversion": "Trial\u2192Active",
+    "none": "No coaches yet.",
+    "trialDaysLeft": "Trial days left",
+    "accountStatus": "Account",
+    "changeTier": "Change plan",
+    "actions": "Actions",
+    "extendTrial": "Extend trial +15d",
+    "suspend": "Suspend coach",
+    "confirmSuspend": "Suspend this coach? They lose access until reactivated.",
+    "reactivate": "Reactivate coach",
+    "clientLimit": "Client limit",
+    "setLimit": "Set limit",
+    "tier": { "trial": "Trial", "starter": "Starter", "pro": "Pro", "enterprise": "Enterprise", "none": "No plan" },
+    "state": { "trial": "Trial", "active": "Active", "expired": "Expired", "suspended": "Suspended", "none": "No plan" }
+  },
   "coachDash": {
+    "revenue": "Revenue (tracked)",
+    "monthlyRevenue": "Monthly revenue",
+    "expectedRevenue": "Expected revenue",
+    "lostRevenue": "Lost revenue",
+    "subscriptions": "Subscriptions",
+    "expiring": "Expiring 7 / 30d",
+    "expiringHint": "soon / this month",
+    "growth": "Growth & retention",
+    "newClients": "New clients (30d)",
+    "newHint": "{{today}} today · {{week}} this week",
+    "retention": "Retention (30d)",
+    "churn": "Churn (30d)",
+    "activity": "Your activity",
+    "templates": "Templates",
+    "assessmentsReviewed": "Assessments reviewed",
+    "sendBroadcast": "Send broadcast",
     "title": "Dashboard",
     "totalClients": "Total clients",
     "activeClients": "Active clients",
@@ -894,7 +942,7 @@
   "subscription": {
     "title": "Subscription",
     "accountTitle": "Account status",
-    "status": { "none": "No subscription", "active": "Active", "frozen": "Frozen", "ended": "Ended" },
+    "status": { "none": "No subscription", "trial": "Trial", "active": "Active", "pending": "Pending", "expired": "Expired", "cancelled": "Cancelled", "frozen": "Frozen", "ended": "Ended" },
     "none": "No subscription set — tap Set term to start.",
     "daysLeft": "{{n}} days left",
     "frozenUntil": "frozen until {{date}}",
@@ -930,6 +978,15 @@
     "cancelRequest": "Cancel request",
     "bannerFrozen": "Your subscription is paused. Plans are read-only — contact your coach.",
     "bannerEnded": "Your subscription has ended. Contact your coach to renew.",
+    "bannerExpired": "Your subscription has expired. Plans are read-only — contact your coach to renew.",
+    "bannerCancelled": "Your subscription was cancelled. Plans are read-only — contact your coach.",
+    "extend": "Extend +30d",
+    "cancel": "Cancel",
+    "confirmCancel": "Cancel this client's subscription? Their plans become read-only.",
+    "renew": "Renew",
+    "pendingTitle": "Subscription pending",
+    "pendingBody": "Your coach is setting up your subscription. You'll get full access as soon as it's active. In the meantime you can message your coach.",
+    "contactCoach": "Message your coach",
     "price": "Price",
     "setPrice": "Set price",
     "currency": "Currency",
@@ -980,7 +1037,8 @@
       "checkin_requested": "Weekly check-in requested",
       "checkin_submitted": "Check-in submitted",
       "checkin_reviewed": "Check-in reviewed",
-      "message_received": "New message"
+      "message_received": "New message",
+      "trial_expiring": "Trial ending soon"
     }
   },
   "checkin": {
@@ -1198,5 +1256,43 @@
     "confirmUnassign": "Remove the coach from {{name}}?",
     "clientDetail": "Client details",
     "viewClientDetails": "View client details"
+  },
+  "invite": {
+    "optional": "optional",
+    "subTitle": "Client subscription",
+    "subTrial": "Trial (14 days)",
+    "sub1m": "1 Month",
+    "sub3m": "3 Months",
+    "subPending": "Pending (set up later)",
+    "priceOptional": "Price (optional)",
+    "title": "Join your coach",
+    "intro": "Set a password to create your account.",
+    "fromCoach": "{{coach}} invited you to train with them.",
+    "join": "Create account",
+    "invalidTitle": "Invite unavailable",
+    "invalidBody": "This invite link is invalid, expired, or has already been used.",
+    "inviteByLink": "Invite by link",
+    "panelHint": "Generate a one-time link to invite a client. They set their own password and are added to you automatically.",
+    "generate": "Generate invite link",
+    "pending": "Pending invites",
+    "none": "No pending invites.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "revoke": "Revoke"
+  },
+  "coachOnboard": {
+    "title": "Get started",
+    "progress": "{{done}} / {{total}} done",
+    "profile": "Complete your coach profile",
+    "firstClient": "Add your first client",
+    "firstTemplate": "Create your first template"
+  },
+  "coachTrial": {
+    "active": "Trial active",
+    "daysLeft": "{{n}} days left in your trial",
+    "expired": "Your trial has ended",
+    "usage": "{{used}} / {{max}} clients used",
+    "limitReached": "Client limit reached",
+    "limitBody": "You've reached your plan limit of {{max}} clients. Upgrade to add more."
   }
 }

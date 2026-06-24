@@ -60,6 +60,31 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid))
         && get(/databases/$(database)/documents/coachClients/$(coachId + '__' + request.auth.uid)).data.status == 'active';
     }
+    // A coach's Layer-A plan doc (coachPlans/{coachId}); used for the client cap.
+    function coachPlan(coachId) {
+      return get(/databases/$(database)/documents/coachPlans/$(coachId)).data;
+    }
+    function coachPlanExists(coachId) {
+      return exists(/databases/$(database)/documents/coachPlans/$(coachId));
+    }
+    // True when the coach is at/over their client cap. Missing plan or counter =
+    // not blocked (legacy/best-effort; .get() keeps old docs working).
+    function coachAtClientCap(coachId) {
+      return coachPlanExists(coachId)
+        && coachPlan(coachId).get('activeClientCount', 0) >= coachPlan(coachId).get('maxClients', 999999);
+    }
+    // A signup invite naming `coachId` that is still claimable BY this user. The
+    // code (= doc id) is the capability the visitor presents from the URL.
+    function inviteValidFor(coachId, code) {
+      return code is string && code.size() > 0
+        && exists(/databases/$(database)/documents/signupInvites/$(code))
+        && get(/databases/$(database)/documents/signupInvites/$(code)).data.coachId == coachId
+        && get(/databases/$(database)/documents/signupInvites/$(code)).data.status == 'pending';
+    }
+    // The client subscription state the coach chose on the invite (default trial).
+    function inviteSubStatus(code) {
+      return get(/databases/$(database)/documents/signupInvites/$(code)).data.get('subStatus', 'trial');
+    }
     // Collections under clientData the client may READ but never WRITE — they are
     // coach-owned. Everything else under clientData (logs, settings, reminders,
     // deletions, …) is the client's own. Daily nutrition substitutions live in
@@ -72,18 +97,38 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || hasPermission('users.read') || isMyCoach(uid));
 
-      // Self sign-up: only with locked defaults on your OWN doc.
+      // Self sign-up: only with locked defaults on your OWN doc. Widened (Phase 1)
+      // to allow a coach self-signup — a coach must be created `active`, with no
+      // permissions and createdBy=='self' (open coach registration + trial plan).
+      // Self-provision NEVER carries an assignedCoachId (that is invite-driven,
+      // handled separately below) — so a client can't attach to a coach here.
       function isSelfProvisionDefaults() {
         return request.auth.uid == uid
-          && request.resource.data.role == 'client'
-          && request.resource.data.accountStatus in ['pending', 'active']
+          && request.resource.data.role in ['client', 'coach']
+          && (request.resource.data.role == 'client'
+                ? request.resource.data.accountStatus in ['pending', 'active']
+                : request.resource.data.accountStatus == 'active')
           && request.resource.data.permissions.size() == 0
-          && request.resource.data.createdBy == 'self';
+          && request.resource.data.createdBy == 'self'
+          && request.resource.data.get('assignedCoachId', '') == '';
+      }
+      // Invite-driven self-assignment: a brand-new CLIENT may create their OWN
+      // identity doc with assignedCoachId==X and createdBy=='self' ONLY when a
+      // matching pending invite (named by the code they carry) exists for X.
+      // The single relationship write is permitted by the coachClients rule.
+      function isInviteSelfProvision() {
+        return request.auth.uid == uid
+          && request.resource.data.role == 'client'
+          && request.resource.data.accountStatus == 'active'
+          && request.resource.data.permissions.size() == 0
+          && request.resource.data.createdBy == 'self'
+          && inviteValidFor(request.resource.data.get('assignedCoachId', ''), request.resource.data.get('inviteCode', ''));
       }
       // Admin-provisioned: super_admin may create any role; admin only client/coach.
       // A coach may create a CLIENT assigned to themselves (coach-driven onboarding).
       allow create: if isSignedIn() && (
         isSelfProvisionDefaults()
+        || isInviteSelfProvision()
         || isSuperAdmin()
         || (hasPermission('users.create') && request.resource.data.role in ['client', 'coach'])
         || (isCoach()
@@ -151,9 +196,25 @@ service cloud.firestore {
         resource.data.coachId == request.auth.uid
         || resource.data.clientId == request.auth.uid
         || hasPermission('users.read'));
-      // Admins assign anyone; a coach may link a client to themselves.
-      allow create: if hasPermission('coaches.assign')
-        || (isCoach() && request.resource.data.coachId == request.auth.uid);
+      // maxClients gate (production): REJECT a new relationship once the coach is
+      // at/over their cap. The maintained coachPlans.activeClientCount is the
+      // server-validated guard (counter drift is reconciled by a script). Legacy
+      // coaches without a plan doc are not blocked (.get() defaults).
+      // Admins assign anyone; a coach may link a client to themselves; an
+      // invited client may self-create the SINGLE relationship to their coach
+      // when a matching pending invite exists.
+      allow create: if (
+        // Invited client self-claim (evaluated FIRST so an invited client never
+        // triggers the admin/coach me() reads below — keeps within the doc budget).
+        (request.resource.data.clientId == request.auth.uid
+            && request.resource.data.status == 'active'
+            && relId == request.resource.data.coachId + '__' + request.auth.uid
+            && inviteValidFor(request.resource.data.coachId, request.resource.data.get('inviteCode', ''))
+            && request.resource.data.get('subscription', {}).get('status', '') == inviteSubStatus(request.resource.data.get('inviteCode', ''))
+            && !coachAtClientCap(request.resource.data.coachId))
+        || (isCoach() && request.resource.data.coachId == request.auth.uid && !coachAtClientCap(request.auth.uid))
+        || (hasPermission('coaches.assign') && !coachAtClientCap(request.resource.data.coachId))
+      );
       allow update, delete: if hasPermission('coaches.assign')
         || (isCoach() && resource.data.coachId == request.auth.uid);
     }
@@ -235,6 +296,68 @@ service cloud.firestore {
         || isAssignedCoach(clientId)
         || hasPermission('clients.readAll'));
       allow write: if isAssignedCoach(clientId) || hasPermission('clients.writeAll');
+    }
+
+    // ---- coachPlans (Layer A — coach's own subscription to Forma) --------
+    // read: the owning coach or anyone with users.read (admin oversight).
+    // create: self ONLY with locked trial defaults (plan/status/maxClients fixed
+    //   and id == own uid), OR users.manageStatus / super_admin.
+    // update/delete: super_admin / users.manage* ONLY — EXCEPT the owning coach
+    //   may patch ONLY trialNotified + activeClientCount (never plan/status/
+    //   maxClients/startedAt/endsAt). Field reads use .get() so legacy docs work.
+    match /coachPlans/{coachId} {
+      allow read: if isSignedIn() && (request.auth.uid == coachId || hasPermission('users.read'));
+
+      allow create: if isSignedIn() && (
+        (request.auth.uid == coachId
+          && request.resource.data.plan == 'trial'
+          && request.resource.data.status == 'active'
+          && request.resource.data.maxClients == 10)
+        || hasPermission('users.manageStatus')
+      );
+
+      // Privileged full mutation.
+      allow update: if hasPermission('users.manageStatus');
+      // Owner coach: only the two self-mutable fields may change.
+      allow update: if isSignedIn() && request.auth.uid == coachId
+        && request.resource.data.get('plan', '') == resource.data.get('plan', '')
+        && request.resource.data.get('status', '') == resource.data.get('status', '')
+        && request.resource.data.get('maxClients', 0) == resource.data.get('maxClients', 0)
+        && request.resource.data.get('startedAt', 0) == resource.data.get('startedAt', 0)
+        && request.resource.data.get('endsAt', 0) == resource.data.get('endsAt', 0)
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
+
+      allow delete: if hasPermission('users.manageStatus');
+    }
+
+    // ---- signupInvites (Phase 1 client invitations) ----------------------
+    // The CODE (= doc id) is the capability: any signed-in user may READ a
+    // single invite (minimal payload — coach display name is resolved separately
+    // and only when pending). create/revoke: the owning coach or coaches.assign.
+    // claim (update→claimed): the claiming CLIENT only, while pending and naming
+    // themselves; admins/coaches use the create/update branch.
+    match /signupInvites/{code} {
+      // The CODE is the capability and the claim flow is pre-auth (the visitor
+      // reads the invite to see the coach name BEFORE creating their account),
+      // so a single-doc read is public. Payload is intentionally minimal (coach
+      // display name only — no client PII). LIST is NOT granted (rules only ever
+      // resolve a known code), so invites can't be enumerated.
+      allow get: if true;
+      allow list: if isSignedIn() && (hasPermission('coaches.assign') || isCoach());
+      allow create: if hasPermission('coaches.assign')
+        || (isCoach() && request.resource.data.coachId == request.auth.uid);
+      // Coach/admin update (revoke, edit) — never reassign the invite's coach.
+      allow update: if (hasPermission('coaches.assign') || (isCoach() && resource.data.coachId == request.auth.uid))
+        && request.resource.data.coachId == resource.data.coachId;
+      // Client single-use claim: pending → claimed, by the claimer only. Coach
+      // is fixed; only status/claimedByUid/claimedAt change.
+      allow update: if isSignedIn()
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'claimed'
+        && request.resource.data.claimedByUid == request.auth.uid
+        && request.resource.data.coachId == resource.data.coachId;
+      allow delete: if hasPermission('coaches.assign')
+        || (isCoach() && resource.data.coachId == request.auth.uid);
     }
 
     // ---- planTemplates (coach-owned, legacy) -----------------------------
