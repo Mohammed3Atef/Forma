@@ -40,6 +40,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Marketing landing images are web-only (the installed PWA opens straight
+        // to /login) — keep them out of the install precache; they're runtime-cached below.
+        globIgnores: ['**/landing_page/**'],
         navigateFallback: '/index.html',
         // Take control of open pages immediately and drop old precaches so a new
         // build replaces the old one without needing a reinstall.
@@ -47,6 +50,17 @@ export default defineConfig({
         skipWaiting: true,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            // Marketing landing images — fetched on demand by web visitors only,
+            // so cache at runtime instead of bloating the install precache.
+            urlPattern: ({ url }) => url.pathname.startsWith('/landing_page/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'landing-images',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // Exercise videos: cache on first play (range-request aware so
             // seeking works offline). Not precached — too large for install.

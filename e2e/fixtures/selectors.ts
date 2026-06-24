@@ -6,6 +6,16 @@
  * with the components — it is the contract between the app and the QA suite.
  */
 export const TID = {
+  // Marketing landing (anonymous "/") ----------------------------------------
+  landingPage: 'landing-page',
+  landingHero: 'landing-hero',
+  landingFeatures: 'landing-features',
+  landingSteps: 'landing-steps',
+  landingShowcase: 'landing-showcase',
+  landingCtaPrimary: 'landing-cta-primary',
+  landingCtaSignin: 'landing-cta-signin',
+  landingLangToggle: 'landing-lang-toggle',
+
   // Auth ---------------------------------------------------------------------
   loginForm: 'login-form',
   loginEmail: 'login-email',

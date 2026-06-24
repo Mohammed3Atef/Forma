@@ -74,11 +74,11 @@ async function clearAuthState(page: Page): Promise<void> {
 
 /** Ensure the login form is showing — signing out a stale session if one is active. */
 async function ensureLoginForm(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/login');
   if (await isVisible(page, TID.loginForm, 3000)) return;
   // An authenticated shell is mounted — sign out, then return to the login screen.
   await clearAuthState(page);
-  await page.goto('/');
+  await page.goto('/login');
   await page.getByTestId(TID.loginForm).waitFor({ state: 'visible', timeout: 30_000 });
 }
 
@@ -125,14 +125,14 @@ async function waitForAuthenticated(page: Page): Promise<void> {
  * up), and throws with diagnostics if the shell never appears.
  */
 async function loginAs(page: Page, role: RoleKey): Promise<void> {
-  await page.goto('/');
+  await page.goto('/login');
   const landing = ROLE_LANDING[role];
   // Fresh context → login form shows: skip straight to submitting.
   if (!(await isVisible(page, TID.loginForm, 3000))) {
     // No form: either already this role (idempotent no-op) or a stale session.
     if (await isVisible(page, landing, 1500)) return;
     await clearAuthState(page);
-    await page.goto('/');
+    await page.goto('/login');
     await page.getByTestId(TID.loginForm).waitFor({ state: 'visible', timeout: 30_000 });
   }
 

@@ -170,7 +170,7 @@ test.describe('Security — auth states', () => {
   test('pending self-signup user is blocked', async ({ page }) => {
     // Self sign-up creates a pending account (SELF_SIGNUP_STATUS).
     const email = uniqueEmail('qa-pending');
-    await page.goto('/');
+    await page.goto('/login');
     await page.getByTestId(TID.loginForm).waitFor();
     await page.getByTestId(TID.loginToggleMode).click(); // switch to sign-up
     await page.getByTestId(TID.loginEmail).fill(email);

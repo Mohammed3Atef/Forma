@@ -226,12 +226,67 @@ input[type='number'] {
   animation: flashAttn 1.8s ease-in-out infinite;
 }
 
+/* ---- Landing page (marketing) motion ---- */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* Reveal-on-scroll: hidden until `.reveal-in` is toggled by useReveal. */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  will-change: opacity, transform;
+}
+.reveal-in {
+  animation: revealUp 0.7s var(--ease-card) both;
+}
+.float-y {
+  animation: floatY 6s ease-in-out infinite;
+}
+.glow-pulse {
+  animation: glowPulse 5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-rise,
   .anim-fade,
   .ring-track,
-  .flash-attn {
+  .flash-attn,
+  .reveal,
+  .reveal-in,
+  .float-y,
+  .glow-pulse {
     animation: none;
     transition: none;
+  }
+  /* Never leave reveal content stuck invisible when motion is off. */
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }

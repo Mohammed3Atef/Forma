@@ -39,7 +39,9 @@ type IconName =
   | 'list'
   | 'target'
   | 'rotate'
-  | 'bell';
+  | 'bell'
+  | 'chat'
+  | 'shield';
 
 const PATHS: Record<IconName, string> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -82,6 +84,8 @@ const PATHS: Record<IconName, string> = {
   // Counter-clockwise "undo / restore" arrow.
   rotate: 'M3 4v6h6M3.5 10a9 9 0 1 1-1 5',
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
+  chat: 'M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z',
+  shield: 'M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3zM9.5 12l2 2 3.5-4',
 };
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {

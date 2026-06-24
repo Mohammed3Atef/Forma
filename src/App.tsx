@@ -23,7 +23,7 @@ import { Splash } from '@/components/Splash';
 import { ClientApp } from '@/apps/ClientApp';
 import { CoachApp } from '@/apps/CoachApp';
 import { AdminApp } from '@/apps/AdminApp';
-import { Login } from '@/pages/auth/Login';
+import { AnonymousApp } from '@/apps/AnonymousApp';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
 import { AccountSuspended } from '@/pages/auth/AccountSuspended';
@@ -92,7 +92,7 @@ export function App() {
   // Role-based routing: the session phase + role select which app mounts. Each
   // app owns its own <Routes> with absolute paths and a catch-all redirect.
   let body: ReactNode;
-  if (phase === 'anonymous') body = <Login />;
+  if (phase === 'anonymous') body = <AnonymousApp />;
   else if (phase === 'pending') body = <AccountPending />;
   else if (phase === 'suspended') body = <AccountSuspended />;
   else if (needsContact) body = <CompleteAccount />;

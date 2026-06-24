@@ -1,5 +1,79 @@
 {
   "app": { "name": "Forma" },
+  "landing": {
+    "nav": { "features": "Features", "how": "How it works", "showcase": "Showcase" },
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "skipToLogin": "Open the app",
+    "langToggle": "العربية",
+    "eyebrow": "The coaching platform",
+    "heroTitle": "One Coach. One App.",
+    "heroTitleAccent": "Everything Your Clients Need.",
+    "heroSub": "Build plans, track progress, improve adherence, and deliver results at scale — all from one platform built for coaches.",
+    "heroPrimary": "Start coaching smarter",
+    "heroSecondary": "See how it works",
+    "trustReliable": "Secure. Private. Reliable.",
+    "trustFirebase": "Built on Firebase",
+    "trustLoved": "Loved by coaches",
+    "heroImageAlt": "Forma coach dashboard showing clients, adherence and progress",
+    "chaosEyebrow": "From chaos to clarity",
+    "chaosTitle": "Everything you need to coach, in one platform.",
+    "beforeTitle": "Before — the old way",
+    "afterTitle": "After — the Forma way",
+    "before": {
+      "1": "WhatsApp threads, scattered and easy to lose",
+      "2": "Workout plans buried in Docs, PDFs and screenshots",
+      "3": "Nutrition wrangled in spreadsheets",
+      "4": "Notes and progress trapped on paper",
+      "5": "Wasted hours. Lost info. Limited results."
+    },
+    "after": {
+      "1": "Every client, plan and check-in in one place",
+      "2": "Build and assign workouts in seconds",
+      "3": "Nutrition targets and logs, tracked automatically",
+      "4": "Progress, adherence and photos at a glance",
+      "5": "Save time. Stay organised. Deliver results."
+    },
+    "featuresEyebrow": "Everything in one place",
+    "featuresTitle": "Run your coaching business from one powerful dashboard.",
+    "features": {
+      "clients": { "title": "Manage clients", "desc": "Organise every client, plan and check-in from one central hub." },
+      "programs": { "title": "Build programs", "desc": "Create workout and nutrition plans, then assign them in seconds." },
+      "adherence": { "title": "Track adherence", "desc": "Monitor workouts, check-ins and results in real time." },
+      "nutrition": { "title": "Nutrition & macros", "desc": "Set targets, approve swaps and keep nutrition on track." },
+      "messaging": { "title": "Message clients", "desc": "Chat, send updates and keep everyone accountable in-app." },
+      "secure": { "title": "Secure & private", "desc": "Built on Firebase. Your clients' data stays private and reliable." }
+    },
+    "stepsEyebrow": "How it works",
+    "stepsTitle": "Coach better. Scale faster. Get results.",
+    "steps": {
+      "1": { "title": "Add & assign", "desc": "Invite a client and assign their plan in minutes." },
+      "2": { "title": "Send workout plans", "desc": "Build programs from templates and deliver them instantly." },
+      "3": { "title": "Track nutrition", "desc": "Set macro targets and let clients log what matters." },
+      "4": { "title": "Monitor progress", "desc": "See who's on track and who needs help — in real time." },
+      "5": { "title": "All inside Forma", "desc": "One platform. Everything you need to coach." }
+    },
+    "showcaseEyebrow": "See it in action",
+    "showcaseTitle": "Designed for coaches. Loved by clients.",
+    "showcase": {
+      "mobile": "Everything your clients need — on mobile.",
+      "dashboard": "Manage and scale from one dashboard.",
+      "flow": "From the first plan to lasting results.",
+      "clarity": "From scattered tools to one platform."
+    },
+    "benefitsTitle": "Built to grow your coaching business.",
+    "benefits": {
+      "hours": "Hours saved every week",
+      "clients": "More clients, without the burnout",
+      "adherence": "Average client adherence",
+      "coaches": "Coaches already on Forma"
+    },
+    "ctaTitle": "Scale your coaching business with Forma.",
+    "ctaSub": "Save time, stay organised, and deliver better results for every client.",
+    "ctaButton": "Get started",
+    "footerTagline": "Train. Track. Transform.",
+    "footerRights": "All rights reserved."
+  },
   "onboard": {
     "welcome": "Welcome",
     "intro": "Set up your profile to get started, or sign in to restore your data.",

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
 import { passwordError } from '@/lib/password';
@@ -14,7 +15,8 @@ export function Login() {
   const signIn = useSession((s) => s.signIn);
   const resetPassword = useSession((s) => s.resetPassword);
   const error = useSession((s) => s.error);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [params] = useSearchParams();
+  const [mode, setMode] = useState<'signin' | 'signup'>(params.get('signup') === '1' ? 'signup' : 'signin');
   const [creds, setCreds] = useState({ email: '', password: '', confirm: '', phone: '' });
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);

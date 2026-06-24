@@ -31,7 +31,7 @@ test.describe('Preflight', () => {
   });
 
   test('app boots and initialises Firebase (shows the login screen)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/login');
     // If Firebase failed to init, the app falls back to local-only mode and the
     // login form never appears. Requiring it proves init succeeded.
     await expect(page.getByTestId(TID.loginForm)).toBeVisible({ timeout: 30_000 });
