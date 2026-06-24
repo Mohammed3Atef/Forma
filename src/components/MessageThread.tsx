@@ -48,16 +48,22 @@ export function MessageThread({
   clientId,
   meId,
   meRole,
+  embedded = false,
 }: {
   clientId: string;
   meId: string;
   meRole: Role;
+  /** Render inside a fixed-height pane (desktop split view): the messages
+   *  scroll within their own container and the composer sticks to the pane
+   *  bottom, instead of the page window + a viewport-fixed composer. */
+  embedded?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const q = useQuery({
     queryKey: ["messages", clientId],
@@ -71,11 +77,16 @@ export function MessageThread({
   const stick = useRef(true);
 
   const scrollToBottom = useCallback(() => {
-    window.scrollTo({ top: document.documentElement.scrollHeight });
-    const main = document.querySelector("main");
-    main?.scrollTo({ top: main.scrollHeight });
+    if (embedded) {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    } else {
+      window.scrollTo({ top: document.documentElement.scrollHeight });
+      const main = document.querySelector("main");
+      main?.scrollTo({ top: main.scrollHeight });
+    }
     stick.current = true;
-  }, []);
+  }, [embedded]);
 
   // Reset the pin whenever the thread changes (component is reused across routes).
   useEffect(() => {
@@ -84,13 +95,19 @@ export function MessageThread({
 
   // Track distance from the bottom so we only auto-scroll while already there.
   useEffect(() => {
+    const target: HTMLElement | Window | null = embedded ? scrollRef.current : window;
+    if (!target) return;
     const onScroll = () => {
-      const dist = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-      stick.current = dist < 120;
+      if (embedded && scrollRef.current) {
+        const el = scrollRef.current;
+        stick.current = el.scrollHeight - (el.scrollTop + el.clientHeight) < 120;
+      } else {
+        stick.current = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight) < 120;
+      }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => target.removeEventListener("scroll", onScroll);
+  }, [embedded]);
 
   // Re-pin after a message's image/video loads and grows the thread (the initial
   // scroll happens before media has height) — only while still at the bottom.
@@ -159,11 +176,19 @@ export function MessageThread({
   };
 
   return (
-    <>
+    <div className={embedded ? "flex h-full min-h-0 flex-col" : "contents"}>
       {/* Fill the area below the header and bottom-anchor the messages, so a short
           thread sits just above the composer (no empty gap) and a long one scrolls.
-          pb clears the fixed composer; main already adds pb-28 for the bottom nav. */}
-      <div className="flex min-h-[calc(100dvh-12rem)] flex-col justify-end gap-2 pb-8 pt-2">
+          pb clears the fixed composer; main already adds pb-28 for the bottom nav.
+          When embedded, the messages scroll inside their own pane container. */}
+      <div
+        ref={scrollRef}
+        className={
+          embedded
+            ? "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1 py-2"
+            : "flex min-h-[calc(100dvh-12rem)] flex-col justify-end gap-2 pb-8 pt-2"
+        }
+      >
         {q.isLoading ? (
           <p className="py-8 text-center text-sm text-earth-muted">
             {t("auth.working")}
@@ -242,9 +267,16 @@ export function MessageThread({
         )}
       </div>
 
-      {/* Input pinned above the bottom nav */}
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[78px] pt-4">
-        <div className="flex items-end gap-2 bg-black pt-2">
+      {/* Composer: pinned above the bottom nav on mobile; sticky to the pane
+          bottom when embedded in the desktop split view. */}
+      <div
+        className={
+          embedded
+            ? "sticky bottom-0 border-t border-line bg-surface-card px-1 pt-2"
+            : "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[78px] pt-4"
+        }
+      >
+        <div className={`flex items-end gap-2 pt-2 ${embedded ? "" : "bg-black"}`}>
           <input
             ref={fileRef}
             type="file"
@@ -284,7 +316,7 @@ export function MessageThread({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -196,8 +196,16 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       };
       await submitAssessment(uid, finalAssessment, profile);
       await draftStore.removeItem(draftKey);
-      await qc.invalidateQueries({ queryKey: ['assessment', uid] });
-      if (onDone) { onDone(); return; }
+      // Re-edit flow (MyAssessment): refresh the cached status and hand back.
+      if (onDone) {
+        await qc.invalidateQueries({ queryKey: ['assessment', uid] });
+        onDone();
+        return;
+      }
+      // Onboarding flow: show the "done" screen and keep the wizard mounted.
+      // Invalidating here would flip the gate's `blocked` to false and unmount
+      // this screen before it renders — the "Go to dashboard" button does the
+      // invalidate + transition instead.
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to submit');

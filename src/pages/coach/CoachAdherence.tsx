@@ -1,10 +1,16 @@
 import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { Avatar } from '@/components/Avatar';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchClientLogs, listMyClients } from '@/services/platform/coachApi';
 import type { UserRecord, WorkoutLog } from '@/types';
+
+interface AdherenceRow { client: UserRecord; count: number }
 
 /** YYYY-MM-DD cutoff for "within the last N days". */
 function cutoff(days: number): string {
@@ -13,6 +19,8 @@ function cutoff(days: number): string {
 
 export function CoachAdherence() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const coachId = useSession((s) => s.account?.id);
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
   const list: UserRecord[] = clients.data ?? [];
@@ -26,7 +34,7 @@ export function CoachAdherence() {
   });
 
   const since = cutoff(7);
-  const rows = useMemo(
+  const rows: AdherenceRow[] = useMemo(
     () =>
       list
         .map((c, i) => {
@@ -37,6 +45,32 @@ export function CoachAdherence() {
         .sort((a, b) => b.count - a.count),
     [list, logs, since],
   );
+  const max = Math.max(1, ...rows.map((r) => r.count));
+
+  const columns: Column<AdherenceRow>[] = [
+    {
+      key: 'client',
+      header: t('coach.clients'),
+      cell: (r) => (
+        <span className="flex items-center gap-2.5">
+          <Avatar name={r.client.displayName || r.client.email} photoUrl={r.client.photoUrl} size="sm" />
+          <span className="truncate font-medium">{r.client.displayName || r.client.email}</span>
+        </span>
+      ),
+    },
+    {
+      key: 'bar',
+      header: t('coach.last7Days'),
+      cell: (r) => (
+        <span className="flex items-center gap-2">
+          <span className="h-2 w-32 overflow-hidden rounded-full bg-white/10">
+            <span className="block h-full rounded-full bg-brand" style={{ width: `${(r.count / max) * 100}%` }} />
+          </span>
+          <span className="font-mono text-xs">{r.count} {t('coach.workoutsShort')}</span>
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -45,6 +79,14 @@ export function CoachAdherence() {
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : rows.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{t('coach.noClients')}</div>
+      ) : isDesktop ? (
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.client.id}
+          onRowClick={(r) => navigate(`/coach/client/${r.client.id}`)}
+          empty={t('coach.noClients')}
+        />
       ) : (
         <div className="card divide-y divide-line-soft">
           {rows.map(({ client, count }) => (

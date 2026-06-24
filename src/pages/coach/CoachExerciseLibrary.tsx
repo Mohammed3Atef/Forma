@@ -6,8 +6,10 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TagInput } from '@/components/TagInput';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
+import { DataTable, type Column } from '@/components/ui/DataTable';
 import { blankExercise } from '@/lib/workoutPresets';
 import { uid } from '@/lib/utils';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import {
   deleteExercise,
@@ -57,6 +59,7 @@ export function CoachExerciseLibrary() {
 function ExercisesTab({ coachId }: { coachId: string }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const isDesktop = useIsDesktop();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Exercise | null>(null);
   const lib = useQuery({ queryKey: ['exerciseLibrary', coachId], queryFn: () => listExercises(coachId), enabled: !!coachId });
@@ -79,6 +82,18 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   const delMut = useMutation({ mutationFn: (id: string) => deleteExercise(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }) });
   const remove = async (ex: Exercise) => { if (await confirmDialog({ title: t('common.delete'), message: ex.name, danger: true })) delMut.mutate(ex.id); };
 
+  const exerciseColumns: Column<Exercise>[] = [
+    { key: 'name', header: t('coachLib.exercise'), cell: (ex) => <span className="font-medium">{ex.name}</span> },
+    { key: 'muscle', header: t('coachLib.muscle'), cell: (ex) => <span className="text-earth-subtle">{ex.targetMuscle || '—'}</span> },
+    { key: 'cat', header: t('coachLib.category'), cell: (ex) => <span className="text-earth-subtle">{ex.category || '—'}</span> },
+    { key: 'equip', header: t('coachLib.equipment'), cell: (ex) => <span className="text-earth-subtle">{ex.equipment || '—'}</span> },
+    { key: 'sets', header: t('coachLib.setsReps'), cell: (ex) => <span className="font-mono text-[12px] text-earth-subtle">{ex.workingSets}×{ex.repRange} · {ex.restSec}s</span> },
+    { key: 'tags', header: t('coachLib.tags'), cell: (ex) => <span className="text-[12px] text-earth-subtle">{(ex.tags ?? []).join(', ') || '—'}</span> },
+    { key: 'actions', header: '', className: 'text-end', cell: (ex) => (
+      <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(ex); }}><Icon name="close" size={16} /></button>
+    ) },
+  ];
+
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
@@ -92,6 +107,15 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       </div>
       {lib.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+      ) : isDesktop ? (
+        <DataTable
+          testId="coach-desktop-library"
+          columns={exerciseColumns}
+          rows={filtered}
+          rowKey={(ex) => ex.id}
+          onRowClick={(ex) => setEditing(ex)}
+          empty={search ? t('coachLib.noResults') : t('coachLib.empty')}
+        />
       ) : filtered.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachLib.empty')}</div>
       ) : (
@@ -123,9 +147,11 @@ const numv = (s: string) => Math.max(0, Number(s) || 0);
 function FoodsTab({ coachId }: { coachId: string }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const isDesktop = useIsDesktop();
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<FoodFormState | null>(null);
   const foods = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
+  const editFood = (f: LibraryFood) => setForm({ id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), category: f.category ?? '', tags: f.tags ?? [] });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -137,6 +163,19 @@ function FoodsTab({ coachId }: { coachId: string }) {
   const saveMut = useMutation({ mutationFn: (f: LibraryFood) => saveFood(coachId, f), onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); } });
   const delMut = useMutation({ mutationFn: (id: string) => deleteFood(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['foods', coachId] }) });
   const remove = async (f: LibraryFood) => { if (await confirmDialog({ title: t('common.delete'), message: f.name.en, danger: true })) delMut.mutate(f.id); };
+
+  const foodColumns: Column<LibraryFood>[] = [
+    { key: 'name', header: t('coachFoods.food'), cell: (f) => <span className="font-medium">{f.name.en}</span> },
+    { key: 'serving', header: t('coachFoods.serving'), cell: (f) => <span className="text-earth-subtle">{f.quantity || '—'}</span> },
+    { key: 'cal', header: t('nutrition.calories'), cell: (f) => <span className="font-mono">{f.calories}</span>, className: 'text-end' },
+    { key: 'p', header: t('nutrition.protein'), cell: (f) => <span className="font-mono text-earth-subtle">{f.protein}</span>, className: 'text-end' },
+    { key: 'c', header: t('nutrition.carbs'), cell: (f) => <span className="font-mono text-earth-subtle">{f.carbs}</span>, className: 'text-end' },
+    { key: 'fat', header: t('nutrition.fats'), cell: (f) => <span className="font-mono text-earth-subtle">{f.fats}</span>, className: 'text-end' },
+    { key: 'cat', header: t('coachLib.category'), cell: (f) => <span className="text-[12px] text-earth-subtle">{f.category || '—'}</span> },
+    { key: 'actions', header: '', className: 'text-end', cell: (f) => (
+      <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(f); }}><Icon name="close" size={16} /></button>
+    ) },
+  ];
 
   const submit = () => {
     if (!form) return;
@@ -167,13 +206,22 @@ function FoodsTab({ coachId }: { coachId: string }) {
       </div>
       {foods.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+      ) : isDesktop ? (
+        <DataTable
+          testId="coach-desktop-foods"
+          columns={foodColumns}
+          rows={filtered}
+          rowKey={(f) => f.id}
+          onRowClick={editFood}
+          empty={search ? t('coachLib.noResults') : t('coachFoods.empty')}
+        />
       ) : filtered.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachFoods.empty')}</div>
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((f) => (
             <div key={f.id} className="flex items-center gap-3 py-2.5" data-testid="food-item">
-              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), category: f.category ?? '', tags: f.tags ?? [] })}>
+              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => editFood(f)}>
                 <span className="block truncate font-medium">{f.name.en}</span>
                 <span className="block truncate text-[12px] text-earth-subtle" dir="ltr">{f.quantity ? `${f.quantity} · ` : ''}{f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
               </button>

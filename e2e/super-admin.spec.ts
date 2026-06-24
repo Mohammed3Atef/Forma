@@ -27,6 +27,7 @@ async function createAccount(page: Page, role: string, email: string, name: stri
   await page.getByTestId(TID.createEmail).fill(email);
   await page.getByTestId(TID.createName).fill(name);
   await page.getByTestId(TID.createPassword).fill(PW);
+  await page.getByTestId(TID.createPhone).fill('+15551234567');
   await page.getByTestId(TID.createRole(role)).click();
   await page.getByTestId(TID.createSubmit).click();
   // Sheet closes on success.
@@ -90,6 +91,7 @@ test.describe.serial('Super admin', () => {
     await page.getByTestId(TID.createEmail).fill(adminEmail);
     await page.getByTestId(TID.createName).fill(`QA Admin ${Date.now()}`);
     await page.getByTestId(TID.createPassword).fill(PW);
+    await page.getByTestId(TID.createPhone).fill('+15551234567');
     await page.getByTestId(TID.createRole('admin')).click();
     await page.getByTestId(TID.createSubmit).click();
     await expect(page.getByTestId(TID.createAccountForm)).toBeHidden({ timeout: 25_000 });
@@ -107,26 +109,22 @@ test.describe.serial('Super admin', () => {
     await page.getByText(clientName).click();
     await page.getByTestId(TID.setStatus('suspended')).click();
     await page.getByTestId(TID.confirmAccept).click();
-    await expect(page.getByTestId(TID.createAccountForm)).toBeHidden();
-
-    let s = await signInAs('super_admin');
-    try {
-      expect((await findUserByEmail(s.db, clientEmail))?.accountStatus).toBe('suspended');
-    } finally {
-      await s.close();
-    }
+    // Poll Firestore until the status write lands (the mutation is async; there's
+    // no create sheet to wait on here).
+    await expect.poll(async () => {
+      const s = await signInAs('super_admin');
+      try { return (await findUserByEmail(s.db, clientEmail))?.accountStatus; } finally { await s.close(); }
+    }, { timeout: 15_000 }).toBe('suspended');
 
     // Reactivate.
     await page.goto('/admin/accounts');
     await page.getByText(clientName).click();
     await page.getByTestId(TID.setStatus('active')).click();
     await page.getByTestId(TID.confirmAccept).click();
-    s = await signInAs('super_admin');
-    try {
-      expect((await findUserByEmail(s.db, clientEmail))?.accountStatus).toBe('active');
-    } finally {
-      await s.close();
-    }
+    await expect.poll(async () => {
+      const s = await signInAs('super_admin');
+      try { return (await findUserByEmail(s.db, clientEmail))?.accountStatus; } finally { await s.close(); }
+    }, { timeout: 15_000 }).toBe('active');
   });
 
   test('can change allowed roles for an account', async ({ page }) => {
@@ -152,12 +150,10 @@ test.describe.serial('Super admin', () => {
     await page.locator(`[data-testid="assign-coach-row"][data-coach-id="${coachAId}"]`).click();
     await page.getByTestId(TID.confirmAccept).click();
 
-    const s = await signInAs('super_admin');
-    try {
-      expect((await findUserByEmail(s.db, clientEmail))?.assignedCoachId).toBe(coachAId);
-    } finally {
-      await s.close();
-    }
+    await expect.poll(async () => {
+      const s = await signInAs('super_admin');
+      try { return (await findUserByEmail(s.db, clientEmail))?.assignedCoachId; } finally { await s.close(); }
+    }, { timeout: 15_000 }).toBe(coachAId);
   });
 
   test('transfer the client from coach A to coach B', async ({ page }) => {
@@ -173,12 +169,10 @@ test.describe.serial('Super admin', () => {
     await page.locator(`[data-testid="assign-coach-row"][data-coach-id="${coachBId}"]`).click();
     await page.getByTestId(TID.confirmAccept).click();
 
-    const s = await signInAs('super_admin');
-    try {
-      expect((await findUserByEmail(s.db, clientEmail))?.assignedCoachId).toBe(coachBId);
-    } finally {
-      await s.close();
-    }
+    await expect.poll(async () => {
+      const s = await signInAs('super_admin');
+      try { return (await findUserByEmail(s.db, clientEmail))?.assignedCoachId; } finally { await s.close(); }
+    }, { timeout: 15_000 }).toBe(coachBId);
   });
 
   test('can view audit logs (governance)', async ({ page }) => {

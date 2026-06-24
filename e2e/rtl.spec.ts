@@ -15,7 +15,9 @@ test.describe('Arabic / RTL', () => {
   });
 
   test('switch to Arabic → dir=rtl, nav works, no layout break; switch back → ltr', async ({ page }) => {
-    await page.goto('/settings');
+    // The language toggle lives on the app-settings page (/settings/app), not the
+    // lean profile page (/settings).
+    await page.goto('/settings/app');
     await page.getByRole('button', { name: 'العربية' }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
@@ -31,8 +33,8 @@ test.describe('Arabic / RTL', () => {
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     }
 
-    // Switch back to English.
-    await page.getByTestId(TID.navItem('settings')).click();
+    // Switch back to English (toggle lives on /settings/app).
+    await page.goto('/settings/app');
     await page.getByRole('button', { name: 'English' }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   });

@@ -117,7 +117,9 @@ export function CoachWorkoutTemplateEditor() {
           </button>
         }
       />
-      <PlanBuilder days={tpl.days} exercises={tpl.exercises} onChange={change} coachId={coachId} header={header} />
+      <div data-testid="coach-desktop-plan-builder" className="lg:mx-auto lg:max-w-3xl">
+        <PlanBuilder days={tpl.days} exercises={tpl.exercises} onChange={change} coachId={coachId} header={header} />
+      </div>
     </>
   );
 }

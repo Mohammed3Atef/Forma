@@ -7,8 +7,8 @@ import { createClientViaApi, uniqueEmail, type NewClient } from './fixtures/fact
  * ASSESSMENT REVIEW LOOP — a fresh client (no seeded assessment) walks the
  * wizard: saves a draft (status `in_progress`), then submits (status
  * `submitted`, gate clears). The coach reviews it (`reviewed` + reviewedBy);
- * admin is read-only; the client cannot edit a reviewed assessment until the
- * coach resets it (status back to `in_progress`).
+ * admin is read-only. Living assessment: the client may keep editing their own
+ * answers even after review, and a coach `reset` re-opens it (`in_progress`).
  */
 
 const PW = 'Assess123456!';
@@ -84,10 +84,15 @@ test.describe.serial('Assessment review loop', () => {
     await page.getByTestId(TID.assessmentSaveNotes).click();
     await page.getByTestId(TID.assessmentMarkReviewed).click();
 
+    // The mark-reviewed write is async — poll until it lands before asserting.
+    await expect.poll(async () => {
+      const s = await signInAs('coach');
+      try { return (await readDoc<Assessment>(s.db, PATH(client.uid)))?.status; } finally { await s.close(); }
+    }, { timeout: 15_000 }).toBe('reviewed');
+
     const s = await signInAs('coach');
     try {
       const a = await readDoc<Assessment>(s.db, PATH(client.uid));
-      expect(a?.status).toBe('reviewed');
       expect(a?.reviewedBy).toBe(s.uid);
       expect(a?.coachNotes).toContain('hypertrophy');
     } finally {
@@ -107,11 +112,15 @@ test.describe.serial('Assessment review loop', () => {
     }
   });
 
-  test('client cannot edit a reviewed assessment', async () => {
+  test('client may edit a reviewed assessment (living assessment)', async () => {
+    // Living assessment: the client can always edit their own answers, even
+    // after the coach reviewed it (the app flips a reviewed doc to
+    // 'updated_after_review'). A raw merge that leaves status untouched is
+    // allowed by the rules; control fields stay locked.
     const s = await signInWith(client.email, client.password);
     try {
       const r = await attempt(() => setDoc(doc(s.db, ...PATH(client.uid)), { completionPercentage: 50 }, { merge: true }));
-      expect(isPermissionDenied(r), `client editing a reviewed assessment should be denied (got ${r.code ?? 'ok'})`).toBe(true);
+      expect(r.ok, `client editing their own assessment should be allowed (got ${r.code ?? 'ok'})`).toBe(true);
     } finally {
       await s.close();
     }

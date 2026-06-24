@@ -46,6 +46,7 @@ test.describe.serial('Coach', () => {
     await page.getByTestId(TID.coachAddName).fill(clientName);
     await page.getByTestId(TID.coachAddEmail).fill(clientEmail);
     await page.getByTestId(TID.coachAddPassword).fill(PW);
+    await page.getByTestId(TID.coachAddPhone).fill('+15551234567');
     await page.getByTestId(TID.coachAddSubmit).click();
     await expect(page.getByTestId(TID.coachAddForm)).toBeHidden({ timeout: 25_000 });
 
@@ -241,7 +242,7 @@ test.describe.serial('Coach', () => {
     test.skip(!clientId, 'client not created');
     await gotoClientDetail(page);
     await page.getByTestId(TID.coachViewActivity).click();
-    await expect(page).toHaveURL(/\/activity$/);
+    await expect(page).toHaveURL(/\/view$/);
     await expect(page.locator('body')).toContainText(/[A-Za-z]/);
   });
 

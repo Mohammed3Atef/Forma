@@ -66,6 +66,9 @@ test.describe('Admin', () => {
 
   test('cannot edit a super_admin account (UI blocks it)', async ({ page }) => {
     await page.goto('/admin/accounts');
+    // Filter to super-admins first — the unfiltered list is paginated and the
+    // single super-admin is otherwise buried under many accounts.
+    await page.getByRole('button', { name: 'Super Admin', exact: true }).click();
     const superRow = page.locator('[data-testid="account-row"][data-account-role="super_admin"]').first();
     await superRow.waitFor({ timeout: 20_000 });
     await superRow.click();

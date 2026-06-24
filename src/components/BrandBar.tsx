@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
-import { useNotifications } from '@/hooks/useNotifications';
 import { Icon } from './Icon';
 import { NavMenuSheet } from './NavMenuSheet';
+import { NotificationBell } from './NotificationBell';
 
 /**
  * Slim sticky app header with the Forma mark + wordmark. Shown across every
@@ -36,7 +35,11 @@ export function BrandBar() {
         alt="Forma"
         className="h-9 w-auto max-w-[60%] rounded-[8px] object-contain"
       />
-      {showBell && <NotificationBell coach={role === 'coach'} offsetEnd={showMenu} />}
+      {showBell && (
+        <span className={`absolute ${showMenu ? 'end-14' : 'end-3'}`}>
+          <NotificationBell />
+        </span>
+      )}
       {showMenu && (
         <>
           <button
@@ -52,28 +55,5 @@ export function BrandBar() {
         </>
       )}
     </header>
-  );
-}
-
-/** Bell with an unread badge; navigates to the notifications feed. */
-function NotificationBell({ coach, offsetEnd }: { coach: boolean; offsetEnd: boolean }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { unread } = useNotifications();
-  return (
-    <button
-      type="button"
-      data-testid="notifications-bell"
-      aria-label={t('notifications.title')}
-      onClick={() => navigate(coach ? '/coach/notifications' : '/notifications')}
-      className={`icon-btn absolute ${offsetEnd ? 'end-14' : 'end-3'} flex h-10 w-10 items-center justify-center text-earth-muted`}
-    >
-      <Icon name="bell" size={20} />
-      {unread > 0 && (
-        <span data-testid="notifications-badge" className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
-          {unread > 9 ? '9+' : unread}
-        </span>
-      )}
-    </button>
   );
 }

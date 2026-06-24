@@ -69,11 +69,13 @@ export function CoachClientAssessment() {
       {q.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : (
-        <div className="space-y-5">
-          <AssessmentView assessment={q.data ?? null} />
+        <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-6">
+          <div className="min-w-0">
+            <AssessmentView assessment={q.data ?? null} />
+          </div>
 
           {hasData && (
-            <>
+            <div className="mt-5 space-y-5 lg:mt-0">
               {/* Coach review notes */}
               <section>
                 <h2 className="h2 mb-2">{t('assessment.coachNotes')}</h2>
@@ -134,7 +136,7 @@ export function CoachClientAssessment() {
                   ))}
                 </div>
               </section>
-            </>
+            </div>
           )}
         </div>
       )}

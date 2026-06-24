@@ -7,6 +7,8 @@ import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { MessageThread } from '@/components/MessageThread';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { broadcast, threadMeta, type ThreadMeta } from '@/services/platform/messagesApi';
@@ -20,7 +22,9 @@ export function CoachMessages() {
   const navigate = useNavigate();
   const account = useSession((s) => s.account);
   const coachId = account?.id;
+  const isDesktop = useIsDesktop();
   const [broadcasting, setBroadcasting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
   const clientList = clients.data ?? [];
@@ -42,6 +46,7 @@ export function CoachMessages() {
     const m = metas.data ?? {};
     return [...clientList].sort((a, b) => (m[b.id]?.last?.createdAt ?? 0) - (m[a.id]?.last?.createdAt ?? 0));
   }, [clientList, metas.data]);
+  const selectedClient = list.find((c) => c.id === selectedId) ?? null;
 
   return (
     <>
@@ -57,6 +62,33 @@ export function CoachMessages() {
 
       {clients.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+      ) : isDesktop ? (
+        /* Desktop split: inbox list + selected conversation */
+        <div data-testid="coach-desktop-messages" className="flex gap-5">
+          <div className="card max-h-[calc(100dvh-12rem)] w-80 shrink-0 divide-y divide-line-soft overflow-y-auto p-0">
+            {list.length === 0 ? (
+              <p className="p-4 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
+            ) : (
+              list.map((c) => (
+                <ThreadRow key={c.id} client={c} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
+              ))
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            {selectedClient && coachId ? (
+              <div className="card flex h-[calc(100dvh-12rem)] flex-col p-3">
+                <h2 className="h2 mb-1 px-1">{selectedClient.displayName || selectedClient.email}</h2>
+                <div className="min-h-0 flex-1">
+                  <MessageThread key={selectedClient.id} clientId={selectedClient.id} meId={coachId} meRole="coach" embedded />
+                </div>
+              </div>
+            ) : (
+              <div className="card flex h-64 items-center justify-center text-sm text-earth-subtle">
+                {t('coachDash.selectConversation')}
+              </div>
+            )}
+          </div>
+        </div>
       ) : list.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
       ) : (
@@ -74,7 +106,7 @@ export function CoachMessages() {
   );
 }
 
-function ThreadRow({ client, onOpen }: { client: UserRecord; onOpen: () => void }) {
+function ThreadRow({ client, onOpen, active = false }: { client: UserRecord; onOpen: () => void; active?: boolean }) {
   const { t } = useTranslation();
   const meta = useQuery({ queryKey: ['threadMeta', client.id], queryFn: () => threadMeta(client.id), refetchInterval: 30_000 });
   const last = meta.data?.last;
@@ -89,7 +121,7 @@ function ThreadRow({ client, onOpen }: { client: UserRecord; onOpen: () => void 
         ? t(`messages.${last.attachment.kind === 'image' ? 'photoMsg' : last.attachment.kind === 'video' ? 'videoMsg' : 'fileMsg'}`)
         : t('messages.noMessages');
   return (
-    <button type="button" data-testid="thread-row" onClick={onOpen} className="row w-full text-start">
+    <button type="button" data-testid="thread-row" onClick={onOpen} className={`row w-full px-3 text-start ${active ? 'bg-brand/10' : ''}`}>
       <Avatar name={client.displayName || client.email} photoUrl={client.photoUrl} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{client.displayName || client.email}</span>

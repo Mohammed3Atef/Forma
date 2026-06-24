@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AppShell } from '@/components/AppShell';
+import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { ADMIN_NAV, SUPER_ADMIN_NAV } from '@/config/nav';
 import { useRole } from '@/services/auth/permissions';
 import { queryClient } from '@/services/platform/queryClient';
@@ -21,7 +21,11 @@ import { AdminMedia } from '@/pages/admin/AdminMedia';
  */
 export function AdminApp() {
   const nav = useRole() === 'super_admin' ? SUPER_ADMIN_NAV : ADMIN_NAV;
-  const shell = (node: ReactNode) => <AppShell navItems={nav}>{node}</AppShell>;
+  const shell = (node: ReactNode) => (
+    <ResponsiveShell navItems={nav} sidebarItems={nav}>
+      {node}
+    </ResponsiveShell>
+  );
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>

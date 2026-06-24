@@ -64,6 +64,7 @@ test.describe.serial('Subscriptions & account lifecycle', () => {
     await page.getByTestId(TID.freezeSave).click();
     await expect(page.getByTestId(TID.subStatus)).toHaveText(/frozen/i, { timeout: 10_000 });
     await page.getByTestId(TID.subUnfreeze).click();
+    await page.getByTestId(TID.confirmAccept).click(); // unfreeze now confirms (Yes/No)
     await expect(page.getByTestId(TID.subStatus)).toHaveText(/active/i, { timeout: 10_000 });
 
     // Freeze the account (danger → confirm), verify, then unfreeze.
@@ -106,7 +107,9 @@ test.describe.serial('Subscriptions & account lifecycle', () => {
       const s = await signInAs('coach');
       try { return (await readDoc<Req>(s.db, ['clientData', client.uid, 'subscriptionRequest', 'current']))?.status; } finally { await s.close(); }
     }, { timeout: 15_000 }).toBe('accepted');
-    expect((await readRel())?.subscription?.status).toBe('frozen');
+    // Accept does two writes (resolve request, then freeze subscription) — poll
+    // the subscription too so we don't read between them.
+    await expect.poll(async () => (await readRel())?.subscription?.status, { timeout: 15_000 }).toBe('frozen');
   });
 
   test('security: coach is limited to their own client; client cannot write the relationship', async () => {

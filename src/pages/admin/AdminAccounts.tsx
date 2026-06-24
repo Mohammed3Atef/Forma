@@ -101,7 +101,7 @@ export function AdminAccounts() {
   });
 
   return (
-    <>
+    <div className="lg:mx-auto lg:max-w-3xl">
       <TopBar
         testId="admin-accounts"
         title={t('admin.accounts')}
@@ -210,7 +210,7 @@ export function AdminAccounts() {
           }}
         />
       </Sheet>
-    </>
+    </div>
   );
 }
 

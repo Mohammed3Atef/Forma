@@ -58,6 +58,7 @@ export function CoachClientDetail() {
 
   return (
     <>
+      <div className="lg:mx-auto lg:max-w-3xl">
       <TopBar testId="coach-client-detail" title={name} eyebrow={profile.data?.goal ? t(`settings.goals.${profile.data.goal}`) : t('platform.coachPortal')} onBack={() => navigate('/coach')} />
 
       {user.data?.phone && (
@@ -144,6 +145,7 @@ export function CoachClientDetail() {
         ) : (
           <p className="py-2 text-sm text-earth-muted">{t('coach.noNotes')}</p>
         )}
+      </div>
       </div>
 
       <ManageSheet

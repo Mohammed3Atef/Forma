@@ -175,6 +175,9 @@ test.describe('Security — auth states', () => {
     await page.getByTestId(TID.loginToggleMode).click(); // switch to sign-up
     await page.getByTestId(TID.loginEmail).fill(email);
     await page.getByTestId(TID.loginPassword).fill('Pending123456!');
+    // Sign-up now requires a confirmed password + phone (auth hardening).
+    await page.getByTestId(TID.loginConfirm).fill('Pending123456!');
+    await page.getByTestId(TID.loginPhone).fill('+15551234567');
     await page.getByTestId(TID.loginSubmit).click();
     await expect(page.getByTestId(TID.accountPending)).toBeVisible({ timeout: 25_000 });
   });

@@ -52,6 +52,23 @@ export const COACH_NAV: NavItem[] = [
   { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
 ];
 
+/**
+ * Fuller destination list for the desktop/tablet sidebar (the mobile bottom bar
+ * keeps the lean COACH_NAV). "Clients" points at `/coach/clients` because the
+ * `/coach` index redirects to the dashboard on desktop.
+ */
+export const COACH_SIDEBAR: NavItem[] = [
+  { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
+  { to: '/coach/clients', icon: 'user', key: 'coachClients' },
+  { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
+  { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
+  { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
+  { to: '/coach/messages', icon: 'info', key: 'coachMessages' },
+  { to: '/coach/assessments', icon: 'check', key: 'coachAssessments' },
+  { to: '/coach/reports', icon: 'chart', key: 'coachReports' },
+  { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
+];
+
 /** Shared by admin and super_admin; super-admin-only screens are gated inside. */
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', icon: 'chart', key: 'adminOverview', end: true },

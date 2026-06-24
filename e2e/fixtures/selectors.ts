@@ -10,6 +10,8 @@ export const TID = {
   loginForm: 'login-form',
   loginEmail: 'login-email',
   loginPassword: 'login-password',
+  loginConfirm: 'login-confirm',
+  loginPhone: 'login-phone',
   loginSubmit: 'login-submit',
   loginToggleMode: 'login-toggle-mode',
   loginError: 'login-error',
@@ -34,10 +36,21 @@ export const TID = {
   coachAddName: 'coach-add-name',
   coachAddEmail: 'coach-add-email',
   coachAddPassword: 'coach-add-password',
+  coachAddPhone: 'coach-add-phone',
   coachAddSubmit: 'coach-add-submit',
 
   coachClientDetail: 'coach-client-detail',
   coachViewActivity: 'coach-view-activity',
+
+  // Coach: responsive shell + desktop layouts -------------------------------
+  coachSidebar: 'coach-sidebar',
+  coachDashboard: 'coach-dashboard',
+  coachDesktopClients: 'coach-desktop-clients',
+  coachDesktopPreview: 'coach-desktop-preview',
+  coachDesktopLibrary: 'coach-desktop-library',
+  coachDesktopTemplates: 'coach-desktop-templates',
+  coachDesktopPlanBuilder: 'coach-desktop-plan-builder',
+  coachDesktopMessages: 'coach-desktop-messages',
 
   // Coach: subscription + account management --------------------------------
   coachSubscription: 'coach-subscription',
@@ -216,6 +229,7 @@ export const TID = {
   createEmail: 'create-email',
   createName: 'create-name',
   createPassword: 'create-password',
+  createPhone: 'create-phone',
   createRole: (r: string) => `create-role-${r}`,
   createSubmit: 'create-submit',
   createError: 'create-error',
