@@ -6,7 +6,7 @@
 
 export type LocalizedText = { en: string; ar: string };
 
-export type Locale = 'en' | 'ar';
+export type Locale = 'en' | 'ar' | 'ar-eg';
 export type Theme = 'dark' | 'light';
 
 /** A day key in `YYYY-MM-DD` form. */

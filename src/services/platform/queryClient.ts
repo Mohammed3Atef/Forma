@@ -8,7 +8,11 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      // Coach/admin run online as a web app: keep fetched data fresh for a
+      // minute and retained for 10 so navigating between screens (clients →
+      // detail → back) is instant from cache instead of re-fetching each time.
+      staleTime: 60_000,
+      gcTime: 10 * 60_000,
       retry: 1,
       refetchOnWindowFocus: false,
     },

@@ -103,7 +103,9 @@ input[type='number'] {
     min-height: var(--btn-lg, 3.25rem);
   }
   .btn-primary {
-    @apply btn border border-brand bg-brand text-white hover:bg-brand-hover;
+    /* Resting fill = deep orange (#C8440A) so white label hits WCAG AA (4.8:1);
+       brightens to the primary orange on hover, depresses to pressed on click. */
+    @apply btn border border-brand-dark bg-brand-dark text-white hover:bg-brand active:bg-brand-pressed;
   }
   .btn-light {
     @apply btn border border-white bg-white text-black;
@@ -239,8 +241,8 @@ input[type='number'] {
 /* Attention pulse for coach broadcast messages (announcement/offer/…). The
    glow colour is set per-category via the `--flash` custom property. */
 @keyframes flashAttn {
-  0%, 100% { box-shadow: 0 0 0 0 var(--flash, rgba(174, 126, 86, 0.5)); }
-  50% { box-shadow: 0 0 0 4px var(--flash, rgba(174, 126, 86, 0.5)); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--flash, rgba(229, 82, 15, 0.5)); }
+  50% { box-shadow: 0 0 0 4px var(--flash, rgba(229, 82, 15, 0.5)); }
 }
 .flash-attn {
   animation: flashAttn 1.8s ease-in-out infinite;

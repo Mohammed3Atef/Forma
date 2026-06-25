@@ -14,7 +14,7 @@ export function ProgressRing({
   value,
   size = 96,
   stroke = 8,
-  color = '#AE7E56',
+  color = '#E5520F',
   trackColor = 'rgba(230,226,220,0.12)',
   label,
   sublabel,

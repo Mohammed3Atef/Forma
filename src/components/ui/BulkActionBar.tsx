@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * Action bar for bulk operations on a selectable list. Renders only when one or
@@ -11,7 +11,7 @@ export function BulkActionBar({
   count,
   onClear,
   children,
-  className = '',
+  className = "",
 }: {
   count: number;
   onClear: () => void;
@@ -23,15 +23,20 @@ export function BulkActionBar({
   return (
     <div
       data-testid="bulk-action-bar"
-      className={`sticky bottom-[84px] z-30 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-md md:bottom-4 ${className}`}
+      className={`sticky bottom-[84px] z-50 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-md md:bottom-4 ${className}`}
     >
       <span className="text-sm font-semibold" data-testid="bulk-count">
-        {t('common.bulk.selected', { n: count })}
+        {t("common.bulk.selected", { n: count })}
       </span>
       <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
         {children}
-        <button type="button" data-testid="bulk-clear" onClick={onClear} className="chip">
-          {t('common.bulk.clear')}
+        <button
+          type="button"
+          data-testid="bulk-clear"
+          onClick={onClear}
+          className="chip"
+        >
+          {t("common.bulk.clear")}
         </button>
       </div>
     </div>

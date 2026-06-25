@@ -86,6 +86,24 @@ export default defineConfig({
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+          {
+            // Public-domain exercise images (free-exercise-db on GitHub). Immutable
+            // by path → cache on first view so the library/picker is instant offline.
+            urlPattern: ({ url }) => url.origin === 'https://raw.githubusercontent.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-images',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 180 },
+            },
+          },
+          {
+            // App data bundles (e.g. the exercise library JSON) — revalidate in the
+            // background so a returning coach/admin gets instant loads.
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/data/'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'app-data', expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
         ],
       },
       devOptions: {
@@ -93,4 +111,22 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Split the heaviest, slowest-changing dependencies into their own long-lived
+    // chunks so returning visitors (coach/admin on the web) get cache hits and
+    // only re-download app code that actually changed.
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
+          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router') || id.includes('/scheduler/')) return 'react-vendor';
+          if (id.includes('/@tanstack/')) return 'query';
+          if (id.includes('/i18next') || id.includes('/react-i18next/')) return 'i18n';
+          return 'vendor';
+        },
+      },
+    },
+  },
 });

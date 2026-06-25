@@ -181,7 +181,7 @@ export function Progress() {
         <div className="space-y-1">
           <div
             className="mb-3 rounded-hero border border-brand/25 p-5 shadow-featured"
-            style={{ background: 'linear-gradient(135deg, rgba(174,126,86,0.28), rgba(174,126,86,0.06))' }}
+            style={{ background: 'linear-gradient(135deg, rgba(229,82,15,0.28), rgba(229,82,15,0.06))' }}
           >
             <div className="flex items-center gap-3">
               <Icon name="trophy" size={26} className="text-brand" />

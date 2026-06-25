@@ -114,9 +114,9 @@ export function ClientSettings() {
         <div className="flex items-center justify-between">
           <span>{t('settings.language')}</span>
           <div className="flex gap-1">
-            {(['en', 'ar'] as Locale[]).map((l) => (
+            {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
               <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${settings.locale === l ? 'bg-brand text-slate-950' : 'bg-surface-raised'}`}>
-                {l === 'en' ? 'English' : 'العربية'}
+                {l === 'en' ? 'English' : l === 'ar' ? 'العربية' : 'مصري'}
               </button>
             ))}
           </div>

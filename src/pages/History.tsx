@@ -102,7 +102,7 @@ export function History() {
                 className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm ${
                   hasWorkout ? 'bg-brand/15 font-medium text-white' : 'text-earth-muted'
                 } ${isToday ? 'ring-1.5 ring-brand' : ''}`}
-                style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #AE7E56' } : undefined}
+                style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #E5520F' } : undefined}
               >
                 {day}
                 {hasWorkout && <span className="mt-0.5 h-1 w-1 rounded-full bg-brand" />}

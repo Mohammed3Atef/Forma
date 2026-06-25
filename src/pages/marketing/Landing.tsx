@@ -19,7 +19,7 @@ export function Landing() {
   return (
     <div data-testid="landing-page" className="min-h-dvh overflow-x-hidden bg-surface text-white">
       <LandingHeader />
-      <main>
+      <main className="pt-16">{/* clear the fixed header (h-16) */}
         <Hero />
         <ChaosToClarity />
         <Features />

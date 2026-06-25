@@ -34,6 +34,7 @@ import {
   saveFoodGroup,
   saveSupplement,
 } from '@/services/platform/coachAssetsApi';
+import { fetchStarterExercises } from '@/services/platform/starterLibraryApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement } from '@/types';
 
@@ -88,13 +89,12 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   }, [lib.data, search]);
 
   const saveMut = useMutation({ mutationFn: (ex: Exercise) => saveExercise(coachId, ex), onSuccess: () => { setEditing(null); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); } });
-  // One-tap starter library: fetch the bundled open-licensed dataset and import
-  // it into the coach's own coachAssets (chunked writes). Re-importing is safe —
+  // One-tap starter library: import the shared public-domain exercise dataset
+  // into the coach's own coachAssets (chunked writes). Re-importing is safe —
   // ids are stable so it upserts rather than duplicating.
   const loadStarter = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/data/exercise-library.json');
-      const items = (await res.json()) as Exercise[];
+      const items = await fetchStarterExercises();
       for (let i = 0; i < items.length; i += 20) {
         await Promise.all(items.slice(i, i + 20).map((ex) => saveExercise(coachId, ex)));
       }

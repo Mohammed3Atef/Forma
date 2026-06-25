@@ -1,7 +1,7 @@
 /**
- * Seed the open-licensed starter EXERCISE library (src/data/seed/exerciseLibrary.json,
- * derived from the public-domain free-exercise-db) into a coach's own
- * coachAssets/{coachId}/exercises. Idempotent — stable ids upsert, no duplicates.
+ * Seed the open-licensed starter EXERCISE library (public/data/exercise-library.json,
+ * the public-domain free-exercise-db — the single canonical dataset) into a
+ * coach's own coachAssets/{coachId}/exercises. Idempotent — stable ids upsert.
  *
  *   SEED_EMAIL=coach@x.com SEED_PASSWORD=*** node scripts/seed-exercise-library.mjs
  */
@@ -24,7 +24,7 @@ const EMAIL = process.env.SEED_EMAIL, PASSWORD = process.env.SEED_PASSWORD;
 if (!EMAIL || !PASSWORD) { console.error('Set SEED_EMAIL and SEED_PASSWORD (a coach account).'); process.exit(1); }
 
 const here = dirname(fileURLToPath(import.meta.url));
-const items = JSON.parse(readFileSync(join(here, '..', 'src', 'data', 'seed', 'exerciseLibrary.json'), 'utf-8'));
+const items = JSON.parse(readFileSync(join(here, '..', 'public', 'data', 'exercise-library.json'), 'utf-8'));
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

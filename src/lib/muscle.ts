@@ -1,10 +1,10 @@
 /** Per-muscle accent colours used for dots and the muscle-split chart. */
 const MAP: Record<string, string> = {
-  Chest: '#AE7E56',
-  Shoulders: '#D4A46A',
-  Triceps: '#C69975',
-  Quads: '#BF6E4E',
-  Quadriceps: '#BF6E4E',
+  Chest: '#E5520F',
+  Shoulders: '#FFB627',
+  Triceps: '#FF8A3D',
+  Quads: '#C8440A',
+  Quadriceps: '#C8440A',
   Hamstrings: '#8B6914',
   Calves: '#5C3A2A',
   Calf: '#5C3A2A',
@@ -12,14 +12,14 @@ const MAP: Record<string, string> = {
   Lats: '#2E5D3C',
   Biceps: '#C2CCAE',
   'Rear Delts': '#E8C8B4',
-  Glutes: '#BF6E4E',
+  Glutes: '#C8440A',
   Core: '#E6E2DC',
   Abs: '#E6E2DC',
 };
 
 export function muscleColor(muscle: string | undefined | null): string {
-  if (!muscle) return '#AE7E56';
-  return MAP[muscle] ?? MAP[muscle.trim()] ?? '#AE7E56';
+  if (!muscle) return '#E5520F';
+  return MAP[muscle] ?? MAP[muscle.trim()] ?? '#E5520F';
 }
 
 /**

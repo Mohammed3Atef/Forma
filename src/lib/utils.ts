@@ -95,7 +95,7 @@ export function formatDuration(totalSec: number): string {
 /** Pretty short date label, e.g. "Mon 29 May". */
 export function shortDate(key: string, locale = 'en'): string {
   const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+  return new Date(y, m - 1, d).toLocaleDateString(locale.startsWith('ar') ? 'ar-EG' : 'en-GB', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

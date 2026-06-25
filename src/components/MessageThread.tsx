@@ -22,7 +22,7 @@ const CATEGORY: Record<MessageCategory, { bubble: string; flash: string }> = {
   message: { bubble: "", flash: "" },
   announcement: {
     bubble: "border border-brand/60 bg-brand/15 text-white",
-    flash: "rgba(174,126,86,0.55)",
+    flash: "rgba(229,82,15,0.55)",
   },
   offer: {
     bubble: "border border-success/60 bg-success/15 text-white",

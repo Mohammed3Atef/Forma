@@ -27,17 +27,19 @@ const config: Config = {
           DEFAULT: '#15171C',
           soft: '#1B1F26',
         },
-        // Brand accent — copper / earth-clay (signature warmth on a cool charcoal base)
+        // Brand accent — Forma orange→gold (logo). Orange guides attention (primary
+        // actions, active nav/tabs, links, focus); gold is a sparing premium accent.
         brand: {
-          DEFAULT: '#AE7E56', // copper — signature mark
-          dark: '#946640',
-          light: '#C69975',
-          hover: '#C4915F',
+          DEFAULT: '#E5520F', // primary orange — accents, active states, links, focus ring on charcoal
+          hover: '#F2611C', // lighter — interactive hover on dark
+          dark: '#C8440A', // deep orange — AA-safe white-text fill (4.8:1) + gradient base
+          pressed: '#B23C08', // pressed/active fill
+          light: '#FF8A3D', // soft accent / lighter on dark
         },
-        copper: '#AE7E56',
-        sienna: '#BF6E4E',
-        gold: '#D4A46A',
-        accent: '#C69975',
+        copper: '#E5520F', // legacy alias → primary
+        sienna: '#C8440A', // → deep orange
+        gold: '#FFB627', // gradients / chart highlights / premium + revenue badges — SPARING
+        accent: '#FF8A3D', // → brand.light
         // Cool neutrals (premium SaaS greys on charcoal)
         earth: {
           DEFAULT: '#F5F5F5', // primary text
@@ -52,8 +54,8 @@ const config: Config = {
           DEFAULT: '#2E5D3C', // dark muted green — completed set / "done"
           light: '#4CAF50',
         },
-        danger: '#E08B6F',
-        warn: '#D4A46A',
+        danger: '#F0483E', // clear red — distinct from the orange brand (destructive ≠ primary)
+        warn: '#F5A623', // amber — distinct from brand orange + gold
         // Admin "control center" system accent (cool indigo) — used sparingly,
         // copper remains the brand/primary action colour everywhere.
         system: {
@@ -93,8 +95,8 @@ const config: Config = {
       boxShadow: {
         card: '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.32)',
         elevated: '0 4px 12px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.45)',
-        featured: '0 4px 24px rgba(174,126,86,0.15)',
-        glow: '0 8px 28px rgba(174,126,86,0.45)',
+        featured: '0 4px 24px rgba(229,82,15,0.16)',
+        glow: '0 8px 28px rgba(229,82,15,0.42)',
         deep: '0 16px 48px rgba(0,0,0,0.3)',
       },
       transitionTimingFunction: {

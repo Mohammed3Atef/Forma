@@ -90,19 +90,19 @@ export function Nutrition() {
       key: "calories",
       value: consumed.calories,
       target: targets.calories,
-      color: "#AE7E56",
+      color: "#E5520F",
     },
     {
       key: "protein",
       value: consumed.protein,
       target: targets.protein,
-      color: "#D4A46A",
+      color: "#FFB627",
     },
     {
       key: "carbs",
       value: consumed.carbs,
       target: targets.carbs,
-      color: "#BF6E4E",
+      color: "#C8440A",
     },
     {
       key: "fats",

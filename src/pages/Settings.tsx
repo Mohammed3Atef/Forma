@@ -42,7 +42,7 @@ export function Settings() {
 
   if (!profile || !settings) return null;
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' });
+  const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale.startsWith('ar') ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' });
 
   return (
     <div className="anim-rise space-y-4 pb-4">

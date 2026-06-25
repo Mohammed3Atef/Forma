@@ -10,6 +10,11 @@ import { alertDialog } from '@/stores/dialogStore';
  * number (used for coach offers / data later) and a policy-checked password
  * entered twice. Includes a "forgot password" reset flow.
  */
+
+// Self-signup is COACH-ONLY for now — client self-registration is temporarily
+// disabled (clients are onboarded by their coach via invite). Re-enable client
+// self-signup later by restoring: const SIGNUP_ROLES = ['client', 'coach'].
+const SIGNUP_ROLES: readonly ('client' | 'coach')[] = ['coach'];
 export function Login() {
   const { t } = useTranslation();
   const signIn = useSession((s) => s.signIn);
@@ -18,7 +23,7 @@ export function Login() {
   const [params] = useSearchParams();
   const [mode, setMode] = useState<'signin' | 'signup'>(params.get('signup') === '1' ? 'signup' : 'signin');
   const [creds, setCreds] = useState({ email: '', password: '', confirm: '', phone: '' });
-  const [signupRole, setSignupRole] = useState<'client' | 'coach'>('client');
+  const [signupRole, setSignupRole] = useState<'client' | 'coach'>('coach');
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -69,8 +74,8 @@ export function Login() {
 
         <form className="card space-y-3" data-testid="login-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           {mode === 'signup' && (
-            <div data-testid="signup-role" className="grid grid-cols-2 gap-2">
-              {(['client', 'coach'] as const).map((r) => (
+            <div data-testid="signup-role" className={`grid gap-2 ${SIGNUP_ROLES.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {SIGNUP_ROLES.map((r) => (
                 <button
                   key={r}
                   type="button"

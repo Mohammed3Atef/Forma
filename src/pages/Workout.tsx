@@ -7,7 +7,7 @@ import { TopBar } from '@/components/TopBar';
 import { TrainingGuideSheet } from '@/components/TrainingGuideSheet';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
 
-const COLORS = ['#AE7E56', '#BF6E4E', '#D4A46A', '#2E5D3C', '#C69975'];
+const COLORS = ['#E5520F', '#C8440A', '#FFB627', '#2E5D3C', '#FF8A3D'];
 
 export function Workout() {
   const { t } = useTranslation();

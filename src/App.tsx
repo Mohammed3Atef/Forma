@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { bootstrapData } from '@/data/bootstrap';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSettings } from '@/stores/settingsStore';
@@ -21,12 +21,17 @@ import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt'
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { Splash } from '@/components/Splash';
 import { ClientApp } from '@/apps/ClientApp';
-import { CoachApp } from '@/apps/CoachApp';
-import { AdminApp } from '@/apps/AdminApp';
-import { AnonymousApp } from '@/apps/AnonymousApp';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
 import { AccountSuspended } from '@/pages/auth/AccountSuspended';
+
+// Code-split the role apps: a client never downloads coach/admin code (and vice
+// versa). The client app stays eager — it's the offline-first default and must
+// render instantly without a second chunk fetch. Coach/admin run online (web),
+// so a one-time chunk load on sign-in is the right trade for a smaller bundle.
+const CoachApp = lazy(() => import('@/apps/CoachApp').then((m) => ({ default: m.CoachApp })));
+const AdminApp = lazy(() => import('@/apps/AdminApp').then((m) => ({ default: m.AdminApp })));
+const AnonymousApp = lazy(() => import('@/apps/AnonymousApp').then((m) => ({ default: m.AnonymousApp })));
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -106,7 +111,7 @@ export function App() {
       <DialogHost />
       <ImageViewer />
       <VideoPopup />
-      {body}
+      <Suspense fallback={<Splash />}>{body}</Suspense>
       <MustChangePasswordPrompt />
     </>
   );

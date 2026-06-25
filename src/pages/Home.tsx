@@ -229,7 +229,7 @@ export function Home() {
           className={`relative w-full overflow-hidden rounded-hero border border-brand/25 p-6 text-start transition-transform active:scale-[0.99] ${readOnly ? 'opacity-50' : ''}`}
           style={{
             background:
-              'radial-gradient(120% 120% at 85% 0%, rgba(174,126,86,0.22), transparent 50%), linear-gradient(150deg,#3a3d2e,#262820,#15150d)',
+              'radial-gradient(120% 120% at 85% 0%, rgba(229,82,15,0.22), transparent 50%), linear-gradient(150deg,#2a1d14,#1a140d,#120d08)',
           }}
         >
           <p className="eyebrow mb-3">

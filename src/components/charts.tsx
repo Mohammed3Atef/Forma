@@ -3,7 +3,7 @@
  * (Recharts is still available elsewhere, but these match the design exactly.)
  */
 
-const COPPER = '#AE7E56';
+const COPPER = '#E5520F';
 const TRACK = 'rgba(230,226,220,0.16)';
 const SUBTLE = 'rgba(230,226,220,0.40)';
 
