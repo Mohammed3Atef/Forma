@@ -1,0 +1,49 @@
+{
+  "muscles": {
+    "abdominals": "البطن",
+    "hamstrings": "أوتار الركبة",
+    "calves": "السمانة",
+    "shoulders": "الأكتاف",
+    "adductors": "المقرّبات",
+    "abductors": "المبعّدات",
+    "chest": "الصدر",
+    "glutes": "المؤخرة",
+    "quadriceps": "الفخذ الأمامي",
+    "biceps": "العضلة ذات الرأسين",
+    "forearms": "الساعد",
+    "lats": "الظهر العريض",
+    "middle back": "أعلى الظهر",
+    "lower back": "أسفل الظهر",
+    "traps": "شبه المنحرف",
+    "triceps": "العضلة ثلاثية الرؤوس",
+    "neck": "الرقبة"
+  },
+  "equipment": {
+    "body only": "وزن الجسم",
+    "machine": "جهاز",
+    "other": "أخرى",
+    "foam roll": "أسطوانة فوم",
+    "kettlebells": "كيتل بِل",
+    "dumbbell": "دمبل",
+    "cable": "كابل",
+    "barbell": "بار",
+    "bands": "أحبال مطاطية",
+    "medicine ball": "كرة طبية",
+    "exercise ball": "كرة سويسرية",
+    "e-z curl bar": "بار متعرّج"
+  },
+  "category": {
+    "strength": "قوة",
+    "stretching": "إطالة",
+    "plyometrics": "بليومترك",
+    "strongman": "سترونغمان",
+    "powerlifting": "باور ليفتنغ",
+    "cardio": "كارديو",
+    "olympic weightlifting": "رفع أولمبي"
+  },
+  "level": {
+    "beginner": "مبتدئ",
+    "intermediate": "متوسط",
+    "expert": "متقدم"
+  }
+}

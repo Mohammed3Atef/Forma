@@ -1,6 +1,8 @@
-import { collection, doc, getDoc, getDocs, increment, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, collection, collectionGroup, doc, getDoc, getDocs, increment, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import type { CoachPlan } from '@/types';
+import { writeAudit } from './auditApi';
+import { notify } from './notificationsApi';
+import type { CoachPlan, CoachPlanChangeRequest, PlanRequestStatus } from '@/types';
 
 /**
  * Layer A — the coach's own subscription to Forma, at `coachPlans/{coachId}`.
@@ -116,7 +118,9 @@ export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise
     status: 'active',
     endsAt: tier === 'trial' ? now + TRIAL_DURATION_DAYS * DAY_MS : null,
     updatedAt: now,
+    history: arrayUnion({ at: now, action: 'tier', detail: tier }),
   });
+  await writeAudit({ action: 'coachPlan.setTier', targetUserId: coachId, metadata: { tier } });
 }
 
 /** Super-admin: extend a coach's trial/term by N days (and (re)activate it). */
@@ -125,19 +129,42 @@ export async function extendCoachTrial(coachId: string, days: number): Promise<v
   const plan = await getCoachPlan(coachId);
   const now = Date.now();
   const base = Math.max(plan?.endsAt ?? now, now);
-  await updateDoc(doc(db, COACH_PLANS, coachId), { endsAt: base + days * DAY_MS, status: 'active', updatedAt: now });
+  await updateDoc(doc(db, COACH_PLANS, coachId), {
+    endsAt: base + days * DAY_MS,
+    status: 'active',
+    updatedAt: now,
+    history: arrayUnion({ at: now, action: 'endsAt', detail: `+${days}d` }),
+  });
+  await writeAudit({ action: 'coachPlan.extend', targetUserId: coachId, metadata: { days } });
 }
 
 /** Super-admin: adjust a coach's client cap directly. */
 export async function setCoachMaxClients(coachId: string, maxClients: number): Promise<void> {
   const { db } = ensureFirebase();
-  await updateDoc(doc(db, COACH_PLANS, coachId), { maxClients: Math.max(0, Math.floor(maxClients)), updatedAt: Date.now() });
+  const n = Math.max(0, Math.floor(maxClients));
+  const now = Date.now();
+  await updateDoc(doc(db, COACH_PLANS, coachId), { maxClients: n, updatedAt: now, history: arrayUnion({ at: now, action: 'maxClients', detail: String(n) }) });
+  await writeAudit({ action: 'coachPlan.setMaxClients', targetUserId: coachId, metadata: { maxClients: n } });
 }
 
 /** Super-admin: suspend/reactivate a coach PLAN (separate from the account). */
 export async function setCoachPlanStatus(coachId: string, status: 'active' | 'suspended'): Promise<void> {
   const { db } = ensureFirebase();
-  await updateDoc(doc(db, COACH_PLANS, coachId), { status, updatedAt: Date.now() });
+  const now = Date.now();
+  await updateDoc(doc(db, COACH_PLANS, coachId), { status, updatedAt: now, history: arrayUnion({ at: now, action: 'status', detail: status }) });
+  await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
+}
+
+/** Super-admin: set (or clear) an explicit plan end date. */
+export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  await updateDoc(doc(db, COACH_PLANS, coachId), {
+    endsAt,
+    updatedAt: now,
+    history: arrayUnion({ at: now, action: 'endsAt', detail: endsAt ? new Date(endsAt).toISOString().slice(0, 10) : 'cleared' }),
+  });
+  await writeAudit({ action: 'coachPlan.setEndsAt', targetUserId: coachId, metadata: { endsAt } });
 }
 
 /** Effective coach-plan status, folding the trial end date in. */
@@ -146,4 +173,92 @@ export function coachPlanState(plan: CoachPlan | null, now = Date.now()): 'trial
   if (plan.status === 'suspended') return 'suspended';
   if (plan.plan === 'trial') return plan.endsAt != null && now >= plan.endsAt ? 'expired' : 'trial';
   return plan.status === 'active' ? 'active' : 'expired';
+}
+
+// ---- Coach plan-change requests (coach → super-admin) ----------------------
+// Mirrors the client→coach FreezeRequest. Singleton at
+// `coachPlans/{coachId}/planChangeRequest/current`.
+
+const REQ = 'planChangeRequest';
+const REQ_ID = 'current';
+
+/** Coach: submit (or re-submit) a plan-change / more-clients request. */
+export async function submitPlanChangeRequest(
+  coachId: string,
+  data: { requestedTier?: CoachTierKey; requestedMaxClients?: number; reason: string },
+): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  await setDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), {
+    id: REQ_ID,
+    coachId,
+    reason: data.reason.trim(),
+    status: 'pending' as PlanRequestStatus,
+    requestedAt: now,
+    reviewedAt: null,
+    reviewedBy: null,
+    updatedAt: now,
+    ...(data.requestedTier ? { requestedTier: data.requestedTier } : {}),
+    ...(data.requestedMaxClients ? { requestedMaxClients: Math.max(0, Math.floor(data.requestedMaxClients)) } : {}),
+  });
+}
+
+/** Read a coach's plan-change request (coach reads own; admin reads any). */
+export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachPlanChangeRequest | null> {
+  const { db } = ensureFirebase();
+  const snap = await getDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID));
+  return snap.exists() ? (snap.data() as CoachPlanChangeRequest) : null;
+}
+
+/** Coach: withdraw a pending request. */
+export async function cancelPlanChangeRequest(coachId: string): Promise<void> {
+  const { db } = ensureFirebase();
+  await updateDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), { status: 'cancelled', updatedAt: Date.now() });
+}
+
+/** Super-admin: every pending plan-change request across all coaches. */
+export async function listPendingPlanChangeRequests(): Promise<CoachPlanChangeRequest[]> {
+  const { db } = ensureFirebase();
+  const snap = await getDocs(query(collectionGroup(db, REQ), where('status', '==', 'pending')));
+  return snap.docs.map((d) => d.data() as CoachPlanChangeRequest);
+}
+
+/**
+ * Super-admin: resolve a request (accept/reject) with a note. Applying the
+ * actual tier/cap is a separate explicit action (setCoachTier/setCoachMaxClients)
+ * so the admin keeps full control over what is granted.
+ */
+export async function resolvePlanChangeRequest(
+  coachId: string,
+  decidedBy: string,
+  outcome: 'accepted' | 'rejected',
+  adminNote: string,
+): Promise<void> {
+  const { db } = ensureFirebase();
+  const now = Date.now();
+  await updateDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), {
+    status: outcome,
+    reviewedAt: now,
+    reviewedBy: decidedBy,
+    adminNote: adminNote.trim(),
+    updatedAt: now,
+  });
+  // Log the decision on the plan history too (best-effort — a coach without a
+  // plan doc shouldn't block the resolution).
+  await updateDoc(doc(db, COACH_PLANS, coachId), {
+    history: arrayUnion({ at: now, action: `request.${outcome}`, detail: adminNote.trim().slice(0, 120), by: decidedBy }),
+    updatedAt: now,
+  }).catch(() => undefined);
+  // Notify the coach in their own bell that their request was reviewed. Written
+  // to clientData/{coachId}/notifications (the coach reads it as the owner; the
+  // resolving super-admin writes it via clients.writeAll). Best-effort.
+  await notify({
+    clientId: coachId,
+    forRole: 'coach',
+    type: 'plan_decided',
+    body: adminNote.trim() || undefined,
+    route: '/coach/plan',
+    createdBy: decidedBy,
+  });
+  await writeAudit({ action: `coachPlan.request.${outcome}`, targetUserId: coachId, metadata: { adminNote: adminNote.trim().slice(0, 140) } });
 }

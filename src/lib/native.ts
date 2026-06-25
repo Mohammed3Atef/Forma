@@ -9,9 +9,9 @@ export async function initNative(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
-    // Style.Dark → light icons/text, for our dark (black) background.
+    // Style.Dark → light icons/text, for our dark charcoal background.
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: '#000000' });
+    await StatusBar.setBackgroundColor({ color: '#0B0C0F' });
   } catch {
     /* status-bar plugin unavailable — ignore */
   }

@@ -118,7 +118,38 @@ export interface CoachPlan {
   trialNotified?: { d7?: boolean; d3?: boolean; d1?: boolean };
   /** Maintained client-usage counter; rules reject a new relationship at the cap. */
   activeClientCount?: number;
+  /** Append-only log of plan changes (tier/limit/status/end-date + request decisions). */
+  history?: PlanHistoryEntry[];
   createdAt: number;
+  updatedAt: number;
+}
+
+/** One entry in the coach plan's change history (newest pushed last). */
+export interface PlanHistoryEntry {
+  at: number;
+  action: string; // 'tier' | 'maxClients' | 'status' | 'endsAt' | 'requested' | 'request.accepted' | 'request.rejected'
+  detail?: string; // human-readable summary
+  by?: string; // actor uid
+}
+
+export type PlanRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+
+/**
+ * A coach's request to the super-admin to change their Forma plan / raise their
+ * client cap. Singleton at `coachPlans/{coachId}/planChangeRequest/current`.
+ * Mirrors the client→coach FreezeRequest.
+ */
+export interface CoachPlanChangeRequest {
+  id: string; // always 'current'
+  coachId: string;
+  requestedTier?: CoachPlanTier;
+  requestedMaxClients?: number;
+  reason: string;
+  status: PlanRequestStatus;
+  requestedAt: number;
+  reviewedAt?: number | null;
+  reviewedBy?: string | null;
+  adminNote?: string;
   updatedAt: number;
 }
 
@@ -434,7 +465,9 @@ export type NotificationType =
   | 'checkin_submitted'
   | 'checkin_reviewed'
   | 'message_received'
-  | 'trial_expiring';
+  | 'trial_expiring'
+  | 'plan_change_requested'
+  | 'plan_decided';
 
 /**
  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and
@@ -624,6 +657,9 @@ export interface Exercise {
   tags?: string[];
   /** Coach progression guidance shown to the client. */
   progressionNotes?: string;
+  /** Demo image (e.g. seeded library); coaches may still attach a video. */
+  imageUrl?: string | null;
+  images?: string[];
 }
 
 /** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */

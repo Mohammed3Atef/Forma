@@ -7,11 +7,20 @@ import { Sheet } from '@/components/Sheet';
 import { TagInput } from '@/components/TagInput';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Pagination } from '@/components/ui/Pagination';
+import { BulkActionBar } from '@/components/ui/BulkActionBar';
+import { RowCheckbox } from '@/components/ui/RowCheckbox';
+import { usePagination } from '@/hooks/usePagination';
+import { useSelection } from '@/hooks/useSelection';
 import { blankExercise } from '@/lib/workoutPresets';
 import { uid } from '@/lib/utils';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import {
+  bulkDeleteExercises,
+  bulkDeleteFoodGroups,
+  bulkDeleteFoods,
+  bulkDeleteSupplements,
   deleteExercise,
   deleteFood,
   deleteFoodGroup,
@@ -79,8 +88,34 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   }, [lib.data, search]);
 
   const saveMut = useMutation({ mutationFn: (ex: Exercise) => saveExercise(coachId, ex), onSuccess: () => { setEditing(null); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); } });
+  // One-tap starter library: fetch the bundled open-licensed dataset and import
+  // it into the coach's own coachAssets (chunked writes). Re-importing is safe —
+  // ids are stable so it upserts rather than duplicating.
+  const loadStarter = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/data/exercise-library.json');
+      const items = (await res.json()) as Exercise[];
+      for (let i = 0; i < items.length; i += 20) {
+        await Promise.all(items.slice(i, i + 20).map((ex) => saveExercise(coachId, ex)));
+      }
+      return items.length;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }),
+  });
   const delMut = useMutation({ mutationFn: (id: string) => deleteExercise(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }) });
   const remove = async (ex: Exercise) => { if (await confirmDialog({ title: t('common.delete'), message: ex.name, danger: true })) delMut.mutate(ex.id); };
+
+  const sel = useSelection();
+  const pg = usePagination(filtered, 25, search);
+  const pageIds = pg.pageItems.map((e) => e.id);
+  const bulkDel = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteExercises(coachId, ids),
+    onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); },
+  });
+  const runBulkDelete = async () => {
+    if (sel.count === 0) return;
+    if (await confirmDialog({ title: t('common.delete'), message: t('common.bulk.confirmDelete', { n: sel.count }), danger: true })) bulkDel.mutate(sel.ids);
+  };
 
   const exerciseColumns: Column<Exercise>[] = [
     { key: 'name', header: t('coachLib.exercise'), cell: (ex) => <span className="font-medium">{ex.name}</span> },
@@ -101,6 +136,9 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
           <input className="input ps-10" data-testid="lib-search" placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <button type="button" className="btn-ghost h-[42px] whitespace-nowrap px-3 text-[13px] disabled:opacity-40" data-testid="lib-load-starter" disabled={loadStarter.isPending} onClick={async () => { if (await confirmDialog({ title: t('coachLib.loadStarter'), message: t('coachLib.loadStarterConfirm') })) loadStarter.mutate(); }}>
+          {loadStarter.isPending ? t('auth.working') : t('coachLib.loadStarter')}
+        </button>
         <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coachLib.newExercise')} data-testid="lib-new" onClick={() => setEditing(blankExercise())}>
           <Icon name="plus" size={20} />
         </button>
@@ -111,17 +149,25 @@ function ExercisesTab({ coachId }: { coachId: string }) {
         <DataTable
           testId="coach-desktop-library"
           columns={exerciseColumns}
-          rows={filtered}
+          rows={pg.pageItems}
           rowKey={(ex) => ex.id}
           onRowClick={(ex) => setEditing(ex)}
+          selection={{
+            isSelected: (ex) => sel.has(ex.id),
+            onToggle: (ex) => sel.toggle(ex.id),
+            allSelected: pageIds.length > 0 && pageIds.every((id) => sel.has(id)),
+            someSelected: pageIds.some((id) => sel.has(id)),
+            onToggleAll: (on) => sel.setMany(pageIds, on),
+          }}
           empty={search ? t('coachLib.noResults') : t('coachLib.empty')}
         />
       ) : filtered.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachLib.empty')}</div>
       ) : (
         <div className="card divide-y divide-line-soft">
-          {filtered.map((ex) => (
-            <div key={ex.id} className="flex items-center gap-3 py-2.5" data-testid="lib-item">
+          {pg.pageItems.map((ex) => (
+            <div key={ex.id} className={`flex items-center gap-3 py-2.5 ${sel.has(ex.id) ? 'bg-brand/10' : ''}`} data-testid="lib-item">
+              <span className="ps-1"><RowCheckbox checked={sel.has(ex.id)} onToggle={() => sel.toggle(ex.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
               <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setEditing(ex)}>
                 <span className="block truncate font-medium">{ex.name}</span>
                 <span className="block truncate text-[12px] text-earth-subtle">{[ex.targetMuscle, ex.category, ex.equipment].filter(Boolean).join(' · ') || t('coachLib.noMeta')}</span>
@@ -131,6 +177,10 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           ))}
         </div>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+      <BulkActionBar count={sel.count} onClear={sel.clear}>
+        <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
+      </BulkActionBar>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachLib.exercise')}>
         {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} />}
       </Sheet>
@@ -163,6 +213,18 @@ function FoodsTab({ coachId }: { coachId: string }) {
   const saveMut = useMutation({ mutationFn: (f: LibraryFood) => saveFood(coachId, f), onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); } });
   const delMut = useMutation({ mutationFn: (id: string) => deleteFood(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['foods', coachId] }) });
   const remove = async (f: LibraryFood) => { if (await confirmDialog({ title: t('common.delete'), message: f.name.en, danger: true })) delMut.mutate(f.id); };
+
+  const sel = useSelection();
+  const pg = usePagination(filtered, 25, search);
+  const pageIds = pg.pageItems.map((f) => f.id);
+  const bulkDel = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteFoods(coachId, ids),
+    onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); },
+  });
+  const runBulkDelete = async () => {
+    if (sel.count === 0) return;
+    if (await confirmDialog({ title: t('common.delete'), message: t('common.bulk.confirmDelete', { n: sel.count }), danger: true })) bulkDel.mutate(sel.ids);
+  };
 
   const foodColumns: Column<LibraryFood>[] = [
     { key: 'name', header: t('coachFoods.food'), cell: (f) => <span className="font-medium">{f.name.en}</span> },
@@ -210,17 +272,25 @@ function FoodsTab({ coachId }: { coachId: string }) {
         <DataTable
           testId="coach-desktop-foods"
           columns={foodColumns}
-          rows={filtered}
+          rows={pg.pageItems}
           rowKey={(f) => f.id}
           onRowClick={editFood}
+          selection={{
+            isSelected: (f) => sel.has(f.id),
+            onToggle: (f) => sel.toggle(f.id),
+            allSelected: pageIds.length > 0 && pageIds.every((id) => sel.has(id)),
+            someSelected: pageIds.some((id) => sel.has(id)),
+            onToggleAll: (on) => sel.setMany(pageIds, on),
+          }}
           empty={search ? t('coachLib.noResults') : t('coachFoods.empty')}
         />
       ) : filtered.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachFoods.empty')}</div>
       ) : (
         <div className="card divide-y divide-line-soft">
-          {filtered.map((f) => (
-            <div key={f.id} className="flex items-center gap-3 py-2.5" data-testid="food-item">
+          {pg.pageItems.map((f) => (
+            <div key={f.id} className={`flex items-center gap-3 py-2.5 ${sel.has(f.id) ? 'bg-brand/10' : ''}`} data-testid="food-item">
+              <span className="ps-1"><RowCheckbox checked={sel.has(f.id)} onToggle={() => sel.toggle(f.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
               <button type="button" className="min-w-0 flex-1 text-start" onClick={() => editFood(f)}>
                 <span className="block truncate font-medium">{f.name.en}</span>
                 <span className="block truncate text-[12px] text-earth-subtle" dir="ltr">{f.quantity ? `${f.quantity} · ` : ''}{f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
@@ -230,6 +300,10 @@ function FoodsTab({ coachId }: { coachId: string }) {
           ))}
         </div>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+      <BulkActionBar count={sel.count} onClear={sel.clear}>
+        <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
+      </BulkActionBar>
       <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachFoods.food')}>
         {form && (
           <div className="space-y-3" data-testid="food-lib-form">
@@ -271,6 +345,17 @@ function GroupsTab({ coachId }: { coachId: string }) {
   const delMut = useMutation({ mutationFn: (id: string) => deleteFoodGroup(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }) });
   const remove = async (g: FoodGroup) => { if (await confirmDialog({ title: t('common.delete'), message: g.name, danger: true })) delMut.mutate(g.id); };
 
+  const sel = useSelection();
+  const pg = usePagination(groups.data ?? [], 25);
+  const bulkDel = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteFoodGroups(coachId, ids),
+    onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }); },
+  });
+  const runBulkDelete = async () => {
+    if (sel.count === 0) return;
+    if (await confirmDialog({ title: t('common.delete'), message: t('common.bulk.confirmDelete', { n: sel.count }), danger: true })) bulkDel.mutate(sel.ids);
+  };
+
   const submit = () => {
     if (!form) return;
     const picked = (foods.data ?? []).filter((f) => form.foodIds.includes(f.id));
@@ -298,9 +383,10 @@ function GroupsTab({ coachId }: { coachId: string }) {
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : groups.data?.length ? (
         <div className="space-y-2">
-          {groups.data.map((g) => (
-            <div key={g.id} className="card" data-testid="group-item">
-              <div className="flex items-start justify-between gap-3">
+          {pg.pageItems.map((g) => (
+            <div key={g.id} className={`card ${sel.has(g.id) ? 'ring-1 ring-brand/40' : ''}`} data-testid="group-item">
+              <div className="flex items-start gap-3">
+                <span className="pt-0.5"><RowCheckbox checked={sel.has(g.id)} onToggle={() => sel.toggle(g.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
                 <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: g.id, name: g.name, notes: g.notes ?? '', foodIds: g.foods.map((f) => f.id) })}>
                   <span className="block truncate font-medium">{g.name || t('coachFoods.untitledGroup')}</span>
                   <span className="block truncate text-[12px] text-earth-subtle">{t('coachFoods.foodCount', { n: g.foods.length })}</span>
@@ -313,6 +399,10 @@ function GroupsTab({ coachId }: { coachId: string }) {
       ) : (
         <div className="card py-10 text-center text-sm text-earth-muted">{t('coachFoods.noGroups')}</div>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+      <BulkActionBar count={sel.count} onClear={sel.clear}>
+        <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
+      </BulkActionBar>
       <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachFoods.group')}>
         {form && (
           <div className="space-y-3" data-testid="group-form">
@@ -366,6 +456,17 @@ function SupplementsTab({ coachId }: { coachId: string }) {
   const delMut = useMutation({ mutationFn: (id: string) => deleteSupplement(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['supplements', coachId] }) });
   const remove = async (s: LibrarySupplement) => { if (await confirmDialog({ title: t('common.delete'), message: s.name, danger: true })) delMut.mutate(s.id); };
 
+  const sel = useSelection();
+  const pg = usePagination(filtered, 25, search);
+  const bulkDel = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteSupplements(coachId, ids),
+    onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['supplements', coachId] }); },
+  });
+  const runBulkDelete = async () => {
+    if (sel.count === 0) return;
+    if (await confirmDialog({ title: t('common.delete'), message: t('common.bulk.confirmDelete', { n: sel.count }), danger: true })) bulkDel.mutate(sel.ids);
+  };
+
   const submit = () => {
     if (!form) return;
     const s: LibrarySupplement = {
@@ -394,8 +495,9 @@ function SupplementsTab({ coachId }: { coachId: string }) {
         <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachSupps.empty')}</div>
       ) : (
         <div className="card divide-y divide-line-soft">
-          {filtered.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 py-2.5" data-testid="supp-item">
+          {pg.pageItems.map((s) => (
+            <div key={s.id} className={`flex items-center gap-3 py-2.5 ${sel.has(s.id) ? 'bg-brand/10' : ''}`} data-testid="supp-item">
+              <span className="ps-1"><RowCheckbox checked={sel.has(s.id)} onToggle={() => sel.toggle(s.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
               <Icon name="pill" size={18} className="shrink-0 text-earth-subtle" />
               <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
                 <span className="block truncate font-medium">{s.name}</span>
@@ -406,6 +508,10 @@ function SupplementsTab({ coachId }: { coachId: string }) {
           ))}
         </div>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+      <BulkActionBar count={sel.count} onClear={sel.clear}>
+        <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
+      </BulkActionBar>
       <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachEditor.supplement')}>
         {form && (
           <div className="space-y-3" data-testid="supp-form">

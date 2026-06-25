@@ -216,7 +216,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
 
   if (submitted) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black px-8 text-center" data-testid="assessment-done">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-surface px-8 text-center" data-testid="assessment-done">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand text-black">
           <Icon name="check" size={32} />
         </span>

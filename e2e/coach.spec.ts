@@ -16,7 +16,9 @@ const clientName = `QA CoachClient ${Date.now()}`;
 let clientId = '';
 
 async function gotoClientDetail(page: Page): Promise<void> {
-  await page.goto('/coach');
+  // Search to surface the client — the mobile list is paginated (infinite
+  // scroll) and the test coach has many seeded clients.
+  await page.goto(`/coach?q=${encodeURIComponent(clientName)}`);
   const row = page.locator('[data-testid="coach-client-row"]', { hasText: clientName }).first();
   await row.waitFor({ timeout: 20_000 });
   await row.click();
@@ -65,8 +67,9 @@ test.describe.serial('Coach', () => {
 
   test('seeded client is active + auto-assigned to this coach', async ({ page }) => {
     test.skip(!clientId, 'client not seeded');
-    // Appears in the coach's own list.
-    await page.goto('/coach');
+    // Appears in the coach's own list. Search to surface it — the list is
+    // paginated (infinite scroll) and the test coach has many seeded clients.
+    await page.goto(`/coach?q=${encodeURIComponent(clientName)}`);
     const row = page.locator('[data-testid="coach-client-row"]', { hasText: clientName }).first();
     await expect(row).toBeVisible({ timeout: 20_000 });
 

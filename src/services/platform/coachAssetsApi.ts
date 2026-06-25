@@ -216,6 +216,37 @@ export async function deleteSupplement(coachId: string, suppId: string): Promise
   await deleteDoc(doc(db, ASSETS, coachId, 'supplements', suppId));
 }
 
+// ---- Bulk delete (selection → batch removal) -------------------------------
+// Each delete is independent; a single failure never aborts the rest. Returns
+// how many succeeded so the UI can surface partial failures.
+
+export interface BulkResult {
+  ok: number;
+  failed: number;
+}
+
+async function settle(promises: Promise<unknown>[]): Promise<BulkResult> {
+  const results = await Promise.allSettled(promises);
+  const failed = results.filter((r) => r.status === 'rejected').length;
+  return { ok: results.length - failed, failed };
+}
+
+export function bulkDeleteExercises(coachId: string, ids: string[]): Promise<BulkResult> {
+  return settle(ids.map((id) => deleteExercise(coachId, id)));
+}
+export function bulkDeleteFoods(coachId: string, ids: string[]): Promise<BulkResult> {
+  return settle(ids.map((id) => deleteFood(coachId, id)));
+}
+export function bulkDeleteFoodGroups(coachId: string, ids: string[]): Promise<BulkResult> {
+  return settle(ids.map((id) => deleteFoodGroup(coachId, id)));
+}
+export function bulkDeleteSupplements(coachId: string, ids: string[]): Promise<BulkResult> {
+  return settle(ids.map((id) => deleteSupplement(coachId, id)));
+}
+export function bulkDeleteWorkoutTemplates(coachId: string, ids: string[]): Promise<BulkResult> {
+  return settle(ids.map((id) => deleteWorkoutTemplate(coachId, id)));
+}
+
 // ---- Nutrition templates (architecture; assign reuses MealPlan) ------------
 
 export async function listNutritionTemplates(coachId: string): Promise<NutritionTemplate[]> {

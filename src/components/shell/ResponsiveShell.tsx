@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { BottomNav } from '@/components/BottomNav';
 import { ReminderBanner } from '@/components/ReminderBanner';
+import { WhatsAppFab } from '@/components/WhatsAppFab';
 import type { NavItem } from '@/config/nav';
 import { SidebarNav } from './SidebarNav';
 import { DesktopTopBar } from './DesktopTopBar';
@@ -41,6 +42,7 @@ export function ResponsiveShell({
           <BottomNav items={navItems} />
         </div>
       </div>
+      <WhatsAppFab />
     </div>
   );
 }

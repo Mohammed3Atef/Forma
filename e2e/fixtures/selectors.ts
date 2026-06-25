@@ -16,6 +16,26 @@ export const TID = {
   landingCtaSignin: 'landing-cta-signin',
   landingLangToggle: 'landing-lang-toggle',
 
+  // Premium polish — dashboards, command palette, starter library
+  coachDashTab: (key: string) => `coach-dash-${key}`,
+  adminDashboard: 'admin-dashboard',
+  adminTab: (key: string) => `admin-tab-${key}`,
+  loadStarterLibrary: 'load-starter-library',
+  globalSearch: 'global-search',
+  commandInput: 'command-input',
+  coachPlanPage: 'coach-plan',
+  coachPlanRequest: 'coach-plan-request',
+  coachPlanReason: 'coach-plan-reason',
+  coachPlanRequestSubmit: 'coach-plan-request-submit',
+  coachPlanRequestCard: 'coach-plan-request-card',
+  coachPlanCancel: 'coach-plan-cancel',
+  coachPlanApprove: 'coach-plan-approve',
+  coachPlanReject: 'coach-plan-reject',
+  coachEndDateInput: 'coach-enddate-input',
+  coachEndDateSave: 'coach-enddate-save',
+  coachEndDateClear: 'coach-enddate-clear',
+  adminPlanRequests: 'admin-plan-requests',
+
   // Auth ---------------------------------------------------------------------
   loginForm: 'login-form',
   loginEmail: 'login-email',

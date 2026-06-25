@@ -7,14 +7,15 @@ import type { CoachPlan } from '@/types';
  * Dashboard banner summarising the coach's trial: clients used / max and days
  * left, with an urgent tone inside the final week. Hidden for non-trial plans.
  */
-export function CoachTrialBanner({ plan }: { plan: CoachPlan | null | undefined }) {
+export function CoachTrialBanner({ plan, usedClients }: { plan: CoachPlan | null | undefined; usedClients?: number }) {
   const { t } = useTranslation();
   if (!plan || plan.plan !== 'trial') return null;
   const left = trialDaysLeft(plan);
   const expired = plan.status !== 'active' || (left != null && left <= 0);
   const urgent = !expired && left != null && left <= 7;
   const tone = expired ? 'border-danger/50 bg-danger/10 text-danger' : urgent ? 'border-warn/50 bg-warn/10 text-warn' : 'border-brand/40 bg-brand/10 text-brand';
-  const used = plan.activeClientCount ?? 0;
+  // Prefer the real client count (the maintained counter can drift); fall back to it.
+  const used = usedClients ?? plan.activeClientCount ?? 0;
 
   return (
     <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${tone}`} data-testid="coach-trial-banner">

@@ -276,7 +276,7 @@ export function MessageThread({
             : "fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[78px] pt-4"
         }
       >
-        <div className={`flex items-end gap-2 pt-2 ${embedded ? "" : "bg-black"}`}>
+        <div className={`flex items-end gap-2 pt-2 ${embedded ? "" : "bg-surface"}`}>
           <input
             ref={fileRef}
             type="file"

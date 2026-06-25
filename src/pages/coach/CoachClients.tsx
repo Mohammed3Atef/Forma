@@ -59,7 +59,10 @@ export function CoachClients() {
     staleTime: 60_000,
   });
   const maxClients = plan.data?.maxClients ?? Infinity;
-  const usedClients = plan.data?.activeClientCount ?? (clients.data?.filter((c) => c.accountStatus !== 'disabled').length ?? 0);
+  // Prefer the REAL client count — the maintained plan counter can drift out of sync.
+  const usedClients = clients.data
+    ? clients.data.filter((c) => c.accountStatus !== 'disabled').length
+    : plan.data?.activeClientCount ?? 0;
   const atLimit = Number.isFinite(maxClients) && usedClients >= maxClients;
 
   const matches = (name: string, email: string, phone: string | undefined, q: string) =>

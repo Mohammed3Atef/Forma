@@ -61,7 +61,7 @@ export function Login() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black px-5 py-12">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
         <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-56 max-w-[64%] rounded-2xl" />
         <h1 className="h1">{t(mode === 'signup' ? 'auth.createAccount' : 'auth.welcomeBack')}</h1>

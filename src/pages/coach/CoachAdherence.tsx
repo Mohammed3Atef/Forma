@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchClientLogs, listMyClients } from '@/services/platform/coachApi';
@@ -46,6 +48,7 @@ export function CoachAdherence() {
     [list, logs, since],
   );
   const max = Math.max(1, ...rows.map((r) => r.count));
+  const pg = usePagination(rows, 25);
 
   const columns: Column<AdherenceRow>[] = [
     {
@@ -82,14 +85,14 @@ export function CoachAdherence() {
       ) : isDesktop ? (
         <DataTable
           columns={columns}
-          rows={rows}
+          rows={pg.pageItems}
           rowKey={(r) => r.client.id}
           onRowClick={(r) => navigate(`/coach/client/${r.client.id}`)}
           empty={t('coach.noClients')}
         />
       ) : (
         <div className="card divide-y divide-line-soft">
-          {rows.map(({ client, count }) => (
+          {pg.pageItems.map(({ client, count }) => (
             <div key={client.id} className="row">
               <span className="row-av font-serif">{(client.displayName || client.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1 truncate font-medium">{client.displayName || client.email}</span>
@@ -101,6 +104,7 @@ export function CoachAdherence() {
           ))}
         </div>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
     </>
   );
 }

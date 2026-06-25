@@ -15,7 +15,7 @@ export function NotificationBell({ className = '' }: { className?: string }) {
   const navigate = useNavigate();
   const role = useSession((s) => s.account?.role);
   const { unread } = useNotifications();
-  const to = role === 'coach' ? '/coach/notifications' : '/notifications';
+  const to = role === 'coach' ? '/coach/notifications' : role === 'admin' || role === 'super_admin' ? '/admin/notifications' : '/notifications';
   return (
     <button
       type="button"

@@ -5,7 +5,8 @@
       "Bash(node -e \"const d=require\\('/tmp/training.json'\\); console.log\\('rows:', d.rowCount\\); d.rows.forEach\\(\\(r,i\\)=>{const c=r.map\\(x=>x.trim\\(\\)\\).filter\\(Boolean\\); if\\(c.length\\) console.log\\(i, JSON.stringify\\(c\\).slice\\(0,200\\)\\);}\\);\")",
       "Bash(node -e \"const d=require\\('./training-raw.json'\\); console.log\\('rows:', d.rowCount\\); d.rows.forEach\\(\\(r,i\\)=>{const c=r.map\\(x=>x.trim\\(\\)\\); const nonEmpty=c.filter\\(Boolean\\); if\\(nonEmpty.length\\) console.log\\(i+':', JSON.stringify\\(c\\)\\);}\\);\")",
       "Bash(node scripts/extractFromXlsx.mjs)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const e=require\\('./src/i18n/en.json'\\); console.log\\('coachLib:', JSON.stringify\\(e.coachLib\\)\\); console.log\\('coachFoods keys:', Object.keys\\(e.coachFoods||{}\\)\\); console.log\\('coachSupps.title:', JSON.stringify\\(e.coachSupps&&e.coachSupps.title\\)\\); console.log\\('coach.clients/last7Days/workoutsShort:', e.coach&&e.coach.clients, '|', e.coach&&e.coach.last7Days, '|', e.coach&&e.coach.workoutsShort\\);\")"
     ]
   }
 }

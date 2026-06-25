@@ -328,6 +328,24 @@ service cloud.firestore {
         && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
 
       allow delete: if hasPermission('users.manageStatus');
+
+      // Coach → super-admin plan-change request (singleton 'current').
+      // Coach submits 'pending' / withdraws 'cancelled'; super-admin resolves
+      // 'accepted'/'rejected'. Read: the owning coach or admin oversight.
+      match /planChangeRequest/{docId} {
+        allow read: if isSignedIn() && (request.auth.uid == coachId || hasPermission('users.read'));
+        allow create, update: if isSignedIn() && request.auth.uid == coachId
+          && request.resource.data.status in ['pending', 'cancelled'];
+        allow update: if hasPermission('users.manageStatus')
+          && request.resource.data.status in ['accepted', 'rejected'];
+        allow delete: if hasPermission('users.manageStatus');
+      }
+    }
+
+    // Collection-group read for the admin "pending plan requests" query
+    // (collectionGroup('planChangeRequest') where status == 'pending').
+    match /{path=**}/planChangeRequest/{docId} {
+      allow read: if hasPermission('users.read');
     }
 
     // ---- signupInvites (Phase 1 client invitations) ----------------------

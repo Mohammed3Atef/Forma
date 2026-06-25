@@ -7,10 +7,14 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
+import { RowCheckbox } from '@/components/ui/RowCheckbox';
+import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useSelection } from '@/hooks/useSelection';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import {
+  bulkSetAccountStatus,
   createUser,
   deleteUser,
   fetchUsersPage,
@@ -52,6 +56,8 @@ export function AdminAccounts() {
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
   const [selected, setSelected] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
+  const sel = useSelection();
+  const canStatus = useCan('users.manageStatus');
 
   const list = useInfiniteQuery({
     queryKey: ['users'],
@@ -99,9 +105,32 @@ export function AdminAccounts() {
       setSelected(null);
     },
   });
+  const bulkStatusMut = useMutation({
+    mutationFn: ({ targets, status }: { targets: UserRecord[]; status: AccountStatus }) => bulkSetAccountStatus(targets, status),
+    onSuccess: () => {
+      refresh();
+      sel.clear();
+    },
+  });
+
+  // Accounts the actor may act on in bulk (and may select).
+  const selectableIds = useMemo(() => filtered.filter((u) => canManage(actorRole, u)).map((u) => u.id), [filtered, actorRole]);
+  const allOnPageSelected = selectableIds.length > 0 && selectableIds.every((id) => sel.has(id));
+  const someOnPageSelected = selectableIds.some((id) => sel.has(id));
+
+  const runBulkStatus = async (status: AccountStatus) => {
+    const targets = filtered.filter((u) => sel.has(u.id) && canManage(actorRole, u));
+    if (targets.length === 0) return;
+    const ok = await confirmDialog({
+      title: t(`platform.status.${status}`),
+      message: t('common.bulk.confirmStatus', { n: targets.length }),
+      danger: status !== 'active',
+    });
+    if (ok) bulkStatusMut.mutate({ targets, status });
+  };
 
   return (
-    <div className="lg:mx-auto lg:max-w-3xl">
+    <div className="mx-auto w-full max-w-6xl">
       <TopBar
         testId="admin-accounts"
         title={t('admin.accounts')}
@@ -153,30 +182,61 @@ export function AdminAccounts() {
         ))}
       </div>
 
+      {canStatus && selectableIds.length > 0 && (
+        <div className="mb-2 flex items-center gap-2 px-1">
+          <RowCheckbox
+            checked={allOnPageSelected}
+            indeterminate={someOnPageSelected && !allOnPageSelected}
+            onToggle={() => sel.setMany(selectableIds, !allOnPageSelected)}
+            label={t('common.selectAll')}
+            testId="account-select-all"
+          />
+          <span className="text-[12px] text-earth-subtle">{t('common.selectAll')}</span>
+        </div>
+      )}
+
       {list.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('admin.noAccounts')}</p>
       ) : (
         <div className="card divide-y divide-line-soft">
-          {filtered.map((u) => (
-            <button key={u.id} type="button" data-testid="account-row" data-account-id={u.id} data-account-role={u.role} onClick={() => setSelected(u)} className="row w-full text-start">
-              <Avatar name={u.displayName || u.email} photoUrl={u.photoUrl} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{u.displayName || u.email}</span>
-                <span className="block truncate text-[13px] text-earth-muted">{u.email}</span>
-                {u.phone && <span className="block truncate font-mono text-[11px] text-earth-subtle" dir="ltr">{u.phone}</span>}
-              </span>
-              <span className="flex shrink-0 flex-col items-end gap-1">
-                <StatusBadge status={u.accountStatus} />
-                <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-earth-subtle">{t(`roles.${u.role}`)}</span>
-              </span>
-            </button>
-          ))}
+          {filtered.map((u) => {
+            const selectable = canStatus && canManage(actorRole, u);
+            return (
+              <div key={u.id} className={`flex items-center ${sel.has(u.id) ? 'bg-brand/10' : ''}`}>
+                {selectable && (
+                  <span className="ps-3">
+                    <RowCheckbox checked={sel.has(u.id)} onToggle={() => sel.toggle(u.id)} label={t('common.bulk.selectRow')} testId="account-select" />
+                  </span>
+                )}
+                <button type="button" data-testid="account-row" data-account-id={u.id} data-account-role={u.role} onClick={() => setSelected(u)} className="row min-w-0 flex-1 text-start">
+                  <Avatar name={u.displayName || u.email} photoUrl={u.photoUrl} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{u.displayName || u.email}</span>
+                    <span className="block truncate text-[13px] text-earth-muted">{u.email}</span>
+                    {u.phone && <span className="block truncate font-mono text-[11px] text-earth-subtle" dir="ltr">{u.phone}</span>}
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    <StatusBadge status={u.accountStatus} />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-earth-subtle">{t(`roles.${u.role}`)}</span>
+                  </span>
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
       <div ref={sentinel} />
       {list.isFetchingNextPage && <p className="py-4 text-center text-sm text-earth-muted">{t('auth.working')}</p>}
+
+      {canStatus && (
+        <BulkActionBar count={sel.count} onClear={sel.clear}>
+          <button type="button" data-testid="bulk-activate" className="chip" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('active')}>{t('common.bulk.activate')}</button>
+          <button type="button" data-testid="bulk-suspend" className="chip" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('suspended')}>{t('common.bulk.suspend')}</button>
+          <button type="button" data-testid="bulk-disable" className="chip text-danger" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('disabled')}>{t('common.bulk.disable')}</button>
+        </BulkActionBar>
+      )}
 
       {/* Per-account actions */}
       <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.displayName || selected?.email}>

@@ -66,6 +66,7 @@ export const COACH_SIDEBAR: NavItem[] = [
   { to: '/coach/messages', icon: 'info', key: 'coachMessages' },
   { to: '/coach/assessments', icon: 'check', key: 'coachAssessments' },
   { to: '/coach/reports', icon: 'chart', key: 'coachReports' },
+  { to: '/coach/plan', icon: 'bolt', key: 'coachPlan' },
   { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
 ];
 

@@ -62,13 +62,17 @@ export async function markNotificationSeen(clientId: string, id: string): Promis
 /**
  * Coach-bound notifications across all the coach's active clients (the client
  * list is small, so per-client queries are fine and avoid a collectionGroup +
- * its rule complexity). Each item carries its `clientId` for deep-linking.
+ * its rule complexity), PLUS the coach's OWN notifications doc — where alerts
+ * about the coach themselves land (e.g. a plan-change decision written to
+ * `clientData/{coachId}/notifications`, which the coach may read as the owner).
+ * Each item carries its `clientId` for deep-linking.
  */
 export async function listCoachNotifications(coachId: string, max = 50): Promise<AppNotification[]> {
   const { db } = ensureFirebase();
   // Active clients of this coach (inlined to avoid a coachClientsApi import cycle).
   const relSnap = await getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId), where('status', '==', 'active')));
   const clientIds = relSnap.docs.map((d) => (d.data() as CoachClientRelationship).clientId);
-  const lists = await Promise.all(clientIds.map((cid) => listNotifications(cid, 'coach', max).catch(() => [])));
+  const ids = [coachId, ...clientIds]; // the coach's own doc first (self-addressed alerts)
+  const lists = await Promise.all(ids.map((cid) => listNotifications(cid, 'coach', max).catch(() => [])));
   return lists.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, max);
 }

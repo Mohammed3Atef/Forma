@@ -107,6 +107,7 @@
     "coachDashboard": "لوحة التحكم",
     "coachAssessments": "التقييمات",
     "coachReports": "التقارير",
+    "coachPlan": "خطتي",
     "adminOverview": "نظرة عامة",
     "adminAccounts": "الحسابات",
     "adminAssignments": "الإسناد",
@@ -140,7 +141,49 @@
     "showMore": "عرض المزيد",
     "confirmTitle": "هل أنت متأكد؟",
     "confirmDeleteName": "حذف {{name}}؟ لا يمكن التراجع.",
-    "confirmDeleteGeneric": "حذف هذا؟ لا يمكن التراجع."
+    "confirmDeleteGeneric": "حذف هذا؟ لا يمكن التراجع.",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة",
+    "errorGeneric": "حدث خطأ ما.",
+    "moveUp": "تحريك لأعلى",
+    "moveDown": "تحريك لأسفل",
+    "duplicate": "تكرار",
+    "moveTo": "نقل إلى قسم",
+    "selectAll": "تحديد الكل",
+    "pagination": {
+      "range": "{{from}}–{{to}} من {{total}}",
+      "page": "صفحة {{page}} / {{total}}",
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "bulk": {
+      "selected": "{{n}} محدد",
+      "selectRow": "تحديد الصف",
+      "clear": "إلغاء التحديد",
+      "delete": "حذف",
+      "suspend": "تعليق",
+      "activate": "تفعيل",
+      "disable": "تعطيل",
+      "confirmDelete": "حذف {{n}} عنصر محدد؟ لا يمكن التراجع.",
+      "confirmStatus": "تطبيق هذه الحالة على {{n}} حساب؟",
+      "done": "تم تحديث {{ok}}",
+      "partial": "تم تحديث {{ok}} · فشل {{failed}}"
+    }
+  },
+  "search": {
+    "open": "بحث",
+    "placeholder": "بحث…",
+    "commands": "الأوامر",
+    "noResults": "لا نتائج"
+  },
+  "starter": {
+    "load": "تحميل مكتبة البداية",
+    "loading": "جارٍ التحميل…",
+    "confirm": "سيضيف هذا مجموعة بداية كاملة من التمارين والأطعمة ومجموعات البدائل وقوالب التمرين — يمكن تعديلها أو حذفها لاحقًا. متابعة؟",
+    "loadedTitle": "تمت إضافة مكتبة البداية",
+    "loaded": "تمت إضافة {{exercises}} تمرين و{{foods}} طعام و{{groups}} مجموعة و{{templates}} قالب.",
+    "emptyTitle": "ابدأ بمكتبة جاهزة",
+    "emptyHint": "حمّل أكثر من ١٠٠ تمرين وأطعمة شائعة ومجموعات بدائل وقوالب بداية — ثم خصّصها كما تريد."
   },
   "imageViewer": { "close": "إغلاق" },
   "coachInfo": { "yourCoach": "مدرّبك", "message": "مراسلة", "callCoach": "اتصال" },
@@ -749,6 +792,8 @@
     }
   },
   "coachLib": {
+    "loadStarter": "تحميل مكتبة جاهزة",
+    "loadStarterConfirm": "إضافة أكثر من 90 تمرينًا جاهزًا (العضلات والمعدات والتعليمات) إلى مكتبتك؟ يمكنك تعديل أو حذف أي منها.",
     "title": "المكتبة",
     "tabs": { "exercises": "التمارين", "foods": "الأطعمة", "groups": "مجموعات الأطعمة", "supplements": "المكملات" },
     "exercise": "تمرين",
@@ -823,6 +868,23 @@
     "state": { "trial": "تجريبي", "active": "نشط", "expired": "منتهٍ", "suspended": "موقوف", "none": "لا خطة" }
   },
   "coachDash": {
+    "tabs": { "overview": "نظرة عامة", "analytics": "التحليلات", "clients": "العملاء", "engagement": "التفاعل", "content": "المحتوى", "reports": "التقارير" },
+    "goodMorning": "صباح الخير",
+    "goodAfternoon": "مساء الخير",
+    "goodEvening": "مساء الخير",
+    "renewals": "تجديدات (7 أيام)",
+    "today": "اليوم",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "clientGrowth": "عملاء جدد",
+    "inactiveWeek": "غير نشط هذا الأسبوع",
+    "allActive": "تدرّب الجميع هذا الأسبوع",
+    "workoutAdherence": "الالتزام بالتمارين",
+    "assessmentCompletion": "التقييمات المُراجَعة",
+    "export": "تصدير",
+    "exportClients": "العملاء CSV",
+    "exportSubscriptions": "الاشتراكات CSV",
+    "exportRevenue": "الإيرادات CSV",
     "revenue": "الإيرادات (تتبع)",
     "monthlyRevenue": "الإيراد الشهري",
     "expectedRevenue": "الإيراد المتوقع",
@@ -1038,7 +1100,9 @@
       "checkin_submitted": "تم إرسال المتابعة",
       "checkin_reviewed": "تمت مراجعة المتابعة",
       "message_received": "رسالة جديدة",
-      "trial_expiring": "الفترة التجريبية تنتهي قريبًا"
+      "trial_expiring": "الفترة التجريبية تنتهي قريبًا",
+      "plan_change_requested": "طلب خطة مدرب",
+      "plan_decided": "تمت مراجعة طلب الخطة"
     }
   },
   "checkin": {
@@ -1202,6 +1266,34 @@
     "photosSoon": "الرفع قريبًا"
   },
   "admin": {
+    "controlCenter": "مركز التحكّم",
+    "tabs": { "overview": "نظرة عامة", "coaches": "المدرّبون", "revenue": "الإيرادات", "subscriptions": "الاشتراكات", "system": "النظام" },
+    "trackedRevenue": "الإيراد المتتبَّع",
+    "perMonth": "/شهر",
+    "recentCoaches": "المسجّلون حديثًا",
+    "expiringTrials": "تجارب على وشك الانتهاء",
+    "noExpiring": "لا توجد تجارب تنتهي خلال الأيام السبعة القادمة.",
+    "planUsage": "استخدام الخطة والعملاء",
+    "revenueByTier": "الإيراد حسب الخطة",
+    "revenueByCoach": "أعلى المدرّبين بعدد العملاء",
+    "activePaidCoaches": "مدرّبون مدفوعون نشطون",
+    "pricingNote": "أسعار الفئات للتتبّع فقط — لا توجد بوابة دفع في فورما.",
+    "securityOverview": "الأمان والصلاحيات",
+    "planRequests": "طلبات الخطط",
+    "noRequests": "لا توجد طلبات خطط معلّقة.",
+    "requestReason": "السبب",
+    "requestedTier": "المطلوب",
+    "endDate": "تاريخ الانتهاء",
+    "started": "تاريخ البدء",
+    "setEndDate": "تعيين تاريخ الانتهاء",
+    "clearEndDate": "مسح",
+    "approveRequest": "قبول",
+    "rejectRequest": "رفض",
+    "approveApplies": "القبول يطبّق الخطة المطلوبة تلقائيًا.",
+    "requestsPending": "{{n}} طلب خطة بانتظار مراجعتك",
+    "reviewRequests": "مراجعة",
+    "requestFrom": "طلب خطة",
+    "planHistory": "سجلّ الخطة",
     "overview": "نظرة عامة",
     "accounts": "الحسابات",
     "assignments": "الإسناد",
@@ -1294,5 +1386,23 @@
     "usage": "{{used}} / {{max}} متدرّب مُستخدَم",
     "limitReached": "تم بلوغ الحد الأقصى للمتدربين",
     "limitBody": "لقد وصلت إلى حد خطتك البالغ {{max}} متدرّب. قم بالترقية لإضافة المزيد."
+  },
+  "coachPlan": {
+    "title": "خطتي",
+    "tier": "الخطة",
+    "status": "الحالة",
+    "clientsUsed": "العملاء المستخدمون",
+    "endDate": "التجديد / الانتهاء",
+    "requestUpgrade": "طلب ترقية",
+    "desiredTier": "الخطة المطلوبة",
+    "reason": "أخبرنا بما تحتاجه (عملاء أكثر، فئة أعلى…)",
+    "submit": "إرسال الطلب",
+    "pending": "الطلب قيد المراجعة",
+    "cancelRequest": "إلغاء الطلب",
+    "rejected": "مرفوض",
+    "current": "الحالية",
+    "accepted": "تمت الموافقة على طلب الترقية.",
+    "history": "سجلّ الخطة",
+    "hist": { "tier": "تغيّرت الخطة", "maxClients": "حد العملاء", "status": "الحالة", "endsAt": "تاريخ الانتهاء", "requested": "تم الطلب", "request": { "accepted": "تمت الموافقة على الطلب", "rejected": "رُفض الطلب" } }
   }
 }

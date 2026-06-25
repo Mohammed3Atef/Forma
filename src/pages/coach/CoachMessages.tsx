@@ -8,6 +8,8 @@ import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { MessageThread } from '@/components/MessageThread';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
@@ -47,6 +49,7 @@ export function CoachMessages() {
     return [...clientList].sort((a, b) => (m[b.id]?.last?.createdAt ?? 0) - (m[a.id]?.last?.createdAt ?? 0));
   }, [clientList, metas.data]);
   const selectedClient = list.find((c) => c.id === selectedId) ?? null;
+  const pg = usePagination(list, 30);
 
   return (
     <>
@@ -92,11 +95,14 @@ export function CoachMessages() {
       ) : list.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
       ) : (
-        <div className="card divide-y divide-line-soft">
-          {list.map((c) => (
-            <ThreadRow key={c.id} client={c} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
-          ))}
-        </div>
+        <>
+          <div className="card divide-y divide-line-soft">
+            {pg.pageItems.map((c) => (
+              <ThreadRow key={c.id} client={c} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
+            ))}
+          </div>
+          <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+        </>
       )}
 
       <Sheet open={broadcasting} onClose={() => setBroadcasting(false)} title={t('messages.broadcast')}>

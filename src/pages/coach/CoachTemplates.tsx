@@ -6,11 +6,20 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { DetailPanel } from '@/components/ui/DetailPanel';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { Pagination } from '@/components/ui/Pagination';
+import { BulkActionBar } from '@/components/ui/BulkActionBar';
+import { RowCheckbox } from '@/components/ui/RowCheckbox';
+import { LoadStarterLibraryButton } from '@/pages/coach/LoadStarterLibraryButton';
+import { usePagination } from '@/hooks/usePagination';
+import { useSelection } from '@/hooks/useSelection';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
   assignWorkoutTemplate,
+  bulkDeleteWorkoutTemplates,
   deleteWorkoutTemplate,
   duplicateWorkoutTemplate,
   listWorkoutTemplates,
@@ -47,6 +56,17 @@ export function CoachTemplates() {
   );
   const selected = filtered.find((tpl) => tpl.id === selectedId) ?? null;
 
+  const sel = useSelection();
+  const pg = usePagination(filtered, 24, goalFilter);
+  const bulkDel = useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteWorkoutTemplates(coachId, ids),
+    onSuccess: () => { sel.clear(); invalidate(); },
+  });
+  const runBulkDelete = async () => {
+    if (sel.count === 0) return;
+    if (await confirmDialog({ title: t('common.delete'), message: t('common.bulk.confirmDelete', { n: sel.count }), danger: true })) bulkDel.mutate(sel.ids);
+  };
+
   return (
     <>
       <TopBar
@@ -61,7 +81,9 @@ export function CoachTemplates() {
       />
 
       {templates.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="cards" count={4} />
+      ) : (templates.data?.length ?? 0) === 0 ? (
+        <EmptyState icon="list" tone="brand" title={t('starter.emptyTitle')} message={t('starter.emptyHint')} action={<LoadStarterLibraryButton />} />
       ) : isDesktop ? (
         /* Desktop grid + preview */
         <>
@@ -75,19 +97,21 @@ export function CoachTemplates() {
           <div className="flex gap-5">
             <div className="min-w-0 flex-1">
               <div data-testid="coach-desktop-templates" className="grid gap-3 sm:grid-cols-2">
-                {filtered.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    data-testid="template-card"
-                    onClick={() => setSelectedId(tpl.id)}
-                    className={`card-tap text-start ${selectedId === tpl.id ? 'ring-1 ring-brand/60' : ''}`}
-                  >
-                    <div className="truncate font-medium">{tpl.name || t('workoutTemplate.untitled')}</div>
-                    <div className="mt-1 font-mono text-[10.5px] uppercase text-earth-subtle">
-                      {t(`workoutTemplate.goals.${tpl.goal}`)} · {t(`workoutTemplate.splits.${tpl.splitType}`)} · {t('coachEditor.dayCount', { n: tpl.days.length })}
-                    </div>
-                  </button>
+                {pg.pageItems.map((tpl) => (
+                  <div key={tpl.id} className={`relative rounded-xl ${sel.has(tpl.id) ? 'ring-1 ring-brand/60' : ''}`}>
+                    <span className="absolute end-2 top-2 z-10"><RowCheckbox checked={sel.has(tpl.id)} onToggle={() => sel.toggle(tpl.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
+                    <button
+                      type="button"
+                      data-testid="template-card"
+                      onClick={() => setSelectedId(tpl.id)}
+                      className={`card-tap w-full text-start ${selectedId === tpl.id ? 'ring-1 ring-brand/60' : ''}`}
+                    >
+                      <div className="truncate pe-8 font-medium">{tpl.name || t('workoutTemplate.untitled')}</div>
+                      <div className="mt-1 font-mono text-[10.5px] uppercase text-earth-subtle">
+                        {t(`workoutTemplate.goals.${tpl.goal}`)} · {t(`workoutTemplate.splits.${tpl.splitType}`)} · {t('coachEditor.dayCount', { n: tpl.days.length })}
+                      </div>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -127,9 +151,10 @@ export function CoachTemplates() {
         <div className="card py-10 text-center text-sm text-earth-muted">{t('workoutTemplate.empty')}</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((tpl) => (
-            <div key={tpl.id} className="card" data-testid="template-card">
-              <div className="flex items-start justify-between gap-3">
+          {pg.pageItems.map((tpl) => (
+            <div key={tpl.id} className={`card ${sel.has(tpl.id) ? 'ring-1 ring-brand/40' : ''}`} data-testid="template-card">
+              <div className="flex items-start gap-3">
+                <span className="pt-0.5"><RowCheckbox checked={sel.has(tpl.id)} onToggle={() => sel.toggle(tpl.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
                 <button type="button" className="min-w-0 flex-1 text-start" onClick={() => navigate(`/coach/templates/${tpl.id}`)}>
                   <div className="truncate font-medium">{tpl.name || t('workoutTemplate.untitled')}</div>
                   <div className="font-mono text-[10.5px] uppercase text-earth-subtle">
@@ -151,6 +176,15 @@ export function CoachTemplates() {
             </div>
           ))}
         </div>
+      )}
+
+      {(templates.data?.length ?? 0) > 0 && (
+        <>
+          <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+          <BulkActionBar count={sel.count} onClear={sel.clear}>
+            <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
+          </BulkActionBar>
+        </>
       )}
 
       <Sheet open={!!assigning} onClose={() => setAssigning(null)} title={t('workoutTemplate.assign')}>

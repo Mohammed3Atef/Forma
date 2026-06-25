@@ -14,18 +14,20 @@ const config: Config = {
     extend: {
       colors: {
         black: '#000000',
-        ink: '#0a0a0a',
-        // App surfaces
+        ink: '#0B0C0F',
+        // App surfaces — layered premium charcoal (depth: bg → sunken → card → raised → hover)
         surface: {
-          DEFAULT: '#000000', // primary app surface (black)
-          card: '#111111', // panel — cards on black
-          raised: '#161616', // panel-2 — inputs, inner tiles, steppers
+          DEFAULT: '#0B0C0F', // primary app background — deep charcoal
+          sunken: '#111318', // nav rails / secondary panels (recessed)
+          card: '#15171C', // cards
+          raised: '#1B1F26', // raised card — inputs, inner tiles, steppers
+          hover: '#222832', // interactive hover surface
         },
         panel: {
-          DEFAULT: '#111111',
-          soft: '#161616',
+          DEFAULT: '#15171C',
+          soft: '#1B1F26',
         },
-        // Brand accent — copper / earth-clay
+        // Brand accent — copper / earth-clay (signature warmth on a cool charcoal base)
         brand: {
           DEFAULT: '#AE7E56', // copper — signature mark
           dark: '#946640',
@@ -36,15 +38,15 @@ const config: Config = {
         sienna: '#BF6E4E',
         gold: '#D4A46A',
         accent: '#C69975',
-        // Warm neutrals (text on black)
+        // Cool neutrals (premium SaaS greys on charcoal)
         earth: {
-          DEFAULT: '#E6E2DC',
-          muted: 'rgba(230,226,220,0.62)',
-          subtle: 'rgba(230,226,220,0.40)',
+          DEFAULT: '#F5F5F5', // primary text
+          muted: '#9CA3AF', // secondary text
+          subtle: '#6B7280', // tertiary text
         },
         line: {
-          DEFAULT: 'rgba(230,226,220,0.12)',
-          soft: 'rgba(230,226,220,0.07)',
+          DEFAULT: '#2E3642', // borders (solid, defined on charcoal)
+          soft: '#20262E', // subtle dividers
         },
         success: {
           DEFAULT: '#2E5D3C', // dark muted green — completed set / "done"
@@ -52,19 +54,25 @@ const config: Config = {
         },
         danger: '#E08B6F',
         warn: '#D4A46A',
-        // Warm-shifted slate scale (overrides Tailwind default cool slate)
+        // Admin "control center" system accent (cool indigo) — used sparingly,
+        // copper remains the brand/primary action colour everywhere.
+        system: {
+          DEFAULT: '#6E7BF2',
+          soft: 'rgba(110,123,242,0.14)',
+        },
+        // Cool slate scale (overrides Tailwind default; dark anchors match surfaces)
         slate: {
-          50: '#faf9f7',
-          100: '#f3f1ed',
-          200: '#e6e2dc',
-          300: '#cbc6bc',
-          400: '#9b968c',
-          500: '#736f67',
-          600: '#2c2c2a',
-          700: '#1d1d1b',
-          800: '#161616',
-          900: '#111111',
-          950: '#000000',
+          50: '#f8fafc',
+          100: '#f1f3f6',
+          200: '#e6e9ee',
+          300: '#cbd1d9',
+          400: '#9CA3AF',
+          500: '#6B7280',
+          600: '#2E3642',
+          700: '#222832',
+          800: '#1B1F26',
+          900: '#15171C',
+          950: '#0B0C0F',
         },
       },
       fontFamily: {
@@ -83,7 +91,8 @@ const config: Config = {
         sheet: '26px',
       },
       boxShadow: {
-        card: '0 16px 48px rgba(0,0,0,0.3)',
+        card: '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.32)',
+        elevated: '0 4px 12px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.45)',
         featured: '0 4px 24px rgba(174,126,86,0.15)',
         glow: '0 8px 28px rgba(174,126,86,0.45)',
         deep: '0 16px 48px rgba(0,0,0,0.3)',

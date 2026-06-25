@@ -70,6 +70,23 @@ export async function setAccountStatus(target: UserRecord, status: AccountStatus
   });
 }
 
+/** Outcome of a bulk operation: how many docs succeeded vs. failed. */
+export interface BulkResult {
+  ok: number;
+  failed: number;
+}
+
+/**
+ * Apply a status to many accounts. Each write is independent (one audit entry
+ * per account); a failure on one never aborts the rest. Returns a success/fail
+ * tally so the UI can surface partial failures.
+ */
+export async function bulkSetAccountStatus(targets: UserRecord[], status: AccountStatus): Promise<BulkResult> {
+  const results = await Promise.allSettled(targets.map((tgt) => setAccountStatus(tgt, status)));
+  const failed = results.filter((r) => r.status === 'rejected').length;
+  return { ok: results.length - failed, failed };
+}
+
 /**
  * Hard-deletes the identity doc at `users/{uid}` (super-admin only, per rules).
  * NOTE: this is a client-side SPA — it cannot remove the Firebase Auth user or

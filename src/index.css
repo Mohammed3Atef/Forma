@@ -47,13 +47,33 @@ input[type='number'] {
   -moz-appearance: textfield;
 }
 
+/* Visible keyboard focus across every interactive surface (a11y). Pointer
+   clicks stay ring-free via :focus-visible; only keyboard nav shows the ring. */
+:focus-visible {
+  outline: 2px solid theme('colors.brand.DEFAULT');
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+/* Components manage their own focus ring where the default would clip. */
+.no-focus-ring:focus-visible {
+  outline: none;
+}
+
 @layer components {
   /* ---- Surfaces ---- */
   .card {
-    @apply rounded-xl2 border border-line bg-surface-card p-5;
+    @apply rounded-xl2 border border-line bg-surface-card p-5 shadow-card;
+  }
+  /* Higher-elevation surface (popovers, command palette, raised panels). */
+  .card-elevated {
+    @apply rounded-xl2 border border-line bg-surface-raised p-5 shadow-elevated;
   }
   .card-tap {
     @apply card transition-all duration-300 ease-card active:scale-[0.985] active:border-line;
+  }
+  /* Interactive card: subtle lift + brighter surface on hover (premium feel). */
+  .card-hover {
+    @apply transition-all duration-200 ease-card hover:-translate-y-0.5 hover:bg-surface-hover hover:shadow-elevated;
   }
 
   /* ---- Eyebrow / labels (DM Mono — the signature) ---- */

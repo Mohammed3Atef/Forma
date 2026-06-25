@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import { fetchByRole } from '@/services/platform/accountsApi';
@@ -35,6 +37,7 @@ export function AdminAssignments() {
     if (!q) return list;
     return list.filter((c) => (c.displayName || c.email).toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
   }, [clients.data, search]);
+  const pg = usePagination(filtered, 25, search);
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['usersByRole', 'client'] });
@@ -108,20 +111,23 @@ export function AdminAssignments() {
       ) : filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('admin.noClients')}</p>
       ) : (
-        <div className="card divide-y divide-line-soft">
-          {filtered.map((c) => (
-            <button key={c.id} type="button" data-testid="assign-client-row" data-client-id={c.id} data-assigned-coach={c.assignedCoachId ?? ''} onClick={() => setSelected(c)} className="row w-full text-start">
-              <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{c.displayName || c.email}</span>
-                <span className="block truncate text-[13px] text-earth-muted">
-                  {c.assignedCoachId ? `${t('admin.assignedTo')} ${coachName.get(c.assignedCoachId) ?? c.assignedCoachId}` : t('admin.unassigned')}
+        <>
+          <div className="card divide-y divide-line-soft">
+            {pg.pageItems.map((c) => (
+              <button key={c.id} type="button" data-testid="assign-client-row" data-client-id={c.id} data-assigned-coach={c.assignedCoachId ?? ''} onClick={() => setSelected(c)} className="row w-full text-start">
+                <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{c.displayName || c.email}</span>
+                  <span className="block truncate text-[13px] text-earth-muted">
+                    {c.assignedCoachId ? `${t('admin.assignedTo')} ${coachName.get(c.assignedCoachId) ?? c.assignedCoachId}` : t('admin.unassigned')}
+                  </span>
                 </span>
-              </span>
-              <Icon name="chevron" size={18} />
-            </button>
-          ))}
-        </div>
+                <Icon name="chevron" size={18} />
+              </button>
+            ))}
+          </div>
+          <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+        </>
       )}
 
       <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.displayName || selected?.email}>

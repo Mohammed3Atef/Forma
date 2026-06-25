@@ -18,7 +18,7 @@ export function LandingHeader() {
   const next: Locale = i18n.language === 'ar' ? 'en' : 'ar';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line/60 bg-black/70 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5 sm:px-6 lg:px-8">
         <button
           type="button"

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
+import { CommandHost } from '@/components/CommandHost';
 import { COACH_NAV, COACH_SIDEBAR } from '@/config/nav';
 import { useIsTabletUp } from '@/hooks/useMediaQuery';
 import { queryClient } from '@/services/platform/queryClient';
@@ -15,6 +16,7 @@ import { CoachCheckIns } from '@/pages/coach/CoachCheckIns';
 import { CoachClientAssessment } from '@/pages/coach/CoachClientAssessment';
 import { CoachAssessments } from '@/pages/coach/CoachAssessments';
 import { CoachReports } from '@/pages/coach/CoachReports';
+import { CoachPlan } from '@/pages/coach/CoachPlan';
 import { CoachWorkoutEditor } from '@/pages/coach/CoachWorkoutEditor';
 import { CoachNutritionEditor } from '@/pages/coach/CoachNutritionEditor';
 import { CoachCardioEditor } from '@/pages/coach/CoachCardioEditor';
@@ -52,6 +54,7 @@ export function CoachApp() {
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
         <Route path="/coach/assessments" element={shell(<CoachAssessments />)} />
         <Route path="/coach/reports" element={shell(<CoachReports />)} />
+        <Route path="/coach/plan" element={shell(<CoachPlan />)} />
         <Route path="/coach/client/:clientId" element={shell(<CoachClientDetail />)} />
         <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
         <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
@@ -72,6 +75,7 @@ export function CoachApp() {
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
         <Route path="*" element={<Navigate to="/coach" replace />} />
       </Routes>
+      <CommandHost />
     </QueryClientProvider>
   );
 }

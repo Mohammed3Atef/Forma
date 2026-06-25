@@ -190,11 +190,11 @@ export function PlanBuilder({
                     </span>
                   </button>
                   <div className="flex shrink-0 items-center">
-                    <IconBtn name="arrowUp" disabled={i === 0} onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, -1))} />
-                    <IconBtn name="arrowUp" rotate onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, 1))} disabled={i === section.exerciseIds.length - 1} />
-                    <IconBtn name="list" onClick={() => setMoving({ dayId: day.id, sectionId: section.id, exId })} />
-                    <IconBtn name="plus" onClick={() => duplicateExercise(day.id, section.id, exId)} />
-                    <IconBtn name="minus" danger onClick={() => removeExercise(day.id, section.id, exId)} />
+                    <IconBtn name="arrowUp" label={t('common.moveUp')} disabled={i === 0} onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, -1))} />
+                    <IconBtn name="arrowUp" rotate label={t('common.moveDown')} onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, 1))} disabled={i === section.exerciseIds.length - 1} />
+                    <IconBtn name="list" label={t('common.moveTo')} onClick={() => setMoving({ dayId: day.id, sectionId: section.id, exId })} />
+                    <IconBtn name="plus" label={t('common.duplicate')} onClick={() => duplicateExercise(day.id, section.id, exId)} />
+                    <IconBtn name="minus" danger label={t('common.delete')} onClick={() => removeExercise(day.id, section.id, exId)} />
                   </div>
                 </div>
               );
@@ -255,10 +255,10 @@ export function PlanBuilder({
                   <span className="block truncate font-medium">{s.title || t(`coachEditor.sectionKinds.${s.kind}`)}</span>
                   <span className="block text-[12px] text-earth-subtle">{t('coachEditor.exerciseCount', { n: s.exerciseIds.length })}</span>
                 </button>
-                <IconBtn name="arrowUp" disabled={i === 0} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, -1) }))} />
-                <IconBtn name="arrowUp" rotate disabled={i === (day.sections ?? []).length - 1} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, 1) }))} />
-                <IconBtn name="plus" onClick={() => duplicateSection(day.id, s.id)} />
-                <IconBtn name="minus" danger onClick={() => removeSection(day.id, s.id)} />
+                <IconBtn name="arrowUp" label={t('common.moveUp')} disabled={i === 0} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, -1) }))} />
+                <IconBtn name="arrowUp" rotate label={t('common.moveDown')} disabled={i === (day.sections ?? []).length - 1} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, 1) }))} />
+                <IconBtn name="plus" label={t('common.duplicate')} onClick={() => duplicateSection(day.id, s.id)} />
+                <IconBtn name="minus" danger label={t('common.delete')} onClick={() => removeSection(day.id, s.id)} />
                 <Icon name="chevron" size={16} className="text-earth-subtle" />
               </div>
             ))}
@@ -299,9 +299,9 @@ export function PlanBuilder({
   );
 }
 
-function IconBtn({ name, onClick, disabled, danger, rotate }: { name: 'arrowUp' | 'plus' | 'minus' | 'list'; onClick: () => void; disabled?: boolean; danger?: boolean; rotate?: boolean }) {
+function IconBtn({ name, label, onClick, disabled, danger, rotate }: { name: 'arrowUp' | 'plus' | 'minus' | 'list'; label: string; onClick: () => void; disabled?: boolean; danger?: boolean; rotate?: boolean }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className={`flex h-9 w-9 items-center justify-center disabled:opacity-25 ${danger ? 'text-danger' : 'text-earth-muted'}`}>
+    <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-surface-hover disabled:opacity-25 ${danger ? 'text-danger' : 'text-earth-muted'}`}>
       <Icon name={name} size={17} className={rotate ? 'rotate-180' : ''} />
     </button>
   );

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSession } from '@/services/auth/sessionStore';
 import { Icon } from './Icon';
 import { NavMenuSheet } from './NavMenuSheet';
 import { NotificationBell } from './NotificationBell';
@@ -17,11 +16,12 @@ import { NotificationBell } from './NotificationBell';
  */
 export function BrandBar() {
   const { t } = useTranslation();
-  const role = useSession((s) => s.account?.role);
-  // Client + local-only get the overflow menu; coach/admin keep their full bottom nav.
-  const showMenu = !role || role === 'client';
-  // Notifications bell for the client + coach experiences.
-  const showBell = !role || role === 'client' || role === 'coach';
+  // Every role gets the overflow menu so the full destination list (the tabs the
+  // lean bottom bar can't fit) is reachable on mobile.
+  const showMenu = true;
+  // Every role gets the notifications bell — clients/coaches see their own feed,
+  // admins/super-admins see outstanding coach plan-change requests.
+  const showBell = true;
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

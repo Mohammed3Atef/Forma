@@ -15,6 +15,20 @@ const ROLES: Role[] = ['super_admin', 'admin', 'coach', 'client'];
 
 export function AdminGovernance() {
   const { t } = useTranslation();
+  return (
+    <>
+      <TopBar testId="admin-governance" title={t('admin.governance')} eyebrow={t('platform.superAdmin')} />
+      <GovernanceSections />
+    </>
+  );
+}
+
+/**
+ * Feature flags + role/permission reference + audit logs. Rendered both by the
+ * standalone /admin/governance route (above) and the dashboard hub's System tab.
+ */
+export function GovernanceSections() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const canFlags = useCan('flags.manage');
   const canAudit = useCan('audit.read');
@@ -38,8 +52,6 @@ export function AdminGovernance() {
 
   return (
     <>
-      <TopBar testId="admin-governance" title={t('admin.governance')} eyebrow={t('platform.superAdmin')} />
-
       {/* Feature flags */}
       <div className="mb-2 flex items-center justify-between">
         <h2 className="h2">{t('admin.featureFlags')}</h2>

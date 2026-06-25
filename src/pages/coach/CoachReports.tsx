@@ -7,6 +7,8 @@ import { Avatar } from '@/components/Avatar';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
 import { shortDate } from '@/lib/utils';
@@ -34,6 +36,7 @@ export function CoachReports() {
     () => [...(d?.clients ?? [])].sort((a, b) => b.workouts7d - a.workouts7d),
     [d?.clients],
   );
+  const pg = usePagination(ranking, 25);
 
   const columns: Column<ClientDashboardRow>[] = [
     {
@@ -71,7 +74,7 @@ export function CoachReports() {
             <div className="hidden lg:block">
               <DataTable
                 columns={columns}
-                rows={ranking}
+                rows={pg.pageItems}
                 rowKey={(r) => r.client.id}
                 onRowClick={(r) => navigate(`/coach/client/${r.client.id}`)}
                 empty={t('coachDash.noClients')}
@@ -82,7 +85,7 @@ export function CoachReports() {
               {ranking.length === 0 ? (
                 <p className="py-8 text-center text-sm text-earth-muted">{t('coachDash.noClients')}</p>
               ) : (
-                ranking.map((r) => (
+                pg.pageItems.map((r) => (
                   <button key={r.client.id} type="button" onClick={() => navigate(`/coach/client/${r.client.id}`)} className="row w-full text-start">
                     <Avatar name={r.client.displayName || r.client.email} photoUrl={r.client.photoUrl} />
                     <span className="min-w-0 flex-1 truncate font-medium">{r.client.displayName || r.client.email}</span>
@@ -94,6 +97,7 @@ export function CoachReports() {
                 ))
               )}
             </div>
+            <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
           </section>
         </div>
       )}

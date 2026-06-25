@@ -20,7 +20,7 @@ export function AccountPending() {
   };
 
   return (
-    <div data-testid="account-pending" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black px-8 text-center">
+    <div data-testid="account-pending" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-surface px-8 text-center">
       <span className="text-brand">
         <Icon name="timer" size={40} />
       </span>

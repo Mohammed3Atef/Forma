@@ -10,7 +10,7 @@ export function LandingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-line/60 bg-black py-12">
+    <footer className="border-t border-line bg-surface-sunken py-12">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 text-center sm:flex-row sm:justify-between sm:px-6 sm:text-start lg:px-8">
         <div>
           <img src="/landing_page/forma-wordmark.png" alt={t('app.name')} className="mx-auto h-12 w-auto sm:mx-0" />

@@ -23,6 +23,8 @@ const ICON: Record<NotificationType, IconName> = {
   checkin_reviewed: 'check',
   message_received: 'info',
   trial_expiring: 'timer',
+  plan_change_requested: 'bolt',
+  plan_decided: 'check',
 };
 
 function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -39,9 +41,15 @@ export function Notifications() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { items, isCoach, loading } = useNotifications();
+  const { items, isCoach, isAdmin, loading } = useNotifications();
 
   const open = async (n: AppNotification) => {
+    // Admin items are pending plan requests (no stored doc, no seen-state): just
+    // deep-link to the coach so the super-admin can review/resolve.
+    if (isAdmin) {
+      navigate(n.route ?? '/admin');
+      return;
+    }
     if (!n.seenAt) {
       await markNotificationSeen(n.clientId, n.id).catch(() => undefined);
       void qc.invalidateQueries({ queryKey: ['notifications'] });
@@ -57,7 +65,7 @@ export function Notifications() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={() => navigate(isCoach ? '/coach' : '/')} />
+      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={() => navigate(isAdmin ? '/admin' : isCoach ? '/coach' : '/')} />
 
       {loading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>

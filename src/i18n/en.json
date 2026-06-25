@@ -107,6 +107,7 @@
     "coachDashboard": "Dashboard",
     "coachAssessments": "Assessments",
     "coachReports": "Reports",
+    "coachPlan": "My Plan",
     "adminOverview": "Overview",
     "adminAccounts": "Accounts",
     "adminAssignments": "Assign",
@@ -140,7 +141,49 @@
     "showMore": "Show more",
     "confirmTitle": "Are you sure?",
     "confirmDeleteName": "Delete {{name}}? This can't be undone.",
-    "confirmDeleteGeneric": "Delete this? This can't be undone."
+    "confirmDeleteGeneric": "Delete this? This can't be undone.",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "errorGeneric": "Something went wrong.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "duplicate": "Duplicate",
+    "moveTo": "Move to section",
+    "selectAll": "Select all",
+    "pagination": {
+      "range": "{{from}}–{{to}} of {{total}}",
+      "page": "Page {{page}} / {{total}}",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "bulk": {
+      "selected": "{{n}} selected",
+      "selectRow": "Select row",
+      "clear": "Clear",
+      "delete": "Delete",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "disable": "Disable",
+      "confirmDelete": "Delete {{n}} selected item(s)? This can't be undone.",
+      "confirmStatus": "Apply this status to {{n}} account(s)?",
+      "done": "{{ok}} updated",
+      "partial": "{{ok}} updated · {{failed}} failed"
+    }
+  },
+  "search": {
+    "open": "Search",
+    "placeholder": "Search…",
+    "commands": "Commands",
+    "noResults": "No results"
+  },
+  "starter": {
+    "load": "Load starter library",
+    "loading": "Loading…",
+    "confirm": "This adds a full starter set of exercises, foods, food groups and workout templates — all editable or removable later. Continue?",
+    "loadedTitle": "Starter library added",
+    "loaded": "Added {{exercises}} exercises, {{foods}} foods, {{groups}} food groups and {{templates}} templates.",
+    "emptyTitle": "Start with a ready-made library",
+    "emptyHint": "Load 100+ exercises, common foods, food-alternative groups and starter templates — then make them your own."
   },
   "imageViewer": { "close": "Close" },
   "coachInfo": { "yourCoach": "Your coach", "message": "Message", "callCoach": "Call" },
@@ -749,6 +792,8 @@
     }
   },
   "coachLib": {
+    "loadStarter": "Load starter library",
+    "loadStarterConfirm": "Add 90+ ready-made exercises (muscles, equipment & instructions) to your library? You can edit or delete any of them.",
     "title": "Library",
     "tabs": { "exercises": "Exercises", "foods": "Foods", "groups": "Food groups", "supplements": "Supplements" },
     "exercise": "Exercise",
@@ -823,6 +868,23 @@
     "state": { "trial": "Trial", "active": "Active", "expired": "Expired", "suspended": "Suspended", "none": "No plan" }
   },
   "coachDash": {
+    "tabs": { "overview": "Overview", "analytics": "Analytics", "clients": "Clients", "engagement": "Engagement", "content": "Content", "reports": "Reports" },
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "renewals": "Renewals (7d)",
+    "today": "Today",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "clientGrowth": "New clients",
+    "inactiveWeek": "Inactive this week",
+    "allActive": "Everyone trained this week",
+    "workoutAdherence": "Workout adherence",
+    "assessmentCompletion": "Assessments reviewed",
+    "export": "Export",
+    "exportClients": "Clients CSV",
+    "exportSubscriptions": "Subscriptions CSV",
+    "exportRevenue": "Revenue CSV",
     "revenue": "Revenue (tracked)",
     "monthlyRevenue": "Monthly revenue",
     "expectedRevenue": "Expected revenue",
@@ -1038,7 +1100,9 @@
       "checkin_submitted": "Check-in submitted",
       "checkin_reviewed": "Check-in reviewed",
       "message_received": "New message",
-      "trial_expiring": "Trial ending soon"
+      "trial_expiring": "Trial ending soon",
+      "plan_change_requested": "Coach plan request",
+      "plan_decided": "Plan request reviewed"
     }
   },
   "checkin": {
@@ -1202,6 +1266,34 @@
     "photosSoon": "Upload coming soon"
   },
   "admin": {
+    "controlCenter": "Control center",
+    "tabs": { "overview": "Overview", "coaches": "Coaches", "revenue": "Revenue", "subscriptions": "Subscriptions", "system": "System" },
+    "trackedRevenue": "Tracked revenue",
+    "perMonth": "/mo",
+    "recentCoaches": "Recently registered",
+    "expiringTrials": "Expiring trials",
+    "noExpiring": "No trials expiring in the next 7 days.",
+    "planUsage": "Plan & client usage",
+    "revenueByTier": "Revenue by plan",
+    "revenueByCoach": "Top coaches by clients",
+    "activePaidCoaches": "Active paid coaches",
+    "pricingNote": "Tier prices are tracking placeholders — Forma has no payment gateway.",
+    "securityOverview": "Security & permissions",
+    "planRequests": "Plan requests",
+    "noRequests": "No pending plan requests.",
+    "requestReason": "Reason",
+    "requestedTier": "Requested",
+    "endDate": "End date",
+    "started": "Started",
+    "setEndDate": "Set end date",
+    "clearEndDate": "Clear",
+    "approveRequest": "Approve",
+    "rejectRequest": "Reject",
+    "approveApplies": "Approving applies the requested plan automatically.",
+    "requestsPending": "{{n}} plan request(s) awaiting your review",
+    "reviewRequests": "Review",
+    "requestFrom": "Plan request",
+    "planHistory": "Plan history",
     "overview": "Overview",
     "accounts": "Accounts",
     "assignments": "Assignments",
@@ -1294,5 +1386,23 @@
     "usage": "{{used}} / {{max}} clients used",
     "limitReached": "Client limit reached",
     "limitBody": "You've reached your plan limit of {{max}} clients. Upgrade to add more."
+  },
+  "coachPlan": {
+    "title": "My plan",
+    "tier": "Plan",
+    "status": "Status",
+    "clientsUsed": "Clients used",
+    "endDate": "Renews / ends",
+    "requestUpgrade": "Request upgrade",
+    "desiredTier": "Desired plan",
+    "reason": "Tell us what you need (more clients, a higher tier…)",
+    "submit": "Send request",
+    "pending": "Request pending review",
+    "cancelRequest": "Cancel request",
+    "rejected": "Declined",
+    "current": "Current",
+    "accepted": "Your upgrade request was approved.",
+    "history": "Plan history",
+    "hist": { "tier": "Plan changed", "maxClients": "Client limit", "status": "Status", "endsAt": "End date", "requested": "Requested", "request": { "accepted": "Request approved", "rejected": "Request declined" } }
   }
 }

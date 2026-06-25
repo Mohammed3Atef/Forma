@@ -2,13 +2,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from './Sheet';
 import { Icon } from './Icon';
-import { CLIENT_MENU } from '@/config/nav';
+import { useSession } from '@/services/auth/sessionStore';
+import { ADMIN_NAV, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_NAV } from '@/config/nav';
 
-/** Full-navigation sheet for the client — every destination, incl. the ones not in the bottom bar. */
+/**
+ * Full-navigation sheet — every destination for the current role, including the
+ * ones not in the (lean) bottom bar. Client gets CLIENT_MENU; coach gets the
+ * full COACH_SIDEBAR; admin/super-admin get their nav so mobile can reach all tabs.
+ */
 export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const role = useSession((s) => s.account?.role);
+  const items = role === 'coach' ? COACH_SIDEBAR : role === 'super_admin' ? SUPER_ADMIN_NAV : role === 'admin' ? ADMIN_NAV : CLIENT_MENU;
 
   const isActive = (to: string, end?: boolean) => (end ? pathname === to : to !== '/' && pathname.startsWith(to));
 
@@ -20,7 +27,7 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Sheet open={open} onClose={onClose} title={t('nav.menu')}>
       <div className="grid grid-cols-2 gap-2.5" data-testid="nav-menu">
-        {CLIENT_MENU.map((item) => {
+        {items.map((item) => {
           const active = isActive(item.to, item.end);
           return (
             <button
