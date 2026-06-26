@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -35,19 +35,22 @@ export function CoachWorkoutTemplateEditor() {
     enabled: !isNew && !!coachId,
   });
   const [tpl, setTpl] = useState<WorkoutTemplate | null>(null);
-  const [dirty, setDirty] = useState(false);
+  // Baseline = the last SAVED template (JSON). Dirty is COMPUTED by comparing the
+  // current draft to it — so a leftover draft that matches the saved template is
+  // NOT "dirty" (fixes the false "unsaved changes" prompt), while a draft with
+  // real edits still warns on exit.
+  const baselineRef = useRef<string>('');
 
   useEffect(() => {
     if (tpl !== null || (!isNew && query.isLoading)) return;
     void draftStore.getItem<WorkoutTemplate>(draftKey).then((draft) => {
-      if (draft) {
-        setTpl(draft);
-        setDirty(true);
-      } else {
-        setTpl(isNew ? blankTemplate(coachId) : query.data ?? blankTemplate(coachId));
-      }
+      const base = isNew ? blankTemplate(coachId) : query.data ?? blankTemplate(coachId);
+      baselineRef.current = JSON.stringify(base);
+      setTpl(draft ?? base);
     });
   }, [isNew, query.isLoading, query.data, tpl, draftKey, coachId]);
+
+  const dirty = tpl !== null && JSON.stringify(tpl) !== baselineRef.current;
 
   useEffect(() => {
     if (tpl && dirty) void draftStore.setItem(draftKey, tpl);
@@ -57,7 +60,7 @@ export function CoachWorkoutTemplateEditor() {
     mutationFn: () => saveWorkoutTemplate(tpl!),
     onSuccess: async () => {
       await draftStore.removeItem(draftKey);
-      setDirty(false);
+      baselineRef.current = JSON.stringify(tpl);
       void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
       navigate('/coach/templates');
     },
@@ -65,15 +68,13 @@ export function CoachWorkoutTemplateEditor() {
 
   const exit = async () => {
     if (dirty && !(await confirmDialog({ title: t('coachEditor.unsavedTitle'), message: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave'), danger: true }))) return;
+    await draftStore.removeItem(draftKey); // never leave a stale/discarded draft behind
     navigate('/coach/templates');
   };
 
   if (!tpl) return null;
 
-  const patch = (p: Partial<WorkoutTemplate>) => {
-    setTpl((cur) => (cur ? { ...cur, ...p } : cur));
-    setDirty(true);
-  };
+  const patch = (p: Partial<WorkoutTemplate>) => setTpl((cur) => (cur ? { ...cur, ...p } : cur));
   const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => patch({ days, exercises });
 
   const header = (
@@ -117,7 +118,7 @@ export function CoachWorkoutTemplateEditor() {
           </button>
         }
       />
-      <div data-testid="coach-desktop-plan-builder" className="lg:mx-auto lg:max-w-3xl">
+      <div data-testid="coach-desktop-plan-builder" className="mx-auto max-w-5xl">
         <PlanBuilder days={tpl.days} exercises={tpl.exercises} onChange={change} coachId={coachId} header={header} />
       </div>
     </>

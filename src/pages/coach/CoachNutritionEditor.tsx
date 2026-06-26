@@ -7,7 +7,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
-import { uid } from '@/lib/utils';
+import { parseDecimal, uid } from '@/lib/utils';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
 import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
 import { confirmDialog } from '@/stores/dialogStore';
@@ -41,7 +41,7 @@ interface FoodForm {
   allowCustom: boolean;
 }
 const blankFood = (): FoodForm => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '', groupId: null, allowCustom: false });
-const num = (s: string) => Math.max(0, Number(s) || 0);
+const num = (s: string) => Math.max(0, parseDecimal(s)); // decimals allowed (macros, water, targets)
 /** Strip a library food down to a plain plan FoodItem (no undefined keys). */
 const cleanFood = (f: FoodItem): FoodItem => ({
   id: f.id || uid('food'),
@@ -177,12 +177,12 @@ export function CoachNutritionEditor() {
         {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
           <div key={k}>
             <label className="label">{t(`nutrition.${k}`)}</label>
-            <input className="input" data-testid={`nutrition-target-${k}`} inputMode="numeric" value={plan.targets[k] || ''} onChange={(e) => setTarget(k, e.target.value)} />
+            <input className="input" data-testid={`nutrition-target-${k}`} inputMode="decimal" value={plan.targets[k] || ''} onChange={(e) => setTarget(k, e.target.value)} />
           </div>
         ))}
         <div className="col-span-2">
           <label className="label">{t('coachEditor.waterTargetMl')}</label>
-          <input className="input" data-testid="nutrition-water-target" inputMode="numeric" value={plan.waterTargetMl || ''} onChange={(e) => setPlan({ ...plan, waterTargetMl: num(e.target.value) })} />
+          <input className="input" data-testid="nutrition-water-target" inputMode="decimal" value={plan.waterTargetMl || ''} onChange={(e) => setPlan({ ...plan, waterTargetMl: num(e.target.value) })} />
         </div>
       </div>
 
@@ -329,7 +329,7 @@ export function CoachNutritionEditor() {
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
                 <div key={k}>
                   <label className="label">{t(`nutrition.${k}`)}</label>
-                  <input className="input" data-testid={`food-${k}`} inputMode="numeric" value={editing.form[k]} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, [k]: e.target.value } })} />
+                  <input className="input" data-testid={`food-${k}`} inputMode="decimal" value={editing.form[k]} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, [k]: e.target.value } })} />
                 </div>
               ))}
             </div>

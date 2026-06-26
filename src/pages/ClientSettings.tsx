@@ -15,7 +15,7 @@ import { clearAllLocalData, clearDayData } from '@/data/reset';
 import { confirmDialog, alertDialog, confirmDelete } from '@/stores/dialogStore';
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
-import { shortDate } from '@/lib/utils';
+import { parseDecimal, shortDate } from '@/lib/utils';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
@@ -123,7 +123,7 @@ export function ClientSettings() {
         </div>
         <div className="flex items-center justify-between">
           <span>{t('settings.restDefault')}</span>
-          <input className="input h-10 w-24 text-center" inputMode="numeric" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Number(e.target.value) || 0 })} />
+          <input className="input h-10 w-24 text-center" inputMode="decimal" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Math.max(0, parseDecimal(e.target.value)) })} />
         </div>
         <div className="flex items-center justify-between">
           <span>{t('settings.weeklyGoal')}</span>

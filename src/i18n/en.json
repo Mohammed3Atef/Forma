@@ -72,7 +72,8 @@
     "ctaSub": "Save time, stay organised, and deliver better results for every client.",
     "ctaButton": "Get started",
     "footerTagline": "Train. Track. Transform.",
-    "footerRights": "All rights reserved."
+    "footerRights": "All rights reserved.",
+    "contact": "Contact"
   },
   "onboard": {
     "welcome": "Welcome",
@@ -139,6 +140,7 @@
     "next": "Next",
     "continue": "Continue",
     "showMore": "Show more",
+    "back": "Back",
     "confirmTitle": "Are you sure?",
     "confirmDeleteName": "Delete {{name}}? This can't be undone.",
     "confirmDeleteGeneric": "Delete this? This can't be undone.",
@@ -1102,7 +1104,9 @@
       "message_received": "New message",
       "trial_expiring": "Trial ending soon",
       "plan_change_requested": "Coach plan request",
-      "plan_decided": "Plan request reviewed"
+      "plan_decided": "Plan request reviewed",
+      "coach_assigned": "A coach was assigned",
+      "client_released": "Released by your coach"
     }
   },
   "checkin": {
@@ -1404,5 +1408,110 @@
     "accepted": "Your upgrade request was approved.",
     "history": "Plan history",
     "hist": { "tier": "Plan changed", "maxClients": "Client limit", "status": "Status", "endsAt": "End date", "requested": "Requested", "request": { "accepted": "Request approved", "rejected": "Request declined" } }
+  },
+  "existing": {
+    "title": "Add Existing Client",
+    "createNewTitle": "Create New Client",
+    "chooserHint": "Choose how you want to add this client.",
+    "createNew": "Create New Client",
+    "createNewDesc": "For someone without a Forma account yet. Generate an invite link.",
+    "addExisting": "Add Existing Client",
+    "addExistingDesc": "Already has a Forma account. Search by email, phone, or name.",
+    "hint": "Search an existing Forma client by email, phone, or name. We never create a duplicate account.",
+    "searchPlaceholder": "Search by email, phone, or name",
+    "search": "Search",
+    "searchAgain": "Search again",
+    "emptyState": "Enter an email, phone, or name to find an existing client.",
+    "searching": "Searching…",
+    "noAccount": "No Forma account found.",
+    "resultsCount": "{{n}} matching account(s)",
+    "coachedBy": "Coached by {{name}}",
+    "unassigned": "No coach",
+    "currentCoach": "Current coach",
+    "subscription": "Subscription",
+    "joined": "Joined",
+    "alreadyYours": "This client is already yours.",
+    "assignToMe": "Assign to me",
+    "ownedByOther": "Currently coached by {{name}}. Request a transfer or wait until they are released.",
+    "waitUntilReleased": "If the current coach releases them, you can add them straight away."
+  },
+  "release": {
+    "action": "Release client",
+    "title": "Release this client?",
+    "body": "Their Forma account and progress history will stay safe. Another coach can assign them later.",
+    "confirm": "Release",
+    "done": "Client released."
+  },
+  "transferReq": {
+    "request": "Request transfer",
+    "reasonPlaceholder": "Why do you want to coach this client? The current coach and an admin will see this.",
+    "pending": "Transfer requested",
+    "cancel": "Cancel request",
+    "approve": "Approve & release",
+    "reject": "Reject",
+    "incomingTitle": "Transfer requests for your clients",
+    "outgoingTitle": "Your transfer requests",
+    "pendingTitle": "Pending transfer requests",
+    "none": "No transfer requests.",
+    "requestedBy": "{{name}} wants to coach this client",
+    "wantsClient": "{{coach}} → {{client}}",
+    "requestedAgo": "Requested {{date}}",
+    "flagged": "Waiting {{days}}d",
+    "status": {
+      "accepted": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "pending": "Pending"
+    },
+    "approveDone": "Approved — the client is now released.",
+    "rejectDone": "Request rejected."
+  },
+  "transfer": {
+    "title": "Transfer client",
+    "action": "Transfer client",
+    "step": {
+      "coach": "Target coach",
+      "type": "Transfer type",
+      "subscription": "Subscription",
+      "review": "Review"
+    },
+    "pickCoach": "Choose the coach to transfer this client to.",
+    "noCoaches": "No other coaches available.",
+    "typeFresh": "Fresh start",
+    "typeFreshDesc": "Recommended. Archive the current plans and coach content; keep all client progress, photos, measurements and history.",
+    "typeKeep": "Keep current plans",
+    "typeKeepDesc": "Everything carries over to the new coach as-is.",
+    "subKeep": "Keep current subscription",
+    "subNew": "Create a new subscription",
+    "subExpire": "Expire current subscription",
+    "subStatusLabel": "New subscription status",
+    "reviewIntro": "This will move the client to {{coach}}.",
+    "archived": "Archived",
+    "kept": "Kept",
+    "archivedList": "Workout / nutrition / cardio plans, coach notes, messages, check-ins, tasks, notifications",
+    "keptList": "Profile, assessment, all logs, weight, measurements, photos, plan history",
+    "freshStartLocked": "Fresh-start clearing is available to super-admins only.",
+    "confirm": "Transfer client",
+    "next": "Next",
+    "back": "Back",
+    "done": "Client transferred."
+  },
+  "timeline": {
+    "title": "Coaching history",
+    "current": "Current coach",
+    "previous": "Previous coaches",
+    "since": "Since {{date}}",
+    "range": "{{from}} – {{to}}",
+    "reason": {
+      "released": "Released",
+      "transferred": "Transferred",
+      "unassigned": "Unassigned"
+    },
+    "mode": {
+      "fresh_start": "Fresh start",
+      "keep_plans": "Kept plans"
+    },
+    "none": "No coaching history yet.",
+    "unknownCoach": "A coach"
   }
 }

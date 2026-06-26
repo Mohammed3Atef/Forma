@@ -166,8 +166,16 @@ test.describe.serial('Super admin', () => {
     }
     await page.goto('/admin/assignments');
     await page.locator(`[data-testid="assign-client-row"]`, { hasText: clientName }).first().click();
-    await page.locator(`[data-testid="assign-coach-row"][data-coach-id="${coachBId}"]`).click();
-    await page.getByTestId(TID.confirmAccept).click();
+    // An already-assigned client transfers through the 4-step wizard (not a one-tap row).
+    await page.getByTestId(TID.adminOpenTransfer).click();
+    await page.getByTestId(TID.transferWizard).waitFor();
+    await page.locator(`[data-testid="transfer-coach-row"][data-coach-id="${coachBId}"]`).click();
+    await page.getByTestId(TID.transferNext).click(); // → transfer type
+    await page.getByTestId(TID.transferTypeKeep).click(); // keep current plans
+    await page.getByTestId(TID.transferNext).click(); // → subscription
+    await page.getByTestId(TID.transferSubKeep).click(); // keep current subscription
+    await page.getByTestId(TID.transferNext).click(); // → review
+    await page.getByTestId(TID.transferConfirm).click();
 
     await expect.poll(async () => {
       const s = await signInAs('super_admin');

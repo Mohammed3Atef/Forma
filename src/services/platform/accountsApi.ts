@@ -2,14 +2,17 @@ import {
   collection,
   deleteDoc,
   doc,
+  endAt,
   getDoc,
   getDocs,
   limit,
   orderBy,
   query,
   startAfter,
+  startAt,
   updateDoc,
   where,
+  type Query,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
@@ -51,6 +54,35 @@ export async function fetchByRole(role: Role, max = 200): Promise<UserRecord[]> 
   const { db } = ensureFirebase();
   const snap = await getDocs(query(collection(db, USERS), where('role', '==', role), limit(max)));
   return snap.docs.map((d) => d.data() as UserRecord);
+}
+
+/**
+ * Find existing CLIENT accounts by exact email, exact phone, or name prefix
+ * (case-insensitive via `displayNameLower`) — for "Add Existing Client". Runs a
+ * few small single-field queries (all auto-indexed) and merges/dedupes; never
+ * creates anything. Coaches have `users.read`, so the queries are permitted.
+ */
+export async function searchClients(value: string, max = 20): Promise<UserRecord[]> {
+  const { db } = ensureFirebase();
+  const v = value.trim();
+  if (!v) return [];
+  const run = async (q: Query): Promise<UserRecord[]> => (await getDocs(q)).docs.map((d) => d.data() as UserRecord);
+  const lower = v.toLowerCase(); // name prefix: [lower, lower+￿) via the query below
+  const queries: Promise<UserRecord[]>[] = [
+    run(query(collection(db, USERS), where('email', '==', v), limit(max))),
+    run(query(collection(db, USERS), where('phone', '==', v), limit(max))),
+    run(query(collection(db, USERS), orderBy('displayNameLower'), startAt(lower), endAt(`${lower}`), limit(max))),
+  ];
+  if (lower !== v) queries.unshift(run(query(collection(db, USERS), where('email', '==', lower), limit(max))));
+  const all = (await Promise.all(queries.map((p) => p.catch(() => [] as UserRecord[])))).flat();
+  const seen = new Set<string>();
+  const out: UserRecord[] = [];
+  for (const u of all) {
+    if (u.role !== 'client' || seen.has(u.id)) continue;
+    seen.add(u.id);
+    out.push(u);
+  }
+  return out.slice(0, max);
 }
 
 /** Provisions a new account (admin-driven) and records an audit entry. */

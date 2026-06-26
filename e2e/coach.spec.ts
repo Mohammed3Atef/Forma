@@ -57,6 +57,8 @@ test.describe.serial('Coach', () => {
   test('Add Client opens the INVITE flow (no temp password) and generates an invite', async ({ page }) => {
     await page.goto('/coach');
     await page.getByTestId(TID.coachAddClient).click();
+    // The redesigned dialog first offers a choice; "Create New Client" → invite panel.
+    await page.getByTestId(TID.addChooseCreate).click();
     // The invite panel is the add-client flow — no temp-password field exists.
     await expect(page.getByTestId(TID.coachInvitePanel)).toBeVisible();
     await expect(page.getByTestId(TID.coachAddPassword)).toHaveCount(0);

@@ -7,7 +7,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
-import { uid } from '@/lib/utils';
+import { parseDecimal, uid } from '@/lib/utils';
 import { getClientCardioPlan, saveClientCardioPlan } from '@/services/platform/planApi';
 import type { CardioPlan, CardioSession, CardioType } from '@/types';
 
@@ -57,7 +57,7 @@ export function CoachCardioEditor() {
     const s: CardioSession = {
       id,
       type: editing.type,
-      durationMin: Math.max(0, Number(editing.durationMin) || 0),
+      durationMin: Math.max(0, parseDecimal(editing.durationMin)),
       frequency: editing.frequency.trim(),
       notes: editing.notes.trim(),
     };
@@ -129,7 +129,7 @@ export function CoachCardioEditor() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="label">{t('cardio.duration')} ({t('common.min')})</label>
-                <input className="input" data-testid="sess-duration" inputMode="numeric" value={editing.durationMin} onChange={(e) => setEditing({ ...editing, durationMin: e.target.value })} />
+                <input className="input" data-testid="sess-duration" inputMode="decimal" value={editing.durationMin} onChange={(e) => setEditing({ ...editing, durationMin: e.target.value })} />
               </div>
               <div>
                 <label className="label">{t('coachEditor.frequency')}</label>

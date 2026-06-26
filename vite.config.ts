@@ -19,7 +19,6 @@ export default defineConfig({
       manifest: {
         name: 'Forma',
         short_name: 'Forma',
-        description: 'Forma — mobile-first fitness coaching platform.',
         theme_color: '#0B0C0F',
         background_color: '#0B0C0F',
         display: 'standalone',
@@ -27,6 +26,8 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         lang: 'en',
+        description: 'Forma — train, track, transform. The all-in-one platform for coaches and their clients.',
+        categories: ['health', 'fitness', 'lifestyle'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -36,6 +37,15 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable',
           },
+        ],
+        // Richer install card (browsers that support it show these).
+        screenshots: [
+          { src: 'landing_page/hero-dashboard.png', sizes: '1536x1024', type: 'image/png', form_factor: 'wide', label: 'Coach dashboard' },
+          { src: 'landing_page/showcase-mobile.png', sizes: '1536x1024', type: 'image/png', label: 'Forma on your phone' },
+        ],
+        shortcuts: [
+          { name: 'Dashboard', url: '/coach', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Today', url: '/workout', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
         ],
       },
       workbox: {

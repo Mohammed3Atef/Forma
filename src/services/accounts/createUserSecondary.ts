@@ -49,10 +49,13 @@ export async function createAccount(params: CreateAccountParams): Promise<UserRe
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     const uid = cred.user.uid;
     const now = Date.now();
+    const name = displayName?.trim() || email.split('@')[0];
     const record: UserRecord = {
       id: uid,
       email,
-      displayName: displayName?.trim() || email.split('@')[0],
+      displayName: name,
+      // Lowercased name for the case-insensitive existing-client search.
+      displayNameLower: name.toLowerCase(),
       role,
       accountStatus: accountStatus ?? 'active',
       permissions: permissions ?? [],

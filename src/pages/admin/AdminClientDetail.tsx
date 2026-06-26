@@ -7,6 +7,7 @@ import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/
 import { getClientAssessment } from '@/services/platform/coachApi';
 import { ClientActivityView } from '@/pages/coach/ClientActivityView';
 import { AssessmentView } from '@/components/AssessmentView';
+import { CoachTimeline } from '@/components/coach/CoachTimeline';
 
 /** Read-only client detail for admins/super-admins — plans + day-by-day logs. */
 export function AdminClientDetail() {
@@ -43,6 +44,11 @@ export function AdminClientDetail() {
         <Target label={t('nutrition.calories')} value={mPlan.data?.targets.calories} />
         <Target label={t('nutrition.protein')} value={mPlan.data?.targets.protein} unit="g" />
         <Target label={t('coach.water')} value={mPlan.data?.waterTargetMl} unit="ml" />
+      </div>
+
+      <h2 className="h2 mb-2">{t('timeline.title')}</h2>
+      <div className="mb-6">
+        <CoachTimeline clientId={clientId} />
       </div>
 
       <h2 className="h2 mb-2">{t('assessment.title')}</h2>

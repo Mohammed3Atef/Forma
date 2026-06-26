@@ -34,10 +34,12 @@ export async function provisionSelf(uid: string, email: string, phone?: string):
   if (existing) return existing;
 
   const now = Date.now();
+  const memberName = email ? email.split('@')[0] : 'Member';
   const record: UserRecord = {
     id: uid,
     email,
-    displayName: email ? email.split('@')[0] : 'Member',
+    displayName: memberName,
+    displayNameLower: memberName.toLowerCase(),
     role: 'client',
     accountStatus: SELF_SIGNUP_STATUS,
     permissions: [],
@@ -64,10 +66,12 @@ export async function provisionSelfCoach(uid: string, email: string, phone?: str
   if (existing) return existing;
 
   const now = Date.now();
+  const coachName = email ? email.split('@')[0] : 'Coach';
   const record: UserRecord = {
     id: uid,
     email,
-    displayName: email ? email.split('@')[0] : 'Coach',
+    displayName: coachName,
+    displayNameLower: coachName.toLowerCase(),
     role: 'coach',
     accountStatus: 'active',
     permissions: [],

@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TagInput } from '@/components/TagInput';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
+import { ExerciseView } from '@/components/workout/ExerciseView';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
@@ -13,7 +14,7 @@ import { RowCheckbox } from '@/components/ui/RowCheckbox';
 import { usePagination } from '@/hooks/usePagination';
 import { useSelection } from '@/hooks/useSelection';
 import { blankExercise } from '@/lib/workoutPresets';
-import { uid } from '@/lib/utils';
+import { parseDecimal, uid } from '@/lib/utils';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import {
@@ -72,6 +73,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   const isDesktop = useIsDesktop();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Exercise | null>(null);
+  const [viewing, setViewing] = useState<Exercise | null>(null);
   const lib = useQuery({ queryKey: ['exerciseLibrary', coachId], queryFn: () => listExercises(coachId), enabled: !!coachId });
 
   const filtered = useMemo(() => {
@@ -151,7 +153,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           columns={exerciseColumns}
           rows={pg.pageItems}
           rowKey={(ex) => ex.id}
-          onRowClick={(ex) => setEditing(ex)}
+          onRowClick={(ex) => setViewing(ex)}
           selection={{
             isSelected: (ex) => sel.has(ex.id),
             onToggle: (ex) => sel.toggle(ex.id),
@@ -168,7 +170,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           {pg.pageItems.map((ex) => (
             <div key={ex.id} className={`flex items-center gap-3 py-2.5 ${sel.has(ex.id) ? 'bg-brand/10' : ''}`} data-testid="lib-item">
               <span className="ps-1"><RowCheckbox checked={sel.has(ex.id)} onToggle={() => sel.toggle(ex.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
-              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setEditing(ex)}>
+              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setViewing(ex)}>
                 <span className="block truncate font-medium">{ex.name}</span>
                 <span className="block truncate text-[12px] text-earth-subtle">{[ex.targetMuscle, ex.category, ex.equipment].filter(Boolean).join(' · ') || t('coachLib.noMeta')}</span>
               </button>
@@ -181,6 +183,16 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       <BulkActionBar count={sel.count} onClear={sel.clear}>
         <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
       </BulkActionBar>
+      <Sheet open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? t('coachLib.exercise')}>
+        {viewing && (
+          <div className="space-y-4">
+            <ExerciseView ex={viewing} />
+            <button type="button" data-testid="exercise-view-edit" className="btn-primary w-full" onClick={() => { setEditing(viewing); setViewing(null); }}>
+              {t('common.edit')}
+            </button>
+          </div>
+        )}
+      </Sheet>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachLib.exercise')}>
         {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} />}
       </Sheet>
@@ -192,7 +204,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
 
 interface FoodFormState { id: string | null; name: string; quantity: string; calories: string; protein: string; carbs: string; fats: string; category: string; tags: string[] }
 const blankFoodForm = (): FoodFormState => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '', category: '', tags: [] });
-const numv = (s: string) => Math.max(0, Number(s) || 0);
+const numv = (s: string) => Math.max(0, parseDecimal(s)); // decimals allowed (food macros)
 
 function FoodsTab({ coachId }: { coachId: string }) {
   const { t } = useTranslation();
@@ -313,7 +325,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
                 <div key={k}>
                   <label className="label">{t(`nutrition.${k}`)}</label>
-                  <input className="input" data-testid={`lf-${k}`} inputMode="numeric" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                  <input className="input" data-testid={`lf-${k}`} inputMode="decimal" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
                 </div>
               ))}
             </div>
@@ -384,7 +396,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
       ) : groups.data?.length ? (
         <div className="space-y-2">
           {pg.pageItems.map((g) => (
-            <div key={g.id} className={`card ${sel.has(g.id) ? 'ring-1 ring-brand/40' : ''}`} data-testid="group-item">
+            <div key={g.id} className={`card ${sel.has(g.id) ? 'ring-2 ring-brand' : ''}`} data-testid="group-item">
               <div className="flex items-start gap-3">
                 <span className="pt-0.5"><RowCheckbox checked={sel.has(g.id)} onToggle={() => sel.toggle(g.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
                 <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: g.id, name: g.name, notes: g.notes ?? '', foodIds: g.foods.map((f) => f.id) })}>

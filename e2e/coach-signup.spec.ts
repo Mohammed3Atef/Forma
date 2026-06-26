@@ -54,20 +54,13 @@ test.describe('Coach self-signup', () => {
     await expect(page.getByTestId(TID.coachTrialBanner)).toBeVisible();
   });
 
-  test('client signup path is unchanged (defaults to pending client)', async ({ page }) => {
-    const email = uniqueEmail('qa-clientsignup');
-    const password = 'Client123456!';
+  test('client self-signup is disabled — only the Coach role is offered', async ({ page }) => {
     await page.goto('/login');
     await page.getByTestId(TID.loginForm).waitFor();
-    await page.getByTestId(TID.loginToggleMode).click();
+    await page.getByTestId(TID.loginToggleMode).click(); // → sign-up
     await expect(page.getByTestId(TID.signupRole)).toBeVisible();
-    // Client is the default selection — do not change it.
-    await page.getByTestId(TID.loginEmail).fill(email);
-    await page.getByTestId(TID.loginPhone).fill('+15551112222');
-    await page.getByTestId(TID.loginPassword).fill(password);
-    await page.getByTestId(TID.loginConfirm).fill(password);
-    await page.getByTestId(TID.loginSubmit).click();
-    // Self-signup clients are pending (SELF_SIGNUP_STATUS) → blocked gate.
-    await expect(page.getByTestId(TID.accountPending)).toBeVisible({ timeout: 30_000 });
+    // Coach is available; Client is intentionally hidden (re-enabled later).
+    await expect(page.getByTestId(TID.signupRoleFor('coach'))).toBeVisible();
+    await expect(page.getByTestId(TID.signupRoleFor('client'))).toHaveCount(0);
   });
 });

@@ -85,7 +85,7 @@ export function Onboarding() {
               </div>
               <div>
                 <label className="label" htmlFor="ob-height">{t('settings.height')} (cm)</label>
-                <input id="ob-height" className="input" inputMode="numeric" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} />
+                <input id="ob-height" className="input" inputMode="decimal" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} />
               </div>
               <div>
                 <label className="label" htmlFor="ob-age">{t('settings.age')}</label>

@@ -98,7 +98,7 @@ export function CoachTemplates() {
             <div className="min-w-0 flex-1">
               <div data-testid="coach-desktop-templates" className="grid gap-3 sm:grid-cols-2">
                 {pg.pageItems.map((tpl) => (
-                  <div key={tpl.id} className={`relative rounded-xl ${sel.has(tpl.id) ? 'ring-1 ring-brand/60' : ''}`}>
+                  <div key={tpl.id} className={`relative rounded-xl ${sel.has(tpl.id) ? 'ring-2 ring-brand' : ''}`}>
                     <span className="absolute end-2 top-2 z-10"><RowCheckbox checked={sel.has(tpl.id)} onToggle={() => sel.toggle(tpl.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
                     <button
                       type="button"
@@ -152,7 +152,7 @@ export function CoachTemplates() {
       ) : (
         <div className="space-y-2">
           {pg.pageItems.map((tpl) => (
-            <div key={tpl.id} className={`card ${sel.has(tpl.id) ? 'ring-1 ring-brand/40' : ''}`} data-testid="template-card">
+            <div key={tpl.id} className={`card ${sel.has(tpl.id) ? 'ring-2 ring-brand' : ''}`} data-testid="template-card">
               <div className="flex items-start gap-3">
                 <span className="pt-0.5"><RowCheckbox checked={sel.has(tpl.id)} onToggle={() => sel.toggle(tpl.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
                 <button type="button" className="min-w-0 flex-1 text-start" onClick={() => navigate(`/coach/templates/${tpl.id}`)}>

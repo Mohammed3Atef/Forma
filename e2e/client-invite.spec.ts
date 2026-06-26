@@ -25,6 +25,8 @@ test.describe("Client invites", () => {
     await login("coach");
     await page.goto("/coach/clients");
     await page.getByTestId(TID.coachAddClient).click();
+    // Redesigned Add-Client dialog: choose "Create New Client" to reach the invite panel.
+    await page.getByTestId(TID.addChooseCreate).click();
     await expect(page.getByTestId(TID.coachInvitePanel)).toBeVisible();
     await page.getByTestId(TID.coachInviteGenerate).click();
     const row = page.getByTestId(TID.coachInviteRow).first();

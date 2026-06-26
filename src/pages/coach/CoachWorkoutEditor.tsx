@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -32,22 +32,23 @@ export function CoachWorkoutEditor() {
 
   const query = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
-  const [dirty, setDirty] = useState(false);
+  // Dirty is COMPUTED vs the last-saved baseline (not a sticky flag), so a
+  // leftover draft identical to the saved plan doesn't trigger a false prompt.
+  const baselineRef = useRef<string>('');
   const [asTemplate, setAsTemplate] = useState(false);
 
   useEffect(() => {
     if (plan !== null || query.isLoading) return;
     void draftStore.getItem<WorkoutPlan>(draftKey).then((draft) => {
-      if (draft) {
-        setPlan(draft);
-        setDirty(true);
-      } else {
-        setPlan(query.data ?? emptyPlan());
-      }
+      const base = query.data ?? emptyPlan();
+      baselineRef.current = JSON.stringify(base);
+      setPlan(draft ?? base);
     });
   }, [query.isLoading, query.data, plan, draftKey]);
 
-  // Autosave draft locally on every change.
+  const dirty = plan !== null && JSON.stringify(plan) !== baselineRef.current;
+
+  // Autosave draft locally while there are unsaved changes.
   useEffect(() => {
     if (plan && dirty) void draftStore.setItem(draftKey, plan);
   }, [plan, dirty, draftKey]);
@@ -61,7 +62,7 @@ export function CoachWorkoutEditor() {
     },
     onSuccess: async () => {
       await draftStore.removeItem(draftKey);
-      setDirty(false);
+      baselineRef.current = JSON.stringify(plan);
       void qc.invalidateQueries({ queryKey: ['clientWorkoutPlan', clientId] });
       navigate(`/coach/client/${clientId}`);
     },
@@ -69,15 +70,13 @@ export function CoachWorkoutEditor() {
 
   const exit = async () => {
     if (dirty && !(await confirmDialog({ title: t('coachEditor.unsavedTitle'), message: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave'), danger: true }))) return;
+    await draftStore.removeItem(draftKey); // never leave a stale/discarded draft behind
     navigate(`/coach/client/${clientId}`);
   };
 
   if (!plan) return null;
 
-  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => {
-    setPlan((p) => (p ? { ...p, days, exercises } : p));
-    setDirty(true);
-  };
+  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => setPlan((p) => (p ? { ...p, days, exercises } : p));
 
   const header = (
     <div className="space-y-2">
@@ -94,10 +93,7 @@ export function CoachWorkoutEditor() {
         className="input"
         data-testid="workout-plan-name"
         value={plan.name}
-        onChange={(e) => {
-          setPlan({ ...plan, name: e.target.value });
-          setDirty(true);
-        }}
+        onChange={(e) => setPlan({ ...plan, name: e.target.value })}
         placeholder={t('coachEditor.planNamePlaceholder')}
       />
       <div className="flex items-center justify-between">

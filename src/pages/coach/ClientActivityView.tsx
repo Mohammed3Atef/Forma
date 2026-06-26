@@ -159,7 +159,7 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
             {d?.nutrition && mealsEaten > 0 ? (
               <div className="card">
                 <p className="mb-3 text-sm text-earth-muted">{t('activity.mealsEaten', { n: mealsEaten })}</p>
-                <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                   <Mini label={t('nutrition.calories')} value={`${Math.round(consumed.calories)}${macroTarget ? `/${macroTarget.calories}` : ''}`} />
                   <Mini label={t('nutrition.protein')} value={`${Math.round(consumed.protein)}`} />
                   <Mini label={t('nutrition.carbs')} value={`${Math.round(consumed.carbs)}`} />

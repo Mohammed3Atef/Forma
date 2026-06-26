@@ -16,8 +16,10 @@ import {
 } from '@/services/platform/coachApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { fetchUser } from '@/services/platform/accountsApi';
+import { releaseClient } from '@/services/platform/coachClientsApi';
 import { assessmentStatus } from '@/lib/assessment';
 import { CoachSubscriptionPanel } from '@/pages/coach/CoachSubscriptionPanel';
+import { CoachTimeline } from '@/components/coach/CoachTimeline';
 import { Icon, type IconName } from '@/components/Icon';
 import type { AssessmentStatus, WeightLog, WorkoutLog } from '@/types';
 
@@ -37,7 +39,18 @@ export function CoachClientDetail() {
   const account = useSession((s) => s.account);
   const author: Author = { id: account?.id ?? 'self', role: account?.role ?? 'coach' };
 
-  const [sheet, setSheet] = useState<'note' | 'manage' | null>(null);
+  const [sheet, setSheet] = useState<'note' | 'manage' | 'release' | null>(null);
+  const coachId = account?.id ?? '';
+
+  const release = useMutation({
+    mutationFn: () => releaseClient(coachId, clientId, coachId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+      void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
+      setSheet(null);
+      navigate('/coach');
+    },
+  });
 
   const user = useQuery({ queryKey: ['user', clientId], queryFn: () => fetchUser(clientId), enabled: !!clientId });
   const profile = useQuery({ queryKey: ['clientProfile', clientId], queryFn: () => fetchClientProfile(clientId), enabled: !!clientId });
@@ -58,7 +71,7 @@ export function CoachClientDetail() {
 
   return (
     <>
-      <div className="lg:mx-auto lg:max-w-3xl">
+      <div className="lg:mx-auto lg:max-w-5xl">
       <TopBar testId="coach-client-detail" title={name} eyebrow={profile.data?.goal ? t(`settings.goals.${profile.data.goal}`) : t('platform.coachPortal')} onBack={() => navigate('/coach')} />
 
       {user.data?.phone && (
@@ -146,6 +159,10 @@ export function CoachClientDetail() {
           <p className="py-2 text-sm text-earth-muted">{t('coach.noNotes')}</p>
         )}
       </div>
+
+      {/* Coaching history (current + previous coaches) */}
+      <h2 className="h2 mb-2 mt-6">{t('timeline.title')}</h2>
+      <CoachTimeline clientId={clientId} />
       </div>
 
       <ManageSheet
@@ -161,8 +178,19 @@ export function CoachClientDetail() {
         onNutrition={() => navigate(`/coach/client/${clientId}/nutrition`)}
         onCardio={() => navigate(`/coach/client/${clientId}/cardio`)}
         onNote={() => setSheet('note')}
+        onRelease={() => setSheet('release')}
       />
       <NoteSheet open={sheet === 'note'} onClose={() => setSheet(null)} clientId={clientId} author={author} onSaved={() => void qc.invalidateQueries({ queryKey: ['coachNotes', clientId] })} />
+
+      <Sheet open={sheet === 'release'} onClose={() => setSheet(null)} title={t('release.title')}>
+        <p className="text-sm text-earth-muted">{t('release.body')}</p>
+        <div className="mt-4 flex flex-col gap-2">
+          <button type="button" data-testid="release-confirm" disabled={release.isPending} onClick={() => release.mutate()} className="btn-primary w-full bg-danger disabled:opacity-40">
+            {release.isPending ? t('auth.working') : t('release.confirm')}
+          </button>
+          <button type="button" className="btn-ghost w-full" onClick={() => setSheet(null)}>{t('common.cancel')}</button>
+        </div>
+      </Sheet>
     </>
   );
 }
@@ -213,6 +241,7 @@ function ManageSheet({
   onNutrition,
   onCardio,
   onNote,
+  onRelease,
 }: {
   open: boolean;
   onClose: () => void;
@@ -226,6 +255,7 @@ function ManageSheet({
   onNutrition: () => void;
   onCardio: () => void;
   onNote: () => void;
+  onRelease: () => void;
 }) {
   const { t } = useTranslation();
   // An assigned plan with a blank name still counts as assigned (don't fall
@@ -252,6 +282,9 @@ function ManageSheet({
         {row('activity', t('coach.kind.cardio'), cardioAssigned ? t('coach.sessionsCount', { n: cardioCount ?? 0 }) : t('coach.noPlanAssigned'), onCardio, 'coach-edit-cardio')}
         {row('edit', t('coach.addNote'), t('coach.notes'), onNote, 'coach-add-note')}
       </div>
+      <button type="button" data-testid="coach-release-client" onClick={() => { onClose(); onRelease(); }} className="btn-ghost mt-3 w-full text-danger">
+        {t('release.action')}
+      </button>
     </Sheet>
   );
 }

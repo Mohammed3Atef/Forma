@@ -58,7 +58,7 @@ export function CoachAssessments() {
       ) : rows.length === 0 ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{t('coachDash.noClients')}</div>
       ) : (
-        <div className="card divide-y divide-line-soft lg:mx-auto lg:max-w-3xl">
+        <div className="card divide-y divide-line-soft lg:mx-auto lg:max-w-5xl">
           {rows.map(({ client, status }) => (
             <button
               key={client.id}

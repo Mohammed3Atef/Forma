@@ -62,10 +62,13 @@ test.describe.serial('Coach exercise library', () => {
     await expect(page.getByTestId(TID.libItem).first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('edits an existing library exercise', async ({ page }) => {
+  test('views an exercise read-only, then edits it', async ({ page }) => {
     await page.goto('/coach/library');
     await page.getByTestId(TID.libSearch).fill(EX_NAME);
+    // Tapping an exercise opens the read-only VIEW; an Edit button switches to the form.
     await page.getByRole('button', { name: new RegExp(EX_NAME) }).first().click();
+    await expect(page.getByTestId('exercise-view')).toBeVisible();
+    await page.getByTestId('exercise-view-edit').click();
     await expect(page.getByTestId(TID.exerciseForm)).toBeVisible();
     await page.getByTestId(TID.exName).fill(EX_NAME_EDITED);
     await page.getByTestId(TID.exSave).click();

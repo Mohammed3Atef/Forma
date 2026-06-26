@@ -8,6 +8,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { cloudAvailable } from '@/data/dataSource';
 import { fetchMyAssessment } from '@/services/platform/clientCoachApi';
 import { assessmentStatus } from '@/lib/assessment';
+import { parseDecimal } from '@/lib/utils';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { CoachInfoCard } from '@/components/CoachInfoCard';
@@ -109,11 +110,11 @@ export function Settings() {
           </div>
           <div>
             <label className="label">{t('settings.weight')}</label>
-            <input className="input" inputMode="decimal" value={profile.weightKg} onChange={(e) => void updateProfile({ weightKg: Number(e.target.value) || 0 })} />
+            <input className="input" inputMode="decimal" value={profile.weightKg} onChange={(e) => void updateProfile({ weightKg: parseDecimal(e.target.value) })} />
           </div>
           <div>
             <label className="label">{t('settings.height')}</label>
-            <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: Number(e.target.value) || 0 })} />
+            <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: parseDecimal(e.target.value) })} />
           </div>
         </div>
         <div>

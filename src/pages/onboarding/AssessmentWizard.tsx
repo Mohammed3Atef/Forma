@@ -7,6 +7,7 @@ import { Slider } from '@/components/Slider';
 import { TagInput } from '@/components/TagInput';
 import { saveAssessmentProgress, submitAssessment } from '@/services/platform/clientCoachApi';
 import { downscaleImage } from '@/lib/image';
+import { parseDecimal } from '@/lib/utils';
 import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
 import type {
   ActivityLevel,
@@ -341,10 +342,10 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={`${t('settings.height')} (cm)`}>
-              <input className="input" inputMode="numeric" data-testid="a-height" value={a.basic.heightCm || ''} onChange={(e) => patch('basic', { heightCm: Number(e.target.value) || 0 })} />
+              <input className="input" inputMode="decimal" data-testid="a-height" value={a.basic.heightCm || ''} onChange={(e) => patch('basic', { heightCm: parseDecimal(e.target.value) })} />
             </Field>
             <Field label={`${t('settings.weight')} (${t('common.kg')})`}>
-              <input className="input" inputMode="decimal" data-testid="a-weight" value={a.basic.weightKg || ''} onChange={(e) => patch('basic', { weightKg: Number(e.target.value) || 0 })} />
+              <input className="input" inputMode="decimal" data-testid="a-weight" value={a.basic.weightKg || ''} onChange={(e) => patch('basic', { weightKg: parseDecimal(e.target.value) })} />
             </Field>
           </div>
         </div>
@@ -380,7 +381,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={`${t('assessment.targetWeight')} (${t('common.kg')})`}>
-              <input className="input" inputMode="decimal" value={a.goals.targetWeightKg ?? ''} onChange={(e) => patch('goals', { targetWeightKg: e.target.value ? Number(e.target.value) : undefined })} />
+              <input className="input" inputMode="decimal" value={a.goals.targetWeightKg ?? ''} onChange={(e) => patch('goals', { targetWeightKg: e.target.value ? parseDecimal(e.target.value) : undefined })} />
             </Field>
             <Field label={t('assessment.deadlineMonths')}>
               <input className="input" inputMode="numeric" value={a.goals.deadlineMonths ?? ''} onChange={(e) => patch('goals', { deadlineMonths: e.target.value ? Number(e.target.value) : undefined })} />

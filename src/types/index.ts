@@ -78,6 +78,8 @@ export interface UserRecord {
   featureFlags: Record<string, boolean>;
   createdBy: string; // actor uid, or 'self' for open sign-up
   assignedCoachId?: string; // clients managed by a coach
+  /** Lowercased displayName for case-insensitive prefix search (existing-client lookup). */
+  displayNameLower?: string;
   /** Invite code used at signup (invite-driven self-assignment); audit/trace only. */
   inviteCode?: string;
   // Coach profile (all optional; populated as the coach completes onboarding).
@@ -356,8 +358,45 @@ export interface CoachClientRelationship {
   subscriptionHistory?: SubscriptionPeriod[];
   /** Invite code that established the relationship (invite-driven self-claim). */
   inviteCode?: string;
+  // ---- lifecycle close metadata (set when status becomes 'ended') ----
+  /** When the relationship was closed (release / transfer / unassign). */
+  endedAt?: number;
+  /** Actor uid who closed it. */
+  endedBy?: string;
+  /** Why it closed — drives the coaching timeline. */
+  endReason?: 'released' | 'transferred' | 'unassigned';
+  /** Transfer mode, when it ended because the client was transferred. */
+  mode?: TransferMode;
   createdBy: string;
   createdAt: number;
+  updatedAt: number;
+}
+
+/** How a transfer treats the previous coach's plans/content. */
+export type TransferMode = 'fresh_start' | 'keep_plans';
+/** How a transfer treats the coaching subscription. */
+export type TransferSubHandling = 'keep' | 'new' | 'expire';
+export type TransferRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+
+/**
+ * A coach→admin/current-coach request to take over a client owned by another
+ * coach, at top-level `transferRequests/{toCoachId__clientId}`. The requesting
+ * (prospective) coach creates it `pending`; the current coach or an admin
+ * resolves it (`accepted`/`rejected`), or the requester `cancelled`s it.
+ */
+export interface ClientTransferRequest {
+  id: string; // `${toCoachId}__${clientId}`
+  clientId: string;
+  fromCoachId: string; // current coach
+  toCoachId: string; // requesting (prospective) coach
+  mode?: TransferMode;
+  subscriptionHandling?: TransferSubHandling;
+  reason: string;
+  status: TransferRequestStatus;
+  requestedAt: number;
+  reviewedAt?: number | null;
+  reviewedBy?: string | null;
+  adminNote?: string;
   updatedAt: number;
 }
 
@@ -467,7 +506,9 @@ export type NotificationType =
   | 'message_received'
   | 'trial_expiring'
   | 'plan_change_requested'
-  | 'plan_decided';
+  | 'plan_decided'
+  | 'coach_assigned'
+  | 'client_released';
 
 /**
  * An in-app notification. Lives at `clientData/{clientId}/notifications/{id}` and

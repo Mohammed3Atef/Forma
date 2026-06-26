@@ -44,7 +44,7 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
       <CoachDayNav date={date} onChange={setDate} />
 
       {/* Macro summary */}
-      <div className="card grid grid-cols-4 gap-3">
+      <div className="card grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Macro
           label={t("nutrition.calories")}
           value={Math.round(consumed.calories)}

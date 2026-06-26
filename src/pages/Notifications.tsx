@@ -25,6 +25,8 @@ const ICON: Record<NotificationType, IconName> = {
   trial_expiring: 'timer',
   plan_change_requested: 'bolt',
   plan_decided: 'check',
+  coach_assigned: 'check',
+  client_released: 'info',
 };
 
 function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {

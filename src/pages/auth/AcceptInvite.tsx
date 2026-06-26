@@ -102,10 +102,13 @@ export function AcceptInvite() {
       const { doc, setDoc } = fs;
       const now = Date.now();
       const uid = user.uid;
+      const claimName = form.name.trim() || email.split('@')[0];
       const record: UserRecord = {
         id: uid,
         email,
-        displayName: form.name.trim() || email.split('@')[0],
+        displayName: claimName,
+        // Lowercased name for the case-insensitive existing-client search.
+        displayNameLower: claimName.toLowerCase(),
         role: 'client',
         accountStatus: 'active',
         permissions: [],

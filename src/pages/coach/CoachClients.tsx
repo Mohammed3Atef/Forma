@@ -15,8 +15,12 @@ import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
-import { shortDate } from '@/lib/utils';
+import { AddExistingClient } from '@/pages/coach/AddExistingClient';
+import { IncomingTransferRequests } from '@/components/coach/IncomingTransferRequests';
+import { parseDecimal, shortDate } from '@/lib/utils';
 import type { AccountStatus, SignupInvite } from '@/types';
+
+type AddMode = 'choose' | 'create' | 'existing';
 
 const ACCT_PILL: Record<AccountStatus, string> = {
   active: 'border-success/50 text-success',
@@ -38,7 +42,10 @@ export function CoachClients() {
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
   const [visible, setVisible] = useState(PAGE);
   const [adding, setAdding] = useState(() => params.get('new') === '1');
+  const [addMode, setAddMode] = useState<AddMode>('choose');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const openAdd = () => { setAddMode('choose'); setAdding(true); };
 
   const clients = useQuery({
     queryKey: ['myClients', coachId],
@@ -145,7 +152,7 @@ export function CoachClients() {
         eyebrow={t('platform.coachPortal')}
         right={
           <div className="flex items-center gap-1.5">
-            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={() => setAdding(true)}>
+            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={openAdd}>
               <Icon name="plus" size={20} />
             </button>
             <button type="button" className="icon-btn h-[42px] w-[42px] md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
@@ -161,6 +168,8 @@ export function CoachClients() {
           {atLimit && <span className="text-warn" data-testid="coach-client-limit">{t('coachTrial.limitReached')}</span>}
         </div>
       )}
+
+      {coachId && <IncomingTransferRequests coachId={coachId} />}
 
       {searchBar}
       {filterBar}
@@ -210,9 +219,54 @@ export function CoachClients() {
         </>
       )}
 
-      <Sheet open={adding} onClose={() => setAdding(false)} title={t('coach.addClient')}>
-        {adding && <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />}
+      <Sheet
+        open={adding}
+        onClose={() => setAdding(false)}
+        title={addMode === 'create' ? t('existing.createNewTitle') : addMode === 'existing' ? t('existing.title') : t('coach.addClient')}
+      >
+        {adding && addMode === 'choose' && (
+          <AddChooser onCreate={() => setAddMode('create')} onExisting={() => setAddMode('existing')} />
+        )}
+        {adding && addMode !== 'choose' && (
+          <button type="button" className="btn-ghost mb-3 h-9 px-3 text-[13px]" data-testid="add-mode-back" onClick={() => setAddMode('choose')}>
+            <Icon name="chevron" size={16} className="rotate-180" /> {t('common.back')}
+          </button>
+        )}
+        {adding && addMode === 'create' && <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />}
+        {adding && addMode === 'existing' && (
+          <AddExistingClient
+            coachId={coachId ?? ''}
+            atLimit={atLimit}
+            maxClients={maxClients}
+            onCreateNew={() => setAddMode('create')}
+            onDone={() => { setAdding(false); void clients.refetch(); }}
+          />
+        )}
       </Sheet>
+    </div>
+  );
+}
+
+/** First screen of the Add-Client sheet: choose how to add this client. */
+function AddChooser({ onCreate, onExisting }: { onCreate: () => void; onExisting: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-3" data-testid="add-client-chooser">
+      <p className="text-sm text-earth-muted">{t('existing.chooserHint')}</p>
+      <button type="button" data-testid="add-choose-create" className="card flex w-full items-center gap-3 text-start hover:border-brand/40" onClick={onCreate}>
+        <span className="row-av h-10 w-10 shrink-0 bg-brand/15 text-brand"><Icon name="plus" size={18} /></span>
+        <span className="min-w-0">
+          <span className="block font-medium">{t('existing.createNew')}</span>
+          <span className="block text-[12px] text-earth-subtle">{t('existing.createNewDesc')}</span>
+        </span>
+      </button>
+      <button type="button" data-testid="add-choose-existing" className="card flex w-full items-center gap-3 text-start hover:border-brand/40" onClick={onExisting}>
+        <span className="row-av h-10 w-10 shrink-0 bg-brand/15 text-brand"><Icon name="search" size={18} /></span>
+        <span className="min-w-0">
+          <span className="block font-medium">{t('existing.addExisting')}</span>
+          <span className="block text-[12px] text-earth-subtle">{t('existing.addExistingDesc')}</span>
+        </span>
+      </button>
     </div>
   );
 }
@@ -253,7 +307,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
         email: prefill.email.trim() || undefined,
         phone: prefill.phone.trim() || undefined,
         ...sub,
-        ...(price.trim() ? { subPrice: Number(price) || undefined } : {}),
+        ...(price.trim() ? { subPrice: parseDecimal(price) || undefined } : {}),
       });
     },
     onSuccess: (inv) => {

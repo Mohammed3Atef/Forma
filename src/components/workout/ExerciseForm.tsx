@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TagInput } from '@/components/TagInput';
 import { EXERCISE_PRESETS } from '@/lib/workoutPresets';
+import { parseDecimal } from '@/lib/utils';
 import type { Exercise } from '@/types';
 
 /**
@@ -36,12 +37,14 @@ export function ExerciseForm({
     tags: initial.tags ?? [],
   });
 
-  const num = (s: string) => Math.max(0, Number(s) || 0);
+  // Set counts stay integer (they render N set rows); rest seconds allow decimals.
+  const int = (s: string) => Math.max(0, Math.round(parseDecimal(s)));
+  const dec = (s: string) => Math.max(0, parseDecimal(s));
   const applyPreset = (p: (typeof EXERCISE_PRESETS)[number]) =>
     setF((cur) => ({ ...cur, warmupSets: String(p.warmupSetCount), workingSets: String(p.workingSets), repRange: p.repRange, restSec: String(p.restSec) }));
 
   const save = () => {
-    const warmupSetCount = num(f.warmupSets);
+    const warmupSetCount = int(f.warmupSets);
     onSave({
       ...initial,
       name: f.name.trim(),
@@ -50,9 +53,9 @@ export function ExerciseForm({
       equipment: f.equipment.trim() || undefined,
       warmupSets: String(warmupSetCount),
       warmupSetCount,
-      workingSets: num(f.workingSets),
+      workingSets: int(f.workingSets),
       repRange: f.repRange.trim(),
-      restSec: num(f.restSec),
+      restSec: dec(f.restSec),
       videoUrl: f.videoUrl.trim() || null,
       notes: { en: f.notes.trim(), ar: f.notes.trim() },
       progressionNotes: f.progressionNotes.trim() || undefined,
@@ -95,7 +98,7 @@ export function ExerciseForm({
         </div>
         <div>
           <label className="label">{t('coachEditor.restSec')}</label>
-          <input className="input" data-testid="ex-rest" inputMode="numeric" value={f.restSec} onChange={(e) => setF({ ...f, restSec: e.target.value })} />
+          <input className="input" data-testid="ex-rest" inputMode="decimal" value={f.restSec} onChange={(e) => setF({ ...f, restSec: e.target.value })} />
         </div>
       </div>
       <p className="text-[12px] text-earth-subtle">{t('coachEditor.setsHint')}</p>

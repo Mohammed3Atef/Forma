@@ -166,6 +166,19 @@ service cloud.firestore {
             && request.resource.data.get('permissions', []) == resource.data.get('permissions', [])
             && request.resource.data.get('assignedCoachId', '') == resource.data.get('assignedCoachId', '')
             && request.resource.data.accountStatus in ['active', 'suspended', 'pending', 'disabled'])
+        // Existing-client lifecycle by a coach on a CLIENT doc: CLAIM an unassigned
+        // client to self (assignedCoachId '' → self) or RELEASE own client (self → '').
+        // role/permissions/accountStatus are frozen, so a coach can never escalate
+        // or touch a client owned by ANOTHER coach (assignedCoachId must be '' or self).
+        || (isCoach()
+            && resource.data.get('role', '') == 'client'
+            && request.resource.data.get('role', '') == resource.data.get('role', '')
+            && request.resource.data.get('permissions', []) == resource.data.get('permissions', [])
+            && request.resource.data.get('accountStatus', '') == resource.data.get('accountStatus', '')
+            && (
+              (resource.data.get('assignedCoachId', '') == '' && request.resource.data.get('assignedCoachId', '') == request.auth.uid)
+              || (resource.data.get('assignedCoachId', '') == request.auth.uid && request.resource.data.get('assignedCoachId', '') == '')
+            ))
         // Super admin: unrestricted.
         || isSuperAdmin()
         // Admin-level actions apply ONLY to client/coach targets — an admin can
@@ -346,6 +359,28 @@ service cloud.firestore {
     // (collectionGroup('planChangeRequest') where status == 'pending').
     match /{path=**}/planChangeRequest/{docId} {
       allow read: if hasPermission('users.read');
+    }
+
+    // ---- transferRequests (coach→admin/current-coach client takeover) ----
+    // A prospective coach requests a client owned by ANOTHER coach. Doc id is
+    // `${toCoachId}__${clientId}`. The requester creates it (pending) and may
+    // cancel; the CURRENT coach (fromCoachId) or an admin (coaches.assign)
+    // resolves it (accepted/rejected). The actual reassignment + any data
+    // clearing still go through the users/coachClients/clientData rules — this
+    // doc is only the request record.
+    match /transferRequests/{reqId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.toCoachId
+        || request.auth.uid == resource.data.fromCoachId
+        || hasPermission('users.read'));
+      allow create: if isCoach()
+        && request.resource.data.toCoachId == request.auth.uid
+        && request.resource.data.fromCoachId != request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if (request.auth.uid == resource.data.toCoachId && request.resource.data.status == 'cancelled')
+        || (request.auth.uid == resource.data.fromCoachId && request.resource.data.status in ['accepted', 'rejected'])
+        || (hasPermission('coaches.assign') && request.resource.data.status in ['accepted', 'rejected']);
+      allow delete: if hasPermission('coaches.assign');
     }
 
     // ---- signupInvites (Phase 1 client invitations) ----------------------

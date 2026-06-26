@@ -160,7 +160,7 @@ export function Nutrition() {
       <TopBar title={t("nutrition.title")} eyebrow={t("nav.nutrition")} />
 
       {/* Macro rings */}
-      <div className="card grid grid-cols-4 gap-1">
+      <div className="card grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-1">
         {macros.map((m) => (
           <div key={m.key} className="flex flex-col items-center">
             <ProgressRing

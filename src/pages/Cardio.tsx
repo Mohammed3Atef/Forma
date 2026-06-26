@@ -258,11 +258,11 @@ export function Cardio() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="label">{t('cardio.steps')}</label>
-              <input className="input" inputMode="numeric" placeholder="10000" value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} />
+              <input className="input" inputMode="decimal" placeholder="10000" value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} />
             </div>
             <div>
               <label className="label">{t('cardio.duration')} ({t('common.min')})</label>
-              <input className="input" inputMode="numeric" placeholder="40" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
+              <input className="input" inputMode="decimal" placeholder="40" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
             </div>
             <div>
               <label className="label">{t('cardio.distance')} (km)</label>
@@ -270,7 +270,7 @@ export function Cardio() {
             </div>
             <div>
               <label className="label">{t('cardio.calories')}</label>
-              <input className="input" inputMode="numeric" placeholder="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} />
+              <input className="input" inputMode="decimal" placeholder="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} />
             </div>
           </div>
           <button type="button" onClick={() => void saveManual()} className="btn-primary btn-lg w-full">{t('common.save')}</button>
