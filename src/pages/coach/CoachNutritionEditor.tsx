@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { SearchField, TextInput } from '@/components/ui/Field';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
 import { parseDecimal, uid } from '@/lib/utils';
@@ -166,7 +167,7 @@ export function CoachNutritionEditor() {
         </p>
       )}
 
-      <input className="input mb-2" data-testid="nutrition-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.planNamePlaceholder')} />
+      <TextInput label={t('field.planName')} fieldClassName="mb-2" data-testid="nutrition-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.planNamePlaceholder')} />
       <div className="mb-4">
         <VersionActions clientId={clientId} kind="nutrition" plan={plan} createdBy={coachId} />
       </div>
@@ -264,7 +265,7 @@ export function CoachNutritionEditor() {
         {t('coachEditor.addSupp')}
       </button>
 
-      <Sheet open={!!supp} onClose={() => setSupp(null)} title={t('coachEditor.supplement')}>
+      <Sheet open={!!supp} onClose={() => setSupp(null)} size="md" title={t('coachEditor.supplement')}>
         {supp && (
           <div className="space-y-3">
             {/* Pick from the coach's saved supplements — fills the fields below. */}
@@ -281,9 +282,9 @@ export function CoachNutritionEditor() {
                 <div className="my-3 h-px bg-line-soft" />
               </div>
             )}
-            <input className="input" placeholder={t('coachEditor.suppName')} value={supp.name} onChange={(e) => setSupp({ ...supp, name: e.target.value })} />
-            <input className="input" placeholder={t('coachEditor.suppDose')} value={supp.dose} onChange={(e) => setSupp({ ...supp, dose: e.target.value })} />
-            <input className="input" placeholder={t('coachEditor.suppTiming')} value={supp.timing} onChange={(e) => setSupp({ ...supp, timing: e.target.value })} />
+            <TextInput label={t('field.name')} placeholder={t('coachEditor.suppName')} value={supp.name} onChange={(e) => setSupp({ ...supp, name: e.target.value })} />
+            <TextInput label={t('field.dose')} placeholder={t('coachEditor.suppDose')} value={supp.dose} onChange={(e) => setSupp({ ...supp, dose: e.target.value })} />
+            <TextInput label={t('field.timing')} placeholder={t('coachEditor.suppTiming')} value={supp.timing} onChange={(e) => setSupp({ ...supp, timing: e.target.value })} />
             <button type="button" disabled={!supp.name.trim()} onClick={saveSupp} className="btn-primary w-full disabled:opacity-40">
               {t('common.save')}
             </button>
@@ -291,7 +292,7 @@ export function CoachNutritionEditor() {
         )}
       </Sheet>
 
-      <Sheet open={!!editing} onClose={() => { setEditing(null); setPick(''); }} title={t('coachEditor.food')}>
+      <Sheet open={!!editing} onClose={() => { setEditing(null); setPick(''); }} size="lg" title={t('coachEditor.food')}>
         {editing && (
           <div className="space-y-3" data-testid="food-form">
             {/* Pick from the coach's saved foods — fills the form below (an editable
@@ -299,7 +300,7 @@ export function CoachNutritionEditor() {
             {(lib.data?.length ?? 0) > 0 && (
               <div data-testid="food-library-picker">
                 <label className="label mb-1.5 block">{t('coachEditor.chooseFood')}</label>
-                <input className="input mb-2" placeholder={t('coachEditor.searchFoods')} value={pick} onChange={(e) => setPick(e.target.value)} />
+                <SearchField fieldClassName="mb-2" aria-label={t('coachEditor.searchFoods')} placeholder={t('coachEditor.searchFoods')} value={pick} onChange={(e) => setPick(e.target.value)} />
                 <div className="max-h-44 space-y-1 overflow-y-auto">
                   {(lib.data ?? [])
                     .filter((f) => { const q = pick.trim().toLowerCase(); return !q || (f.name.en || '').toLowerCase().includes(q) || (f.name.ar || '').includes(pick.trim()); })
@@ -323,8 +324,8 @@ export function CoachNutritionEditor() {
                 <div className="my-3 h-px bg-line-soft" />
               </div>
             )}
-            <input className="input" data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
-            <input className="input" data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
+            <TextInput label={t('field.name')} data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
+            <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
             <div className="grid grid-cols-2 gap-2">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
                 <div key={k}>

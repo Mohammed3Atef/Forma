@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Sheet } from '@/components/Sheet';
+import { TextInput } from '@/components/ui/Field';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useCan } from '@/services/auth/permissions';
 import { ROLE_PERMISSIONS } from '@/services/auth/roles';
@@ -140,7 +141,7 @@ export function GovernanceSections() {
         </>
       )}
 
-      <Sheet open={addingFlag} onClose={() => setAddingFlag(false)} title={t('admin.addFlag')}>
+      <Sheet open={addingFlag} onClose={() => setAddingFlag(false)} size="md" title={t('admin.addFlag')}>
         <FlagForm
           onDone={() => {
             setAddingFlag(false);
@@ -180,7 +181,7 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         if (form.id.trim()) mut.mutate();
       }}
     >
-      <input className="input" placeholder={t('admin.flagId')} value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
+      <TextInput label={t('field.id')} placeholder={t('admin.flagId')} value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} />
       <div>
         <div className="label mb-2">{t('admin.scope')}</div>
         <div className="flex gap-2">
@@ -192,7 +193,7 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       {form.scope !== 'global' && (
-        <input className="input" placeholder={t('admin.targetId')} value={form.targetId} onChange={(e) => setForm({ ...form, targetId: e.target.value })} />
+        <TextInput label={t('field.targetId')} placeholder={t('admin.targetId')} value={form.targetId} onChange={(e) => setForm({ ...form, targetId: e.target.value })} />
       )}
       <label className="flex items-center justify-between py-1">
         <span className="label">{t('admin.enabled')}</span>

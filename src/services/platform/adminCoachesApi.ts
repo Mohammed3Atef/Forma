@@ -1,7 +1,8 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import { COACH_PLAN_TIERS, coachPlanState, listAllCoachPlans, type CoachTierKey } from './coachPlanApi';
-import type { CoachPlan, UserRecord } from '@/types';
+import { coachPlanState, listAllCoachPlans } from './coachPlanApi';
+import { listCoachPlanTiers } from './coachPlanTiersApi';
+import type { CoachPlan, CoachPlanTierConfig, UserRecord } from '@/types';
 
 export interface CoachAdminRow {
   coach: UserRecord;
@@ -24,6 +25,7 @@ export interface CoachAdminData {
   conversionRate: number; // % of coaches who moved off trial to a paid tier
   recent: CoachAdminRow[];
   top: CoachAdminRow[];
+  tiers: CoachPlanTierConfig[]; // active (non-archived) tier configs for labels/pricing
 }
 
 /**
@@ -34,13 +36,15 @@ export interface CoachAdminData {
  */
 export async function fetchCoachAdmin(): Promise<CoachAdminData> {
   const { db } = ensureFirebase();
-  const [usersSnap, plans, relSnap] = await Promise.all([
+  const [usersSnap, plans, relSnap, allTiers] = await Promise.all([
     getDocs(query(collection(db, 'users'), where('role', '==', 'coach'))),
     listAllCoachPlans(),
     getDocs(query(collection(db, 'coachClients'), where('status', '==', 'active'))),
+    listCoachPlanTiers(true),
   ]);
   const now = Date.now();
   const planMap = new Map(plans.map((p) => [p.coachId, p]));
+  const priceByKey = new Map(allTiers.map((tr) => [tr.key, tr.priceMonthly]));
 
   // Real client counts = active coach↔client relationships, grouped by coach.
   const clientsByCoach = new Map<string, number>();
@@ -66,7 +70,7 @@ export async function fetchCoachAdmin(): Promise<CoachAdminData> {
     else if (r.state === 'suspended') suspendedCoaches += 1;
     if (r.plan && r.plan.plan !== 'trial') converted += 1;
     if (r.state === 'active' && r.plan && r.plan.plan !== 'trial') {
-      trackedRevenue += COACH_PLAN_TIERS[r.plan.plan as CoachTierKey]?.priceMonthly ?? 0;
+      trackedRevenue += priceByKey.get(r.plan.plan) ?? 0;
     }
   }
   const total = rows.length;
@@ -82,5 +86,6 @@ export async function fetchCoachAdmin(): Promise<CoachAdminData> {
     conversionRate: total ? Math.round((converted / total) * 100) : 0,
     recent: [...rows].sort((a, b) => b.coach.createdAt - a.coach.createdAt).slice(0, 6),
     top: [...rows].sort((a, b) => b.clientCount - a.clientCount).slice(0, 6),
+    tiers: allTiers.filter((tr) => !tr.archived),
   };
 }

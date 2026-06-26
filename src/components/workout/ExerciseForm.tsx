@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TagInput } from '@/components/TagInput';
+import { TextAreaField, TextInput } from '@/components/ui/Field';
 import { EXERCISE_PRESETS } from '@/lib/workoutPresets';
 import { parseDecimal } from '@/lib/utils';
 import type { Exercise } from '@/types';
@@ -65,12 +66,12 @@ export function ExerciseForm({
 
   return (
     <div className="space-y-3" data-testid="exercise-form">
-      <input className="input" data-testid="ex-name" placeholder={t('coachEditor.exerciseName')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+      <TextInput label={t('field.name')} data-testid="ex-name" placeholder={t('coachEditor.exerciseName')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
       <div className="grid grid-cols-2 gap-2">
-        <input className="input" data-testid="ex-target" placeholder={t('coachEditor.targetMuscle')} value={f.targetMuscle} onChange={(e) => setF({ ...f, targetMuscle: e.target.value })} />
-        <input className="input" placeholder={t('coachLib.category')} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
+        <TextInput label={t('field.muscle')} data-testid="ex-target" placeholder={t('coachEditor.targetMuscle')} value={f.targetMuscle} onChange={(e) => setF({ ...f, targetMuscle: e.target.value })} />
+        <TextInput label={t('field.category')} placeholder={t('coachLib.category')} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} />
       </div>
-      <input className="input" placeholder={t('coachLib.equipment')} value={f.equipment} onChange={(e) => setF({ ...f, equipment: e.target.value })} />
+      <TextInput label={t('field.equipment')} placeholder={t('coachLib.equipment')} value={f.equipment} onChange={(e) => setF({ ...f, equipment: e.target.value })} />
 
       <div>
         <div className="label mb-1.5">{t('coachEditor.presets')}</div>
@@ -103,9 +104,9 @@ export function ExerciseForm({
       </div>
       <p className="text-[12px] text-earth-subtle">{t('coachEditor.setsHint')}</p>
 
-      <input className="input" data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
-      <textarea className="input min-h-20" data-testid="ex-notes" placeholder={t('coachEditor.instructions')} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
-      <textarea className="input min-h-16" placeholder={t('coachEditor.progression')} value={f.progressionNotes} onChange={(e) => setF({ ...f, progressionNotes: e.target.value })} />
+      <TextInput label={t('field.videoUrl')} data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
+      <TextAreaField label={t('field.notes')} className="min-h-20" data-testid="ex-notes" placeholder={t('coachEditor.instructions')} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+      <TextAreaField label={t('coachEditor.progression')} className="min-h-16" value={f.progressionNotes} onChange={(e) => setF({ ...f, progressionNotes: e.target.value })} />
       <div>
         <div className="label mb-1.5">{t('coachLib.tags')}</div>
         <TagInput values={f.tags} onChange={(v) => setF({ ...f, tags: v })} placeholder={t('coachLib.tagsPlaceholder')} />

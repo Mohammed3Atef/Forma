@@ -106,8 +106,25 @@ export interface CoachOnboarding {
 // `coachPlans/{coachId}`. Distinct from the per-client `Subscription` (Layer B).
 // ---------------------------------------------------------------------------
 
-export type CoachPlanTier = 'trial' | 'starter' | 'pro' | 'enterprise';
+/** Built-ins are 'trial' | 'starter' | 'pro' | 'enterprise'; admins may add custom tier keys. */
+export type CoachPlanTier = string;
 export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
+
+/** Admin-editable coach plan tier (Firestore `coachPlanTiers/{key}`; falls back to the built-in seed). */
+export interface CoachPlanTierConfig {
+  key: string;
+  /** Display name; UI falls back to i18n `adminCoaches.tier.<key>`, then the key. */
+  label?: string;
+  maxClients: number;
+  priceMonthly: number;
+  currency?: string;
+  order?: number;
+  active?: boolean;
+  archived?: boolean;
+  builtIn?: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface CoachPlan {
   coachId: string; // == doc id
@@ -116,8 +133,8 @@ export interface CoachPlan {
   maxClients: number; // trial = 10
   startedAt: number;
   endsAt: number | null; // trial = startedAt + 15d; paid tiers null until later
-  /** Trial-expiry notification bookkeeping — each flag fires its reminder once. */
-  trialNotified?: { d7?: boolean; d3?: boolean; d1?: boolean };
+  /** Expiry-reminder bookkeeping (trial OR paid term) — each flag fires its reminder once. */
+  trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };
   /** Maintained client-usage counter; rules reject a new relationship at the cap. */
   activeClientCount?: number;
   /** Append-only log of plan changes (tier/limit/status/end-date + request decisions). */

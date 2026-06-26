@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './fixtures/test';
 import { TID } from './fixtures/selectors';
+import { expectDialogCenteredAndWide, expectSingleBackControl } from './fixtures/responsive';
 
 /**
  * RESPONSIVE COACH PORTAL — verifies the shell swaps between the mobile
@@ -80,6 +81,33 @@ test.describe('Coach portal — responsive shell', () => {
     // Messages: split view (inbox + conversation pane).
     await page.goto('/coach/messages');
     await expect(page.getByTestId(TID.coachDesktopMessages)).toBeVisible();
+    await noHorizontalOverflow(page);
+  });
+
+  test('overlays: desktop dialog is centred & content-sized with a single back/close, and form labels are visible', async ({ page, login }) => {
+    await page.setViewportSize(MOBILE);
+    await login('coach');
+    await page.setViewportSize(DESKTOP);
+
+    await page.goto('/coach/clients');
+    await page.getByTestId(TID.coachClients).waitFor({ timeout: 25_000 });
+
+    // Open "Add Client" — on desktop this must be a centred, content-sized modal
+    // (NOT the old narrow bottom sheet), with exactly one close and no back at the root step.
+    await page.getByTestId(TID.coachAddClient).click();
+    await expect(page.getByTestId(TID.addClientChooser)).toBeVisible();
+    await expectDialogCenteredAndWide(page);
+    await expectSingleBackControl(page);
+
+    // Create-New step → invite form with persistent visible labels + a single back control.
+    await page.getByTestId(TID.addChooseCreate).click();
+    await expect(page.getByTestId(TID.coachInvitePanel)).toBeVisible();
+    await expectSingleBackControl(page);
+    const nameInput = page.getByTestId('coach-invite-name');
+    const inputId = await nameInput.getAttribute('id');
+    expect(inputId, 'labelled input has an id for its <label>').toBeTruthy();
+    await expect(page.locator(`label[for="${inputId}"]`), 'persistent visible label is wired to the input').toBeVisible();
+
     await noHorizontalOverflow(page);
   });
 });

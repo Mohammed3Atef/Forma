@@ -206,7 +206,7 @@ export function AdminAssignments() {
         </>
       )}
 
-      <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.displayName || selected?.email}>
+      <Sheet open={!!selected} onClose={() => setSelected(null)} size="md" title={selected?.displayName || selected?.email}>
         {selected && (
           <div className="space-y-4">
             {selected.assignedCoachId ? (
@@ -252,7 +252,7 @@ export function AdminAssignments() {
         )}
       </Sheet>
 
-      <Sheet open={!!wizard} onClose={() => setWizard(null)} title={t('transfer.title')}>
+      <Sheet open={!!wizard} onClose={() => setWizard(null)} size="wizard" title={t('transfer.title')}>
         {wizard && (
           <TransferWizard
             client={wizard.client}

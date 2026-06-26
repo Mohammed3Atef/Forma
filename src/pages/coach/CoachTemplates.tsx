@@ -187,7 +187,7 @@ export function CoachTemplates() {
         </>
       )}
 
-      <Sheet open={!!assigning} onClose={() => setAssigning(null)} title={t('workoutTemplate.assign')}>
+      <Sheet open={!!assigning} onClose={() => setAssigning(null)} size="md" title={t('workoutTemplate.assign')}>
         {assigning && (
           <AssignTemplate template={assigning} clients={clients.data ?? []} assignedBy={coachId} onDone={() => setAssigning(null)} />
         )}

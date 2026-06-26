@@ -35,7 +35,7 @@ export function ResponsiveShell({
           <DesktopTopBar />
         </div>
         <ReminderBanner />
-        <main className="mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-28 pt-1 md:mx-0 md:max-w-none md:px-6 md:pb-8 md:pt-5 lg:px-8">
+        <main className="mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-28 pt-1 md:max-w-screen-2xl md:px-6 md:pb-8 md:pt-5 lg:px-8">
           {children}
         </main>
         <div className="md:hidden">

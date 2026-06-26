@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { CommandHost } from '@/components/CommandHost';
+import { CoachPlanProvider, CoachPlanGate } from '@/components/coach/CoachPlanProvider';
+import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { COACH_NAV, COACH_SIDEBAR } from '@/config/nav';
 import { useIsTabletUp } from '@/hooks/useMediaQuery';
 import { queryClient } from '@/services/platform/queryClient';
@@ -43,11 +45,16 @@ function CoachIndex() {
 export function CoachApp() {
   const shell = (node: ReactNode) => (
     <ResponsiveShell navItems={COACH_NAV} sidebarItems={COACH_SIDEBAR}>
+      <CoachPlanBanner />
       {node}
     </ResponsiveShell>
   );
+  // Write/edit surfaces are soft-gated: when the coach's plan has lapsed they
+  // show a "renew to edit" notice instead of the editor (viewing stays open).
+  const gated = (node: ReactNode) => shell(<CoachPlanGate>{node}</CoachPlanGate>);
   return (
     <QueryClientProvider client={queryClient}>
+      <CoachPlanProvider>
       <Routes>
         <Route path="/coach" element={shell(<CoachIndex />)} />
         <Route path="/coach/dashboard" element={shell(<CoachDashboard />)} />
@@ -61,13 +68,13 @@ export function CoachApp() {
         <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/assessment" element={shell(<CoachClientAssessment />)} />
         <Route path="/coach/client/:clientId/checkins" element={shell(<CoachCheckIns />)} />
-        <Route path="/coach/client/:clientId/workout" element={shell(<CoachWorkoutEditor />)} />
-        <Route path="/coach/client/:clientId/nutrition" element={shell(<CoachNutritionEditor />)} />
-        <Route path="/coach/client/:clientId/cardio" element={shell(<CoachCardioEditor />)} />
+        <Route path="/coach/client/:clientId/workout" element={gated(<CoachWorkoutEditor />)} />
+        <Route path="/coach/client/:clientId/nutrition" element={gated(<CoachNutritionEditor />)} />
+        <Route path="/coach/client/:clientId/cardio" element={gated(<CoachCardioEditor />)} />
         <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />
         <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
         <Route path="/coach/templates" element={shell(<CoachTemplates />)} />
-        <Route path="/coach/templates/:templateId" element={shell(<CoachWorkoutTemplateEditor />)} />
+        <Route path="/coach/templates/:templateId" element={gated(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
         <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
@@ -76,6 +83,7 @@ export function CoachApp() {
         <Route path="*" element={<Navigate to="/coach" replace />} />
       </Routes>
       <CommandHost />
+      </CoachPlanProvider>
     </QueryClientProvider>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
+import { SelectField, TextInput } from '@/components/ui/Field';
 import { transferClientWithMode, type ClientSubscriptionInput } from '@/services/platform/coachClientsApi';
 import { parseDecimal } from '@/lib/utils';
 import type { SubscriptionStatus, TransferMode, TransferSubHandling, UserRecord } from '@/types';
@@ -135,18 +136,17 @@ export function TransferWizard({
           <Option active={subHandling === 'expire'} onClick={() => setSubHandling('expire')} title={t('transfer.subExpire')} desc="" testId="transfer-sub-expire" />
           {subHandling === 'new' && (
             <div className="space-y-2 pt-1">
-              <label className="label">{t('transfer.subStatusLabel')}</label>
-              <select className="input" data-testid="transfer-sub-status" value={subStatus} onChange={(e) => setSubStatus(e.target.value as SubscriptionStatus)}>
+              <SelectField label={t('transfer.subStatusLabel')} data-testid="transfer-sub-status" value={subStatus} onChange={(e) => setSubStatus(e.target.value as SubscriptionStatus)}>
                 {NEW_SUB_STATUSES.map((s) => (
                   <option key={s} value={s}>{t(`subscription.status.${s}`)}</option>
                 ))}
-              </select>
+              </SelectField>
               {subStatus === 'active' && (
-                <input className="input" inputMode="numeric" data-testid="transfer-sub-months" placeholder={t('common.min')} value={months} onChange={(e) => setMonths(e.target.value)} />
+                <TextInput label={t('field.months')} inputMode="numeric" data-testid="transfer-sub-months" placeholder={t('common.min')} value={months} onChange={(e) => setMonths(e.target.value)} />
               )}
               <div className="flex gap-2">
-                <input className="input flex-1" inputMode="decimal" data-testid="transfer-sub-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
-                <input className="input w-24" data-testid="transfer-sub-currency" placeholder="EGP" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+                <TextInput label={t('field.price')} fieldClassName="flex-1" inputMode="decimal" data-testid="transfer-sub-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+                <TextInput label={t('field.currency')} fieldClassName="w-24" data-testid="transfer-sub-currency" placeholder="EGP" value={currency} onChange={(e) => setCurrency(e.target.value)} />
               </div>
             </div>
           )}

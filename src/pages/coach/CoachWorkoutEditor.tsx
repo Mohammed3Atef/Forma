@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
 import { Sheet } from '@/components/Sheet';
+import { TextInput } from '@/components/ui/Field';
 import { PlanBuilder } from '@/components/workout/PlanBuilder';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
@@ -89,8 +90,8 @@ export function CoachWorkoutEditor() {
           {plan.meta.isCustomized ? ` · ${t('coachEditor.customized')}` : ''}
         </p>
       )}
-      <input
-        className="input"
+      <TextInput
+        label={t('field.planName')}
         data-testid="workout-plan-name"
         value={plan.name}
         onChange={(e) => setPlan({ ...plan, name: e.target.value })}
@@ -120,7 +121,7 @@ export function CoachWorkoutEditor() {
         }
       />
       <PlanBuilder days={plan.days} exercises={plan.exercises} onChange={change} coachId={coachId} header={header} />
-      <Sheet open={asTemplate} onClose={() => setAsTemplate(false)} title={t('coachEditor.saveAsTemplate')}>
+      <Sheet open={asTemplate} onClose={() => setAsTemplate(false)} size="md" title={t('coachEditor.saveAsTemplate')}>
         <SaveAsTemplateForm coachId={coachId} plan={plan} onDone={() => setAsTemplate(false)} />
       </Sheet>
     </>
@@ -138,7 +139,7 @@ function SaveAsTemplateForm({ coachId, plan, onDone }: { coachId: string; plan: 
   });
   return (
     <div className="space-y-3">
-      <input className="input" data-testid="template-from-plan-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('workoutTemplate.namePlaceholder')} />
+      <TextInput label={t('field.name')} data-testid="template-from-plan-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('workoutTemplate.namePlaceholder')} />
       <div>
         <div className="label mb-1.5">{t('workoutTemplate.goal')}</div>
         <div className="flex flex-wrap gap-2">

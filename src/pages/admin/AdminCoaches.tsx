@@ -10,6 +10,8 @@ import { usePagination } from '@/hooks/usePagination';
 import { useSelection } from '@/hooks/useSelection';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
+import { listPendingPlanChangeRequests, renewCoachPlan, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
@@ -30,6 +32,12 @@ export function AdminCoaches() {
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const q = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: isSuper });
+  const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
+  const pendingSet = new Set((pendingReqs.data ?? []).map((r) => r.coachId));
+  const renew = useMutation({
+    mutationFn: (coachId: string) => renewCoachPlan(coachId),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachAdmin'] }),
+  });
   const sel = useSelection();
   const rows = q.data?.rows ?? [];
   const pg = usePagination(rows, 25);
@@ -51,6 +59,15 @@ export function AdminCoaches() {
   if (!isSuper) return <Navigate to="/admin" replace />;
   const d = q.data;
 
+  const tiers = d?.tiers ?? [];
+  const renewsCell = (r: CoachAdminRow) => {
+    if (!r.plan?.endsAt) return <span className="text-[12px] text-earth-subtle">—</span>;
+    if (r.state === 'expired' || r.state === 'suspended') return <span className="text-[12px] font-medium text-danger">{t('adminCoaches.expired')}</span>;
+    const left = trialDaysLeft(r.plan);
+    if (left != null && left <= 5) return <span className="text-[12px] font-medium text-warn">{t('subscription.daysLeft', { n: Math.max(0, left) })}</span>;
+    return <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.plan.endsAt).toISOString().slice(0, 10), i18n.language)}</span>;
+  };
+
   const columns: Column<CoachAdminRow>[] = [
     { key: 'coach', header: t('adminCoaches.coach'), cell: (r) => (
       <span className="min-w-0">
@@ -58,10 +75,22 @@ export function AdminCoaches() {
         <span className="block truncate text-[12px] text-earth-subtle">{r.coach.email}</span>
       </span>
     ) },
-    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{t(`adminCoaches.tier.${r.plan?.plan ?? 'none'}`)}</span> },
+    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{tierLabel(tiers, r.plan?.plan ?? 'none', t)}</span> },
     { key: 'state', header: t('subscription.accountTitle'), cell: (r) => <span className={`chip text-[11px] ${STATE_PILL[r.state]}`}>{t(`adminCoaches.state.${r.state}`)}</span> },
     { key: 'used', header: t('adminCoaches.clientsUsed'), cell: (r) => <span className="font-mono text-sm">{r.plan ? `${r.clientCount}/${r.plan.maxClients}` : '—'}</span>, className: 'text-end' },
+    { key: 'renews', header: t('adminCoaches.renews'), cell: renewsCell },
     { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'attn', header: '', className: 'text-end', cell: (r) => {
+      const needsRenew = !!r.plan && (r.state === 'expired' || r.state === 'suspended' || (trialDaysLeft(r.plan) ?? 99) <= 5);
+      const hasReq = pendingSet.has(r.coach.id);
+      if (!needsRenew && !hasReq) return null;
+      return (
+        <span className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
+          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending} onClick={() => renew.mutate(r.coach.id)}>{t('adminCoaches.renew')}</button>}
+        </span>
+      );
+    } },
   ];
 
   return (

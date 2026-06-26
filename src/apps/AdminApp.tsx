@@ -16,6 +16,7 @@ import { AdminAnalytics } from '@/pages/admin/AdminAnalytics';
 import { AdminMedia } from '@/pages/admin/AdminMedia';
 import { AdminCoaches } from '@/pages/admin/AdminCoaches';
 import { AdminCoachDetail } from '@/pages/admin/AdminCoachDetail';
+import { AdminPlans } from '@/pages/admin/AdminPlans';
 import { Notifications } from '@/pages/Notifications';
 
 /**
@@ -41,6 +42,7 @@ export function AdminApp() {
         <Route path="/admin/analytics" element={shell(<AdminAnalytics />)} />
         <Route path="/admin/coaches" element={shell(<AdminCoaches />)} />
         <Route path="/admin/coaches/:coachId" element={shell(<AdminCoachDetail />)} />
+        <Route path="/admin/plans" element={shell(<AdminPlans />)} />
         <Route path="/admin/media" element={shell(<AdminMedia />)} />
         <Route path="/admin/notifications" element={shell(<Notifications />)} />
         <Route path="/admin/settings" element={shell(<RoleAccount />)} />

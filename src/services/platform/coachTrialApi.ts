@@ -14,23 +14,25 @@ import type { CoachPlan } from '@/types';
  * Returns the most-urgent reminder threshold just fired (for an optional toast),
  * or null when nothing fired.
  */
-const THRESHOLDS: { days: number; key: 'd7' | 'd3' | 'd1' }[] = [
+const THRESHOLDS: { days: number; key: 'd7' | 'd5' | 'd3' | 'd1' }[] = [
   { days: 7, key: 'd7' },
+  { days: 5, key: 'd5' },
   { days: 3, key: 'd3' },
   { days: 1, key: 'd1' },
 ];
 
-export async function checkTrialExpiry(coachId: string, plan?: CoachPlan | null): Promise<'d7' | 'd3' | 'd1' | null> {
+export async function checkTrialExpiry(coachId: string, plan?: CoachPlan | null): Promise<'d7' | 'd5' | 'd3' | 'd1' | null> {
   try {
     const p = plan ?? (await getCoachPlan(coachId));
-    if (!p || p.plan !== 'trial' || p.status !== 'active') return null;
+    // Reminders fire for the trial AND paid terms (any active plan with an end date).
+    if (!p || p.status !== 'active') return null;
     const left = trialDaysLeft(p);
     if (left == null) return null;
 
     // Fire the most-urgent threshold that has been reached and not yet sent.
     // (If a coach skips a window — e.g. doesn't open the app for days — the
     // earliest-still-unsent reminder still fires once on next foreground.)
-    let fired: 'd7' | 'd3' | 'd1' | null = null;
+    let fired: 'd7' | 'd5' | 'd3' | 'd1' | null = null;
     for (const th of THRESHOLDS) {
       const already = p.trialNotified?.[th.key] === true;
       if (left <= th.days && !already) {

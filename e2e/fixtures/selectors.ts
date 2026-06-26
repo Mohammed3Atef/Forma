@@ -6,6 +6,11 @@
  * with the components — it is the contract between the app and the QA suite.
  */
 export const TID = {
+  // Shared overlay (Sheet / ResponsiveDialog) ---------------------------------
+  sheet: 'sheet',
+  sheetPanel: 'sheet-panel',
+  sheetClose: 'sheet-close',
+
   // Marketing landing (anonymous "/") ----------------------------------------
   landingPage: 'landing-page',
   landingHero: 'landing-hero',

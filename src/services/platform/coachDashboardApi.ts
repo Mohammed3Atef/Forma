@@ -6,7 +6,7 @@ import { coachUnreadCount } from './messagesApi';
 import { listWorkoutTemplates, listNutritionTemplates } from './coachAssetsApi';
 import { assessmentStatus } from '@/lib/assessment';
 import { effectiveSubscriptionStatus } from '@/lib/subscription';
-import type { AssessmentStatus, CoachClientRelationship, Subscription, UserRecord, WorkoutLog } from '@/types';
+import type { AssessmentStatus, CoachClientRelationship, SubscriptionStatus, UserRecord, WorkoutLog } from '@/types';
 
 const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
@@ -16,6 +16,16 @@ export interface ClientDashboardRow {
   lastActivity: string | null; // YYYY-MM-DD of the latest finished workout
   assessment: AssessmentStatus;
   needsAttention: boolean;
+}
+
+/** One upcoming renewal (next payment due), for the dashboard breakdown. */
+export interface RenewalEntry {
+  clientId: string;
+  name: string;
+  date: number; // renewal date (subscription.endAt), epoch ms
+  amount: number; // full term price the client pays on renewal
+  currency: string;
+  status: SubscriptionStatus | 'none';
 }
 
 export interface CoachDashboard {
@@ -28,9 +38,13 @@ export interface CoachDashboard {
   unreadMessages: number;
   subs: { trial: number; active: number; pending: number; expired: number; cancelled: number; frozen: number };
   currency: string;
-  monthlyRevenue: number;
-  expectedRevenue: number;
-  lostRevenue: number;
+  // Calendar-month cash flow (NOT a blended run-rate): each client's full term
+  // price counts in the month their renewal lands, on their own renewal date.
+  collectedThisMonth: number; // term price already taken this month (terms started this month)
+  dueThisMonth: number; // upcoming renewals still to come this month (active/trial, projected at current price)
+  revenueThisMonth: number; // collectedThisMonth + dueThisMonth — total revenue for the month
+  lapsedThisMonth: number; // term value lost to churn (expired/cancelled, no renewal) this month
+  renewals: RenewalEntry[]; // upcoming renewals (this month + ~14d spillover), sorted by date
   expiring7: number;
   expiring30: number;
   newToday: number;
@@ -44,14 +58,12 @@ export interface CoachDashboard {
 }
 
 const DAY = 86_400_000;
-/** Normalise a term price to an approximate monthly figure. */
-function monthlyOf(sub: Subscription): number {
-  const p = sub.price ?? 0;
-  if (!p) return 0;
-  if (sub.months && sub.months > 0) return p / sub.months;
-  if (sub.billingCycle === 'weekly') return p * 4.345;
-  if (sub.billingCycle === 'quarterly') return p / 3;
-  return p;
+/** First/last epoch-ms of the calendar month containing `now`. */
+function monthBounds(now: number): { start: number; end: number } {
+  const d = new Date(now);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime() - 1;
+  return { start, end };
 }
 
 /**
@@ -103,10 +115,17 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
   const now = Date.now();
   const rels = relSnap.docs.map((d) => d.data() as CoachClientRelationship);
   const subs = { trial: 0, active: 0, pending: 0, expired: 0, cancelled: 0, frozen: 0 };
-  let monthlyRevenue = 0, expectedRevenue = 0, lostRevenue = 0, expiring7 = 0, expiring30 = 0;
+  const { start: monthStart, end: monthEnd } = monthBounds(now);
+  const SPILL = 14 * DAY; // also surface renewals just past month-end so end-of-month coaches see what's next
+  const nameById = new Map(clients.map((c) => [c.id, c.displayName || c.email]));
+  // Calendar-month cash flow: count each client's full term price in the month
+  // their term starts (collected) or their renewal falls due (upcoming).
+  let collectedThisMonth = 0, dueThisMonth = 0, lapsedThisMonth = 0, expiring7 = 0, expiring30 = 0;
   let newToday = 0, newWeek = 0, newMonth = 0;
+  const renewals: RenewalEntry[] = [];
   const churnAbs = { d7: 0, d30: 0, d90: 0 };
   let currency = 'EGP';
+  const inMonth = (ms: number | undefined | null) => ms != null && ms >= monthStart && ms <= monthEnd;
   for (const rel of rels) {
     const sub = rel.subscription;
     if (rel.createdAt >= now - DAY) newToday += 1;
@@ -116,23 +135,33 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     if (sub.currency) currency = sub.currency;
     const eff = effectiveSubscriptionStatus(sub, now);
     if (eff in subs) (subs as Record<string, number>)[eff] += 1;
-    const m = monthlyOf(sub);
+    const price = sub.price ?? 0;
+
+    // Collected = any term whose START lands in this month (a payment was taken):
+    // the current term plus every archived past term.
+    if (inMonth(sub.startAt)) collectedThisMonth += price;
+    for (const h of rel.subscriptionHistory ?? []) if (inMonth(h.startAt)) collectedThisMonth += h.price ?? 0;
+
     if (eff === 'trial' || eff === 'active') {
-      monthlyRevenue += m;
       const left = sub.endAt - now;
       if (left > 0 && left <= 7 * DAY) expiring7 += 1;
       if (left > 0 && left <= 30 * DAY) expiring30 += 1;
-    } else if (eff === 'pending') {
-      expectedRevenue += m;
+      // Upcoming renewal still to come this month → projected income (full term price).
+      if (price > 0 && sub.endAt > now && sub.endAt <= monthEnd) dueThisMonth += price;
+      // Breakdown: upcoming renewals this month (+ short spillover).
+      if (price > 0 && sub.endAt > now && sub.endAt <= monthEnd + SPILL) {
+        renewals.push({ clientId: rel.clientId, name: nameById.get(rel.clientId) ?? '—', date: sub.endAt, amount: price, currency: sub.currency ?? currency, status: eff });
+      }
     } else if (eff === 'expired' || eff === 'cancelled') {
-      lostRevenue += m;
       const churnedAt = eff === 'cancelled' ? (sub.cancelledAt ?? sub.updatedAt) : sub.endAt;
+      if (inMonth(churnedAt)) lapsedThisMonth += price; // term value lost this month
       if (churnedAt >= now - 7 * DAY) churnAbs.d7 += 1;
       if (churnedAt >= now - 30 * DAY) churnAbs.d30 += 1;
       if (churnedAt >= now - 90 * DAY) churnAbs.d90 += 1;
     }
   }
-  expectedRevenue += monthlyRevenue;
+  renewals.sort((a, b) => a.date - b.date);
+  const revenueThisMonth = collectedThisMonth + dueThisMonth;
   const denom = Math.max(rels.length, 1);
   const pct = (n: number) => Math.round((n / denom) * 100);
   const churn = { d7: pct(churnAbs.d7), d30: pct(churnAbs.d30), d90: pct(churnAbs.d90) };
@@ -148,9 +177,11 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     unreadMessages,
     subs,
     currency,
-    monthlyRevenue: Math.round(monthlyRevenue),
-    expectedRevenue: Math.round(expectedRevenue),
-    lostRevenue: Math.round(lostRevenue),
+    collectedThisMonth: Math.round(collectedThisMonth),
+    dueThisMonth: Math.round(dueThisMonth),
+    revenueThisMonth: Math.round(revenueThisMonth),
+    lapsedThisMonth: Math.round(lapsedThisMonth),
+    renewals,
     expiring7,
     expiring30,
     newToday,

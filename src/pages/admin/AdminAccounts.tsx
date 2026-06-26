@@ -7,6 +7,7 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
+import { TextInput } from '@/components/ui/Field';
 import { RowCheckbox } from '@/components/ui/RowCheckbox';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -239,7 +240,7 @@ export function AdminAccounts() {
       )}
 
       {/* Per-account actions */}
-      <Sheet open={!!selected} onClose={() => setSelected(null)} title={selected?.displayName || selected?.email}>
+      <Sheet open={!!selected} onClose={() => setSelected(null)} size="md" title={selected?.displayName || selected?.email}>
         {selected && (
           <div className="space-y-4">
             {selected.role === 'client' && (
@@ -260,7 +261,7 @@ export function AdminAccounts() {
       </Sheet>
 
       {/* Create account */}
-      <Sheet open={creating} onClose={() => setCreating(false)} title={t('admin.newAccount')}>
+      <Sheet open={creating} onClose={() => setCreating(false)} size="md" title={t('admin.newAccount')}>
         <CreateAccountForm
           actorRole={actorRole}
           createdBy={actorId}
@@ -442,10 +443,10 @@ function CreateAccountForm({
         if (valid) mut.mutate();
       }}
     >
-      <input className="input" type="email" autoComplete="off" data-testid="create-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-      <input className="input" data-testid="create-name" placeholder={t('settings.name')} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
-      <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="create-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-      <input className="input" type="password" autoComplete="new-password" data-testid="create-password" placeholder={t('admin.tempPassword')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <TextInput label={t('field.email')} type="email" autoComplete="off" data-testid="create-email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      <TextInput label={t('field.name')} data-testid="create-name" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+      <TextInput label={t('field.phone')} type="tel" inputMode="tel" autoComplete="off" data-testid="create-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      <TextInput label={t('admin.tempPassword')} type="password" autoComplete="new-password" data-testid="create-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
       <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
       <div>
         <div className="label mb-2">{t('platform.role')}</div>

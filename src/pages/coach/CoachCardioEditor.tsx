@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField, TextInput } from '@/components/ui/Field';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
 import { parseDecimal, uid } from '@/lib/utils';
@@ -89,7 +90,7 @@ export function CoachCardioEditor() {
         </p>
       )}
 
-      <input className="input mb-2" data-testid="cardio-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.cardioNamePlaceholder')} />
+      <TextInput label={t('field.planName')} fieldClassName="mb-2" data-testid="cardio-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.cardioNamePlaceholder')} />
       <div className="mb-3">
         <VersionActions clientId={clientId} kind="cardio" plan={plan} createdBy={coachId} />
       </div>
@@ -116,7 +117,7 @@ export function CoachCardioEditor() {
         {t('coachEditor.addSession')}
       </button>
 
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.session')}>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} size="md" title={t('coachEditor.session')}>
         {editing && (
           <div className="space-y-3" data-testid="cardio-session-form">
             <div className="flex flex-wrap gap-2" data-testid="cardio-type-options">
@@ -136,7 +137,7 @@ export function CoachCardioEditor() {
                 <input className="input" data-testid="sess-frequency" value={editing.frequency} onChange={(e) => setEditing({ ...editing, frequency: e.target.value })} />
               </div>
             </div>
-            <textarea className="input min-h-20" data-testid="sess-notes" placeholder={t('coachEditor.instructions')} value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+            <TextAreaField label={t('field.notes')} className="min-h-20" data-testid="sess-notes" placeholder={t('coachEditor.instructions')} value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
             <button type="button" data-testid="sess-save" onClick={saveSession} className="btn-primary w-full">
               {t('common.save')}
             </button>

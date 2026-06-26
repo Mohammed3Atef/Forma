@@ -68,7 +68,7 @@ export function CoachDashboard() {
             <>
               <HeroStat icon="user" value={d.activeClients} label={t('coachDash.activeClients')} />
               <HeroStat icon="calendar" value={d.expiring7} label={t('coachDash.renewals')} />
-              <HeroStat icon="bolt" value={`${d.expectedRevenue} ${d.currency}`} label={t('coachDash.expectedRevenue')} />
+              <HeroStat icon="bolt" value={`${d.revenueThisMonth} ${d.currency}`} label={t('coachDash.revenueThisMonth')} />
             </>
           ) : null
         }

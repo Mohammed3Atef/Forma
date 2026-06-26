@@ -207,12 +207,12 @@ export function PlanBuilder({
         </button>
 
         {picker && <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPick={(ex) => { addExercise(picker.dayId, picker.sectionId, ex); }} />}
-        <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachEditor.exercise')}>
+        <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachEditor.exercise')}>
           {editing && exercises[editing.exId] && (
             <ExerciseForm initial={exercises[editing.exId]} onSave={(ex) => { updateExercise(ex); setEditing(null); }} />
           )}
         </Sheet>
-        <Sheet open={!!moving} onClose={() => setMoving(null)} title={t('coachEditor.moveToSection')}>
+        <Sheet open={!!moving} onClose={() => setMoving(null)} size="md" title={t('coachEditor.moveToSection')}>
           {moving && (
             <div className="card divide-y divide-line-soft">
               {(day.sections ?? []).filter((s) => s.id !== moving.sectionId).map((s) => (

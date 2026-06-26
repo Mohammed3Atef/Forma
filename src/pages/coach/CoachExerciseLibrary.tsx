@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField, TextInput } from '@/components/ui/Field';
 import { TagInput } from '@/components/TagInput';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
 import { ExerciseView } from '@/components/workout/ExerciseView';
@@ -183,7 +184,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       <BulkActionBar count={sel.count} onClear={sel.clear}>
         <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
       </BulkActionBar>
-      <Sheet open={!!viewing} onClose={() => setViewing(null)} title={viewing?.name ?? t('coachLib.exercise')}>
+      <Sheet open={!!viewing} onClose={() => setViewing(null)} size="md" title={viewing?.name ?? t('coachLib.exercise')}>
         {viewing && (
           <div className="space-y-4">
             <ExerciseView ex={viewing} />
@@ -193,7 +194,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           </div>
         )}
       </Sheet>
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('coachLib.exercise')}>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachLib.exercise')}>
         {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} />}
       </Sheet>
     </>
@@ -316,11 +317,11 @@ function FoodsTab({ coachId }: { coachId: string }) {
       <BulkActionBar count={sel.count} onClear={sel.clear}>
         <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
       </BulkActionBar>
-      <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachFoods.food')}>
+      <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={t('coachFoods.food')}>
         {form && (
           <div className="space-y-3" data-testid="food-lib-form">
-            <input className="input" data-testid="lf-name" placeholder={t('coachEditor.foodName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input className="input" data-testid="lf-quantity" placeholder={t('coachFoods.serving')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+            <TextInput label={t('field.name')} data-testid="lf-name" placeholder={t('coachEditor.foodName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <TextInput label={t('field.quantity')} data-testid="lf-quantity" placeholder={t('coachFoods.serving')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
             <div className="grid grid-cols-2 gap-2">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
                 <div key={k}>
@@ -329,7 +330,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
                 </div>
               ))}
             </div>
-            <input className="input" placeholder={t('coachLib.category')} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+            <TextInput label={t('field.category')} placeholder={t('coachLib.category')} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
             <div>
               <div className="label mb-1.5">{t('coachLib.tags')}</div>
               <TagInput values={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder={t('coachLib.tagsPlaceholder')} />
@@ -415,11 +416,11 @@ function GroupsTab({ coachId }: { coachId: string }) {
       <BulkActionBar count={sel.count} onClear={sel.clear}>
         <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
       </BulkActionBar>
-      <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachFoods.group')}>
+      <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={t('coachFoods.group')}>
         {form && (
           <div className="space-y-3" data-testid="group-form">
-            <input className="input" data-testid="grp-name" placeholder={t('coachFoods.groupName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <textarea className="input min-h-16" placeholder={t('coachFoods.groupNotes')} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <TextInput label={t('field.name')} data-testid="grp-name" placeholder={t('coachFoods.groupName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <TextAreaField label={t('field.notes')} className="min-h-16" placeholder={t('coachFoods.groupNotes')} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             <div>
               <div className="label mb-1.5">{t('coachFoods.pickFoods')}</div>
               {(foods.data?.length ?? 0) === 0 ? (
@@ -524,12 +525,12 @@ function SupplementsTab({ coachId }: { coachId: string }) {
       <BulkActionBar count={sel.count} onClear={sel.clear}>
         <button type="button" data-testid="bulk-delete" className="chip text-danger" disabled={bulkDel.isPending} onClick={() => void runBulkDelete()}>{t('common.bulk.delete')}</button>
       </BulkActionBar>
-      <Sheet open={!!form} onClose={() => setForm(null)} title={t('coachEditor.supplement')}>
+      <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={t('coachEditor.supplement')}>
         {form && (
           <div className="space-y-3" data-testid="supp-form">
-            <input className="input" data-testid="supp-name" placeholder={t('coachEditor.suppName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input className="input" data-testid="supp-dose" placeholder={t('coachEditor.suppDose')} value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
-            <input className="input" data-testid="supp-timing" placeholder={t('coachEditor.suppTiming')} value={form.timing} onChange={(e) => setForm({ ...form, timing: e.target.value })} />
+            <TextInput label={t('field.name')} data-testid="supp-name" placeholder={t('coachEditor.suppName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <TextInput label={t('field.dose')} data-testid="supp-dose" placeholder={t('coachEditor.suppDose')} value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
+            <TextInput label={t('field.timing')} data-testid="supp-timing" placeholder={t('coachEditor.suppTiming')} value={form.timing} onChange={(e) => setForm({ ...form, timing: e.target.value })} />
             <button type="button" data-testid="supp-save" disabled={!form.name.trim()} onClick={submit} className="btn-primary w-full disabled:opacity-40">{t('common.save')}</button>
           </div>
         )}

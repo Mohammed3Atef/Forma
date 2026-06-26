@@ -6,11 +6,11 @@ import { DashboardSection } from '@/components/ui/DashboardSection';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField } from '@/components/ui/Field';
 import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
-  COACH_PLAN_TIERS,
   coachPlanState,
   trialDaysLeft,
   getCoachPlan,
@@ -19,9 +19,8 @@ import {
   cancelPlanChangeRequest,
   type CoachTierKey,
 } from '@/services/platform/coachPlanApi';
+import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { shortDate } from '@/lib/utils';
-
-const UPGRADE_TIERS: CoachTierKey[] = ['starter', 'pro', 'enterprise'];
 
 /** Coach-facing "My Plan": tier/status/usage/end-date + request an upgrade. */
 export function CoachPlan() {
@@ -35,6 +34,8 @@ export function CoachPlan() {
   const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: !!coachId, staleTime: 300_000 });
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId });
   const req = useQuery({ queryKey: ['coachPlanRequest', coachId], queryFn: () => getCoachPlanChangeRequest(coachId), enabled: !!coachId });
+  const tiersQ = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: !!coachId });
+  const tiers = tiersQ.data ?? [];
 
   const submit = useMutation({
     mutationFn: () => submitPlanChangeRequest(coachId, { requestedTier: tier || undefined, reason }),
@@ -51,6 +52,7 @@ export function CoachPlan() {
   });
 
   const p = plan.data;
+  const upgradeTiers = tiers.filter((tr) => tr.key !== 'trial' && tr.key !== p?.plan);
   const state = coachPlanState(p ?? null);
   const used = clients.data ? clients.data.filter((c) => c.accountStatus !== 'disabled').length : p?.activeClientCount ?? 0;
   const daysLeft = p ? trialDaysLeft(p) : null;
@@ -65,7 +67,7 @@ export function CoachPlan() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard icon="bolt" value={t(`adminCoaches.tier.${p?.plan ?? 'none'}`)} label={t('coachPlan.tier')} tone="brand" />
+            <MetricCard icon="bolt" value={tierLabel(tiers, p?.plan ?? 'none', t)} label={t('coachPlan.tier')} tone="brand" />
             <MetricCard icon="check" value={t(`adminCoaches.state.${state}`)} label={t('coachPlan.status')} tone={statusTone} />
             <MetricCard icon="user" value={`${used} / ${p?.maxClients ?? '—'}`} label={t('coachPlan.clientsUsed')} />
             <MetricCard
@@ -85,7 +87,7 @@ export function CoachPlan() {
                     {t('coachPlan.cancelRequest')}
                   </button>
                 </div>
-                {req.data?.requestedTier ? <p className="text-sm">{t('coachPlan.desiredTier')}: {t(`adminCoaches.tier.${req.data.requestedTier}`)}</p> : null}
+                {req.data?.requestedTier ? <p className="text-sm">{t('coachPlan.desiredTier')}: {tierLabel(tiers, req.data.requestedTier, t)}</p> : null}
                 {req.data?.reason ? <p className="text-sm text-earth-muted">{req.data.reason}</p> : null}
               </div>
             ) : (
@@ -124,29 +126,27 @@ export function CoachPlan() {
         </div>
       )}
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('coachPlan.requestUpgrade')}>
+      <Sheet open={open} onClose={() => setOpen(false)} size="md" title={t('coachPlan.requestUpgrade')}>
         <div className="space-y-3">
           <div>
             <div className="label mb-2">{t('coachPlan.desiredTier')}</div>
             <div className="flex flex-wrap gap-2">
-              {UPGRADE_TIERS.map((tk) => {
-                const isCurrent = tk === p?.plan;
+              {upgradeTiers.map((trCfg) => {
+                const tk = trCfg.key;
                 return (
                   <button
                     key={tk}
                     type="button"
-                    disabled={isCurrent}
                     onClick={() => setTier(tier === tk ? '' : tk)}
-                    className={`chip ${tier === tk ? 'chip-on' : ''} ${isCurrent ? 'cursor-not-allowed opacity-40' : ''}`}
+                    className={`chip ${tier === tk ? 'chip-on' : ''}`}
                   >
-                    {t(`adminCoaches.tier.${tk}`)} · {COACH_PLAN_TIERS[tk].maxClients}
-                    {isCurrent ? ` · ${t('coachPlan.current')}` : ''}
+                    {tierLabel(tiers, tk, t)} · {trCfg.maxClients}
                   </button>
                 );
               })}
             </div>
           </div>
-          <textarea className="input min-h-24" data-testid="coach-plan-reason" placeholder={t('coachPlan.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <TextAreaField label={t('field.reason')} className="min-h-24" data-testid="coach-plan-reason" placeholder={t('coachPlan.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
           <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="coach-plan-request-submit" disabled={submit.isPending || !reason.trim()} onClick={() => submit.mutate()}>
             {t('coachPlan.submit')}
           </button>

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
+import { SearchField, SelectField, TextAreaField, TextInput } from '@/components/ui/Field';
 import { searchClients, fetchUser } from '@/services/platform/accountsApi';
 import {
   assignExistingClient,
@@ -22,11 +23,22 @@ import type { CoachClientRelationship, UserRecord } from '@/types';
 const fmtJoined = (ms: number, lang: string) =>
   new Date(ms).toLocaleDateString(lang.startsWith('ar') ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-const ACCT_PILL: Record<string, string> = {
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  suspended: 'border-danger/50 text-danger',
-  disabled: 'border-danger/50 text-danger',
+/** Text-colour tone per account status (rendered as a coloured dot + label, not a chip). */
+const ACCT_TONE: Record<string, string> = {
+  active: 'text-success',
+  pending: 'text-warn',
+  suspended: 'text-danger',
+  disabled: 'text-danger',
+};
+/** Text-colour tone per subscription status. */
+const SUB_TONE: Record<string, string> = {
+  trial: 'text-brand',
+  active: 'text-success',
+  pending: 'text-warn',
+  expired: 'text-danger',
+  cancelled: 'text-danger',
+  frozen: 'text-warn',
+  ended: 'text-danger',
 };
 
 /** One search result, with its current coaching assignment resolved (no ids exposed). */
@@ -47,12 +59,15 @@ export function AddExistingClient({
   maxClients,
   onCreateNew,
   onDone,
+  registerBack,
 }: {
   coachId: string;
   atLimit: boolean;
   maxClients: number;
   onCreateNew: () => void;
   onDone: () => void;
+  /** Report the current back handler to the parent sheet (null = at list root). */
+  registerBack: (fn: (() => void) | null) => void;
 }) {
   const { t, i18n } = useTranslation();
   const [text, setText] = useState('');
@@ -92,6 +107,24 @@ export function AddExistingClient({
     setTerm(text);
   };
 
+  const detailId = detail?.user.id ?? null;
+  const singleId = single?.user.id ?? null;
+  const rowCount = rows.length;
+  // Report a context-aware back handler to the parent sheet: from a result
+  // detail, back returns to the search list; at the list root we report null so
+  // the parent falls back to the chooser. Keeps ONE back control in the header.
+  useEffect(() => {
+    if (!detailId) {
+      registerBack(null);
+      return;
+    }
+    registerBack(() => () => {
+      setSelectedId(null);
+      if (singleId && rowCount === 1) setTerm('');
+    });
+    return () => registerBack(null);
+  }, [detailId, singleId, rowCount, registerBack]);
+
   if (detail) {
     return (
       <ClientResultDetail
@@ -99,7 +132,6 @@ export function AddExistingClient({
         meId={coachId}
         atLimit={atLimit}
         maxClients={maxClients}
-        onBack={() => { setSelectedId(null); if (single && rows.length === 1) setTerm(''); }}
         onDone={onDone}
         i18nLang={i18n.language}
       />
@@ -111,19 +143,15 @@ export function AddExistingClient({
       <p className="text-sm text-earth-muted">{t('existing.hint')}</p>
 
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
-            <Icon name="search" size={18} />
-          </span>
-          <input
-            className="input ps-10"
-            data-testid="existing-search"
-            placeholder={t('existing.searchPlaceholder')}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-          />
-        </div>
+        <SearchField
+          fieldClassName="flex-1"
+          aria-label={t('existing.search')}
+          data-testid="existing-search"
+          placeholder={t('existing.searchPlaceholder')}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        />
         <button type="button" data-testid="existing-search-btn" className="btn-primary px-4 disabled:opacity-40" disabled={!text.trim()} onClick={submit}>
           {t('existing.search')}
         </button>
@@ -177,7 +205,6 @@ function ClientResultDetail({
   meId,
   atLimit,
   maxClients,
-  onBack,
   onDone,
   i18nLang,
 }: {
@@ -185,7 +212,6 @@ function ClientResultDetail({
   meId: string;
   atLimit: boolean;
   maxClients: number;
-  onBack: () => void;
   onDone: () => void;
   i18nLang: string;
 }) {
@@ -246,10 +272,6 @@ function ClientResultDetail({
 
   return (
     <div className="space-y-4" data-testid="existing-detail">
-      <button type="button" className="btn-ghost h-9 px-3 text-[13px]" data-testid="existing-back" onClick={onBack}>
-        <Icon name="chevron" size={16} className="rotate-180" /> {t('common.back')}
-      </button>
-
       {/* Result card — never shows technical ids. */}
       <div className="card space-y-3">
         <div className="flex items-center gap-3">
@@ -262,8 +284,8 @@ function ClientResultDetail({
         </div>
         <div className="grid grid-cols-2 gap-2 text-[12px]">
           <Field label={t('existing.currentCoach')} value={row.coachName ?? t('existing.unassigned')} />
-          <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} pill={ACCT_PILL[c.accountStatus]} />
-          <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} />
+          <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} tone={ACCT_TONE[c.accountStatus]} />
+          <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} tone={row.rel?.subscription ? SUB_TONE[row.rel.subscription.status] : undefined} />
           <Field label={t('existing.joined')} value={fmtJoined(c.createdAt, i18nLang)} />
         </div>
       </div>
@@ -285,15 +307,14 @@ function ClientResultDetail({
             <p className="text-sm text-warn" data-testid="existing-assign-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
           ) : (
             <>
-              <label className="label">{t('invite.subTitle')}</label>
-              <select className="input" data-testid="existing-assign-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
+              <SelectField label={t('invite.subTitle')} data-testid="existing-assign-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
                 <option value="trial">{t('invite.subTrial')}</option>
                 <option value="1m">{t('invite.sub1m')}</option>
                 <option value="3m">{t('invite.sub3m')}</option>
                 <option value="pending">{t('invite.subPending')}</option>
-              </select>
+              </SelectField>
               {subPlan !== 'pending' && (
-                <input className="input" inputMode="decimal" data-testid="existing-assign-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+                <TextInput label={t('field.price')} inputMode="decimal" data-testid="existing-assign-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
               )}
               <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-assign" disabled={assign.isPending} onClick={() => assign.mutate()}>
                 {assign.isPending ? t('auth.working') : t('existing.assignToMe')}
@@ -317,8 +338,9 @@ function ClientResultDetail({
             </div>
           ) : (
             <>
-              <textarea
-                className="input min-h-[72px]"
+              <TextAreaField
+                label={t('field.reason')}
+                className="min-h-[72px]"
                 data-testid="existing-transfer-reason"
                 placeholder={t('transferReq.reasonPlaceholder')}
                 value={reason}
@@ -336,11 +358,14 @@ function ClientResultDetail({
   );
 }
 
-function Field({ label, value, pill }: { label: string; value: string; pill?: string }) {
+function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-line-soft px-2.5 py-1.5">
-      <p className="text-earth-subtle">{label}</p>
-      {pill ? <span className={`chip mt-0.5 text-[11px] ${pill}`}>{value}</span> : <p className="font-medium">{value}</p>}
+    <div className="min-w-0 rounded-lg border border-line-soft px-2.5 py-1.5">
+      <p className="text-[11px] text-earth-subtle">{label}</p>
+      <p className={`mt-0.5 flex items-center gap-1.5 font-medium ${tone ?? ''}`}>
+        {tone && <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-current" />}
+        <span className="truncate">{value}</span>
+      </p>
     </div>
   );
 }

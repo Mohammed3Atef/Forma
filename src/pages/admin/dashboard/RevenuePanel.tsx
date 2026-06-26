@@ -6,9 +6,7 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { DashboardSection } from '@/components/ui/DashboardSection';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { fetchCoachAdmin } from '@/services/platform/adminCoachesApi';
-import { COACH_PLAN_TIERS, type CoachTierKey } from '@/services/platform/coachPlanApi';
-
-const PAID_TIERS: CoachTierKey[] = ['starter', 'pro', 'enterprise'];
+import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 
 export function RevenuePanel() {
   const { t } = useTranslation();
@@ -17,12 +15,13 @@ export function RevenuePanel() {
   const d = q.data;
   if (q.isLoading || !d) return <LoadingState variant="cards" count={4} />;
 
-  // Active paid coaches per tier (from the already-fetched rows) — surface only.
-  const byTier = PAID_TIERS.map((tier) => {
-    const coaches = d.rows.filter((r) => r.state === 'active' && r.plan?.plan === tier).length;
-    const price = COACH_PLAN_TIERS[tier].priceMonthly;
-    return { tier, coaches, price, total: coaches * price };
-  });
+  // Active paid coaches per tier (from the already-fetched rows + editable tiers) — surface only.
+  const byTier = d.tiers
+    .filter((tr) => tr.key !== 'trial')
+    .map((tier) => {
+      const coaches = d.rows.filter((r) => r.state === 'active' && r.plan?.plan === tier.key).length;
+      return { key: tier.key, label: tierLabel(d.tiers, tier.key, t), coaches, price: tier.priceMonthly, total: coaches * tier.priceMonthly };
+    });
   const activePaid = byTier.reduce((n, x) => n + x.coaches, 0);
   const topCoaches = [...d.rows]
     .filter((r) => r.clientCount > 0)
@@ -43,8 +42,8 @@ export function RevenuePanel() {
       <DashboardSection title={t('admin.revenueByTier')} icon="chart">
         <div className="card divide-y divide-line-soft">
           {byTier.map((x) => (
-            <div key={x.tier} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="font-medium">{t(`adminCoaches.tier.${x.tier}`)}</span>
+            <div key={x.key} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+              <span className="font-medium">{x.label}</span>
               <span className="flex items-center gap-4">
                 <span className="font-mono text-[12px] text-earth-subtle">{x.coaches} × {x.price}</span>
                 <span className="font-mono text-sm text-earth">{x.total}{t('admin.perMonth')}</span>

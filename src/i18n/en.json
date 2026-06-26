@@ -1,4 +1,11 @@
 {
+  "field": {
+    "name": "Name", "email": "Email", "phone": "Phone", "price": "Price", "currency": "Currency",
+    "months": "Months", "notes": "Notes", "reason": "Reason", "search": "Search", "category": "Category",
+    "quantity": "Quantity", "dose": "Dose", "timing": "Timing", "duration": "Duration", "frequency": "Frequency",
+    "muscle": "Target muscle", "equipment": "Equipment", "videoUrl": "Video URL", "id": "ID",
+    "targetId": "Target ID", "planName": "Plan name"
+  },
   "app": { "name": "Forma" },
   "landing": {
     "nav": { "features": "Features", "how": "How it works", "showcase": "Showcase" },
@@ -115,6 +122,7 @@
     "adminGovernance": "Settings",
     "adminAnalytics": "Analytics",
     "adminCoaches": "Coaches",
+    "adminPlans": "Plans",
     "adminImages": "Images"
   },
   "common": {
@@ -857,6 +865,10 @@
     "conversion": "Trial\u2192Active",
     "none": "No coaches yet.",
     "trialDaysLeft": "Trial days left",
+    "daysLeftLabel": "Days left",
+    "renews": "Renews / ends",
+    "renew": "Renew +30d",
+    "requestPending": "Request",
     "accountStatus": "Account",
     "changeTier": "Change plan",
     "actions": "Actions",
@@ -891,6 +903,15 @@
     "monthlyRevenue": "Monthly revenue",
     "expectedRevenue": "Expected revenue",
     "lostRevenue": "Lost revenue",
+    "revenueThisMonth": "Revenue this month",
+    "revenueHint": "Collected + upcoming due (each term counted in its renewal month)",
+    "collectedThisMonth": "Collected this month",
+    "dueThisMonth": "Due (upcoming)",
+    "lapsedThisMonth": "Lost this month",
+    "renewalsTitle": "Renewals this month",
+    "renewalDate": "Renewal date",
+    "renewalAmount": "Amount",
+    "noRenewals": "No upcoming renewals this month",
     "subscriptions": "Subscriptions",
     "expiring": "Expiring 7 / 30d",
     "expiringHint": "soon / this month",
@@ -1017,6 +1038,7 @@
     "confirmEnd": "End this client's subscription now?",
     "confirmUnfreeze": "Resume this client's subscription now?",
     "startDate": "Start date",
+    "renews": "Renews",
     "months": "Months",
     "from": "From",
     "until": "Until",
@@ -1407,7 +1429,34 @@
     "current": "Current",
     "accepted": "Your upgrade request was approved.",
     "history": "Plan history",
-    "hist": { "tier": "Plan changed", "maxClients": "Client limit", "status": "Status", "endsAt": "End date", "requested": "Requested", "request": { "accepted": "Request approved", "rejected": "Request declined" } }
+    "hist": { "tier": "Plan changed", "maxClients": "Client limit", "status": "Status", "endsAt": "End date", "requested": "Requested", "request": { "accepted": "Request approved", "rejected": "Request declined" } },
+    "viewPlan": "View plan",
+    "lockedTitle": "Your plan has ended",
+    "lockedSuspendedTitle": "Your plan is suspended",
+    "lockedBody": "Renew your plan to keep creating and editing. Your clients are unaffected.",
+    "banner": {
+      "expired": "Your plan has ended — renew to keep managing clients.",
+      "suspended": "Your plan is suspended — contact your admin.",
+      "endingSoon": "Your plan ends in {{n}} day(s) — renew to avoid interruption.",
+      "renew": "Renew"
+    }
+  },
+  "adminPlans": {
+    "title": "Plans",
+    "hint": "Edit coach plan tiers — client limit and monthly price. Changes apply when a tier is assigned.",
+    "add": "Add plan",
+    "edit": "Edit plan",
+    "archive": "Archive",
+    "confirmArchive": "Archive the “{{name}}” tier? Coaches already on it keep their limit.",
+    "archived": "archived",
+    "inactive": "inactive",
+    "none": "No plans yet.",
+    "key": "Tier key",
+    "keyHint": "Lowercase id (letters, numbers, - or _). Cannot change later.",
+    "label": "Display name",
+    "order": "Order",
+    "active": "Active",
+    "priceMonthly": "Monthly price"
   },
   "existing": {
     "title": "Add Existing Client",

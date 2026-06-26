@@ -55,7 +55,13 @@ export function ExercisePickerSheet({
   });
 
   return (
-    <Sheet open={open} onClose={onClose} title={mode === 'create' ? t('coachEditor.quickCreate') : t('coachEditor.addExercise')}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      size="lg"
+      onBack={mode === 'create' ? () => setMode('list') : undefined}
+      title={mode === 'create' ? t('coachEditor.quickCreate') : t('coachEditor.addExercise')}
+    >
       {mode === 'list' ? (
         <div className="space-y-3" data-testid="exercise-picker">
           <div className="relative">
@@ -88,12 +94,7 @@ export function ExercisePickerSheet({
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          <button type="button" className="btn-ghost" onClick={() => setMode('list')}>
-            <Icon name="chevronLeft" size={16} /> {t('common.previous')}
-          </button>
-          <ExerciseForm initial={blankExercise()} saveLabel={t('coachEditor.addExercise')} onSave={(ex) => create.mutate(ex)} />
-        </div>
+        <ExerciseForm initial={blankExercise()} saveLabel={t('coachEditor.addExercise')} onSave={(ex) => create.mutate(ex)} />
       )}
     </Sheet>
   );

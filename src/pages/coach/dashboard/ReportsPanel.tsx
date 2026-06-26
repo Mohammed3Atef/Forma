@@ -34,9 +34,10 @@ export function ReportsPanel({ d }: { d: CoachDashboard }) {
       'forma-revenue',
       [t('coachDash.revenue'), `${d.currency}`],
       [
-        [t('coachDash.monthlyRevenue'), d.monthlyRevenue],
-        [t('coachDash.expectedRevenue'), d.expectedRevenue],
-        [t('coachDash.lostRevenue'), d.lostRevenue],
+        [t('coachDash.revenueThisMonth'), d.revenueThisMonth],
+        [t('coachDash.collectedThisMonth'), d.collectedThisMonth],
+        [t('coachDash.dueThisMonth'), d.dueThisMonth],
+        [t('coachDash.lapsedThisMonth'), d.lapsedThisMonth],
       ],
     );
 

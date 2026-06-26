@@ -141,7 +141,7 @@ input[type='number'] {
     @apply font-mono text-[34px] font-medium leading-[0.9] tracking-[-0.03em] text-white;
   }
   .stat-unit {
-    @apply ml-0.5 font-mono text-sm font-normal text-earth-muted;
+    @apply ms-0.5 font-mono text-sm font-normal text-earth-muted;
   }
   .stat-label {
     @apply font-mono text-[10.5px] uppercase tracking-[0.08em] text-earth-muted;

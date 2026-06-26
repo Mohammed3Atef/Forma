@@ -355,6 +355,13 @@ service cloud.firestore {
       }
     }
 
+    // Admin-editable coach plan tiers (pricing/limits). Any signed-in user may
+    // read (coaches need labels/caps); only super-admin may write.
+    match /coachPlanTiers/{tierKey} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if hasPermission('users.manageStatus');
+    }
+
     // Collection-group read for the admin "pending plan requests" query
     // (collectionGroup('planChangeRequest') where status == 'pending').
     match /{path=**}/planChangeRequest/{docId} {

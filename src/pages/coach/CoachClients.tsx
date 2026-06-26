@@ -6,6 +6,7 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
+import { SelectField, TextInput } from '@/components/ui/Field';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { DetailPanel } from '@/components/ui/DetailPanel';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -17,6 +18,7 @@ import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { AddExistingClient } from '@/pages/coach/AddExistingClient';
 import { IncomingTransferRequests } from '@/components/coach/IncomingTransferRequests';
+import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { parseDecimal, shortDate } from '@/lib/utils';
 import type { AccountStatus, SignupInvite } from '@/types';
 
@@ -37,6 +39,7 @@ export function CoachClients() {
   const coachId = useSession((s) => s.account?.id);
   const coachName = useSession((s) => s.account?.displayName ?? '');
   const isDesktop = useIsDesktop();
+  const { canWrite } = useCoachPlan(); // false when the coach's own plan has lapsed
   const [params] = useSearchParams();
   const [search, setSearch] = useState(() => params.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
@@ -44,6 +47,10 @@ export function CoachClients() {
   const [adding, setAdding] = useState(() => params.get('new') === '1');
   const [addMode, setAddMode] = useState<AddMode>('choose');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Single back affordance for the Add-Client sheet. The "existing" sub-flow
+  // registers a context-aware handler (detail → search list); when it's null we
+  // fall back to returning to the chooser. Keeps ONE back control in the header.
+  const [existingBack, setExistingBack] = useState<(() => void) | null>(null);
 
   const openAdd = () => { setAddMode('choose'); setAdding(true); };
 
@@ -152,7 +159,7 @@ export function CoachClients() {
         eyebrow={t('platform.coachPortal')}
         right={
           <div className="flex items-center gap-1.5">
-            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} onClick={openAdd}>
+            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} disabled={!canWrite} onClick={openAdd}>
               <Icon name="plus" size={20} />
             </button>
             <button type="button" className="icon-btn h-[42px] w-[42px] md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
@@ -222,15 +229,19 @@ export function CoachClients() {
       <Sheet
         open={adding}
         onClose={() => setAdding(false)}
+        size="lg"
         title={addMode === 'create' ? t('existing.createNewTitle') : addMode === 'existing' ? t('existing.title') : t('coach.addClient')}
+        onBack={
+          addMode === 'choose'
+            ? undefined
+            : addMode === 'existing'
+              ? existingBack ?? (() => setAddMode('choose'))
+              : () => setAddMode('choose')
+        }
+        backTestId={addMode === 'existing' && existingBack ? 'existing-back' : 'add-mode-back'}
       >
         {adding && addMode === 'choose' && (
           <AddChooser onCreate={() => setAddMode('create')} onExisting={() => setAddMode('existing')} />
-        )}
-        {adding && addMode !== 'choose' && (
-          <button type="button" className="btn-ghost mb-3 h-9 px-3 text-[13px]" data-testid="add-mode-back" onClick={() => setAddMode('choose')}>
-            <Icon name="chevron" size={16} className="rotate-180" /> {t('common.back')}
-          </button>
         )}
         {adding && addMode === 'create' && <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />}
         {adding && addMode === 'existing' && (
@@ -240,6 +251,7 @@ export function CoachClients() {
             maxClients={maxClients}
             onCreateNew={() => setAddMode('create')}
             onDone={() => { setAdding(false); void clients.refetch(); }}
+            registerBack={setExistingBack}
           />
         )}
       </Sheet>
@@ -342,18 +354,17 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
         <p className="text-sm text-warn" data-testid="coach-invite-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
       ) : (
         <div className="space-y-2">
-          <input className="input" data-testid="coach-invite-name" placeholder={`${t('settings.name')} (${t('invite.optional')})`} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
-          <input className="input" type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={`${t('settings.email')} (${t('invite.optional')})`} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
-          <input className="input" type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={`${t('settings.phone')} (${t('invite.optional')})`} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
-          <label className="label pt-1">{t('invite.subTitle')}</label>
-          <select className="input" data-testid="coach-invite-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
+          <TextInput label={t('field.name')} data-testid="coach-invite-name" placeholder={t('invite.optional')} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
+          <TextInput label={t('field.email')} type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={t('invite.optional')} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
+          <TextInput label={t('field.phone')} type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={t('invite.optional')} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
+          <SelectField label={t('invite.subTitle')} data-testid="coach-invite-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
             <option value="trial">{t('invite.subTrial')}</option>
             <option value="1m">{t('invite.sub1m')}</option>
             <option value="3m">{t('invite.sub3m')}</option>
             <option value="pending">{t('invite.subPending')}</option>
-          </select>
+          </SelectField>
           {subPlan !== 'pending' && (
-            <input className="input" inputMode="decimal" data-testid="coach-invite-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+            <TextInput label={t('field.price')} inputMode="decimal" data-testid="coach-invite-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
           )}
           <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
             {gen.isPending ? t('auth.working') : t('invite.generate')}

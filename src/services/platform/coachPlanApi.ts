@@ -20,6 +20,8 @@ const COACH_PLANS = 'coachPlans';
 /** Trial defaults — mirrored in firestore.rules. Keep the two in sync. */
 export const TRIAL_MAX_CLIENTS = 10;
 export const TRIAL_DURATION_DAYS = 15;
+/** Default renewal cycle for paid tiers (renewals are manual — no payment gateway). */
+export const PAID_TERM_DAYS = 30;
 const DAY_MS = 86_400_000;
 
 export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
@@ -59,7 +61,7 @@ export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
  * `trialNotified` map (+ updatedAt) is touched — the only field a coach may
  * mutate on their own plan besides the counter.
  */
-export async function markTrialNotified(coachId: string, key: 'd7' | 'd3' | 'd1'): Promise<void> {
+export async function markTrialNotified(coachId: string, key: 'd7' | 'd5' | 'd3' | 'd1'): Promise<void> {
   const { db } = ensureFirebase();
   await updateDoc(doc(db, COACH_PLANS, coachId), {
     [`trialNotified.${key}`]: true,
@@ -91,7 +93,8 @@ export function trialDaysLeft(plan: Pick<CoachPlan, 'endsAt'>, now = Date.now())
 }
 
 // ---- Coach plan tiers (Layer A). Tracking only — no payment gateway. ----
-export type CoachTierKey = 'trial' | 'starter' | 'pro' | 'enterprise';
+/** Built-ins below; admins can add custom tier keys (see coachPlanTiersApi). */
+export type CoachTierKey = string;
 /** Client cap + indicative monthly price per tier. priceMonthly is a tracking
  * placeholder (0) until tiers are priced — no gateway is involved. */
 export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceMonthly: number }> = {
@@ -112,11 +115,17 @@ export async function listAllCoachPlans(): Promise<CoachPlan[]> {
 export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise<void> {
   const { db } = ensureFirebase();
   const now = Date.now();
+  // Resolve the cap from the editable Firestore config, falling back to the built-in seed.
+  const tierSnap = await getDoc(doc(db, 'coachPlanTiers', tier)).catch(() => null);
+  const maxClients =
+    (tierSnap?.exists() ? (tierSnap.data() as { maxClients?: number }).maxClients : undefined) ??
+    COACH_PLAN_TIERS[tier]?.maxClients ??
+    TRIAL_MAX_CLIENTS;
   await updateDoc(doc(db, COACH_PLANS, coachId), {
     plan: tier,
-    maxClients: COACH_PLAN_TIERS[tier].maxClients,
+    maxClients,
     status: 'active',
-    endsAt: tier === 'trial' ? now + TRIAL_DURATION_DAYS * DAY_MS : null,
+    endsAt: now + (tier === 'trial' ? TRIAL_DURATION_DAYS : PAID_TERM_DAYS) * DAY_MS,
     updatedAt: now,
     history: arrayUnion({ at: now, action: 'tier', detail: tier }),
   });
@@ -136,6 +145,21 @@ export async function extendCoachTrial(coachId: string, days: number): Promise<v
     history: arrayUnion({ at: now, action: 'endsAt', detail: `+${days}d` }),
   });
   await writeAudit({ action: 'coachPlan.extend', targetUserId: coachId, metadata: { days } });
+}
+
+/** Super-admin: renew a coach's term by `days` (default a full paid cycle) and (re)activate. */
+export async function renewCoachPlan(coachId: string, days = PAID_TERM_DAYS): Promise<void> {
+  const { db } = ensureFirebase();
+  const plan = await getCoachPlan(coachId);
+  const now = Date.now();
+  const base = Math.max(plan?.endsAt ?? now, now);
+  await updateDoc(doc(db, COACH_PLANS, coachId), {
+    endsAt: base + days * DAY_MS,
+    status: 'active',
+    updatedAt: now,
+    history: arrayUnion({ at: now, action: 'renew', detail: `+${days}d` }),
+  });
+  await writeAudit({ action: 'coachPlan.renew', targetUserId: coachId, metadata: { days } });
 }
 
 /** Super-admin: adjust a coach's client cap directly. */
@@ -171,8 +195,11 @@ export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null)
 export function coachPlanState(plan: CoachPlan | null, now = Date.now()): 'trial' | 'active' | 'expired' | 'suspended' | 'none' {
   if (!plan) return 'none';
   if (plan.status === 'suspended') return 'suspended';
-  if (plan.plan === 'trial') return plan.endsAt != null && now >= plan.endsAt ? 'expired' : 'trial';
-  return plan.status === 'active' ? 'active' : 'expired';
+  // A lapsed end date expires ANY tier (trial OR paid) — previously only trials
+  // were folded in, so paid coaches past their date stayed "active" forever.
+  if (plan.endsAt != null && now >= plan.endsAt) return 'expired';
+  if (plan.status !== 'active') return 'expired';
+  return plan.plan === 'trial' ? 'trial' : 'active';
 }
 
 // ---- Coach plan-change requests (coach → super-admin) ----------------------

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField } from '@/components/ui/Field';
 import { SubscriptionHistory } from '@/components/SubscriptionHistory';
 import { confirmDialog } from '@/stores/dialogStore';
 import { setAccountStatus } from '@/services/platform/accountsApi';
@@ -52,6 +53,8 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   const sub = rel.data?.subscription;
   const status = effectiveSubscriptionStatus(sub);
   const acctStatus = account?.accountStatus ?? 'active';
+  // Expired/cancelled/ended → the primary action reads "Renew" (still opens the term sheet).
+  const isRenew = status === 'expired' || status === 'cancelled' || status === 'ended';
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['relationship', coachId, clientId] });
@@ -98,38 +101,73 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
       {/* Subscription */}
       <section>
         <h2 className="h2 mb-2">{t('subscription.title')}</h2>
-        <div className="card space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <span data-testid="sub-status" className={`chip ${SUB_PILL[status]}`}>{t(`subscription.status.${status}`)}</span>
             {sub && status !== 'ended' && <span className="font-mono text-[12px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>}
           </div>
+
           {sub ? (
             <>
-              <p className="text-[13px] text-earth-muted">
-                {toDate(sub.startAt)} → {toDate(sub.endAt)}
-                {sub.status === 'frozen' && sub.frozenUntil ? ` · ${t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}` : ''}
-              </p>
-              <p className="text-[13px]" data-testid="sub-price">
-                <span className="text-earth-subtle">{t('subscription.price')}: </span>
-                {sub.price != null ? <span className="font-medium">{sub.price}{sub.currency ? ` ${sub.currency}` : ''}</span> : <span className="text-earth-muted">{t('subscription.noPrice')}</span>}
-              </p>
+              {/* Clear summary grid (renewal date emphasised) instead of a dense inline line. */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div>
+                  <p className="ui-label">{t('subscription.startDate')}</p>
+                  <p className="font-mono text-[13px]">{toDate(sub.startAt) || '—'}</p>
+                </div>
+                <div>
+                  <p className="ui-label">{t('subscription.renews')}</p>
+                  <p className="font-mono text-[13px] font-medium text-earth">{toDate(sub.endAt) || '—'}</p>
+                </div>
+                <div>
+                  <p className="ui-label">{t('subscription.price')}</p>
+                  <p className="text-[13px]" data-testid="sub-price">
+                    {sub.price != null ? <span className="font-medium">{sub.price}{sub.currency ? ` ${sub.currency}` : ''}</span> : <span className="text-earth-muted">{t('subscription.noPrice')}</span>}
+                  </p>
+                </div>
+                <div>
+                  <p className="ui-label">{t('subscription.months')}</p>
+                  <p className="text-[13px]">{sub.months ?? '—'}</p>
+                </div>
+              </div>
+              {sub.status === 'frozen' && sub.frozenUntil && (
+                <p className="text-[12px] text-warn">{t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}</p>
+              )}
             </>
           ) : (
             <p className="text-[13px] text-earth-muted">{t('subscription.none')}</p>
           )}
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="chip" data-testid="sub-set-term" onClick={() => setSheet('term')}>{t('subscription.setTerm')}</button>
-            {sub && <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>}
-            {sub && status === 'frozen' ? (
-              <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreeze'), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
-            ) : sub && status === 'active' ? (
-              <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
-            ) : null}
-            {sub && status !== 'ended' && <button type="button" className="chip text-danger" data-testid="sub-end" disabled={end.isPending} onClick={() => void doEnd()}>{t('subscription.end')}</button>}
-            {sub && (status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => extend.mutate(30)}>{t('subscription.extend')}</button>}
-            {sub && (status === 'active' || status === 'trial') && <button type="button" className="chip text-danger" data-testid="sub-cancel" disabled={cancel.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>}
-            {sub && (status === 'expired' || status === 'cancelled' || status === 'ended') && <button type="button" className="chip" data-testid="sub-renew" onClick={() => setSheet('term')}>{t('subscription.renew')}</button>}
-          </div>
+
+          {/* Primary action (reads "Renew" for expired/cancelled/ended). */}
+          <button type="button" className="btn-primary w-full" data-testid="sub-set-term" onClick={() => setSheet('term')}>
+            {isRenew ? t('subscription.renew') : t('subscription.setTerm')}
+          </button>
+
+          {/* Secondary actions */}
+          {sub && (
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>
+              {status === 'frozen' ? (
+                <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreeze'), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
+              ) : status === 'active' ? (
+                <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
+              ) : null}
+              {(status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && (
+                <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => extend.mutate(30)}>{t('subscription.extend')}</button>
+              )}
+            </div>
+          )}
+
+          {/* Destructive actions — separated so they're not one tap away from routine ones. */}
+          {sub && status !== 'ended' && (
+            <div className="flex flex-wrap gap-2 border-t border-line-soft pt-3">
+              <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-end" disabled={end.isPending} onClick={() => void doEnd()}>{t('subscription.end')}</button>
+              {(status === 'active' || status === 'trial') && (
+                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-cancel" disabled={cancel.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>
+              )}
+            </div>
+          )}
+
           <SubscriptionHistory sub={sub} history={rel.data?.subscriptionHistory} />
         </div>
       </section>
@@ -140,24 +178,24 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         <div className="card space-y-3">
           <span data-testid="acct-status" className={`chip ${ACCT_PILL[acctStatus]}`}>{t(`subscription.acct.${acctStatus}`)}</span>
           <div className="flex flex-wrap gap-2">
-            {/* Freeze ⇄ Unfreeze (hidden once trashed — restore first). */}
+            {/* Suspend ⇄ Unsuspend (hidden once trashed — restore first). */}
             {acctStatus !== 'disabled' &&
               (acctStatus === 'suspended' ? (
-                <button type="button" data-testid="acct-unfreeze" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="chip disabled:opacity-40">
+                <button type="button" data-testid="acct-unfreeze" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost h-9 px-3 text-[13px] disabled:opacity-40">
                   {t('subscription.acctAction.unfreeze')}
                 </button>
               ) : (
-                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending} onClick={() => void changeStatus('suspended')} className="chip text-warn disabled:opacity-40">
+                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending} onClick={() => void changeStatus('suspended')} className="btn-ghost h-9 px-3 text-[13px] text-warn disabled:opacity-40">
                   {t('subscription.acctAction.freeze')}
                 </button>
               ))}
             {/* Trash ⇄ Restore */}
             {acctStatus === 'disabled' ? (
-              <button type="button" data-testid="acct-restore" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="chip disabled:opacity-40">
+              <button type="button" data-testid="acct-restore" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost h-9 px-3 text-[13px] disabled:opacity-40">
                 {t('subscription.acctAction.restore')}
               </button>
             ) : (
-              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending} onClick={() => void changeStatus('disabled')} className="chip text-danger disabled:opacity-40">
+              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending} onClick={() => void changeStatus('disabled')} className="btn-ghost h-9 px-3 text-[13px] text-danger disabled:opacity-40">
                 {t('subscription.acctAction.trash')}
               </button>
             )}
@@ -230,7 +268,7 @@ function FreezeRequestCard({ request, onDecide, busy }: { request: { from?: numb
             <input type="date" className="input" data-testid="freeze-req-until" value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
         </div>
-        <textarea className="input min-h-16" data-testid="freeze-note" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
+        <TextAreaField label={t('field.notes')} className="min-h-16" data-testid="freeze-note" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
         <div className="flex gap-2">
           <button type="button" className="btn-primary flex-1 disabled:opacity-40" data-testid="freeze-accept" disabled={busy || !valid} onClick={() => onDecide('accepted', note, toMs(from), toMs(until))}>
             {t('subscription.accept')}
@@ -249,7 +287,7 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, onSave }: { 
   const [price, setPrice] = useState(initialPrice);
   const [currency, setCurrency] = useState(initialCurrency);
   return (
-    <Sheet open={open} onClose={onClose} title={t('subscription.setPrice')}>
+    <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setPrice')}>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -274,7 +312,7 @@ function SetTermSheet({ open, onClose, initialStart, initialMonths, onSave }: { 
   const [start, setStart] = useState(initialStart);
   const [months, setMonths] = useState(String(initialMonths));
   return (
-    <Sheet open={open} onClose={onClose} title={t('subscription.setTerm')}>
+    <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setTerm')}>
       <div className="space-y-3">
         <div>
           <label className="label">{t('subscription.startDate')}</label>
@@ -298,7 +336,7 @@ function FreezeSheet({ open, onClose, onSave }: { open: boolean; onClose: () => 
   const [until, setUntil] = useState('');
   const [note, setNote] = useState('');
   return (
-    <Sheet open={open} onClose={onClose} title={t('subscription.freeze')}>
+    <Sheet open={open} onClose={onClose} size="md" title={t('subscription.freeze')}>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -310,7 +348,7 @@ function FreezeSheet({ open, onClose, onSave }: { open: boolean; onClose: () => 
             <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
         </div>
-        <textarea className="input min-h-16" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
+        <TextAreaField label={t('field.notes')} className="min-h-16" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
         <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="freeze-save" disabled={!from || !until || toMs(until) <= toMs(from)} onClick={() => onSave(from, until, note)}>
           {t('subscription.freeze')}
         </button>

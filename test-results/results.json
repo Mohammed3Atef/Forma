@@ -75,20 +75,20 @@
   },
   "suites": [
     {
-      "title": "bulk-actions.spec.ts",
-      "file": "bulk-actions.spec.ts",
+      "title": "coach-dashboard.spec.ts",
+      "file": "coach-dashboard.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Bulk actions",
-          "file": "bulk-actions.spec.ts",
+          "title": "Coach premium dashboard",
+          "file": "coach-dashboard.spec.ts",
           "line": 10,
           "column": 6,
           "specs": [
             {
-              "title": "accounts: select-all reveals the bulk bar; action prompts then cancels cleanly",
+              "title": "tabs render and switch; analytics shows revenue, engagement shows adherence",
               "ok": true,
               "tags": [],
               "tests": [
@@ -103,12 +103,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 6227,
+                      "duration": 10167,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:34:30.931Z",
+                      "startTime": "2026-06-26T21:13:55.851Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -116,13 +116,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "8fe0ad117fa9ee0021e3-658941eab7ceb03de26d",
-              "file": "bulk-actions.spec.ts",
-              "line": 11,
+              "id": "250a0449ba1e404c21cc-e2db9293fff69eaec252",
+              "file": "coach-dashboard.spec.ts",
+              "line": 18,
               "column": 3
             },
             {
-              "title": "coaches table: row checkbox selection drives the bulk bar",
+              "title": "analytics revenue is calendar-month cash flow with a renewals breakdown",
               "ok": true,
               "tags": [],
               "tests": [
@@ -137,12 +137,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3173,
+                      "duration": 9213,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:34:37.341Z",
+                      "startTime": "2026-06-26T21:14:06.339Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -150,64 +150,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "8fe0ad117fa9ee0021e3-67c7d3121912dd08bc85",
-              "file": "bulk-actions.spec.ts",
-              "line": 37,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "coach-library.spec.ts",
-      "file": "coach-library.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Coach exercise library",
-          "file": "coach-library.spec.ts",
-          "line": 15,
-          "column": 15,
-          "specs": [
-            {
-              "title": "opens the Library from the bottom nav",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3083,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:34:40.696Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3a8c83dffdde677f38a-4b8674b8e0a4d1da7991",
-              "file": "coach-library.spec.ts",
-              "line": 21,
+              "id": "250a0449ba1e404c21cc-5b3b3e0333386e8ca342",
+              "file": "coach-dashboard.spec.ts",
+              "line": 31,
               "column": 3
             },
             {
-              "title": "creates an exercise in the library (with a quick preset)",
+              "title": "command palette opens with ⌘/Ctrl+K and filters",
               "ok": true,
               "tags": [],
               "tests": [
@@ -222,12 +171,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 4441,
+                      "duration": 4630,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:34:43.793Z",
+                      "startTime": "2026-06-26T21:14:15.579Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -235,13 +184,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "e3a8c83dffdde677f38a-b30d2a0b8945e317c2e9",
-              "file": "coach-library.spec.ts",
-              "line": 28,
+              "id": "250a0449ba1e404c21cc-7e7ff164396c058e0607",
+              "file": "coach-dashboard.spec.ts",
+              "line": 44,
               "column": 3
             },
             {
-              "title": "library exercise persisted under coachAssets with preset values",
+              "title": "mobile overflow menu reaches all destinations + WhatsApp FAB",
               "ok": true,
               "tags": [],
               "tests": [
@@ -256,12 +205,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3394,
+                      "duration": 5070,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:34:48.250Z",
+                      "startTime": "2026-06-26T21:14:20.241Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -269,13 +218,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "e3a8c83dffdde677f38a-5248763ddbd3afd93e52",
-              "file": "coach-library.spec.ts",
-              "line": 43,
+              "id": "250a0449ba1e404c21cc-c029ca4c2783508e7914",
+              "file": "coach-dashboard.spec.ts",
+              "line": 53,
               "column": 3
             },
             {
-              "title": "search filters the library",
+              "title": "no horizontal overflow at mobile / tablet / desktop",
               "ok": true,
               "tags": [],
               "tests": [
@@ -290,12 +239,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3068,
+                      "duration": 8373,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:34:51.659Z",
+                      "startTime": "2026-06-26T21:14:25.342Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -303,77 +252,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "e3a8c83dffdde677f38a-6061585b0598e7039ec1",
-              "file": "coach-library.spec.ts",
-              "line": 56,
-              "column": 3
-            },
-            {
-              "title": "views an exercise read-only, then edits it",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4302,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:34:54.745Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3a8c83dffdde677f38a-8db6623e7356daf0a063",
-              "file": "coach-library.spec.ts",
-              "line": 65,
-              "column": 3
-            },
-            {
-              "title": "deletes a library exercise",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4002,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:34:59.062Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e3a8c83dffdde677f38a-b4b1085e716b2785e09b",
-              "file": "coach-library.spec.ts",
-              "line": 81,
+              "id": "250a0449ba1e404c21cc-a88e8ad065ee0172bbee",
+              "file": "coach-dashboard.spec.ts",
+              "line": 63,
               "column": 3
             }
           ]
@@ -390,7 +271,7 @@
         {
           "title": "Coach portal — responsive shell",
           "file": "coach-responsive.spec.ts",
-          "line": 26,
+          "line": 27,
           "column": 6,
           "specs": [
             {
@@ -409,12 +290,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3254,
+                      "duration": 4314,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:03.088Z",
+                      "startTime": "2026-06-26T21:14:33.769Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -424,7 +305,7 @@
               ],
               "id": "d9d42d9fb67f2dbddba7-0879961cd1364f2b10a8",
               "file": "coach-responsive.spec.ts",
-              "line": 27,
+              "line": 28,
               "column": 3
             },
             {
@@ -443,12 +324,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 7697,
+                      "duration": 11607,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:06.358Z",
+                      "startTime": "2026-06-26T21:14:38.113Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -458,7 +339,41 @@
               ],
               "id": "d9d42d9fb67f2dbddba7-bf62717dd308ada7e1e6",
               "file": "coach-responsive.spec.ts",
-              "line": 52,
+              "line": 53,
+              "column": 3
+            },
+            {
+              "title": "overlays: desktop dialog is centred & content-sized with a single back/close, and form labels are visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6194,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T21:14:49.746Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d9d42d9fb67f2dbddba7-67f5c362cba7b3b94563",
+              "file": "coach-responsive.spec.ts",
+              "line": 87,
               "column": 3
             }
           ]
@@ -466,20 +381,20 @@
       ]
     },
     {
-      "title": "landing.spec.ts",
-      "file": "landing.spec.ts",
+      "title": "coach-signup.spec.ts",
+      "file": "coach-signup.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Landing page (anonymous)",
-          "file": "landing.spec.ts",
-          "line": 10,
+          "title": "Coach self-signup",
+          "file": "coach-signup.spec.ts",
+          "line": 14,
           "column": 6,
           "specs": [
             {
-              "title": "renders the hero and \"Get started\" opens sign-up",
+              "title": "signing up as coach lands active with an auto trial plan + checklist",
               "ok": true,
               "tags": [],
               "tests": [
@@ -494,12 +409,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 984,
+                      "duration": 6439,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:14.083Z",
+                      "startTime": "2026-06-26T21:14:56.305Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -507,13 +422,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "4e5b49d369fd48ca0656-6ae676000ec5fe5d3b1f",
-              "file": "landing.spec.ts",
-              "line": 11,
+              "id": "3fcf4133198038606b7c-a8e4492d5d658b0b2f74",
+              "file": "coach-signup.spec.ts",
+              "line": 15,
               "column": 3
             },
             {
-              "title": "\"Sign in\" CTA opens the login form",
+              "title": "client self-signup is disabled — only the Coach role is offered",
               "ok": true,
               "tags": [],
               "tests": [
@@ -528,12 +443,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 829,
+                      "duration": 1145,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:15.079Z",
+                      "startTime": "2026-06-26T21:15:02.772Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -541,77 +456,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "4e5b49d369fd48ca0656-671a331fc99eb4adbc3a",
-              "file": "landing.spec.ts",
-              "line": 23,
-              "column": 3
-            },
-            {
-              "title": "language toggle flips direction to RTL and back",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1352,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:15.918Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "4e5b49d369fd48ca0656-e620e9904cd2effe486b",
-              "file": "landing.spec.ts",
-              "line": 31,
-              "column": 3
-            },
-            {
-              "title": "no horizontal overflow at mobile and desktop widths",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3081,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:17.284Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "4e5b49d369fd48ca0656-07e0992dfe112b52782d",
-              "file": "landing.spec.ts",
-              "line": 41,
+              "id": "3fcf4133198038606b7c-e83e81f81013da2af08d",
+              "file": "coach-signup.spec.ts",
+              "line": 57,
               "column": 3
             }
           ]
@@ -619,71 +466,20 @@
       ]
     },
     {
-      "title": "rtl.spec.ts",
-      "file": "rtl.spec.ts",
+      "title": "subscription.spec.ts",
+      "file": "subscription.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Arabic / RTL",
-          "file": "rtl.spec.ts",
-          "line": 11,
-          "column": 6,
-          "specs": [
-            {
-              "title": "switch to Arabic → dir=rtl, nav works, no layout break; switch back → ltr",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 6163,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:20.388Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3dcef92d44c531a36c3b-ae1dec9d2b1e54f2d182",
-              "file": "rtl.spec.ts",
-              "line": 17,
-              "column": 3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "workout-templates.spec.ts",
-      "file": "workout-templates.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Workout templates (snapshot independence)",
-          "file": "workout-templates.spec.ts",
-          "line": 58,
+          "title": "Subscriptions & account lifecycle",
+          "file": "subscription.spec.ts",
+          "line": 46,
           "column": 15,
           "specs": [
             {
-              "title": "creates a workout template (day → section → exercise)",
+              "title": "coach sets a term, freezes/unfreezes, and changes account status",
               "ok": true,
               "tags": [],
               "tests": [
@@ -698,12 +494,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 5293,
+                      "duration": 10984,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:26.583Z",
+                      "startTime": "2026-06-26T21:15:03.962Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -711,13 +507,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "9e02fdda59dc9663ec59-a4cbf0ed87fa81a6afc0",
-              "file": "workout-templates.spec.ts",
-              "line": 63,
+              "id": "7d953d1cdb8684155dd7-a6555aa25ee9028d35e1",
+              "file": "subscription.spec.ts",
+              "line": 47,
               "column": 3
             },
             {
-              "title": "template persisted under coachAssets/workoutTemplates",
+              "title": "client requests a freeze; coach accepts it",
               "ok": true,
               "tags": [],
               "tests": [
@@ -732,12 +528,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3188,
+                      "duration": 14906,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:33.136Z",
+                      "startTime": "2026-06-26T21:15:16.841Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -745,13 +541,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "9e02fdda59dc9663ec59-85e6bea215eb326fcba1",
-              "file": "workout-templates.spec.ts",
-              "line": 82,
+              "id": "7d953d1cdb8684155dd7-3091d7873d74997ba075",
+              "file": "subscription.spec.ts",
+              "line": 81,
               "column": 3
             },
             {
-              "title": "assigning the template writes an INDEPENDENT snapshot with meta",
+              "title": "security: coach is limited to their own client; client cannot write the relationship",
               "ok": true,
               "tags": [],
               "tests": [
@@ -766,169 +562,32 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 4983,
+                      "duration": 846,
                       "errors": [],
                       "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:36.340Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9e02fdda59dc9663ec59-f1e1f24cd60ab9bdc874",
-              "file": "workout-templates.spec.ts",
-              "line": 95,
-              "column": 3
-            },
-            {
-              "title": "editing the assigned plan flips isCustomized and leaves the template UNCHANGED",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4210,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:41.340Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9e02fdda59dc9663ec59-6d438752d80ff41bd05a",
-              "file": "workout-templates.spec.ts",
-              "line": 122,
-              "column": 3
-            },
-            {
-              "title": "editing the template later does NOT change the already-assigned plan",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 4075,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T14:35:45.565Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9e02fdda59dc9663ec59-6d35ca30e3eb9fae1b93",
-              "file": "workout-templates.spec.ts",
-              "line": 145,
-              "column": 3
-            },
-            {
-              "title": "client sees the assigned sectioned plan and CANNOT edit it",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 120000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "mobile-chromium",
-                  "projectName": "mobile-chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 26858,
-                      "error": {
-                        "message": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/Day 1/).first()\u001b[22m\n",
-                        "stack": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/Day 1/).first()\u001b[22m\n\n    at D:\\Gym\\e2e\\workout-templates.spec.ts:172:43",
-                        "location": {
-                          "file": "D:\\Gym\\e2e\\workout-templates.spec.ts",
-                          "column": 43,
-                          "line": 172
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 170 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/workout'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 171 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByTestId(\u001b[33mTID\u001b[39m\u001b[33m.\u001b[39mwaitingForCoach))\u001b[33m.\u001b[39mtoHaveCount(\u001b[35m0\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m20\u001b[39m_000 })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 172 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByText(\u001b[35m/Day 1/\u001b[39m)\u001b[33m.\u001b[39mfirst()\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 173 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m'Template Squat'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible({ timeout\u001b[33m:\u001b[39m \u001b[35m15\u001b[39m_000 })\u001b[33m;\u001b[39m\n \u001b[90m 174 |\u001b[39m     \u001b[90m// Working-set tag is visible in the read-only display.\u001b[39m\n \u001b[90m 175 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[35m/Working/\u001b[39m)\u001b[33m.\u001b[39mfirst())\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\u001b[0m"
-                      },
-                      "errors": [
+                      "stderr": [
                         {
-                          "location": {
-                            "file": "D:\\Gym\\e2e\\workout-templates.spec.ts",
-                            "column": 43,
-                            "line": 172
-                          },
-                          "message": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/Day 1/).first()\u001b[22m\n\n\n  170 |     await page.goto('/workout');\n  171 |     await expect(page.getByTestId(TID.waitingForCoach)).toHaveCount(0, { timeout: 20_000 });\n> 172 |     await page.getByText(/Day 1/).first().click();\n      |                                           ^\n  173 |     await expect(page.getByText('Template Squat')).toBeVisible({ timeout: 15_000 });\n  174 |     // Working-set tag is visible in the read-only display.\n  175 |     await expect(page.getByText(/Working/).first()).toBeVisible();\n    at D:\\Gym\\e2e\\workout-templates.spec.ts:172:43"
+                          "text": "[2026-06-26T21:15:32.014Z]  @firebase/firestore: Firestore (11.10.0): GrpcConnection RPC 'Write' stream 0x26c309af error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.\n"
+                        },
+                        {
+                          "text": "[2026-06-26T21:15:32.193Z]  @firebase/firestore: Firestore (11.10.0): GrpcConnection RPC 'Write' stream 0x26c309b2 error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.\n"
+                        },
+                        {
+                          "text": "[2026-06-26T21:15:32.362Z]  @firebase/firestore: Firestore (11.10.0): GrpcConnection RPC 'Write' stream 0x26c309b3 error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.\n"
                         }
                       ],
-                      "stdout": [],
-                      "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T14:35:49.653Z",
+                      "startTime": "2026-06-26T21:15:31.781Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "D:\\Gym\\test-results\\artifacts\\workout-templates-Workout--1ba37-ned-plan-and-CANNOT-edit-it-mobile-chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "D:\\Gym\\test-results\\artifacts\\workout-templates-Workout--1ba37-ned-plan-and-CANNOT-edit-it-mobile-chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "D:\\Gym\\test-results\\artifacts\\workout-templates-Workout--1ba37-ned-plan-and-CANNOT-edit-it-mobile-chromium\\error-context.md"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "D:\\Gym\\test-results\\artifacts\\workout-templates-Workout--1ba37-ned-plan-and-CANNOT-edit-it-mobile-chromium\\trace.zip"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "D:\\Gym\\e2e\\workout-templates.spec.ts",
-                        "column": 43,
-                        "line": 172
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "9e02fdda59dc9663ec59-b98d719eb96599f8bc16",
-              "file": "workout-templates.spec.ts",
-              "line": 165,
+              "id": "7d953d1cdb8684155dd7-6dad6482f80782b3dac1",
+              "file": "subscription.spec.ts",
+              "line": 115,
               "column": 3
             }
           ]
@@ -938,11 +597,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-26T14:34:06.098Z",
-    "duration": 131459.278,
-    "expected": 20,
+    "startTime": "2026-06-26T21:13:03.078Z",
+    "duration": 151838.894,
+    "expected": 13,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

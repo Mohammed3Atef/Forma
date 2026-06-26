@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { StatTile } from '@/components/StatTile';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField } from '@/components/ui/Field';
 import { useSession } from '@/services/auth/sessionStore';
 import {
   addCoachNote,
@@ -219,8 +220,8 @@ function NoteSheet({ open, onClose, clientId, author, onSaved }: { open: boolean
     },
   });
   return (
-    <Sheet open={open} onClose={onClose} title={t('coach.addNote')}>
-      <textarea className="input min-h-28" data-testid="coach-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
+    <Sheet open={open} onClose={onClose} size="md" title={t('coach.addNote')}>
+      <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="coach-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
       <button type="button" data-testid="coach-note-save" disabled={!body.trim() || mut.isPending} onClick={() => mut.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
         {t('common.save')}
       </button>

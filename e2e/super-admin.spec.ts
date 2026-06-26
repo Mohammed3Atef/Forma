@@ -212,4 +212,47 @@ test.describe.serial('Super admin', () => {
     await expect(page.getByText(/feature flag/i).first()).toBeVisible();
     await expect(page.getByTestId(TID.navItem('adminGovernance'))).toBeVisible();
   });
+
+  test('coaches list shows a renewal column; can renew a coach from the detail', async ({ page }) => {
+    const s0 = await signInAs('super_admin');
+    let coachAId = '';
+    try { coachAId = (await findUserByEmail(s0.db, coachAEmail))!.id; } finally { await s0.close(); }
+
+    await page.goto('/admin/coaches');
+    await expect(page.getByTestId('admin-coaches-table')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/renews/i).first()).toBeVisible();
+
+    // Detail renders dynamic tier buttons + a renew action (coach A is a throwaway test coach).
+    await page.goto(`/admin/coaches/${coachAId}`);
+    await expect(page.getByTestId('admin-coach-detail')).toBeVisible();
+    await expect(page.getByTestId('coach-tier-starter')).toBeVisible();
+    await page.getByTestId('coach-renew').click();
+    await expect(page.getByTestId('admin-coach-detail')).toBeVisible();
+  });
+
+  test('plans screen lists the coach plan tiers', async ({ page }) => {
+    await page.goto('/admin/plans');
+    await expect(page.getByTestId('admin-plans')).toBeVisible();
+    await expect(page.locator('[data-testid="plan-row"]').first()).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('can create and archive a custom plan tier', async ({ page }) => {
+    const key = `qaplan${Date.now()}`;
+    await page.goto('/admin/plans');
+    await page.getByTestId('plan-add').click();
+    await expect(page.getByTestId('plan-form')).toBeVisible();
+    await page.getByTestId('plan-key').fill(key);
+    await page.getByTestId('plan-label').fill('QA Plan');
+    await page.getByTestId('plan-max').fill('42');
+    await page.getByTestId('plan-price').fill('123');
+    await page.getByTestId('plan-save').click();
+    await expect(page.getByTestId('plan-form')).toBeHidden({ timeout: 15_000 });
+
+    const row = page.locator(`[data-testid="plan-row"][data-key="${key}"]`);
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    // Archive it (self-contained cleanup) — archived tiers stay listed but lose the archive control.
+    await row.getByTestId('plan-archive').click();
+    await page.getByTestId(TID.confirmAccept).click();
+    await expect(row.getByTestId('plan-archive')).toBeHidden({ timeout: 15_000 });
+  });
 });

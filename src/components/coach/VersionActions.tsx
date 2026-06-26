@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sheet } from "@/components/Sheet";
 import { Icon } from "@/components/Icon";
+import { TextInput } from "@/components/ui/Field";
 import { saveAsNewVersion } from "@/services/platform/planVersionsApi";
 import type {
   CardioPlan,
@@ -72,14 +73,15 @@ export function VersionActions({
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
+        size="md"
         title={t("planVersions.saveAsVersion")}
       >
         <div className="space-y-3">
           <p className="text-[13px] text-earth-muted">
             {t("planVersions.saveAsVersionHint")}
           </p>
-          <input
-            className="input"
+          <TextInput
+            label={t("field.reason")}
             data-testid="version-reason"
             placeholder={t("planVersions.reasonPlaceholder")}
             value={reason}

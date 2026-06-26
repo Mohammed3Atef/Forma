@@ -1,4 +1,11 @@
 {
+  "field": {
+    "name": "الاسم", "email": "البريد الإلكتروني", "phone": "الهاتف", "price": "السعر", "currency": "العملة",
+    "months": "عدد الشهور", "notes": "ملاحظات", "reason": "السبب", "search": "بحث", "category": "الفئة",
+    "quantity": "الكمية", "dose": "الجرعة", "timing": "التوقيت", "duration": "المدة", "frequency": "التكرار",
+    "muscle": "العضلة المستهدفة", "equipment": "الأدوات", "videoUrl": "رابط الفيديو", "id": "المعرّف",
+    "targetId": "معرّف الهدف", "planName": "اسم الخطة"
+  },
   "app": { "name": "فورما" },
   "landing": {
     "nav": { "features": "المزايا", "how": "بيشتغل إزاي", "showcase": "لقطات" },
@@ -115,6 +122,7 @@
     "adminGovernance": "الإعدادات",
     "adminAnalytics": "التحليلات",
     "adminCoaches": "المدرّبون",
+    "adminPlans": "الخطط",
     "adminImages": "الصور"
   },
   "common": {
@@ -857,6 +865,10 @@
     "conversion": "تجريبي←نشط",
     "none": "لسه مفيش مدرّبين.",
     "trialDaysLeft": "أيام التجربة الباقية",
+    "daysLeftLabel": "الأيام الباقية",
+    "renews": "التجديد / الانتهاء",
+    "renew": "جدّد +٣٠ يوم",
+    "requestPending": "طلب",
     "accountStatus": "الحساب",
     "changeTier": "تغيير الخطة",
     "actions": "إجراءات",
@@ -891,6 +903,15 @@
     "monthlyRevenue": "الإيراد الشهري",
     "expectedRevenue": "الإيراد المتوقّع",
     "lostRevenue": "الإيراد المفقود",
+    "revenueThisMonth": "إيراد الشهر ده",
+    "revenueHint": "المتحصّل + المستحق الجاي (كل اشتراك بيتحسب في شهر تجديده)",
+    "collectedThisMonth": "اتحصّل الشهر ده",
+    "dueThisMonth": "مستحق (جاي)",
+    "lapsedThisMonth": "ضاع الشهر ده",
+    "renewalsTitle": "تجديدات الشهر ده",
+    "renewalDate": "تاريخ التجديد",
+    "renewalAmount": "المبلغ",
+    "noRenewals": "مفيش تجديدات جاية الشهر ده",
     "subscriptions": "الاشتراكات",
     "expiring": "بتنتهي خلال 7 / 30 يوم",
     "expiringHint": "قريّب / الشهر ده",
@@ -1017,6 +1038,7 @@
     "confirmEnd": "تنهي اشتراك العميل ده دلوقتي؟",
     "confirmUnfreeze": "ترجّع اشتراك العميل ده دلوقتي؟",
     "startDate": "تاريخ البدء",
+    "renews": "بيتجدد",
     "months": "الأشهر",
     "from": "من",
     "until": "لحد",
@@ -1407,7 +1429,34 @@
     "current": "الحالية",
     "accepted": "تمت الموافقة على طلب الترقية ✅",
     "history": "سجل الخطة",
-    "hist": { "tier": "الخطة اتغيّرت", "maxClients": "حد العملاء", "status": "الحالة", "endsAt": "تاريخ الانتهاء", "requested": "اتطلب", "request": { "accepted": "تمت الموافقة على الطلب", "rejected": "اترفض الطلب" } }
+    "hist": { "tier": "الخطة اتغيّرت", "maxClients": "حد العملاء", "status": "الحالة", "endsAt": "تاريخ الانتهاء", "requested": "اتطلب", "request": { "accepted": "تمت الموافقة على الطلب", "rejected": "اترفض الطلب" } },
+    "viewPlan": "اعرض الخطة",
+    "lockedTitle": "خطتك خلصت",
+    "lockedSuspendedTitle": "خطتك متوقفة",
+    "lockedBody": "جدّد خطتك عشان تكمل إنشاء وتعديل. عملاؤك مش هيتأثروا.",
+    "banner": {
+      "expired": "خطتك خلصت — جدّد عشان تفضل تدير عملاءك.",
+      "suspended": "خطتك متوقفة — كلّم الأدمن.",
+      "endingSoon": "خطتك بتخلص خلال {{n}} يوم — جدّد عشان متتقطعش.",
+      "renew": "تجديد"
+    }
+  },
+  "adminPlans": {
+    "title": "الخطط",
+    "hint": "عدّل باقات المدربين — حد العملاء والسعر الشهري. التغييرات بتتطبق لما الباقة تتسند.",
+    "add": "ضيف خطة",
+    "edit": "عدّل الخطة",
+    "archive": "أرشفة",
+    "confirmArchive": "تأرشف باقة «{{name}}»؟ المدربين اللي عليها هيفضلوا بحدّهم.",
+    "archived": "مؤرشفة",
+    "inactive": "مش نشطة",
+    "none": "مفيش خطط لسه.",
+    "key": "معرّف الباقة",
+    "keyHint": "معرّف صغير (حروف وأرقام و- أو _). مش هينفع يتغير بعدين.",
+    "label": "الاسم المعروض",
+    "order": "الترتيب",
+    "active": "نشطة",
+    "priceMonthly": "السعر الشهري"
   },
   "existing": {
     "title": "ضيف عميل موجود",

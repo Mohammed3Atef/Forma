@@ -16,6 +16,7 @@ import { useSelection } from '@/hooks/useSelection';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
 import { trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
@@ -60,7 +61,7 @@ export function CoachesPanel() {
 
   const usage = (r: CoachAdminRow) => `${r.clientCount}${r.plan ? `/${r.plan.maxClients}` : ''}`;
   const daysLeft = (r: CoachAdminRow) => {
-    if (r.state !== 'trial' || !r.plan) return '—';
+    if (!r.plan?.endsAt) return '—';
     const n = trialDaysLeft(r.plan);
     return n == null ? '—' : `${Math.max(0, n)}`;
   };
@@ -79,10 +80,10 @@ export function CoachesPanel() {
         </span>
       ),
     },
-    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{t(`adminCoaches.tier.${r.plan?.plan ?? 'none'}`)}</span> },
+    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{tierLabel(d.tiers, r.plan?.plan ?? 'none', t)}</span> },
     { key: 'state', header: t('subscription.accountTitle'), cell: (r) => <CoachStateBadge state={r.state} /> },
     { key: 'used', header: t('adminCoaches.clientsUsed'), cell: (r) => <span className="font-mono text-sm">{usage(r)}</span>, className: 'text-end' },
-    { key: 'days', header: t('adminCoaches.trialDaysLeft'), cell: (r) => <span className="font-mono text-sm">{daysLeft(r)}</span>, className: 'text-end' },
+    { key: 'days', header: t('adminCoaches.daysLeftLabel'), cell: (r) => <span className="font-mono text-sm">{daysLeft(r)}</span>, className: 'text-end' },
     { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
   ];
 
@@ -144,7 +145,7 @@ export function CoachesPanel() {
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{r.coach.displayName || r.coach.email}</div>
                 <div className="mt-0.5 flex items-center gap-2 text-[12px] text-earth-subtle">
-                  <span>{t(`adminCoaches.tier.${r.plan?.plan ?? 'none'}`)}</span>
+                  <span>{tierLabel(d.tiers, r.plan?.plan ?? 'none', t)}</span>
                   <span>·</span>
                   <span className="font-mono">{usage(r)}</span>
                 </div>

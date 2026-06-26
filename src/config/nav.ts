@@ -83,6 +83,7 @@ export const ADMIN_NAV: NavItem[] = [
 export const SUPER_ADMIN_NAV: NavItem[] = [
   ...ADMIN_NAV,
   { to: '/admin/coaches', icon: 'trophy', key: 'adminCoaches' },
+  { to: '/admin/plans', icon: 'list', key: 'adminPlans' },
   { to: '/admin/media', icon: 'image', key: 'adminImages' },
 ];
 

@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField } from '@/components/ui/Field';
 import { EntityNotesProvider, type NoteAnchorCtx } from '@/components/EntityNotes';
 import { ClientActivityView } from '@/pages/coach/ClientActivityView';
 import { CoachViewNutrition } from '@/pages/coach/CoachViewNutrition';
@@ -83,8 +84,8 @@ export function CoachViewLayout() {
         {activeTab === 'progress' && <CoachViewProgress clientId={clientId} />}
       </EntityNotesProvider>
 
-      <Sheet open={!!pending} onClose={() => setPending(null)} title={pending?.label ? t('notes.noteOn', { name: pending.label }) : t('coach.addNote')}>
-        <textarea className="input min-h-28" data-testid="entity-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
+      <Sheet open={!!pending} onClose={() => setPending(null)} size="md" title={pending?.label ? t('notes.noteOn', { name: pending.label }) : t('coach.addNote')}>
+        <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="entity-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
         <button type="button" data-testid="entity-note-save" disabled={!body.trim() || addNote.isPending} onClick={() => addNote.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
           {t('common.save')}
         </button>

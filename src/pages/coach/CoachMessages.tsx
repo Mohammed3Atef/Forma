@@ -7,6 +7,7 @@ import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { TextAreaField } from '@/components/ui/Field';
 import { MessageThread } from '@/components/MessageThread';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
@@ -105,7 +106,7 @@ export function CoachMessages() {
         </>
       )}
 
-      <Sheet open={broadcasting} onClose={() => setBroadcasting(false)} title={t('messages.broadcast')}>
+      <Sheet open={broadcasting} onClose={() => setBroadcasting(false)} size="md" title={t('messages.broadcast')}>
         {coachId && <BroadcastForm coachId={coachId} role={account?.role ?? 'coach'} clients={list} onDone={() => setBroadcasting(false)} />}
       </Sheet>
     </>
@@ -170,7 +171,7 @@ function BroadcastForm({ coachId, role, clients, onDone }: { coachId: string; ro
           <button key={c.id} type="button" onClick={() => toggle(c.id)} className={`chip ${selected.has(c.id) ? 'chip-on' : ''}`}>{c.displayName || c.email}</button>
         ))}
       </div>
-      <textarea className="input min-h-28" data-testid="broadcast-body" placeholder={t('coach.announcementPlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
+      <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="broadcast-body" placeholder={t('coach.announcementPlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
       <button type="button" data-testid="broadcast-send" disabled={!body.trim() || recipients.length === 0 || send.isPending} onClick={() => send.mutate()} className="btn-primary w-full disabled:opacity-40">
         {send.isPending ? t('auth.working') : t('messages.send')}
       </button>

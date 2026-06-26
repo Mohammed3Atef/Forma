@@ -9,11 +9,11 @@ import { fetchUserRecord } from '@/services/accounts/accountService';
 import { setAccountStatus } from '@/services/platform/accountsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
-  COACH_PLAN_TIERS,
   coachPlanState,
   extendCoachTrial,
   getCoachPlan,
   getCoachPlanChangeRequest,
+  renewCoachPlan,
   resolvePlanChangeRequest,
   setCoachMaxClients,
   setCoachPlanEndsAt,
@@ -21,9 +21,9 @@ import {
   trialDaysLeft,
   type CoachTierKey,
 } from '@/services/platform/coachPlanApi';
+import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { shortDate } from '@/lib/utils';
 
-const TIERS: CoachTierKey[] = ['trial', 'starter', 'pro', 'enterprise'];
 const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 /** Super-admin: manage one coach's plan tier, client limit, end date, trial,
@@ -43,6 +43,8 @@ export function AdminCoachDetail() {
   const plan = useQuery({ queryKey: ['coachPlanAdmin', coachId], queryFn: () => getCoachPlan(coachId), enabled: isSuper && !!coachId });
   const reqQ = useQuery({ queryKey: ['coachPlanRequest', coachId], queryFn: () => getCoachPlanChangeRequest(coachId), enabled: isSuper && !!coachId });
   const clientsQ = useQuery({ queryKey: ['adminCoachClients', coachId], queryFn: () => listMyClients(coachId), enabled: isSuper && !!coachId });
+  const tiersQ = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: isSuper });
+  const tiers = tiersQ.data ?? [];
 
   useEffect(() => {
     setEndDate(plan.data?.endsAt ? toIso(plan.data.endsAt) : '');
@@ -55,6 +57,7 @@ export function AdminCoachDetail() {
   };
   const tier = useMutation({ mutationFn: (tk: CoachTierKey) => setCoachTier(coachId, tk), onSuccess: invalidate });
   const extend = useMutation({ mutationFn: (days: number) => extendCoachTrial(coachId, days), onSuccess: invalidate });
+  const renew = useMutation({ mutationFn: () => renewCoachPlan(coachId), onSuccess: invalidate });
   const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); invalidate(); } });
   const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: invalidate });
   const acct = useMutation({ mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s), onSuccess: invalidate });
@@ -70,6 +73,8 @@ export function AdminCoachDetail() {
       const cur = reqQ.data;
       if (cur?.requestedTier) await setCoachTier(coachId, cur.requestedTier);
       if (cur?.requestedMaxClients) await setCoachMaxClients(coachId, cur.requestedMaxClients);
+      // A reason-only request (no tier/cap change) is a RENEWAL request — extend the term.
+      if (!cur?.requestedTier && !cur?.requestedMaxClients) await renewCoachPlan(coachId);
       await resolvePlanChangeRequest(coachId, meId, 'accepted', note);
     },
     onSuccess: onResolved,
@@ -94,7 +99,7 @@ export function AdminCoachDetail() {
           {pendingReq && r ? (
             <section className="card space-y-3 border-brand/40" data-testid="coach-plan-request-card">
               <h2 className="h2">{t('admin.requestFrom')}</h2>
-              {r.requestedTier ? <Row label={t('admin.requestedTier')} value={t(`adminCoaches.tier.${r.requestedTier}`)} /> : null}
+              {r.requestedTier ? <Row label={t('admin.requestedTier')} value={tierLabel(tiers, r.requestedTier, t)} /> : null}
               {r.requestedMaxClients ? <Row label={t('adminCoaches.clientLimit')} value={String(r.requestedMaxClients)} /> : null}
               {r.reason ? <p className="text-sm text-earth-muted">{r.reason}</p> : null}
               <textarea className="input min-h-16" placeholder={t('admin.requestReason')} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -107,11 +112,11 @@ export function AdminCoachDetail() {
           ) : null}
 
           <section className="card space-y-2">
-            <Row label={t('adminCoaches.plan')} value={t(`adminCoaches.tier.${p?.plan ?? 'none'}`)} />
+            <Row label={t('adminCoaches.plan')} value={tierLabel(tiers, p?.plan ?? 'none', t)} />
             <Row label={t('subscription.accountTitle')} value={t(`adminCoaches.state.${state}`)} />
             <Row label={t('adminCoaches.clientsUsed')} value={p ? `${clientCount} / ${p.maxClients}` : String(clientCount)} />
             <Row label={t('admin.endDate')} value={p?.endsAt ? shortDate(toIso(p.endsAt), i18n.language) : '—'} />
-            {p?.plan === 'trial' && daysLeft != null ? <Row label={t('adminCoaches.trialDaysLeft')} value={t('subscription.daysLeft', { n: Math.max(0, daysLeft) })} /> : null}
+            {daysLeft != null && state !== 'expired' ? <Row label={t('adminCoaches.daysLeftLabel')} value={t('subscription.daysLeft', { n: Math.max(0, daysLeft) })} /> : null}
             <Row label={t('admin.started')} value={p?.startedAt ? shortDate(toIso(p.startedAt), i18n.language) : '—'} />
             <Row label={t('adminCoaches.accountStatus')} value={t(`subscription.acct.${coach.data?.accountStatus ?? 'active'}`)} />
           </section>
@@ -136,9 +141,9 @@ export function AdminCoachDetail() {
           <section className="space-y-2">
             <h2 className="h2">{t('adminCoaches.changeTier')}</h2>
             <div className="flex flex-wrap gap-2">
-              {TIERS.map((tk) => (
-                <button key={tk} type="button" data-testid={`coach-tier-${tk}`} disabled={tier.isPending} onClick={() => tier.mutate(tk)} className={`chip ${p?.plan === tk ? 'chip-on' : ''}`}>
-                  {t(`adminCoaches.tier.${tk}`)} · {COACH_PLAN_TIERS[tk].maxClients}
+              {tiers.map((tr) => (
+                <button key={tr.key} type="button" data-testid={`coach-tier-${tr.key}`} disabled={tier.isPending} onClick={() => tier.mutate(tr.key)} className={`chip ${p?.plan === tr.key ? 'chip-on' : ''}`}>
+                  {tierLabel(tiers, tr.key, t)} · {tr.maxClients}
                 </button>
               ))}
             </div>
@@ -147,6 +152,7 @@ export function AdminCoachDetail() {
           <section className="space-y-2">
             <h2 className="h2">{t('adminCoaches.actions')}</h2>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending} onClick={() => renew.mutate()}>{t('adminCoaches.renew')}</button>
               <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending} onClick={() => extend.mutate(15)}>{t('adminCoaches.extendTrial')}</button>
               {coach.data?.accountStatus === 'suspended' ? (
                 <button type="button" className="chip" data-testid="coach-reactivate" disabled={acct.isPending} onClick={() => acct.mutate('active')}>{t('adminCoaches.reactivate')}</button>

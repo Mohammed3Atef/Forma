@@ -39,3 +39,34 @@ test.describe('Arabic / RTL', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   });
 });
+
+/**
+ * Coach portal under RTL on desktop: the centred dialog must lay out correctly
+ * with a SINGLE, direction-aware back chevron and no horizontal overflow.
+ */
+test.describe('Arabic / RTL — Coach desktop overlays', () => {
+  test('desktop RTL: open dialog has one flipped back control and no overflow', async ({ page, login }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login('coach');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.evaluate(() => document.documentElement.setAttribute('dir', 'rtl'));
+
+    await page.goto('/coach/clients');
+    await page.getByTestId(TID.coachClients).waitFor({ timeout: 25_000 });
+
+    // Add Client → "Add Existing" surfaces the single header back control.
+    await page.getByTestId(TID.coachAddClient).click();
+    await expect(page.getByTestId(TID.addClientChooser)).toBeVisible();
+    await page.getByTestId(TID.addChooseExisting).click();
+    await expect(page.getByTestId(TID.addExistingPanel)).toBeVisible();
+
+    const back = page.getByTestId(TID.sheetPanel).locator('[aria-label="back"]');
+    await expect(back, 'exactly one back control in RTL').toHaveCount(1);
+    await expect(page.getByTestId(TID.sheetClose), 'exactly one close control in RTL').toHaveCount(1);
+
+    const overflow = await horizontalOverflow(page);
+    expect(overflow, `RTL desktop overflow ${overflow}px`).toBeLessThanOrEqual(2);
+
+    await page.evaluate(() => document.documentElement.setAttribute('dir', 'ltr'));
+  });
+});

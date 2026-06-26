@@ -28,7 +28,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
         <MetricCard icon="check" value={d.pendingAssessments} label={t('coachDash.pendingAssessments')} tone={d.pendingAssessments > 0 ? 'warn' : 'default'} onClick={() => navigate('/coach/assessments')} />
         <MetricCard icon="calendar" value={d.checkinsToReview} label={t('coachDash.checkins')} tone={d.checkinsToReview > 0 ? 'warn' : 'default'} />
         <MetricCard icon="chat" value={d.unreadMessages} label={t('coachDash.unread')} tone={d.unreadMessages > 0 ? 'danger' : 'default'} onClick={() => navigate('/coach/messages')} />
-        <MetricCard icon="bolt" value={`${d.expectedRevenue} ${d.currency}`} label={t('coachDash.expectedRevenue')} tone="success" />
+        <MetricCard icon="bolt" value={`${d.revenueThisMonth} ${d.currency}`} label={t('coachDash.revenueThisMonth')} tone="success" />
       </div>
 
       <DashboardSection title={t('coachDash.quickActions')} icon="bolt">

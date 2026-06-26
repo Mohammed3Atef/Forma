@@ -28,6 +28,19 @@ test.describe('Coach premium dashboard', () => {
     await expect(page.getByText(/adherence/i).first()).toBeVisible({ timeout: 20_000 });
   });
 
+  test('analytics revenue is calendar-month cash flow with a renewals breakdown', async ({ page }) => {
+    await page.getByTestId(TID.coachDashTab('analytics')).click();
+    await expect(page).toHaveURL(/tab=analytics/);
+    // Cash-flow tiles (replacing the old blended run-rate). "Collected this month"
+    // + "Renewals this month" are analytics-only, so they prove the new section rendered.
+    await expect(page.getByText(/collected this month/i).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/revenue this month/i).first()).toBeVisible();
+    // Per-client renewals breakdown renders (rows or its empty state).
+    await expect(page.getByText(/renewals this month/i).first()).toBeVisible();
+    const overflow = await horizontalOverflow(page);
+    expect(overflow, `analytics overflow ${overflow}px`).toBeLessThanOrEqual(2);
+  });
+
   test('command palette opens with ⌘/Ctrl+K and filters', async ({ page }) => {
     await page.keyboard.press('Control+k');
     await expect(page.getByTestId(TID.commandInput)).toBeVisible();
