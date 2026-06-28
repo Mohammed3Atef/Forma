@@ -4,6 +4,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { ReminderBanner } from '@/components/ReminderBanner';
 import { WhatsAppFab } from '@/components/WhatsAppFab';
 import type { NavItem } from '@/config/nav';
+import { useLayoutStore } from '@/stores/layoutStore';
 import { SidebarNav } from './SidebarNav';
 import { DesktopTopBar } from './DesktopTopBar';
 
@@ -24,6 +25,8 @@ export function ResponsiveShell({
   sidebarItems: NavItem[];
   children: ReactNode;
 }) {
+  // Data-dense pages opt into full width via useFullBleed(); others stay capped.
+  const fullBleed = useLayoutStore((s) => s.fullBleed);
   return (
     <div className="min-h-full md:flex md:min-h-dvh" data-testid="app-shell">
       <SidebarNav items={sidebarItems} />
@@ -35,7 +38,7 @@ export function ResponsiveShell({
           <DesktopTopBar />
         </div>
         <ReminderBanner />
-        <main className="mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-28 pt-1 md:max-w-screen-2xl md:px-6 md:pb-8 md:pt-5 lg:px-8">
+        <main className={`mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-28 pt-1 md:px-6 md:pb-8 md:pt-5 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
           {children}
         </main>
         <div className="md:hidden">

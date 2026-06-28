@@ -89,3 +89,30 @@ test.describe('Offline & sync (client)', () => {
     await expect(page.getByText('8,888').first()).toBeVisible({ timeout: 15_000 });
   });
 });
+
+test.describe('Offline UX — banner + Coach/Admin gating', () => {
+  test('client shows the global offline banner and keeps rendering; reconnect clears it', async ({ page, login, context }) => {
+    await login('client');
+    await expect(page.getByTestId(TID.appShell)).toBeVisible();
+
+    await context.setOffline(true);
+    await expect(page.getByTestId('offline-banner')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId(TID.appShell)).toBeVisible(); // offline-first: no crash
+
+    await context.setOffline(false);
+    await expect(page.getByTestId('offline-banner')).toBeHidden({ timeout: 10_000 });
+  });
+
+  test('coach management actions are disabled offline', async ({ page, login, context }) => {
+    await login('coach'); // mobile landing first (fixture waits for the clients list)
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/coach/clients');
+    await expect(page.getByTestId(TID.coachClients)).toBeVisible({ timeout: 25_000 });
+
+    await context.setOffline(true);
+    await expect(page.getByTestId('offline-banner')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId(TID.coachAddClient)).toBeDisabled(); // coach mutation safety
+
+    await context.setOffline(false);
+  });
+});

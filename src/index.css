@@ -96,7 +96,8 @@ input[type='number'] {
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-6
       font-mono text-[13px] font-medium uppercase tracking-[0.04em]
-      transition-transform duration-200 ease-card active:scale-[0.975] disabled:opacity-50;
+      transition-transform duration-200 ease-card active:scale-[0.975] disabled:opacity-50
+      motion-reduce:transition-none motion-reduce:active:scale-100;
     min-height: 3rem;
   }
   .btn-lg {
@@ -121,7 +122,8 @@ input[type='number'] {
   .icon-btn {
     @apply inline-flex shrink-0 items-center justify-center rounded-full border border-white/15
       bg-transparent text-white transition-transform duration-200 ease-card
-      hover:bg-white/5 active:scale-90 disabled:opacity-40;
+      hover:bg-white/5 active:scale-90 disabled:opacity-40
+      motion-reduce:transition-none motion-reduce:active:scale-100;
   }
 
   /* ---- Inputs ---- */
@@ -165,7 +167,8 @@ input[type='number'] {
 
   /* ---- Chips ---- */
   .chip {
-    @apply shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted;
+    @apply shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted
+      transition-colors hover:border-line/80 hover:text-earth motion-reduce:transition-none;
   }
   .chip-on {
     @apply border-white bg-white text-black;

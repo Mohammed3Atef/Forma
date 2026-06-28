@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs, useTabParam, type TabDef } from '@/components/ui/Tabs';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useSession } from '@/services/auth/sessionStore';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { checkTrialExpiry } from '@/services/platform/coachTrialApi';
@@ -21,6 +22,7 @@ import { firstName, greetingKey } from '@/pages/coach/dashboard/parts';
 
 /** Premium coach home: greeting hero + quick stats, then tabbed dashboard. */
 export function CoachDashboard() {
+  useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const coachId = useSession((s) => s.account?.id);

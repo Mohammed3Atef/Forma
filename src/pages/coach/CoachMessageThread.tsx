@@ -16,7 +16,7 @@ export function CoachMessageThread() {
   const name = user.data?.displayName || user.data?.email || t('coach.client');
 
   return (
-    <div className="anim-rise">
+    <div className="anim-rise -mb-28 flex h-[calc(100dvh-8.5rem)] flex-col md:mb-0 md:h-[calc(100dvh-7rem)]">
       <TopBar
         title={name}
         eyebrow={t('coach.messages')}
@@ -24,7 +24,9 @@ export function CoachMessageThread() {
         onTitleClick={() => navigate(`/coach/client/${clientId}`)}
         sticky
       />
-      <MessageThread clientId={clientId} meId={account?.id ?? ''} meRole={account?.role ?? 'coach'} />
+      <div className="min-h-0 flex-1">
+        <MessageThread clientId={clientId} meId={account?.id ?? ''} meRole={account?.role ?? 'coach'} peer={{ name, photoUrl: user.data?.photoUrl }} />
+      </div>
     </div>
   );
 }

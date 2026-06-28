@@ -593,10 +593,10 @@ export type MessageCategory = 'message' | 'announcement' | 'offer' | 'reminder' 
  * when the OTHER party opens the thread (Sent → Seen). Broadcasts are normal
  * messages fanned into each client's thread with `broadcast: true` + a category.
  */
-/** A CDN-hosted attachment on a message (image / video / document). */
+/** A CDN-hosted attachment on a message (image / video / audio / document). */
 export interface MessageAttachment {
   url: string;
-  kind: 'image' | 'video' | 'file';
+  kind: 'image' | 'video' | 'audio' | 'file';
   name?: string;
   size?: number;
 }

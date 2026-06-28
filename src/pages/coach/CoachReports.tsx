@@ -9,6 +9,7 @@ import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSession } from '@/services/auth/sessionStore';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
 import { shortDate } from '@/lib/utils';
@@ -20,6 +21,7 @@ import { shortDate } from '@/lib/utils';
  * (substitutions surface per-client in the activity view today).
  */
 export function CoachReports() {
+  useFullBleed();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const coachId = useSession((s) => s.account?.id);

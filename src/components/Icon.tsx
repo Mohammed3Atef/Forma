@@ -41,6 +41,7 @@ type IconName =
   | 'rotate'
   | 'bell'
   | 'chat'
+  | 'mic'
   | 'shield';
 
 const PATHS: Record<IconName, string> = {
@@ -85,19 +86,42 @@ const PATHS: Record<IconName, string> = {
   rotate: 'M3 4v6h6M3.5 10a9 9 0 1 1-1 5',
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   chat: 'M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z',
+  mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
   shield: 'M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3zM9.5 12l2 2 3.5-4',
 };
 
+/** Design-system size scale (px). Numeric sizes still accepted for fine control. */
+const ICON_SIZES = { xs: 14, sm: 16, md: 20, lg: 24 } as const;
+export type IconSize = number | keyof typeof ICON_SIZES;
+/** Semantic colour tones (the icon otherwise inherits currentColor). */
+const ICON_TONES = {
+  muted: 'text-earth-muted',
+  brand: 'text-brand',
+  success: 'text-success-light',
+  warning: 'text-warn',
+  danger: 'text-danger',
+  info: 'text-system',
+} as const;
+export type IconTone = keyof typeof ICON_TONES;
+
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
-  size?: number;
+  size?: IconSize;
+  /** Semantic colour; omit to inherit the parent's text colour. */
+  tone?: IconTone;
 }
 
-export function Icon({ name, size = 24, ...rest }: IconProps) {
+/**
+ * Decorative by default (`aria-hidden`) — icons convey meaning through their
+ * surrounding control, so action buttons carry the `aria-label`, not the icon.
+ */
+export function Icon({ name, size = 24, tone, className, ...rest }: IconProps) {
+  const px = typeof size === 'number' ? size : ICON_SIZES[size];
+  const cls = [tone ? ICON_TONES[tone] : '', className].filter(Boolean).join(' ');
   return (
     <svg
-      width={size}
-      height={size}
+      width={px}
+      height={px}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -105,6 +129,7 @@ export function Icon({ name, size = 24, ...rest }: IconProps) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className={cls || undefined}
       {...rest}
     >
       <path d={PATHS[name]} />

@@ -92,14 +92,22 @@ export async function uploadImageToBunny(file: Blob, opts: { folder: string }): 
 }
 
 /** How an attachment should be rendered. */
-export type AttachmentKind = 'image' | 'video' | 'file';
+export type AttachmentKind = 'image' | 'video' | 'audio' | 'file';
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024; // 10 MB (voice messages)
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export function attachmentKind(mime: string): AttachmentKind {
   if (ALLOWED_MIME.has(mime)) return 'image';
   if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
   return 'file';
+}
+
+function maxBytesFor(kind: AttachmentKind): number {
+  if (kind === 'video') return MAX_VIDEO_BYTES;
+  if (kind === 'audio') return MAX_AUDIO_BYTES;
+  return MAX_FILE_BYTES;
 }
 
 function fileExt(name: string, mime: string): string {
@@ -118,7 +126,7 @@ export async function uploadFileToBunny(file: File, opts: { folder: string }): P
   const { zone, apiKey, cdnUrl, region } = cfg();
   if (!zone || !apiKey || !cdnUrl) throw new UploadError('notConfigured');
   const kind = attachmentKind(file.type);
-  if (file.size > (kind === 'video' ? MAX_VIDEO_BYTES : MAX_FILE_BYTES)) throw new UploadError('tooLarge');
+  if (file.size > maxBytesFor(kind)) throw new UploadError('tooLarge');
 
   const folder = opts.folder.replace(/^\/+|\/+$/g, '');
   const path = `${folder}/${randomKey()}.${fileExt(file.name, file.type)}`;

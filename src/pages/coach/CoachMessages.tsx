@@ -1,26 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { MessageCategory, UserRecord } from '@/types';
+import type { MessageAttachment, MessageCategory, UserRecord } from '@/types';
 import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
-import { TextAreaField } from '@/components/ui/Field';
+import { SearchField, TextAreaField } from '@/components/ui/Field';
 import { MessageThread } from '@/components/MessageThread';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import { broadcast, threadMeta, type ThreadMeta } from '@/services/platform/messagesApi';
+import { broadcast, subscribeThreadMeta, type ThreadMeta } from '@/services/platform/messagesApi';
 import { alertDialog } from '@/stores/dialogStore';
 
 const CATEGORIES: MessageCategory[] = ['announcement', 'offer', 'reminder', 'update'];
 
+/** Inbox preview label key for an attachment-only message, by kind. */
+const ATTACH_PREVIEW: Record<MessageAttachment['kind'], string> = {
+  image: 'photoMsg',
+  video: 'videoMsg',
+  audio: 'audioMsg',
+  file: 'fileMsg',
+};
+
 /** Coach messaging inbox: a thread per client + a broadcast composer. */
 export function CoachMessages() {
+  useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const account = useSession((s) => s.account);
@@ -33,22 +43,20 @@ export function CoachMessages() {
   const clientList = clients.data ?? [];
   const clientIds = clientList.map((c) => c.id).join(',');
 
-  // Last message + unread per client, in one query, so the inbox can sort
-  // conversations newest-activity first.
-  const metas = useQuery({
-    queryKey: ['threadMetas', coachId, clientIds],
-    queryFn: async () => {
-      const entries = await Promise.all(clientList.map(async (c) => [c.id, await threadMeta(c.id)] as const));
-      return Object.fromEntries(entries) as Record<string, ThreadMeta>;
-    },
-    enabled: clientList.length > 0,
-    refetchInterval: 30_000,
-  });
+  // Live last-message + unread per client (one Firestore listener per thread),
+  // powering both the inbox sort (newest activity first) and each row's preview.
+  const [metaMap, setMetaMap] = useState<Record<string, ThreadMeta>>({});
+  useEffect(() => {
+    const ids = clientIds ? clientIds.split(',') : [];
+    if (!ids.length) return;
+    const unsubs = ids.map((id) => subscribeThreadMeta(id, (meta) => setMetaMap((prev) => ({ ...prev, [id]: meta }))));
+    return () => unsubs.forEach((u) => u());
+  }, [clientIds]);
 
-  const list = useMemo(() => {
-    const m = metas.data ?? {};
-    return [...clientList].sort((a, b) => (m[b.id]?.last?.createdAt ?? 0) - (m[a.id]?.last?.createdAt ?? 0));
-  }, [clientList, metas.data]);
+  const list = useMemo(
+    () => [...clientList].sort((a, b) => (metaMap[b.id]?.last?.createdAt ?? 0) - (metaMap[a.id]?.last?.createdAt ?? 0)),
+    [clientList, metaMap],
+  );
   const selectedClient = list.find((c) => c.id === selectedId) ?? null;
   const pg = usePagination(list, 30);
 
@@ -74,7 +82,7 @@ export function CoachMessages() {
               <p className="p-4 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
             ) : (
               list.map((c) => (
-                <ThreadRow key={c.id} client={c} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
+                <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
               ))
             )}
           </div>
@@ -83,7 +91,7 @@ export function CoachMessages() {
               <div className="card flex h-[calc(100dvh-12rem)] flex-col p-3">
                 <h2 className="h2 mb-1 px-1">{selectedClient.displayName || selectedClient.email}</h2>
                 <div className="min-h-0 flex-1">
-                  <MessageThread key={selectedClient.id} clientId={selectedClient.id} meId={coachId} meRole="coach" embedded />
+                  <MessageThread key={selectedClient.id} clientId={selectedClient.id} meId={coachId} meRole="coach" peer={{ name: selectedClient.displayName || selectedClient.email, photoUrl: selectedClient.photoUrl }} />
                 </div>
               </div>
             ) : (
@@ -99,7 +107,7 @@ export function CoachMessages() {
         <>
           <div className="card divide-y divide-line-soft">
             {pg.pageItems.map((c) => (
-              <ThreadRow key={c.id} client={c} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
+              <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
             ))}
           </div>
           <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
@@ -113,11 +121,10 @@ export function CoachMessages() {
   );
 }
 
-function ThreadRow({ client, onOpen, active = false }: { client: UserRecord; onOpen: () => void; active?: boolean }) {
+function ThreadRow({ client, meta, onOpen, active = false }: { client: UserRecord; meta?: ThreadMeta; onOpen: () => void; active?: boolean }) {
   const { t } = useTranslation();
-  const meta = useQuery({ queryKey: ['threadMeta', client.id], queryFn: () => threadMeta(client.id), refetchInterval: 30_000 });
-  const last = meta.data?.last;
-  const unread = meta.data?.unreadForCoach ?? 0;
+  const last = meta?.last;
+  const unread = meta?.unreadForCoach ?? 0;
   // An attachment-only message has an empty body — show a media label instead
   // of a blank preview (e.g. "📷 Photo").
   const preview = !last
@@ -125,7 +132,7 @@ function ThreadRow({ client, onOpen, active = false }: { client: UserRecord; onO
     : last.body?.trim()
       ? last.body
       : last.attachment
-        ? t(`messages.${last.attachment.kind === 'image' ? 'photoMsg' : last.attachment.kind === 'video' ? 'videoMsg' : 'fileMsg'}`)
+        ? t(`messages.${ATTACH_PREVIEW[last.attachment.kind] ?? 'fileMsg'}`)
         : t('messages.noMessages');
   return (
     <button type="button" data-testid="thread-row" onClick={onOpen} className={`row w-full px-3 text-start ${active ? 'bg-brand/10' : ''}`}>
@@ -145,8 +152,14 @@ function BroadcastForm({ coachId, role, clients, onDone }: { coachId: string; ro
   const [body, setBody] = useState('');
   const [category, setCategory] = useState<MessageCategory>('announcement');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
   const all = selected.size === 0;
   const recipients = all ? clients.map((c) => c.id) : [...selected];
+  const shownClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) => `${c.displayName ?? ''} ${c.email ?? ''}`.toLowerCase().includes(q));
+  }, [clients, search]);
 
   const send = useMutation({
     mutationFn: () => broadcast(recipients, { id: coachId, role }, body.trim(), category),
@@ -166,8 +179,15 @@ function BroadcastForm({ coachId, role, clients, onDone }: { coachId: string; ro
         ))}
       </div>
       <p className="label">{t('messages.recipients')} · {all ? t('admin.allRoles') : recipients.length}</p>
+      <SearchField
+        aria-label={t('coach.searchClients')}
+        data-testid="broadcast-search"
+        placeholder={t('coach.searchClients')}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
       <div className="flex flex-wrap gap-1.5">
-        {clients.map((c) => (
+        {shownClients.map((c) => (
           <button key={c.id} type="button" onClick={() => toggle(c.id)} className={`chip ${selected.has(c.id) ? 'chip-on' : ''}`}>{c.displayName || c.email}</button>
         ))}
       </div>

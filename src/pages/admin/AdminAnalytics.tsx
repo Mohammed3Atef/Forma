@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { StatTile } from '@/components/StatTile';
 import { BarChart } from '@/components/charts';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { fetchPlatformStats } from '@/services/platform/analyticsApi';
 
 export function AdminAnalytics() {
+  useFullBleed();
   const { t } = useTranslation();
   const stats = useQuery({ queryKey: ['platformStats'], queryFn: fetchPlatformStats });
   const d = stats.data;

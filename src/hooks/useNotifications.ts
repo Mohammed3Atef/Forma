@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
-import { listCoachNotifications, listNotifications } from '@/services/platform/notificationsApi';
+import { subscribeCoachNotifications, subscribeNotifications } from '@/services/platform/notificationsApi';
 import { listPendingPlanChangeRequests } from '@/services/platform/coachPlanApi';
 import type { AppNotification, CoachPlanChangeRequest } from '@/types';
 
@@ -26,11 +27,10 @@ function planRequestToNotification(r: CoachPlanChangeRequest): AppNotification {
 /**
  * The signed-in user's in-app notifications + unread count, routed by role:
  *  - super-admin: pending coach plan-change requests (shares the overview's
- *    cache key; the collection-group query is index-backed).
+ *    cache key; the collection-group query is index-backed) — refetched on focus.
  *  - coach: coach-bound alerts across their clients + their OWN doc (plan
- *    decisions about themselves).
- *  - everyone else: their own client-bound feed.
- * Polls every 60s and refetches on window focus.
+ *    decisions about themselves), live via Firestore `onSnapshot`.
+ *  - everyone else: their own client-bound feed, live via `onSnapshot`.
  */
 export function useNotifications() {
   const role = useSession((s) => s.account?.role) ?? 'client';
@@ -45,21 +45,30 @@ export function useNotifications() {
     queryKey: ['planRequests', 'pending'],
     queryFn: listPendingPlanChangeRequests,
     enabled: enabled && isSuper,
-    refetchInterval: 60_000,
-    staleTime: 60_000,
-  });
-  // Coach / client personal feed.
-  const personalQ = useQuery({
-    queryKey: ['notifications', uid, role],
-    queryFn: () => (isCoach ? listCoachNotifications(uid) : listNotifications(uid, 'client')),
-    enabled: enabled && !isAdmin,
-    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
   });
 
-  const items: AppNotification[] = isSuper
-    ? (adminQ.data ?? []).map(planRequestToNotification)
-    : personalQ.data ?? [];
-  const unread = items.filter((n) => !n.seenAt).length;
-  const loading = enabled && (isSuper ? adminQ.isLoading : !isAdmin && personalQ.isLoading);
-  return { items, unread, isCoach, isAdmin, loading, refetch: isSuper ? adminQ.refetch : personalQ.refetch };
+  // Coach / client personal feed — real-time.
+  const [items, setItems] = useState<AppNotification[]>([]);
+  const [personalLoading, setPersonalLoading] = useState(true);
+  useEffect(() => {
+    if (!enabled || isAdmin) {
+      setItems([]);
+      setPersonalLoading(false);
+      return;
+    }
+    setPersonalLoading(true);
+    const onItems = (next: AppNotification[]) => {
+      setItems(next);
+      setPersonalLoading(false);
+    };
+    const unsub = isCoach ? subscribeCoachNotifications(uid, onItems) : subscribeNotifications(uid, 'client', onItems);
+    return unsub;
+  }, [enabled, isAdmin, isCoach, uid]);
+
+  const resolvedItems: AppNotification[] = isSuper ? (adminQ.data ?? []).map(planRequestToNotification) : items;
+  const unread = resolvedItems.filter((n) => !n.seenAt).length;
+  const loading = enabled && (isSuper ? adminQ.isLoading : !isAdmin && personalLoading);
+  return { items: resolvedItems, unread, isCoach, isAdmin, loading, refetch: adminQ.refetch };
 }

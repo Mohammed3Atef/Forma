@@ -11,6 +11,8 @@ import { TextInput } from '@/components/ui/Field';
 import { RowCheckbox } from '@/components/ui/RowCheckbox';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSelection } from '@/hooks/useSelection';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
@@ -55,6 +57,8 @@ export function AdminAccounts() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
+  useFullBleed();
+  const online = useOnlineStatus();
   const [selected, setSelected] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const sel = useSelection();
@@ -131,7 +135,7 @@ export function AdminAccounts() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <TopBar
         testId="admin-accounts"
         title={t('admin.accounts')}
@@ -233,9 +237,9 @@ export function AdminAccounts() {
 
       {canStatus && (
         <BulkActionBar count={sel.count} onClear={sel.clear}>
-          <button type="button" data-testid="bulk-activate" className="chip" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('active')}>{t('common.bulk.activate')}</button>
-          <button type="button" data-testid="bulk-suspend" className="chip" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('suspended')}>{t('common.bulk.suspend')}</button>
-          <button type="button" data-testid="bulk-disable" className="chip text-danger" disabled={bulkStatusMut.isPending} onClick={() => void runBulkStatus('disabled')}>{t('common.bulk.disable')}</button>
+          <button type="button" data-testid="bulk-activate" className="chip" disabled={bulkStatusMut.isPending || !online} onClick={() => void runBulkStatus('active')}>{t('common.bulk.activate')}</button>
+          <button type="button" data-testid="bulk-suspend" className="chip" disabled={bulkStatusMut.isPending || !online} onClick={() => void runBulkStatus('suspended')}>{t('common.bulk.suspend')}</button>
+          <button type="button" data-testid="bulk-disable" className="chip text-danger" disabled={bulkStatusMut.isPending || !online} onClick={() => void runBulkStatus('disabled')}>{t('common.bulk.disable')}</button>
         </BulkActionBar>
       )}
 
@@ -254,7 +258,7 @@ export function AdminAccounts() {
               onSetStatus={(status) => statusMut.mutate({ target: selected, status })}
               onSetRole={(role) => roleMut.mutate({ target: selected, role })}
               onDelete={() => deleteMut.mutate(selected)}
-              busy={statusMut.isPending || roleMut.isPending || deleteMut.isPending}
+              busy={statusMut.isPending || roleMut.isPending || deleteMut.isPending || !online}
             />
           </div>
         )}
@@ -412,6 +416,7 @@ function CreateAccountForm({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
+  const online = useOnlineStatus();
   const roles = assignableRoles(actorRole);
   const [form, setForm] = useState({ email: '', password: '', displayName: '', phone: '', role: (roles[0] ?? 'client') as Role });
   const [error, setError] = useState<string | null>(null);
@@ -459,7 +464,7 @@ function CreateAccountForm({
         </div>
       </div>
       {error && <p className="text-sm text-danger" data-testid="create-error">{error}</p>}
-      <button type="submit" data-testid="create-submit" disabled={!valid || mut.isPending} className="btn-primary w-full disabled:opacity-40">
+      <button type="submit" data-testid="create-submit" disabled={!valid || mut.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} className="btn-primary w-full disabled:opacity-40">
         {mut.isPending ? t('auth.working') : t('admin.createAccount')}
       </button>
     </form>

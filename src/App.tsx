@@ -19,16 +19,18 @@ import { ImageViewer } from '@/components/ImageViewer';
 import { VideoPopup } from '@/components/VideoPopup';
 import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { Splash } from '@/components/Splash';
-import { ClientApp } from '@/apps/ClientApp';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
 import { AccountSuspended } from '@/pages/auth/AccountSuspended';
 
-// Code-split the role apps: a client never downloads coach/admin code (and vice
-// versa). The client app stays eager — it's the offline-first default and must
-// render instantly without a second chunk fetch. Coach/admin run online (web),
-// so a one-time chunk load on sign-in is the right trade for a smaller bundle.
+// Code-split every role app behind React.lazy so a signed-in user only ever
+// downloads their OWN role bundle — a client never ships coach/admin code, and
+// coach/admin never ship the client app. The chunk load is covered by the same
+// <Splash> already shown during init; the PWA precaches all chunks so a returning
+// client still boots offline.
+const ClientApp = lazy(() => import('@/apps/ClientApp').then((m) => ({ default: m.ClientApp })));
 const CoachApp = lazy(() => import('@/apps/CoachApp').then((m) => ({ default: m.CoachApp })));
 const AdminApp = lazy(() => import('@/apps/AdminApp').then((m) => ({ default: m.AdminApp })));
 const AnonymousApp = lazy(() => import('@/apps/AnonymousApp').then((m) => ({ default: m.AnonymousApp })));
@@ -108,6 +110,7 @@ export function App() {
   return (
     <>
       <ScrollToTop />
+      <OfflineBanner />
       <DialogHost />
       <ImageViewer />
       <VideoPopup />

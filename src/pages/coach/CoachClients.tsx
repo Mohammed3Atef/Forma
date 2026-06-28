@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -14,11 +14,15 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
+import { getRelationship } from '@/services/platform/coachClientsApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { AddExistingClient } from '@/pages/coach/AddExistingClient';
 import { IncomingTransferRequests } from '@/components/coach/IncomingTransferRequests';
 import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
+import { useFullBleed } from '@/hooks/useFullBleed';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { parseDecimal, shortDate } from '@/lib/utils';
 import type { AccountStatus, SignupInvite } from '@/types';
 
@@ -30,6 +34,16 @@ const ACCT_PILL: Record<AccountStatus, string> = {
   suspended: 'border-danger/50 text-danger',
   disabled: 'border-danger/50 text-danger',
 };
+const SUB_PILL: Record<string, string> = {
+  none: 'border-line text-earth-subtle',
+  trial: 'border-brand/50 text-brand',
+  active: 'border-success/50 text-success',
+  pending: 'border-warn/50 text-warn',
+  frozen: 'border-warn/50 text-warn',
+  expired: 'border-danger/50 text-danger',
+  cancelled: 'border-danger/50 text-danger',
+  ended: 'border-danger/50 text-danger',
+};
 const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
 const PAGE = 20;
 
@@ -40,6 +54,8 @@ export function CoachClients() {
   const coachName = useSession((s) => s.account?.displayName ?? '');
   const isDesktop = useIsDesktop();
   const { canWrite } = useCoachPlan(); // false when the coach's own plan has lapsed
+  const online = useOnlineStatus(); // adding a client writes to Firestore — needs connectivity
+  useFullBleed();
   const [params] = useSearchParams();
   const [search, setSearch] = useState(() => params.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
@@ -159,7 +175,7 @@ export function CoachClients() {
         eyebrow={t('platform.coachPortal')}
         right={
           <div className="flex items-center gap-1.5">
-            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} disabled={!canWrite} onClick={openAdd}>
+            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} disabled={!canWrite || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={openAdd}>
               <Icon name="plus" size={20} />
             </button>
             <button type="button" className="icon-btn h-[42px] w-[42px] md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
@@ -196,7 +212,7 @@ export function CoachClients() {
           </div>
           <div className="w-80 shrink-0">
             <DetailPanel testId="coach-desktop-preview" empty={!selected} emptyMessage={t('coachDash.selectClient')}>
-              {selected && <ClientPreview row={selected} onOpen={() => navigate(`/coach/client/${selected.client.id}`)} onMessage={() => navigate(`/coach/messages/${selected.client.id}`)} />}
+              {selected && <ClientPreview row={selected} coachId={coachId ?? ''} onOpen={() => navigate(`/coach/client/${selected.client.id}`)} onMessage={() => navigate(`/coach/messages/${selected.client.id}`)} />}
             </DetailPanel>
           </div>
         </div>
@@ -401,9 +417,16 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   );
 }
 
-function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
+function ClientPreview({ row, coachId, onOpen, onMessage }: { row: ClientDashboardRow; coachId: string; onOpen: () => void; onMessage: () => void }) {
   const { t, i18n } = useTranslation();
   const c = row.client;
+  const rel = useQuery({
+    queryKey: ['relationship', coachId, c.id],
+    queryFn: () => getRelationship(coachId, c.id),
+    enabled: !!coachId && !!c.id,
+  });
+  const sub = rel.data?.subscription;
+  const subStatus = effectiveSubscriptionStatus(sub);
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -415,10 +438,18 @@ function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; on
         <span className={`chip text-[11px] ${ACCT_PILL[c.accountStatus]}`}>{t(`subscription.acct.${c.accountStatus}`)}</span>
       </div>
       <div className="space-y-2 text-sm">
-        <Row label={t('assessment.title')} value={t(`assessment.status.${row.assessment}`)} />
-        <Row label={t('coach.adherence')} value={t('coachDash.workoutsThisWeek', { n: row.workouts7d })} />
-        <Row label={t('coachDash.recentActivity')} value={row.lastActivity ? shortDate(row.lastActivity, i18n.language) : t('coachDash.neverActive')} />
-        {c.phone && <Row label={t('settings.phone')} value={c.phone} />}
+        <Row label={t('subscription.title')}>
+          <span className="flex items-center gap-2">
+            <span data-testid="preview-sub-status" className={`chip text-[11px] ${SUB_PILL[subStatus]}`}>{t(`subscription.status.${subStatus}`)}</span>
+            {sub && subStatus !== 'ended' && (
+              <span className="font-mono text-[11px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>
+            )}
+          </span>
+        </Row>
+        <Row label={t('assessment.title')}>{t(`assessment.status.${row.assessment}`)}</Row>
+        <Row label={t('coach.adherence')}>{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</Row>
+        <Row label={t('coachDash.recentActivity')}>{row.lastActivity ? shortDate(row.lastActivity, i18n.language) : t('coachDash.neverActive')}</Row>
+        {c.phone && <Row label={t('settings.phone')}>{c.phone}</Row>}
       </div>
       <div className="flex flex-col gap-2">
         <button type="button" className="btn-primary w-full" onClick={onOpen}>{t('coachDash.open')}</button>
@@ -428,11 +459,11 @@ function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; on
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line-soft pb-2">
-      <span className="text-earth-subtle">{label}</span>
-      <span className="text-end font-medium">{value}</span>
+      <span className="shrink-0 text-earth-subtle">{label}</span>
+      <span className="min-w-0 text-end font-medium">{children}</span>
     </div>
   );
 }

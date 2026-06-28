@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
+import { TextInput } from '@/components/ui/Field';
 import { PlanBuilder } from '@/components/workout/PlanBuilder';
 import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
@@ -45,8 +46,11 @@ export function CoachWorkoutTemplateEditor() {
     if (tpl !== null || (!isNew && query.isLoading)) return;
     void draftStore.getItem<WorkoutTemplate>(draftKey).then((draft) => {
       const base = isNew ? blankTemplate(coachId) : query.data ?? blankTemplate(coachId);
-      baselineRef.current = JSON.stringify(base);
-      setTpl(draft ?? base);
+      const initial = draft ?? base;
+      // Baseline = the state we actually open with (draft OR saved) — so opening
+      // is NEVER dirty; the prompt fires only after a real edit.
+      baselineRef.current = JSON.stringify(initial);
+      setTpl(initial);
     });
   }, [isNew, query.isLoading, query.data, tpl, draftKey, coachId]);
 
@@ -62,14 +66,15 @@ export function CoachWorkoutTemplateEditor() {
       await draftStore.removeItem(draftKey);
       baselineRef.current = JSON.stringify(tpl);
       void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
-      navigate('/coach/templates');
+      void qc.invalidateQueries({ queryKey: ['workoutTemplate', coachId, tpl!.id] });
+      navigate(`/coach/templates/${tpl!.id}`); // back to the read-only preview
     },
   });
 
   const exit = async () => {
     if (dirty && !(await confirmDialog({ title: t('coachEditor.unsavedTitle'), message: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave'), danger: true }))) return;
     await draftStore.removeItem(draftKey); // never leave a stale/discarded draft behind
-    navigate('/coach/templates');
+    navigate(isNew ? '/coach/templates' : `/coach/templates/${templateId}`);
   };
 
   if (!tpl) return null;
@@ -80,7 +85,7 @@ export function CoachWorkoutTemplateEditor() {
   const header = (
     <div className="space-y-3">
       {save.isError && <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{(save.error as Error)?.message || t('coachEditor.saveFailed')}</p>}
-      <input className="input" data-testid="template-name" value={tpl.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t('workoutTemplate.namePlaceholder')} />
+      <TextInput label={t('field.name')} data-testid="template-name" value={tpl.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t('workoutTemplate.namePlaceholder')} />
       <div>
         <div className="label mb-1.5">{t('workoutTemplate.goal')}</div>
         <div className="flex flex-wrap gap-2">
@@ -118,7 +123,7 @@ export function CoachWorkoutTemplateEditor() {
           </button>
         }
       />
-      <div data-testid="coach-desktop-plan-builder" className="mx-auto max-w-5xl">
+      <div data-testid="coach-desktop-plan-builder">
         <PlanBuilder days={tpl.days} exercises={tpl.exercises} onChange={change} coachId={coachId} header={header} />
       </div>
     </>

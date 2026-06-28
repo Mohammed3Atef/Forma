@@ -16,12 +16,14 @@ export function Messages() {
   const coach = useQuery({ queryKey: ['myCoach', coachId], queryFn: () => fetchMyCoach(coachId!), enabled: cloudAvailable() && !!coachId });
 
   return (
-    <div className="anim-rise">
+    <div className="anim-rise -mb-28 flex h-[calc(100dvh-8.5rem)] flex-col">
       <TopBar title={t('messages.title')} eyebrow={coach.data?.displayName ?? t('coachInfo.yourCoach')} onBack={() => navigate('/')} sticky />
       {!coachId ? (
         <p className="py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</p>
       ) : (
-        <MessageThread clientId={uid} meId={uid} meRole="client" />
+        <div className="min-h-0 flex-1">
+          <MessageThread clientId={uid} meId={uid} meRole="client" peer={{ name: coach.data?.displayName, photoUrl: coach.data?.photoUrl }} />
+        </div>
       )}
     </div>
   );

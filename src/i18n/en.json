@@ -207,9 +207,16 @@
     "broadcast": "Broadcast",
     "recipients": "Recipients",
     "noMessages": "No messages yet.",
+    "openThread": "Open conversation",
     "photoMsg": "📷 Photo",
     "videoMsg": "🎬 Video",
+    "audioMsg": "🎙️ Voice message",
     "fileMsg": "📎 Attachment",
+    "record": "Record voice message",
+    "recording": "Recording…",
+    "stopRecording": "Send voice message",
+    "cancelRecording": "Cancel recording",
+    "micDenied": "Microphone unavailable. Check your browser permissions and try again.",
     "category": { "announcement": "Announcement", "offer": "Offer", "reminder": "Reminder", "update": "Update" }
   },
   "home": {
@@ -563,6 +570,17 @@
     "syncing": "Syncing…",
     "synced": "Synced",
     "error": "Sync error"
+  },
+  "offline": {
+    "banner": "You're offline — showing saved data. Changes sync when you reconnect.",
+    "actionDisabled": "You're offline — reconnect to do this."
+  },
+  "sync": { "retry": "Retry" },
+  "state": {
+    "permissionTitle": "No access",
+    "permissionBody": "You don't have permission to view this. Contact an administrator if you think this is a mistake.",
+    "offlineTitle": "You're offline",
+    "offlineBody": "This screen needs a connection. Reconnect and try again."
   },
   "reminder": { "dueNow": "Reminder: {{label}}" },
   "reminderKinds": {

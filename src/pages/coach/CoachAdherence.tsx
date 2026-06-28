@@ -7,6 +7,7 @@ import { Avatar } from '@/components/Avatar';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchClientLogs, listMyClients } from '@/services/platform/coachApi';
@@ -20,6 +21,7 @@ function cutoff(days: number): string {
 }
 
 export function CoachAdherence() {
+  useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();

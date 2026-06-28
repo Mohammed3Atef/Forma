@@ -7,6 +7,7 @@ import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { Icon } from '@/components/Icon';
 import { confirmDialog } from '@/stores/dialogStore';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { archiveCoachPlanTier, listCoachPlanTiers, saveCoachPlanTier, tierLabel } from '@/services/platform/coachPlanTiersApi';
 import type { CoachPlanTierConfig } from '@/types';
@@ -27,6 +28,7 @@ export function AdminPlans() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
+  const online = useOnlineStatus();
   const [form, setForm] = useState<FormState | null>(null);
 
   const q = useQuery({ queryKey: ['coachPlanTiers', 'all'], queryFn: () => listCoachPlanTiers(true), enabled: isSuper });
@@ -88,7 +90,7 @@ export function AdminPlans() {
               </span>
               <button type="button" className="btn-ghost h-9 px-3 text-[13px]" data-testid="plan-edit" onClick={() => openEdit(tr)}>{t('common.edit')}</button>
               {tr.key !== 'trial' && !tr.archived && (
-                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="plan-archive" disabled={archive.isPending} onClick={() => void doArchive(tr)}>
+                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="plan-archive" disabled={archive.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doArchive(tr)}>
                   {t('adminPlans.archive')}
                 </button>
               )}
@@ -118,7 +120,8 @@ export function AdminPlans() {
               type="button"
               className="btn-primary w-full disabled:opacity-40"
               data-testid="plan-save"
-              disabled={save.isPending || (form.isNew && !form.key.trim()) || !(Number(form.maxClients) >= 0)}
+              disabled={save.isPending || !online || (form.isNew && !form.key.trim()) || !(Number(form.maxClients) >= 0)}
+              title={!online ? t('offline.actionDisabled') : undefined}
               onClick={() => save.mutate(form)}
             >
               {t('common.save')}

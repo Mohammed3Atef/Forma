@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { RowCheckbox } from '@/components/ui/RowCheckbox';
 import { usePagination } from '@/hooks/usePagination';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSelection } from '@/hooks/useSelection';
 import { blankExercise } from '@/lib/workoutPresets';
 import { parseDecimal, uid } from '@/lib/utils';
@@ -44,6 +45,7 @@ type Tab = 'exercises' | 'foods' | 'groups' | 'supplements';
 
 /** Coach-owned reusable assets hub: exercises, foods, and food-alternative groups. */
 export function CoachExerciseLibrary() {
+  useFullBleed();
   const { t } = useTranslation();
   const coachId = useSession((s) => s.account?.id ?? '');
   const [tab, setTab] = useState<Tab>('exercises');

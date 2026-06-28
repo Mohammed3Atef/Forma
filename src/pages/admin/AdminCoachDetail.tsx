@@ -4,6 +4,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { confirmDialog } from '@/stores/dialogStore';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchUserRecord } from '@/services/accounts/accountService';
 import { setAccountStatus } from '@/services/platform/accountsApi';
@@ -34,6 +35,7 @@ export function AdminCoachDetail() {
   const { coachId = '' } = useParams();
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
+  const online = useOnlineStatus(); // management mutations require connectivity
   const meId = useSession((s) => s.account?.id ?? '');
   const [limit, setLimit] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -104,8 +106,8 @@ export function AdminCoachDetail() {
               {r.reason ? <p className="text-sm text-earth-muted">{r.reason}</p> : null}
               <textarea className="input min-h-16" placeholder={t('admin.requestReason')} value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="btn-primary" data-testid="coach-plan-approve" disabled={approve.isPending || reject.isPending} onClick={() => approve.mutate()}>{t('admin.approveRequest')}</button>
-                <button type="button" className="btn-ghost" data-testid="coach-plan-reject" disabled={approve.isPending || reject.isPending} onClick={() => reject.mutate()}>{t('admin.rejectRequest')}</button>
+                <button type="button" className="btn-primary" data-testid="coach-plan-approve" disabled={approve.isPending || reject.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => approve.mutate()}>{t('admin.approveRequest')}</button>
+                <button type="button" className="btn-ghost" data-testid="coach-plan-reject" disabled={approve.isPending || reject.isPending || !online} onClick={() => reject.mutate()}>{t('admin.rejectRequest')}</button>
               </div>
               <p className="text-[12px] text-earth-subtle">{t('admin.approveApplies')}</p>
             </section>
@@ -142,7 +144,7 @@ export function AdminCoachDetail() {
             <h2 className="h2">{t('adminCoaches.changeTier')}</h2>
             <div className="flex flex-wrap gap-2">
               {tiers.map((tr) => (
-                <button key={tr.key} type="button" data-testid={`coach-tier-${tr.key}`} disabled={tier.isPending} onClick={() => tier.mutate(tr.key)} className={`chip ${p?.plan === tr.key ? 'chip-on' : ''}`}>
+                <button key={tr.key} type="button" data-testid={`coach-tier-${tr.key}`} disabled={tier.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => tier.mutate(tr.key)} className={`chip ${p?.plan === tr.key ? 'chip-on' : ''}`}>
                   {tierLabel(tiers, tr.key, t)} · {tr.maxClients}
                 </button>
               ))}
@@ -152,12 +154,12 @@ export function AdminCoachDetail() {
           <section className="space-y-2">
             <h2 className="h2">{t('adminCoaches.actions')}</h2>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending} onClick={() => renew.mutate()}>{t('adminCoaches.renew')}</button>
-              <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending} onClick={() => extend.mutate(15)}>{t('adminCoaches.extendTrial')}</button>
+              <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => renew.mutate()}>{t('adminCoaches.renew')}</button>
+              <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending || !online} onClick={() => extend.mutate(15)}>{t('adminCoaches.extendTrial')}</button>
               {coach.data?.accountStatus === 'suspended' ? (
-                <button type="button" className="chip" data-testid="coach-reactivate" disabled={acct.isPending} onClick={() => acct.mutate('active')}>{t('adminCoaches.reactivate')}</button>
+                <button type="button" className="chip" data-testid="coach-reactivate" disabled={acct.isPending || !online} onClick={() => acct.mutate('active')}>{t('adminCoaches.reactivate')}</button>
               ) : (
-                <button type="button" className="chip text-danger" data-testid="coach-suspend" disabled={acct.isPending} onClick={async () => { if (await confirmDialog({ title: t('adminCoaches.suspend'), message: t('adminCoaches.confirmSuspend'), danger: true })) acct.mutate('suspended'); }}>{t('adminCoaches.suspend')}</button>
+                <button type="button" className="chip text-danger" data-testid="coach-suspend" disabled={acct.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('adminCoaches.suspend'), message: t('adminCoaches.confirmSuspend'), danger: true })) acct.mutate('suspended'); }}>{t('adminCoaches.suspend')}</button>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -18,6 +18,7 @@ import {
 } from '@/services/platform/coachClientsApi';
 import { getClientFreezeRequest, resolveFreezeRequest } from '@/services/platform/coachApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { AccountStatus, UserRecord } from '@/types';
 
 const SUB_PILL: Record<string, string> = {
@@ -45,6 +46,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientId: string; coachId: string; account: UserRecord | null }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const online = useOnlineStatus();
   const [sheet, setSheet] = useState<'term' | 'freeze' | 'price' | null>(null);
 
   const rel = useQuery({ queryKey: ['relationship', coachId, clientId], queryFn: () => getRelationship(coachId, clientId), enabled: !!coachId && !!clientId });
@@ -161,9 +163,9 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
           {/* Destructive actions — separated so they're not one tap away from routine ones. */}
           {sub && status !== 'ended' && (
             <div className="flex flex-wrap gap-2 border-t border-line-soft pt-3">
-              <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-end" disabled={end.isPending} onClick={() => void doEnd()}>{t('subscription.end')}</button>
+              <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-end" disabled={end.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doEnd()}>{t('subscription.end')}</button>
               {(status === 'active' || status === 'trial') && (
-                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-cancel" disabled={cancel.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>
+                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-cancel" disabled={cancel.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>
               )}
             </div>
           )}
@@ -185,7 +187,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
                   {t('subscription.acctAction.unfreeze')}
                 </button>
               ) : (
-                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending} onClick={() => void changeStatus('suspended')} className="btn-ghost h-9 px-3 text-[13px] text-warn disabled:opacity-40">
+                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('suspended')} className="btn-ghost h-9 px-3 text-[13px] text-warn disabled:opacity-40">
                   {t('subscription.acctAction.freeze')}
                 </button>
               ))}
@@ -195,7 +197,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
                 {t('subscription.acctAction.restore')}
               </button>
             ) : (
-              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending} onClick={() => void changeStatus('disabled')} className="btn-ghost h-9 px-3 text-[13px] text-danger disabled:opacity-40">
+              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('disabled')} className="btn-ghost h-9 px-3 text-[13px] text-danger disabled:opacity-40">
                 {t('subscription.acctAction.trash')}
               </button>
             )}

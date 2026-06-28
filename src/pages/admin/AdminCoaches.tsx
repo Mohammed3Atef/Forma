@@ -13,6 +13,8 @@ import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCo
 import { listPendingPlanChangeRequests, renewCoachPlan, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
 import type { AccountStatus } from '@/types';
@@ -31,6 +33,8 @@ export function AdminCoaches() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
+  useFullBleed();
+  const online = useOnlineStatus();
   const q = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: isSuper });
   const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
   const pendingSet = new Set((pendingReqs.data ?? []).map((r) => r.coachId));
@@ -87,7 +91,7 @@ export function AdminCoaches() {
       return (
         <span className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
-          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending} onClick={() => renew.mutate(r.coach.id)}>{t('adminCoaches.renew')}</button>}
+          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => renew.mutate(r.coach.id)}>{t('adminCoaches.renew')}</button>}
         </span>
       );
     } },
@@ -125,8 +129,8 @@ export function AdminCoaches() {
           />
           <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
           <BulkActionBar count={sel.count} onClear={sel.clear}>
-            <button type="button" data-testid="bulk-activate" className="chip" disabled={bulkStatus.isPending} onClick={() => void runBulk('active')}>{t('common.bulk.activate')}</button>
-            <button type="button" data-testid="bulk-suspend" className="chip text-danger" disabled={bulkStatus.isPending} onClick={() => void runBulk('suspended')}>{t('common.bulk.suspend')}</button>
+            <button type="button" data-testid="bulk-activate" className="chip" disabled={bulkStatus.isPending || !online} onClick={() => void runBulk('active')}>{t('common.bulk.activate')}</button>
+            <button type="button" data-testid="bulk-suspend" className="chip text-danger" disabled={bulkStatus.isPending || !online} onClick={() => void runBulk('suspended')}>{t('common.bulk.suspend')}</button>
           </BulkActionBar>
         </div>
       )}

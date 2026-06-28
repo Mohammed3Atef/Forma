@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, limit, orderBy, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { uid } from '@/lib/utils';
 import type { AppNotification, CoachClientRelationship } from '@/types';
@@ -52,11 +52,95 @@ export async function listNotifications(clientId: string, forRole: 'client' | 'c
   return snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === forRole);
 }
 
+/** Real-time notifications for one client doc, filtered by audience. Returns an unsubscribe. */
+export function subscribeNotifications(
+  clientId: string,
+  forRole: 'client' | 'coach',
+  cb: (items: AppNotification[]) => void,
+  max = 50,
+): () => void {
+  const { db } = ensureFirebase();
+  const qy = query(collection(db, CLIENT, clientId, 'notifications'), orderBy('createdAt', 'desc'), limit(max));
+  return onSnapshot(qy, (snap) => {
+    cb(snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === forRole));
+  });
+}
+
+/**
+ * Real-time coach-bound notifications across the coach's own doc + each active
+ * client's doc (mirrors {@link listCoachNotifications}). Opens one listener per
+ * doc and re-emits the merged, newest-first list on any change. The client set
+ * is resolved once at subscribe time; the returned unsubscribe tears down every
+ * child listener.
+ */
+export function subscribeCoachNotifications(coachId: string, cb: (items: AppNotification[]) => void, max = 50): () => void {
+  const { db } = ensureFirebase();
+  let cancelled = false;
+  const unsubs: Array<() => void> = [];
+  const byDoc = new Map<string, AppNotification[]>();
+  const emit = () =>
+    cb(
+      Array.from(byDoc.values())
+        .flat()
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, max),
+    );
+  const subscribeOne = (cid: string) => {
+    const qy = query(collection(db, CLIENT, cid, 'notifications'), orderBy('createdAt', 'desc'), limit(max));
+    unsubs.push(
+      onSnapshot(
+        qy,
+        (snap) => {
+          byDoc.set(cid, snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === 'coach'));
+          emit();
+        },
+        () => undefined,
+      ),
+    );
+  };
+  subscribeOne(coachId); // the coach's own doc (self-addressed alerts)
+  getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId), where('status', '==', 'active')))
+    .then((relSnap) => {
+      if (cancelled) return;
+      for (const d of relSnap.docs) {
+        const cid = (d.data() as CoachClientRelationship).clientId;
+        if (cid !== coachId) subscribeOne(cid);
+      }
+    })
+    .catch(() => undefined);
+  return () => {
+    cancelled = true;
+    unsubs.forEach((u) => u());
+  };
+}
+
 /** Marks a single notification seen (read-state lives on the notification). */
 export async function markNotificationSeen(clientId: string, id: string): Promise<void> {
   const { db } = ensureFirebase();
   const now = Date.now();
   await setDoc(doc(db, CLIENT, clientId, 'notifications', id), { seenAt: now, updatedAt: now }, { merge: true });
+}
+
+/**
+ * Marks all unread `message_received` notifications for one audience in a thread
+ * seen — called when that party opens the thread so the bell/feed clear in sync
+ * with the message read-state. Best-effort; no write when nothing is unread.
+ */
+export async function markMessageNotificationsSeen(clientId: string, forRole: 'client' | 'coach'): Promise<void> {
+  try {
+    const { db } = ensureFirebase();
+    const snap = await getDocs(collection(db, CLIENT, clientId, 'notifications'));
+    const unseen = snap.docs
+      .map((d) => d.data() as AppNotification)
+      .filter((n) => n.type === 'message_received' && n.forRole === forRole && !n.seenAt);
+    if (unseen.length === 0) return;
+    const now = Date.now();
+    const batch = writeBatch(db);
+    for (const n of unseen) batch.set(doc(db, CLIENT, clientId, 'notifications', n.id), { seenAt: now, updatedAt: now }, { merge: true });
+    await batch.commit();
+  } catch (e) {
+    console.warn('[markMessageNotificationsSeen] failed (non-fatal):', e);
+  }
 }
 
 /**

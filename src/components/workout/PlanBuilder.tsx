@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
+import { TextInput } from '@/components/ui/Field';
 import { ExerciseForm } from './ExerciseForm';
 import { ExercisePickerSheet } from './ExercisePickerSheet';
 import { SECTION_KINDS, copyExercise } from '@/lib/workoutPresets';
@@ -165,7 +166,7 @@ export function PlanBuilder({
         <button type="button" className="btn-ghost" onClick={() => setView({ level: 'day', dayId: day.id })}>
           <Icon name="chevronLeft" size={16} /> {day.title}
         </button>
-        <input className="input" placeholder={t('coachEditor.sectionTitle')} value={section.title} onChange={(e) => mapSection(day.id, section.id, (s) => ({ ...s, title: e.target.value }))} />
+        <TextInput label={t('coachEditor.sectionTitle')} data-testid="section-title" value={section.title} onChange={(e) => mapSection(day.id, section.id, (s) => ({ ...s, title: e.target.value }))} />
         <div className="flex flex-wrap gap-2">
           {SECTION_KINDS.map((k) => (
             <button key={k} type="button" onClick={() => mapSection(day.id, section.id, (s) => ({ ...s, kind: k }))} className={`chip ${section.kind === k ? 'chip-on' : ''}`}>
@@ -236,8 +237,8 @@ export function PlanBuilder({
         <button type="button" className="btn-ghost" onClick={() => setView({ level: 'plan' })}>
           <Icon name="chevronLeft" size={16} /> {t('coachEditor.workoutTitle')}
         </button>
-        <input className="input" placeholder={t('coachEditor.dayTitle')} value={day.title} onChange={(e) => mapDay(day.id, (d) => ({ ...d, title: e.target.value }))} />
-        <input className="input" placeholder={t('coachEditor.dayFocus')} value={day.focus} onChange={(e) => mapDay(day.id, (d) => ({ ...d, focus: e.target.value }))} />
+        <TextInput label={t('coachEditor.dayTitle')} data-testid="day-title" value={day.title} onChange={(e) => mapDay(day.id, (d) => ({ ...d, title: e.target.value }))} />
+        <TextInput label={t('coachEditor.dayFocus')} data-testid="day-focus" value={day.focus} onChange={(e) => mapDay(day.id, (d) => ({ ...d, focus: e.target.value }))} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className="chip" onClick={() => duplicateDay(day.id)}>{t('coachEditor.duplicateDay')}</button>
           <button type="button" className="chip" disabled={idx === 0} onClick={() => setDays(move(days, idx, -1))}>↑ {t('coachEditor.moveUp')}</button>

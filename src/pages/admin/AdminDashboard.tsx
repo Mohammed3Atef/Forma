@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs, useTabParam, type TabDef } from '@/components/ui/Tabs';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
+import { useFullBleed } from '@/hooks/useFullBleed';
 import { OverviewPanel } from './dashboard/OverviewPanel';
 import { CoachesPanel } from './dashboard/CoachesPanel';
 import { RevenuePanel } from './dashboard/RevenuePanel';
@@ -16,6 +17,7 @@ import { SystemPanel } from './dashboard/SystemPanel';
  * routes. Uses the cooler `system` accent to distinguish the admin tone.
  */
 export function AdminDashboard() {
+  useFullBleed();
   const { t } = useTranslation();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const canFlags = useCan('flags.manage');

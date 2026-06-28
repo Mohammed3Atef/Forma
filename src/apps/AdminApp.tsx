@@ -1,23 +1,26 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { CommandHost } from '@/components/CommandHost';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { ADMIN_NAV, SUPER_ADMIN_NAV } from '@/config/nav';
 import { useRole } from '@/services/auth/permissions';
 import { queryClient } from '@/services/platform/queryClient';
 import { RoleAccount } from '@/pages/RoleAccount';
-import { AdminDashboard } from '@/pages/admin/AdminDashboard';
-import { AdminAccounts } from '@/pages/admin/AdminAccounts';
-import { AdminClientDetail } from '@/pages/admin/AdminClientDetail';
-import { AdminAssignments } from '@/pages/admin/AdminAssignments';
-import { AdminGovernance } from '@/pages/admin/AdminGovernance';
-import { AdminAnalytics } from '@/pages/admin/AdminAnalytics';
-import { AdminMedia } from '@/pages/admin/AdminMedia';
-import { AdminCoaches } from '@/pages/admin/AdminCoaches';
-import { AdminCoachDetail } from '@/pages/admin/AdminCoachDetail';
-import { AdminPlans } from '@/pages/admin/AdminPlans';
 import { Notifications } from '@/pages/Notifications';
+
+// Heavy admin route pages are lazy so the admin bundle stays small.
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const AdminAccounts = lazy(() => import('@/pages/admin/AdminAccounts').then((m) => ({ default: m.AdminAccounts })));
+const AdminClientDetail = lazy(() => import('@/pages/admin/AdminClientDetail').then((m) => ({ default: m.AdminClientDetail })));
+const AdminAssignments = lazy(() => import('@/pages/admin/AdminAssignments').then((m) => ({ default: m.AdminAssignments })));
+const AdminGovernance = lazy(() => import('@/pages/admin/AdminGovernance').then((m) => ({ default: m.AdminGovernance })));
+const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics').then((m) => ({ default: m.AdminAnalytics })));
+const AdminMedia = lazy(() => import('@/pages/admin/AdminMedia').then((m) => ({ default: m.AdminMedia })));
+const AdminCoaches = lazy(() => import('@/pages/admin/AdminCoaches').then((m) => ({ default: m.AdminCoaches })));
+const AdminCoachDetail = lazy(() => import('@/pages/admin/AdminCoachDetail').then((m) => ({ default: m.AdminCoachDetail })));
+const AdminPlans = lazy(() => import('@/pages/admin/AdminPlans').then((m) => ({ default: m.AdminPlans })));
 
 /**
  * Admin / super-admin shell. Both roles share the `/admin/*` prefix and nav;
@@ -33,6 +36,7 @@ export function AdminApp() {
   );
   return (
     <QueryClientProvider client={queryClient}>
+      <Suspense fallback={<div className="px-5 pt-6 md:px-6"><LoadingState variant="cards" count={4} /></div>}>
       <Routes>
         <Route path="/admin" element={shell(<AdminDashboard />)} />
         <Route path="/admin/accounts" element={shell(<AdminAccounts />)} />
@@ -48,6 +52,7 @@ export function AdminApp() {
         <Route path="/admin/settings" element={shell(<RoleAccount />)} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
+      </Suspense>
       <CommandHost />
     </QueryClientProvider>
   );

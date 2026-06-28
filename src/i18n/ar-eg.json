@@ -207,9 +207,16 @@
     "broadcast": "بث",
     "recipients": "المستلمين",
     "noMessages": "لسه مفيش رسايل.",
+    "openThread": "افتح المحادثة",
     "photoMsg": "📷 صورة",
     "videoMsg": "🎬 فيديو",
+    "audioMsg": "🎙️ رسالة صوتية",
     "fileMsg": "📎 مرفق",
+    "record": "سجّل رسالة صوتية",
+    "recording": "بيسجّل…",
+    "stopRecording": "ابعت الرسالة الصوتية",
+    "cancelRecording": "إلغاء التسجيل",
+    "micDenied": "الميكروفون مش متاح. اتأكد من أذونات المتصفح وجرّب تاني.",
     "category": { "announcement": "إعلان", "offer": "عرض", "reminder": "تذكير", "update": "تحديث" }
   },
   "home": {
@@ -563,6 +570,17 @@
     "syncing": "بنزامن…",
     "synced": "اتزامن",
     "error": "خطأ في المزامنة"
+  },
+  "offline": {
+    "banner": "إنت أوفلاين — بنعرض البيانات المحفوظة. هتتزامن لما تتصل تاني.",
+    "actionDisabled": "إنت أوفلاين — اتصل تاني عشان تعمل ده."
+  },
+  "sync": { "retry": "إعادة المحاولة" },
+  "state": {
+    "permissionTitle": "مفيش صلاحية",
+    "permissionBody": "معندكش صلاحية تشوف ده. كلّم الأدمن لو فاكر إن ده غلط.",
+    "offlineTitle": "إنت أوفلاين",
+    "offlineBody": "الشاشة دي محتاجة اتصال. اتصل وجرّب تاني."
   },
   "reminder": { "dueNow": "تذكير: {{label}}" },
   "reminderKinds": {

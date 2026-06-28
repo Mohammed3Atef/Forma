@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@/services/auth/sessionStore';
 import { Avatar } from '@/components/Avatar';
 import { NotificationBell } from '@/components/NotificationBell';
+import { SyncStatusIndicator } from '@/components/shared/SyncStatusIndicator';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
 import { useCommandStore } from '@/stores/commandStore';
 
@@ -22,6 +23,7 @@ export function DesktopTopBar() {
     <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/85 px-6 py-3 backdrop-blur-md lg:px-8">
       <GlobalSearch onOpen={openSearch} className="w-full max-w-xs" />
       <div className="ms-auto flex items-center gap-2">
+        <SyncStatusIndicator />
         <NotificationBell />
         <Avatar
           name={account?.displayName || account?.email || ''}

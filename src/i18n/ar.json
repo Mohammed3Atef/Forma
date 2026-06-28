@@ -207,9 +207,16 @@
     "broadcast": "بث",
     "recipients": "المستلمون",
     "noMessages": "لا توجد رسائل بعد.",
+    "openThread": "فتح المحادثة",
     "photoMsg": "📷 صورة",
     "videoMsg": "🎬 فيديو",
+    "audioMsg": "🎙️ رسالة صوتية",
     "fileMsg": "📎 مرفق",
+    "record": "تسجيل رسالة صوتية",
+    "recording": "جارٍ التسجيل…",
+    "stopRecording": "إرسال الرسالة الصوتية",
+    "cancelRecording": "إلغاء التسجيل",
+    "micDenied": "الميكروفون غير متاح. تحقق من أذونات المتصفح وحاول مرة أخرى.",
     "category": { "announcement": "إعلان", "offer": "عرض", "reminder": "تذكير", "update": "تحديث" }
   },
   "home": {
@@ -563,6 +570,17 @@
     "syncing": "جاري المزامنة…",
     "synced": "تمت المزامنة",
     "error": "خطأ مزامنة"
+  },
+  "offline": {
+    "banner": "أنت غير متصل — نعرض البيانات المحفوظة. ستتم المزامنة عند عودة الاتصال.",
+    "actionDisabled": "أنت غير متصل — أعد الاتصال لتنفيذ هذا الإجراء."
+  },
+  "sync": { "retry": "إعادة المحاولة" },
+  "state": {
+    "permissionTitle": "لا صلاحية",
+    "permissionBody": "ليست لديك صلاحية لعرض هذا. تواصل مع المشرف إذا كنت تظن أن هذا خطأ.",
+    "offlineTitle": "أنت غير متصل",
+    "offlineBody": "تحتاج هذه الشاشة إلى اتصال. أعد الاتصال وحاول مجددًا."
   },
   "reminder": { "dueNow": "تذكير: {{label}}" },
   "reminderKinds": {

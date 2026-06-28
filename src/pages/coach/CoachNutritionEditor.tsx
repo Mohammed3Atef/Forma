@@ -201,9 +201,9 @@ export function CoachNutritionEditor() {
       <div className="space-y-4">
         {plan.meals.map((meal) => (
           <div key={meal.id} className="card">
-            <div className="mb-3 flex items-center gap-2">
-              <input className="input flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: { ...meal.label, en: e.target.value } })} placeholder={t('coachEditor.mealLabel')} />
-              <button type="button" className="text-danger" aria-label={t('coachEditor.removeMeal')} onClick={() => void removeMeal(meal)}>
+            <div className="mb-3 flex items-end gap-2">
+              <TextInput label={t('coachEditor.mealLabel')} fieldClassName="flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: { ...meal.label, en: e.target.value } })} />
+              <button type="button" className="icon-btn h-11 w-11 shrink-0 text-danger" aria-label={t('coachEditor.removeMeal')} onClick={() => void removeMeal(meal)}>
                 <Icon name="close" size={18} />
               </button>
             </div>

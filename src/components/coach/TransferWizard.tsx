@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SelectField, TextInput } from '@/components/ui/Field';
 import { transferClientWithMode, type ClientSubscriptionInput } from '@/services/platform/coachClientsApi';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { parseDecimal } from '@/lib/utils';
 import type { SubscriptionStatus, TransferMode, TransferSubHandling, UserRecord } from '@/types';
 
@@ -34,6 +35,7 @@ export function TransferWizard({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const online = useOnlineStatus();
   const [step, setStep] = useState(1);
   const [toCoachId, setToCoachId] = useState<string | null>(presetCoachId ?? null);
   const [mode, setMode] = useState<TransferMode>(canFreshStart ? 'fresh_start' : 'keep_plans');
@@ -173,8 +175,8 @@ export function TransferWizard({
             <p><span className="text-earth-subtle">{t('transfer.step.type')}:</span> {t(mode === 'fresh_start' ? 'transfer.typeFresh' : 'transfer.typeKeep')}</p>
             <p><span className="text-earth-subtle">{t('transfer.step.subscription')}:</span> {t(subHandling === 'keep' ? 'transfer.subKeep' : subHandling === 'new' ? 'transfer.subNew' : 'transfer.subExpire')}</p>
           </div>
-          <button type="button" data-testid="transfer-confirm" disabled={run.isPending} onClick={() => run.mutate()} className="btn-primary w-full disabled:opacity-40">
-            {run.isPending ? t('auth.working') : t('transfer.confirm')}
+          <button type="button" data-testid="transfer-confirm" disabled={run.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => run.mutate()} className="btn-primary w-full disabled:opacity-40">
+            {run.isPending ? t('auth.working') : !online ? t('offline.actionDisabled') : t('transfer.confirm')}
           </button>
         </div>
       )}

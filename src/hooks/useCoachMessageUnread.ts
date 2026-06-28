@@ -1,24 +1,25 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
-import { coachUnreadCount } from '@/services/platform/messagesApi';
+import { subscribeCoachUnread } from '@/services/platform/messagesApi';
 
 /**
- * Total unread client messages for the signed-in coach (0 for everyone else).
- * Drives the badge on the coach's Messages tab. Polls every 45s and refetches
- * on focus; the count drops as the coach opens threads (markThreadSeen).
+ * Total unread client messages for the signed-in coach (0 for everyone else),
+ * live via Firestore `onSnapshot`. Drives the badge on the coach's Messages tab;
+ * the count rises the instant a client sends and drops the instant the coach
+ * opens the thread (markThreadSeen).
  */
 export function useCoachMessageUnread(): number {
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid) ?? '';
   const enabled = cloudAvailable() && role === 'coach' && !!uid && uid !== 'local-user';
-  const q = useQuery({
-    queryKey: ['coachMsgUnread', uid],
-    queryFn: () => coachUnreadCount(uid),
-    enabled,
-    refetchInterval: 45_000,
-    refetchOnWindowFocus: true,
-    staleTime: 30_000,
-  });
-  return q.data ?? 0;
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!enabled) {
+      setCount(0);
+      return;
+    }
+    return subscribeCoachUnread(uid, setCount);
+  }, [enabled, uid]);
+  return count;
 }
