@@ -19,10 +19,10 @@ export function CoachMessageThread() {
     <div className="anim-rise -mb-28 flex h-[calc(100dvh-8.5rem)] flex-col md:mb-0 md:h-[calc(100dvh-7rem)]">
       <TopBar
         title={name}
-        eyebrow={t('coach.messages')}
+        avatar={{ name, photoUrl: user.data?.photoUrl }}
         onBack={() => navigate('/coach/messages')}
         onTitleClick={() => navigate(`/coach/client/${clientId}`)}
-        sticky
+        dense
       />
       <div className="min-h-0 flex-1">
         <MessageThread clientId={clientId} meId={account?.id ?? ''} meRole={account?.role ?? 'coach'} peer={{ name, photoUrl: user.data?.photoUrl }} />

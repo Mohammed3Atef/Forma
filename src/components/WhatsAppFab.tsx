@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { whatsappUrl } from '@/lib/contact';
 
@@ -12,8 +13,11 @@ let dismissedThisSession = false;
 
 export function WhatsAppFab() {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const [hidden, setHidden] = useState(dismissedThisSession);
-  if (hidden) return null;
+  // Hide on messaging screens — the FAB sits exactly where the composer's send
+  // button is and would cover it on mobile.
+  if (hidden || /\/messages(\/|$)/.test(pathname)) return null;
 
   const dismiss = () => {
     dismissedThisSession = true;

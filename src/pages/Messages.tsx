@@ -17,7 +17,12 @@ export function Messages() {
 
   return (
     <div className="anim-rise -mb-28 flex h-[calc(100dvh-8.5rem)] flex-col">
-      <TopBar title={t('messages.title')} eyebrow={coach.data?.displayName ?? t('coachInfo.yourCoach')} onBack={() => navigate('/')} sticky />
+      <TopBar
+        title={coach.data?.displayName || t('coachInfo.yourCoach')}
+        avatar={{ name: coach.data?.displayName || t('coachInfo.yourCoach'), photoUrl: coach.data?.photoUrl }}
+        onBack={() => navigate('/')}
+        dense
+      />
       {!coachId ? (
         <p className="py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</p>
       ) : (

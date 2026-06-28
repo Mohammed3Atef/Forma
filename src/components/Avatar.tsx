@@ -1,5 +1,6 @@
 /** Avatar: shows a profile photo when present, else the name's initials. */
 const SIZES = {
+  xs: 'h-7 w-7 text-[10px]',
   sm: 'h-9 w-9 text-xs',
   md: 'h-11 w-11 text-sm',
   lg: 'h-16 w-16 text-2xl',

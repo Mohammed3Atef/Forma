@@ -15,6 +15,7 @@ import { useMeasurements } from '@/stores/measurementStore';
 import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
+import { ToastHost } from '@/components/ToastHost';
 import { ImageViewer } from '@/components/ImageViewer';
 import { VideoPopup } from '@/components/VideoPopup';
 import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
@@ -112,6 +113,7 @@ export function App() {
       <ScrollToTop />
       <OfflineBanner />
       <DialogHost />
+      <ToastHost />
       <ImageViewer />
       <VideoPopup />
       <Suspense fallback={<Splash />}>{body}</Suspense>

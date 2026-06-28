@@ -62,6 +62,7 @@ export function MessageThread({
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const voice = useVoiceRecorder();
   // Pinned to newest? Stays true on open / after sending; flips false on scroll-up.
   const stick = useRef(true);
@@ -77,6 +78,16 @@ export function MessageThread({
     });
     return unsub;
   }, [clientId]);
+
+  // Auto-grow the composer with its content (up to max-h-32) so a long message
+  // wraps and expands instead of being clipped inside a fixed one-line box.
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const border = el.offsetHeight - el.clientHeight; // border-box: include borders
+    el.style.height = `${Math.min(el.scrollHeight + border, 128)}px`;
+  }, [body]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -171,7 +182,7 @@ export function MessageThread({
         ) : messages.length === 0 ? (
           <p className="m-auto py-10 text-center text-sm text-earth-muted">{t("messages.noMessages")}</p>
         ) : (
-          <div className="mt-auto flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {messages.map((m) => {
             const mine = m.fromRole === meRole;
             const cat = m.broadcast && m.category ? m.category : null;
@@ -182,7 +193,7 @@ export function MessageThread({
             return (
               <div key={m.id} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`} data-testid="message-bubble">
                 {!mine && (
-                  <Avatar name={peer?.name || ""} photoUrl={peer?.photoUrl} size="sm" className="mb-5 shrink-0" />
+                  <Avatar name={peer?.name || ""} photoUrl={peer?.photoUrl} size="xs" rounded="rounded-full" className="mb-5 shrink-0" />
                 )}
                 <div className={`flex min-w-0 flex-col ${mine ? "items-end" : "items-start"}`}>
                   {media && m.attachment ? (
@@ -279,6 +290,7 @@ export function MessageThread({
               </button>
             )}
             <textarea
+              ref={taRef}
               className="input max-h-32 min-h-11 flex-1 resize-none py-2.5"
               data-testid="message-input"
               rows={1}
