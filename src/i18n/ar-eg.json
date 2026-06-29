@@ -1035,6 +1035,7 @@
     "recentClients": "أحدث العملاء",
     "needsAttention": "محتاج انتباه",
     "recentActivity": "النشاط الأخير",
+    "added": "تاريخ الإضافة",
     "adherenceOverview": "نظرة على الالتزام",
     "quickActions": "إجراءات سريعة",
     "addClient": "ضيف عميل",
@@ -1113,7 +1114,10 @@
     "failed": "الرفع فشل. جرّب تاني.",
     "tooLarge": "الصورة كبيرة أوي (الحد ٥ ميجابايت).",
     "badType": "نوع الملف مش مدعوم. استخدم JPG أو PNG أو WebP.",
-    "notConfigured": "رفع الصور مش متظبّط."
+    "notConfigured": "رفع الصور مش متظبّط.",
+    "cropTitle": "ظبّط الصورة",
+    "zoom": "تكبير",
+    "avatarHint": "دوس على الصورة عشان تغيّرها · اسحب وكبّر للقص."
   },
   "adminMedia": {
     "title": "الصور",
@@ -1397,7 +1401,7 @@
     },
     "trainingLocation": "بتتمرّن فين",
     "locations": {
-      "commercial_gym": "جيم تجاري",
+      "commercial_gym": "جيم ",
       "home_gym": "جيم في البيت",
       "both": "الاتنين"
     },

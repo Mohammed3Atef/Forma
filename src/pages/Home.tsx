@@ -167,7 +167,7 @@ export function Home() {
             <span className="eyebrow mb-1 block text-brand">{t('checkin.requiredTitle')}</span>
             <span className="block text-sm text-earth-muted">{t('checkin.requiredBody')}</span>
           </span>
-          <Icon name="chevron" size={18} />
+          <Icon name="chevron" size={18} className="rtl:rotate-180" />
         </button>
       )}
 
@@ -215,7 +215,7 @@ export function Home() {
             </div>
           );
         })()}
-        <Icon name="chevron" size={18} className="text-earth-subtle" />
+        <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
       </button>
 
       {/* Up next hero */}
@@ -282,7 +282,7 @@ export function Home() {
               {Math.round(consumed.calories)} / {targets?.calories ?? 0} kcal · {todaySteps.toLocaleString()} {t('home.steps').toLowerCase()}
             </p>
           </div>
-          <Icon name="chevron" size={18} className="text-earth-subtle" />
+          <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
         </button>
       )}
 
@@ -322,7 +322,7 @@ export function Home() {
                       {formatDuration(l.durationSec)} · {(logVolume(l) / 1000).toFixed(1)}t
                     </p>
                   </div>
-                  <Icon name="chevron" size={18} className="text-earth-subtle" />
+                  <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
                 </button>
               );
             })}

@@ -96,6 +96,13 @@ export async function submitAssessment(
     ...(prev?.reviewedBy != null ? { reviewedBy: prev.reviewedBy } : {}),
   });
   batch.set(doc(db, CLIENT, clientId, 'profile', 'main'), { ...profile, id: clientId, updatedAt: now });
+  // Reflect the real name the client entered onto their account so the coach
+  // sees it (instead of an email-prefix fallback from sign-up). Also keeps the
+  // lowercased search index in sync. Control fields are untouched (rules allow).
+  const fullName = assessment.basic.fullName.trim();
+  if (fullName) {
+    batch.set(doc(db, 'users', clientId), { displayName: fullName, displayNameLower: fullName.toLowerCase(), updatedAt: now }, { merge: true });
+  }
   await batch.commit();
   await notify({ clientId, forRole: 'coach', type: 'assessment_submitted', route: `/coach/client/${clientId}/assessment`, createdBy: clientId });
 }

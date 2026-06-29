@@ -27,33 +27,33 @@ export function BrandBar() {
   return (
     <header
       data-testid="brand-bar"
-      className="sticky top-0 z-30 flex items-center justify-center gap-2.5 bg-surface/85 px-5 pt-3 backdrop-blur-md"
+      className="sticky top-0 z-30 flex items-center justify-between gap-2.5 bg-surface/85 px-5 pb-2 pt-3 backdrop-blur-md"
       style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
     >
+      {/* Logo sits on the logical start (right in RTL, left in LTR). */}
       <img
         src="/Forma-logo.png"
         alt="Forma"
-        className="h-9 w-auto max-w-[60%] rounded-[8px] object-contain"
+        className="h-9 w-auto max-w-[55%] shrink-0 rounded-[8px] object-contain"
       />
-      {showBell && (
-        <span className={`absolute ${showMenu ? 'end-14' : 'end-3'}`}>
-          <NotificationBell />
-        </span>
+      {/* Actions grouped on the logical end, in flow (no absolute positioning). */}
+      {(showBell || showMenu) && (
+        <div className="flex shrink-0 items-center gap-1">
+          {showBell && <NotificationBell />}
+          {showMenu && (
+            <button
+              type="button"
+              data-testid="nav-menu-button"
+              aria-label={t('nav.menu')}
+              onClick={() => setMenuOpen(true)}
+              className="icon-btn flex h-10 w-10 items-center justify-center text-earth-muted"
+            >
+              <Icon name="list" size={22} />
+            </button>
+          )}
+        </div>
       )}
-      {showMenu && (
-        <>
-          <button
-            type="button"
-            data-testid="nav-menu-button"
-            aria-label={t('nav.menu')}
-            onClick={() => setMenuOpen(true)}
-            className="icon-btn absolute end-3 flex h-10 w-10 items-center justify-center text-earth-muted"
-          >
-            <Icon name="list" size={22} />
-          </button>
-          <NavMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
-        </>
-      )}
+      {showMenu && <NavMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />}
     </header>
   );
 }

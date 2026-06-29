@@ -115,7 +115,9 @@ export function CoachClientDetail() {
   ).length;
   const lastWeight = weights.data?.[0]?.weightKg;
 
-  const name = user.data?.displayName || user.data?.email || t("coach.client");
+  // Prefer the name the client entered in their assessment (authoritative) over a
+  // sign-up `displayName` that may still be an email-prefix fallback.
+  const name = assessment.data?.basic?.fullName?.trim() || user.data?.displayName || user.data?.email || t("coach.client");
 
   return (
     <>
@@ -198,7 +200,7 @@ export function CoachClientDetail() {
                 {t("messages.openThread")}
               </span>
             </span>
-            <Icon name="chevron" size={18} />
+            <Icon name="chevron" size={18} className="rtl:rotate-180" />
           </button>
 
           {/* Client onboarding assessment (read-only) */}
@@ -223,7 +225,7 @@ export function CoachClientDetail() {
             >
               {t(`assessment.status.${assessStatus}`)}
             </span>
-            <Icon name="chevron" size={18} />
+            <Icon name="chevron" size={18} className="rtl:rotate-180" />
           </button>
 
           {/* Weekly check-ins */}
@@ -242,7 +244,7 @@ export function CoachClientDetail() {
                 {t("checkin.coachHint")}
               </span>
             </span>
-            <Icon name="chevron" size={18} />
+            <Icon name="chevron" size={18} className="rtl:rotate-180" />
           </button>
         </div>
 
@@ -474,7 +476,7 @@ function ManageSheet({
           {sub}
         </span>
       </span>
-      <Icon name="chevron" size={18} />
+      <Icon name="chevron" size={18} className="rtl:rotate-180" />
     </button>
   );
   return (

@@ -24,7 +24,7 @@ export function AppShell({ children, hideNav, showDayNav, navItems = CLIENT_NAV 
     <div className="mx-auto flex min-h-full max-w-md flex-col" data-testid="app-shell">
       {!hideNav && <BrandBar />}
       <ReminderBanner />
-      <main className={`flex-1 px-5 pt-1 ${hideNav ? 'pb-4' : 'pb-28'}`}>
+      <main className={`flex-1 overflow-x-hidden px-5 pt-1 ${hideNav ? 'pb-4' : 'pb-28'}`}>
         {!hideNav && <SubscriptionBanner />}
         {showDayNav && <DayNav />}
         {children}

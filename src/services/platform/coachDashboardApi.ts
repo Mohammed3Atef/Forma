@@ -16,6 +16,7 @@ export interface ClientDashboardRow {
   lastActivity: string | null; // YYYY-MM-DD of the latest finished workout
   assessment: AssessmentStatus;
   needsAttention: boolean;
+  addedAt: number; // when the coach took this client on (active relationship's createdAt)
 }
 
 /** One upcoming renewal (next payment due), for the dashboard breakdown. */
@@ -82,6 +83,14 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     listNutritionTemplates(coachId).catch(() => []),
   ]);
 
+  // When each client was taken on — the active relationship's createdAt (falls
+  // back to any relationship). Drives the "Added" column in the client list.
+  const addedById = new Map<string, number>();
+  for (const d of relSnap.docs) {
+    const r = d.data() as CoachClientRelationship;
+    if (r.status === 'active' || !addedById.has(r.clientId)) addedById.set(r.clientId, r.createdAt);
+  }
+
   const [rows, unreadMessages] = await Promise.all([
     Promise.all(
       clients.map(async (client) => {
@@ -96,7 +105,10 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
         const assess = assessmentStatus(assessment);
         const toReview = checkIns.some((c) => c.status === 'submitted');
         const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || workouts7d === 0 || toReview;
-        return { client, workouts7d, lastActivity, assessment: assess, needsAttention, toReview };
+        // Prefer the client's assessment name over a sign-up email-prefix fallback.
+        const fullName = assessment?.basic?.fullName?.trim();
+        const displayClient = fullName ? { ...client, displayName: fullName } : client;
+        return { client: displayClient, workouts7d, lastActivity, assessment: assess, needsAttention, toReview, addedAt: addedById.get(client.id) ?? client.createdAt };
       }),
     ),
     coachUnreadCount(coachId).catch(() => 0),

@@ -138,6 +138,7 @@ export function CoachClients() {
     { key: 'status', header: t('subscription.accountTitle'), cell: (r) => <span className={`chip text-[11px] ${ACCT_PILL[r.client.accountStatus]}`}>{t(`subscription.acct.${r.client.accountStatus}`)}</span> },
     { key: 'assess', header: t('assessment.title'), cell: (r) => <span className="text-[12px] text-earth-subtle">{t(`assessment.status.${r.assessment}`)}</span> },
     { key: 'last', header: t('coachDash.recentActivity'), cell: (r) => <span className="text-[12px] text-earth-subtle">{r.lastActivity ? shortDate(r.lastActivity, i18n.language) : '—'}</span> },
+    { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.addedAt).toISOString().slice(0, 10), i18n.language)}</span> },
     { key: 'adh', header: t('coach.adherence'), cell: (r) => <span className="font-mono text-sm">{r.workouts7d}<span className="text-earth-subtle"> /7d</span></span>, className: 'text-end' },
     {
       key: 'actions',
@@ -447,6 +448,7 @@ function ClientPreview({ row, coachId, onOpen, onMessage }: { row: ClientDashboa
         <Row label={t('assessment.title')}>{t(`assessment.status.${row.assessment}`)}</Row>
         <Row label={t('coach.adherence')}>{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</Row>
         <Row label={t('coachDash.recentActivity')}>{row.lastActivity ? shortDate(row.lastActivity, i18n.language) : t('coachDash.neverActive')}</Row>
+        <Row label={t('coachDash.added')}>{shortDate(new Date(row.addedAt).toISOString().slice(0, 10), i18n.language)}</Row>
         {c.phone && <Row label={t('settings.phone')}>{c.phone}</Row>}
       </div>
       <div className="flex flex-col gap-2">

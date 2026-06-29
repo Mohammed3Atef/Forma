@@ -171,7 +171,9 @@ input[type='number'] {
       transition-colors hover:border-line/80 hover:text-earth motion-reduce:transition-none;
   }
   .chip-on {
-    @apply border-white bg-white text-black;
+    /* Selected = brand fill (matches the segmented-control's `.on`), not a stark
+       white that fights the dark theme. */
+    @apply border-brand bg-brand text-white hover:border-brand hover:text-white;
   }
 
   /* ---- Segmented control ---- */

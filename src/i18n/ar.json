@@ -956,6 +956,7 @@
     "recentClients": "أحدث المتدربين",
     "needsAttention": "يحتاج انتباه",
     "recentActivity": "النشاط الأخير",
+    "added": "تاريخ الإضافة",
     "adherenceOverview": "نظرة على الالتزام",
     "quickActions": "إجراءات سريعة",
     "addClient": "إضافة متدرب",
@@ -1034,7 +1035,10 @@
     "failed": "فشل الرفع. حاول مرة أخرى.",
     "tooLarge": "الصورة كبيرة جدًا (الحد الأقصى ٥ ميجابايت).",
     "badType": "نوع ملف غير مدعوم. استخدم JPG أو PNG أو WebP.",
-    "notConfigured": "رفع الصور غير مُهيّأ."
+    "notConfigured": "رفع الصور غير مُهيّأ.",
+    "cropTitle": "ضبط الصورة",
+    "zoom": "تكبير",
+    "avatarHint": "اضغط على الصورة لتغييرها · اسحب وكبّر للقص."
   },
   "adminMedia": {
     "title": "الصور",

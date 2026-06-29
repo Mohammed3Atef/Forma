@@ -3,9 +3,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
 import { Icon } from '@/components/Icon';
+import { FormaMark } from '@/components/FormaMark';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Slider } from '@/components/Slider';
 import { TagInput } from '@/components/TagInput';
 import { saveAssessmentProgress, submitAssessment } from '@/services/platform/clientCoachApi';
+import { useSettings } from '@/stores/settingsStore';
 import { downscaleImage } from '@/lib/image';
 import { parseDecimal } from '@/lib/utils';
 import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
@@ -196,6 +199,9 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
         updatedAt: Date.now(),
       };
       await submitAssessment(uid, finalAssessment, profile);
+      // Seed the weekly workout goal from the training days the client committed
+      // to (still editable later in settings).
+      await useSettings.getState().updateSettings({ weeklyWorkoutGoal: a.lifestyle.trainingDaysPerWeek }).catch(() => undefined);
       await draftStore.removeItem(draftKey);
       // Re-edit flow (MyAssessment): refresh the cached status and hand back.
       if (onDone) {
@@ -218,8 +224,11 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
   if (submitted) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-surface px-8 text-center" data-testid="assessment-done">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand text-black">
-          <Icon name="check" size={32} />
+        <span className="relative inline-flex">
+          <FormaMark size={84} className="anim-rise" />
+          <span className="absolute -bottom-1.5 -end-1.5 flex h-9 w-9 items-center justify-center rounded-full border-4 border-surface bg-success text-white">
+            <Icon name="check" size={18} />
+          </span>
         </span>
         <h1 className="h1">{t('assessment.doneTitle')}</h1>
         <p className="max-w-sm text-sm text-earth-muted">{t('assessment.doneBody')}</p>
@@ -245,11 +254,16 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
         className="mx-auto flex h-full w-full max-w-[430px] flex-col px-4"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
+        {/* Top nav — logo + language switcher (no auth chrome on the wizard) */}
+        <nav className="mb-3 flex shrink-0 items-center justify-between px-1">
+          <img src="/Forma-logo.png" alt={t('app.name')} className="h-7 w-auto rounded-[6px] object-contain" />
+          <LanguageToggle />
+        </nav>
+
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl2 border border-line bg-surface-card">
-          {/* Header — brand, progress, step title + helper */}
+          {/* Header — progress, step title + helper */}
           <header className="border-b border-line-soft px-5 pb-3 pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="eyebrow">{t('app.name')}</span>
+            <div className="mb-2 flex items-center justify-end">
               <span className="font-mono text-[11px] text-earth-subtle">{t('assessment.stepOf', { x: step + 1, y: STEP_COUNT })}</span>
             </div>
             <div className="prog">
@@ -326,6 +340,44 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+/**
+ * Decimal-friendly numeric input. The wizard stores numbers, but reflecting a
+ * parsed number straight back into the field strips an in-progress "." (so you
+ * can't type 80.5). This keeps the raw text locally — allowing the decimal point
+ * and trailing zeros — and reports the parsed number to the parent. Re-syncs only
+ * when the external value diverges (e.g. draft hydration).
+ */
+function DecimalInput({
+  value,
+  onChange,
+  ...rest
+}: { value: number | undefined; onChange: (n: number | undefined) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
+  const display = (n: number | undefined) => (n != null && n > 0 ? String(n) : '');
+  const [text, setText] = useState(() => display(value));
+  const norm = (n: number | undefined) => (n == null || n === 0 ? undefined : n);
+
+  useEffect(() => {
+    const parsed = text.trim() === '' ? undefined : parseDecimal(text);
+    if (norm(parsed) !== norm(value)) setText(display(value));
+    // Only resync on external value changes; typing manages `text` itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return (
+    <input
+      {...rest}
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        // Permit Latin/Arabic digits + a single decimal separator; block letters.
+        const cleaned = e.target.value.replace(/[^\d٠-٩۰-۹.,٫،]/g, '');
+        setText(cleaned);
+        onChange(cleaned.trim() === '' ? undefined : parseDecimal(cleaned));
+      }}
+    />
+  );
+}
+
 function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): React.ReactNode {
   switch (step) {
     case 0:
@@ -342,10 +394,10 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={`${t('settings.height')} (cm)`}>
-              <input className="input" inputMode="decimal" data-testid="a-height" value={a.basic.heightCm || ''} onChange={(e) => patch('basic', { heightCm: parseDecimal(e.target.value) })} />
+              <DecimalInput className="input" data-testid="a-height" value={a.basic.heightCm} onChange={(n) => patch('basic', { heightCm: n ?? 0 })} />
             </Field>
             <Field label={`${t('settings.weight')} (${t('common.kg')})`}>
-              <input className="input" inputMode="decimal" data-testid="a-weight" value={a.basic.weightKg || ''} onChange={(e) => patch('basic', { weightKg: parseDecimal(e.target.value) })} />
+              <DecimalInput className="input" data-testid="a-weight" value={a.basic.weightKg} onChange={(n) => patch('basic', { weightKg: n ?? 0 })} />
             </Field>
           </div>
         </div>
@@ -381,7 +433,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={`${t('assessment.targetWeight')} (${t('common.kg')})`}>
-              <input className="input" inputMode="decimal" value={a.goals.targetWeightKg ?? ''} onChange={(e) => patch('goals', { targetWeightKg: e.target.value ? parseDecimal(e.target.value) : undefined })} />
+              <DecimalInput className="input" value={a.goals.targetWeightKg} onChange={(n) => patch('goals', { targetWeightKg: n })} />
             </Field>
             <Field label={t('assessment.deadlineMonths')}>
               <input className="input" inputMode="numeric" value={a.goals.deadlineMonths ?? ''} onChange={(e) => patch('goals', { deadlineMonths: e.target.value ? Number(e.target.value) : undefined })} />

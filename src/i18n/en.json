@@ -956,6 +956,7 @@
     "recentClients": "Recent clients",
     "needsAttention": "Needs attention",
     "recentActivity": "Recent activity",
+    "added": "Added",
     "adherenceOverview": "Adherence overview",
     "quickActions": "Quick actions",
     "addClient": "Add client",
@@ -1034,7 +1035,10 @@
     "failed": "Upload failed. Please try again.",
     "tooLarge": "Image is too large (max 5 MB).",
     "badType": "Unsupported file type. Use JPG, PNG, or WebP.",
-    "notConfigured": "Photo upload isn't configured."
+    "notConfigured": "Photo upload isn't configured.",
+    "cropTitle": "Adjust photo",
+    "zoom": "Zoom",
+    "avatarHint": "Tap the photo to change it · drag & zoom to crop."
   },
   "adminMedia": {
     "title": "Images",
