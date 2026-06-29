@@ -46,7 +46,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
           {attention.length === 0 ? (
             <EmptyState icon="check" tone="brand" title={t('coachDash.allGood')} />
           ) : (
-            <div className="card divide-y divide-line-soft p-0 [&>button]:px-5">
+            <div className="card divide-y divide-line-soft overflow-hidden p-0 [&>button]:px-5">
               {attention.map((c) => (
                 <ClientRow key={c.client.id} row={c} onOpen={() => navigate(`/coach/client/${c.client.id}`)} />
               ))}
@@ -58,7 +58,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
           {recent.length === 0 ? (
             <EmptyState icon="user" title={t('coachDash.noClients')} action={<button type="button" className="btn-primary" onClick={() => navigate('/coach/clients?new=1')}>{t('coachDash.addClient')}</button>} />
           ) : (
-            <div className="card divide-y divide-line-soft p-0 [&>button]:px-5">
+            <div className="card divide-y divide-line-soft overflow-hidden p-0 [&>button]:px-5">
               {recent.map((c) => (
                 <ClientRow key={c.client.id} row={c} onOpen={() => navigate(`/coach/client/${c.client.id}`)} />
               ))}

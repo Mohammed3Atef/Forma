@@ -28,7 +28,7 @@ interface SessionState {
   /** Update the signed-in user's own contact phone (allowed by self-update rules). */
   updateContact: (phone: string) => Promise<void>;
   /** Patch the signed-in user's own non-control profile fields (name/phone/photo/timezone). */
-  updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone'>>) => Promise<void>;
+  updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>) => Promise<void>;
   /** Send a password-reset email (works while signed out). */
   resetPassword: (email: string) => Promise<void>;
   /** Change the signed-in user's password + clear the must-change flag. */
@@ -160,7 +160,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const { db } = ensureFirebase();
     // Build the Firestore patch (undefined → deleteField so clearing a photo works).
     const fields: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const k of ['displayName', 'phone', 'photoUrl', 'timezone'] as const) {
+    for (const k of ['displayName', 'phone', 'photoUrl', 'timezone', 'currency'] as const) {
       if (k in patch) fields[k] = patch[k] === undefined ? deleteField() : patch[k];
     }
     await setDoc(doc(db, 'users', account.id), fields, { merge: true });

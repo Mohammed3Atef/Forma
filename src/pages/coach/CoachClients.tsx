@@ -6,7 +6,8 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
-import { SelectField, TextInput } from '@/components/ui/Field';
+import { TextInput } from '@/components/ui/Field';
+import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { DetailPanel } from '@/components/ui/DetailPanel';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -23,7 +24,7 @@ import { IncomingTransferRequests } from '@/components/coach/IncomingTransferReq
 import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { parseDecimal, shortDate } from '@/lib/utils';
+import { shortDate } from '@/lib/utils';
 import type { AccountStatus, SignupInvite } from '@/types';
 
 type AddMode = 'choose' | 'create' | 'existing';
@@ -304,8 +305,8 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   const qc = useQueryClient();
   const [copied, setCopied] = useState<string | null>(null);
   const [prefill, setPrefill] = useState({ name: '', email: '', phone: '' });
-  const [subPlan, setSubPlan] = useState<'trial' | 'pending' | '1m' | '3m'>('trial');
-  const [price, setPrice] = useState('');
+  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
+  const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   // Invites generated in THIS session; on close, revoke any that weren't copied
   // (abandoned links) so stale links don't pile up. Copying a link = keep it.
   const generated = useRef<Set<string>>(new Set());
@@ -320,28 +321,30 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
     queryKey: ['pendingInvites', coachId],
     queryFn: () => listPendingInvites(coachId),
     enabled: !!coachId,
+    // Always refetch when the Add-client sheet (re)opens so links a client has
+    // already claimed drop out of the list instead of lingering.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const gen = useMutation({
-    mutationFn: () => {
-      const sub =
-        subPlan === 'pending' ? { subStatus: 'pending' as const }
-        : subPlan === '1m' ? { subStatus: 'active' as const, subMonths: 1 }
-        : subPlan === '3m' ? { subStatus: 'active' as const, subMonths: 3 }
-        : { subStatus: 'trial' as const, subTrialDays: 14 };
-      return createInvite(coachId, {
+    mutationFn: () =>
+      createInvite(coachId, {
         coachName,
         displayName: prefill.name.trim() || undefined,
         email: prefill.email.trim() || undefined,
         phone: prefill.phone.trim() || undefined,
-        ...sub,
-        ...(price.trim() ? { subPrice: parseDecimal(price) || undefined } : {}),
-      });
-    },
+        subStatus: sub.status,
+        ...(sub.months != null ? { subMonths: sub.months } : {}),
+        ...(sub.days != null ? { subDays: sub.days } : {}),
+        ...(sub.trialDays != null ? { subTrialDays: sub.trialDays } : {}),
+        ...(sub.price != null ? { subPrice: sub.price, subCurrency: currency } : {}),
+        ...(sub.planName ? { subPlanName: sub.planName } : {}),
+      }),
     onSuccess: (inv) => {
       generated.current.add(inv.code);
       setPrefill({ name: '', email: '', phone: '' });
-      setPrice('');
       void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
     },
   });
@@ -373,15 +376,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
           <TextInput label={t('field.name')} data-testid="coach-invite-name" placeholder={t('invite.optional')} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
           <TextInput label={t('field.email')} type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={t('invite.optional')} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
           <TextInput label={t('field.phone')} type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={t('invite.optional')} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
-          <SelectField label={t('invite.subTitle')} data-testid="coach-invite-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
-            <option value="trial">{t('invite.subTrial')}</option>
-            <option value="1m">{t('invite.sub1m')}</option>
-            <option value="3m">{t('invite.sub3m')}</option>
-            <option value="pending">{t('invite.subPending')}</option>
-          </SelectField>
-          {subPlan !== 'pending' && (
-            <TextInput label={t('field.price')} inputMode="decimal" data-testid="coach-invite-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
-          )}
+          <SubscriptionPlanPicker coachId={coachId} currency={currency} onChange={setSub} testId="coach-invite-sub" />
           <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
             {gen.isPending ? t('auth.working') : t('invite.generate')}
           </button>
@@ -399,7 +394,10 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
             {(pending.data ?? []).map((inv: SignupInvite) => (
               <div key={inv.code} className="flex items-center gap-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-mono text-sm">{inv.code}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-sm">{inv.code}</span>
+                    <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
+                  </span>
                   <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
                 </span>
                 <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>

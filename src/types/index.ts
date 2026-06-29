@@ -88,6 +88,8 @@ export interface UserRecord {
   yearsExperience?: number;
   instagram?: string;
   whatsapp?: string;
+  /** Coach's default billing currency (e.g. "EGP", "USD"); applied to plans + new terms. */
+  currency?: string;
   /** Coach onboarding checklist progress (Phase 1). Derived from real data where possible. */
   onboarding?: CoachOnboarding;
   createdAt: number;
@@ -196,6 +198,7 @@ export interface SignupInvite {
   subCurrency?: string;
   subBillingCycle?: BillingCycle;
   subMonths?: number; // for an 'active' term (1 or 3)
+  subDays?: number; // for an 'active' term measured in days (coach plan with unit='days')
   subTrialDays?: number; // for a 'trial' (default 14)
   status: SignupInviteStatus;
   claimedByUid?: string | null;
@@ -361,6 +364,30 @@ export interface SubscriptionPeriod {
   currency?: string;
   status: SubscriptionStatus; // terminal state when archived (typically 'ended')
   endedAt: number; // when this period was closed/archived
+}
+
+/**
+ * A coach-defined, reusable client subscription plan (e.g. "3 Months", "Monthly").
+ * Stored at `coachAssets/{coachId}/plans/{id}`. The coach picks one when assigning
+ * a subscription; it seeds the duration + price (still overridable per client).
+ */
+export interface CoachSubscriptionPlan {
+  id: string;
+  coachId: string;
+  name: string;
+  /** Duration unit + value, e.g. 90 `days` or 3 `months`. */
+  unit: 'days' | 'months';
+  duration: number;
+  /** Price in the coach's default currency (omit for a free plan). */
+  price?: number;
+  /** When true, assigning creates a `trial` subscription (free-access semantics). */
+  isTrial?: boolean;
+  /** Sort order in the picker (ascending). */
+  order?: number;
+  /** Soft-delete — archived plans drop out of the picker but keep history. */
+  archived?: boolean;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** Coach⇄client link. Doc id is deterministic: `${coachId}__${clientId}`. */

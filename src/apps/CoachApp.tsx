@@ -25,6 +25,7 @@ const CoachClientAssessment = lazy(() => import('@/pages/coach/CoachClientAssess
 const CoachAssessments = lazy(() => import('@/pages/coach/CoachAssessments').then((m) => ({ default: m.CoachAssessments })));
 const CoachReports = lazy(() => import('@/pages/coach/CoachReports').then((m) => ({ default: m.CoachReports })));
 const CoachPlan = lazy(() => import('@/pages/coach/CoachPlan').then((m) => ({ default: m.CoachPlan })));
+const CoachSubscriptionPlans = lazy(() => import('@/pages/coach/CoachSubscriptionPlans').then((m) => ({ default: m.CoachSubscriptionPlans })));
 const CoachWorkoutEditor = lazy(() => import('@/pages/coach/CoachWorkoutEditor').then((m) => ({ default: m.CoachWorkoutEditor })));
 const CoachNutritionEditor = lazy(() => import('@/pages/coach/CoachNutritionEditor').then((m) => ({ default: m.CoachNutritionEditor })));
 const CoachCardioEditor = lazy(() => import('@/pages/coach/CoachCardioEditor').then((m) => ({ default: m.CoachCardioEditor })));
@@ -69,6 +70,7 @@ export function CoachApp() {
         <Route path="/coach/assessments" element={shell(<CoachAssessments />)} />
         <Route path="/coach/reports" element={shell(<CoachReports />)} />
         <Route path="/coach/plan" element={shell(<CoachPlan />)} />
+        <Route path="/coach/subscription-plans" element={shell(<CoachSubscriptionPlans />)} />
         <Route path="/coach/client/:clientId" element={shell(<CoachClientDetail />)} />
         <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
         <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />

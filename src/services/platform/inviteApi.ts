@@ -45,6 +45,7 @@ export interface CreateInviteInput {
   subCurrency?: string;
   subBillingCycle?: BillingCycle;
   subMonths?: number;
+  subDays?: number; // active term in days (coach plan with unit='days')
   subTrialDays?: number;
   /** Override the default TTL; pass null for a non-expiring invite. */
   ttlMs?: number | null;
@@ -84,6 +85,7 @@ export async function createInvite(coachId: string, input: CreateInviteInput = {
       ...(input.subCurrency?.trim() ? { subCurrency: input.subCurrency.trim() } : {}),
       ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
       ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
+      ...(input.subDays != null ? { subDays: input.subDays } : {}),
       ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
     };
     await setDoc(ref, invite);
@@ -173,6 +175,7 @@ export function buildClaimSubscription(invite: SignupInvite, now = Date.now()): 
   };
   if (status === 'trial') return { ...base, endAt: now + (invite.subTrialDays ?? 14) * DAY };
   if (status === 'active') {
+    if (invite.subDays != null && invite.subDays > 0) return { ...base, endAt: now + invite.subDays * DAY };
     const months = invite.subMonths ?? 1;
     return { ...base, months, endAt: addMonths(now, months) };
   }

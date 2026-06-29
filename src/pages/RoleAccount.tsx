@@ -8,6 +8,9 @@ import { useSession } from '@/services/auth/sessionStore';
 import { useSettings } from '@/stores/settingsStore';
 import { confirmDialog } from '@/stores/dialogStore';
 
+/** Common billing currencies a coach can default to (ISO codes). */
+const CURRENCIES = ['EGP', 'USD', 'SAR', 'AED', 'EUR', 'GBP', 'KWD', 'QAR'] as const;
+
 /** Account / settings screen for the coach and admin shells: edit profile + sign out. */
 export function RoleAccount() {
   const { t } = useTranslation();
@@ -57,6 +60,21 @@ export function RoleAccount() {
             <label className="label">{t('settings.timezone')}</label>
             <input className="input" dir="ltr" placeholder="Africa/Cairo" value={timezone} onChange={(e) => setTimezone(e.target.value)} onBlur={() => saveIfChanged('timezone', timezone, account.timezone ?? '')} />
           </div>
+          {account.role === 'coach' && (
+            <div>
+              <label className="label">{t('settings.currency')}</label>
+              <select
+                className="input"
+                data-testid="account-currency"
+                value={account.currency ?? 'EGP'}
+                onChange={(e) => void updateSelf({ currency: e.target.value })}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {account.email && <div className="text-sm text-earth-muted">{account.email}</div>}
           <div className="flex items-center justify-between border-t border-line-soft pt-3">
             <span className="label">{t('platform.role')}</span>

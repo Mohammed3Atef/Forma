@@ -93,7 +93,7 @@ test.describe.serial('Existing-client flow', () => {
     // Single match → the result detail opens; it's unassigned → assign panel.
     await expect(page.getByTestId(TID.existingDetail)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId(TID.existingAssignPanel)).toBeVisible();
-    await page.getByTestId(TID.existingAssignSub).selectOption('1m');
+    await page.getByTestId(TID.existingAssignSub).selectOption('custom');
     await page.getByTestId(TID.existingAssign).click();
 
     // Wait for the assign to COMPLETE before navigating — the sheet closes on

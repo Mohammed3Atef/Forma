@@ -32,7 +32,7 @@ export function ClientRow({ row, onOpen }: { row: ClientDashboardRow; onOpen: ()
   const { t, i18n } = useTranslation();
   const name = row.client.displayName || row.client.email;
   return (
-    <button type="button" onClick={onOpen} className="row w-full text-start">
+    <button type="button" onClick={onOpen} className="row w-full text-start transition-colors hover:bg-white/5 motion-reduce:transition-none">
       <Avatar name={name} photoUrl={row.client.photoUrl} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{name}</span>
@@ -41,7 +41,7 @@ export function ClientRow({ row, onOpen }: { row: ClientDashboardRow; onOpen: ()
         </span>
       </span>
       <span className="font-mono text-xs text-earth-subtle">{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</span>
-      <Icon name="chevron" size={16} className="text-earth-subtle" />
+      <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
     </button>
   );
 }

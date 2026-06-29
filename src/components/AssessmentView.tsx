@@ -3,6 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { viewImages } from '@/stores/imageViewerStore';
 import type { ClientAssessment } from '@/types';
 
+/** Calendar-accurate age in whole years from an ISO `YYYY-MM-DD` date of birth. */
+function ageFromDob(dob: string): number | null {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+  return age >= 0 && age < 150 ? age : null;
+}
+
 /** Read-only render of a client's onboarding assessment (coach + admin). */
 export function AssessmentView({ assessment }: { assessment: ClientAssessment | null }) {
   const { t } = useTranslation();
@@ -46,7 +58,17 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
 
       <Section title={t('assessment.steps.0')}>
         <Row label={t('assessment.fullName')} value={a.basic.fullName} />
-        <Row label={t('assessment.dob')} value={a.basic.dateOfBirth} />
+        <Row
+          label={t('assessment.dob')}
+          value={
+            <span>
+              <span dir="ltr">{a.basic.dateOfBirth}</span>
+              {ageFromDob(a.basic.dateOfBirth) != null && (
+                <span className="mt-0.5 block text-[12px] text-earth-subtle">{t('assessment.ageYears', { n: ageFromDob(a.basic.dateOfBirth) })}</span>
+              )}
+            </span>
+          }
+        />
         <Row label={t('assessment.gender')} value={t(`assessment.genders.${a.basic.gender}`)} />
         <Row label={t('settings.height')} value={`${a.basic.heightCm} cm`} />
         <Row label={t('settings.weight')} value={`${a.basic.weightKg} ${t('common.kg')}`} />

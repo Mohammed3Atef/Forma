@@ -3,20 +3,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
-import { SearchField, SelectField, TextAreaField, TextInput } from '@/components/ui/Field';
+import { SearchField, TextAreaField } from '@/components/ui/Field';
+import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { searchClients, fetchUser } from '@/services/platform/accountsApi';
 import {
   assignExistingClient,
   getClientAssignment,
   releaseClient,
-  type ClientSubscriptionInput,
 } from '@/services/platform/coachClientsApi';
 import {
   cancelTransferRequest,
   getTransferRequest,
   submitTransferRequest,
 } from '@/services/platform/transferApi';
-import { parseDecimal } from '@/lib/utils';
+import { useSession } from '@/services/auth/sessionStore';
 import type { CoachClientRelationship, UserRecord } from '@/types';
 
 /** Format a millisecond timestamp as a short localized date (joined date). */
@@ -222,8 +222,8 @@ function ClientResultDetail({
   const ownedByOther = !!row.coachId && row.coachId !== meId;
   const unassigned = !row.coachId;
 
-  const [subPlan, setSubPlan] = useState<'trial' | 'pending' | '1m' | '3m'>('trial');
-  const [price, setPrice] = useState('');
+  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
+  const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   const [reason, setReason] = useState('');
 
   // Existing outgoing request to take THIS client (if any).
@@ -234,15 +234,7 @@ function ClientResultDetail({
   });
 
   const assign = useMutation({
-    mutationFn: () => {
-      const sub: ClientSubscriptionInput =
-        subPlan === 'pending' ? { status: 'pending' }
-        : subPlan === '1m' ? { status: 'active', months: 1 }
-        : subPlan === '3m' ? { status: 'active', months: 3 }
-        : { status: 'trial', trialDays: 14 };
-      if (price.trim()) sub.price = parseDecimal(price) || undefined;
-      return assignExistingClient(meId, c.id, meId, sub);
-    },
+    mutationFn: () => assignExistingClient(meId, c.id, meId, { ...sub, ...(currency ? { currency } : {}) }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
@@ -307,15 +299,7 @@ function ClientResultDetail({
             <p className="text-sm text-warn" data-testid="existing-assign-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
           ) : (
             <>
-              <SelectField label={t('invite.subTitle')} data-testid="existing-assign-sub" value={subPlan} onChange={(e) => setSubPlan(e.target.value as typeof subPlan)}>
-                <option value="trial">{t('invite.subTrial')}</option>
-                <option value="1m">{t('invite.sub1m')}</option>
-                <option value="3m">{t('invite.sub3m')}</option>
-                <option value="pending">{t('invite.subPending')}</option>
-              </SelectField>
-              {subPlan !== 'pending' && (
-                <TextInput label={t('field.price')} inputMode="decimal" data-testid="existing-assign-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
-              )}
+              <SubscriptionPlanPicker coachId={meId} currency={currency} onChange={setSub} testId="existing-assign-sub" />
               <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-assign" disabled={assign.isPending} onClick={() => assign.mutate()}>
                 {assign.isPending ? t('auth.working') : t('existing.assignToMe')}
               </button>

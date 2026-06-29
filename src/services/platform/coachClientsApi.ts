@@ -20,6 +20,7 @@ import { saveAsNewVersion } from './planVersionsApi';
 import type {
   BillingCycle,
   CoachClientRelationship,
+  CoachSubscriptionPlan,
   Subscription,
   SubscriptionPeriod,
   SubscriptionStatus,
@@ -155,32 +156,39 @@ export async function setSubscriptionTerm(
   coachId: string,
   clientId: string,
   startAt: number,
-  months: number,
+  term: { months?: number; days?: number },
   price?: number,
   currency?: string,
+  planName?: string,
 ): Promise<void> {
   const { db } = ensureFirebase();
   const now = Date.now();
   const rel = await getRelationship(coachId, clientId);
   const prev = rel?.subscription;
-  // Preserve an existing price unless a new one is provided.
+  // Preserve an existing price/plan name unless a new one is provided.
   const effPrice = typeof price === 'number' ? price : prev?.price;
   const effCurrency = currency ?? prev?.currency;
+  const effPlanName = planName ?? prev?.planName;
+  // Days-based term (coach plan with unit='days') takes priority; else months.
+  const useDays = typeof term.days === 'number' && term.days > 0;
+  const months = useDays ? undefined : Math.max(1, term.months ?? 1);
+  const endAt = useDays ? startAt + term.days! * SUB_DAY : addMonths(startAt, months!);
   const sub: Subscription = {
     startAt,
-    endAt: addMonths(startAt, months),
-    months,
+    endAt,
     status: 'active',
     frozenFrom: null,
     frozenUntil: null,
     updatedAt: now,
+    ...(months ? { months } : {}),
     ...(typeof effPrice === 'number' ? { price: effPrice } : {}),
     ...(effCurrency ? { currency: effCurrency } : {}),
+    ...(effPlanName ? { planName: effPlanName } : {}),
   };
   const history = [...(rel?.subscriptionHistory ?? [])];
   if (prev && prev.startAt !== startAt) history.push(toPeriod(prev, now));
   await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: sub, subscriptionHistory: history, updatedAt: now });
-  await writeAudit({ action: 'sub.setTerm', targetUserId: clientId, metadata: { months, price: effPrice ?? null } });
+  await writeAudit({ action: 'sub.setTerm', targetUserId: clientId, metadata: { months: months ?? null, days: term.days ?? null, price: effPrice ?? null } });
   await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
 }
 
@@ -283,13 +291,27 @@ export async function extendSubscription(coachId: string, clientId: string, days
  */
 export interface ClientSubscriptionInput {
   status: SubscriptionStatus; // 'trial' | 'active' | 'pending' (others valid for transfer)
-  months?: number; // active term length
+  months?: number; // active term length in months
+  days?: number; // active term length in days (coach plan with unit='days'); takes priority over months
   trialDays?: number; // trial length (default 14)
   price?: number;
   currency?: string;
   planName?: string;
   billingCycle?: BillingCycle;
   startAt?: number; // defaults to now
+}
+
+/** Map a coach-defined plan (+ the coach's default currency) to an assign input. */
+export function planToSubscriptionInput(plan: CoachSubscriptionPlan, currency?: string): ClientSubscriptionInput {
+  const money = {
+    ...(typeof plan.price === 'number' ? { price: plan.price } : {}),
+    ...(currency ? { currency } : {}),
+    planName: plan.name,
+  };
+  if (plan.isTrial) {
+    return { status: 'trial', trialDays: plan.unit === 'months' ? plan.duration * 30 : plan.duration, ...money };
+  }
+  return { status: 'active', ...(plan.unit === 'days' ? { days: plan.duration } : { months: plan.duration }), ...money };
 }
 
 /** Build a concrete `Subscription` from the coach's chosen term (no undefined fields). */
@@ -309,6 +331,8 @@ function buildSubscription(input: ClientSubscriptionInput, now: number): Subscri
   };
   if (input.status === 'trial') return { ...base, endAt: start + (input.trialDays ?? 14) * SUB_DAY };
   if (input.status === 'active') {
+    // Days-based term (coach plan with unit='days') takes priority; else months.
+    if (typeof input.days === 'number' && input.days > 0) return { ...base, endAt: start + input.days * SUB_DAY };
     const months = input.months ?? 1;
     return { ...base, months, endAt: addMonths(start, months) };
   }

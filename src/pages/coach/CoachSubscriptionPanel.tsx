@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
-import { TextAreaField } from '@/components/ui/Field';
+import { SelectField, TextAreaField } from '@/components/ui/Field';
 import { SubscriptionHistory } from '@/components/SubscriptionHistory';
 import { confirmDialog } from '@/stores/dialogStore';
 import { setAccountStatus } from '@/services/platform/accountsApi';
@@ -17,7 +17,10 @@ import {
   unfreezeSubscription,
 } from '@/services/platform/coachClientsApi';
 import { getClientFreezeRequest, resolveFreezeRequest } from '@/services/platform/coachApi';
+import { listCoachPlans } from '@/services/platform/coachPlansApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
+import { parseDecimal } from '@/lib/utils';
+import { useSession } from '@/services/auth/sessionStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { AccountStatus, UserRecord } from '@/types';
 
@@ -47,6 +50,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   const { t } = useTranslation();
   const qc = useQueryClient();
   const online = useOnlineStatus();
+  const coachCurrency = useSession((s) => s.account?.currency) ?? 'EGP';
   const [sheet, setSheet] = useState<'term' | 'freeze' | 'price' | null>(null);
 
   const rel = useQuery({ queryKey: ['relationship', coachId, clientId], queryFn: () => getRelationship(coachId, clientId), enabled: !!coachId && !!clientId });
@@ -213,8 +217,10 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         onClose={() => setSheet(null)}
         initialStart={sub ? toDate(sub.startAt) : todayStr()}
         initialMonths={sub?.months ?? 3}
-        onSave={async (start, months) => {
-          await setSubscriptionTerm(coachId, clientId, toMs(start), months);
+        coachId={coachId}
+        currency={coachCurrency}
+        onSave={async (start, term, price, planName) => {
+          await setSubscriptionTerm(coachId, clientId, toMs(start), term, price, coachCurrency, planName);
           invalidate();
           setSheet(null);
         }}
@@ -309,22 +315,79 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, onSave }: { 
   );
 }
 
-function SetTermSheet({ open, onClose, initialStart, initialMonths, onSave }: { open: boolean; onClose: () => void; initialStart: string; initialMonths: number; onSave: (start: string, months: number) => void }) {
+function SetTermSheet({
+  open,
+  onClose,
+  initialStart,
+  initialMonths,
+  coachId,
+  currency,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  initialStart: string;
+  initialMonths: number;
+  coachId: string;
+  currency: string;
+  onSave: (start: string, term: { months?: number; days?: number }, price?: number, planName?: string) => void;
+}) {
   const { t } = useTranslation();
+  const plansQ = useQuery({ queryKey: ['coachPlans', coachId], queryFn: () => listCoachPlans(coachId), enabled: open && !!coachId });
+  const plans = plansQ.data ?? [];
   const [start, setStart] = useState(initialStart);
-  const [months, setMonths] = useState(String(initialMonths));
+  const [unit, setUnit] = useState<'days' | 'months'>('months');
+  const [duration, setDuration] = useState(String(initialMonths));
+  const [price, setPrice] = useState('');
+  const [planName, setPlanName] = useState<string | undefined>(undefined);
+
+  // Picking a plan prefills the fields; the coach can then tweak them per client.
+  const applyPlan = (id: string) => {
+    const p = plans.find((x) => x.id === id);
+    if (!p) { setPlanName(undefined); return; }
+    setUnit(p.unit);
+    setDuration(String(p.duration));
+    if (p.price != null) setPrice(String(p.price));
+    setPlanName(p.name);
+  };
+
+  const dur = Math.max(1, Number(duration) || 1);
   return (
     <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setTerm')}>
       <div className="space-y-3">
+        {plans.length > 0 && (
+          <SelectField label={t('coachPlans.usePlan')} data-testid="term-plan" defaultValue="" onChange={(e) => applyPlan(e.target.value)}>
+            <option value="">{t('coachPlans.custom')}</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} · {p.duration} {t(`coachPlans.unit.${p.unit}`)}</option>
+            ))}
+          </SelectField>
+        )}
         <div>
           <label className="label">{t('subscription.startDate')}</label>
           <input type="date" className="input" data-testid="term-start" value={start} onChange={(e) => setStart(e.target.value)} />
         </div>
-        <div>
-          <label className="label">{t('subscription.months')}</label>
-          <input className="input" inputMode="numeric" data-testid="term-months" value={months} onChange={(e) => setMonths(e.target.value)} />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="label">{t('coachPlans.duration')}</label>
+            <input className="input" inputMode="numeric" data-testid="term-months" value={duration} onChange={(e) => setDuration(e.target.value)} />
+          </div>
+          <SelectField label={t('coachPlans.unitLabel')} data-testid="term-unit" value={unit} onChange={(e) => setUnit(e.target.value as 'days' | 'months')}>
+            <option value="months">{t('coachPlans.unit.months')}</option>
+            <option value="days">{t('coachPlans.unit.days')}</option>
+          </SelectField>
         </div>
-        <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="term-save" disabled={!start || !(Number(months) > 0)} onClick={() => onSave(start, Math.max(1, Number(months) || 1))}>
+        <div>
+          <label className="label">{t('coachPlans.price')} ({currency})</label>
+          <input className="input" inputMode="decimal" data-testid="term-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+        <button
+          type="button"
+          className="btn-primary w-full disabled:opacity-40"
+          data-testid="term-save"
+          disabled={!start || !(dur > 0)}
+          onClick={() => onSave(start, unit === 'days' ? { days: dur } : { months: dur }, price.trim() ? parseDecimal(price) || 0 : undefined, planName)}
+        >
           {t('common.save')}
         </button>
       </div>

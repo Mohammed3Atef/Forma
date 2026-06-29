@@ -1,10 +1,26 @@
 {
   "field": {
-    "name": "الاسم", "email": "البريد الإلكتروني", "phone": "الهاتف", "price": "السعر", "currency": "العملة",
-    "months": "عدد الشهور", "notes": "ملاحظات", "reason": "السبب", "search": "بحث", "category": "الفئة",
-    "quantity": "الكمية", "dose": "الجرعة", "timing": "التوقيت", "duration": "المدة", "frequency": "التكرار",
-    "muscle": "العضلة المستهدفة", "equipment": "الأدوات", "videoUrl": "رابط الفيديو", "id": "المعرّف",
-    "targetId": "معرّف الهدف", "planName": "اسم الخطة"
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "price": "السعر",
+    "currency": "العملة",
+    "months": "عدد الشهور",
+    "notes": "ملاحظات",
+    "reason": "السبب",
+    "search": "بحث",
+    "category": "الفئة",
+    "quantity": "الكمية",
+    "dose": "الجرعة",
+    "timing": "التوقيت",
+    "duration": "المدة",
+    "frequency": "التكرار",
+    "muscle": "العضلة المستهدفة",
+    "equipment": "الأدوات",
+    "videoUrl": "رابط الفيديو",
+    "id": "المعرّف",
+    "targetId": "معرّف الهدف",
+    "planName": "اسم الخطة"
   },
   "app": { "name": "فورما" },
   "landing": {
@@ -44,21 +60,51 @@
     "featuresEyebrow": "كل حاجة في مكان واحد",
     "featuresTitle": "أدِر شغل تدريبك كله من لوحة واحدة قوية.",
     "features": {
-      "clients": { "title": "إدارة العملاء", "desc": "رتّب كل عميل وخطة ومتابعة من مكان واحد." },
-      "programs": { "title": "بناء البرامج", "desc": "اعمل خطط التمارين والتغذية وابعتها في ثواني." },
-      "adherence": { "title": "متابعة الالتزام", "desc": "راقب التمارين والمتابعات والنتايج لحظة بلحظة." },
-      "nutrition": { "title": "التغذية والماكروز", "desc": "حدّد الأهداف، اعتمد البدائل، وخلي التغذية في مسارها." },
-      "messaging": { "title": "مراسلة العملاء", "desc": "اتكلم، ابعت التحديثات، وخلي الكل ملتزم جوه التطبيق." },
-      "secure": { "title": "آمن وخاص", "desc": "متبني على Firebase. بيانات عملاءك تفضل خاصة وموثوقة." }
+      "clients": {
+        "title": "إدارة العملاء",
+        "desc": "رتّب كل عميل وخطة ومتابعة من مكان واحد."
+      },
+      "programs": {
+        "title": "بناء البرامج",
+        "desc": "اعمل خطط التمارين والتغذية وابعتها في ثواني."
+      },
+      "adherence": {
+        "title": "متابعة الالتزام",
+        "desc": "راقب التمارين والمتابعات والنتايج لحظة بلحظة."
+      },
+      "nutrition": {
+        "title": "التغذية والماكروز",
+        "desc": "حدّد الأهداف، اعتمد البدائل، وخلي التغذية في مسارها."
+      },
+      "messaging": {
+        "title": "مراسلة العملاء",
+        "desc": "اتكلم، ابعت التحديثات، وخلي الكل ملتزم جوه التطبيق."
+      },
+      "secure": {
+        "title": "آمن وخاص",
+        "desc": "متبني على Firebase. بيانات عملاءك تفضل خاصة وموثوقة."
+      }
     },
     "stepsEyebrow": "بيشتغل إزاي",
     "stepsTitle": "درّب أحسن. اتوسّع أسرع. حقّق النتايج.",
     "steps": {
       "1": { "title": "ضيف وابعت", "desc": "اعزم عميل وابعتله خطته في دقايق." },
-      "2": { "title": "ابعت خطط التمارين", "desc": "اعمل البرامج من القوالب وسلّمها على طول." },
-      "3": { "title": "تابع التغذية", "desc": "حدّد أهداف الماكروز وخلي العملاء يسجّلوا اللي يهم." },
-      "4": { "title": "راقب التقدّم", "desc": "اعرف مين ماشي صح ومين محتاج مساعدة — لحظة بلحظة." },
-      "5": { "title": "كل حاجة جوه فورما", "desc": "منصة واحدة. كل اللي محتاجه عشان تدرّب." }
+      "2": {
+        "title": "ابعت خطط التمارين",
+        "desc": "اعمل البرامج من القوالب وسلّمها على طول."
+      },
+      "3": {
+        "title": "تابع التغذية",
+        "desc": "حدّد أهداف الماكروز وخلي العملاء يسجّلوا اللي يهم."
+      },
+      "4": {
+        "title": "راقب التقدّم",
+        "desc": "اعرف مين ماشي صح ومين محتاج مساعدة — لحظة بلحظة."
+      },
+      "5": {
+        "title": "كل حاجة جوه فورما",
+        "desc": "منصة واحدة. كل اللي محتاجه عشان تدرّب."
+      }
     },
     "showcaseEyebrow": "شوفه وهو شغّال",
     "showcaseTitle": "متعمل للمدربين. محبوب من العملاء.",
@@ -116,6 +162,7 @@
     "coachAssessments": "التقييمات",
     "coachReports": "التقارير",
     "coachPlan": "خطتي",
+    "coachSubscriptionPlans": "خطط العملاء",
     "adminOverview": "نظرة عامة",
     "adminAccounts": "الحسابات",
     "adminAssignments": "الإسناد",
@@ -196,7 +243,11 @@
     "emptyHint": "حمّل أكتر من ١٠٠ تمرين وأطعمة مشهورة ومجموعات بدائل وقوالب بداية — وبعدين ظبّطها زي ما تحب."
   },
   "imageViewer": { "close": "إغلاق" },
-  "coachInfo": { "yourCoach": "مدرّبك", "message": "ابعتله", "callCoach": "اتصل" },
+  "coachInfo": {
+    "yourCoach": "مدرّبك",
+    "message": "ابعتله",
+    "callCoach": "اتصل"
+  },
   "messages": {
     "title": "الرسائل",
     "send": "إرسال",
@@ -217,7 +268,12 @@
     "stopRecording": "ابعت الرسالة الصوتية",
     "cancelRecording": "إلغاء التسجيل",
     "micDenied": "الميكروفون مش متاح. اتأكد من أذونات المتصفح وجرّب تاني.",
-    "category": { "announcement": "إعلان", "offer": "عرض", "reminder": "تذكير", "update": "تحديث" }
+    "category": {
+      "announcement": "إعلان",
+      "offer": "عرض",
+      "reminder": "تذكير",
+      "update": "تحديث"
+    }
   },
   "home": {
     "todaysWorkout": "تمرين النهارده",
@@ -369,6 +425,7 @@
     "password": "كلمة السر",
     "phone": "رقم الموبايل",
     "timezone": "المنطقة الزمنية",
+    "currency": "العملة الافتراضية",
     "settingsTab": "الإعدادات",
     "preferences": "التفضيلات",
     "synced": "متحفظ ومتزامن",
@@ -823,7 +880,12 @@
     "loadStarter": "حمّل مكتبة جاهزة",
     "loadStarterConfirm": "تضيف أكتر من 90 تمرين جاهز (العضلات والمعدات والتعليمات) لمكتبتك؟ تقدر تعدّل أو تحذف أي واحد.",
     "title": "المكتبة",
-    "tabs": { "exercises": "التمارين", "foods": "الأطعمة", "groups": "مجموعات الأطعمة", "supplements": "المكملات" },
+    "tabs": {
+      "exercises": "التمارين",
+      "foods": "الأطعمة",
+      "groups": "مجموعات الأطعمة",
+      "supplements": "المكملات"
+    },
     "exercise": "تمرين",
     "newExercise": "تمرين جديد",
     "search": "دوّر على تمارين",
@@ -896,11 +958,30 @@
     "reactivate": "إعادة تفعيل المدرّب",
     "clientLimit": "حد العملاء",
     "setLimit": "تحديد الحد",
-    "tier": { "trial": "تجريبي", "starter": "مبتدئ", "pro": "احترافي", "enterprise": "مؤسسات", "none": "لا خطة" },
-    "state": { "trial": "تجريبي", "active": "نشط", "expired": "منتهي", "suspended": "موقوف", "none": "لا خطة" }
+    "tier": {
+      "trial": "تجريبي",
+      "starter": "مبتدئ",
+      "pro": "احترافي",
+      "enterprise": "مؤسسات",
+      "none": "لا خطة"
+    },
+    "state": {
+      "trial": "تجريبي",
+      "active": "نشط",
+      "expired": "منتهي",
+      "suspended": "موقوف",
+      "none": "لا خطة"
+    }
   },
   "coachDash": {
-    "tabs": { "overview": "نظرة عامة", "analytics": "التحليلات", "clients": "العملاء", "engagement": "التفاعل", "content": "المحتوى", "reports": "التقارير" },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "analytics": "التحليلات",
+      "clients": "العملاء",
+      "engagement": "التفاعل",
+      "content": "المحتوى",
+      "reports": "التقارير"
+    },
     "goodMorning": "صباح الخير",
     "goodAfternoon": "مساء الخير",
     "goodEvening": "مساء الخير",
@@ -1040,12 +1121,25 @@
     "empty": "لسه مفيش صور مرفوعة.",
     "loadFailed": "مقدرناش نحمّل الصور.",
     "count": "{{n}} صورة",
-    "context": { "progress": "التقدّم", "assessment": "التقييم", "other": "أخرى" }
+    "context": {
+      "progress": "التقدّم",
+      "assessment": "التقييم",
+      "other": "أخرى"
+    }
   },
   "subscription": {
     "title": "الاشتراك",
     "accountTitle": "حالة الحساب",
-    "status": { "none": "مفيش اشتراك", "trial": "تجريبي", "active": "نشط", "pending": "تحت الإعداد", "expired": "خلص", "cancelled": "ملغي", "frozen": "متجمّد", "ended": "منتهي" },
+    "status": {
+      "none": "مفيش اشتراك",
+      "trial": "تجريبي",
+      "active": "نشط",
+      "pending": "تحت الإعداد",
+      "expired": "خلص",
+      "cancelled": "ملغي",
+      "frozen": "متجمّد",
+      "ended": "منتهي"
+    },
     "none": "لسه مفيش اشتراك متحدّد — دوس تحديد المدة عشان تبدأ.",
     "daysLeft": "باقي {{n}} يوم",
     "frozenUntil": "متجمّد لحد {{date}}",
@@ -1061,8 +1155,18 @@
     "from": "من",
     "until": "لحد",
     "notePlaceholder": "ملاحظة (اختياري)…",
-    "acct": { "active": "نشط", "pending": "مستني", "suspended": "متجمّد", "disabled": "متحذف" },
-    "acctAction": { "freeze": "تجميد", "unfreeze": "إلغاء التجميد", "trash": "حذف مؤقت", "restore": "استعادة" },
+    "acct": {
+      "active": "نشط",
+      "pending": "مستني",
+      "suspended": "متجمّد",
+      "disabled": "محذوف"
+    },
+    "acctAction": {
+      "freeze": "تجميد",
+      "unfreeze": "إلغاء التجميد",
+      "trash": "حذف مؤقت",
+      "restore": "استعادة"
+    },
     "confirmStatus": "تغيّر حالة حساب العميل ده؟",
     "confirmFreeze": "تجمّد حساب العميل ده؟ مش هيقدر يستخدم التطبيق لحد ما تلغي التجميد.",
     "confirmTrash": "تنقل العميل ده للمحذوفات؟ هيفقد الوصول للتطبيق. الحذف النهائي بيتم عن طريق المشرف.",
@@ -1171,7 +1275,11 @@
     "sleep": "النوم",
     "notes": "ملاحظات",
     "photos": "صور التقدّم",
-    "status": { "requested": "مطلوبة", "submitted": "متبعوتة", "reviewed": "اتراجعت" }
+    "status": {
+      "requested": "مطلوبة",
+      "submitted": "متبعوتة",
+      "reviewed": "اتراجعت"
+    }
   },
   "clientCoach": {
     "title": "مدرّبك",
@@ -1252,6 +1360,7 @@
     "mustHave": "أكلات مش عايز تستغنى عنها",
     "fullName": "الاسم بالكامل",
     "dob": "تاريخ الميلاد",
+    "ageYears": "{{n}} سنة",
     "gender": "النوع",
     "genders": { "male": "ذكر", "female": "أنثى" },
     "primaryGoal": "إيه هدفك الأساسي؟",
@@ -1266,15 +1375,32 @@
     "targetWeight": "الوزن المستهدف",
     "deadlineMonths": "المدة (أشهر)",
     "occupation": "نوع شغلك",
-    "occupations": { "desk": "شغل مكتبي", "moderate": "نشاط متوسط", "physical": "شغل بدني شاق" },
+    "occupations": {
+      "desk": "شغل مكتبي",
+      "moderate": "نشاط متوسط",
+      "physical": "شغل بدني شاق"
+    },
     "sleepHours": "متوسط النوم",
     "activity": "مستوى النشاط اليومي",
-    "activities": { "sedentary": "قاعد أغلب اليوم", "light": "نشاط خفيف", "active": "نشيط", "very_active": "نشيط جداً" },
+    "activities": {
+      "sedentary": "قاعد أغلب اليوم",
+      "light": "نشاط خفيف",
+      "active": "نشيط",
+      "very_active": "نشيط جداً"
+    },
     "trainingDays": "أيام التدريب في الأسبوع",
     "trainingLevel": "مستوى التدريب",
-    "levels": { "beginner": "مبتدئ", "intermediate": "متوسط", "advanced": "متقدم" },
+    "levels": {
+      "beginner": "مبتدئ",
+      "intermediate": "متوسط",
+      "advanced": "متقدم"
+    },
     "trainingLocation": "بتتمرّن فين",
-    "locations": { "commercial_gym": "جيم تجاري", "home_gym": "جيم في البيت", "both": "الاتنين" },
+    "locations": {
+      "commercial_gym": "جيم تجاري",
+      "home_gym": "جيم في البيت",
+      "both": "الاتنين"
+    },
     "injuriesQ": "عندك أي إصابات؟",
     "injuries": {
       "shoulder": "الكتف",
@@ -1293,7 +1419,11 @@
     "allergies": "حساسية من أكل",
     "tagPlaceholder": "اكتب ودوس Enter",
     "budget": "ميزانية الأكل",
-    "budgets": { "low": "ميزانية قليّلة", "medium": "ميزانية متوسطة", "high": "ميزانية عالية" },
+    "budgets": {
+      "low": "ميزانية قليّلة",
+      "medium": "ميزانية متوسطة",
+      "high": "ميزانية عالية"
+    },
     "mealsPerDay": "عدد الوجبات اللي تفضّلها في اليوم",
     "challengeQ": "أكبر تحدّي بيواجهك",
     "challenges": {
@@ -1311,7 +1441,13 @@
   },
   "admin": {
     "controlCenter": "مركز التحكّم",
-    "tabs": { "overview": "نظرة عامة", "coaches": "المدرّبون", "revenue": "الإيرادات", "subscriptions": "الاشتراكات", "system": "النظام" },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "coaches": "المدرّبون",
+      "revenue": "الإيرادات",
+      "subscriptions": "الاشتراكات",
+      "system": "النظام"
+    },
     "trackedRevenue": "الإيراد المتتبَّع",
     "perMonth": "/شهر",
     "recentCoaches": "المسجّلين حديثاً",
@@ -1412,6 +1548,7 @@
     "generate": "اعمل رابط دعوة",
     "pending": "الدعوات المعلّقة",
     "none": "لسه مفيش دعوات معلّقة.",
+    "statusPending": "مستني — لسه متستخدمش",
     "copy": "نسخ",
     "copied": "اتنسخ ✅",
     "revoke": "إلغاء"
@@ -1447,7 +1584,17 @@
     "current": "الحالية",
     "accepted": "تمت الموافقة على طلب الترقية ✅",
     "history": "سجل الخطة",
-    "hist": { "tier": "الخطة اتغيّرت", "maxClients": "حد العملاء", "status": "الحالة", "endsAt": "تاريخ الانتهاء", "requested": "اتطلب", "request": { "accepted": "تمت الموافقة على الطلب", "rejected": "اترفض الطلب" } },
+    "hist": {
+      "tier": "الخطة اتغيّرت",
+      "maxClients": "حد العملاء",
+      "status": "الحالة",
+      "endsAt": "تاريخ الانتهاء",
+      "requested": "اتطلب",
+      "request": {
+        "accepted": "تمت الموافقة على الطلب",
+        "rejected": "اترفض الطلب"
+      }
+    },
     "viewPlan": "اعرض الخطة",
     "lockedTitle": "خطتك خلصت",
     "lockedSuspendedTitle": "خطتك متوقفة",
@@ -1458,6 +1605,28 @@
       "endingSoon": "خطتك بتخلص خلال {{n}} يوم — جدّد عشان متتقطعش.",
       "renew": "تجديد"
     }
+  },
+  "coachPlans": {
+    "title": "خطط العملاء",
+    "hint": "اعمل خطط اشتراك تعيد استخدامها (المدة + السعر). اختارها وانت بتسند عميل — أو ظبّط المدة لكل عميل.",
+    "add": "إضافة خطة",
+    "edit": "تعديل الخطة",
+    "delete": "حذف",
+    "confirmDelete": "تحذف خطة \"{{name}}\"؟ العملاء اللي عليها هيفضلوا بالاشتراك بتاعهم.",
+    "name": "اسم الخطة",
+    "namePlaceholder": "مثال: ٣ شهور، بريميوم",
+    "duration": "المدة",
+    "unitLabel": "الوحدة",
+    "unit": { "days": "أيام", "months": "شهور" },
+    "price": "السعر",
+    "isTrial": "تجربة مجانية",
+    "trial": "تجريبي",
+    "order": "الترتيب",
+    "none": "لسه مفيش خطط — اعمل أول خطة.",
+    "free": "مجاني",
+    "custom": "مخصّص…",
+    "untitled": "من غير اسم",
+    "usePlan": "استخدم خطة"
   },
   "adminPlans": {
     "title": "الخطط",
