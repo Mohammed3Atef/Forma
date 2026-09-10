@@ -66,7 +66,7 @@ function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalM
   const poll = async () => {
     const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
     try {
-      const page = await apiGet<NotificationsPage>(`/notifications${fullRefresh ? '' : `?since=${cursor}`}`);
+      const page = await apiGet<NotificationsPage>(`/messages/notifications${fullRefresh ? '' : `?since=${cursor}`}`);
       if (cancelled) return;
       // Newest-first from the server; merge any new rows in front.
       all = fullRefresh ? page.notifications : page.notifications.length > 0 ? [...page.notifications, ...all] : all;
@@ -92,7 +92,7 @@ export async function listNotifications(
   _forRole: 'client' | 'coach',
   max = 50,
 ): Promise<AppNotification[]> {
-  const { notifications } = await apiGet<NotificationsPage>('/notifications');
+  const { notifications } = await apiGet<NotificationsPage>('/messages/notifications');
   return notifications.slice(0, max);
 }
 
@@ -120,7 +120,7 @@ export function subscribeCoachNotifications(_coachId: string, cb: (items: AppNot
 export async function markNotificationSeen(_clientId: string, id: string): Promise<void> {
   // `_clientId` is unused: `/notifications/mark-read` scopes to the caller's
   // own feed + the given `id` — no clientId needed. Kept for signature compatibility.
-  await apiPost('/notifications/mark-read', { id });
+  await apiPost('/messages/notifications/mark-read', { id });
 }
 
 /**
@@ -142,6 +142,6 @@ export async function markMessageNotificationsSeen(clientId: string, _forRole: '
  * doc — the one-shot counterpart to `subscribeCoachNotifications`.
  */
 export async function listCoachNotifications(_coachId: string, max = 50): Promise<AppNotification[]> {
-  const { notifications } = await apiGet<NotificationsPage>('/notifications');
+  const { notifications } = await apiGet<NotificationsPage>('/messages/notifications');
   return notifications.slice(0, max);
 }

@@ -99,7 +99,7 @@ export function AcceptInvite() {
     setPhase('joining');
     const email = (invite.email?.trim() || form.email.trim());
     try {
-      const { user, accessToken } = await apiPost<ClaimInviteResponse>('/invites/claim', {
+      const { user, accessToken } = await apiPost<ClaimInviteResponse>('/coach-clients/invites/claim', {
         code: invite.code,
         email,
         phone: form.phone.trim(),

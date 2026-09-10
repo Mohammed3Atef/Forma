@@ -107,14 +107,14 @@ export async function createInvite(coachId: string, input: CreateInviteInput = {
     ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
     ttlMs: input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs,
   };
-  const doc = await apiPost<SignupInviteApiDoc>('/invites', body);
+  const doc = await apiPost<SignupInviteApiDoc>('/coach-clients/invites', body);
   return fromApiDoc(doc);
 }
 
 /** Read one invite by code (public pre-auth lookup; the code is the capability). */
 export async function getInvite(code: string): Promise<SignupInvite | null> {
   try {
-    const doc = await apiGet<SignupInviteApiDoc>(`/invites/${encodeURIComponent(code.trim().toUpperCase())}`);
+    const doc = await apiGet<SignupInviteApiDoc>(`/coach-clients/invites/${encodeURIComponent(code.trim().toUpperCase())}`);
     return fromApiDoc(doc);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
@@ -125,14 +125,14 @@ export async function getInvite(code: string): Promise<SignupInvite | null> {
 /** Pending (and not-expired) invites for a coach, newest first. */
 export async function listPendingInvites(coachId: string): Promise<SignupInvite[]> {
   const docs = await apiGet<SignupInviteApiDoc[]>(
-    `/invites?coachId=${encodeURIComponent(coachId)}&status=pending`,
+    `/coach-clients/invites?coachId=${encodeURIComponent(coachId)}&status=pending`,
   );
   return docs.map(fromApiDoc);
 }
 
 /** Coach revokes a pending invite (cannot be claimed afterwards). */
 export async function revokeInvite(code: string): Promise<void> {
-  await apiDelete(`/invites/${encodeURIComponent(code)}`);
+  await apiDelete(`/coach-clients/invites/${encodeURIComponent(code)}`);
 }
 
 /** True when an invite is currently claimable. */

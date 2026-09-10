@@ -12,7 +12,7 @@ import type { CoachPlanTierConfig } from '@/types';
  * own seed/merge logic. `trial` is a protected built-in — don't archive it.
  */
 
-const BASE = '/plan-tiers';
+const BASE = '/coach-plans/tiers';
 
 /** Display label for a tier key: explicit label → built-in i18n → the key itself. */
 export function tierLabel(tiers: CoachPlanTierConfig[], key: string | null | undefined, t: TFunction): string {
