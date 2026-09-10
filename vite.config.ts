@@ -122,20 +122,23 @@ export default defineConfig({
     }),
   ],
   build: {
-    // Split the heaviest, slowest-changing dependencies into their own long-lived
-    // chunks so returning visitors (coach/admin on the web) get cache hits and
-    // only re-download app code that actually changed.
+    // NOTE: this used to have a hand-rolled `manualChunks` splitting
+    // react/react-dom/react-router into a 'react-vendor' chunk and everything
+    // else under node_modules into a catch-all 'vendor' chunk. That produced a
+    // genuine circular chunk dependency (Rollup warned "Circular chunk: vendor
+    // -> react-vendor -> vendor" at build time) — react-router's own
+    // dependency `@remix-run/router` didn't match any of the substring
+    // patterns above, so it landed in 'vendor', while everything that needs
+    // react's hooks landed in 'react-vendor', creating vendor <-> react-vendor
+    // in both directions. That's not just a build-time warning: depending on
+    // which chunk's `<script>` tag Rollup happens to order first, the chunk
+    // that runs first can execute before the other has finished initializing,
+    // which is exactly the "Cannot read properties of undefined (reading
+    // 'useLayoutEffect')" crash this caused in production — the whole app
+    // failing to render past a blank screen. Manual chunking that isn't
+    // provably cycle-free is a correctness risk, not just a caching nicety, so
+    // this reverts to Rollup's automatic chunking (which is cycle-safe by
+    // construction) rather than re-attempting a more complete manual split.
     chunkSizeWarningLimit: 900,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router') || id.includes('/scheduler/')) return 'react-vendor';
-          if (id.includes('/@tanstack/')) return 'query';
-          if (id.includes('/i18next') || id.includes('/react-i18next/')) return 'i18n';
-          return 'vendor';
-        },
-      },
-    },
   },
 });
