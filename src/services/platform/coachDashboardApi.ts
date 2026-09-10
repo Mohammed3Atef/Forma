@@ -1,12 +1,11 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
+import { listAllRelationshipsForCoach } from './coachClientsApi';
 import { fetchClientLogs, getClientAssessment, listMyClients } from './coachApi';
 import { listCheckIns } from './checkInApi';
 import { coachUnreadCount } from './messagesApi';
 import { listWorkoutTemplates, listNutritionTemplates } from './coachAssetsApi';
 import { assessmentStatus } from '@/lib/assessment';
 import { effectiveSubscriptionStatus } from '@/lib/subscription';
-import type { AssessmentStatus, CoachClientRelationship, SubscriptionStatus, UserRecord, WorkoutLog } from '@/types';
+import type { AssessmentStatus, SubscriptionStatus, UserRecord, WorkoutLog } from '@/types';
 
 const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
@@ -74,11 +73,10 @@ function monthBounds(now: number): { start: number; end: number } {
  * call via React Query with a stale window. No new Firestore schema.
  */
 export async function getCoachDashboard(coachId: string): Promise<CoachDashboard> {
-  const { db } = ensureFirebase();
   const clients = await listMyClients(coachId);
   const since = cutoff(7);
-  const [relSnap, wTpl, nTpl] = await Promise.all([
-    getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId))),
+  const [rels, wTpl, nTpl] = await Promise.all([
+    listAllRelationshipsForCoach(coachId),
     listWorkoutTemplates(coachId).catch(() => []),
     listNutritionTemplates(coachId).catch(() => []),
   ]);
@@ -86,8 +84,7 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
   // When each client was taken on — the active relationship's createdAt (falls
   // back to any relationship). Drives the "Added" column in the client list.
   const addedById = new Map<string, number>();
-  for (const d of relSnap.docs) {
-    const r = d.data() as CoachClientRelationship;
+  for (const r of rels) {
     if (r.status === 'active' || !addedById.has(r.clientId)) addedById.set(r.clientId, r.createdAt);
   }
 
@@ -125,7 +122,6 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
 
   // ---- subscription / revenue / growth / churn (from relationships) ----
   const now = Date.now();
-  const rels = relSnap.docs.map((d) => d.data() as CoachClientRelationship);
   const subs = { trial: 0, active: 0, pending: 0, expired: 0, cancelled: 0, frozen: 0 };
   const { start: monthStart, end: monthEnd } = monthBounds(now);
   const SPILL = 14 * DAY; // also surface renewals just past month-end so end-of-month coaches see what's next

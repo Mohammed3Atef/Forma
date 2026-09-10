@@ -7,3 +7,5 @@ dist-ssr
 .DS_Store
 *.log
 design_handoff_gym_tracker
+.vercel
+.env*

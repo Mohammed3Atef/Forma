@@ -21,6 +21,9 @@ import { VideoPopup } from '@/components/VideoPopup';
 import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { PresenceTracker } from '@/components/PresenceTracker';
+import { SiteAnalytics } from '@/components/SiteAnalytics';
+import { BannerHost } from '@/components/BannerHost';
 import { Splash } from '@/components/Splash';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
@@ -111,11 +114,14 @@ export function App() {
   return (
     <>
       <ScrollToTop />
+      <SiteAnalytics />
+      <PresenceTracker />
       <OfflineBanner />
       <DialogHost />
       <ToastHost />
       <ImageViewer />
       <VideoPopup />
+      <BannerHost />
       <Suspense fallback={<Splash />}>{body}</Suspense>
       <MustChangePasswordPrompt />
     </>

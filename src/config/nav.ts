@@ -75,6 +75,8 @@ export const COACH_SIDEBAR: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', icon: 'chart', key: 'adminOverview', end: true },
   { to: '/admin/accounts', icon: 'user', key: 'adminAccounts' },
+  { to: '/admin/members', icon: 'user', key: 'adminMembers' },
+  { to: '/admin/banners', icon: 'bolt', key: 'adminBanners' },
   { to: '/admin/assignments', icon: 'target', key: 'adminAssignments' },
   { to: '/admin/governance', icon: 'settings', key: 'adminGovernance' },
   { to: '/admin/analytics', icon: 'bolt', key: 'adminAnalytics' },

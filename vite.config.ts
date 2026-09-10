@@ -130,7 +130,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
           if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router') || id.includes('/scheduler/')) return 'react-vendor';
           if (id.includes('/@tanstack/')) return 'query';
           if (id.includes('/i18next') || id.includes('/react-i18next/')) return 'i18n';

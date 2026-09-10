@@ -1,22 +1,4 @@
-import {
-  collection,
-  deleteDoc,
-  deleteField,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import { addMonths } from '@/lib/subscription';
-import { writeAudit } from './auditApi';
-import { notify } from './notificationsApi';
-import { bumpActiveClientCount } from './coachPlanApi';
-import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from './planApi';
-import { saveAsNewVersion } from './planVersionsApi';
+import { ApiError, apiGet, apiPatch, apiPost } from '@/services/platformApi';
 import type {
   BillingCycle,
   CoachClientRelationship,
@@ -28,9 +10,45 @@ import type {
   TransferSubHandling,
 } from '@/types';
 
-const REL = 'coachClients';
-const USERS = 'users';
-const CLIENT = 'clientData';
+/**
+ * Coach<->client relationships — now backed by `/api/coach-clients/*` (Mongo
+ * `coachClients` collection) instead of Firestore's `coachClients/{coachId__clientId}`.
+ *
+ * The Mongo doc's `_id` IS the deterministic `${coachId}__${clientId}` id
+ * (same convention as Firestore); `fromApiDoc` below maps that back onto the
+ * frontend's `id` field so every exported function here keeps returning the
+ * same `CoachClientRelationship` shape.
+ *
+ * The migrated backend (`api/coach-clients/index.ts` + `[id].ts`) exposes four
+ * mutations — assign an unassigned client (`POST`), end a relationship
+ * (`PATCH action:'end'`), admin/super-admin reassignment
+ * (`PATCH action:'transfer'`), and in-place subscription mutation
+ * (`PATCH action:'subscription'`, gated to the owning coach or an admin with
+ * `clients.writeAll`) — the seven functions below all go through that last one.
+ */
+
+/** Wire shape returned by `/api/coach-clients/*` — `_id` is `${coachId}__${clientId}`. */
+interface CoachClientApiDoc {
+  _id: string;
+  coachId: string;
+  clientId: string;
+  status: CoachClientRelationship['status'];
+  subscription?: Subscription;
+  subscriptionHistory?: SubscriptionPeriod[];
+  inviteCode?: string;
+  endedAt?: number;
+  endedBy?: string;
+  endReason?: 'released' | 'transferred' | 'unassigned';
+  mode?: TransferMode;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+function fromApiDoc(doc: CoachClientApiDoc): CoachClientRelationship {
+  const { _id, ...rest } = doc;
+  return { id: _id, ...rest };
+}
 
 /** Deterministic relationship id so rules can `exists()` it without a query. */
 export function relId(coachId: string, clientId: string): string {
@@ -38,120 +56,92 @@ export function relId(coachId: string, clientId: string): string {
 }
 
 export async function listRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REL), where('coachId', '==', coachId), where('status', '==', 'active')));
-  return snap.docs.map((d) => d.data() as CoachClientRelationship);
+  const docs = await apiGet<CoachClientApiDoc[]>(
+    `/coach-clients?coachId=${encodeURIComponent(coachId)}&status=active`,
+  );
+  return docs.map(fromApiDoc);
+}
+
+/** Every relationship a coach has ever had (active, ended, pending) — for revenue/churn dashboards. */
+export async function listAllRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
+  const docs = await apiGet<CoachClientApiDoc[]>(
+    `/coach-clients?coachId=${encodeURIComponent(coachId)}&status=all`,
+  );
+  return docs.map(fromApiDoc);
 }
 
 /**
- * Writes ONLY the relationship doc (no users/{clientId} update) — used when a
- * coach creates their own client: the client's `assignedCoachId` is already set
- * at account creation, and a coach isn't allowed to update other user docs.
+ * Writes ONLY the relationship doc — used when a coach creates their own
+ * client (the client's `assignedCoachId` is set at account creation).
+ *
+ * NOTE: the migrated `POST /api/coach-clients` (the only assign endpoint the
+ * backend exposes) always ALSO sets the client's `assignedCoachId`, unlike the
+ * Firestore-era version of this function — there is no "link only" endpoint.
+ * This is unused by any current component; kept for signature compatibility.
  */
-export async function linkCoachClient(coachId: string, clientId: string, createdBy: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const id = relId(coachId, clientId);
-  // Every linked client gets a subscription state (default 14-day trial).
-  const subscription: Subscription = { startAt: now, endAt: now + 14 * 86_400_000, status: 'trial', updatedAt: now };
-  const rel: CoachClientRelationship = { id, coachId, clientId, status: 'active', subscription, createdBy, createdAt: now, updatedAt: now };
-  await setDoc(doc(db, REL, id), rel);
-  await bumpActiveClientCount(coachId, 1);
+export async function linkCoachClient(coachId: string, clientId: string, _createdBy: string): Promise<void> {
+  await apiPost('/coach-clients', {
+    clientId,
+    coachId,
+    subscription: { status: 'trial' as SubscriptionStatus, trialDays: 14 },
+  });
 }
 
 /** Assigns a client to a coach (idempotent on the deterministic id). */
-export async function assignClientToCoach(coachId: string, clientId: string, createdBy: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const id = relId(coachId, clientId);
-  const rel: CoachClientRelationship = {
-    id,
-    coachId,
+export async function assignClientToCoach(coachId: string, clientId: string, _createdBy: string): Promise<void> {
+  await apiPost('/coach-clients', {
     clientId,
-    status: 'active',
-    createdBy,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await setDoc(doc(db, REL, id), rel);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: coachId, updatedAt: now });
-  await bumpActiveClientCount(coachId, 1);
-  await writeAudit({ action: 'coach.assign', targetUserId: clientId, metadata: { coachId } });
+    coachId,
+    // The Firestore-era version wrote no subscription at all; the migrated
+    // endpoint requires one, so this uses the same "no term yet" `pending`
+    // state `buildSubscription()` falls back to — the coach sets a real term
+    // afterwards via the subscription panel.
+    subscription: { status: 'pending' as SubscriptionStatus },
+  });
 }
 
-/** Moves a client from one coach to another (ends the old link, opens a new one). */
+/**
+ * Moves a client from one coach to another (ends the old link, opens a new one).
+ *
+ * Unused by any current component (superseded by `transferClientWithMode`,
+ * which the admin transfer wizard actually calls). Kept for signature
+ * compatibility, implemented as a thin "transfer with no explicit subscription
+ * handling" call against the same admin-only endpoint `transferClientWithMode` uses.
+ */
 export async function transferClient(
   clientId: string,
   fromCoachId: string | undefined,
   toCoachId: string,
   createdBy: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  if (fromCoachId && fromCoachId !== toCoachId) {
-    await updateDoc(doc(db, REL, relId(fromCoachId, clientId)), {
-      status: 'ended',
-      endedAt: now,
-      endedBy: createdBy,
-      endReason: 'transferred',
-      updatedAt: now,
-    }).catch(() => undefined);
-  }
-  const id = relId(toCoachId, clientId);
-  await setDoc(doc(db, REL, id), {
-    id,
-    coachId: toCoachId,
-    clientId,
-    status: 'active',
-    createdBy,
-    createdAt: now,
-    updatedAt: now,
-  } satisfies CoachClientRelationship);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: toCoachId, updatedAt: now });
-  if (fromCoachId && fromCoachId !== toCoachId) await bumpActiveClientCount(fromCoachId, -1);
-  if (fromCoachId !== toCoachId) await bumpActiveClientCount(toCoachId, 1);
-  await writeAudit({ action: 'coach.transfer', targetUserId: clientId, metadata: { from: fromCoachId ?? null, to: toCoachId } });
+  await transferClientWithMode(clientId, fromCoachId, toCoachId, 'keep_plans', 'keep', createdBy);
 }
 
 /** Removes a client's coach assignment. */
-export async function unassignClient(clientId: string, coachId: string, createdBy: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), {
-    status: 'ended',
-    endedAt: now,
-    endedBy: createdBy,
-    endReason: 'unassigned',
-    updatedAt: now,
-  }).catch(() => undefined);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: deleteField(), updatedAt: now });
-  await bumpActiveClientCount(coachId, -1);
-  await writeAudit({ action: 'coach.unassign', targetUserId: clientId, metadata: { coachId, createdBy } });
+export async function unassignClient(clientId: string, coachId: string, _createdBy: string): Promise<void> {
+  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, {
+    action: 'end',
+    reason: 'unassigned',
+  });
 }
 
 // ---- subscription (lives on the relationship; coach-owned, client-readable) ----
 
 export async function getRelationship(coachId: string, clientId: string): Promise<CoachClientRelationship | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, REL, relId(coachId, clientId)));
-  return snap.exists() ? (snap.data() as CoachClientRelationship) : null;
+  try {
+    const doc = await apiGet<CoachClientApiDoc>(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`);
+    return fromApiDoc(doc);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
-/** Snapshot a subscription into a history period (omitting undefined fields). */
-function toPeriod(sub: Subscription, endedAt: number): SubscriptionPeriod {
-  const p: SubscriptionPeriod = { startAt: sub.startAt, endAt: sub.endAt, status: 'ended', endedAt };
-  if (typeof sub.months === 'number') p.months = sub.months;
-  if (typeof sub.price === 'number') p.price = sub.price;
-  if (sub.currency) p.currency = sub.currency;
-  return p;
+async function patchSubscription(coachId: string, clientId: string, sub: Record<string, unknown>): Promise<void> {
+  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, { action: 'subscription', sub });
 }
 
-/**
- * Set (or reset) the subscription term: starts active, ends after `months`.
- * Optionally carries the price/currency. Starting a NEW term (different start
- * date) archives the prior term into `subscriptionHistory` so the history view
- * shows every period the client subscribed for; same-start edits update in place.
- */
+/** Set (or reset) the subscription term: starts active, ends after `months`/`days`. */
 export async function setSubscriptionTerm(
   coachId: string,
   clientId: string,
@@ -161,125 +151,37 @@ export async function setSubscriptionTerm(
   currency?: string,
   planName?: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const rel = await getRelationship(coachId, clientId);
-  const prev = rel?.subscription;
-  // Preserve an existing price/plan name unless a new one is provided.
-  const effPrice = typeof price === 'number' ? price : prev?.price;
-  const effCurrency = currency ?? prev?.currency;
-  const effPlanName = planName ?? prev?.planName;
-  // Days-based term (coach plan with unit='days') takes priority; else months.
-  const useDays = typeof term.days === 'number' && term.days > 0;
-  const months = useDays ? undefined : Math.max(1, term.months ?? 1);
-  const endAt = useDays ? startAt + term.days! * SUB_DAY : addMonths(startAt, months!);
-  const sub: Subscription = {
-    startAt,
-    endAt,
-    status: 'active',
-    frozenFrom: null,
-    frozenUntil: null,
-    updatedAt: now,
-    ...(months ? { months } : {}),
-    ...(typeof effPrice === 'number' ? { price: effPrice } : {}),
-    ...(effCurrency ? { currency: effCurrency } : {}),
-    ...(effPlanName ? { planName: effPlanName } : {}),
-  };
-  const history = [...(rel?.subscriptionHistory ?? [])];
-  if (prev && prev.startAt !== startAt) history.push(toPeriod(prev, now));
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: sub, subscriptionHistory: history, updatedAt: now });
-  await writeAudit({ action: 'sub.setTerm', targetUserId: clientId, metadata: { months: months ?? null, days: term.days ?? null, price: effPrice ?? null } });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'setTerm', startAt, ...term, price, currency, planName });
 }
 
-/** Set/update the subscription price in place (no new term, no history entry). */
+/** Set/update the subscription price in place. */
 export async function setSubscriptionPrice(coachId: string, clientId: string, price: number, currency?: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  if (!rel?.subscription) throw new Error('No subscription to price');
-  const now = Date.now();
-  const next: Subscription = {
-    ...rel.subscription,
-    price,
-    ...(currency ? { currency } : {}),
-    updatedAt: now,
-  };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.setPrice', targetUserId: clientId, metadata: { price, currency: currency ?? null } });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'setPrice', price, currency });
 }
 
-/** Freeze the subscription for [from, until); extends the term by the frozen days. */
+/** Freeze the subscription for [from, until). */
 export async function freezeSubscription(coachId: string, clientId: string, from: number, until: number, note?: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  if (!rel?.subscription) throw new Error('No subscription to freeze');
-  const now = Date.now();
-  const extendBy = Math.max(0, until - from);
-  const next: Subscription = {
-    ...rel.subscription,
-    status: 'frozen',
-    frozenFrom: from,
-    frozenUntil: until,
-    endAt: rel.subscription.endAt + extendBy,
-    ...(note?.trim() ? { note: note.trim() } : {}),
-    updatedAt: now,
-  };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.freeze', targetUserId: clientId, metadata: { from, until } });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'freeze', from, until, note });
 }
 
 /** Lift a freeze and resume the subscription. */
 export async function unfreezeSubscription(coachId: string, clientId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  if (!rel?.subscription) return;
-  const now = Date.now();
-  const next: Subscription = { ...rel.subscription, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.unfreeze', targetUserId: clientId, metadata: {} });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'unfreeze' });
 }
 
 /** End the subscription now. */
 export async function endSubscription(coachId: string, clientId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  const now = Date.now();
-  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  const next: Subscription = { ...base, status: 'ended', endAt: now, frozenFrom: null, frozenUntil: null, updatedAt: now };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.end', targetUserId: clientId, metadata: {} });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'end' });
 }
 
-const SUB_DAY = 86_400_000;
-
-/** Cancel the subscription now (tracking only — no refund/payment). */
+/** Cancel the subscription now. */
 export async function cancelSubscription(coachId: string, clientId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  const now = Date.now();
-  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  const next: Subscription = { ...base, status: 'cancelled', cancelledAt: now, frozenFrom: null, frozenUntil: null, updatedAt: now };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.cancel', targetUserId: clientId, metadata: {} });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'cancel' });
 }
 
-/** Extend the term by N days (reactivates an expired/cancelled term). Tracking only. */
+/** Extend the term by N days. */
 export async function extendSubscription(coachId: string, clientId: string, days: number): Promise<void> {
-  const { db } = ensureFirebase();
-  const rel = await getRelationship(coachId, clientId);
-  const now = Date.now();
-  const base: Subscription = rel?.subscription ?? { startAt: now, endAt: now, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  const from = Math.max(base.endAt, now);
-  const status: SubscriptionStatus = base.status === 'trial' ? 'trial' : 'active';
-  const next: Subscription = { ...base, status, endAt: from + days * SUB_DAY, cancelledAt: null, frozenFrom: null, frozenUntil: null, updatedAt: now };
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), { subscription: next, updatedAt: now });
-  await writeAudit({ action: 'sub.extend', targetUserId: clientId, metadata: { days } });
-  await notify({ clientId, forRole: 'client', type: 'subscription_updated', route: '/coach-notes', createdBy: coachId });
+  await patchSubscription(coachId, clientId, { op: 'extend', days });
 }
 
 // ---- existing-client lifecycle (assign / release / transfer / timeline) ------
@@ -314,144 +216,73 @@ export function planToSubscriptionInput(plan: CoachSubscriptionPlan, currency?: 
   return { status: 'active', ...(plan.unit === 'days' ? { days: plan.duration } : { months: plan.duration }), ...money };
 }
 
-/** Build a concrete `Subscription` from the coach's chosen term (no undefined fields). */
-function buildSubscription(input: ClientSubscriptionInput, now: number): Subscription {
-  const start = input.startAt ?? now;
-  const base: Subscription = {
-    startAt: start,
-    endAt: start,
-    status: input.status,
-    frozenFrom: null,
-    frozenUntil: null,
-    updatedAt: now,
-    ...(typeof input.price === 'number' ? { price: input.price } : {}),
-    ...(input.currency ? { currency: input.currency } : {}),
-    ...(input.planName ? { planName: input.planName } : {}),
-    ...(input.billingCycle ? { billingCycle: input.billingCycle } : {}),
-  };
-  if (input.status === 'trial') return { ...base, endAt: start + (input.trialDays ?? 14) * SUB_DAY };
-  if (input.status === 'active') {
-    // Days-based term (coach plan with unit='days') takes priority; else months.
-    if (typeof input.days === 'number' && input.days > 0) return { ...base, endAt: start + input.days * SUB_DAY };
-    const months = input.months ?? 1;
-    return { ...base, months, endAt: addMonths(start, months) };
-  }
-  return base; // pending / expired / cancelled / frozen / ended: no term math
-}
-
 /**
  * The client's CURRENT active coach (if any), resolved from `coachClients`.
- * Single-field `clientId` query (auto-indexed); the active rel is filtered
- * client-side (a client has at most one active coach + a few historical rels).
  */
 export async function getClientAssignment(
   clientId: string,
 ): Promise<{ coachId: string; rel: CoachClientRelationship } | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REL), where('clientId', '==', clientId)));
-  const active = snap.docs.map((d) => d.data() as CoachClientRelationship).find((r) => r.status === 'active');
+  const docs = await apiGet<CoachClientApiDoc[]>(`/coach-clients?clientId=${encodeURIComponent(clientId)}`);
+  const active = docs.map(fromApiDoc).find((r) => r.status === 'active');
   return active ? { coachId: active.coachId, rel: active } : null;
 }
 
 /** Every coaching relationship a client has had (newest first) — the timeline source. */
 export async function listClientCoachHistory(clientId: string): Promise<CoachClientRelationship[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REL), where('clientId', '==', clientId)));
-  return snap.docs.map((d) => d.data() as CoachClientRelationship).sort((a, b) => b.createdAt - a.createdAt);
+  const docs = await apiGet<CoachClientApiDoc[]>(`/coach-clients?clientId=${encodeURIComponent(clientId)}`);
+  return docs.map(fromApiDoc).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 /**
  * CASE 1 — a coach assigns an UNASSIGNED existing client to themselves, with a
- * required subscription. Never creates an Auth user. Writes the rel (granted by
- * the coach self-link rule), claims the client (`assignedCoachId '' → self`,
- * rule E1), bumps the count, notifies the client, and audits.
+ * required subscription. Port of the server's `assignExistingClient` (via
+ * `POST /api/coach-clients`).
  */
 export async function assignExistingClient(
   coachId: string,
   clientId: string,
-  createdBy: string,
+  _createdBy: string,
   sub: ClientSubscriptionInput,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const id = relId(coachId, clientId);
-  const subscription = buildSubscription(sub, now);
-  const rel: CoachClientRelationship = { id, coachId, clientId, status: 'active', subscription, createdBy, createdAt: now, updatedAt: now };
-  await setDoc(doc(db, REL, id), rel);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: coachId, updatedAt: now });
-  await bumpActiveClientCount(coachId, 1);
-  await notify({ clientId, forRole: 'client', type: 'coach_assigned', route: '/coach-notes', createdBy: coachId });
-  await writeAudit({
-    action: 'coach.assign_existing',
-    targetUserId: clientId,
-    metadata: { clientId, fromCoachId: null, toCoachId: coachId, performedBy: createdBy, subscriptionHandling: 'new', timestamp: now },
-  });
+  await apiPost('/coach-clients', { clientId, coachId, subscription: sub });
 }
 
 /**
  * A coach releases their OWN client: the Forma account and all client-owned data
- * stay intact and the client becomes re-assignable. Ends the rel with metadata,
- * clears `assignedCoachId` (rule E1 release branch, self → ''), decrements the
- * count, notifies the client, and audits. No Auth user is ever deleted.
+ * stay intact and the client becomes re-assignable.
  */
-export async function releaseClient(coachId: string, clientId: string, by: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  // Notify the client FIRST — while the relationship is still active, the coach
-  // still has write access to the client's notifications.
-  await notify({ clientId, forRole: 'client', type: 'client_released', route: '/', createdBy: coachId });
-  await updateDoc(doc(db, REL, relId(coachId, clientId)), {
-    status: 'ended',
-    endedAt: now,
-    endedBy: by,
-    endReason: 'released',
-    updatedAt: now,
-  }).catch(() => undefined);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: deleteField(), updatedAt: now });
-  await bumpActiveClientCount(coachId, -1);
-  await writeAudit({
-    action: 'coach.release',
-    targetUserId: clientId,
-    metadata: { clientId, fromCoachId: coachId, toCoachId: null, performedBy: by, timestamp: now },
+export async function releaseClient(coachId: string, clientId: string, _by: string): Promise<void> {
+  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, {
+    action: 'end',
+    reason: 'released',
   });
 }
 
 /**
  * FRESH START — snapshot the active plans into the RETAINED `planVersions`
  * history, then clear the active plans and all coach-authored content so the new
- * coach starts clean. KEEPS profile, assessment, every log, weight, measurements,
- * photos, dailyChecklists, and `planVersions`. Per-doc deletes are best-effort.
- * Gated to super-admin (`clients.writeAll`) by the caller + rules.
+ * coach starts clean.
+ *
+ * NOT PORTED YET (matches the backend's own documented gap — see the "KNOWN
+ * GAP" comment in `api/coach-clients/_service.ts`'s `transferClientWithMode`):
+ * `clientData`/`planVersions` have no Mongo collection in this migration yet,
+ * so there is nothing for this to call. `transferClientWithMode` below no
+ * longer invokes this internally, exactly like the backend it now mirrors.
+ * Kept as a no-op (rather than a throw) so a `fresh_start` transfer still
+ * completes the reassignment even though content-clearing isn't wired up yet.
  */
-export async function archiveAndClearCoachData(clientId: string, by: string): Promise<void> {
-  const { db } = ensureFirebase();
-  // 1) Archive active plans into version history, then drop the active plan docs.
-  const [workout, nutrition, cardio] = await Promise.all([
-    getClientWorkoutPlan(clientId).catch(() => null),
-    getClientMealPlan(clientId).catch(() => null),
-    getClientCardioPlan(clientId).catch(() => null),
-  ]);
-  if (workout) await saveAsNewVersion(clientId, 'workout', workout, by, 'Archived on transfer').catch(() => undefined);
-  if (nutrition) await saveAsNewVersion(clientId, 'nutrition', nutrition, by, 'Archived on transfer').catch(() => undefined);
-  if (cardio) await saveAsNewVersion(clientId, 'cardio', cardio, by, 'Archived on transfer').catch(() => undefined);
-  await Promise.all(
-    (['workout', 'nutrition', 'cardio'] as const).map((k) => deleteDoc(doc(db, CLIENT, clientId, 'plan', k)).catch(() => undefined)),
-  );
-  // 2) Delete coach-authored content (client-owned data is untouched).
-  const colls = ['coachNotes', 'messages', 'checkIns', 'coachTargets', 'notifications', 'workoutPlans', 'nutritionPlans', 'subscriptionRequest'];
-  for (const coll of colls) {
-    const snap = await getDocs(collection(db, CLIENT, clientId, coll)).catch(() => null);
-    if (!snap) continue;
-    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref).catch(() => undefined)));
-  }
+export async function archiveAndClearCoachData(_clientId: string, _by: string): Promise<void> {
+  console.warn('[coachClientsApi] archiveAndClearCoachData() is a no-op: clientData has no Mongo collection yet.');
 }
 
 /**
  * Admin/super-admin transfer with an explicit mode + subscription handling.
- * Reassigns the client (ends the old rel with metadata, opens a new one),
- * optionally runs Fresh Start, resolves the subscription, notifies, and audits.
- *  - `keep_plans`  : everything carries over (any `coaches.assign` admin).
- *  - `fresh_start` : archive + clear coach content (super-admin `clients.writeAll`).
+ * Port of the server's `transferClientWithMode` (via
+ * `PATCH /api/coach-clients/:id` with `action: 'transfer'`) — admin-only
+ * (`coaches.assign`; `clients.writeAll` additionally required for
+ * `mode: 'fresh_start'`), so `fromCoachId` must identify an existing
+ * relationship (this is only ever called once a client already has a coach —
+ * see `TransferWizard.tsx`).
  */
 export async function transferClientWithMode(
   clientId: string,
@@ -459,59 +290,17 @@ export async function transferClientWithMode(
   toCoachId: string,
   mode: TransferMode,
   subscriptionHandling: TransferSubHandling,
-  by: string,
+  _by: string,
   newSub?: ClientSubscriptionInput,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const fromRel = fromCoachId ? await getRelationship(fromCoachId, clientId) : null;
-  // 1) End the old relationship with transfer metadata.
-  if (fromCoachId && fromCoachId !== toCoachId) {
-    await updateDoc(doc(db, REL, relId(fromCoachId, clientId)), {
-      status: 'ended',
-      endedAt: now,
-      endedBy: by,
-      endReason: 'transferred',
-      mode,
-      updatedAt: now,
-    }).catch(() => undefined);
+  if (!fromCoachId) {
+    throw new Error('[coachClientsApi] transferClientWithMode() requires an existing fromCoachId relationship to PATCH.');
   }
-  // 2) Resolve the subscription for the new relationship.
-  let subscription: Subscription | undefined;
-  if (subscriptionHandling === 'keep') {
-    subscription = fromRel?.subscription;
-  } else if (subscriptionHandling === 'new') {
-    subscription = buildSubscription(newSub ?? { status: mode === 'fresh_start' ? 'pending' : 'trial' }, now);
-  } else {
-    subscription = { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  }
-  // 3) Open the new relationship.
-  const id = relId(toCoachId, clientId);
-  const rel: CoachClientRelationship = {
-    id,
-    coachId: toCoachId,
-    clientId,
-    status: 'active',
-    createdBy: by,
-    createdAt: now,
-    updatedAt: now,
-    ...(subscription ? { subscription } : {}),
-  };
-  await setDoc(doc(db, REL, id), rel);
-  await updateDoc(doc(db, USERS, clientId), { assignedCoachId: toCoachId, updatedAt: now });
-  if (fromCoachId && fromCoachId !== toCoachId) await bumpActiveClientCount(fromCoachId, -1);
-  if (fromCoachId !== toCoachId) await bumpActiveClientCount(toCoachId, 1);
-  // 4) Fresh start clears the previous coach's content (after the reassign, so the
-  // new coach owns the rel; client-owned data + planVersions are retained).
-  if (mode === 'fresh_start') await archiveAndClearCoachData(clientId, by);
-  // 5) Notify both coaches' clients + audit (after any clear, so these survive).
-  await notify({ clientId: toCoachId, forRole: 'coach', type: 'coach_assigned', route: `/coach/client/${clientId}`, createdBy: by });
-  await notify({ clientId, forRole: 'client', type: 'coach_assigned', route: '/coach-notes', createdBy: by });
-  const payload = { clientId, fromCoachId: fromCoachId ?? null, toCoachId, performedBy: by, mode, subscriptionHandling, timestamp: now };
-  await writeAudit({ action: 'coach.transfer', targetUserId: clientId, metadata: payload });
-  await writeAudit({
-    action: mode === 'fresh_start' ? 'coach.transfer_fresh_start' : 'coach.transfer_keep_plans',
-    targetUserId: clientId,
-    metadata: payload,
+  await apiPatch(`/coach-clients/${encodeURIComponent(relId(fromCoachId, clientId))}`, {
+    action: 'transfer',
+    toCoachId,
+    mode,
+    subscriptionHandling,
+    ...(newSub ? { newSubscription: newSub } : {}),
   });
 }

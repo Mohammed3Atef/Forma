@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import { TopBar } from '@/components/TopBar';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
-import { TextInput } from '@/components/ui/Field';
+import { SearchField, TextInput } from '@/components/ui/Field';
+import { DataTable, type Column } from '@/components/ui/DataTable';
 import { RowCheckbox } from '@/components/ui/RowCheckbox';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -66,8 +66,8 @@ export function AdminAccounts() {
 
   const list = useInfiniteQuery({
     queryKey: ['users'],
-    queryFn: ({ pageParam }) => fetchUsersPage(25, pageParam as QueryDocumentSnapshot | null),
-    initialPageParam: null as QueryDocumentSnapshot | null,
+    queryFn: ({ pageParam }) => fetchUsersPage(25, pageParam as string | null),
+    initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.cursor,
   });
 
@@ -134,31 +134,42 @@ export function AdminAccounts() {
     if (ok) bulkStatusMut.mutate({ targets, status });
   };
 
+  const tableSelection = canStatus && selectableIds.length > 0 ? {
+    isSelected: (u: UserRecord) => sel.has(u.id),
+    onToggle: (u: UserRecord) => { if (canManage(actorRole, u)) sel.toggle(u.id); },
+    allSelected: allOnPageSelected,
+    someSelected: someOnPageSelected && !allOnPageSelected,
+    onToggleAll: (on: boolean) => sel.setMany(selectableIds, on),
+  } : undefined;
+  const columns: Column<UserRecord>[] = [
+    { key: 'member', header: t('adminMembers.member'), cell: (u) => (
+      <span className="flex items-center gap-2.5">
+        <Avatar name={u.displayName || u.email} photoUrl={u.photoUrl} size="sm" />
+        <span className="min-w-0"><span className="block truncate font-medium">{u.displayName || u.email}</span><span className="block truncate text-[12px] text-earth-subtle">{u.email}</span></span>
+      </span>
+    ) },
+    { key: 'role', header: t('adminMembers.role'), cell: (u) => <span className="text-[13px]">{t(`roles.${u.role}`)}</span> },
+    { key: 'status', header: t('subscription.accountTitle'), cell: (u) => <StatusBadge status={u.accountStatus} /> },
+    { key: 'phone', header: t('field.phone'), cell: (u) => (u.phone ? <span className="font-mono text-[12px]" dir="ltr">{u.phone}</span> : <span className="text-earth-subtle">—</span>) },
+  ];
+
   return (
     <div className="w-full">
-      <TopBar
+      <PageHeader
         testId="admin-accounts"
-        title={t('admin.accounts')}
         eyebrow={t(actorRole === 'super_admin' ? 'platform.superAdmin' : 'platform.admin')}
-        right={
+        title={t('admin.accounts')}
+        actions={
           canCreate ? (
-            <button type="button" data-testid="admin-create-account" className="icon-btn h-[42px] w-[42px]" aria-label={t('admin.createAccount')} onClick={() => setCreating(true)}>
-              <Icon name="plus" size={20} />
+            <button type="button" data-testid="admin-create-account" className="btn-primary h-[42px] gap-2 px-4" onClick={() => setCreating(true)}>
+              <Icon name="plus" size={18} /> {t('admin.createAccount')}
             </button>
           ) : undefined
         }
       />
 
-      <div className="relative mb-3">
-        <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
-          <Icon name="search" size={18} />
-        </span>
-        <input
-          className="input ps-10"
-          placeholder={t('admin.searchAccounts')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="mb-3">
+        <SearchField label={t('admin.searchAccounts')} srOnlyLabel placeholder={t('admin.searchAccounts')} value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
@@ -188,7 +199,7 @@ export function AdminAccounts() {
       </div>
 
       {canStatus && selectableIds.length > 0 && (
-        <div className="mb-2 flex items-center gap-2 px-1">
+        <div className="mb-2 flex items-center gap-2 px-1 lg:hidden">
           <RowCheckbox
             checked={allOnPageSelected}
             indeterminate={someOnPageSelected && !allOnPageSelected}
@@ -205,7 +216,11 @@ export function AdminAccounts() {
       ) : filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('admin.noAccounts')}</p>
       ) : (
-        <div className="card divide-y divide-line-soft">
+        <>
+          <div className="hidden lg:block">
+            <DataTable testId="admin-accounts-table" columns={columns} rows={filtered} rowKey={(u) => u.id} onRowClick={setSelected} selectedKey={selected?.id ?? null} selection={tableSelection} empty={t('admin.noAccounts')} />
+          </div>
+          <div className="card divide-y divide-line-soft lg:hidden">
           {filtered.map((u) => {
             const selectable = canStatus && canManage(actorRole, u);
             return (
@@ -230,7 +245,8 @@ export function AdminAccounts() {
               </div>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
       <div ref={sentinel} />
       {list.isFetchingNextPage && <p className="py-4 text-center text-sm text-earth-muted">{t('auth.working')}</p>}

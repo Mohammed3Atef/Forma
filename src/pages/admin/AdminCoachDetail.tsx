@@ -6,8 +6,7 @@ import { TopBar } from '@/components/TopBar';
 import { confirmDialog } from '@/stores/dialogStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchUserRecord } from '@/services/accounts/accountService';
-import { setAccountStatus } from '@/services/platform/accountsApi';
+import { fetchUser, setAccountStatus } from '@/services/platform/accountsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
   coachPlanState,
@@ -41,7 +40,7 @@ export function AdminCoachDetail() {
   const [endDate, setEndDate] = useState('');
   const [note, setNote] = useState('');
 
-  const coach = useQuery({ queryKey: ['coachUser', coachId], queryFn: () => fetchUserRecord(coachId), enabled: isSuper && !!coachId });
+  const coach = useQuery({ queryKey: ['coachUser', coachId], queryFn: () => fetchUser(coachId), enabled: isSuper && !!coachId });
   const plan = useQuery({ queryKey: ['coachPlanAdmin', coachId], queryFn: () => getCoachPlan(coachId), enabled: isSuper && !!coachId });
   const reqQ = useQuery({ queryKey: ['coachPlanRequest', coachId], queryFn: () => getCoachPlanChangeRequest(coachId), enabled: isSuper && !!coachId });
   const clientsQ = useQuery({ queryKey: ['adminCoachClients', coachId], queryFn: () => listMyClients(coachId), enabled: isSuper && !!coachId });

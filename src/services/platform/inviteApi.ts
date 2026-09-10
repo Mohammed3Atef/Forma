@@ -1,24 +1,55 @@
-import { collection, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
 import { addMonths } from '@/lib/subscription';
+import { ApiError, apiDelete, apiGet, apiPost } from '@/services/platformApi';
 import type { BillingCycle, SignupInvite, Subscription, SubscriptionStatus } from '@/types';
 
 /**
- * Client invitations (Phase 1), at `signupInvites/{code}`.
+ * Client invitations — now backed by `/api/invites/*` (Mongo `signupInvites`
+ * collection) instead of Firestore's `signupInvites/{code}`. Same flow as
+ * before: a coach generates a single-use code -> shares the link
+ * `${origin}/invite/{code}` -> the visitor claims it (`AcceptInvite.tsx`, via
+ * `POST /api/invites/claim`), which flips it to `claimed` and auto-assigns
+ * them to the coach. The code is still the capability: `GET /api/invites/:code`
+ * is public, but only the owning coach (or an admin) may create/revoke.
  *
- * Flow: a coach generates a single-use code → shares the link `${origin}/invite/{code}`
- * → the visitor signs up (sets their own password) and CLAIMS the invite, which
- * flips it to `claimed` and auto-assigns them to the coach. The code is the
- * capability: rules let any signed-in user READ a minimal invite payload, but
- * only the owning coach may create/revoke, and only the claiming client may flip
- * it to `claimed` (once, while `pending`, honoring `expiresAt`).
+ * The Mongo doc's `_id` IS the code (mirrors the Firestore doc-id convention);
+ * `fromApiDoc` below maps that back onto the frontend's `code` field so every
+ * exported function here keeps returning the same `SignupInvite` shape.
  */
 
-const INVITES = 'signupInvites';
-/** Default invite lifetime (14 days). */
+/** Wire shape returned by `/api/invites/*` — `_id` is the code. */
+interface SignupInviteApiDoc {
+  _id: string;
+  coachId: string;
+  coachName?: string;
+  email?: string;
+  displayName?: string;
+  phone?: string;
+  subStatus?: SubscriptionStatus;
+  subPlanName?: string;
+  subPrice?: number;
+  subCurrency?: string;
+  subBillingCycle?: BillingCycle;
+  subMonths?: number;
+  subDays?: number;
+  subTrialDays?: number;
+  status: SignupInvite['status'];
+  claimedByUid?: string | null;
+  createdAt: number;
+  claimedAt?: number | null;
+  expiresAt?: number | null;
+  /** Only present on `GET /api/invites/:code` — computed server-side `isClaimable()`. */
+  claimable?: boolean;
+}
+
+function fromApiDoc(doc: SignupInviteApiDoc): SignupInvite {
+  const { _id, claimable: _claimable, ...rest } = doc;
+  return { code: _id, ...rest };
+}
+
+/** Default invite lifetime (14 days) — mirrors the backend's `DEFAULT_TTL_MS`. */
 const DEFAULT_TTL_MS = 14 * 86_400_000;
 
-/** Human-friendly, unambiguous invite code (no 0/O/1/I/L). */
+/** Human-friendly, unambiguous invite code (no 0/O/1/I/L). Codes are actually minted server-side on create; kept here for any caller that still wants a client-side preview code. */
 export function generateInviteCode(len = 8): string {
   const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   let out = '';
@@ -59,63 +90,49 @@ export function inviteLink(code: string): string {
 
 /** Coach generates a new pending invite. Returns the created record. */
 export async function createInvite(coachId: string, input: CreateInviteInput = {}): Promise<SignupInvite> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const ttl = input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs;
-  // Retry on the (vanishingly unlikely) code collision.
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const code = generateInviteCode();
-    const ref = doc(db, INVITES, code);
-    if ((await getDoc(ref)).exists()) continue;
-    const invite: SignupInvite = {
-      code,
-      coachId,
-      status: 'pending',
-      claimedByUid: null,
-      createdAt: now,
-      claimedAt: null,
-      expiresAt: ttl === null ? null : now + ttl,
-      ...(input.coachName?.trim() ? { coachName: input.coachName.trim() } : {}),
-      ...(input.email?.trim() ? { email: input.email.trim() } : {}),
-      ...(input.displayName?.trim() ? { displayName: input.displayName.trim() } : {}),
-      ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
-      subStatus: input.subStatus ?? 'trial',
-      ...(input.subPlanName?.trim() ? { subPlanName: input.subPlanName.trim() } : {}),
-      ...(input.subPrice != null ? { subPrice: input.subPrice } : {}),
-      ...(input.subCurrency?.trim() ? { subCurrency: input.subCurrency.trim() } : {}),
-      ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
-      ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
-      ...(input.subDays != null ? { subDays: input.subDays } : {}),
-      ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
-    };
-    await setDoc(ref, invite);
-    return invite;
-  }
-  throw new Error('Could not allocate a unique invite code');
+  const body = {
+    // Only honored server-side for an admin (`coaches.assign`) caller — a coach
+    // always creates their own invites regardless of this field.
+    coachId,
+    ...(input.email?.trim() ? { email: input.email.trim() } : {}),
+    ...(input.displayName?.trim() ? { displayName: input.displayName.trim() } : {}),
+    ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
+    subStatus: input.subStatus ?? 'trial',
+    ...(input.subPlanName?.trim() ? { subPlanName: input.subPlanName.trim() } : {}),
+    ...(input.subPrice != null ? { subPrice: input.subPrice } : {}),
+    ...(input.subCurrency?.trim() ? { subCurrency: input.subCurrency.trim() } : {}),
+    ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
+    ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
+    ...(input.subDays != null ? { subDays: input.subDays } : {}),
+    ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
+    ttlMs: input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs,
+  };
+  const doc = await apiPost<SignupInviteApiDoc>('/invites', body);
+  return fromApiDoc(doc);
 }
 
-/** Read one invite by code (any signed-in user; the code is the capability). */
+/** Read one invite by code (public pre-auth lookup; the code is the capability). */
 export async function getInvite(code: string): Promise<SignupInvite | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, INVITES, code.trim().toUpperCase()));
-  return snap.exists() ? (snap.data() as SignupInvite) : null;
+  try {
+    const doc = await apiGet<SignupInviteApiDoc>(`/invites/${encodeURIComponent(code.trim().toUpperCase())}`);
+    return fromApiDoc(doc);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 /** Pending (and not-expired) invites for a coach, newest first. */
 export async function listPendingInvites(coachId: string): Promise<SignupInvite[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, INVITES), where('coachId', '==', coachId), where('status', '==', 'pending')));
-  const now = Date.now();
-  return snap.docs
-    .map((d) => d.data() as SignupInvite)
-    .filter((i) => i.expiresAt == null || i.expiresAt > now)
-    .sort((a, b) => b.createdAt - a.createdAt);
+  const docs = await apiGet<SignupInviteApiDoc[]>(
+    `/invites?coachId=${encodeURIComponent(coachId)}&status=pending`,
+  );
+  return docs.map(fromApiDoc);
 }
 
 /** Coach revokes a pending invite (cannot be claimed afterwards). */
 export async function revokeInvite(code: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await updateDoc(doc(db, INVITES, code), { status: 'revoked', updatedAt: Date.now() });
+  await apiDelete(`/invites/${encodeURIComponent(code)}`);
 }
 
 /** True when an invite is currently claimable. */
@@ -127,38 +144,45 @@ export function isClaimable(invite: SignupInvite | null, now = Date.now()): bool
 }
 
 /**
- * Claim an invite for the freshly-created client (single-use). Flips status to
- * `claimed` and stamps `claimedByUid`/`claimedAt`. Rules only permit this when
- * the invite is still `pending` and `claimedByUid == auth.uid`, so concurrent
- * claims are rejected for everyone but the first writer.
+ * Claim an invite for the freshly-created client (single-use).
+ *
+ * SUPERSEDED: claiming is now an atomic, all-or-nothing server operation —
+ * `POST /api/invites/claim` (see `AcceptInvite.tsx`) creates the client's
+ * account AND flips the invite to `claimed` in one request. There is no
+ * standalone "flip this already-created uid's invite to claimed" endpoint
+ * anymore, so this can no longer be called on its own. Kept only so any
+ * lingering caller still type-checks against the original signature.
  */
-export async function claimInvite(code: string, uid: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await updateDoc(doc(db, INVITES, code), {
-    status: 'claimed',
-    claimedByUid: uid,
-    claimedAt: Date.now(),
-  });
+export async function claimInvite(_code: string, _uid: string): Promise<void> {
+  throw new Error(
+    '[inviteApi] claimInvite() is superseded by POST /api/invites/claim, which claims the invite as part of ' +
+      'creating the client account. Call the claim flow in AcceptInvite.tsx instead of claimInvite() directly.',
+  );
 }
 
-/** Best-effort rollback of a claim if a later step of the join fails. */
+/**
+ * Best-effort rollback of a claim if a later step of the join fails.
+ *
+ * SUPERSEDED: the same reasoning as `claimInvite()` above — the server-side
+ * claim endpoint already rolls itself back atomically on failure, so there is
+ * no standalone unclaim endpoint to call from the frontend.
+ */
 export async function unclaimInvite(code: string): Promise<void> {
-  try {
-    const { db } = ensureFirebase();
-    await updateDoc(doc(db, INVITES, code), {
-      status: 'pending',
-      claimedByUid: deleteField(),
-      claimedAt: null,
-    });
-  } catch (e) {
-    console.warn('[invite] unclaim failed (non-fatal):', e);
-  }
+  console.warn(
+    `[inviteApi] unclaimInvite(${code}) is a no-op: POST /api/invites/claim now rolls back its own claim ` +
+      'on failure server-side, so the frontend never needs to unclaim manually.',
+  );
 }
 
 /**
  * Build the client Subscription written onto the coachClients relationship when
  * an invite is claimed — derived from the coach's invite settings so no invited
  * client is ever assigned without a subscription state. Defaults to a 14-day trial.
+ *
+ * Purely client-side math (exact mirror of the server's `buildClaimSubscription`
+ * in `api/invites/_data.ts`) — kept for any caller that wants to preview the
+ * subscription an invite will produce; `POST /api/invites/claim` computes and
+ * persists the authoritative copy itself.
  */
 export function buildClaimSubscription(invite: SignupInvite, now = Date.now()): Subscription {
   const status: SubscriptionStatus = invite.subStatus ?? 'trial';

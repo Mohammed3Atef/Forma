@@ -1,89 +1,84 @@
-import { arrayUnion, collection, collectionGroup, doc, getDoc, getDocs, increment, query, setDoc, updateDoc, where } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
+import { apiGet, apiPatch, apiPost, ApiError } from '@/services/platformApi';
 import { writeAudit } from './auditApi';
 import { notify } from './notificationsApi';
-import type { CoachPlan, CoachPlanChangeRequest, PlanRequestStatus } from '@/types';
+import type { CoachPlan, CoachPlanChangeRequest } from '@/types';
 
 /**
- * Layer A — the coach's own subscription to Forma, at `coachPlans/{coachId}`.
- * Distinct from the per-client `Subscription` (Layer B) on `coachClients`.
+ * Layer A — the coach's own subscription to Forma, backed by the Mongo
+ * `coachPlans` collection via `/api/coach-plans/*` (was Firestore
+ * `coachPlans/{coachId}`). Distinct from the per-client `Subscription`
+ * (Layer B) on `coachClients`.
  *
- * A coach self-creates a LOCKED trial on signup (the rules only permit
- * `plan=='trial' && status=='active' && maxClients==TRIAL_MAX_CLIENTS` for a
- * self-create, and forbid the coach from ever changing plan/status/maxClients
- * afterwards). The coach may only patch `trialNotified` (expiry reminders) and
- * `activeClientCount` (usage bookkeeping) on their own plan.
+ * A coach self-creates a trial on signup via `POST /coach-plans/trial`
+ * (idempotent server-side — never downgrades an existing plan). Super-admin
+ * overrides (tier/status/maxClients) go through `PATCH /coach-plans/:coachId`.
  */
 
-const COACH_PLANS = 'coachPlans';
-
-/** Trial defaults — mirrored in firestore.rules. Keep the two in sync. */
+/** Trial defaults — mirrored server-side in `api/coach-plans/_data.ts`. Keep the two in sync. */
 export const TRIAL_MAX_CLIENTS = 10;
 export const TRIAL_DURATION_DAYS = 15;
 /** Default renewal cycle for paid tiers (renewals are manual — no payment gateway). */
 export const PAID_TERM_DAYS = 30;
 const DAY_MS = 86_400_000;
 
+/**
+ * Reads the signed-in coach's own plan via `GET /coach-plans/me`. For a
+ * non-coach caller (a super-admin viewing another coach's plan from
+ * `AdminCoachDetail.tsx`), `/coach-plans/me` 403s (there is no dedicated
+ * "read any coach's plan" route under `api/coach-plans/`), so this falls back
+ * to the admin coach-detail endpoint (`api/admin/coaches/[id].ts`), which
+ * embeds the same doc shape under `.plan`.
+ */
 export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, COACH_PLANS, coachId));
-  return snap.exists() ? (snap.data() as CoachPlan) : null;
+  try {
+    return await apiGet<CoachPlan>('/coach-plans/me');
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    if (!(e instanceof ApiError) || e.status !== 403) throw e;
+  }
+  try {
+    const detail = await apiGet<{ plan: (CoachPlan & { _id?: string }) | null }>(
+      `/admin/coaches/${encodeURIComponent(coachId)}`,
+    );
+    return detail.plan;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null;
+    throw e;
+  }
 }
 
 /**
- * Creates the coach's auto trial plan. Idempotent: if a plan already exists it
- * is returned untouched (never downgrades an upgraded/paid plan). Called at
- * coach signup from the session sign-in path.
+ * Creates the coach's auto trial plan. `POST /coach-plans/trial` is idempotent
+ * server-side: if a plan already exists (of any tier, even upgraded/paid) it
+ * is returned untouched. Called at coach signup from the session sign-in path.
  */
 export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
-  const existing = await getCoachPlan(coachId);
-  if (existing) return existing;
-  const now = Date.now();
-  const plan: CoachPlan = {
-    coachId,
-    plan: 'trial',
-    status: 'active',
-    maxClients: TRIAL_MAX_CLIENTS,
-    startedAt: now,
-    endsAt: now + TRIAL_DURATION_DAYS * DAY_MS,
-    trialNotified: {},
-    activeClientCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, COACH_PLANS, coachId), plan);
-  return plan;
+  void coachId; // the backend resolves the coach from the auth token, not a client-supplied id
+  return apiPost<CoachPlan>('/coach-plans/trial');
 }
 
 /**
- * Mark a trial-expiry reminder as sent so it never fires twice. Only the
- * `trialNotified` map (+ updatedAt) is touched — the only field a coach may
- * mutate on their own plan besides the counter.
+ * Mark a trial-expiry reminder as sent so it never fires twice. No self-service
+ * route persists this flag today (the admin `PATCH /coach-plans/:coachId`
+ * route is `users.manageStatus`-gated and doesn't expose `trialNotified`), so
+ * this is a deliberate no-op until a dedicated route exists. Every caller
+ * (`checkTrialExpiry`) already treats this as best-effort/non-fatal.
  */
 export async function markTrialNotified(coachId: string, key: 'd7' | 'd5' | 'd3' | 'd1'): Promise<void> {
-  const { db } = ensureFirebase();
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    [`trialNotified.${key}`]: true,
-    updatedAt: Date.now(),
-  });
+  void coachId;
+  void key;
 }
 
 /**
- * Adjust the maintained `activeClientCount` by `delta` (+1 on assign, -1 on
- * unassign/trash). Best-effort: a drift is reconciled by
- * scripts/reconcile-client-counts.mjs. Never blocks the primary action.
+ * Adjust the maintained `activeClientCount` by `delta`. The Mongo
+ * `coach-clients` API now maintains this counter itself server-side on
+ * assign/unassign (see `api/coach-clients/_data.ts`), so this is a no-op kept
+ * only so existing callers compile/behave unchanged — every call site already
+ * treats this as best-effort/non-fatal bookkeeping.
  */
 export async function bumpActiveClientCount(coachId: string, delta: number): Promise<void> {
-  try {
-    const { db } = ensureFirebase();
-    await updateDoc(doc(db, COACH_PLANS, coachId), {
-      activeClientCount: increment(delta),
-      updatedAt: Date.now(),
-    });
-  } catch (e) {
-    console.warn('[coachPlan] activeClientCount bump failed (non-fatal):', e);
-  }
+  void coachId;
+  void delta;
 }
 
 /** Days remaining on the trial (rounded up), or null when the plan has no end. */
@@ -104,91 +99,66 @@ export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceM
   enterprise: { maxClients: 1000, priceMonthly: 0 },
 };
 
-/** Super-admin: list every coach plan (rules allow read via users.read). */
+/** Super-admin: list every coach plan, via the aggregate `GET /admin/coaches` (embeds each coach's plan). */
 export async function listAllCoachPlans(): Promise<CoachPlan[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, COACH_PLANS));
-  return snap.docs.map((d) => d.data() as CoachPlan);
+  const data = await apiGet<{ rows: Array<{ plan: (CoachPlan & { _id?: string }) | null }> }>('/admin/coaches');
+  return data.rows.map((r) => r.plan).filter((p): p is CoachPlan => p !== null);
 }
 
 /** Super-admin: upgrade/downgrade a coach to a tier (sets the cap + activates). */
 export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  // Resolve the cap from the editable Firestore config, falling back to the built-in seed.
-  const tierSnap = await getDoc(doc(db, 'coachPlanTiers', tier)).catch(() => null);
-  const maxClients =
-    (tierSnap?.exists() ? (tierSnap.data() as { maxClients?: number }).maxClients : undefined) ??
-    COACH_PLAN_TIERS[tier]?.maxClients ??
-    TRIAL_MAX_CLIENTS;
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    plan: tier,
-    maxClients,
-    status: 'active',
-    endsAt: now + (tier === 'trial' ? TRIAL_DURATION_DAYS : PAID_TERM_DAYS) * DAY_MS,
-    updatedAt: now,
-    history: arrayUnion({ at: now, action: 'tier', detail: tier }),
-  });
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier });
   await writeAudit({ action: 'coachPlan.setTier', targetUserId: coachId, metadata: { tier } });
 }
 
-/** Super-admin: extend a coach's trial/term by N days (and (re)activate it). */
+/**
+ * Super-admin: extend a coach's trial/term by N days (and (re)activate it).
+ *
+ * NOTE: `PATCH /coach-plans/:coachId` only recomputes `endsAt` (as `now` plus
+ * the tier's STANDARD term) when `tier` is included in the body — there is no
+ * arbitrary day-offset field. This re-applies the coach's current tier to push
+ * the term out by its standard length rather than compounding an arbitrary
+ * `days` count on top of the existing `endsAt`; every caller today only ever
+ * passes the standard term length anyway.
+ */
 export async function extendCoachTrial(coachId: string, days: number): Promise<void> {
-  const { db } = ensureFirebase();
   const plan = await getCoachPlan(coachId);
-  const now = Date.now();
-  const base = Math.max(plan?.endsAt ?? now, now);
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    endsAt: base + days * DAY_MS,
-    status: 'active',
-    updatedAt: now,
-    history: arrayUnion({ at: now, action: 'endsAt', detail: `+${days}d` }),
-  });
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier: plan?.plan ?? 'trial' });
   await writeAudit({ action: 'coachPlan.extend', targetUserId: coachId, metadata: { days } });
 }
 
-/** Super-admin: renew a coach's term by `days` (default a full paid cycle) and (re)activate. */
+/** Super-admin: renew a coach's term (default a full paid cycle) and (re)activate. See `extendCoachTrial` for the same day-offset caveat. */
 export async function renewCoachPlan(coachId: string, days = PAID_TERM_DAYS): Promise<void> {
-  const { db } = ensureFirebase();
   const plan = await getCoachPlan(coachId);
-  const now = Date.now();
-  const base = Math.max(plan?.endsAt ?? now, now);
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    endsAt: base + days * DAY_MS,
-    status: 'active',
-    updatedAt: now,
-    history: arrayUnion({ at: now, action: 'renew', detail: `+${days}d` }),
-  });
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier: plan?.plan ?? 'trial' });
   await writeAudit({ action: 'coachPlan.renew', targetUserId: coachId, metadata: { days } });
 }
 
 /** Super-admin: adjust a coach's client cap directly. */
 export async function setCoachMaxClients(coachId: string, maxClients: number): Promise<void> {
-  const { db } = ensureFirebase();
   const n = Math.max(0, Math.floor(maxClients));
-  const now = Date.now();
-  await updateDoc(doc(db, COACH_PLANS, coachId), { maxClients: n, updatedAt: now, history: arrayUnion({ at: now, action: 'maxClients', detail: String(n) }) });
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { maxClients: n });
   await writeAudit({ action: 'coachPlan.setMaxClients', targetUserId: coachId, metadata: { maxClients: n } });
 }
 
 /** Super-admin: suspend/reactivate a coach PLAN (separate from the account). */
 export async function setCoachPlanStatus(coachId: string, status: 'active' | 'suspended'): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await updateDoc(doc(db, COACH_PLANS, coachId), { status, updatedAt: now, history: arrayUnion({ at: now, action: 'status', detail: status }) });
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { status });
   await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
 }
 
-/** Super-admin: set (or clear) an explicit plan end date. */
+/**
+ * Super-admin: set (or clear) an explicit plan end date.
+ *
+ * NOTE: `PATCH /coach-plans/:coachId`'s body has no `endsAt` field at all (only
+ * tier/status/maxClients), so there is currently no route that can apply an
+ * arbitrary custom end date. Throwing here rather than silently ignoring the
+ * admin's chosen date.
+ */
 export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    endsAt,
-    updatedAt: now,
-    history: arrayUnion({ at: now, action: 'endsAt', detail: endsAt ? new Date(endsAt).toISOString().slice(0, 10) : 'cleared' }),
-  });
-  await writeAudit({ action: 'coachPlan.setEndsAt', targetUserId: coachId, metadata: { endsAt } });
+  void coachId;
+  void endsAt;
+  throw new Error('Setting a custom plan end date is not supported by the current API.');
 }
 
 /** Effective coach-plan status, folding the trial end date in. */
@@ -203,51 +173,58 @@ export function coachPlanState(plan: CoachPlan | null, now = Date.now()): 'trial
 }
 
 // ---- Coach plan-change requests (coach → super-admin) ----------------------
-// Mirrors the client→coach FreezeRequest. Singleton at
-// `coachPlans/{coachId}/planChangeRequest/current`.
-
-const REQ = 'planChangeRequest';
-const REQ_ID = 'current';
+// Mirrors the client→coach FreezeRequest. Singleton per coach, now the
+// top-level Mongo collection `coachPlanChangeRequests` (`_id` == coachId).
 
 /** Coach: submit (or re-submit) a plan-change / more-clients request. */
 export async function submitPlanChangeRequest(
   coachId: string,
   data: { requestedTier?: CoachTierKey; requestedMaxClients?: number; reason: string },
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await setDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), {
-    id: REQ_ID,
-    coachId,
+  void coachId; // the backend resolves the coach from the auth token
+  await apiPost('/coach-plans/change-request', {
     reason: data.reason.trim(),
-    status: 'pending' as PlanRequestStatus,
-    requestedAt: now,
-    reviewedAt: null,
-    reviewedBy: null,
-    updatedAt: now,
     ...(data.requestedTier ? { requestedTier: data.requestedTier } : {}),
     ...(data.requestedMaxClients ? { requestedMaxClients: Math.max(0, Math.floor(data.requestedMaxClients)) } : {}),
   });
 }
 
-/** Read a coach's plan-change request (coach reads own; admin reads any). */
+/**
+ * Read a coach's plan-change request (coach reads own; admin reads any).
+ *
+ * NOTE: the only read route is `GET /coach-plans/admin-plan-change-requests`
+ * (`users.manageStatus`-gated, and only ever returns PENDING requests). A
+ * coach calling it 403s — there is no self-service "read my own request"
+ * route yet — so this degrades to `null` for a coach rather than throwing
+ * (the request UI still works for submitting/seeing a pending request; it
+ * just can't show a resolved accepted/rejected banner until that route
+ * exists).
+ */
 export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachPlanChangeRequest | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID));
-  return snap.exists() ? (snap.data() as CoachPlanChangeRequest) : null;
+  try {
+    const pending = await apiGet<CoachPlanChangeRequest[]>('/coach-plans/admin-plan-change-requests');
+    return pending.find((r) => r.coachId === coachId) ?? null;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 403) return null;
+    throw e;
+  }
 }
 
-/** Coach: withdraw a pending request. */
+/**
+ * Coach: withdraw a pending request.
+ *
+ * NOTE: no route lets a coach self-cancel (only the admin accept/reject/delete
+ * route exists, gated on `users.manageStatus`). Throwing here rather than
+ * silently no-op-ing a click that appears to succeed.
+ */
 export async function cancelPlanChangeRequest(coachId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await updateDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), { status: 'cancelled', updatedAt: Date.now() });
+  void coachId;
+  throw new Error('Cancelling a plan-change request is not supported by the current API.');
 }
 
 /** Super-admin: every pending plan-change request across all coaches. */
 export async function listPendingPlanChangeRequests(): Promise<CoachPlanChangeRequest[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collectionGroup(db, REQ), where('status', '==', 'pending')));
-  return snap.docs.map((d) => d.data() as CoachPlanChangeRequest);
+  return apiGet<CoachPlanChangeRequest[]>('/coach-plans/admin-plan-change-requests');
 }
 
 /**
@@ -261,31 +238,16 @@ export async function resolvePlanChangeRequest(
   outcome: 'accepted' | 'rejected',
   adminNote: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await updateDoc(doc(db, COACH_PLANS, coachId, REQ, REQ_ID), {
-    status: outcome,
-    reviewedAt: now,
-    reviewedBy: decidedBy,
-    adminNote: adminNote.trim(),
-    updatedAt: now,
-  });
-  // Log the decision on the plan history too (best-effort — a coach without a
-  // plan doc shouldn't block the resolution).
-  await updateDoc(doc(db, COACH_PLANS, coachId), {
-    history: arrayUnion({ at: now, action: `request.${outcome}`, detail: adminNote.trim().slice(0, 120), by: decidedBy }),
-    updatedAt: now,
-  }).catch(() => undefined);
-  // Notify the coach in their own bell that their request was reviewed. Written
-  // to clientData/{coachId}/notifications (the coach reads it as the owner; the
-  // resolving super-admin writes it via clients.writeAll). Best-effort.
+  const note = adminNote.trim();
+  await apiPatch('/coach-plans/admin-plan-change-requests', { coachId, decision: outcome, adminNote: note });
+  // Notify the coach in their own bell that their request was reviewed. Best-effort.
   await notify({
     clientId: coachId,
     forRole: 'coach',
     type: 'plan_decided',
-    body: adminNote.trim() || undefined,
+    body: note || undefined,
     route: '/coach/plan',
     createdBy: decidedBy,
   });
-  await writeAudit({ action: `coachPlan.request.${outcome}`, targetUserId: coachId, metadata: { adminNote: adminNote.trim().slice(0, 140) } });
+  await writeAudit({ action: `coachPlan.request.${outcome}`, targetUserId: coachId, metadata: { adminNote: note.slice(0, 140) } });
 }

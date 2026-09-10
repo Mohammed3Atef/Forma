@@ -1,15 +1,17 @@
 import { create } from 'zustand';
-import { cloudAvailable } from '@/data/dataSource';
+import { mongoAuth, type MongoUserRecord } from './mongoAuth';
+import { setAccessToken } from '@/services/platformApi';
 import type { AccountStatus, UserRecord } from '@/types';
 
 /**
- * Session / identity store — the source of truth for "who is signed in and what
- * can they do". Distinct from `useCloud` (which only mirrors the signed-in
- * user's own local-first data to Firestore): this store loads the `users/{uid}`
- * identity doc and drives role-based routing.
+ * Session / identity store — the source of truth for "who is signed in and
+ * what can they do". Backed by the Mongo auth API (`mongoAuth`) rather than
+ * Firebase Auth + a `users/{uid}` Firestore doc — see
+ * docs/MONGO_MIGRATION_PLAN.md for the migration this replaced.
  *
- * When Firebase is not configured the app has no platform: we synthesise an
- * active local `client` account so the existing offline PWA runs unchanged.
+ * `MongoUserRecord` and `UserRecord` are the exact same shape field-for-field
+ * (this was deliberate, to make this cutover a drop-in), so no mapping layer
+ * is needed between the API response and the frontend's identity type.
  */
 
 export type SessionPhase = 'loading' | 'anonymous' | 'pending' | 'suspended' | 'ready';
@@ -20,34 +22,32 @@ interface SessionState {
   account: UserRecord | null;
   error: string | null;
   init: () => void;
-  /** Resolves true on success; on failure sets `error` and resolves false. */
+  /**
+   * Resolves true on success; on failure sets `error` and resolves false.
+   * `create` + `role: 'coach'` self-registers a coach (active immediately, no
+   * approval). `create` + `role: 'client'` always fails — client accounts are
+   * only created via a coach's invite link (see AcceptInvite.tsx).
+   */
   signIn: (email: string, password: string, create?: boolean, phone?: string, role?: 'client' | 'coach') => Promise<boolean>;
+  /**
+   * Pushes an already-authenticated `MongoUserRecord` straight into the
+   * session, exactly like the end of `signIn()` does — for flows that create
+   * + sign in an account OUTSIDE the normal email/password path (currently:
+   * `AcceptInvite.tsx` after `POST /api/invites/claim` returns a fresh client
+   * account + access token). The caller must already have called
+   * `setAccessToken()` with that response's token before calling this.
+   */
+  hydrate: (user: MongoUserRecord) => void;
   signOut: () => Promise<void>;
-  /** Re-reads the identity doc for the current uid and recomputes `phase`. */
+  /** Re-fetches the signed-in user's own identity doc and recomputes `phase`. */
   refreshAccount: () => Promise<void>;
-  /** Update the signed-in user's own contact phone (allowed by self-update rules). */
   updateContact: (phone: string) => Promise<void>;
-  /** Patch the signed-in user's own non-control profile fields (name/phone/photo/timezone). */
   updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>) => Promise<void>;
-  /** Send a password-reset email (works while signed out). */
+  /** Sends a password-reset email (works while signed out). */
   resetPassword: (email: string) => Promise<void>;
   /** Change the signed-in user's password + clear the must-change flag. */
-  changePassword: (newPassword: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
-
-/** Synthetic account used in local-only mode (no Firebase configured). */
-const LOCAL_ACCOUNT: UserRecord = {
-  id: 'local-user',
-  email: '',
-  displayName: 'You',
-  role: 'client',
-  accountStatus: 'active',
-  permissions: [],
-  featureFlags: {},
-  createdBy: 'self',
-  createdAt: 0,
-  updatedAt: 0,
-};
 
 function phaseForStatus(status: AccountStatus): SessionPhase {
   if (status === 'active') return 'ready';
@@ -67,51 +67,34 @@ export const useSession = create<SessionState>((set, get) => ({
   init() {
     if (initialized) return; // React StrictMode mounts effects twice in dev
     initialized = true;
-    if (!cloudAvailable()) {
-      console.info('[session] firebase not configured — local-only client');
-      set({ phase: 'ready', uid: LOCAL_ACCOUNT.id, account: LOCAL_ACCOUNT });
-      return;
-    }
-    void import('@/services/auth/firebaseAuth').then(({ firebaseAuth }) => {
-      firebaseAuth.onChange((u) => {
-        if (!u) {
-          set({ phase: 'anonymous', uid: null, account: null });
-          return;
-        }
-        set({ uid: u.uid });
-        void get().refreshAccount();
-      });
-    });
+    void (async () => {
+      const restored = await mongoAuth.restoreSession();
+      if (!restored) {
+        set({ phase: 'anonymous', uid: null, account: null });
+        return;
+      }
+      await get().refreshAccount();
+    })();
   },
+
+  // Re-read the identity doc when the app returns to the foreground, so a
+  // coach's account-status change (suspend / pending / reactivate) takes
+  // effect on the client's next focus — App.tsx wires this to visibilitychange.
 
   async signIn(email, password, create, phone, role) {
     set({ error: null });
     try {
-      const [{ firebaseAuth }, accounts] = await Promise.all([
-        import('@/services/auth/firebaseAuth'),
-        import('@/services/accounts/accountService'),
-      ]);
+      let user: MongoUserRecord;
       if (create) {
-        const user = await firebaseAuth.signUp(email, password);
-        if (role === 'coach') {
-          await accounts.provisionSelfCoach(user.uid, email, phone);
-          // Auto trial plan (Layer A). Best-effort: a failure here must not block
-          // the coach from signing in — backfill/reconcile can repair it.
-          try {
-            const { createTrialPlan } = await import('@/services/platform/coachPlanApi');
-            await createTrialPlan(user.uid);
-          } catch (e) {
-            console.warn('[session] coach trial plan not created (non-fatal):', e);
-          }
-        } else {
-          await accounts.provisionSelf(user.uid, email, phone);
+        if (role === 'client') {
+          throw new Error('Client accounts are created from a coach invite link, not open sign-up.');
         }
-        set({ uid: user.uid });
+        const displayName = email.includes('@') ? email.split('@')[0] : 'Coach';
+        user = await mongoAuth.signUpCoach(email, password, displayName, phone);
       } else {
-        const user = await firebaseAuth.signIn(email, password);
-        set({ uid: user.uid });
+        user = await mongoAuth.signIn(email, password);
       }
-      await get().refreshAccount();
+      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
       return true;
     } catch (e) {
       console.error('[session] sign-in failed:', e);
@@ -120,31 +103,23 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
 
+  hydrate(user) {
+    set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+  },
+
   async signOut() {
-    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-    await firebaseAuth.signOutUser();
+    await mongoAuth.signOutUser();
+    setAccessToken(null);
     set({ phase: 'anonymous', uid: null, account: null });
   },
 
   async refreshAccount() {
-    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-    const uid = get().uid ?? firebaseAuth.currentUid();
-    if (!uid) {
-      set({ phase: 'anonymous', account: null });
-      return;
-    }
     try {
-      const accounts = await import('@/services/accounts/accountService');
-      let record = await accounts.fetchUserRecord(uid);
-      if (!record) {
-        // Authenticated but no identity doc yet (sign-up race, or a pre-RBAC
-        // account). Provision locked defaults so the user lands somewhere sane.
-        record = await accounts.provisionSelf(uid, firebaseAuth.currentEmail() ?? '');
-      }
-      set({ uid, account: record, phase: phaseForStatus(record.accountStatus) });
+      const user = await mongoAuth.me();
+      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
     } catch (e) {
       console.error('[session] failed to load account:', e);
-      set({ error: e instanceof Error ? e.message : 'Failed to load account' });
+      set({ phase: 'anonymous', uid: null, account: null, error: e instanceof Error ? e.message : 'Failed to load account' });
     }
   },
 
@@ -154,39 +129,19 @@ export const useSession = create<SessionState>((set, get) => ({
 
   async updateSelf(patch) {
     const account = get().account;
-    if (!account || account.id === LOCAL_ACCOUNT.id) return;
-    const { ensureFirebase } = await import('@/data/adapters/firebase/firebase');
-    const { doc, setDoc, deleteField } = await import('firebase/firestore');
-    const { db } = ensureFirebase();
-    // Build the Firestore patch (undefined → deleteField so clearing a photo works).
-    const fields: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const k of ['displayName', 'phone', 'photoUrl', 'timezone', 'currency'] as const) {
-      if (k in patch) fields[k] = patch[k] === undefined ? deleteField() : patch[k];
-    }
-    await setDoc(doc(db, 'users', account.id), fields, { merge: true });
-    set({ account: { ...account, ...patch } });
+    if (!account) return;
+    const updated = await mongoAuth.updateProfile(patch);
+    set({ account: updated });
   },
 
   async resetPassword(email) {
-    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-    await firebaseAuth.resetPassword(email.trim());
+    await mongoAuth.requestPasswordReset(email.trim());
   },
 
-  async changePassword(newPassword) {
-    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-    await firebaseAuth.changePassword(newPassword);
-    // Clear the must-change flag (best-effort) so the prompt doesn't reappear.
+  async changePassword(currentPassword, newPassword) {
     const account = get().account;
-    if (account && account.id !== LOCAL_ACCOUNT.id) {
-      try {
-        const { ensureFirebase } = await import('@/data/adapters/firebase/firebase');
-        const { doc, setDoc } = await import('firebase/firestore');
-        const { db } = ensureFirebase();
-        await setDoc(doc(db, 'users', account.id), { mustChangePassword: false, updatedAt: Date.now() }, { merge: true });
-        set({ account: { ...account, mustChangePassword: false } });
-      } catch {
-        /* non-fatal */
-      }
-    }
+    if (!account) return;
+    await mongoAuth.changePassword(currentPassword, newPassword);
+    set({ account: { ...account, mustChangePassword: false } });
   },
 }));

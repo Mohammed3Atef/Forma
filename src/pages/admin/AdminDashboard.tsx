@@ -9,6 +9,8 @@ import { CoachesPanel } from './dashboard/CoachesPanel';
 import { RevenuePanel } from './dashboard/RevenuePanel';
 import { SubscriptionsPanel } from './dashboard/SubscriptionsPanel';
 import { SystemPanel } from './dashboard/SystemPanel';
+import { GrowthPanel } from './dashboard/GrowthPanel';
+import { UsagePanel } from './dashboard/UsagePanel';
 
 /**
  * Admin "control center" — a tabbed hub at /admin. Overview is available to any
@@ -28,6 +30,8 @@ export function AdminDashboard() {
     { key: 'overview', label: t('admin.tabs.overview'), icon: 'chart' },
     ...(isSuper
       ? ([
+          { key: 'growth', label: t('admin.tabs.growth'), icon: 'chart' },
+          { key: 'usage', label: t('admin.tabs.usage'), icon: 'activity' },
           { key: 'coaches', label: t('admin.tabs.coaches'), icon: 'trophy' },
           { key: 'revenue', label: t('admin.tabs.revenue'), icon: 'bolt' },
           { key: 'subscriptions', label: t('admin.tabs.subscriptions'), icon: 'calendar' },
@@ -48,6 +52,8 @@ export function AdminDashboard() {
       <Tabs tabs={tabs} active={active} onChange={setTab} testIdPrefix="admin-tab" accent="system" />
       <div className="mt-6">
         {active === 'overview' ? <OverviewPanel /> : null}
+        {active === 'growth' ? <GrowthPanel /> : null}
+        {active === 'usage' ? <UsagePanel /> : null}
         {active === 'coaches' ? <CoachesPanel /> : null}
         {active === 'revenue' ? <RevenuePanel /> : null}
         {active === 'subscriptions' ? <SubscriptionsPanel /> : null}

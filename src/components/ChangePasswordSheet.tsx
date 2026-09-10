@@ -5,10 +5,11 @@ import { useSession } from '@/services/auth/sessionStore';
 import { passwordError } from '@/lib/password';
 import { alertDialog } from '@/stores/dialogStore';
 
-/** Sheet to set a new password (policy-checked, entered twice). */
+/** Sheet to set a new password (current password + new, policy-checked, entered twice). */
 export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const changePassword = useSession((s) => s.changePassword);
+  const [current, setCurrent] = useState('');
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -21,14 +22,14 @@ export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose:
     if (pw !== confirm) { setErr(t('auth.pwMismatch')); return; }
     setBusy(true);
     try {
-      await changePassword(pw);
+      await changePassword(current, pw);
+      setCurrent('');
       setPw('');
       setConfirm('');
       onClose();
       await alertDialog({ title: t('auth.changePassword'), message: t('auth.pwChanged') });
     } catch (e) {
-      const fbCode = (e as { code?: string })?.code;
-      setErr(fbCode === 'auth/requires-recent-login' ? t('auth.reloginNeeded') : e instanceof Error ? e.message : 'Failed');
+      setErr(e instanceof Error ? e.message : 'Failed');
     } finally {
       setBusy(false);
     }
@@ -37,11 +38,12 @@ export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose:
   return (
     <Sheet open={open} onClose={onClose} title={t('auth.changePassword')}>
       <div className="space-y-3">
+        <input className="input" type="password" autoComplete="current-password" data-testid="change-pw-current" placeholder={t('auth.currentPassword')} value={current} onChange={(e) => setCurrent(e.target.value)} />
         <input className="input" type="password" autoComplete="new-password" data-testid="change-pw-new" placeholder={t('auth.newPassword')} value={pw} onChange={(e) => setPw(e.target.value)} />
         <input className="input" type="password" autoComplete="new-password" data-testid="change-pw-confirm" placeholder={t('auth.confirmPassword')} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
         {err && <p className="text-sm text-danger" data-testid="change-pw-error">{err}</p>}
-        <button type="button" data-testid="change-pw-save" disabled={busy || !pw || !confirm} onClick={() => void submit()} className="btn-primary w-full disabled:opacity-40">
+        <button type="button" data-testid="change-pw-save" disabled={busy || !current || !pw || !confirm} onClick={() => void submit()} className="btn-primary w-full disabled:opacity-40">
           {busy ? t('auth.working') : t('common.save')}
         </button>
       </div>

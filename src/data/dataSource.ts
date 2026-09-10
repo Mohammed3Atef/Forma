@@ -1,16 +1,15 @@
 import type { DataSource } from './repositories';
 import { LocalDataSource } from './adapters/local/LocalDataSource';
-import { isFirebaseConfigured } from './adapters/firebase/config';
 
 let instance: DataSource | null = null;
 
 /**
  * Returns the active data source. All reads/writes always go through the
- * local store (IndexedDB via LocalDataSource) — there is no separate Firebase
- * DataSource adapter. When Firebase env vars are present, cloud mode is layered
- * on top by the SyncEngine (src/data/sync/SyncEngine.ts), which mirrors local
- * changes to Firestore and pulls remote changes back, so callers are identical
- * in both modes.
+ * local store (IndexedDB via LocalDataSource) — there is no separate remote
+ * DataSource adapter. Cloud mode is layered on top by the SyncEngine
+ * (src/data/sync/SyncEngine.ts), which mirrors local changes to the Mongo
+ * backend (`/api/sync/*`) and pulls remote changes back, so callers are
+ * identical whether or not a sync has happened yet.
  */
 export function getDataSource(): DataSource {
   if (instance) return instance;
@@ -18,7 +17,12 @@ export function getDataSource(): DataSource {
   return instance;
 }
 
-/** Whether cloud sync *could* be enabled in this build. */
+/**
+ * Whether cloud sync is available. The backend is mandatory infrastructure
+ * now (not an opt-in Firebase toggle) — this always returns true and exists
+ * only so the ~20 existing call sites (gating "cloud" UI/behavior) don't need
+ * individual edits.
+ */
 export function cloudAvailable(): boolean {
-  return isFirebaseConfigured();
+  return true;
 }

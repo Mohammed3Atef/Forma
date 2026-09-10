@@ -1,5 +1,4 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
+import { ApiError, apiDelete, apiGet, apiPost } from '@/services/platformApi';
 import { uid } from '@/lib/utils';
 import { saveClientMealPlan, saveClientWorkoutPlan } from './planApi';
 import type {
@@ -15,33 +14,34 @@ import type {
 } from '@/types';
 
 /**
- * Coach-owned reusable assets at `coachAssets/{coachId}/...`:
+ * Coach-owned reusable assets, now backed by the Mongo `/api/coach-assets/*`
+ * routes (was `coachAssets/{coachId}/...` in Firestore):
  *  - exercises          (Exercise library)
  *  - workoutTemplates   (WorkoutTemplate)
  *  - nutritionTemplates (NutritionTemplate)
+ *
+ * Writes always land on the CALLING coach's own collection — the backend
+ * derives `coachId` from the authenticated user for every write route, so a
+ * `coachId` parameter kept here purely for read routes / call-site
+ * compatibility is intentionally unused on writes.
  *
  * Assigning a template SNAPSHOTS its body into the client plan — never a live
  * link. The assigned plan is fully independent afterwards.
  */
 
-const ASSETS = 'coachAssets';
-
 // ---- Exercise library ------------------------------------------------------
 
 export async function listExercises(coachId: string): Promise<Exercise[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'exercises'));
-  return snap.docs.map((d) => d.data() as Exercise).sort((a, b) => a.name.localeCompare(b.name));
+  const list = await apiGet<Exercise[]>(`/coach-assets/exercises?coachId=${encodeURIComponent(coachId)}`);
+  return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function saveExercise(coachId: string, exercise: Exercise): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, coachId, 'exercises', exercise.id), exercise);
+export async function saveExercise(_coachId: string, exercise: Exercise): Promise<void> {
+  await apiPost<Exercise>('/coach-assets/exercises', exercise);
 }
 
-export async function deleteExercise(coachId: string, exerciseId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'exercises', exerciseId));
+export async function deleteExercise(_coachId: string, exerciseId: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/exercises/${encodeURIComponent(exerciseId)}`);
 }
 
 // ---- Snapshot helper -------------------------------------------------------
@@ -81,25 +81,24 @@ export function snapshotPlanBody(body: PlanBody): PlanBody {
 // ---- Workout templates -----------------------------------------------------
 
 export async function listWorkoutTemplates(coachId: string): Promise<WorkoutTemplate[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'workoutTemplates'));
-  return snap.docs.map((d) => d.data() as WorkoutTemplate).sort((a, b) => b.updatedAt - a.updatedAt);
+  return apiGet<WorkoutTemplate[]>(`/coach-assets/workout-templates?coachId=${encodeURIComponent(coachId)}`);
 }
 
-export async function getWorkoutTemplate(coachId: string, id: string): Promise<WorkoutTemplate | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, ASSETS, coachId, 'workoutTemplates', id));
-  return snap.exists() ? (snap.data() as WorkoutTemplate) : null;
+export async function getWorkoutTemplate(_coachId: string, id: string): Promise<WorkoutTemplate | null> {
+  try {
+    return await apiGet<WorkoutTemplate>(`/coach-assets/workout-templates/${encodeURIComponent(id)}`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 export async function saveWorkoutTemplate(template: WorkoutTemplate): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, template.coachId, 'workoutTemplates', template.id), { ...template, updatedAt: Date.now() });
+  await apiPost<WorkoutTemplate>('/coach-assets/workout-templates', template);
 }
 
-export async function deleteWorkoutTemplate(coachId: string, id: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'workoutTemplates', id));
+export async function deleteWorkoutTemplate(_coachId: string, id: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/workout-templates/${encodeURIComponent(id)}`);
 }
 
 export async function duplicateWorkoutTemplate(template: WorkoutTemplate): Promise<WorkoutTemplate> {
@@ -167,53 +166,43 @@ export async function saveClientPlanAsTemplate(
 // ---- Food library + alternative groups -------------------------------------
 
 export async function listFoods(coachId: string): Promise<LibraryFood[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'foods'));
-  return snap.docs.map((d) => d.data() as LibraryFood).sort((a, b) => a.name.en.localeCompare(b.name.en));
+  const list = await apiGet<LibraryFood[]>(`/coach-assets/foods?coachId=${encodeURIComponent(coachId)}`);
+  return [...list].sort((a, b) => a.name.en.localeCompare(b.name.en));
 }
 
-export async function saveFood(coachId: string, food: LibraryFood): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, coachId, 'foods', food.id), food);
+export async function saveFood(_coachId: string, food: LibraryFood): Promise<void> {
+  await apiPost<LibraryFood>('/coach-assets/foods', food);
 }
 
-export async function deleteFood(coachId: string, foodId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'foods', foodId));
+export async function deleteFood(_coachId: string, foodId: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/foods/${encodeURIComponent(foodId)}`);
 }
 
 export async function listFoodGroups(coachId: string): Promise<FoodGroup[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'foodGroups'));
-  return snap.docs.map((d) => d.data() as FoodGroup).sort((a, b) => b.updatedAt - a.updatedAt);
+  return apiGet<FoodGroup[]>(`/coach-assets/food-groups?coachId=${encodeURIComponent(coachId)}`);
 }
 
 export async function saveFoodGroup(group: FoodGroup): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, group.coachId, 'foodGroups', group.id), { ...group, updatedAt: Date.now() });
+  await apiPost<FoodGroup>('/coach-assets/food-groups', group);
 }
 
-export async function deleteFoodGroup(coachId: string, groupId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'foodGroups', groupId));
+export async function deleteFoodGroup(_coachId: string, groupId: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/food-groups/${encodeURIComponent(groupId)}`);
 }
 
-// ---- Supplement library ----------------------------------------------------
+// ---- Supplement library -----------------------------------------------------
 
 export async function listSupplements(coachId: string): Promise<LibrarySupplement[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'supplements'));
-  return snap.docs.map((d) => d.data() as LibrarySupplement).sort((a, b) => a.name.localeCompare(b.name));
+  const list = await apiGet<LibrarySupplement[]>(`/coach-assets/supplements?coachId=${encodeURIComponent(coachId)}`);
+  return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function saveSupplement(coachId: string, supp: LibrarySupplement): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, coachId, 'supplements', supp.id), supp);
+export async function saveSupplement(_coachId: string, supp: LibrarySupplement): Promise<void> {
+  await apiPost<LibrarySupplement>('/coach-assets/supplements', supp);
 }
 
-export async function deleteSupplement(coachId: string, suppId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'supplements', suppId));
+export async function deleteSupplement(_coachId: string, suppId: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/supplements/${encodeURIComponent(suppId)}`);
 }
 
 // ---- Bulk delete (selection → batch removal) -------------------------------
@@ -250,19 +239,15 @@ export function bulkDeleteWorkoutTemplates(coachId: string, ids: string[]): Prom
 // ---- Nutrition templates (architecture; assign reuses MealPlan) ------------
 
 export async function listNutritionTemplates(coachId: string): Promise<NutritionTemplate[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(collection(db, ASSETS, coachId, 'nutritionTemplates'));
-  return snap.docs.map((d) => d.data() as NutritionTemplate).sort((a, b) => b.updatedAt - a.updatedAt);
+  return apiGet<NutritionTemplate[]>(`/coach-assets/nutrition-templates?coachId=${encodeURIComponent(coachId)}`);
 }
 
 export async function saveNutritionTemplate(template: NutritionTemplate): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, ASSETS, template.coachId, 'nutritionTemplates', template.id), { ...template, updatedAt: Date.now() });
+  await apiPost<NutritionTemplate>('/coach-assets/nutrition-templates', template);
 }
 
-export async function deleteNutritionTemplate(coachId: string, id: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, ASSETS, coachId, 'nutritionTemplates', id));
+export async function deleteNutritionTemplate(_coachId: string, id: string): Promise<void> {
+  await apiDelete<void>(`/coach-assets/nutrition-templates/${encodeURIComponent(id)}`);
 }
 
 /** Snapshot a nutrition template into a client's assigned meal plan (independent copy). */

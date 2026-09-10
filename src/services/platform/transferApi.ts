@@ -1,24 +1,47 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import { writeAudit } from './auditApi';
+import { apiGet, apiPatch, apiPost } from '@/services/platformApi';
 import type { ClientTransferRequest, TransferMode, TransferSubHandling } from '@/types';
 
 /**
- * Client-takeover REQUESTS, at top-level `transferRequests/{toCoachId__clientId}`
- * (deterministic id, mirrors the `planChangeRequest` pattern). A prospective coach
- * (toCoachId) requests a client owned by ANOTHER coach (fromCoachId); the current
- * coach or an admin resolves it. This module manages ONLY the request record — the
- * actual reassignment + release go through `coachClientsApi` so the users /
- * coachClients / clientData rules stay authoritative. No Auth user is ever created.
+ * Client-takeover REQUESTS — now backed by `/api/transfers/*` (Mongo
+ * `transferRequests` collection) instead of Firestore's
+ * `transferRequests/{toCoachId__clientId}`. A prospective coach (toCoachId)
+ * requests a client owned by ANOTHER coach (fromCoachId); the current coach or
+ * an admin resolves it. This module manages ONLY the request record — the
+ * actual reassignment + release go through `coachClientsApi`'s
+ * `transferClientWithMode` (the backend's `PATCH /api/transfers/:id` accept
+ * path calls the exact same shared server function).
  *
- * Notifications are PULL-based by design: cross-coach pushes aren't permitted by the
- * rules (a coach can't write into another coach's notifications), so the current
- * coach sees incoming requests via `listIncomingTransferRequests`, the requester
- * tracks status via `listOutgoingTransferRequests`, and admins via
- * `listPendingTransferRequests`.
+ * Notifications are still PULL-based: the current coach sees incoming
+ * requests via `listIncomingTransferRequests`, the requester tracks status via
+ * `listOutgoingTransferRequests`, and admins via `listPendingTransferRequests`.
+ *
+ * The Mongo doc's `_id` IS `${toCoachId}__${clientId}` (same convention as
+ * Firestore); `fromApiDoc` below maps that back onto the frontend's `id`
+ * field so every exported function here keeps returning the same
+ * `ClientTransferRequest` shape.
  */
 
-const REQ = 'transferRequests';
+/** Wire shape returned by `/api/transfers/*` — `_id` is `${toCoachId}__${clientId}`. */
+interface ClientTransferRequestApiDoc {
+  _id: string;
+  clientId: string;
+  fromCoachId: string;
+  toCoachId: string;
+  mode?: TransferMode;
+  subscriptionHandling?: TransferSubHandling;
+  reason: string;
+  status: ClientTransferRequest['status'];
+  requestedAt: number;
+  reviewedAt?: number | null;
+  reviewedBy?: string | null;
+  adminNote?: string;
+  updatedAt: number;
+}
+
+function fromApiDoc(doc: ClientTransferRequestApiDoc): ClientTransferRequest {
+  const { _id, ...rest } = doc;
+  return { id: _id, ...rest };
+}
 
 export function transferReqId(toCoachId: string, clientId: string): string {
   return `${toCoachId}__${clientId}`;
@@ -33,91 +56,65 @@ export async function submitTransferRequest(input: {
   mode?: TransferMode;
   subscriptionHandling?: TransferSubHandling;
 }): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  const id = transferReqId(input.toCoachId, input.clientId);
-  const req: ClientTransferRequest = {
-    id,
+  // `toCoachId` is inferred server-side from the signed-in (coach) caller —
+  // the endpoint always uses the authenticated user's id, so it isn't sent.
+  await apiPost('/transfers', {
     clientId: input.clientId,
     fromCoachId: input.fromCoachId,
-    toCoachId: input.toCoachId,
     reason: input.reason.trim(),
-    status: 'pending',
-    requestedAt: now,
-    reviewedAt: null,
-    reviewedBy: null,
-    updatedAt: now,
     ...(input.mode ? { mode: input.mode } : {}),
     ...(input.subscriptionHandling ? { subscriptionHandling: input.subscriptionHandling } : {}),
-  };
-  await setDoc(doc(db, REQ, id), req);
-  await writeAudit({
-    action: 'coach.transfer_request',
-    targetUserId: input.clientId,
-    metadata: { clientId: input.clientId, fromCoachId: input.fromCoachId, toCoachId: input.toCoachId, performedBy: input.toCoachId, reason: req.reason, timestamp: now },
   });
 }
 
+/**
+ * Fetch one transfer request by its composite id. There is no `GET /api/transfers/:id`
+ * route — only the list endpoint (`?type=incoming|outgoing|pending`) exists — so
+ * this is implemented as "look it up in my own outgoing requests", which matches
+ * every current call site (always invoked with `toCoachId` == the signed-in coach).
+ */
 export async function getTransferRequest(toCoachId: string, clientId: string): Promise<ClientTransferRequest | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, REQ, transferReqId(toCoachId, clientId)));
-  return snap.exists() ? (snap.data() as ClientTransferRequest) : null;
+  const list = await listOutgoingTransferRequests(toCoachId);
+  return list.find((r) => r.id === transferReqId(toCoachId, clientId)) ?? null;
 }
 
 /** Requesting coach withdraws their own pending request. */
 export async function cancelTransferRequest(toCoachId: string, clientId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await updateDoc(doc(db, REQ, transferReqId(toCoachId, clientId)), { status: 'cancelled', updatedAt: Date.now() });
+  await apiPatch(`/transfers/${encodeURIComponent(transferReqId(toCoachId, clientId))}`, { action: 'cancel' });
 }
 
 /** Admin: every pending takeover request across all coaches. */
 export async function listPendingTransferRequests(): Promise<ClientTransferRequest[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REQ), where('status', '==', 'pending')));
-  return snap.docs.map((d) => d.data() as ClientTransferRequest).sort((a, b) => b.requestedAt - a.requestedAt);
+  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/transfers?type=pending');
+  return docs.map(fromApiDoc);
 }
 
-/** Current coach: requests to take over MY clients (pending filtered client-side). */
-export async function listIncomingTransferRequests(coachId: string): Promise<ClientTransferRequest[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REQ), where('fromCoachId', '==', coachId)));
-  return snap.docs
-    .map((d) => d.data() as ClientTransferRequest)
-    .filter((r) => r.status === 'pending')
-    .sort((a, b) => b.requestedAt - a.requestedAt);
+/** Current coach: requests to take over MY clients (pending, newest first). */
+export async function listIncomingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
+  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/transfers?type=incoming');
+  return docs.map(fromApiDoc);
 }
 
 /** Requesting coach: the status of requests I have made. */
-export async function listOutgoingTransferRequests(coachId: string): Promise<ClientTransferRequest[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, REQ), where('toCoachId', '==', coachId)));
-  return snap.docs.map((d) => d.data() as ClientTransferRequest).sort((a, b) => b.requestedAt - a.requestedAt);
+export async function listOutgoingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
+  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/transfers?type=outgoing');
+  return docs.map(fromApiDoc);
 }
 
 /**
  * Current coach (fromCoachId) or admin (coaches.assign) records a decision on a
- * request. ACCEPT only records the decision — the caller then performs the actual
- * release/transfer through `coachClientsApi` (keeps the data rules authoritative).
+ * request. ACCEPT triggers the actual reassignment server-side (the shared
+ * `transferClientWithMode`, same function an admin direct transfer uses).
  */
 export async function resolveTransferRequest(
   toCoachId: string,
   clientId: string,
-  decidedBy: string,
+  _decidedBy: string,
   outcome: 'accepted' | 'rejected',
   adminNote?: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await updateDoc(doc(db, REQ, transferReqId(toCoachId, clientId)), {
-    status: outcome,
-    reviewedAt: now,
-    reviewedBy: decidedBy,
-    updatedAt: now,
+  await apiPatch(`/transfers/${encodeURIComponent(transferReqId(toCoachId, clientId))}`, {
+    action: outcome === 'accepted' ? 'accept' : 'reject',
     ...(adminNote?.trim() ? { adminNote: adminNote.trim() } : {}),
-  });
-  await writeAudit({
-    action: outcome === 'accepted' ? 'coach.transfer_request_accept' : 'coach.transfer_request_reject',
-    targetUserId: clientId,
-    metadata: { clientId, toCoachId, performedBy: decidedBy, timestamp: now },
   });
 }

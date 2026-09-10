@@ -1,0 +1,60 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { z } from 'zod';
+import { requireUser } from '../../_lib/withAuth';
+import { HttpError, handleError, methodGuard } from '../../_lib/http';
+import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access';
+import { weightLogsCol } from '../_lib/db';
+import type { WeightLogDoc } from '../_lib/types';
+
+/**
+ * Raw fitness log CRUD for `weightLogs` (mirrors `SyncEngine`'s `WeightLog`
+ * doc, one per day). NOT coach-owned and no dedicated coach-write rule —
+ * client-own write only; coach/admin(readAll) read only.
+ */
+const Body = z.object({ date: z.string(), weightKg: z.number() });
+
+function logId(clientId: string, date: string): string {
+  return `${clientId}__${date}`;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    methodGuard(req, 'GET', 'PUT', 'DELETE');
+    const user = await requireUser(req);
+    const clientId = resolveClientId(req, user);
+    const col = await weightLogsCol();
+
+    if (req.method === 'GET') {
+      if (!(await canReadClientData(user, clientId))) throw new HttpError(403, 'Forbidden');
+      const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+      if (date) {
+        const doc = await col.findOne({ _id: logId(clientId, date) });
+        res.status(200).json(doc ?? null);
+        return;
+      }
+      const limit = Math.min(Number(req.query.limit) || 120, 500);
+      const list = await col.find({ clientId }).sort({ date: -1 }).limit(limit).toArray();
+      res.status(200).json(list);
+      return;
+    }
+
+    if (req.method === 'PUT') {
+      if (!isActiveSelf(user, clientId)) throw new HttpError(403, 'Forbidden');
+      const body = Body.parse(req.body);
+      const now = Date.now();
+      const doc: WeightLogDoc = { _id: logId(clientId, body.date), clientId, date: body.date, weightKg: body.weightKg, updatedAt: now };
+      await col.replaceOne({ _id: doc._id }, doc, { upsert: true });
+      res.status(200).json(doc);
+      return;
+    }
+
+    // DELETE
+    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+    if (!date) throw new HttpError(400, 'date is required');
+    if (!isActiveSelf(user, clientId)) throw new HttpError(403, 'Forbidden');
+    await col.deleteOne({ _id: logId(clientId, date) });
+    res.status(204).end();
+  } catch (e) {
+    handleError(res, e);
+  }
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { cloudAvailable } from '@/data/dataSource';
+import { useSession } from './sessionStore';
 
 /** Opportunistic syncs (tab refocus, reconnect) within this window are skipped. */
 const MIN_SYNC_INTERVAL_MS = 60_000;
@@ -18,8 +18,9 @@ interface CloudState {
   lastSync: number | null;
   error: string | null;
   init: () => void;
-  /** Resolves true on success; on failure sets `error` and resolves false. */
+  /** @deprecated sign-in now goes through `useSession` — this mirrors it, it does not perform its own sign-in. */
   signIn: (email: string, password: string, create?: boolean) => Promise<boolean>;
+  /** @deprecated sign-out now goes through `useSession`. */
   signOut: () => Promise<void>;
   syncNow: (force?: boolean) => Promise<void>;
   wipeCloud: () => Promise<void>;
@@ -82,7 +83,9 @@ async function refreshStoresAfterPull(): Promise<void> {
 }
 
 export const useCloud = create<CloudState>((set, get) => ({
-  available: cloudAvailable(),
+  // The Mongo backend is mandatory infrastructure now (not an opt-in Firebase
+  // toggle) — sync is "available" whenever the user is signed in at all.
+  available: true,
   user: null,
   syncing: false,
   lastSync: null,
@@ -91,19 +94,18 @@ export const useCloud = create<CloudState>((set, get) => ({
   init() {
     if (initialized) return; // React StrictMode mounts effects twice in dev
     initialized = true;
-    if (!cloudAvailable()) {
-      console.info('[firebase] not configured — running local-only');
-      return;
-    }
-    console.info('[firebase] configured — attaching auth listener');
-    // Subscribe to auth changes and auto-sync on sign-in / reconnect.
-    void import('@/services/auth/firebaseAuth').then(({ firebaseAuth }) => {
-      firebaseAuth.onChange((u) => {
-        console.info('[firebase] auth state:', u ? `signed in (${u.uid})` : 'signed out');
-        set({ user: u ? { uid: u.uid, email: u.email } : null });
-        if (u) void get().syncNow(true); // first sign-in sync always runs
-      });
-    });
+    // There's only ONE account system now (`useSession`) — mirror its identity
+    // instead of maintaining a separate sign-in. Sync fires on every account
+    // change (sign-in, sign-out, session restore on reload).
+    const applyAccount = (account: ReturnType<typeof useSession.getState>['account']) => {
+      const uid = account?.id ?? null;
+      const prev = get().user?.uid ?? null;
+      if (uid === prev) return;
+      set({ user: uid ? { uid, email: account?.email ?? null } : null, lastSync: uid ? get().lastSync : null });
+      if (uid) void get().syncNow(true);
+    };
+    applyAccount(useSession.getState().account);
+    useSession.subscribe((s) => applyAccount(s.account));
     // Auto-sync: on reconnect, on app foreground, and periodically. Foreground/
     // interval syncs are opportunistic and throttled (see syncNow); reconnect
     // forces, since the offline gap means the last "sync" did nothing.
@@ -114,30 +116,13 @@ export const useCloud = create<CloudState>((set, get) => ({
     setInterval(() => void get().syncNow(), 120_000);
   },
 
-  async signIn(email, password, create) {
-    set({ error: null });
-    try {
-      console.info(`[firebase] ${create ? 'signing up' : 'signing in'} ${email}`);
-      const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-      const user = create
-        ? await firebaseAuth.signUp(email, password)
-        : await firebaseAuth.signIn(email, password);
-      console.info('[firebase] signed in as', user.uid);
-      set({ user: { uid: user.uid, email: user.email } });
-      await get().syncNow(true);
-      return true;
-    } catch (e) {
-      console.error('[firebase] sign-in failed:', e);
-      set({ error: e instanceof Error ? e.message : 'Sign-in failed' });
-      return false;
-    }
+  async signIn() {
+    console.warn('[cloud] signIn() is deprecated — sign in via useSession; cloud sync follows automatically.');
+    return !!get().user;
   },
 
   async signOut() {
-    const { firebaseAuth } = await import('@/services/auth/firebaseAuth');
-    await firebaseAuth.signOutUser();
-    console.info('[firebase] signed out');
-    set({ user: null, lastSync: null });
+    console.warn('[cloud] signOut() is deprecated — sign out via useSession; cloud sync follows automatically.');
   },
 
   async syncNow(force = false) {
@@ -150,7 +135,7 @@ export const useCloud = create<CloudState>((set, get) => ({
       const { SyncEngine } = await import('@/data/sync/SyncEngine');
       const result = await new SyncEngine(user.uid).sync();
       if (result.offline) return; // not a real sync — don't claim "synced"
-      console.info(`[sync] done · pushed ${result.pushed}, pulled ${result.pulled} → clientData/${user.uid}`);
+      console.info(`[sync] done · pushed ${result.pushed}, pulled ${result.pulled}`);
       if (result.pulled > 0) await refreshStoresAfterPull();
       set({ lastSync: Date.now() });
     } catch (e) {

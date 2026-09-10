@@ -665,6 +665,7 @@
     "enterEmailFirst": "اكتب إيميلك فوق الأول.",
     "resetSent": "بعتنا رابط إعادة التعيين على {{email}}.",
     "changePassword": "غيّر كلمة السر",
+    "currentPassword": "كلمة السر الحالية",
     "newPassword": "كلمة سر جديدة",
     "pwChanged": "اتغيّرت كلمة السر ✅",
     "reloginNeeded": "اعمل خروج وادخل تاني وجرّب.",

@@ -13,6 +13,8 @@ import { Notifications } from '@/pages/Notifications';
 // Heavy admin route pages are lazy so the admin bundle stays small.
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const AdminAccounts = lazy(() => import('@/pages/admin/AdminAccounts').then((m) => ({ default: m.AdminAccounts })));
+const AdminMembers = lazy(() => import('@/pages/admin/AdminMembers').then((m) => ({ default: m.AdminMembers })));
+const AdminBanners = lazy(() => import('@/pages/admin/AdminBanners').then((m) => ({ default: m.AdminBanners })));
 const AdminClientDetail = lazy(() => import('@/pages/admin/AdminClientDetail').then((m) => ({ default: m.AdminClientDetail })));
 const AdminAssignments = lazy(() => import('@/pages/admin/AdminAssignments').then((m) => ({ default: m.AdminAssignments })));
 const AdminGovernance = lazy(() => import('@/pages/admin/AdminGovernance').then((m) => ({ default: m.AdminGovernance })));
@@ -40,6 +42,8 @@ export function AdminApp() {
       <Routes>
         <Route path="/admin" element={shell(<AdminDashboard />)} />
         <Route path="/admin/accounts" element={shell(<AdminAccounts />)} />
+        <Route path="/admin/members" element={shell(<AdminMembers />)} />
+        <Route path="/admin/banners" element={shell(<AdminBanners />)} />
         <Route path="/admin/clients/:clientId" element={shell(<AdminClientDetail />)} />
         <Route path="/admin/assignments" element={shell(<AdminAssignments />)} />
         <Route path="/admin/governance" element={shell(<AdminGovernance />)} />

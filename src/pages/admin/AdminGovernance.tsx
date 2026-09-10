@@ -10,7 +10,6 @@ import { ROLE_PERMISSIONS } from '@/services/auth/roles';
 import { listFlags, saveFlag } from '@/services/platform/flagsApi';
 import { fetchAuditPage } from '@/services/platform/auditApi';
 import type { FeatureFlag, FeatureFlagScope, Role } from '@/types';
-import type { QueryDocumentSnapshot } from 'firebase/firestore';
 
 const ROLES: Role[] = ['super_admin', 'admin', 'coach', 'client'];
 
@@ -43,8 +42,8 @@ export function GovernanceSections() {
 
   const audit = useInfiniteQuery({
     queryKey: ['audit', 'all'],
-    queryFn: ({ pageParam }) => fetchAuditPage(25, pageParam as QueryDocumentSnapshot | null),
-    initialPageParam: null as QueryDocumentSnapshot | null,
+    queryFn: ({ pageParam }) => fetchAuditPage(25, pageParam as string | null),
+    initialPageParam: null as string | null,
     getNextPageParam: (p) => p.cursor,
     enabled: canAudit,
   });

@@ -1,21 +1,7 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  setDoc,
-  where,
-} from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import { uid } from '@/lib/utils';
+import { apiGet, apiPost, apiPut } from '@/services/platformApi';
 import { fetchUser } from './accountsApi';
 import { listRelationshipsForCoach } from './coachClientsApi';
 import { writeAudit } from './auditApi';
-import { notify } from './notificationsApi';
 import type {
   AssignedPlan,
   CardioLog,
@@ -38,16 +24,33 @@ import type {
   WorkoutLog,
 } from '@/types';
 
-const CLIENT = 'clientData';
-const TEMPLATES = 'planTemplates';
-
-function planCollection(kind: PlanKind): string {
-  return kind === 'workout' ? 'workoutPlans' : 'nutritionPlans';
-}
+/**
+ * Coach-side reads/writes over a client's Mongo-backed data at `/api/client/*`
+ * (port of the old `clientData/{clientId}/**` Firestore tree). Access checks
+ * (assigned coach / admin(clients.readAll|writeAll)) are enforced server-side —
+ * see `api/client/_lib/access.ts` — so this file just calls the routes and
+ * shapes the responses back into the frontend's existing domain types.
+ */
 
 export interface Author {
   id: string;
   role: Role;
+}
+
+// ---- small local helpers ---------------------------------------------------
+
+/** Builds a `?a=1&b=2` query string, skipping undefined values. */
+function qs(params: Record<string, string | number | undefined>): string {
+  const usp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined) usp.set(k, String(v));
+  const s = usp.toString();
+  return s ? `?${s}` : '';
+}
+
+/** Mongo docs come back as `{_id, ...}`; the frontend types want `{id, ...}`. */
+function withId<T>(doc: Record<string, unknown>, id: string, extra?: Record<string, unknown>): T {
+  const { _id, ...rest } = doc;
+  return { ...rest, ...extra, id } as unknown as T;
 }
 
 // ---- clients ---------------------------------------------------------------
@@ -59,82 +62,83 @@ export async function listMyClients(coachId: string): Promise<UserRecord[]> {
 }
 
 export async function fetchClientProfile(clientId: string): Promise<UserProfile | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'main'));
-  return snap.exists() ? (snap.data() as UserProfile) : null;
+  return apiGet<UserProfile | null>(`/client/profile${qs({ clientId })}`);
 }
 
 /** Read a client's onboarding assessment (coach/admin oversight, read-only). */
 export async function getClientAssessment(clientId: string): Promise<ClientAssessment | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, CLIENT, clientId, 'profile', 'assessment'));
-  return snap.exists() ? (snap.data() as ClientAssessment) : null;
+  return apiGet<ClientAssessment | null>(`/client/assessment${qs({ clientId })}`);
 }
 
 /** Coach records review notes on a client's assessment (merge, doesn't reset status). */
 export async function setAssessmentCoachNotes(clientId: string, coachNotes: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, CLIENT, clientId, 'profile', 'assessment'), { coachNotes, updatedAt: Date.now() }, { merge: true });
+  await apiPost(`/client/assessment${qs({ action: 'notes', clientId })}`, { clientId, coachNotes });
 }
 
-/** Coach marks the assessment reviewed (locks further client edits until reset). */
+/** Coach marks the assessment reviewed (locks further client edits until reset). The backend notifies the client itself. */
 export async function markAssessmentReviewed(clientId: string, reviewerId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await setDoc(
-    doc(db, CLIENT, clientId, 'profile', 'assessment'),
-    { status: 'reviewed', reviewedAt: now, reviewedBy: reviewerId, updatedAt: now },
-    { merge: true },
-  );
-  await notify({ clientId, forRole: 'client', type: 'assessment_reviewed', route: '/coach-notes', createdBy: reviewerId });
+  await apiPost(`/client/assessment${qs({ action: 'review', clientId })}`, { clientId, reviewerId });
 }
 
 /** Coach re-opens the assessment so the client can edit + resubmit. */
 export async function resetAssessment(clientId: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(
-    doc(db, CLIENT, clientId, 'profile', 'assessment'),
-    { status: 'in_progress', completed: false, reviewedAt: null, reviewedBy: null, updatedAt: Date.now() },
-    { merge: true },
-  );
+  await apiPost(`/client/assessment${qs({ action: 'reset', clientId })}`, { clientId });
 }
 
 // ---- subscription freeze requests ------------------------------------------
 
 /** Read a client's pending/last freeze request (coach oversight). */
 export async function getClientFreezeRequest(clientId: string): Promise<FreezeRequest | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, CLIENT, clientId, 'subscriptionRequest', 'current'));
-  return snap.exists() ? (snap.data() as FreezeRequest) : null;
+  const doc = await apiGet<Record<string, unknown> | null>(`/client/subscription-request${qs({ clientId })}`);
+  return doc ? withId<FreezeRequest>(doc, 'current') : null;
 }
 
-/** Coach records the decision on a client's freeze request (applying the freeze is done separately). */
+/** Coach records the decision on a client's freeze request (applying the freeze is done separately). The backend notifies the client. */
 export async function resolveFreezeRequest(
   clientId: string,
   decidedBy: string,
   outcome: 'accepted' | 'rejected',
   coachNote: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(
-    doc(db, CLIENT, clientId, 'subscriptionRequest', 'current'),
-    { status: outcome, decidedAt: Date.now(), decidedBy, coachNote: coachNote.trim(), updatedAt: Date.now() },
-    { merge: true },
-  );
-  await notify({ clientId, forRole: 'client', type: 'freeze_decided', body: coachNote.trim().slice(0, 140), route: '/coach-notes', createdBy: decidedBy });
+  await apiPost(`/client/subscription-request${qs({ action: 'decide', clientId })}`, { clientId, decidedBy, outcome, coachNote });
 }
 
 /** Coach sets the client's initial fitness profile (optional, at creation). */
 export async function saveClientProfile(clientId: string, profile: UserProfile): Promise<void> {
-  const { db } = ensureFirebase();
-  await setDoc(doc(db, CLIENT, clientId, 'profile', 'main'), { ...profile, id: clientId, updatedAt: Date.now() });
+  await apiPut(`/client/profile${qs({ clientId })}`, { clientId, ...profile });
+}
+
+// ---- raw fitness logs (coach read-only oversight) --------------------------
+
+/** Maps a `fetchClientLogs` collection name to its `/api/client/logs/*` route. */
+function logsPath(name: string): string {
+  switch (name) {
+    case 'workoutLogs':
+      return '/client/logs/workout';
+    case 'nutritionLogs':
+      return '/client/logs/nutrition';
+    case 'weightLogs':
+      return '/client/logs/weight';
+    case 'cardioLogs':
+      return '/client/logs/cardio';
+    default:
+      throw new Error(`fetchClientLogs: unsupported collection "${name}"`);
+  }
+}
+
+/**
+ * The day-keyed logs (workout/nutrition/weight) use the calendar date as their
+ * id (mirroring the old Firestore doc id); cardioLogs keep their own generated
+ * id since several sessions can exist per day.
+ */
+function logDocId(name: string, doc: Record<string, unknown>): string {
+  return name === 'cardioLogs' ? (doc._id as string) : (doc.date as string);
 }
 
 /** Recent records from one of a client's log collections (newest first). */
 export async function fetchClientLogs<T>(clientId: string, name: string, max = 14): Promise<T[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, CLIENT, clientId, name), orderBy('updatedAt', 'desc'), limit(max)));
-  return snap.docs.map((d) => d.data() as T);
+  const list = await apiGet<Record<string, unknown>[]>(`${logsPath(name)}${qs({ clientId, limit: max })}`);
+  return list.map((d) => withId<T>(d, logDocId(name, d), { dirty: false }));
 }
 
 export interface ClientDay {
@@ -148,22 +152,22 @@ export interface ClientDay {
 
 /** Everything a client logged on one calendar day (for the coach activity view). */
 export async function fetchClientDay(clientId: string, date: string): Promise<ClientDay> {
-  const { db } = ensureFirebase();
-  const dayDoc = (name: string) => getDoc(doc(db, CLIENT, clientId, name, date));
-  const [w, n, wt, cl, cardioSnap] = await Promise.all([
-    dayDoc('workoutLogs'),
-    dayDoc('nutritionLogs'),
-    dayDoc('weightLogs'),
-    dayDoc('dailyChecklists'),
-    getDocs(query(collection(db, CLIENT, clientId, 'cardioLogs'), orderBy('updatedAt', 'desc'), limit(60))),
+  const base = { clientId, date };
+  const [w, n, wt, cardio] = await Promise.all([
+    apiGet<Record<string, unknown> | null>(`/client/logs/workout${qs(base)}`),
+    apiGet<Record<string, unknown> | null>(`/client/logs/nutrition${qs(base)}`),
+    apiGet<Record<string, unknown> | null>(`/client/logs/weight${qs(base)}`),
+    apiGet<Record<string, unknown>[]>(`/client/logs/cardio${qs(base)}`),
   ]);
   return {
     date,
-    workout: w.exists() ? (w.data() as WorkoutLog) : null,
-    nutrition: n.exists() ? (n.data() as NutritionLog) : null,
-    weight: wt.exists() ? (wt.data() as WeightLog) : null,
-    checklist: cl.exists() ? (cl.data() as DailyChecklist) : null,
-    cardio: cardioSnap.docs.map((d) => d.data() as CardioLog).filter((c) => c.date === date),
+    workout: w ? withId<WorkoutLog>(w, date, { dirty: false }) : null,
+    nutrition: n ? withId<NutritionLog>(n, date, { dirty: false }) : null,
+    weight: wt ? withId<WeightLog>(wt, date, { dirty: false }) : null,
+    // No Mongo `dailyChecklists` route exists yet — the coach day view already
+    // renders fine with a null checklist (see ClientActivityView).
+    checklist: null,
+    cardio: cardio.map((c) => withId<CardioLog>(c, c._id as string, { dirty: false })),
   };
 }
 
@@ -171,16 +175,18 @@ export async function fetchClientDay(clientId: string, date: string): Promise<Cl
 
 /** A client's full body-measurement history (oldest → newest by date). */
 export async function fetchClientMeasurements(clientId: string): Promise<MeasurementLog[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, CLIENT, clientId, 'measurementLogs'), orderBy('date', 'asc')));
-  return snap.docs.map((d) => d.data() as MeasurementLog);
+  const list = await apiGet<Record<string, unknown>[]>(`/client/measurements${qs({ clientId })}`);
+  return list.map((d) => withId<MeasurementLog>(d, d.date as string, { dirty: false }));
 }
 
-/** A client's progress photos (newest first). Coach sees only CDN-uploaded ones. */
-export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, CLIENT, clientId, 'progressPhotos'), orderBy('date', 'desc')));
-  return snap.docs.map((d) => d.data() as ProgressPhoto);
+/**
+ * A client's progress photos (newest first). No Mongo route exists yet for
+ * `progressPhotos` (the CDN/local-blob photo metadata hasn't been ported off
+ * Firestore) — resolves empty until that lands; the photos screen already
+ * renders an empty state gracefully.
+ */
+export async function fetchClientPhotos(_clientId: string): Promise<ProgressPhoto[]> {
+  return [];
 }
 
 /** A client's cardio history (newest first). */
@@ -194,10 +200,9 @@ export async function fetchClientWeightLogs(clientId: string, max = 120): Promis
 }
 
 /**
- * Coach records a body-measurement entry for a client at
- * `clientData/{clientId}/measurementLogs/{date}`. Read-merges the existing day so
- * partial entries don't wipe other body parts. `dirty:false` — this is an
- * authoritative write the client will PULL (it is not the coach's own local data).
+ * Coach records a body-measurement entry for a client. The backend read-merges
+ * the existing day (so partial entries don't wipe other body parts) and
+ * filters to clean positive numbers itself.
  */
 export async function saveClientMeasurement(
   clientId: string,
@@ -205,32 +210,15 @@ export async function saveClientMeasurement(
   values: Record<string, number>,
   updatedBy: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const ref = doc(db, CLIENT, clientId, 'measurementLogs', date);
-  const existing = await getDoc(ref);
-  const prev = existing.exists() ? (existing.data() as MeasurementLog) : null;
-  const clean: Record<string, number> = {};
-  for (const [k, v] of Object.entries(values)) {
-    if (typeof v === 'number' && !Number.isNaN(v) && v > 0) clean[k] = v;
-  }
-  const log: MeasurementLog = {
-    id: date,
-    date,
-    values: { ...prev?.values, ...clean },
-    updatedAt: Date.now(),
-    dirty: false,
-  };
-  await setDoc(ref, log);
+  await apiPut(`/client/measurements${qs({ clientId })}`, { clientId, date, values, updatedBy });
   await writeAudit({ action: 'client.measurement', targetUserId: clientId, metadata: { date, by: updatedBy } });
-  await notify({ clientId, forRole: 'client', type: 'measurement_added', screen: 'measurements', date, createdBy: updatedBy });
 }
 
 // ---- coach notes -----------------------------------------------------------
 
 export async function listCoachNotes(clientId: string): Promise<CoachNote[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, CLIENT, clientId, 'coachNotes'), orderBy('createdAt', 'desc'), limit(50)));
-  return snap.docs.map((d) => d.data() as CoachNote);
+  const list = await apiGet<Record<string, unknown>[]>(`/client/coach-notes${qs({ clientId })}`);
+  return list.map((d) => withId<CoachNote>(d, d._id as string));
 }
 
 /** Optional entity anchor for a coach note (where it's attached + the deep-link target). */
@@ -241,6 +229,7 @@ export interface NoteAnchor {
   entityId?: string;
 }
 
+/** The backend notifies the client itself (author/role are taken from the authenticated session). */
 export async function addCoachNote(
   clientId: string,
   body: string,
@@ -248,26 +237,16 @@ export async function addCoachNote(
   kind: 'note' | 'announcement' = 'note',
   anchor?: NoteAnchor,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const id = uid('note');
-  const now = Date.now();
-  const note: CoachNote = { id, clientId, authorId: author.id, authorRole: author.role, body, kind, createdAt: now, updatedAt: now };
-  // Only persist anchor fields that are present (Firestore rejects undefined).
-  if (anchor?.screen) note.screen = anchor.screen;
-  if (anchor?.date) note.date = anchor.date;
-  if (anchor?.entityType) note.entityType = anchor.entityType;
-  if (anchor?.entityId) note.entityId = anchor.entityId;
-  await setDoc(doc(db, CLIENT, clientId, 'coachNotes', id), note);
-  await notify({
+  await apiPost(`/client/coach-notes${qs({ clientId })}`, {
     clientId,
-    forRole: 'client',
-    type: 'coach_note',
-    body: body.trim().slice(0, 140),
+    body,
+    kind,
+    authorId: author.id,
+    authorRole: author.role,
     screen: anchor?.screen,
     date: anchor?.date,
     entityType: anchor?.entityType,
     entityId: anchor?.entityId,
-    createdBy: author.id,
   });
 }
 
@@ -276,71 +255,35 @@ export async function broadcastAnnouncement(clientIds: string[], body: string, a
   await Promise.all(clientIds.map((id) => addCoachNote(id, body, author, 'announcement')));
 }
 
-// ---- assigned plans --------------------------------------------------------
+// ---- assigned plans & templates (legacy — no Mongo route) ------------------
+//
+// These collections (`workoutPlans`/`nutritionPlans` "assigned plan" cards and
+// top-level `planTemplates`) have no route under `api/client/*` — they were
+// superseded by the singleton coach-authored plan + version history model
+// (see planApi.ts / planVersionsApi.ts). Nothing in the app currently calls
+// these besides `assignTemplate`, so they resolve to safe no-ops.
 
-export async function listAssignedPlans(clientId: string, kind: PlanKind): Promise<AssignedPlan[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, CLIENT, clientId, planCollection(kind)), orderBy('assignedAt', 'desc')));
-  return snap.docs.map((d) => d.data() as AssignedPlan);
+export async function listAssignedPlans(_clientId: string, _kind: PlanKind): Promise<AssignedPlan[]> {
+  return [];
 }
 
 export async function assignPlan(
-  clientId: string,
-  data: { kind: PlanKind; title: string; description: string; assignedBy: string },
-): Promise<void> {
-  const { db } = ensureFirebase();
-  const id = uid('plan');
-  const now = Date.now();
-  const plan: AssignedPlan = {
-    id,
-    clientId,
-    kind: data.kind,
-    title: data.title,
-    description: data.description,
-    assignedBy: data.assignedBy,
-    assignedAt: now,
-    updatedAt: now,
-  };
-  await setDoc(doc(db, CLIENT, clientId, planCollection(data.kind), id), plan);
-  await notify({
-    clientId,
-    forRole: 'client',
-    type: 'plan_assigned',
-    body: data.title,
-    screen: data.kind === 'workout' ? 'workout' : 'nutrition',
-    route: data.kind === 'workout' ? '/workout' : '/nutrition',
-    createdBy: data.assignedBy,
-  });
-}
+  _clientId: string,
+  _data: { kind: PlanKind; title: string; description: string; assignedBy: string },
+): Promise<void> {}
 
-export async function deleteAssignedPlan(clientId: string, kind: PlanKind, id: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, CLIENT, clientId, planCollection(kind), id));
-}
+export async function deleteAssignedPlan(_clientId: string, _kind: PlanKind, _id: string): Promise<void> {}
 
-// ---- templates -------------------------------------------------------------
-
-export async function listTemplates(coachId: string): Promise<PlanTemplate[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(query(collection(db, TEMPLATES), where('coachId', '==', coachId)));
-  return snap.docs.map((d) => d.data() as PlanTemplate);
+export async function listTemplates(_coachId: string): Promise<PlanTemplate[]> {
+  return [];
 }
 
 export async function createTemplate(
-  coachId: string,
-  data: { kind: PlanKind; title: string; description: string },
-): Promise<void> {
-  const { db } = ensureFirebase();
-  const id = uid('tpl');
-  const now = Date.now();
-  const tpl: PlanTemplate = { id, coachId, kind: data.kind, title: data.title, description: data.description, createdAt: now, updatedAt: now };
-  await setDoc(doc(db, TEMPLATES, id), tpl);
-}
+  _coachId: string,
+  _data: { kind: PlanKind; title: string; description: string },
+): Promise<void> {}
 
-export async function deleteTemplate(id: string): Promise<void> {
-  const { db } = ensureFirebase();
-  await deleteDoc(doc(db, TEMPLATES, id));
-}
+export async function deleteTemplate(_id: string): Promise<void> {}
 
 /** Copies a template onto a client as an assigned plan. */
 export async function assignTemplate(template: PlanTemplate, clientId: string, assignedBy: string): Promise<void> {
@@ -350,27 +293,15 @@ export async function assignTemplate(template: PlanTemplate, clientId: string, a
 // ---- coach targets ---------------------------------------------------------
 
 export async function getCoachTargets(clientId: string): Promise<CoachTargets | null> {
-  const { db } = ensureFirebase();
-  const snap = await getDoc(doc(db, CLIENT, clientId, 'coachTargets', 'current'));
-  return snap.exists() ? (snap.data() as CoachTargets) : null;
+  const doc = await apiGet<Record<string, unknown> | null>(`/client/coach-targets${qs({ clientId })}`);
+  return doc ? withId<CoachTargets>(doc, 'current') : null;
 }
 
+/** The backend notifies the client itself. */
 export async function setCoachTargets(
   clientId: string,
   targets: Pick<CoachTargets, 'waterMl' | 'steps' | 'cardioMin' | 'calories' | 'protein'>,
   updatedBy: string,
 ): Promise<void> {
-  const { db } = ensureFirebase();
-  const clean: CoachTargets = {
-    id: 'current',
-    clientId,
-    updatedBy,
-    updatedAt: Date.now(),
-  };
-  // Drop undefined so Firestore (and the type) stay clean.
-  for (const k of ['waterMl', 'steps', 'cardioMin', 'calories', 'protein'] as const) {
-    if (typeof targets[k] === 'number' && !Number.isNaN(targets[k])) clean[k] = targets[k];
-  }
-  await setDoc(doc(db, CLIENT, clientId, 'coachTargets', 'current'), clean);
-  await notify({ clientId, forRole: 'client', type: 'targets_updated', screen: 'nutrition', route: '/nutrition', createdBy: updatedBy });
+  await apiPut(`/client/coach-targets${qs({ clientId })}`, { clientId, updatedBy, ...targets });
 }

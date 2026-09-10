@@ -2,29 +2,42 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
-import { getInvite, claimInvite, unclaimInvite, isClaimable, buildClaimSubscription } from '@/services/platform/inviteApi';
-import { fetchUserRecord } from '@/services/accounts/accountService';
+import type { MongoUserRecord } from '@/services/auth/mongoAuth';
+import { apiPost, setAccessToken } from '@/services/platformApi';
+import { getInvite, isClaimable } from '@/services/platform/inviteApi';
 import { passwordError } from '@/lib/password';
-import type { SignupInvite, UserRecord } from '@/types';
+import type { SignupInvite } from '@/types';
 
 type Phase = 'loading' | 'invalid' | 'ready' | 'joining' | 'done';
+
+/** Response shape of `POST /api/invites/claim` (see api/invites/claim.ts). */
+interface ClaimInviteResponse {
+  user: MongoUserRecord;
+  accessToken: string;
+  relationship: unknown;
+}
 
 /**
  * Public invite-claim screen at `/invite/:code`. Mobile-first.
  *
  * Reveals ONLY the coach's display name (no PII), lets the visitor set their own
- * password (and optional name/phone), then performs an all-or-nothing join:
- *   1) create the auth user + sign in,
- *   2) provision `users/{uid}` with role:client, active, assignedCoachId = coach,
- *   3) create the `coachClients/{coachId__uid}` relationship,
- *   4) claim the invite (single-use; rules reject reuse/forgery).
- * If a later step fails the invite claim is rolled back so the code stays usable.
+ * password (and optional name/phone), then performs an all-or-nothing join via
+ * the single public `POST /api/invites/claim` call:
+ *   1) validates the code + creates the client's Mongo `users` doc,
+ *   2) creates the `coachClients` relationship (with a subscription derived
+ *      from the coach's invite settings),
+ *   3) claims the invite (single-use; the server rejects reuse/a double-claim),
+ *   4) issues a session (access token + refresh cookie) for the new client.
+ * On success we store the access token and hydrate `useSession` directly, so
+ * the browser is immediately treated as signed in — no separate sign-in step.
+ * If the claim fails server-side, the whole thing rolls back atomically (the
+ * server never leaves an orphaned account or a burned invite code behind).
  */
 export function AcceptInvite() {
   const { t } = useTranslation();
   const { code = '' } = useParams();
   const navigate = useNavigate();
-  const refreshAccount = useSession((s) => s.refreshAccount);
+  const hydrate = useSession((s) => s.hydrate);
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [invite, setInvite] = useState<SignupInvite | null>(null);
@@ -43,15 +56,9 @@ export function AcceptInvite() {
           return;
         }
         setInvite(inv);
-        // Show the coach's display name only — denormalised onto the invite so
-        // this works PRE-AUTH (no users read). Older invites without it fall back
-        // to a best-effort read (succeeds only once the user is signed in).
-        if (inv!.coachName) {
-          setCoachName(inv!.coachName);
-        } else {
-          const coach = await fetchUserRecord(inv!.coachId).catch(() => null as UserRecord | null);
-          if (mounted && coach?.displayName) setCoachName(coach.displayName);
-        }
+        // Show the coach's display name only — denormalised onto the invite at
+        // creation time so this works PRE-AUTH (no users read possible here).
+        if (inv!.coachName) setCoachName(inv!.coachName);
         if (!mounted) return;
         setForm((f) => ({
           ...f,
@@ -92,55 +99,18 @@ export function AcceptInvite() {
     setPhase('joining');
     const email = (invite.email?.trim() || form.email.trim());
     try {
-      const [{ firebaseAuth }, { ensureFirebase }, fs] = await Promise.all([
-        import('@/services/auth/firebaseAuth'),
-        import('@/data/adapters/firebase/firebase'),
-        import('firebase/firestore'),
-      ]);
-      const user = await firebaseAuth.signUp(email, form.password);
-      const { db } = ensureFirebase();
-      const { doc, setDoc } = fs;
-      const now = Date.now();
-      const uid = user.uid;
-      const claimName = form.name.trim() || email.split('@')[0];
-      const record: UserRecord = {
-        id: uid,
+      const { user, accessToken } = await apiPost<ClaimInviteResponse>('/invites/claim', {
+        code: invite.code,
         email,
-        displayName: claimName,
-        // Lowercased name for the case-insensitive existing-client search.
-        displayNameLower: claimName.toLowerCase(),
-        role: 'client',
-        accountStatus: 'active',
-        permissions: [],
-        featureFlags: {},
-        createdBy: 'self',
-        assignedCoachId: invite.coachId,
-        inviteCode: invite.code,
-        ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
-        createdAt: now,
-        updatedAt: now,
-      };
-      try {
-        await setDoc(doc(db, 'users', uid), record);
-        await setDoc(doc(db, 'coachClients', `${invite.coachId}__${uid}`), {
-          id: `${invite.coachId}__${uid}`,
-          coachId: invite.coachId,
-          clientId: uid,
-          status: 'active',
-          createdBy: uid,
-          inviteCode: invite.code,
-          // Always assign a subscription state (coach's invite choice or trial).
-          subscription: buildClaimSubscription(invite, now),
-          createdAt: now,
-          updatedAt: now,
-        });
-        await claimInvite(invite.code, uid);
-      } catch (joinErr) {
-        // Roll back the claim so the code remains usable; surface the error.
-        await unclaimInvite(invite.code);
-        throw joinErr;
-      }
-      await refreshAccount();
+        phone: form.phone.trim(),
+        password: form.password,
+        ...(form.name.trim() ? { displayName: form.name.trim() } : {}),
+      });
+      // Same pattern as `mongoAuth.signIn` inside `sessionStore.signIn`: store
+      // the token first, then push the identity into the session so the rest
+      // of the app immediately treats this browser as signed in.
+      setAccessToken(accessToken);
+      hydrate(user);
       setPhase('done');
       navigate('/', { replace: true });
     } catch (e) {

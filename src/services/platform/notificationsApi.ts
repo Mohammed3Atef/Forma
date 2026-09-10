@@ -1,162 +1,147 @@
-import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, setDoc, where, writeBatch } from 'firebase/firestore';
-import { ensureFirebase } from '@/data/adapters/firebase/firebase';
-import { uid } from '@/lib/utils';
-import type { AppNotification, CoachClientRelationship } from '@/types';
+import { apiGet, apiPost } from '@/services/platformApi';
+import type { AppNotification } from '@/types';
 
-const CLIENT = 'clientData';
+/**
+ * Client for the Mongo-backed `/api/notifications*` routes. Firestore
+ * `onSnapshot` listeners are replaced with `setInterval` + `apiGet` polling a
+ * `since` cursor — see `pollFeed` below, which both "subscribe" exports share.
+ * `GET /api/notifications` is already scoped to the AUTHENTICATED caller's own
+ * feed (role-routed server-side — see `feedFilter` in `api/notifications/_data.ts`,
+ * which merges a coach's own doc + every active client for a coach, or just a
+ * client's own feed), so every function here is only ever called with the
+ * signed-in user's own id in practice; the `clientId`/`coachId`/`forRole`
+ * parameters are kept for signature compatibility with the Firestore-era
+ * callers but aren't sent to the API.
+ */
 
-/** Fields the caller supplies; id/timestamps are filled in here. */
+/** Fields the caller supplies; id/timestamps/seenAt are filled in here. */
 export type NewNotification = Omit<AppNotification, 'id' | 'createdAt' | 'updatedAt' | 'seenAt'>;
 
 /**
- * Best-effort: writes an in-app notification at
- * `clientData/{clientId}/notifications/{id}`. A failed notification must NEVER
- * block the primary action that raised it (mirrors `writeAudit`). Only defined
- * fields are persisted (Firestore rejects `undefined`).
+ * Best-effort: originally wrote an in-app notification straight to Firestore.
+ * In the Mongo backend, notification-worthy actions create their own
+ * notification server-side as part of the relevant action's own route (e.g.
+ * sending a message — see `POST /api/messages`); there is no generic
+ * `POST /api/notifications` route for the frontend to call directly. This
+ * stays exported — and still never throws, matching the original best-effort
+ * contract — purely so callers not yet migrated off Firestore (`coachApi.ts`,
+ * `coachClientsApi.ts`, `coachPlanApi.ts`, `checkInApi.ts`, `coachTrialApi.ts`,
+ * `clientCoachApi.ts`) keep compiling. Once each of those hits a dedicated
+ * Mongo route that raises its own notification, this export — and their
+ * imports of it — should be deleted.
  */
-export async function notify(n: NewNotification): Promise<void> {
-  try {
-    const { db } = ensureFirebase();
-    const id = uid('ntf');
-    const now = Date.now();
-    const docData: Record<string, unknown> = {
-      id,
-      clientId: n.clientId,
-      forRole: n.forRole,
-      type: n.type,
-      seenAt: null,
-      createdAt: now,
-      createdBy: n.createdBy,
-      updatedAt: now,
-    };
-    for (const k of ['body', 'screen', 'date', 'entityType', 'entityId', 'route'] as const) {
-      const v = n[k];
-      if (v != null) docData[k] = v;
-    }
-    await setDoc(doc(db, CLIENT, n.clientId, 'notifications', id), docData);
-  } catch (e) {
-    console.warn('[notify] write failed (non-fatal):', e);
-  }
+export async function notify(_n: NewNotification): Promise<void> {
+  // Intentionally a no-op — see above.
 }
+
+interface NotificationsPage {
+  notifications: AppNotification[];
+  unreadCount: number;
+}
+
+/** How often the notification bell/feed polls — a passive badge, not something stared at. */
+const NOTIF_POLL_MS = 25_000;
+/**
+ * Every Nth tick, refetch the whole feed instead of just what's `since` the
+ * last cursor, for the same reason `messagesApi`'s poller does: a `since` poll
+ * only catches brand-new rows, never a `seenAt` flip on one it already has.
+ */
+const FULL_REFRESH_EVERY = 4;
 
 /**
- * Notifications for one client doc, filtered by audience, newest first. Orders by
- * `createdAt` only (single-field auto-index — no composite index needed) and
- * filters `forRole` client-side; both audiences are small per client.
+ * Shared poller behind every "subscribe" export below: the backend already
+ * resolves "whose feed" from the auth token, so there's nothing here to branch
+ * on by role/id — one implementation serves clients, coaches, and (via
+ * `subscribeCoachNotifications`) what used to be a per-client fan-out of
+ * listeners, now folded into the single server-side `feedFilter` query.
  */
-export async function listNotifications(clientId: string, forRole: 'client' | 'coach', max = 50): Promise<AppNotification[]> {
-  const { db } = ensureFirebase();
-  const snap = await getDocs(
-    query(collection(db, CLIENT, clientId, 'notifications'), orderBy('createdAt', 'desc'), limit(max)),
-  );
-  return snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === forRole);
+function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalMs = NOTIF_POLL_MS): () => void {
+  let cancelled = false;
+  let cursor: number | undefined;
+  let all: AppNotification[] = [];
+  let tick = 0;
+
+  const emit = () => cb(all.slice(0, max));
+
+  const poll = async () => {
+    const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
+    try {
+      const page = await apiGet<NotificationsPage>(`/notifications${fullRefresh ? '' : `?since=${cursor}`}`);
+      if (cancelled) return;
+      // Newest-first from the server; merge any new rows in front.
+      all = fullRefresh ? page.notifications : page.notifications.length > 0 ? [...page.notifications, ...all] : all;
+      cursor = all[0]?.createdAt;
+      tick += 1;
+      emit();
+    } catch {
+      // Transient network/API error — keep the last known state, retry next tick.
+    }
+  };
+
+  void poll();
+  const interval = setInterval(() => void poll(), intervalMs);
+  return () => {
+    cancelled = true;
+    clearInterval(interval);
+  };
 }
 
-/** Real-time notifications for one client doc, filtered by audience. Returns an unsubscribe. */
+/** Notifications for one client doc, filtered by audience, newest first. */
+export async function listNotifications(
+  _clientId: string,
+  _forRole: 'client' | 'coach',
+  max = 50,
+): Promise<AppNotification[]> {
+  const { notifications } = await apiGet<NotificationsPage>('/notifications');
+  return notifications.slice(0, max);
+}
+
+/** Polling notifications for one client doc, filtered by audience. Returns an unsubscribe. */
 export function subscribeNotifications(
-  clientId: string,
-  forRole: 'client' | 'coach',
+  _clientId: string,
+  _forRole: 'client' | 'coach',
   cb: (items: AppNotification[]) => void,
   max = 50,
 ): () => void {
-  const { db } = ensureFirebase();
-  const qy = query(collection(db, CLIENT, clientId, 'notifications'), orderBy('createdAt', 'desc'), limit(max));
-  return onSnapshot(qy, (snap) => {
-    cb(snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === forRole));
-  });
+  return pollFeed(cb, max);
 }
 
 /**
- * Real-time coach-bound notifications across the coach's own doc + each active
- * client's doc (mirrors {@link listCoachNotifications}). Opens one listener per
- * doc and re-emits the merged, newest-first list on any change. The client set
- * is resolved once at subscribe time; the returned unsubscribe tears down every
- * child listener.
+ * Polling coach-bound notifications across the coach's own doc + each active
+ * client's doc. The Firestore-era version opened one listener per doc and
+ * merged them client-side; the Mongo `feedFilter` does that same merge
+ * server-side, so this is just `pollFeed`.
  */
-export function subscribeCoachNotifications(coachId: string, cb: (items: AppNotification[]) => void, max = 50): () => void {
-  const { db } = ensureFirebase();
-  let cancelled = false;
-  const unsubs: Array<() => void> = [];
-  const byDoc = new Map<string, AppNotification[]>();
-  const emit = () =>
-    cb(
-      Array.from(byDoc.values())
-        .flat()
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, max),
-    );
-  const subscribeOne = (cid: string) => {
-    const qy = query(collection(db, CLIENT, cid, 'notifications'), orderBy('createdAt', 'desc'), limit(max));
-    unsubs.push(
-      onSnapshot(
-        qy,
-        (snap) => {
-          byDoc.set(cid, snap.docs.map((d) => d.data() as AppNotification).filter((n) => n.forRole === 'coach'));
-          emit();
-        },
-        () => undefined,
-      ),
-    );
-  };
-  subscribeOne(coachId); // the coach's own doc (self-addressed alerts)
-  getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId), where('status', '==', 'active')))
-    .then((relSnap) => {
-      if (cancelled) return;
-      for (const d of relSnap.docs) {
-        const cid = (d.data() as CoachClientRelationship).clientId;
-        if (cid !== coachId) subscribeOne(cid);
-      }
-    })
-    .catch(() => undefined);
-  return () => {
-    cancelled = true;
-    unsubs.forEach((u) => u());
-  };
+export function subscribeCoachNotifications(_coachId: string, cb: (items: AppNotification[]) => void, max = 50): () => void {
+  return pollFeed(cb, max);
 }
 
 /** Marks a single notification seen (read-state lives on the notification). */
-export async function markNotificationSeen(clientId: string, id: string): Promise<void> {
-  const { db } = ensureFirebase();
-  const now = Date.now();
-  await setDoc(doc(db, CLIENT, clientId, 'notifications', id), { seenAt: now, updatedAt: now }, { merge: true });
+export async function markNotificationSeen(_clientId: string, id: string): Promise<void> {
+  // `_clientId` is unused: `/notifications/mark-read` scopes to the caller's
+  // own feed + the given `id` — no clientId needed. Kept for signature compatibility.
+  await apiPost('/notifications/mark-read', { id });
 }
 
 /**
- * Marks all unread `message_received` notifications for one audience in a thread
- * seen — called when that party opens the thread so the bell/feed clear in sync
- * with the message read-state. Best-effort; no write when nothing is unread.
+ * Marks all unread `message_received` notifications for one audience in a
+ * thread seen. The backend folds this into `/messages/mark-read` (mirrors
+ * `markThreadSeen` in `messagesApi.ts` calling the same route) — best-effort,
+ * never throws.
  */
-export async function markMessageNotificationsSeen(clientId: string, forRole: 'client' | 'coach'): Promise<void> {
+export async function markMessageNotificationsSeen(clientId: string, _forRole: 'client' | 'coach'): Promise<void> {
   try {
-    const { db } = ensureFirebase();
-    const snap = await getDocs(collection(db, CLIENT, clientId, 'notifications'));
-    const unseen = snap.docs
-      .map((d) => d.data() as AppNotification)
-      .filter((n) => n.type === 'message_received' && n.forRole === forRole && !n.seenAt);
-    if (unseen.length === 0) return;
-    const now = Date.now();
-    const batch = writeBatch(db);
-    for (const n of unseen) batch.set(doc(db, CLIENT, clientId, 'notifications', n.id), { seenAt: now, updatedAt: now }, { merge: true });
-    await batch.commit();
+    await apiPost('/messages/mark-read', { clientId });
   } catch (e) {
     console.warn('[markMessageNotificationsSeen] failed (non-fatal):', e);
   }
 }
 
 /**
- * Coach-bound notifications across all the coach's active clients (the client
- * list is small, so per-client queries are fine and avoid a collectionGroup +
- * its rule complexity), PLUS the coach's OWN notifications doc — where alerts
- * about the coach themselves land (e.g. a plan-change decision written to
- * `clientData/{coachId}/notifications`, which the coach may read as the owner).
- * Each item carries its `clientId` for deep-linking.
+ * Coach-bound notifications across all the coach's active clients + their own
+ * doc — the one-shot counterpart to `subscribeCoachNotifications`.
  */
-export async function listCoachNotifications(coachId: string, max = 50): Promise<AppNotification[]> {
-  const { db } = ensureFirebase();
-  // Active clients of this coach (inlined to avoid a coachClientsApi import cycle).
-  const relSnap = await getDocs(query(collection(db, 'coachClients'), where('coachId', '==', coachId), where('status', '==', 'active')));
-  const clientIds = relSnap.docs.map((d) => (d.data() as CoachClientRelationship).clientId);
-  const ids = [coachId, ...clientIds]; // the coach's own doc first (self-addressed alerts)
-  const lists = await Promise.all(ids.map((cid) => listNotifications(cid, 'coach', max).catch(() => [])));
-  return lists.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, max);
+export async function listCoachNotifications(_coachId: string, max = 50): Promise<AppNotification[]> {
+  const { notifications } = await apiGet<NotificationsPage>('/notifications');
+  return notifications.slice(0, max);
 }
