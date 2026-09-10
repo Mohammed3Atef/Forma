@@ -13,19 +13,12 @@
     "cap:sync": "npm run build && cap sync",
     "cap:android": "npm run build && cap sync android && cap open android",
     "import:sheet": "node --experimental-strip-types scripts/importSheet.ts",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "node scripts/qa-report.mjs && playwright show-report test-results/html",
-    "test:e2e:install": "playwright install --with-deps chromium",
-    "test:e2e:full": "playwright test && node scripts/qa-report.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "mongo:init-indexes": "node scripts/mongo-init-indexes.mjs",
     "mongo:seed-admin": "node scripts/seed-mongo-admin.mjs",
     "mongo:seed-demo": "node scripts/seed-mongo-demo.mjs"
   },
   "dependencies": {
-    "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.2.1",
     "@capacitor/splash-screen": "^6.0.4",
     "@capacitor/status-bar": "^6.0.3",
@@ -47,7 +40,6 @@
   "devDependencies": {
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
-    "@playwright/test": "^1.60.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.0",

@@ -15,9 +15,9 @@ import type {
 } from '@/types';
 
 /**
- * Generic document repository. Every storage adapter (local / firebase)
- * implements this same shape, so stores and UI never know which backend
- * is active. Items are keyed by their `id`.
+ * Generic document repository. Every storage adapter implements this same
+ * shape, so stores and UI never know which backend is active. Items are
+ * keyed by their `id`.
  */
 export interface Repository<T extends { id: string }> {
   get(id: string): Promise<T | null>;
@@ -34,11 +34,12 @@ export interface SingletonRepository<T> {
 }
 
 /**
- * The whole data layer. A factory returns either a local-only or
- * Firebase-backed implementation behind this identical interface.
+ * The whole data layer, local-only (IndexedDB via localforage), with the
+ * Mongo-backed `/api/sync/*` endpoints layered on top by SyncEngine — see
+ * src/data/sync/SyncEngine.ts.
  */
 export interface DataSource {
-  readonly kind: 'local' | 'firebase';
+  readonly kind: 'local';
   profile: SingletonRepository<UserProfile>;
   settings: SingletonRepository<AppSettings>;
   workoutPlans: Repository<WorkoutPlan>;

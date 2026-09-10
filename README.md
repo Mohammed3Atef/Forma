@@ -1,6 +1,6 @@
 # Forma — Train. Track. Transform.
 
-A **mobile-first, multi-role fitness coaching platform** (PWA + Capacitor-ready). Coaches build and assign training, nutrition and cardio plans; clients follow and log them; admins and super-admins govern the platform. Every permission is enforced in **Firestore security rules**, not just the UI.
+A **mobile-first, multi-role fitness coaching platform** (PWA + Capacitor-ready). Coaches build and assign training, nutrition and cardio plans; clients follow and log them; admins and super-admins govern the platform. Every permission is enforced **server-side in Vercel serverless functions**, not just the UI.
 
 - **Roles:** `super_admin` · `admin` · `coach` · `client` — each routed to its own mobile experience after login.
 - **Coach-driven:** a client starts empty and only ever sees what their coach assigned or what they themselves logged. No demo/seed data on the platform.
@@ -8,7 +8,7 @@ A **mobile-first, multi-role fitness coaching platform** (PWA + Capacitor-ready)
 - **Styling:** Tailwind CSS (dark, mobile-first, RTL-ready)
 - **State:** Zustand (client local-first data) + React Query (admin/coach online reads)
 - **i18n:** react-i18next (EN/AR with RTL) · **Charts:** lightweight in-house SVG
-- **Backend:** Firebase Auth + Firestore (rules-enforced RBAC). **Images:** Bunny CDN (progress / assessment / check-in photos).
+- **Backend:** MongoDB Atlas + Vercel serverless functions, with custom JWT auth (server-enforced RBAC). **Images:** Bunny CDN (progress / assessment / check-in photos).
 - **Client storage:** localForage (IndexedDB) + Cache API — offline-capable, last-write-wins sync
 - **PWA:** vite-plugin-pwa (Workbox), installable. **Native:** Capacitor (Android project scaffolded).
 
@@ -25,7 +25,7 @@ A **mobile-first, multi-role fitness coaching platform** (PWA + Capacitor-ready)
 | **coach** | `/coach` | Their assigned clients only: author workout / nutrition / cardio plans, set targets, notes & announcements; **view their client's app read-only** (nutrition, measurements, photos, progress) and enter measurements; manage **subscription + account lifecycle** (term/price/freeze/end, freeze-request decisions); run **weekly check-ins**; create clients. |
 | **client** | `/` | Follow the assigned plan, track workouts / nutrition / cardio / water / steps / weight, daily checklist & streaks, progress photos; see coach notes **inline next to each item**, in-app **notifications**, subscription status, and **weekly check-ins**. |
 
-Role→permission baselines live in [`src/services/auth/roles.ts`](src/services/auth/roles.ts) and are mirrored in [`firestore.rules`](firestore.rules) — keep the two in sync.
+Role→permission baselines live in [`src/services/auth/roles.ts`](src/services/auth/roles.ts) and are mirrored in [`api/_lib/rbac.ts`](api/_lib/rbac.ts) — the API is the real enforcement boundary (it's what actually blocks a request), the frontend copy only gates the UI, so keep the two in sync.
 
 ---
 
@@ -33,18 +33,17 @@ Role→permission baselines live in [`src/services/auth/roles.ts`](src/services/
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
+vercel dev            # http://localhost:5173 (wraps Vite + serves /api/* as serverless functions)
 ```
 
-- **Without Firebase env vars** → runs **local-only** as a standalone single-user tracker (the original offline app, seeded with demo data). Great for UI work.
-- **With Firebase configured** → the full coach-driven platform: login is required and you're routed by role.
+The app always needs a real backend now: a MongoDB Atlas connection plus the Vercel dev server. Running plain `vite`/`npm run dev` only serves the frontend on port 5173 and any `/api/*` call (login, sync, etc.) will 404 — use `vercel dev` for real end-to-end work.
 
 ```bash
 npm run build        # type-check + production build + PWA service worker
 npm run preview      # serve the production build
 ```
 
-Configure Firebase by copying your web-app config into `.env` (see [`.env.example`](.env.example)); the keys are read in [`src/data/adapters/firebase/config.ts`](src/data/adapters/firebase/config.ts). The same `.env` holds the optional `VITE_BUNNY_*` keys for image uploads — without them, photo upload is disabled and the UI degrades gracefully.
+Configure the backend by copying [`.env.example`](.env.example) to `.env` and filling in `MONGODB_URI`, `MONGODB_DB`, and `JWT_ACCESS_SECRET` (all read server-side only, inside `api/**/*.ts` — never exposed to the client). The same `.env` holds the optional `VITE_BUNNY_*` keys for image uploads — without them, photo upload is disabled and the UI degrades gracefully.
 
 ---
 
@@ -53,7 +52,7 @@ Configure Firebase by copying your web-app config into `.env` (see [`.env.exampl
 Everything the client sees is **coach-authored** or **client-logged** — nothing is hardcoded:
 
 - **Onboarding assessment** — the client completes a step-by-step assessment (save-draft + submit); the coach reviews it, adds notes, marks it **reviewed** (which locks client edits) or **resets** it, then builds plans from it.
-- **Reusable library** — coach-owned **exercises**, **workout templates**, **foods**, and **food-alternative groups** under `coachAssets`. Templates/library items **snapshot** into the client's plan (never live-linked).
+- **Reusable library** — coach-owned **exercises**, **workout templates**, **foods**, and **food-alternative groups** (the `coachExercises`, `coachWorkoutTemplates`, `coachNutritionTemplates`, `coachFoods`, `coachFoodGroups` collections). Templates/library items **snapshot** into the client's plan (never live-linked).
 - **Workout plan** — days → sections → exercises with independent **warm-up** and **working** set counts (warm-up-only / working-only supported), reps, rest, video URL, instructions.
 - **Nutrition plan** — meals → foods with macros, daily macro targets, water target, supplements, and a **substitution policy** with coach-approved **alternatives** per food (client swaps among them without changing the plan; swaps are tagged for adherence).
 - **Cardio plan** — prescribed sessions (type, duration, frequency, notes) + numeric cardio/step/water targets.
@@ -75,11 +74,11 @@ The client's **logs** (sets performed, food eaten, water, weight, measurements, 
 ## Architecture
 
 - **Role-based routing** — after auth, [`src/App.tsx`](src/App.tsx) mounts one of `ClientApp` / `CoachApp` / `AdminApp` ([`src/apps/`](src/apps/)) by role + account status; [`useSession`](src/services/auth/sessionStore.ts) is the identity source of truth.
-- **Permission-gated UI** — `can()` / `useCan()` ([`src/services/auth/permissions.ts`](src/services/auth/permissions.ts)) hide controls; the backend rules are the real boundary.
-- **Client data = local-first** — Zustand stores + `getDataSource()` (IndexedDB) + a last-write-wins [`SyncEngine`](src/data/sync/SyncEngine.ts) mirroring to `clientData/{uid}`.
-- **Platform reads = online** — admin/coach read other users via React Query over thin Firestore services in [`src/services/platform/`](src/services/platform/) (`accountsApi`, `coachApi`, `clientCoachApi`, `planApi`, `coachClientsApi`, `checkInApi`, `notificationsApi`, `bunnyUploadApi`, `auditApi`, `flagsApi`, `analyticsApi`).
+- **Permission-gated UI** — `can()` / `useCan()` ([`src/services/auth/permissions.ts`](src/services/auth/permissions.ts)) hide controls; the real boundary is server-side in [`api/_lib/rbac.ts`](api/_lib/rbac.ts) + [`api/_lib/withAuth.ts`](api/_lib/withAuth.ts), which re-checks the live user doc in Mongo on every request.
+- **Client data = local-first** — Zustand stores + `getDataSource()` (IndexedDB) + a last-write-wins [`SyncEngine`](src/data/sync/SyncEngine.ts) that pushes/pulls against the generic `syncRecords`/`syncDeletions`/`syncSingletons` sync layer via [`api/sync/*`](api/sync/).
+- **Platform reads = online** — admin/coach read other users via React Query over [`src/services/platformApi.ts`](src/services/platformApi.ts) (a shared client holding the in-memory access token, with fetch + automatic refresh-on-401 retry) and thin services in [`src/services/platform/`](src/services/platform/) (`accountsApi`, `coachApi`, `clientCoachApi`, `planApi`, `coachClientsApi`, `checkInApi`, `notificationsApi`, `bunnyUploadApi`, `auditApi`, `flagsApi`, `analyticsApi`).
 - **Per-account isolation** — switching accounts on one device wipes the previous user's local data (`scopeLocalToUser`) so nothing leaks between accounts.
-- **Account creation without Cloud Functions** — admins/coaches create accounts via a throwaway secondary Firebase app ([`createUserSecondary.ts`](src/services/accounts/createUserSecondary.ts)) so the actor's own session is preserved.
+- **Account creation** — admins/coaches create accounts directly through [`api/invites/*`](api/invites/) (`POST /api/invites` to create, `POST /api/invites/claim` — public, no auth required — to claim), which atomically creates the Mongo user doc and the `coachClients` relationship; no client-side workaround is needed since the backend can issue its own session token.
 
 ### Project structure
 
@@ -92,69 +91,69 @@ src/
     admin/               overview, accounts (filter/delete), client detail, assignments, governance, analytics
     (client tracker)     Home, Workout, WorkoutSession, Nutrition, Cardio, Progress, CoachInbox, Notifications, CheckIn…
   services/
-    auth/                sessionStore, roles, permissions, firebaseAuth, cloudStore
-    accounts/            accountService, createUserSecondary
+    auth/                sessionStore, roles, permissions, mongoAuth, cloudStore
+    accounts/            accountService
     platform/            accounts/coach/plan/audit/flags/analytics APIs + queryClient + clientSync
+    platformApi.ts       shared API client: in-memory access token, fetch + refresh-on-401 retry
     habits/ reminders/ video/
   stores/                Zustand: settings, workout, nutrition, cardio, habit, photo, …
   data/
     repositories.ts, dataSource.ts, bootstrap.ts
     adapters/local/      localForage implementations
-    adapters/firebase/   firebase init + config
-    sync/SyncEngine.ts   last-write-wins sync (→ clientData/{uid})
+    sync/SyncEngine.ts   last-write-wins local-first sync (→ api/sync/* → syncRecords/syncDeletions/syncSingletons)
   components/            AppShell, BrandBar, BottomNav, TopBar, Sheet, charts, …
   config/nav.ts          per-role bottom-nav tabs
   types/index.ts         all domain + RBAC types
-firestore.rules          full RBAC enforcement
+api/                     Vercel serverless functions: auth/*, sync/*, invites/*, platform routes, _lib/{rbac,withAuth,tokens}.ts
 capacitor.config.ts      native shell config (android/ scaffolded)
 docs/FORMA.md            setup & operations
 ```
 
 ---
 
-## Data model (Firestore)
+## Data model (MongoDB)
+
+Collections are flat and keyed by `clientId`/`coachId` (no Firestore-style recursive subcollection paths):
 
 ```
-users/{uid}                              identity: role, accountStatus, permissions, featureFlags, createdBy, assignedCoachId?, phone?
-coachClients/{coachId__clientId}         coach⇄client relationship (status) + subscription term/price/freeze + subscriptionHistory
-clientData/{clientId}/profile/main       client fitness profile
-clientData/{clientId}/profile/assessment onboarding assessment + status + coach review fields
-clientData/{clientId}/settings/app       app settings
-clientData/{clientId}/{workoutLogs|nutritionLogs|cardioLogs|weightLogs|measurementLogs|dailyChecklists|progressPhotos|reminders}
-clientData/{clientId}/plan/workout       coach-authored WorkoutPlan (active version)
-clientData/{clientId}/plan/nutrition     coach-authored MealPlan (+ substitutionPolicy)
-clientData/{clientId}/plan/cardio        coach-authored CardioPlan
-clientData/{clientId}/planVersions/{id}  plan version history (coach-write, client-read)
-clientData/{clientId}/coachNotes|coachTargets        coach notes (entity-anchored) / targets
-clientData/{clientId}/subscriptionRequest/current    client freeze request → coach decision
-clientData/{clientId}/notifications/{id}             in-app notifications (forRole: client | coach, seenAt)
-clientData/{clientId}/checkIns/{weekStart}           weekly check-ins (requested → submitted → reviewed)
-coachAssets/{coachId}/{exercises|workoutTemplates|nutritionTemplates|foods|foodGroups}  coach-owned reusable assets
-planTemplates/{id}                       legacy coach-owned templates (superseded by coachAssets)
-adminAuditLogs/{id}                      admin action trail
-featureFlags/{id}                        global / per-coach / per-client toggles
+users                     identity: role, accountStatus, permissions, featureFlags, createdBy, assignedCoachId?, phone?
+refreshTokens             hashed (SHA-256) rotating refresh tokens for the JWT auth flow
+passwordResets            password-reset request/confirm tokens
+coachClients              coach⇄client relationship (status) + subscription term/price/freeze + subscriptionHistory
+signupInvites             admin/coach-created invites, claimed via POST /api/invites/claim
+transferRequests          client transfer requests between coaches
+clientProfiles            client fitness profile (keyed by clientId)
+clientSettings            app settings (keyed by clientId)
+workoutLogs, nutritionLogs, cardioLogs, weightLogs, measurementLogs, checkIns   client logs (keyed by clientId)
+planVersions              coach-authored WorkoutPlan/MealPlan/CardioPlan version history (active version is what the client sees; coach can restore any earlier one)
+coachNotes, coachTargets  coach notes (entity-anchored) / targets (keyed by clientId)
+notifications             in-app notifications (forRole: client | coach, seenAt)
+subscriptionRequests      client freeze request → coach decision
+coachExercises, coachWorkoutTemplates, coachNutritionTemplates, coachFoods, coachFoodGroups, coachSupplements, coachBillingPlans   coach-owned reusable assets
+messages                  coach⇄client chat
+adminAuditLogs            admin action trail
+flags                     global / per-coach / per-client feature flag toggles
+banners                   admin-managed announcement banners + usage tracking
+syncRecords, syncDeletions, syncSingletons   generic sync layer the client's local-first SyncEngine pushes/pulls against via api/sync/*
 ```
 
-Progress / assessment / check-in photo **bytes** live on Bunny CDN (the Firestore record stores the public `cdnUrl`); the original blob is also kept in the client's IndexedDB for offline/instant display.
+Progress / assessment / check-in photo **bytes** live on Bunny CDN (the Mongo record stores the public `cdnUrl`); the original blob is also kept in the client's IndexedDB for offline/instant display.
 
 ---
 
 ## Deploying
 
-### Security rules + indexes (required)
-The rules are the real access boundary. Deploy them (and the composite index) whenever they change:
+### First super admin (one-time)
+Run the seed script instead of hand-editing the database:
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+node scripts/seed-mongo-admin.mjs
 ```
 
-### First super admin (one-time, no Cloud Functions)
-1. Sign up in the app → this creates `users/{uid}` as a `client` with status `pending`.
-2. In the Firebase console → Firestore → that `users/{uid}` doc, set `role: super_admin` and `accountStatus: active`.
-3. Reload → you land on the Super Admin dashboard and can create/manage everyone in-app.
+It reads `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` env vars (or pass `--dry-run`) — see the header comment in [`scripts/seed-mongo-admin.mjs`](scripts/seed-mongo-admin.mjs) for details. This creates (or promotes) the user directly in Mongo with `role: super_admin` and `accountStatus: active`; no manual document editing required.
 
-### Web hosting (Vercel or Firebase Hosting)
-Vite build → `dist`. On Vercel, add every `VITE_FIREBASE_*` env var (Production + Preview); [`vercel.json`](vercel.json) handles SPA fallback + service-worker cache headers. Firestore rules/data still live in Firebase regardless of host.
+### Web hosting (Vercel)
+Vite build → `dist`. On Vercel, add `MONGODB_URI`, `MONGODB_DB`, `JWT_ACCESS_SECRET` and the `VITE_BUNNY_*` vars (Production + Preview) — see [`.env.example`](.env.example); [`vercel.json`](vercel.json) handles SPA fallback + service-worker cache headers, and Vercel's file-based routing serves everything under `api/` automatically as serverless functions. There is no separate rules/indexes deploy step — RBAC is enforced in the API code itself.
 
 ### Android (Capacitor)
 The native project is scaffolded under `android/`.
@@ -181,20 +180,19 @@ Build/run the APK from Android Studio (needs the Android SDK + JDK).
 
 ---
 
-## Known limitations (rules-only architecture, no Cloud Functions)
+## Known limitations
 
-Acceptable trade-offs today; add Firebase Cloud Functions later to close them:
+Acceptable trade-offs today:
 
-- **Forced sign-out on suspend** — a suspended user is blocked by rules immediately but keeps a valid ID token (~1h) until it expires. The client re-reads its account status on app **foreground**, so a suspend/reactivate takes effect on next focus rather than instantly.
-- **Audit logs are best-effort** — client-written, create-only and immutable, but a privileged client could omit one. Server-written logs would be tamper-proof.
+- **Audit logs are best-effort** — create-only and immutable, but written by privileged API routes rather than independently verified. Fully tamper-proof logging would need a separate write path.
 - **Invites** — admin/coach-created accounts use a temporary password rather than an emailed invite link.
-- **Phone is a field, not an auth method** — the `phone` collected at sign-up / account creation is stored on the profile; sign-in is still email + password (phone-OTP would need the Firebase phone provider).
+- **Phone is a field, not an auth method** — the `phone` collected at sign-up / account creation is stored on the profile; sign-in is still email + password.
 - **Bunny CDN image keys are public** — the storage key ships in the client bundle and CDN URLs aren't access-controlled (unguessable, but public). A dedicated zone or an upload proxy would harden this.
-- **Hard account delete is record-only** — a client SPA can't remove the Firebase Auth user or a client's `clientData`; super-admin delete removes the identity record (prefer `disabled` for reversible deactivation).
+- **Hard account delete is record-only** — a client SPA can't hard-delete the Mongo user document; super-admin delete removes the identity record (prefer `disabled` for reversible deactivation).
 
 ---
 
 ## Notes
 
 - **Privacy:** a client's logs/photos never leave their device unless cloud sync is active for their (active) account.
-- **Local-only mode** (no Firebase) keeps the original standalone tracker working for development and offline-only use.
+- **Local-first, not local-only.** The client's IndexedDB copy is always the source of truth while offline, and `SyncEngine` syncs opportunistically when a connection is available — but the app itself always requires a real Mongo-backed API (`vercel dev` or a deployed Vercel backend) to sign in and sync; there is no longer a standalone offline-only mode with the backend disabled.

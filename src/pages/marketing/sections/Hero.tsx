@@ -43,7 +43,7 @@ export function Hero() {
             <span className="h-1 w-1 rounded-full bg-earth-subtle/50" />
             <span>{t('landing.trustReliable')}</span>
             <span className="hidden h-1 w-1 rounded-full bg-earth-subtle/50 sm:block" />
-            <span className="hidden sm:inline">{t('landing.trustFirebase')}</span>
+            <span className="hidden sm:inline">{t('landing.trustCloud')}</span>
           </div>
         </div>
 

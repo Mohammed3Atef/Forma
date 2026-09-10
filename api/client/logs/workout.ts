@@ -5,6 +5,7 @@ import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
 import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access.js';
 import { workoutLogsCol } from '../_lib/db.js';
 import type { WorkoutLogDoc } from '../_lib/types.js';
+import { syncRecordsCol } from '../../sync/_data.js';
 
 /**
  * Raw fitness log CRUD for `workoutLogs` (mirrors `SyncEngine`'s `WorkoutLog`
@@ -12,6 +13,13 @@ import type { WorkoutLogDoc } from '../_lib/types.js';
  * NOT in `isCoachOwnedColl` and no dedicated coach-write rule exists for it —
  * so unlike measurementLogs/notifications, only the client themself may write;
  * the assigned coach / admin(clients.readAll) may only read.
+ *
+ * GET reads from the generic `syncRecords` collection (`api/sync/*`), NOT the
+ * dedicated `workoutLogsCol` below — the client's SyncEngine pushes workout
+ * logs there (as one of its generic synced collections), never through this
+ * route's PUT. The dedicated collection/PUT/DELETE below are kept as a
+ * secondary direct-write path but are currently unused by the app; if this
+ * route's GET queried `workoutLogsCol` instead it would always be empty.
  */
 const SetLog = z.object({
   setIndex: z.number(),
@@ -48,15 +56,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'GET') {
       if (!(await canReadClientData(user, clientId))) throw new HttpError(403, 'Forbidden');
+      const syncCol = await syncRecordsCol();
       const date = typeof req.query.date === 'string' ? req.query.date : undefined;
       if (date) {
-        const doc = await col.findOne({ _id: logId(clientId, date) });
-        res.status(200).json(doc ?? null);
+        const rec = await syncCol.findOne({ clientId, collection: 'workoutLogs', recordId: date });
+        res.status(200).json(rec?.data ?? null);
         return;
       }
       const limit = Math.min(Number(req.query.limit) || 30, 200);
-      const list = await col.find({ clientId }).sort({ date: -1 }).limit(limit).toArray();
-      res.status(200).json(list);
+      const recs = await syncCol
+        .find({ clientId, collection: 'workoutLogs' })
+        .sort({ recordId: -1 })
+        .limit(limit)
+        .toArray();
+      res.status(200).json(recs.map((r) => r.data));
       return;
     }
 
