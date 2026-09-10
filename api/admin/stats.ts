@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { usersCol } from '../_lib/mongodb';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import type { Role } from '../_lib/types';
+import { usersCol } from '../_lib/mongodb.js';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import type { Role } from '../_lib/types.js';
 
 /** Port of `src/services/platform/analyticsApi.ts`'s `fetchPlatformStats()`. */
 export interface PlatformStats {

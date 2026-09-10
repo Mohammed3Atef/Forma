@@ -1,6 +1,6 @@
 import type { Collection } from 'mongodb';
-import { getDb } from '../../_lib/mongodb';
-import type { AuditLogDoc, CoachClientDoc, CoachPlanDoc, CoachPlanTierDoc } from './types';
+import { getDb } from '../../_lib/mongodb.js';
+import type { AuditLogDoc, CoachClientDoc, CoachPlanDoc, CoachPlanTierDoc } from './types.js';
 
 export async function coachClientsCol(): Promise<Collection<CoachClientDoc>> {
   return (await getDb()).collection<CoachClientDoc>('coachClients');

@@ -1,4 +1,4 @@
-import type { TransferMode, TransferSubHandling } from '../coach-clients/_types';
+import type { TransferMode, TransferSubHandling } from '../coach-clients/_types.js';
 
 export type TransferRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
 

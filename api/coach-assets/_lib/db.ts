@@ -1,5 +1,5 @@
 import { Collection } from 'mongodb';
-import { getDb } from '../../_lib/mongodb';
+import { getDb } from '../../_lib/mongodb.js';
 import type {
   CoachBillingPlanDoc,
   CoachExerciseDoc,
@@ -8,7 +8,7 @@ import type {
   CoachNutritionTemplateDoc,
   CoachSupplementDoc,
   CoachWorkoutTemplateDoc,
-} from './types';
+} from './types.js';
 
 /**
  * Local collection accessors for the six flattened `coachAssets/{coachId}/...`

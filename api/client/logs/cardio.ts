@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access';
-import { cardioLogsCol } from '../_lib/db';
-import type { CardioLogDoc } from '../_lib/types';
+import { requireUser } from '../../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access.js';
+import { cardioLogsCol } from '../_lib/db.js';
+import type { CardioLogDoc } from '../_lib/types.js';
 
 /**
  * Raw fitness log CRUD for `cardioLogs` (mirrors `SyncEngine`'s `CardioLog`

@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { usersCol } from '../../_lib/mongodb';
-import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { toPublicUser, type PublicUser } from '../../_lib/types';
-import { coachClientsCol, coachPlansCol } from '../_lib/db';
-import type { CoachPlanDoc } from '../_lib/types';
-import { coachPlanState } from '../_lib/subscription';
+import { usersCol } from '../../_lib/mongodb.js';
+import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { toPublicUser, type PublicUser } from '../../_lib/types.js';
+import { coachClientsCol, coachPlansCol } from '../_lib/db.js';
+import type { CoachPlanDoc } from '../_lib/types.js';
+import { coachPlanState } from '../_lib/subscription.js';
 
 /** Single-coach detail view, complementing `fetchCoachAdmin()`'s list (api/admin/coaches.ts). */
 export interface CoachDetail {

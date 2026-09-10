@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
-import { notificationsCol } from './db';
-import type { AppNotificationDoc, NoteEntityType, NoteScreen, NotificationType } from './types';
+import { notificationsCol } from './db.js';
+import type { AppNotificationDoc, NoteEntityType, NoteScreen, NotificationType } from './types.js';
 
 /** Port of `notificationsApi.notify()` — same shape, now writing to Mongo. */
 export interface NotifyInput {

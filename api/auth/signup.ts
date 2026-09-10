@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { usersCol } from '../_lib/mongodb';
-import { hashPassword } from '../_lib/password';
-import { issueSession } from '../_lib/tokens';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { toPublicUser, type UserDoc } from '../_lib/types';
+import { usersCol } from '../_lib/mongodb.js';
+import { hashPassword } from '../_lib/password.js';
+import { issueSession } from '../_lib/tokens.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { toPublicUser, type UserDoc } from '../_lib/types.js';
 
 /**
  * Coach self-registration only, per the product decision made for Phase 1:

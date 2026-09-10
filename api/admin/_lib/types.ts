@@ -5,7 +5,7 @@
  * same discipline as `api/_lib/types.ts`. Only the fields the admin oversight
  * routes actually read/write are included.
  */
-import type { Role } from '../../_lib/types';
+import type { Role } from '../../_lib/types.js';
 
 export type SubscriptionStatus = 'trial' | 'active' | 'pending' | 'expired' | 'cancelled' | 'frozen' | 'ended';
 export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'custom';

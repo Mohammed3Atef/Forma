@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requirePermission, requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { COACH_PLAN_TIERS, coachPlanTiersCol, normalizeTierKey, toPublicTier, type CoachPlanTierConfigDoc } from './_data';
+import { requirePermission, requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { COACH_PLAN_TIERS, coachPlanTiersCol, normalizeTierKey, toPublicTier, type CoachPlanTierConfigDoc } from './_data.js';
 
 const SEED_ORDER: Record<string, number> = { trial: 0, starter: 1, pro: 2, enterprise: 3 };
 

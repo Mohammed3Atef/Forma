@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { handleError, methodGuard } from '../_lib/http';
-import { requireUser } from '../_lib/withAuth';
-import { feedFilter, notificationsCol } from '../notifications/_data';
-import { authorizeThreadAccess, messagesCol } from './_data';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { requireUser } from '../_lib/withAuth.js';
+import { feedFilter, notificationsCol } from '../notifications/_data.js';
+import { authorizeThreadAccess, messagesCol } from './_data.js';
 
 const Body = z.object({
   clientId: z.string().trim().min(1),

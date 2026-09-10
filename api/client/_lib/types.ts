@@ -6,7 +6,7 @@
  * with `src/types/index.ts` (the frontend types) by hand.
  */
 
-import type { Role } from '../../_lib/types';
+import type { Role } from '../../_lib/types.js';
 
 // ---------------------------------------------------------------------------
 // clientProfiles — singleton per client. Two logical sub-resources bundled

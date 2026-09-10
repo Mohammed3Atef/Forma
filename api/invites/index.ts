@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { hasPermission } from '../_lib/rbac';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { usersCol } from '../_lib/mongodb';
-import { DEFAULT_TTL_MS, generateInviteCode, invitesCol } from './_data';
-import type { SignupInviteDoc } from './_types';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { hasPermission } from '../_lib/rbac.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { usersCol } from '../_lib/mongodb.js';
+import { DEFAULT_TTL_MS, generateInviteCode, invitesCol } from './_data.js';
+import type { SignupInviteDoc } from './_types.js';
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);

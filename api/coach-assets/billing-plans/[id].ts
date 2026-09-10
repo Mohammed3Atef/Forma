@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadAccess } from '../_lib/access';
-import { coachBillingPlansCol } from '../_lib/db';
-import { BillingPlanBodyPatchSchema } from '../_lib/schemas';
-import type { CoachBillingPlanDoc } from '../_lib/types';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { requireUser } from '../../_lib/withAuth';
+import { requireOwningCoach, requireReadAccess } from '../_lib/access.js';
+import { coachBillingPlansCol } from '../_lib/db.js';
+import { BillingPlanBodyPatchSchema } from '../_lib/schemas.js';
+import type { CoachBillingPlanDoc } from '../_lib/types.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { requireUser } from '../../_lib/withAuth.js';
 
 /** GET/PATCH/DELETE /api/coach-assets/billing-plans/:id */
 

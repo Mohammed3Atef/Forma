@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { flagsCol, toPublicFlag, writeFlagAudit } from './_lib';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { flagsCol, toPublicFlag, writeFlagAudit } from './_lib.js';
 
 /**
  * Port of `src/services/platform/flagsApi.ts`. GET (`listFlags`): any signed-in

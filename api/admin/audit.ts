@@ -1,10 +1,10 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { auditLogsCol } from './_lib/db';
-import type { AuditLogDoc } from './_lib/types';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { auditLogsCol } from './_lib/db.js';
+import type { AuditLogDoc } from './_lib/types.js';
 
 /**
  * Port of `src/services/platform/auditApi.ts`. GET lists (newest first, cursor

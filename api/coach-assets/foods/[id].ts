@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadAccess } from '../_lib/access';
-import { coachFoodsCol } from '../_lib/db';
-import { FoodBodyPatchSchema } from '../_lib/schemas';
-import type { CoachFoodDoc } from '../_lib/types';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { requireUser } from '../../_lib/withAuth';
+import { requireOwningCoach, requireReadAccess } from '../_lib/access.js';
+import { coachFoodsCol } from '../_lib/db.js';
+import { FoodBodyPatchSchema } from '../_lib/schemas.js';
+import type { CoachFoodDoc } from '../_lib/types.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { requireUser } from '../../_lib/withAuth.js';
 
 /** GET/PATCH/DELETE /api/coach-assets/foods/:id */
 

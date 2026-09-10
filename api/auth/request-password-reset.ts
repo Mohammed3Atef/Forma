@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { passwordResetsCol, usersCol } from '../_lib/mongodb';
-import { generateRawToken, hashRawToken } from '../_lib/tokens';
-import { handleError, methodGuard } from '../_lib/http';
+import { passwordResetsCol, usersCol } from '../_lib/mongodb.js';
+import { generateRawToken, hashRawToken } from '../_lib/tokens.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 const Body = z.object({ email: z.string().trim().toLowerCase().email() });
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { usersCol } from '../../_lib/mongodb';
-import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { writeAudit } from '../_lib/audit';
+import { usersCol } from '../../_lib/mongodb.js';
+import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { writeAudit } from '../_lib/audit.js';
 
 /** Port of `src/services/platform/accountsApi.ts`'s `bulkSetAccountStatus()` — one write per target, independent (a failure never aborts the rest); returns an ok/failed tally. */
 const Body = z.object({

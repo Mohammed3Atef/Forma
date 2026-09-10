@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ExerciseFields } from './types';
+import type { ExerciseFields } from './types.js';
 
 /**
  * The shared starter EXERCISE dataset (free-exercise-db, public domain) —

@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { VercelResponse } from '@vercel/node';
-import { refreshTokensCol } from './mongodb';
-import type { AccountStatus, Role } from './types';
+import { refreshTokensCol } from './mongodb.js';
+import type { AccountStatus, Role } from './types.js';
 
 const ACCESS_TOKEN_TTL_SEC = 15 * 60; // 15 minutes — kept in memory on the client, never persisted
 const REFRESH_TOKEN_TTL_SEC = 30 * 24 * 60 * 60; // 30 days — httpOnly cookie, rotated on every use

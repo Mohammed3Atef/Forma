@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteClientOrCoach, resolveClientId } from './_lib/access';
-import { measurementLogsCol } from './_lib/db';
-import { notify } from './_lib/notify';
-import type { MeasurementLogDoc } from './_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteClientOrCoach, resolveClientId } from './_lib/access.js';
+import { measurementLogsCol } from './_lib/db.js';
+import { notify } from './_lib/notify.js';
+import type { MeasurementLogDoc } from './_lib/types.js';
 
 /**
  * Port of `coachApi.fetchClientMeasurements/saveClientMeasurement` —

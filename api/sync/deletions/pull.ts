@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../../_lib/withAuth';
-import { handleError, methodGuard } from '../../_lib/http';
-import { syncDeletionsCol } from '../_data';
+import { requireUser } from '../../_lib/withAuth.js';
+import { handleError, methodGuard } from '../../_lib/http.js';
+import { syncDeletionsCol } from '../_data.js';
 
 const Query = z.object({ since: z.coerce.number().min(0).default(0) });
 

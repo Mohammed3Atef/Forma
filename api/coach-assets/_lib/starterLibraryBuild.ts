@@ -1,6 +1,6 @@
-import type { StarterExercise } from './exerciseLibrary';
-import type { StarterTemplate } from './starterLibraryData';
-import type { CoachWorkoutTemplateDoc, TemplateExercise, WorkoutDay } from './types';
+import type { StarterExercise } from './exerciseLibrary.js';
+import type { StarterTemplate } from './starterLibraryData.js';
+import type { CoachWorkoutTemplateDoc, TemplateExercise, WorkoutDay } from './types.js';
 
 /**
  * Ports the muscle-blueprint fill logic from

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, isActiveSelf, resolveClientId } from './_lib/access';
-import { clientSettingsCol } from './_lib/db';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, isActiveSelf, resolveClientId } from './_lib/access.js';
+import { clientSettingsCol } from './_lib/db.js';
 
 /**
  * `clientSettings` — fully client-owned app settings (Firestore's

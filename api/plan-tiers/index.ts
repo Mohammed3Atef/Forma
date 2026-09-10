@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { listTiers, toPublicTier } from './_data';
+import { requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { listTiers, toPublicTier } from './_data.js';
 
 /**
  * GET /api/plan-tiers — any signed-in user may read (coaches need labels/caps

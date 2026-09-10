@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { singletonId, syncSingletonsCol } from './_data';
+import { requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { singletonId, syncSingletonsCol } from './_data.js';
 
 const Query = z.object({ name: z.enum(['profile', 'settings']) });
 const PutBody = z.object({ name: z.enum(['profile', 'settings']), data: z.record(z.string(), z.unknown()), updatedAt: z.number() });

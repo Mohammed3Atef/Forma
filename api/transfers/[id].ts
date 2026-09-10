@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { hasPermission } from '../_lib/rbac';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { transferClientWithMode } from '../coach-clients/_service';
-import { transfersCol } from './_data';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { hasPermission } from '../_lib/rbac.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { transferClientWithMode } from '../coach-clients/_service.js';
+import { transfersCol } from './_data.js';
 
 const PatchBody = z.object({
   action: z.enum(['cancel', 'accept', 'reject']),

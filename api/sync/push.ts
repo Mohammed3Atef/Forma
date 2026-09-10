@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { recordId, syncRecordsCol } from './_data';
+import { requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { recordId, syncRecordsCol } from './_data.js';
 
 const Body = z.object({
   collection: z.string().min(1).max(60),

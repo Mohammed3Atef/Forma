@@ -1,7 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
-import { hasPermission } from '../../_lib/rbac';
-import { requireActive, requireRole, requireUser, type AuthedUser } from '../../_lib/withAuth';
-import { HttpError } from '../../_lib/http';
+import { hasPermission } from '../../_lib/rbac.js';
+import { requireActive, requireRole, requireUser, type AuthedUser } from '../../_lib/withAuth.js';
+import { HttpError } from '../../_lib/http.js';
 
 /**
  * Access control for `coachAssets/*` routes, reproducing

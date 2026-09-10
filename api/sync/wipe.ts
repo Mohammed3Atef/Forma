@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { syncDeletionsCol, syncRecordsCol, syncSingletonsCol } from './_data';
+import { requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { syncDeletionsCol, syncRecordsCol, syncSingletonsCol } from './_data.js';
 
 /** Deletes ALL of the caller's own synced data (used by "reset all data"). */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

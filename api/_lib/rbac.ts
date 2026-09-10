@@ -1,4 +1,4 @@
-import type { AccountStatus, Permission, Role } from './types';
+import type { AccountStatus, Permission, Role } from './types.js';
 
 /**
  * Backend copy of `src/services/auth/roles.ts`'s permission table. This is

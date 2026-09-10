@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { usersCol } from '../_lib/mongodb';
-import { hashPassword, verifyPassword } from '../_lib/password';
-import { requireUser } from '../_lib/withAuth';
-import { revokeAllUserSessions } from '../_lib/tokens';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
+import { usersCol } from '../_lib/mongodb.js';
+import { hashPassword, verifyPassword } from '../_lib/password.js';
+import { requireUser } from '../_lib/withAuth.js';
+import { revokeAllUserSessions } from '../_lib/tokens.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
 
 const Body = z.object({
   currentPassword: z.string().min(1),

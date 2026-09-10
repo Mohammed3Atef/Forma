@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import type { Collection } from 'mongodb';
-import { getDb } from '../_lib/mongodb';
-import { addMonths } from '../coach-clients/_data';
-import type { SubscriptionDoc, SubscriptionStatus } from '../coach-clients/_types';
-import type { SignupInviteDoc } from './_types';
+import { getDb } from '../_lib/mongodb.js';
+import { addMonths } from '../coach-clients/_data.js';
+import type { SubscriptionDoc, SubscriptionStatus } from '../coach-clients/_types.js';
+import type { SignupInviteDoc } from './_types.js';
 
 const SUB_DAY = 86_400_000;
 /** Default invite lifetime (14 days) — mirrors `inviteApi.ts`'s `DEFAULT_TTL_MS`. */

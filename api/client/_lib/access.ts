@@ -1,8 +1,8 @@
 import type { VercelRequest } from '@vercel/node';
-import { hasPermission } from '../../_lib/rbac';
-import { HttpError } from '../../_lib/http';
-import type { AuthedUser } from '../../_lib/withAuth';
-import { coachClientsCol } from './db';
+import { hasPermission } from '../../_lib/rbac.js';
+import { HttpError } from '../../_lib/http.js';
+import type { AuthedUser } from '../../_lib/withAuth.js';
+import { coachClientsCol } from './db.js';
 
 /**
  * Every function here is a direct port of one clause from `firestore.rules`'

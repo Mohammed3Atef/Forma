@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { bannersCol, toPublicBanner } from './_lib';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { bannersCol, toPublicBanner } from './_lib.js';
 
 /**
  * Port of `bannersApi.ts`'s `saveBanner()` (as a full-replace PUT, scoped to

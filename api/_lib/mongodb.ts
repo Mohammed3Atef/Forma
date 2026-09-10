@@ -1,5 +1,5 @@
 import { Collection, Db, MongoClient } from 'mongodb';
-import type { PasswordResetDoc, RefreshTokenDoc, UserDoc } from './types';
+import type { PasswordResetDoc, RefreshTokenDoc, UserDoc } from './types.js';
 
 /**
  * Cached Mongo connection, reused across warm serverless invocations. Vercel

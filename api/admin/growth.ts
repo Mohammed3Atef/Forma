@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { usersCol } from '../_lib/mongodb';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { coachClientsCol } from './_lib/db';
-import type { SubscriptionStatus } from './_lib/types';
-import { DAY, WEEK, effectiveSubscriptionStatus, emptySubs, monthlyOf } from './_lib/subscription';
+import { usersCol } from '../_lib/mongodb.js';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { coachClientsCol } from './_lib/db.js';
+import type { SubscriptionStatus } from './_lib/types.js';
+import { DAY, WEEK, effectiveSubscriptionStatus, emptySubs, monthlyOf } from './_lib/subscription.js';
 
 /** Port of `src/services/platform/adminGrowthApi.ts`'s `fetchGrowth()`. */
 export interface GrowthPoint { label: string; value: number }

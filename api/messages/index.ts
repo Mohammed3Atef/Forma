@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { handleError, methodGuard } from '../_lib/http';
-import { requireUser } from '../_lib/withAuth';
-import { createNotification } from '../notifications/_data';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { requireUser } from '../_lib/withAuth.js';
+import { createNotification } from '../notifications/_data.js';
 import {
   authorizeThreadAccess,
   getAssignedCoachId,
@@ -11,7 +11,7 @@ import {
   type MessageAttachment,
   type MessageCategory,
   type MessageDoc,
-} from './_data';
+} from './_data.js';
 
 const DEFAULT_PAGE_SIZE = 200;
 

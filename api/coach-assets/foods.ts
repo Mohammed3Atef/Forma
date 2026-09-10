@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadContext } from './_lib/access';
-import { coachFoodsCol } from './_lib/db';
-import { FoodBodySchema } from './_lib/schemas';
-import type { CoachFoodDoc } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach, requireReadContext } from './_lib/access.js';
+import { coachFoodsCol } from './_lib/db.js';
+import { FoodBodySchema } from './_lib/schemas.js';
+import type { CoachFoodDoc } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /** GET /api/coach-assets/foods?coachId=  — list, sorted by (English) name.
  *  POST /api/coach-assets/foods          — create/replace one (upsert by client-supplied id). */

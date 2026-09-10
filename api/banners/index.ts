@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { bannersCol, toPublicBanner } from './_lib';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { bannersCol, toPublicBanner } from './_lib.js';
 
 /**
  * Port of `src/services/platform/bannersApi.ts`. GET (`listBanners`): any

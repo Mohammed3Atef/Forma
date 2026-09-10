@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { dayKey, usageStatsCol } from './_lib';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { dayKey, usageStatsCol } from './_lib.js';
 
 /** Port of `usageApi.ts`'s `bumpUsage('searches')` — increments today's platform usage counter (best-effort telemetry). */
 const Body = z.object({ field: z.literal('searches') });

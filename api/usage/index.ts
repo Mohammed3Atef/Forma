@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireActive, requirePermission, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { DAY_MS, activeDaysCol, dayKey, usageStatsCol } from './_lib';
+import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { DAY_MS, activeDaysCol, dayKey, usageStatsCol } from './_lib.js';
 
 /**
  * Port of `usageApi.ts`'s `fetchUsage()` — admin usage aggregate: `activeDays`

@@ -1,5 +1,5 @@
 import type { Collection } from 'mongodb';
-import { getDb } from '../../_lib/mongodb';
+import { getDb } from '../../_lib/mongodb.js';
 import type {
   AppNotificationDoc,
   CardioLogDoc,
@@ -15,7 +15,7 @@ import type {
   WeeklyCheckInDoc,
   WeightLogDoc,
   WorkoutLogDoc,
-} from './types';
+} from './types.js';
 
 /** Coach⇄client relationship doc, built by a parallel agent this same session. */
 export interface CoachClientRelDoc {

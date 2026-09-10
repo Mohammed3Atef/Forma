@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { bannersCol, matchesViewer, toPublicBanner, type BannerPlacement } from './_lib';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { bannersCol, matchesViewer, toPublicBanner, type BannerPlacement } from './_lib.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 const VALID_PLACEMENTS: BannerPlacement[] = ['all', 'client_home', 'coach_dashboard'];
 

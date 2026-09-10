@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadContext } from './_lib/access';
-import { coachBillingPlansCol } from './_lib/db';
-import { BillingPlanBodySchema } from './_lib/schemas';
-import type { CoachBillingPlanDoc } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach, requireReadContext } from './_lib/access.js';
+import { coachBillingPlansCol } from './_lib/db.js';
+import { BillingPlanBodySchema } from './_lib/schemas.js';
+import type { CoachBillingPlanDoc } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /**
  * GET /api/coach-assets/billing-plans?coachId=  — list, ordered by `order` ascending

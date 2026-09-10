@@ -1,4 +1,4 @@
-import type { BillingCycle, SubscriptionStatus } from '../coach-clients/_types';
+import type { BillingCycle, SubscriptionStatus } from '../coach-clients/_types.js';
 
 /**
  * Local (Mongo-era) mirror of `SignupInvite` from `src/types/index.ts`.

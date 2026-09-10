@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { requireUser } from '../_lib/withAuth';
-import { feedFilter, notificationsCol } from './_data';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { requireUser } from '../_lib/withAuth.js';
+import { feedFilter, notificationsCol } from './_data.js';
 
 const Body = z.object({
   /** Mark just this one notification read; omit to mark the caller's whole feed read. */

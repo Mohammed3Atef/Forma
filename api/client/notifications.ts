@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteClientOrCoach, resolveClientId } from './_lib/access';
-import { notificationsCol } from './_lib/db';
-import type { AppNotificationDoc } from './_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteClientOrCoach, resolveClientId } from './_lib/access.js';
+import { notificationsCol } from './_lib/db.js';
+import type { AppNotificationDoc } from './_lib/types.js';
 
 /**
  * `clientData/{clientId}/notifications/{id}` — the coach creates client-bound

@@ -1,14 +1,14 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { usersCol } from '../_lib/mongodb';
-import { hashPassword } from '../_lib/password';
-import { issueSession } from '../_lib/tokens';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { toPublicUser, type UserDoc } from '../_lib/types';
-import { bumpActiveClientCount, coachAtClientCap, coachClientsCol, relId } from '../coach-clients/_data';
-import type { CoachClientDoc } from '../coach-clients/_types';
-import { buildClaimSubscription, invitesCol, isClaimable, normalizeCode } from './_data';
+import { usersCol } from '../_lib/mongodb.js';
+import { hashPassword } from '../_lib/password.js';
+import { issueSession } from '../_lib/tokens.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { toPublicUser, type UserDoc } from '../_lib/types.js';
+import { bumpActiveClientCount, coachAtClientCap, coachClientsCol, relId } from '../coach-clients/_data.js';
+import type { CoachClientDoc } from '../coach-clients/_types.js';
+import { buildClaimSubscription, invitesCol, isClaimable, normalizeCode } from './_data.js';
 
 const Body = z.object({
   code: z.string().trim().min(1),

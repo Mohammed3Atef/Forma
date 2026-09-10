@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteCoachOwned, isActiveSelf, resolveClientId } from './_lib/access';
-import { clientProfilesCol } from './_lib/db';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteCoachOwned, isActiveSelf, resolveClientId } from './_lib/access.js';
+import { clientProfilesCol } from './_lib/db.js';
 
 /**
  * Port of `coachApi.fetchClientProfile` / `saveClientProfile` and

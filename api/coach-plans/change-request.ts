@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireRole, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { coachPlanChangeRequestsCol, toPublicChangeRequest, type CoachPlanChangeRequestDoc } from './_data';
+import { requireRole, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { coachPlanChangeRequestsCol, toPublicChangeRequest, type CoachPlanChangeRequestDoc } from './_data.js';
 
 /** Mirrors `submitPlanChangeRequest`'s accepted body shape. */
 const Body = z.object({

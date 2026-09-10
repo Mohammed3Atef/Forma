@@ -4,7 +4,7 @@
  * `src/services/platform/coachPlanApi.ts` / `adminGrowthApi.ts`. Kept local to
  * `api/admin/` per the migration's file-ownership rules.
  */
-import type { CoachPlanDoc, Subscription, SubscriptionStatus } from './types';
+import type { CoachPlanDoc, Subscription, SubscriptionStatus } from './types.js';
 
 export const DAY = 86_400_000;
 export const WEEK = 7 * DAY;

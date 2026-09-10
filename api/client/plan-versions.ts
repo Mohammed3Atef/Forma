@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access';
-import { planCollectionForKind, planVersionsCol } from './_lib/db';
-import type { PlanVersionDoc, PlanVersionKind } from './_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access.js';
+import { planCollectionForKind, planVersionsCol } from './_lib/db.js';
+import type { PlanVersionDoc, PlanVersionKind } from './_lib/types.js';
 
 /**
  * Port of `planVersionsApi.listVersions/saveAsNewVersion/restoreVersion` —

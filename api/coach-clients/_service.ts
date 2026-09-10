@@ -1,14 +1,14 @@
-import { getDb } from '../_lib/mongodb';
-import { HttpError } from '../_lib/http';
-import type { UserDoc } from '../_lib/types';
-import { addMonths, bumpActiveClientCount, buildSubscription, coachAtClientCap, coachClientsCol, relId } from './_data';
+import { getDb } from '../_lib/mongodb.js';
+import { HttpError } from '../_lib/http.js';
+import type { UserDoc } from '../_lib/types.js';
+import { addMonths, bumpActiveClientCount, buildSubscription, coachAtClientCap, coachClientsCol, relId } from './_data.js';
 import type {
   ClientSubscriptionInput,
   CoachClientDoc,
   SubscriptionDoc,
   TransferMode,
   TransferSubHandling,
-} from './_types';
+} from './_types.js';
 
 const SUB_DAY = 86_400_000;
 

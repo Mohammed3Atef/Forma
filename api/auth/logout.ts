@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clearRefreshCookie, readRefreshCookie, revokeRefreshToken } from '../_lib/tokens';
-import { handleError, methodGuard } from '../_lib/http';
+import { clearRefreshCookie, readRefreshCookie, revokeRefreshToken } from '../_lib/tokens.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

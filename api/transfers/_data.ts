@@ -1,6 +1,6 @@
 import type { Collection } from 'mongodb';
-import { getDb } from '../_lib/mongodb';
-import type { ClientTransferRequestDoc } from './_types';
+import { getDb } from '../_lib/mongodb.js';
+import type { ClientTransferRequestDoc } from './_types.js';
 
 export async function transfersCol(): Promise<Collection<ClientTransferRequestDoc>> {
   return (await getDb()).collection<ClientTransferRequestDoc>('transferRequests');

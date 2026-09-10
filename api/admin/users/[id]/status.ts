@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { usersCol } from '../../../_lib/mongodb';
-import { requireActive, requirePermission, requireUser } from '../../../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../../../_lib/http';
-import { toPublicUser } from '../../../_lib/types';
-import { writeAudit } from '../../_lib/audit';
+import { usersCol } from '../../../_lib/mongodb.js';
+import { requireActive, requirePermission, requireUser } from '../../../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../../../_lib/http.js';
+import { toPublicUser } from '../../../_lib/types.js';
+import { writeAudit } from '../../_lib/audit.js';
 
 /**
  * Port of `src/services/platform/accountsApi.ts`'s `setAccountStatus()`.

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { hasPermission } from '../_lib/rbac';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { transferReqId, transfersCol } from './_data';
-import type { ClientTransferRequestDoc } from './_types';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { hasPermission } from '../_lib/rbac.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { transferReqId, transfersCol } from './_data.js';
+import type { ClientTransferRequestDoc } from './_types.js';
 
 const CreateBody = z.object({
   clientId: z.string().trim().min(1),

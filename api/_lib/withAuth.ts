@@ -1,9 +1,9 @@
 import type { VercelRequest } from '@vercel/node';
-import { usersCol } from './mongodb';
-import { hasPermission } from './rbac';
-import { verifyAccessToken } from './tokens';
-import { HttpError } from './http';
-import type { AccountStatus, Permission, Role, UserDoc } from './types';
+import { usersCol } from './mongodb.js';
+import { hasPermission } from './rbac.js';
+import { verifyAccessToken } from './tokens.js';
+import { HttpError } from './http.js';
+import type { AccountStatus, Permission, Role, UserDoc } from './types.js';
 
 export interface AuthedUser {
   id: string;

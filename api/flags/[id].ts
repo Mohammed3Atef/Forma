@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { flagsCol, toPublicFlag } from './_lib';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { flagsCol, toPublicFlag } from './_lib.js';
 
 /** Single-flag read, complementing `listFlags()` (api/flags/index.ts). */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

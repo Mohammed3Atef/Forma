@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
-import { toPublicUser } from '../_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
+import { toPublicUser } from '../_lib/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

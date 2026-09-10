@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireActive, requireUser } from '../_lib/withAuth';
-import { hasPermission } from '../_lib/rbac';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { invitesCol, isClaimable, normalizeCode } from './_data';
+import { requireActive, requireUser } from '../_lib/withAuth.js';
+import { hasPermission } from '../_lib/rbac.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { invitesCol, isClaimable, normalizeCode } from './_data.js';
 
 /**
  * `GET /api/invites/:code` — PUBLIC (pre-auth) lookup for the claim screen.

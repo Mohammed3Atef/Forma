@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access';
-import { clientNutritionPlansCol } from './_lib/db';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access.js';
+import { clientNutritionPlansCol } from './_lib/db.js';
 
 /**
  * Port of `planApi.getClientMealPlan/saveClientMealPlan` — the coach-authored

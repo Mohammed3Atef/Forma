@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach } from './_lib/access';
-import { coachExercisesCol, coachFoodGroupsCol, coachFoodsCol, coachWorkoutTemplatesCol } from './_lib/db';
-import { loadStarterExercises } from './_lib/exerciseLibrary';
-import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_TEMPLATES, type StarterFood } from './_lib/starterLibraryData';
-import { buildTemplate, groupByMuscle } from './_lib/starterLibraryBuild';
-import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, StoredFood } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach } from './_lib/access.js';
+import { coachExercisesCol, coachFoodGroupsCol, coachFoodsCol, coachWorkoutTemplatesCol } from './_lib/db.js';
+import { loadStarterExercises } from './_lib/exerciseLibrary.js';
+import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_TEMPLATES, type StarterFood } from './_lib/starterLibraryData.js';
+import { buildTemplate, groupByMuscle } from './_lib/starterLibraryBuild.js';
+import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, StoredFood } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /**
  * POST /api/coach-assets/seed-starter-library

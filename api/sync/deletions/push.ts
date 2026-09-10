@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../../_lib/withAuth';
-import { handleError, methodGuard } from '../../_lib/http';
-import { recordId, syncDeletionsCol } from '../_data';
+import { requireUser } from '../../_lib/withAuth.js';
+import { handleError, methodGuard } from '../../_lib/http.js';
+import { recordId, syncDeletionsCol } from '../_data.js';
 
 const Body = z.object({
   deletions: z.array(
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await requireUser(req);
     const body = Body.parse(req.body);
     const col = await syncDeletionsCol();
-    const recordsCol = (await import('../_data')).syncRecordsCol;
+    const recordsCol = (await import('../_data.js')).syncRecordsCol;
     const syncedAt = Date.now();
     for (const del of body.deletions) {
       await col.updateOne(

@@ -1,4 +1,4 @@
-import type { LocalizedText, SplitType, WorkoutGoal } from './types';
+import type { LocalizedText, SplitType, WorkoutGoal } from './types.js';
 
 /**
  * Backend-local copy of `src/lib/starterLibrary.ts`'s static starter FOODS,

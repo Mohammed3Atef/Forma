@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requirePermission, requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
+import { requirePermission, requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
 import {
   DAY_MS,
   PAID_TERM_DAYS,
@@ -11,8 +11,8 @@ import {
   toPublicCoachPlan,
   type CoachPlanDoc,
   type PlanHistoryEntry,
-} from './_data';
-import { COACH_PLAN_TIERS, getTier } from '../plan-tiers/_data';
+} from './_data.js';
+import { COACH_PLAN_TIERS, getTier } from '../plan-tiers/_data.js';
 
 /**
  * PATCH /api/coach-plans/:coachId — admin-only manual override of a coach's

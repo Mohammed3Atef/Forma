@@ -1,9 +1,9 @@
 import { Collection } from 'mongodb';
-import { getDb } from '../_lib/mongodb';
-import { hasPermission } from '../_lib/rbac';
-import { HttpError } from '../_lib/http';
-import type { AuthedUser } from '../_lib/withAuth';
-import type { Role } from '../_lib/types';
+import { getDb } from '../_lib/mongodb.js';
+import { hasPermission } from '../_lib/rbac.js';
+import { HttpError } from '../_lib/http.js';
+import type { AuthedUser } from '../_lib/withAuth.js';
+import type { Role } from '../_lib/types.js';
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `Message` / `MessageAttachment` /

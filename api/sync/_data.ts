@@ -1,4 +1,4 @@
-import { getDb } from '../_lib/mongodb';
+import { getDb } from '../_lib/mongodb.js';
 
 /**
  * Generic sync backend for `src/data/sync/SyncEngine.ts` — replaces the old

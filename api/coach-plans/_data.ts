@@ -1,5 +1,5 @@
 import type { Collection } from 'mongodb';
-import { getDb } from '../_lib/mongodb';
+import { getDb } from '../_lib/mongodb.js';
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `CoachPlan` /

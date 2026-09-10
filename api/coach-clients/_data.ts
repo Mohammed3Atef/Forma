@@ -1,6 +1,6 @@
 import type { Collection } from 'mongodb';
-import { getDb } from '../_lib/mongodb';
-import type { ClientSubscriptionInput, CoachClientDoc, CoachPlanDoc, SubscriptionDoc } from './_types';
+import { getDb } from '../_lib/mongodb.js';
+import type { ClientSubscriptionInput, CoachClientDoc, CoachPlanDoc, SubscriptionDoc } from './_types.js';
 
 const SUB_DAY = 86_400_000;
 

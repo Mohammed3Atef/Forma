@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireRole, requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { coachPlansCol, toPublicCoachPlan } from './_data';
+import { requireRole, requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { coachPlansCol, toPublicCoachPlan } from './_data.js';
 
 /** GET /api/coach-plans/me — the signed-in coach's own Layer-A plan. Mirrors `getCoachPlan`. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {

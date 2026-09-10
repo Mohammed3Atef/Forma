@@ -1,5 +1,5 @@
-import { getDb } from '../_lib/mongodb';
-import type { Role } from '../_lib/types';
+import { getDb } from '../_lib/mongodb.js';
+import type { Role } from '../_lib/types.js';
 
 /**
  * Backend-local mirror of `src/services/platform/bannersApi.ts`'s `Banner`

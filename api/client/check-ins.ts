@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access';
-import { checkInsCol } from './_lib/db';
-import { notify } from './_lib/notify';
-import type { WeeklyCheckInDoc } from './_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access.js';
+import { checkInsCol } from './_lib/db.js';
+import { notify } from './_lib/notify.js';
+import type { WeeklyCheckInDoc } from './_lib/types.js';
 
 /**
  * Port of `checkInApi` — weekly check-ins at `clientData/{clientId}/checkIns/{weekStart}`.

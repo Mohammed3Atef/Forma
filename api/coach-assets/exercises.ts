@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadContext } from './_lib/access';
-import { coachExercisesCol } from './_lib/db';
-import { ExerciseBodySchema } from './_lib/schemas';
-import type { CoachExerciseDoc } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach, requireReadContext } from './_lib/access.js';
+import { coachExercisesCol } from './_lib/db.js';
+import { ExerciseBodySchema } from './_lib/schemas.js';
+import type { CoachExerciseDoc } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /** GET /api/coach-assets/exercises?coachId=  — list (own library, or admin oversight read).
  *  POST /api/coach-assets/exercises          — create/replace one (upsert by client-supplied id). */

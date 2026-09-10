@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireRole, requireUser } from '../_lib/withAuth';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireRole, requireUser } from '../_lib/withAuth.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 import {
   DAY_MS,
   TRIAL_DURATION_DAYS,
@@ -8,7 +8,7 @@ import {
   coachPlansCol,
   toPublicCoachPlan,
   type CoachPlanDoc,
-} from './_data';
+} from './_data.js';
 
 /**
  * POST /api/coach-plans/trial — creates the auto-trial plan for a newly

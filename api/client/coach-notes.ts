@@ -1,12 +1,12 @@
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../_lib/http';
-import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access';
-import { coachNotesCol } from './_lib/db';
-import { notify } from './_lib/notify';
-import type { CoachNoteDoc } from './_lib/types';
+import { requireUser } from '../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../_lib/http.js';
+import { canReadClientData, canWriteCoachOwned, resolveClientId } from './_lib/access.js';
+import { coachNotesCol } from './_lib/db.js';
+import { notify } from './_lib/notify.js';
+import type { CoachNoteDoc } from './_lib/types.js';
 
 /**
  * Port of `coachApi.listCoachNotes/addCoachNote` — `clientData/{clientId}/coachNotes`.

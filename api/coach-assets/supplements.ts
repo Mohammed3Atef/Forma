@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadContext } from './_lib/access';
-import { coachSupplementsCol } from './_lib/db';
-import { SupplementBodySchema } from './_lib/schemas';
-import type { CoachSupplementDoc } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach, requireReadContext } from './_lib/access.js';
+import { coachSupplementsCol } from './_lib/db.js';
+import { SupplementBodySchema } from './_lib/schemas.js';
+import type { CoachSupplementDoc } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /** GET /api/coach-assets/supplements?coachId=  — list, sorted by name.
  *  POST /api/coach-assets/supplements          — create/replace one (upsert by client-supplied id). */

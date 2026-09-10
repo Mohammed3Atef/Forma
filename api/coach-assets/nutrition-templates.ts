@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireOwningCoach, requireReadContext } from './_lib/access';
-import { coachNutritionTemplatesCol } from './_lib/db';
-import { NutritionTemplateBodySchema } from './_lib/schemas';
-import type { CoachNutritionTemplateDoc } from './_lib/types';
-import { handleError, methodGuard } from '../_lib/http';
+import { requireOwningCoach, requireReadContext } from './_lib/access.js';
+import { coachNutritionTemplatesCol } from './_lib/db.js';
+import { NutritionTemplateBodySchema } from './_lib/schemas.js';
+import type { CoachNutritionTemplateDoc } from './_lib/types.js';
+import { handleError, methodGuard } from '../_lib/http.js';
 
 /** GET /api/coach-assets/nutrition-templates?coachId=  — list, newest-updated first.
  *  POST /api/coach-assets/nutrition-templates          — create/replace one (upsert by client-supplied id). */

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { requireUser } from '../../_lib/withAuth';
-import { HttpError, handleError, methodGuard } from '../../_lib/http';
-import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access';
-import { weightLogsCol } from '../_lib/db';
-import type { WeightLogDoc } from '../_lib/types';
+import { requireUser } from '../../_lib/withAuth.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
+import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access.js';
+import { weightLogsCol } from '../_lib/db.js';
+import type { WeightLogDoc } from '../_lib/types.js';
 
 /**
  * Raw fitness log CRUD for `weightLogs` (mirrors `SyncEngine`'s `WeightLog`
