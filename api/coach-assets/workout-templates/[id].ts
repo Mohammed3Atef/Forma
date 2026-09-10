@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const patch = WorkoutTemplateBodyPatchSchema.parse(req.body);
       const existing = await col.findOne({ _id: id, coachId: user.id });
       if (!existing) throw new HttpError(404, 'Workout template not found');
-      const updated: CoachWorkoutTemplateDoc = { ...existing, ...patch, updatedAt: Date.now() };
+      const updated = { ...existing, ...patch, updatedAt: Date.now() } as CoachWorkoutTemplateDoc;
       await col.replaceOne({ _id: id, coachId: user.id }, updated);
       res.status(200).json(toPublic(updated));
       return;

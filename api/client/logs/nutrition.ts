@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!isActiveSelf(user, clientId)) throw new HttpError(403, 'Forbidden');
       const body = Body.parse(req.body);
       const now = Date.now();
-      const doc: NutritionLogDoc = { _id: logId(clientId, body.date), clientId, ...body, updatedAt: now };
+      const doc = { _id: logId(clientId, body.date), clientId, ...body, updatedAt: now } as NutritionLogDoc;
       await col.replaceOne({ _id: doc._id }, doc, { upsert: true });
       res.status(200).json(doc);
       return;

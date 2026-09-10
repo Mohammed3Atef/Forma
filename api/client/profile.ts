@@ -4,6 +4,7 @@ import { requireUser } from '../_lib/withAuth.js';
 import { HttpError, handleError, methodGuard } from '../_lib/http.js';
 import { canReadClientData, canWriteCoachOwned, isActiveSelf, resolveClientId } from './_lib/access.js';
 import { clientProfilesCol } from './_lib/db.js';
+import type { ClientProfileFields } from './_lib/types.js';
 
 /**
  * Port of `coachApi.fetchClientProfile` / `saveClientProfile` and
@@ -48,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       {
         $set: {
           clientId,
-          profile: { id: clientId, ...body, createdAt: existing?.profile?.createdAt ?? now, updatedAt: now },
+          profile: { id: clientId, ...body, createdAt: existing?.profile?.createdAt ?? now, updatedAt: now } as ClientProfileFields,
           updatedAt: now,
         },
       },

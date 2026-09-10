@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const patch = FoodGroupBodyPatchSchema.parse(req.body);
       const existing = await col.findOne({ _id: id, coachId: user.id });
       if (!existing) throw new HttpError(404, 'Food group not found');
-      const updated: CoachFoodGroupDoc = { ...existing, ...patch, updatedAt: Date.now() };
+      const updated = { ...existing, ...patch, updatedAt: Date.now() } as CoachFoodGroupDoc;
       await col.replaceOne({ _id: id, coachId: user.id }, updated);
       res.status(200).json(toPublic(updated));
       return;

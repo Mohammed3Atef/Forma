@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireActive, requirePermission, requireUser } from '../_lib/withAuth.js';
 import { handleError, methodGuard } from '../_lib/http.js';
 import { bannersCol, toPublicBanner } from './_lib.js';
+import type { BannerDoc } from './_lib.js';
 
 /**
  * Port of `src/services/platform/bannersApi.ts`. GET (`listBanners`): any
@@ -36,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       requirePermission(user, 'flags.manage');
       const body = CreateBody.parse(req.body);
       const now = Date.now();
-      const doc = { _id: crypto.randomUUID(), ...body, createdBy: user.id, createdAt: now, updatedAt: now };
+      const doc = { _id: crypto.randomUUID(), ...body, createdBy: user.id, createdAt: now, updatedAt: now } as BannerDoc;
       await col.insertOne(doc);
       res.status(201).json(toPublicBanner(doc));
       return;

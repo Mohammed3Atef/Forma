@@ -5,6 +5,7 @@ import { hasPermission } from '../_lib/rbac.js';
 import { HttpError, handleError, methodGuard } from '../_lib/http.js';
 import { coachClientsCol } from './_data.js';
 import { assignExistingClient } from './_service.js';
+import type { ClientSubscriptionInput } from './_types.js';
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
@@ -107,7 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new HttpError(403, 'Forbidden');
     }
 
-    const rel = await assignExistingClient(coachId, body.clientId, user.id, body.subscription);
+    const rel = await assignExistingClient(coachId, body.clientId, user.id, body.subscription as ClientSubscriptionInput);
     res.status(201).json(rel);
   } catch (e) {
     handleError(res, e);

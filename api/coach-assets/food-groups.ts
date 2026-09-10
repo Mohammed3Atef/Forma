@@ -29,13 +29,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const col = await coachFoodGroupsCol();
     const now = Date.now();
     const existing = await col.findOne({ _id: body.id, coachId: user.id });
-    const doc: CoachFoodGroupDoc = {
+    const doc = {
       ...body,
       _id: body.id,
       coachId: user.id,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-    };
+    } as CoachFoodGroupDoc;
     await col.replaceOne({ _id: body.id, coachId: user.id }, doc, { upsert: true });
     res.status(existing ? 200 : 201).json(toPublic(doc));
   } catch (e) {
