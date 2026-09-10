@@ -1,0 +1,467 @@
+/* MyRocky Mobile Longevity — Figma node 27196:4424
+   Target width: 390-407px. Dark theme. Reuses tokens from ../../colors_and_type.css. */
+
+.mob {
+  width: 100%;
+  max-width: 430px;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-sans);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Partner ticker — dark brown, scrolling */
+.mob-partners {
+  background: #261D17;
+  padding: 10px 0;
+  overflow: hidden;
+  position: relative;
+  border-bottom: 1px solid rgba(230,226,220,0.05);
+}
+.mob-partners-track {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  animation: mob-scroll 22s linear infinite;
+  width: max-content;
+  padding-left: 20px;
+}
+@keyframes mob-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.mob-partner-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.mob-partner-item .pp-label {
+  color: var(--copper);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+.mob-partner-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(230,226,220,0.35);
+  flex-shrink: 0;
+}
+.mob-partner-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--copper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+/* Nav — sticky top */
+.mob-nav {
+  height: 56px;
+  background: #000;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(230,226,220,0.05);
+}
+.mob-nav img.logo { height: 24px; display: block; }
+.mob-nav-btn {
+  width: 44px; height: 44px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+/* Hero */
+.mob-hero {
+  background: #000;
+  padding: 24px 20px 40px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.mob-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: #fff;
+}
+.mob-h1 em { color: var(--copper); font-style: italic; font-weight: 500; font-family: var(--font-serif); }
+.mob-lede {
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(230,226,220,0.82);
+  margin: 0;
+}
+.mob-ctas { display: flex; flex-direction: column; gap: 10px; }
+.mob-btn {
+  height: 48px;
+  border-radius: 100px;
+  border: 1.5px solid;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 0 24px;
+  width: 100%;
+}
+.mob-btn svg { width: 10px; height: 10px; }
+.mob-btn.primary { background: #fff; color: #000; border-color: #fff; }
+.mob-btn.ghost   { background: transparent; color: #fff; border-color: rgba(255,255,255,0.55); }
+.mob-btn.copper  { background: var(--copper); color: #fff; border-color: var(--copper); }
+
+.mob-trust { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.mob-trust-row {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+}
+.mob-avatars { display: flex; align-items: center; }
+.mob-avatars .av {
+  width: 24px; height: 24px; border-radius: 100px;
+  border: 2px solid #000;
+  margin-left: -8px;
+  background-size: cover; background-position: center;
+}
+.mob-avatars .av:first-child { margin-left: 0; }
+.mob-stars { color: var(--star); letter-spacing: 1px; font-size: 13px; }
+.mob-trust-dot-row {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: rgba(255,255,255,0.88);
+}
+.mob-trust-dot-row .item { display: flex; align-items: center; gap: 6px; }
+.mob-trust-dot-row .item svg { width: 16px; height: 16px; color: var(--copper); }
+
+/* Press ticker light */
+.mob-press {
+  padding: 24px 20px;
+  background: #000;
+  border-top: 1px solid rgba(230,226,220,0.08);
+  border-bottom: 1px solid rgba(230,226,220,0.08);
+  display: flex; gap: 20px; align-items: center;
+  overflow-x: auto; scrollbar-width: none;
+}
+.mob-press::-webkit-scrollbar { display: none; }
+.mob-press-lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(230,226,220,0.4);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  flex-shrink: 0;
+}
+.mob-press-brand {
+  flex-shrink: 0;
+  color: rgba(230,226,220,0.9);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 16px;
+}
+
+/* Editorial protocol (white) */
+.mob-proto {
+  background: #fff;
+  color: #000;
+  padding: 56px 20px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+.mob-proto-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 100px;
+  background: linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)), url('../website/assets/hero-runner.jpg');
+  background-size: cover; background-position: center;
+  border: 1px solid rgba(216,199,176,0.3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.mob-proto h2 {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+  color: #000;
+}
+.mob-proto h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-proto p {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #5a5a5a;
+  margin: 0;
+  max-width: 340px;
+}
+.mob-age-row { display: flex; gap: 10px; margin: 8px 0; }
+.mob-age-card {
+  width: 170px; height: 176px;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  text-align: left;
+  color: #fff;
+}
+.mob-age-card.chron { background: var(--copper); }
+.mob-age-card.bio   { background: #2E5D3C; }
+.mob-age-card .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.88; }
+.mob-age-card .big { font-family: var(--font-mono); font-size: 76px; font-weight: 500; line-height: 0.85; letter-spacing: -0.04em; }
+.mob-age-card .cap { font-size: 12px; line-height: 1.25; opacity: 0.95; }
+
+/* Duo cards — mobile stacked */
+.mob-duo {
+  background: #000; padding: 56px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.mob-duo-head { text-align: center; margin-bottom: 12px; }
+.mob-duo-head .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 10px; }
+.mob-duo-head h2 {
+  font-family: var(--font-display);
+  font-size: 30px; font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1.08;
+  margin: 0;
+}
+.mob-duo-head h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-duo-card {
+  aspect-ratio: 6/7;
+  border-radius: 16px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between;
+  color: #fff;
+}
+.mob-duo-card.measure { background: linear-gradient(135deg,#1a1a1a,#0a0a0a); border: 1px solid rgba(230,226,220,0.1); }
+.mob-duo-card.reverse { background: linear-gradient(135deg,#3d3d30,#1a1a12); border: 1px solid rgba(174,126,86,0.2); }
+.mob-duo-card .img-bg {
+  position: absolute; inset: 0;
+  background-size: contain; background-position: center 65%; background-repeat: no-repeat;
+  opacity: 0.95;
+}
+.mob-duo-card.measure .img-bg {
+  background-image: url('../website/assets/measure-vial.png');
+  background-position: right -30px bottom -20px; background-size: 75%;
+}
+.mob-duo-card.reverse .img-bg {
+  background-image: url('../website/assets/reverse-nad.png');
+  background-position: right -15px bottom -30px; background-size: 65%;
+}
+.mob-duo-card .num { font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.6); letter-spacing: 0.12em; text-transform: uppercase; position: relative; }
+.mob-duo-card h3 { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0; position: relative; }
+.mob-duo-card h3 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-duo-card p { font-size: 14px; line-height: 1.5; color: rgba(230,226,220,0.78); margin: 0; position: relative; max-width: 220px; }
+
+/* Stats 3-stacked */
+.mob-stats {
+  background: #000; padding: 56px 20px;
+  border-top: 1px solid rgba(230,226,220,0.08);
+}
+.mob-stats-head { text-align: center; margin-bottom: 32px; }
+.mob-stats-head .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 10px; }
+.mob-stats-head h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; margin: 0; }
+.mob-stats-head h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-stat {
+  padding: 28px 0;
+  border-bottom: 1px solid rgba(230,226,220,0.12);
+  text-align: center;
+}
+.mob-stat:first-of-type { border-top: 1px solid rgba(230,226,220,0.12); }
+.mob-stat-n { font-family: var(--font-mono); font-size: 88px; font-weight: 500; color: #fff; line-height: 0.88; letter-spacing: -0.04em; }
+.mob-stat-t { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 14px; }
+.mob-stat-d { font-size: 13px; color: rgba(230,226,220,0.65); line-height: 1.5; margin-top: 10px; max-width: 280px; margin-left: auto; margin-right: auto; }
+
+/* NAD chart */
+.mob-nad {
+  position: relative;
+  background: #000;
+  padding: 56px 20px;
+  overflow: hidden;
+}
+.mob-nad-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% 30%, rgba(174,126,86,0.18), transparent 60%);
+  pointer-events: none;
+}
+.mob-nad-inner { position: relative; display: flex; flex-direction: column; gap: 28px; }
+.mob-nad .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 12px; }
+.mob-nad h2 { font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 14px; }
+.mob-nad h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-nad p { font-size: 15px; line-height: 1.55; color: rgba(230,226,220,0.78); margin: 0; }
+.mob-nad-chart { aspect-ratio: 4/3; border-radius: 14px; background: rgba(10,10,10,0.6); border: 1px solid rgba(230,226,220,0.1); padding: 24px; position: relative; }
+.mob-nad-chart svg { width: 100%; height: 100%; display: block; }
+.mob-nad-lbl { position: absolute; font-family: var(--font-mono); font-size: 10px; color: rgba(230,226,220,0.55); letter-spacing: 0.06em; text-transform: uppercase; }
+.mob-nad-lbl.y { left: 16px; top: 18px; }
+.mob-nad-lbl.x { right: 18px; bottom: 18px; }
+
+/* Pricing cards (stacked) */
+.mob-pricing {
+  position: relative;
+  background: #000;
+  padding: 56px 20px;
+  overflow: hidden;
+}
+.mob-pricing-bg {
+  position: absolute; inset: 20px; border-radius: 14px;
+  background-image: linear-gradient(rgba(0,0,0,0.82),rgba(0,0,0,0.82)), url('../website/assets/hero-runner.jpg');
+  background-size: cover; background-position: center;
+}
+.mob-pricing-inner { position: relative; }
+.mob-pricing-head { text-align: center; margin-bottom: 24px; }
+.mob-pricing-head .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 10px; text-transform: lowercase; }
+.mob-pricing-head h2 { font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 12px; }
+.mob-pricing-head h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-pricing-head p { font-size: 14px; color: rgba(230,226,220,0.75); margin: 0; }
+.mob-price-stack { display: flex; flex-direction: column; gap: 14px; }
+.mob-price-card {
+  border-radius: 14px;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+  border: 1px solid rgba(230,226,220,0.1);
+  padding: 24px;
+  color: #fff;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.mob-price-card.pop { border-color: rgba(174,126,86,0.4); }
+.mob-price-tag {
+  align-self: flex-start;
+  padding: 4px 10px; border-radius: 4px;
+  background: rgba(20,83,45,0.55);
+  font-family: var(--font-mono); font-size: 11px;
+}
+.mob-price-ti { font-family: var(--font-display); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.mob-price-desc { font-size: 14px; color: rgba(255,255,255,0.8); margin: 6px 0 0; }
+.mob-price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.mob-price-big { font-family: var(--font-mono); font-size: 34px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.mob-price-per { font-size: 15px; color: rgba(255,255,255,0.85); }
+.mob-price-was { font-size: 14px; text-decoration: line-through; color: rgba(255,255,255,0.55); }
+.mob-price-save { padding: 1px 6px; border-radius: 3px; background: rgba(20,83,45,0.55); font-family: var(--font-mono); font-size: 11px; }
+.mob-price-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.mob-price-list li { font-size: 13px; color: #fff; line-height: 1.45; display: flex; gap: 8px; align-items: flex-start; }
+.mob-price-list svg { width: 14px; height: 14px; color: var(--copper); flex-shrink: 0; margin-top: 3px; }
+.mob-price-foot { font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.65); text-align: center; margin-top: 16px; }
+
+/* Biomarker rail */
+.mob-bio {
+  background: #fff; color: #000;
+  padding: 56px 0;
+}
+.mob-bio-head { padding: 0 20px 24px; }
+.mob-bio-head .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 8px; text-transform: lowercase; }
+.mob-bio-head h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; margin: 0; }
+.mob-bio-head h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-bio-rail { display: flex; gap: 12px; padding: 0 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.mob-bio-rail::-webkit-scrollbar { display: none; }
+.mob-bio-tile {
+  flex: 0 0 220px; height: 240px;
+  border-radius: 14px; padding: 18px;
+  color: #fff; position: relative; overflow: hidden;
+  scroll-snap-align: start;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background-size: cover; background-position: center;
+}
+.mob-bio-tile::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,0.25),rgba(0,0,0,0.78)); }
+.mob-bio-tile > * { position: relative; }
+.mob-bio-tile .cat { font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.75); letter-spacing: 0.08em; text-transform: uppercase; }
+.mob-bio-tile .mk { font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.mob-bio-tile .ds { font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.88); }
+
+/* Steps */
+.mob-steps {
+  background: #000; padding: 56px 20px;
+  border-top: 1px solid rgba(230,226,220,0.08);
+  text-align: center;
+}
+.mob-steps h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; margin: 0 0 10px; color: #fff; }
+.mob-steps h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-steps-sub { font-size: 14px; color: rgba(230,226,220,0.7); margin: 0 0 32px; line-height: 1.5; }
+.mob-steps-grid { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.mob-step {
+  background: rgba(20,20,20,0.7); border: 1px solid rgba(230,226,220,0.1);
+  border-radius: 14px; padding: 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.mob-step-media { height: 140px; border-radius: 6px; background: #1a1a1a; overflow: hidden; background-size: cover; background-position: center; }
+.mob-step .n { font-family: var(--font-mono); font-size: 11px; color: var(--copper); letter-spacing: 0.08em; text-transform: uppercase; }
+.mob-step h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0; color: #fff; }
+.mob-step p { font-size: 13px; line-height: 1.5; color: rgba(230,226,220,0.72); margin: 0; }
+
+/* Testimonials (light) */
+.mob-testi {
+  padding: 56px 20px;
+  background: #fff; color: #000;
+  text-align: center;
+}
+.mob-testi .eye { font-family: var(--font-mono); font-size: 12px; color: var(--copper); letter-spacing: 0.04em; display: block; margin-bottom: 10px; text-transform: lowercase; }
+.mob-testi h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; margin: 0 0 28px; }
+.mob-testi h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-testi-rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -20px; padding: 0 20px; }
+.mob-testi-rail::-webkit-scrollbar { display: none; }
+.mob-testi-card {
+  flex: 0 0 280px;
+  background: #fff; border: 1px solid #E2E2E1;
+  border-radius: 14px; padding: 24px;
+  display: flex; flex-direction: column; gap: 16px;
+  text-align: left;
+  scroll-snap-align: start;
+}
+.mob-testi-ages { display: flex; gap: 10px; align-items: baseline; }
+.mob-testi-ages .from { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: rgba(0,0,0,0.35); text-decoration: line-through; }
+.mob-testi-ages .to { font-family: var(--font-mono); font-size: 44px; font-weight: 500; color: var(--copper); letter-spacing: -0.02em; line-height: 0.9; }
+.mob-testi-ages .label { font-family: var(--font-mono); font-size: 10px; color: rgba(0,0,0,0.55); letter-spacing: 0.06em; text-transform: uppercase; align-self: flex-end; margin-bottom: 6px; }
+.mob-testi-change { font-family: var(--font-mono); font-size: 11px; color: #2E5D3C; letter-spacing: 0.06em; text-transform: uppercase; }
+.mob-testi-q { font-family: var(--font-serif); font-size: 15px; font-style: italic; line-height: 1.55; margin: 0; color: #1a1a1a; }
+.mob-testi-foot { display: flex; gap: 10px; align-items: center; padding-top: 12px; border-top: 1px solid #E2E2E1; }
+.mob-testi-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--copper); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; }
+.mob-testi-name { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.mob-testi-loc { font-family: var(--font-mono); font-size: 10px; color: rgba(0,0,0,0.55); margin-top: 1px; }
+
+/* Final CTA */
+.mob-final { background: #fff; padding: 0 20px 40px; }
+.mob-final-card {
+  border-radius: 14px;
+  padding: 56px 24px;
+  text-align: center;
+  color: #fff;
+  background-image: linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)), url('../website/assets/hero-runner.jpg');
+  background-size: cover; background-position: center 30%;
+  display: flex; flex-direction: column; align-items: center; gap: 24px;
+}
+.mob-final-card h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; margin: 0; color: #fff; max-width: 320px; }
+.mob-final-card h2 em { color: var(--copper); font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.mob-final-trust { display: flex; flex-direction: column; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: #fff; }
+.mob-final-trust .item { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.mob-final-trust svg { width: 14px; height: 14px; color: #fff; }
+
+/* Footer */
+.mob-footer {
+  background: #fff;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.mob-footer img { height: 28px; }

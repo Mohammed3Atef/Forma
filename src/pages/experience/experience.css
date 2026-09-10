@@ -1,0 +1,1604 @@
+/* ============================================================
+   FORMA "Experience" — ported from the Forma.html design
+   (claude.ai/design project). Every rule is scoped under
+   `.forma-exp` (the page's root wrapper) instead of `html`/`body`/
+   bare tag selectors, because this route mounts inside a larger
+   SPA whose other routes must not inherit these styles once this
+   route's CSS chunk has loaded (Vite doesn't unload a lazy route's
+   CSS on navigation-away, so a bare `body{...}`/`a{...}` rule here
+   would leak into every other page for the rest of the session).
+
+   The five custom properties below (--earth-warm*, --panel-dark,
+   --divider-dark) are the only tokens this design actually draws
+   from the MyRocky design system's colors_and_type.css — everything
+   else it needs (fonts, the orange rebrand accent) is self-contained
+   here, so the rest of that shared stylesheet isn't imported wholesale.
+   ============================================================ */
+@property --exp-rv {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.forma-exp {
+  /* ---- borrowed from the MyRocky design system (colors_and_type.css) ---- */
+  --earth-warm: #e6e2dc;
+  --earth-warm-60: rgba(230, 226, 220, 0.6);
+  --earth-warm-40: rgba(230, 226, 220, 0.4);
+  --panel-dark: #111111;
+  --divider-dark: rgba(230, 226, 220, 0.2);
+
+  /* ---- FORMA brand, sampled from the supplied logo ---- */
+  --f-amber: #ffb208; /* arrow tip / highlight */
+  --f-orange: #ff8b02; /* primary accent */
+  --f-red: #ff4c01; /* descender / deep */
+  --f-grad: linear-gradient(168deg, var(--f-amber) 0%, var(--f-orange) 48%, var(--f-red) 100%);
+  /* rebrand the design-system accent to Forma orange in one place */
+  --copper: #ff8b02;
+  --earth-hover: #ffb208;
+
+  margin: 0;
+  min-height: 100vh;
+  background: #000;
+  color: var(--earth-warm);
+  font-family: 'Poppins', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.forma-exp,
+.forma-exp * {
+  box-sizing: border-box;
+}
+.forma-exp a {
+  color: var(--copper);
+  text-decoration: none;
+}
+.forma-exp a:hover {
+  color: var(--earth-hover);
+}
+.forma-exp #gl {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
+}
+.forma-exp #ui {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  overflow: hidden;
+}
+.forma-exp .uiw {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  transition: opacity 0.12s linear;
+}
+.forma-exp #copy {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.forma-exp #spacer {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+}
+.forma-exp .mono {
+  font-family: 'DM Mono', ui-monospace, monospace;
+}
+
+/* ---------- header ---------- */
+.forma-exp header.site {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 40px;
+  pointer-events: auto;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent);
+}
+.forma-exp .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+/* real wordmark (F + orma), not a synthesised glyph */
+.forma-exp .brand .wm {
+  display: block;
+  width: 78px;
+  height: 24px;
+  background: url(/experience/forma-wordmark.png) left center/contain no-repeat;
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.5s;
+}
+.forma-exp .brand:hover .wm {
+  transform: translate(2px, -2px);
+  filter: brightness(1.12) drop-shadow(0 0 14px rgba(255, 139, 2, 0.45));
+}
+.forma-exp .site nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+.forma-exp .site nav a {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--earth-warm-60);
+}
+.forma-exp .site nav a:hover {
+  color: #fff;
+}
+.forma-exp .cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1.5px solid;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.forma-exp .cta.solid {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+.forma-exp .cta.solid:hover {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: #fff;
+}
+.forma-exp .cta.line {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(230, 226, 220, 0.35);
+}
+.forma-exp .cta.line:hover {
+  border-color: #fff;
+}
+.forma-exp .cta i {
+  font-style: normal;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.forma-exp .cta:hover i {
+  transform: translateX(3px);
+}
+
+/* ---------- chapter rail ---------- */
+.forma-exp #rail {
+  position: fixed;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  pointer-events: auto;
+}
+.forma-exp .tick {
+  position: relative;
+  width: 26px;
+  height: 2px;
+  border: 0;
+  padding: 0;
+  background: rgba(230, 226, 220, 0.22);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.forma-exp .tick:hover {
+  background: var(--earth-warm);
+}
+.forma-exp .tick.on {
+  background: var(--copper);
+  width: 40px;
+}
+.forma-exp .tl {
+  position: absolute;
+  right: 34px;
+  top: -8px;
+  white-space: nowrap;
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--earth-warm-60);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.forma-exp .tick:hover .tl {
+  opacity: 1;
+}
+.forma-exp #chlabel {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 20;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  text-align: right;
+}
+.forma-exp #chlabel b {
+  color: var(--copper);
+  font-weight: 400;
+}
+.forma-exp #bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: var(--film, 0%);
+  background: var(--copper);
+  z-index: 25;
+}
+
+/* ---------- copy deck ---------- */
+.forma-exp .beat {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  will-change: opacity, transform;
+}
+.forma-exp .beat .col {
+  width: min(34vw, 430px);
+  margin-left: calc(4vw + 8px);
+}
+.forma-exp .beat.mid .col {
+  width: min(52vw, 660px);
+  margin: 0 auto;
+  text-align: center;
+}
+.forma-exp .beat.low {
+  align-items: flex-end;
+  padding-bottom: 14vh;
+}
+.forma-exp .beat.low.mid::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42vh;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  z-index: -1;
+}
+.forma-exp .eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 18px;
+}
+.forma-exp h1,
+.forma-exp h2 {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 0;
+  color: #fff;
+  font-family: 'Poppins';
+}
+.forma-exp h1 {
+  font-size: clamp(38px, 5vw, 66px);
+}
+.forma-exp h2 {
+  font-size: clamp(30px, 3.9vw, 54px);
+}
+.forma-exp .piv {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--copper);
+}
+.forma-exp .sub {
+  margin: 22px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--earth-warm-60);
+  max-width: 38ch;
+}
+.forma-exp .stack {
+  margin: 20px 0 0;
+  font-size: clamp(18px, 1.7vw, 24px);
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--earth-warm);
+}
+.forma-exp .acts {
+  display: flex;
+  gap: 12px;
+  margin-top: 34px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+}
+.forma-exp .trust {
+  margin-top: 26px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+}
+.forma-exp .caps {
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(15px, 1.8vw, 26px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.9;
+}
+.forma-exp .caps span {
+  color: var(--earth-warm-40);
+}
+.forma-exp .quote {
+  font-family: 'Lora', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(20px, 2.2vw, 30px);
+  line-height: 1.35;
+  color: var(--earth-warm);
+  margin: 0;
+}
+.forma-exp .fields {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 9px;
+}
+.forma-exp .fields li {
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--earth-warm-60);
+  border: 1px solid rgba(230, 226, 220, 0.18);
+  border-radius: 100px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+/* footer beat */
+.forma-exp .foot {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 40px;
+  width: min(1300px, 92vw);
+  margin: 0 auto;
+  padding-top: 6vh;
+  pointer-events: auto;
+}
+.forma-exp .foot h5 {
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+.forma-exp .foot ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.forma-exp .foot a {
+  font-size: 14px;
+  color: var(--earth-warm-60);
+}
+.forma-exp .foot a:hover {
+  color: #fff;
+}
+.forma-exp .foot .fbrand h2 {
+  font-size: clamp(24px, 2.6vw, 38px);
+}
+.forma-exp .brand.fl .lk {
+  display: block;
+  width: 186px;
+  height: 66px;
+  background: url(/experience/forma-lockup.png) left center/contain no-repeat;
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.5s;
+}
+.forma-exp .brand.fl:hover .lk {
+  transform: translate(2px, -2px);
+  filter: brightness(1.1) drop-shadow(0 0 18px rgba(255, 139, 2, 0.4));
+}
+.forma-exp .legal {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--divider-dark);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+}
+
+/* ---------- preloader ---------- */
+.forma-exp #pre {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.8s;
+}
+.forma-exp #pre.done {
+  opacity: 0;
+  visibility: hidden;
+}
+.forma-exp #pre .w {
+  width: min(340px, 70vw);
+  text-align: center;
+}
+.forma-exp #pre .bw {
+  height: 1px;
+  background: rgba(230, 226, 220, 0.16);
+  position: relative;
+  overflow: hidden;
+  margin: 22px 0 14px;
+}
+.forma-exp #pre .bw i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--f-grad);
+  animation: exp-pl 1.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes exp-pl {
+  to {
+    width: 100%;
+  }
+}
+.forma-exp #pre .s {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--earth-warm-40);
+  display: flex;
+  justify-content: space-between;
+}
+.forma-exp #prehint {
+  margin-top: 26px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  letter-spacing: 0.05em;
+  color: rgba(230, 226, 220, 0.45);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.forma-exp #prehint b {
+  color: var(--f-orange);
+  font-weight: 400;
+}
+.forma-exp #pre.blocked #prehint {
+  opacity: 1;
+}
+/* the mark draws on along the arrow's own diagonal, then takes a shine */
+.forma-exp #pre .mk {
+  position: relative;
+  width: 108px;
+  aspect-ratio: 734/687;
+  margin: 0 auto 4px;
+  background: url(/experience/forma-mark.png) center/contain no-repeat;
+  -webkit-mask-image: linear-gradient(114deg, #000 0 var(--exp-rv), transparent calc(var(--exp-rv) + 14%));
+  mask-image: linear-gradient(114deg, #000 0 var(--exp-rv), transparent calc(var(--exp-rv) + 14%));
+  animation:
+    exp-mkIn 1.35s cubic-bezier(0.16, 1, 0.3, 1) both,
+    exp-mkLift 1.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes exp-mkIn {
+  from {
+    --exp-rv: 0%;
+  }
+  to {
+    --exp-rv: 118%;
+  }
+}
+@keyframes exp-mkLift {
+  from {
+    transform: translate(-9px, 11px) scale(0.94);
+  }
+  to {
+    transform: none;
+  }
+}
+.forma-exp #pre .mk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(114deg, transparent 42%, rgba(255, 255, 255, 0.9) 50%, transparent 58%);
+  background-size: 340% 100%;
+  background-repeat: no-repeat;
+  -webkit-mask: url(/experience/forma-mark.png) center/contain no-repeat;
+  mask: url(/experience/forma-mark.png) center/contain no-repeat;
+  animation: exp-mkShine 1.05s cubic-bezier(0.16, 1, 0.3, 1) 1s both;
+}
+@keyframes exp-mkShine {
+  from {
+    background-position: 210% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* ============================================================
+   PRODUCT UI — real interface, not a HUD
+   ============================================================ */
+.forma-exp .app {
+  width: 960px;
+  background: var(--panel-dark);
+  border: 1px solid rgba(230, 226, 220, 0.14);
+  border-radius: 14px;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7);
+}
+.forma-exp .app-nav {
+  width: 170px;
+  background: #0d0d0d;
+  border-right: 1px solid rgba(230, 226, 220, 0.1);
+  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.forma-exp .app-brand {
+  display: flex;
+  align-items: center;
+  padding: 0 16px 20px;
+}
+.forma-exp .app-brand i {
+  display: block;
+  width: 58px;
+  height: 18px;
+  background: url(/experience/forma-wordmark.png) left center/contain no-repeat;
+}
+.forma-exp .app-nav nav {
+  display: flex;
+  flex-direction: column;
+}
+.forma-exp .app-nav nav a {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  padding: 10px 16px;
+  border-left: 2px solid transparent;
+}
+.forma-exp .app-nav nav a.on {
+  color: #fff;
+  background: rgba(174, 126, 86, 0.1);
+  border-left-color: var(--copper);
+}
+.forma-exp .app-nav-f {
+  margin-top: auto;
+  padding: 0 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+}
+.forma-exp .app-main {
+  flex: 1;
+  padding: 18px 22px 22px;
+  min-width: 0;
+}
+.forma-exp .app-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.forma-exp .app-eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 6px;
+}
+.forma-exp .app h4 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  white-space: nowrap;
+}
+.forma-exp .app-top > div:first-child {
+  min-width: 0;
+  flex-shrink: 0;
+}
+.forma-exp .app-actions {
+  display: flex;
+  gap: 8px;
+}
+.forma-exp .btn-g,
+.forma-exp .btn-a {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 100px;
+}
+.forma-exp .btn-g {
+  border: 1px solid rgba(230, 226, 220, 0.2);
+  color: var(--earth-warm-60);
+}
+.forma-exp .btn-a {
+  background: var(--copper);
+  color: #fff;
+}
+.forma-exp .kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.forma-exp .kpi {
+  background: #0d0d0d;
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.forma-exp .kpi-l {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  margin-bottom: 7px;
+}
+.forma-exp .kpi-v {
+  font-family: 'DM Mono', monospace;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+.forma-exp .tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+.forma-exp .tbl th {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  text-align: left;
+  padding: 0 8px 9px 0;
+  border-bottom: 1px solid rgba(230, 226, 220, 0.14);
+  font-weight: 500;
+}
+.forma-exp .tbl td {
+  font-size: 12.5px;
+  color: var(--earth-warm);
+  padding: 9px 8px 9px 0;
+  border-bottom: 1px solid rgba(230, 226, 220, 0.06);
+  white-space: nowrap;
+}
+.forma-exp .tbl td.num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+}
+.forma-exp .tbl td.dim,
+.forma-exp .dim {
+  color: var(--earth-warm-40);
+}
+.forma-exp .tbl td.ok {
+  color: #7fa98b;
+}
+.forma-exp .tbl td.warn {
+  color: #ff7043;
+}
+.forma-exp .av {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #241a12;
+  border: 1px solid rgba(255, 139, 2, 0.24);
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  color: var(--f-orange);
+  margin-right: 9px;
+  vertical-align: -6px;
+}
+.forma-exp .av.lg {
+  width: 38px;
+  height: 38px;
+  font-size: 12px;
+  margin: 0;
+}
+.forma-exp .pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 100px;
+  border: 1px solid;
+}
+.forma-exp .pill.active {
+  color: #7fa98b;
+  border-color: rgba(127, 169, 139, 0.35);
+}
+.forma-exp .pill.trial {
+  color: var(--f-amber);
+  border-color: rgba(255, 178, 8, 0.4);
+}
+.forma-exp .pill.expiring {
+  color: #ff7043;
+  border-color: rgba(255, 112, 67, 0.45);
+}
+.forma-exp .adhc {
+  min-width: 96px;
+}
+.forma-exp .adh {
+  display: inline-block;
+  width: 52px;
+  height: 4px;
+  border-radius: 100px;
+  background: rgba(230, 226, 220, 0.14);
+  margin-right: 8px;
+  vertical-align: 1px;
+  overflow: hidden;
+}
+.forma-exp .adh i {
+  display: block;
+  height: 100%;
+  background: var(--f-grad);
+  border-radius: 100px;
+}
+.forma-exp .adhc b {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+}
+.forma-exp .vid {
+  display: inline-block;
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  background: #1d1d1d;
+  border: 1px solid rgba(230, 226, 220, 0.16);
+  position: relative;
+}
+.forma-exp .vid::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  border-left: 5px solid var(--earth-warm-40);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+/* builder */
+.forma-exp .app.bld,
+.forma-exp .app.pg,
+.forma-exp .app.bz {
+  width: 880px;
+  flex-direction: column;
+  padding: 18px 22px 22px;
+}
+.forma-exp .seg3 {
+  display: inline-flex;
+  gap: 4px;
+  background: #0d0d0d;
+  border: 1px solid rgba(230, 226, 220, 0.12);
+  border-radius: 100px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+.forma-exp .seg3 span {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  padding: 7px 16px;
+  border-radius: 100px;
+  color: var(--earth-warm-40);
+}
+.forma-exp .seg3 span.on {
+  background: var(--copper);
+  color: #fff;
+}
+.forma-exp .wk {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.forma-exp .wk span {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(230, 226, 220, 0.12);
+  color: var(--earth-warm-40);
+}
+.forma-exp .wk span.on {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+.forma-exp .macro {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.forma-exp .macro > div {
+  background: #0d0d0d;
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+.forma-exp .macro span {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+  margin-bottom: 5px;
+}
+.forma-exp .macro b {
+  font-family: 'DM Mono', monospace;
+  font-size: 19px;
+  font-weight: 500;
+  color: #fff;
+}
+/* client card */
+.forma-exp .cc {
+  width: 320px;
+  background: var(--panel-dark);
+  border: 1px solid rgba(230, 226, 220, 0.16);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+}
+.forma-exp .cc-h {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.forma-exp .cc-n {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.forma-exp .cc-s {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--earth-warm-40);
+  margin-top: 3px;
+}
+.forma-exp .cc-g {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.forma-exp .cc-g > div span {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+  margin-bottom: 4px;
+}
+.forma-exp .cc-g > div b {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+.forma-exp .cc-p {
+  height: 3px;
+  border-radius: 100px;
+  background: rgba(230, 226, 220, 0.12);
+  margin-top: 16px;
+  overflow: hidden;
+}
+.forma-exp .cc-p i {
+  display: block;
+  height: 100%;
+  background: var(--f-grad);
+}
+/* library */
+.forma-exp .wall {
+  display: grid;
+  grid-template-columns: repeat(3, 190px);
+  gap: 14px;
+}
+.forma-exp .lc {
+  background: var(--panel-dark);
+  border: 1px solid rgba(230, 226, 220, 0.12);
+  border-radius: 12px;
+  padding: 11px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.forma-exp .lc-th {
+  height: 104px;
+  border-radius: 8px;
+  background: linear-gradient(150deg, #3a2c1e, #241a12 60%, #140d08);
+  position: relative;
+  overflow: hidden;
+}
+.forma-exp .lc-th::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 20%, rgba(255, 139, 2, 0.24), transparent 62%);
+}
+.forma-exp .food-th {
+  background: linear-gradient(150deg, #48331f, #2a1d12 60%, #160f08);
+}
+.forma-exp .play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  z-index: 2;
+}
+.forma-exp .play::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 7px;
+  border-left: 8px solid rgba(255, 255, 255, 0.85);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.forma-exp .lc-n {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 10px;
+  letter-spacing: -0.01em;
+}
+.forma-exp .lc-m {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  color: var(--earth-warm-40);
+  margin-top: 4px;
+}
+.forma-exp .lc-t {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+  border: 1px solid rgba(174, 126, 86, 0.3);
+  border-radius: 100px;
+  padding: 3px 8px;
+}
+.forma-exp .lc-macros {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.forma-exp .lc-macros span {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  color: var(--earth-warm-60);
+  border: 1px solid rgba(230, 226, 220, 0.14);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+/* phone */
+.forma-exp .phone {
+  width: 300px;
+  height: 610px;
+  border-radius: 40px;
+  background: #0a0a0a;
+  border: 1px solid rgba(230, 226, 220, 0.18);
+  padding: 11px;
+  box-shadow:
+    0 50px 110px rgba(0, 0, 0, 0.75),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.06);
+}
+.forma-exp .phone-scr {
+  width: 100%;
+  height: 100%;
+  border-radius: 30px;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.forma-exp .ph-today {
+  padding: 30px 20px 0;
+  flex: 1;
+}
+.forma-exp .ph-brand {
+  margin-bottom: 16px;
+}
+.forma-exp .ph-brand i {
+  display: block;
+  width: 50px;
+  height: 16px;
+  background: url(/experience/forma-wordmark.png) left center/contain no-repeat;
+}
+.forma-exp .ph-eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--copper);
+  margin-bottom: 9px;
+}
+.forma-exp .ph-h2 {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  margin-bottom: 20px;
+}
+.forma-exp .ph-card {
+  background: var(--panel-dark);
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 14px;
+  padding: 6px 14px;
+}
+.forma-exp .ph-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(230, 226, 220, 0.07);
+  font-size: 12.5px;
+  color: var(--earth-warm);
+  white-space: nowrap;
+}
+.forma-exp .ph-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.forma-exp .ph-row:last-child {
+  border: 0;
+}
+.forma-exp .ph-row b {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #fff;
+}
+.forma-exp .ph-cta {
+  margin-top: 18px;
+  height: 46px;
+  border-radius: 100px;
+  background: var(--f-grad);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  box-shadow: 0 8px 26px rgba(255, 110, 2, 0.32);
+}
+.forma-exp .ph-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.forma-exp .ph-mini > div {
+  background: var(--panel-dark);
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+}
+.forma-exp .ph-mini span {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+  margin-bottom: 5px;
+}
+.forma-exp .ph-mini b {
+  font-family: 'DM Mono', monospace;
+  font-size: 17px;
+  font-weight: 500;
+  color: #fff;
+}
+.forma-exp .ph-tabs {
+  display: flex;
+  justify-content: space-around;
+  padding: 14px 0 22px;
+  border-top: 1px solid rgba(230, 226, 220, 0.08);
+}
+.forma-exp .ph-tabs span {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+}
+.forma-exp .ph-tabs span.on {
+  color: var(--copper);
+}
+/* progress + business */
+.forma-exp .pg-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 14px;
+}
+.forma-exp .pg-chart,
+.forma-exp .pg-rings {
+  background: #0d0d0d;
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+}
+.forma-exp .pg-l {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+  margin-bottom: 10px;
+}
+.forma-exp .pg-chart svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+.forma-exp .pg-x {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.forma-exp .pg-x span {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: var(--earth-warm-60);
+}
+.forma-exp .pg-rings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+}
+.forma-exp .ring {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.forma-exp .ring svg {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.forma-exp .ring b {
+  font-family: 'DM Mono', monospace;
+  font-size: 17px;
+  font-weight: 500;
+  color: #fff;
+  width: 52px;
+}
+.forma-exp .ring span {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-40);
+}
+.forma-exp .pg-photos {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.forma-exp .pp {
+  aspect-ratio: 3/4;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #33281c, #1a140e);
+  border: 1px solid rgba(230, 226, 220, 0.08);
+  display: grid;
+  place-items: end center;
+  padding-bottom: 7px;
+}
+.forma-exp .pp span {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--earth-warm-40);
+}
+.forma-exp .bz-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.forma-exp .bz-k {
+  background: #0d0d0d;
+  border: 1px solid rgba(230, 226, 220, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+}
+.forma-exp .bz-l {
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+  margin-bottom: 9px;
+  min-height: 22px;
+}
+.forma-exp .bz-v {
+  font-family: 'DM Mono', monospace;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+.forma-exp .bz-d {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--copper);
+  margin-top: 5px;
+}
+.forma-exp .bz-note {
+  margin-top: 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+}
+/* hierarchy */
+.forma-exp .hier {
+  width: 820px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  align-items: center;
+}
+.forma-exp .hier-r {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.forma-exp .hier-r span {
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--earth-warm-60);
+  border: 1px solid rgba(230, 226, 220, 0.16);
+  border-radius: 100px;
+  padding: 9px 15px;
+  background: rgba(10, 10, 10, 0.8);
+}
+.forma-exp .hier-r span.root {
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  color: #fff;
+  border-color: var(--f-orange);
+  background: rgba(255, 139, 2, 0.14);
+  padding: 12px 26px;
+}
+/* fragments */
+.forma-exp .fg {
+  width: 300px;
+  background: #0e0e0e;
+  border: 1px solid rgba(230, 226, 220, 0.13);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.7);
+  filter: saturate(0.45);
+}
+.forma-exp .fg-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(230, 226, 220, 0.09);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--earth-warm-40);
+}
+.forma-exp .fg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--earth-warm-40);
+  flex-shrink: 0;
+}
+.forma-exp .fg-f {
+  padding: 9px 12px;
+  border-top: 1px solid rgba(230, 226, 220, 0.07);
+  font-family: 'DM Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+  color: var(--earth-warm-40);
+}
+.forma-exp .bub {
+  margin: 8px 12px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  max-width: 82%;
+}
+.forma-exp .bub.in {
+  background: #1a1a1a;
+  color: var(--earth-warm);
+}
+.forma-exp .bub.out {
+  background: #2b2317;
+  color: var(--earth-warm);
+  margin-left: auto;
+}
+.forma-exp .fg-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.forma-exp .fg-sheet th,
+.forma-exp .fg-sheet td {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 5px 6px;
+  border: 1px solid rgba(230, 226, 220, 0.08);
+  color: var(--earth-warm-60);
+}
+.forma-exp .fg-sheet th {
+  background: #151515;
+  color: var(--earth-warm-40);
+}
+.forma-exp .fg-sheet td.rn {
+  background: #151515;
+  color: var(--earth-warm-40);
+  width: 18px;
+}
+.forma-exp .pdf-b {
+  padding: 14px;
+}
+.forma-exp .pdf-t {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--earth-warm-60);
+  margin-bottom: 8px;
+}
+.forma-exp .pdf-l {
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(230, 226, 220, 0.13);
+  margin-bottom: 6px;
+  width: 96%;
+}
+.forma-exp .ph-g {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 11px;
+}
+.forma-exp .ph {
+  aspect-ratio: 3/4;
+  border-radius: 4px;
+  background: linear-gradient(calc(140deg + var(--k) * 8deg), #302518, #171009);
+}
+.forma-exp .fg-notes ul {
+  margin: 0;
+  padding: 12px 12px 12px 26px;
+  list-style: square;
+}
+.forma-exp .fg-notes li {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--earth-warm-60);
+}
+
+/* ---------- SEO / no-JS narrative ---------- */
+.forma-exp .seo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.forma-exp noscript .seo {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  display: block;
+  padding: 120px 40px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ---------- stacked composition: copy bottom-anchored over the panel ----------
+   Used when the viewport can't show a legible panel beside the type column. */
+.forma-exp.stack .beat {
+  align-items: flex-end;
+  padding: 0 28px 8vh;
+}
+.forma-exp.stack .beat .col {
+  width: 100%;
+  max-width: 660px;
+  margin: 0 auto;
+}
+.forma-exp.stack .beat .sub,
+.forma-exp.stack .beat .fields,
+.forma-exp.stack .beat .quote {
+  display: none;
+}
+.forma-exp.stack .beat::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44vh;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 14%, rgba(0, 0, 0, 0.6) 52%, transparent);
+  z-index: -1;
+}
+.forma-exp.stack .beat.low.mid::before {
+  display: none;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1279px) {
+  .forma-exp .app {
+    width: min(720px, 90vw);
+  }
+  .forma-exp .app.bld,
+  .forma-exp .app.pg,
+  .forma-exp .app.bz {
+    width: min(680px, 90vw);
+  }
+  .forma-exp .wall {
+    grid-template-columns: repeat(2, 170px);
+  }
+  .forma-exp .hier {
+    width: min(640px, 90vw);
+  }
+  .forma-exp .beat .col {
+    width: min(46vw, 420px);
+    margin-left: 5vw;
+  }
+}
+@media (max-width: 900px) {
+  .forma-exp header.site {
+    padding: 16px 20px;
+  }
+  .forma-exp .site nav a {
+    display: none;
+  }
+  .forma-exp #rail {
+    display: none;
+  }
+  .forma-exp .beat {
+    align-items: flex-end;
+    padding: 0 20px 16vh;
+  }
+  .forma-exp .beat .col {
+    width: 100%;
+    margin: 0;
+    max-width: 560px;
+  }
+  .forma-exp .app,
+  .forma-exp .app.bld,
+  .forma-exp .app.pg,
+  .forma-exp .app.bz {
+    width: min(560px, 94vw);
+  }
+  .forma-exp .kpi-row,
+  .forma-exp .bz-grid,
+  .forma-exp .macro {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .forma-exp .pg-grid {
+    grid-template-columns: 1fr;
+  }
+  .forma-exp .pg-photos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .forma-exp .wall {
+    grid-template-columns: repeat(2, 44vw);
+  }
+  .forma-exp .phone {
+    width: 230px;
+    height: 470px;
+  }
+  .forma-exp .fg {
+    width: min(250px, 72vw);
+  }
+  .forma-exp .foot {
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+  }
+  .forma-exp .tbl td:nth-child(5),
+  .forma-exp .tbl th:nth-child(5),
+  .forma-exp .tbl td:nth-child(7),
+  .forma-exp .tbl th:nth-child(7) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forma-exp .uiw,
+  .forma-exp .beat {
+    transition: none !important;
+  }
+}
+/* short viewports: the exercise wall sheds a row rather than overflowing */
+@media (max-height: 880px) {
+  .forma-exp .lc-th {
+    height: 86px;
+  }
+  .forma-exp .wall .lc:nth-child(n + 7) {
+    display: none;
+  }
+}
+@media (max-height: 740px) {
+  .forma-exp .lc-th {
+    height: 76px;
+  }
+  .forma-exp .lc {
+    padding: 9px;
+  }
+}

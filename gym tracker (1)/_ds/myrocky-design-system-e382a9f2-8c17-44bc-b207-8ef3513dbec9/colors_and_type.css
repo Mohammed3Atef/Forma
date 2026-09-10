@@ -1,0 +1,290 @@
+/* ==========================================================================
+   MyRocky Design System — Core Tokens (Colors + Type)
+   Source of truth: Figma Longevity-Dark landing + Product pages.
+   Loads: Poppins (display + body), DM Mono (UI/labels/buttons).
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+:root {
+  /* ============================================================
+     CORE SURFACE PALETTE
+     Longevity is DARK-MODE-FIRST. Black is the primary surface.
+     ============================================================ */
+  --black:         #000000;   /* primary dark surface */
+  --ink:           #0a0a0a;
+  --promobar-dark: #261D17;   /* rgb(38,29,23) — dark brown promo bar */
+  --panel-dark:    #111111;   /* raised card on black */
+
+  --bg:            #F0EEEA;   /* light cream canvas (app / secondary) */
+  --bg-warm:       #F7F5F2;
+  --sand:          #F7F5F2;
+  --cream:         #F0EEEA;
+  --card-bg:       #FFFFFF;
+
+  /* Earth warm neutrals (direct from Figma dark hero) */
+  --earth-warm:    #E6E2DC;   /* rgb(230,226,220) — secondary text on black */
+  --earth-warm-60: rgba(230,226,220,0.6);
+  --earth-warm-40: rgba(230,226,220,0.4);
+  --earth-warm-20: rgba(230,226,220,0.2);
+
+  --charcoal:      #1a1a1a;
+  --near-black:    #0a0a0a;
+  --olive:         #3D3D30;
+  --sage:          #C2CCAE;
+  --blush:         #E8C8B4;
+
+  /* ============================================================
+     BRAND ACCENT — copper/earth-clay
+     ============================================================ */
+  --copper:        #AE7E56;   /* rgb(174,126,86) — signature brand mark */
+  --warm:          #AE7E56;
+  --terra:         #AE7E56;
+  --earth-clay:    #AE7E56;
+  --earth-hover:   #C4915F;
+  --copper-soft:   #C69975;
+  --gold:          #D4A46A;
+  --dark-gold:     #8B6914;
+  --sienna:        #BF6E4E;
+  --earth-deep:    #5C3A2A;
+
+  /* ============================================================
+     TEXT SCALE (light mode / dark mode)
+     ============================================================ */
+  --text:             #000000;
+  --text-muted:       rgba(0,0,0,0.65);
+  --text-light:       rgba(0,0,0,0.45);
+  --text-inverse:     #FFFFFF;
+
+  /* Dark-mode text (Longevity) */
+  --text-on-dark:         #FFFFFF;
+  --text-on-dark-muted:   #E6E2DC;       /* earth-warm */
+  --text-on-dark-subtle:  rgba(230,226,220,0.6);
+
+  /* ============================================================
+     BORDERS / DIVIDERS
+     ============================================================ */
+  --border:         #E2E2E1;
+  --border-soft:    #ECEAE6;
+  --border-dotted:  #CFCCC6;
+  --border-dark:    rgba(230,226,220,0.15);
+  --divider-dark:   rgba(230,226,220,0.2);
+
+  /* ============================================================
+     SEMANTIC
+     ============================================================ */
+  --success:       #4CAF50;
+  --success-light: #81C784;
+  --success-dark:  #2E5D3C;    /* dark muted green used on stat cards */
+  --warning:       #FFB74D;
+  --star:          #E8A54A;
+
+  /* ============================================================
+     SHADOW
+     ============================================================ */
+  --shadow-nav:        0 2px 20px rgba(0,0,0,0.04);
+  --shadow-card:       0 16px 48px rgba(0,0,0,0.08);
+  --shadow-report:     0 8px 32px rgba(0,0,0,0.08);
+  --shadow-float:      0 4px 20px rgba(0,0,0,0.2);
+  --shadow-featured:   0 4px 24px rgba(174,126,86,0.15);
+  --shadow-featured-h: 0 16px 48px rgba(174,126,86,0.2);
+  --shadow-deep:       0 16px 48px rgba(0,0,0,0.3);
+  --shadow-phone:      0 40px 80px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255,255,255,0.1);
+  --shadow-pillar:     0 20px 60px rgba(0,0,0,0.4);
+
+  /* ============================================================
+     RADIUS
+     ============================================================ */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;    /* hero cards in Longevity */
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-pill: 100px;
+
+  /* ============================================================
+     SPACING
+     ============================================================ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  --section-padding: 96px;
+  --side-padding: clamp(20px, 8vw, 120px);
+
+  /* ============================================================
+     TYPE FAMILIES — aligned to Figma
+     ============================================================ */
+  --font-display: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans:    'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif:   'Lora', Georgia, 'Times New Roman', serif;  /* editorial accent only */
+
+  /* ============================================================
+     SEMANTIC TYPE — derived from Figma measurements
+     Display uses Poppins 600 with TIGHT -0.03em tracking
+     ============================================================ */
+  --h1-size: clamp(40px, 5vw, 64px);
+  --h1-weight: 700;
+  --h1-lh: 1.04;
+  --h1-ls: -0.03em;
+
+  --h2-size: clamp(32px, 3.6vw, 48px);
+  --h2-weight: 700;
+  --h2-lh: 1.1;
+  --h2-ls: -0.03em;
+
+  --h3-size: 24px;
+  --h3-weight: 500;
+  --h3-lh: 1.2;
+  --h3-ls: -0.02em;
+
+  --editorial-size: clamp(26px, 3vw, 36px);
+  --editorial-weight: 500;
+  --editorial-lh: 1.3;
+  --editorial-ls: -0.02em;
+
+  --body-size: 16px;
+  --body-weight: 400;
+  --body-lh: 1.55;
+
+  --body-large-size: 18px;
+  --body-small-size: 14px;
+
+  --ui-size: 14px;          /* DM Mono buttons / nav / trust lines */
+  --ui-weight: 500;
+  --ui-ls: 0;
+
+  --caption-size: 13px;
+  --label-size: 11px;
+  --micro-size: 10px;
+
+  --stat-size: clamp(40px, 5vw, 72px);
+
+  /* easing */
+  --ease-card: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Semantic defaults
+   ========================================================================== */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-lh);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: var(--h1-size);
+  font-weight: var(--h1-weight);
+  line-height: var(--h1-lh);
+  letter-spacing: var(--h1-ls);
+  margin: 0;
+}
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: var(--h2-size);
+  font-weight: var(--h2-weight);
+  line-height: var(--h2-lh);
+  letter-spacing: var(--h2-ls);
+  margin: 0;
+}
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size: var(--h3-size);
+  font-weight: var(--h3-weight);
+  line-height: var(--h3-lh);
+  letter-spacing: var(--h3-ls);
+  margin: 0;
+}
+
+/* Editorial passage — Poppins 500, slightly looser */
+.editorial {
+  font-family: var(--font-display);
+  font-size: var(--editorial-size);
+  font-weight: var(--editorial-weight);
+  line-height: var(--editorial-lh);
+  letter-spacing: var(--editorial-ls);
+}
+.editorial em, .accent-italic {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--copper);
+}
+
+p, .body {
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-lh);
+}
+.body-large { font-size: var(--body-large-size); line-height: 1.5; }
+.body-small { font-size: var(--body-small-size); line-height: 1.5; }
+
+/* UI label — DM Mono. Signature element. Used on buttons, nav, eyebrows, footer, stats. */
+.ui-label, .eyebrow, .label {
+  font-family: var(--font-mono);
+  font-size: var(--ui-size);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-ls);
+  color: inherit;
+}
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--copper);
+}
+
+.caption {
+  font-family: var(--font-sans);
+  font-size: var(--caption-size);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Stats — big display numerals, Poppins 600 tight */
+.stat {
+  font-family: var(--font-display);
+  font-size: var(--stat-size);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+/* Editorial serif accent (for quotes / pull-text only) */
+.serif-accent {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Dark surface helpers
+   ========================================================================== */
+.on-dark            { color: var(--text-on-dark); }
+.on-dark-muted      { color: var(--text-on-dark-muted); }
+.on-dark-subtle     { color: var(--text-on-dark-subtle); }
+.surface-dark       { background: var(--black); color: var(--text-on-dark); }
+.surface-panel-dark { background: var(--panel-dark); color: var(--text-on-dark); }
+
+/* ==========================================================================
+   Signature motifs
+   ========================================================================== */
+.dotted-line    { border-top: 1px dotted var(--border-dotted); }
+.dotted-b       { border-bottom: 1px dotted var(--border-dotted); }
+.divider-dark   { border-top: 1px solid var(--divider-dark); }

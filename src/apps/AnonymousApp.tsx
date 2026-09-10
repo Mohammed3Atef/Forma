@@ -4,8 +4,8 @@ import { Login } from '@/pages/auth/Login';
 import { Landing } from '@/pages/marketing/Landing';
 import { AcceptInvite } from '@/pages/auth/AcceptInvite';
 
-// Code-split: the cinematic rebuild pulls in three.js/@react-three/fiber/gsap,
-// which no other route needs — keep that weight out of everyone else's bundle.
+// Code-split: the cinematic rebuild pulls in three.js, which no other route
+// needs — keep that weight out of everyone else's bundle.
 const Experience = lazy(() => import('@/pages/experience/Experience').then((m) => ({ default: m.Experience })));
 
 /**

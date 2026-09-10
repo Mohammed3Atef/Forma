@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gym Tracker</title>
+<script>
+  (function(){ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('gt-theme') || 'dark'); } catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
+</script>
+<link rel="stylesheet" href="colors_and_type.css">
+<link rel="stylesheet" href="app.css">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--gt-page-bg, #0a0a0a);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    transition: background-color .5s var(--ease-card);
+  }
+  .device-frame {
+    width: 430px; height: 932px;
+    border-radius: 56px;
+    background: var(--gt-bg, #000);
+    box-shadow: 0 0 0 2px #2a2a2a, 0 0 0 10px #111, 0 0 0 11px #333, 0 40px 100px rgba(0,0,0,0.5);
+    position: relative; overflow: hidden; isolation: isolate;
+    transition: background-color .5s var(--ease-card);
+  }
+  .device-notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 126px; height: 37px; border-radius: 24px; background: #000; z-index: 200;
+  }
+  .status-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 50px;
+    padding: 18px 34px 0; display: flex; align-items: center; justify-content: space-between;
+    z-index: 180; pointer-events: none; color: var(--gt-status, #fff);
+    font-family: -apple-system, system-ui; font-size: 16px; font-weight: 600;
+    transition: color .5s var(--ease-card);
+  }
+  .status-bar .right { display: flex; gap: 7px; align-items: center; }
+  #root { position: absolute; top: 46px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  .home-indicator {
+    position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%);
+    width: 139px; height: 5px; border-radius: 100px; background: var(--gt-status, #fff); opacity: 0.55; z-index: 170;
+  }
+  .gt-scroll::-webkit-scrollbar, .gt-noscroll::-webkit-scrollbar, .gt-sheet::-webkit-scrollbar { display: none; }
+  @media (max-width: 470px) {
+    body { padding: 0; background: var(--gt-bg); }
+    .device-frame { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+    .device-notch { display: none; }
+  }
+  /* Tweaks panel (theme-aware) */
+  .tw { position: fixed; bottom: 20px; right: 20px; z-index: 1000; width: 248px;
+    background: var(--gt-panel); backdrop-filter: blur(20px);
+    border: 1px solid var(--gt-line); border-radius: 16px; padding: 20px; color: var(--gt-text);
+    font-family: var(--font-sans); display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .tw h4 { font-family: var(--font-mono); font-size: 12px; color: var(--gt-accent); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 16px; }
+  .tw .grp { margin-bottom: 18px; }
+  .tw .lab { font-family: var(--font-mono); font-size: 10px; color: var(--gt-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 9px; }
+  .tw .sw-row { display: flex; gap: 10px; }
+  .tw .sw { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .tw .sw.on { border-color: var(--gt-text); }
+  .tw .seg { display: flex; gap: 4px; background: var(--gt-bg); border: 1px solid var(--gt-line); border-radius: 100px; padding: 4px; }
+  .tw .seg button { flex: 1; height: 30px; border: none; background: transparent; color: var(--gt-muted); border-radius: 100px;
+    font-family: var(--font-mono); font-size: 11px; cursor: pointer; }
+  .tw .seg button.on { background: var(--gt-accent); color: var(--gt-on-accent); }
+</style>
+</head>
+<body>
+<div class="device-frame">
+  <div class="device-notch"></div>
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="right">
+      <svg width="19" height="12" viewBox="0 0 19 12"><rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill="currentColor"/><rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill="currentColor"/><rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill="currentColor"/><rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill="currentColor"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z"/><path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z"/><circle cx="8.5" cy="10.5" r="1.5"/></svg>
+      <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.5" fill="none"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill="currentColor" fill-opacity="0.6"/></svg>
+    </div>
+  </div>
+  <div id="root"></div>
+  <div class="home-indicator"></div>
+</div>
+
+<div class="tw" id="tweaks">
+  <h4>Tweaks</h4>
+  <div class="grp">
+    <div class="lab">Theme</div>
+    <div class="seg" id="tw-theme">
+      <button data-th="dark" class="on">Dark</button>
+      <button data-th="light">Light</button>
+    </div>
+  </div>
+  <div class="grp">
+    <div class="lab">Accent</div>
+    <div class="sw-row" id="tw-accent">
+      <div class="sw on" data-c="#AE7E56" style="background:#AE7E56"></div>
+      <div class="sw" data-c="#BF6E4E" style="background:#BF6E4E"></div>
+      <div class="sw" data-c="#D4A46A" style="background:#D4A46A"></div>
+      <div class="sw" data-c="#2E5D3C" style="background:#2E5D3C"></div>
+      <div class="sw" data-c="#7C6FE0" style="background:#7C6FE0"></div>
+    </div>
+  </div>
+  <div class="grp">
+    <div class="lab">Default rest timer</div>
+    <div class="seg" id="tw-rest">
+      <button data-r="60">1:00</button>
+      <button data-r="90" class="on">1:30</button>
+      <button data-r="120">2:00</button>
+      <button data-r="180">3:00</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="workout.jsx"></script>
+<script type="text/babel" src="home.jsx"></script>
+<script type="text/babel" src="progress.jsx"></script>
+<script type="text/babel" src="library.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel" data-presets="react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#AE7E56",
+  "rest": 120,
+  "theme": "dark"
+}/*EDITMODE-END*/;
+
+let tweaks = { ...TWEAK_DEFAULTS };
+let setRootTweaks = null;
+
+// theme: localStorage wins over default; sync attribute + panel
+let savedTheme = null;
+try { savedTheme = localStorage.getItem('gt-theme'); } catch(e) {}
+tweaks.theme = savedTheme || tweaks.theme || 'dark';
+document.documentElement.setAttribute('data-theme', tweaks.theme);
+
+function applyAccent(c) {
+  document.documentElement.style.setProperty('--gt-accent', c);
+  document.documentElement.style.setProperty('--copper', c);
+}
+applyAccent(tweaks.accent);
+
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('gt-theme', t); } catch(e) {}
+  document.querySelectorAll('#tw-theme button').forEach(b => b.classList.toggle('on', b.dataset.th === t));
+}
+
+function Root() {
+  const [t, setT] = React.useState(tweaks);
+  React.useEffect(() => { setRootTweaks = setT; }, []);
+  return React.createElement(window.GymApp, { tweaks: t });
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Root));
+
+// sync tweak UI initial state
+document.querySelectorAll('#tw-rest button').forEach(b => b.classList.toggle('on', +b.dataset.r === tweaks.rest));
+document.querySelectorAll('#tw-accent .sw').forEach(s => s.classList.toggle('on', s.dataset.c === tweaks.accent));
+document.querySelectorAll('#tw-theme button').forEach(b => b.classList.toggle('on', b.dataset.th === tweaks.theme));
+
+// keep the panel's theme buttons synced when toggled from inside the app
+window.addEventListener('gt-theme', (e) => {
+  document.querySelectorAll('#tw-theme button').forEach(b => b.classList.toggle('on', b.dataset.th === e.detail));
+});
+
+function pushTweaks(edits) {
+  tweaks = { ...tweaks, ...edits };
+  if (setRootTweaks) setRootTweaks(tweaks);
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+}
+
+document.querySelectorAll('#tw-accent .sw').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('#tw-accent .sw').forEach(s => s.classList.remove('on'));
+    sw.classList.add('on');
+    applyAccent(sw.dataset.c);
+    pushTweaks({ accent: sw.dataset.c });
+  });
+});
+document.querySelectorAll('#tw-rest button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#tw-rest button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    pushTweaks({ rest: +b.dataset.r });
+  });
+});
+document.querySelectorAll('#tw-theme button').forEach(b => {
+  b.addEventListener('click', () => {
+    applyTheme(b.dataset.th);
+    window.dispatchEvent(new CustomEvent('gt-theme', { detail: b.dataset.th }));
+    pushTweaks({ theme: b.dataset.th });
+  });
+});
+
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+  if (e.data.type === '__activate_edit_mode') document.getElementById('tweaks').style.display = 'block';
+  if (e.data.type === '__deactivate_edit_mode') document.getElementById('tweaks').style.display = 'none';
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+</script>
+</body>
+</html>

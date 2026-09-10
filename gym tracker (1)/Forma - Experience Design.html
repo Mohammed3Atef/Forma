@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forma — Scroll-Driven 3D Experience Design</title>
+<link rel="stylesheet" href="_ds/myrocky-design-system-e382a9f2-8c17-44bc-b207-8ef3513dbec9/colors_and_type.css">
+<style>
+doc-page:not(:defined){visibility:hidden}
+h1,h2,h3,h4{font-family:var(--font-display,'Poppins',sans-serif);font-weight:700;letter-spacing:-0.03em;line-height:1.05;color:#000}
+h1{font-size:44px;margin:0 0 14px}
+h2{font-size:27px;margin:52px 0 6px;padding-top:20px;border-top:1px solid #000}
+h3{font-size:19px;font-weight:600;letter-spacing:-0.02em;margin:30px 0 10px}
+h4{font-size:15px;font-weight:600;letter-spacing:-0.01em;margin:20px 0 7px}
+p,li{font-family:'Poppins',sans-serif;font-size:13.5px;line-height:1.62;color:#111}
+p{margin:0 0 11px}
+ul,ol{margin:0 0 12px;padding-left:19px}
+li{margin-bottom:5px}
+a{color:var(--copper)}a:hover{color:var(--earth-hover)}
+strong{font-weight:600}
+em{font-style:italic}
+.eye{font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:var(--copper);margin:0 0 9px}
+.mono{font-family:'DM Mono',monospace}
+.lede{font-size:16px;line-height:1.55;color:#222;margin-bottom:18px}
+.rule{height:1px;background:#CFCCC6;border:0;margin:30px 0}
+/* dark cinematic panel */
+.dark{background:#0a0a0a;color:#E6E2DC;border-radius:14px;padding:24px 26px;margin:18px 0;break-inside:avoid}
+.dark h3,.dark h4{color:#fff}
+.dark p,.dark li{color:#E6E2DC}
+.dark .eye{color:var(--gold)}
+.copper{color:var(--copper)}
+.pivot{font-style:italic;color:var(--copper);font-weight:400}
+/* chapter block */
+.ch{border:1px solid #E2E2E1;border-radius:14px;padding:20px 22px;margin:16px 0;break-inside:avoid}
+.ch>.tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#fff;background:#000;display:inline-block;padding:4px 9px;border-radius:100px;margin-bottom:11px}
+.ch h3{margin:0 0 12px}
+dl{margin:0;display:grid;grid-template-columns:78px 1fr;gap:7px 16px}
+dt{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--copper);padding-top:3px}
+dd{margin:0;font-size:13px;line-height:1.55;color:#111}
+dd .q{font-family:'Poppins',sans-serif;font-weight:600;color:#000}
+/* tables */
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+thead th{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:0.07em;text-transform:uppercase;text-align:left;color:#000;border-bottom:1.5px solid #000;padding:0 9px 7px 0}
+td{padding:7px 9px 7px 0;border-bottom:1px dotted #CFCCC6;vertical-align:top;line-height:1.45;font-family:'Poppins',sans-serif;color:#111}
+tr{break-inside:avoid}
+td.m,th.m{font-family:'DM Mono',monospace;white-space:nowrap}
+/* swatches */
+.sw{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.sw>div{width:88px;break-inside:avoid}
+.sw i{display:block;height:46px;border-radius:8px;border:1px solid rgba(0,0,0,.12)}
+.sw span{display:block;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:0.03em;color:#444;margin-top:5px;line-height:1.35}
+/* callout */
+.note{border-left:2px solid var(--copper);padding:2px 0 2px 15px;margin:16px 0;break-inside:avoid}
+.note p{font-size:13px;margin-bottom:7px}
+.note p:last-child{margin-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid2>div{break-inside:avoid}
+code{font-family:'DM Mono',monospace;font-size:11.5px;background:#F0EEEA;padding:1px 4px;border-radius:3px}
+pre{font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;background:#0a0a0a;color:#E6E2DC;padding:16px 18px;border-radius:10px;overflow-x:auto;break-inside:avoid;margin:12px 0}
+pre b{color:var(--gold);font-weight:400}
+.cover{padding:26px 0 8px;border-bottom:2px solid #000;margin-bottom:26px}
+.meta{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:#555;margin-top:14px}
+</style>
+</head>
+<body>
+<doc-page margin="0.7in">
+
+<div class="cover">
+<p class="eye">Experience Design Document · V1</p>
+<h1>Forma<br>Physical training systems become<br><span class="pivot">digital coaching systems.</span></h1>
+<p class="lede">A complete redesign of useforma.fit as one continuous, scroll-driven 3D product film. This document defines the creative direction, narrative, storyboard, camera choreography, transformation mechanics, asset strategy and technical architecture. No code has been written yet — by design.</p>
+<p class="meta">useforma.fit · MyRocky Design System · 17 deliverables · Read before build</p>
+</div>
+
+<h2>00 · Two things to settle first</h2>
+
+<h3>Brand: how Forma sits inside the bound design system</h3>
+<p>This project has the <strong>MyRocky Design System</strong> bound, and your Forma brief asks for near-black surfaces with a deep-orange→warm-orange→gold accent, athletic and technical, no neon. Those are the same instrument. I'm treating MyRocky as the typographic and structural DNA, and mapping your Forma accent ramp directly onto its existing earth-clay ramp — no invented colors:</p>
+<table>
+<thead><tr><th>Forma brief asks for</th><th class="m">Design-system token</th><th>Role in the experience</th></tr></thead>
+<tbody>
+<tr><td>Near-black environment</td><td class="m">--black #000000<br>--ink #0a0a0a</td><td>The void the product lives in. Every 3D scene.</td></tr>
+<tr><td>Layered charcoal surfaces</td><td class="m">--panel-dark #111111<br>--charcoal #1a1a1a</td><td>Dashboard panels, cards, machine powder-coat.</td></tr>
+<tr><td>Deep orange</td><td class="m">--sienna #BF6E4E</td><td>Deepest accent. Edge ignition, first highlights.</td></tr>
+<tr><td>Warm orange (primary)</td><td class="m">--copper #AE7E56</td><td>The Forma accent. Collars, pins, active UI, the F mark.</td></tr>
+<tr><td>Subtle gold</td><td class="m">--gold #D4A46A</td><td>Light travelling through structure. Final reveal.</td></tr>
+<tr><td>Soft white type</td><td class="m">--earth-warm #E6E2DC</td><td>Body copy on black. Never pure white for body.</td></tr>
+<tr><td>Cool gray secondary</td><td class="m">rgba(230,226,220,.6/.4)</td><td>Meta, captions, inactive states.</td></tr>
+</tbody>
+</table>
+<p>Three system conventions carry over and actively help this brief: <strong>DM Mono for every UI label, eyebrow, nav item and CTA</strong> (which is exactly the technical register you asked for — <span class="mono">TRAIN. TRACK. TRANSFORM.</span>, <span class="mono">START WITH FORMA →</span>); <strong>Poppins 700 at −0.03em</strong> for display headlines; and the system's signature <strong>italic-accent pivot</strong> — a flat declarative line followed by an italic copper line. Your two-line copy pattern is already that pattern:</p>
+<div class="dark">
+<p class="eye">Copy pattern — inherited, not invented</p>
+<p style="font-family:'Poppins';font-size:26px;font-weight:500;letter-spacing:-0.02em;line-height:1.25;margin:0">The session ends.<br><span style="font-style:italic;color:var(--copper)">The coaching doesn't.</span></p>
+</div>
+<p>The design system also already forbids emoji, cartoon illustration, gradient-flooded backgrounds and cold/neon color, and restricts icons to 2px line icons that inherit text color. Your brief and the system agree on every one of those. Lora italic exists in the system for pull-quotes only — I'll spend it exactly once, in Chapter 11.</p>
+
+<h3>Assets: an honest constraint you need to decide on</h3>
+<div class="note">
+<p><strong>I cannot produce photoreal, Blender-authored gym equipment from inside this environment, and I can't license or download third-party GLB models into your project.</strong> That is a real limit and it directly affects the quality bar you set, so I'm raising it before building rather than after.</p>
+<p>What I <em>can</em> build to a genuinely premium standard is <strong>procedurally authored, high-fidelity three.js geometry</strong> — lathed and extruded compound forms with chamfered edges, knurled grips, real bolt and joint detail, correct PBR materials, HDRI environment lighting, ACES tone mapping and contact shadows. That is a very long way from "primitive boxes and cylinders", and on a black studio background with the right lighting it reads as convincing hardware. It is <em>not</em> the same as a scanned or modelled real product.</p>
+<p>My recommendation: <strong>commission or license four hero models</strong> (adjustable dumbbell, barbell + plate set, bench, functional trainer) and let me author everything else procedurally to match. Section 07 lists every asset, which tier it belongs to, and its poly and file budget. Tell me which route you want and I'll build to it.</p>
+</div>
+
+<h2>01 · Creative direction</h2>
+<p class="lede">One object. One camera. One continuous transformation. The website is not a page with 3D on it — it is a single mechanism the visitor operates by scrolling.</p>
+
+<h3>The thesis</h3>
+<p>Forma is the operating system between a coach, their clients, their programming, their communication and their business. A page of feature cards cannot say that. A machine that evolves can. So the entire site is built on one idea, stated mechanically:</p>
+<p style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.02em;line-height:2;margin:14px 0"><span class="copper">TRAINING EQUIPMENT</span> → TRAINING SYSTEM → COACHING SYSTEM → <span class="copper">FORMA</span></p>
+<p>As a coach's practice gets more advanced, the system grows with them. We show that by never introducing a second object. There is exactly one object graph in the scene for the entire scroll, and it is <em>rebuilt</em> — dumbbell into barbell into bench into rack into functional trainer into the Forma dashboard. Nothing ever cross-fades out and something else in. Every part has a destiny (Section 06).</p>
+
+<h3>Five rules the build cannot break</h3>
+<ol>
+<li><strong>Continuity over spectacle.</strong> If the visitor can't tell that the thing they're looking at used to be the dumbbell, the transformation has failed. Persistent part identity is the whole trick.</li>
+<li><strong>Scroll is the only clock.</strong> No autoplay loops competing with the user. Every camera move, rotation, separation, morph, light change and UI reveal is a function of scroll progress. The one exception: idle micro-motion in the environment lighting, so a paused scene isn't dead.</li>
+<li><strong>The software must look like real software.</strong> The environment is cinematic; the interface inside it is not. No holographic HUDs, no sci-fi glyph borders, no floating translucent panels. The Forma dashboard rendered in 3D space should look like something a coach could click.</li>
+<li><strong>Copy is a caption, not an argument.</strong> Two lines per beat, maximum. The animation carries the explanation. Where the brief supplied copy, I use it verbatim.</li>
+<li><strong>Orange is a pointer, not a paint.</strong> Accent appears on collars, pins, light strips, active indicators, edge ignition and the F mark. Equipment stays steel, rubber and charcoal.</li>
+</ol>
+
+<h3>What this replaces</h3>
+<p>No hero-plus-feature-grid. No icon triads. No testimonial carousel. No screenshot-in-a-browser-frame. No decorative objects orbiting a headline. The current site's information still gets delivered — it's just delivered by the mechanism instead of by cards.</p>
+
+<h2>02 · Full page narrative</h2>
+<p>Read as one sentence, the site says: <em>Here is a beautifully made piece of training equipment. Watch it become more capable. Watch the mess of a coach's real workflow get pulled into it. Watch it stop being metal and become software. Now watch that software run a coaching practice — plans, library, the client's phone, the conversation, the progress, the money, the scale. Now watch the mess reassemble one final time into a single mark.</em></p>
+<table>
+<thead><tr><th class="m">Act</th><th>Chapters</th><th>World</th><th>What it proves</th></tr></thead>
+<tbody>
+<tr><td class="m">I</td><td>01–03</td><td>Physical</td><td>Forma is a serious, precisely engineered system — and it grows.</td></tr>
+<tr><td class="m">II</td><td>04</td><td>The hinge</td><td>Physical training infrastructure <em>is</em> digital coaching infrastructure.</td></tr>
+<tr><td class="m">III</td><td>05–09</td><td>Product</td><td>What Forma actually does, in the coach's and the client's hands.</td></tr>
+<tr><td class="m">IV</td><td>10–12</td><td>Business</td><td>It isn't a workout tracker. It runs the practice.</td></tr>
+<tr><td class="m">V</td><td>13–14</td><td>Resolution</td><td>Six tools become one system. Here is the mark.</td></tr>
+</tbody>
+</table>
+
+<h2>03 · Exact scroll journey</h2>
+<p>Pacing is authored like film, not paginated at 100vh. Long, slow holds on the mechanical transformations; short beats on copy sections. All lengths derive from one <code>PACING</code> constant so the whole film can be tightened or loosened globally without re-authoring keyframes.</p>
+<table>
+<thead><tr><th class="m">#</th><th>Chapter</th><th class="m">Length</th><th class="m">Pin</th><th>Dominant motion</th></tr></thead>
+<tbody>
+<tr><td class="m">00</td><td>Preload / ignition</td><td class="m">overlay</td><td class="m">—</td><td>Gate. Does not consume scroll.</td></tr>
+<tr><td class="m">01</td><td>Hero — the dumbbell</td><td class="m">160vh</td><td class="m">yes</td><td>Slow orbit, dolly in, material study.</td></tr>
+<tr><td class="m">02</td><td>The problem</td><td class="m">200vh</td><td class="m">yes</td><td>Dumbbell → barbell. Fragments accumulate.</td></tr>
+<tr><td class="m">03</td><td>Assembly</td><td class="m">280vh</td><td class="m">yes</td><td>Barbell → bench → rack → functional trainer.</td></tr>
+<tr><td class="m">04</td><td>Materialization</td><td class="m">220vh</td><td class="m">yes</td><td>Machine → wireframe → Coach Dashboard.</td></tr>
+<tr><td class="m">05</td><td>Client workspace</td><td class="m">140vh</td><td class="m">yes</td><td>Dashboard emits client modules in depth.</td></tr>
+<tr><td class="m">06</td><td>Plan builder</td><td class="m">200vh</td><td class="m">yes</td><td>Machine ghost re-maps onto plan structure.</td></tr>
+<tr><td class="m">07</td><td>Library</td><td class="m">160vh</td><td class="m">yes</td><td>Fly through exercise wall into food wall.</td></tr>
+<tr><td class="m">08</td><td>Coach → client</td><td class="m">180vh</td><td class="m">yes</td><td>Client card leaves dashboard, becomes phone.</td></tr>
+<tr><td class="m">09</td><td>Real-time coaching</td><td class="m">150vh</td><td class="m">yes</td><td>Two-node stage. Light travels both ways.</td></tr>
+<tr><td class="m">10</td><td>Progress</td><td class="m">140vh</td><td class="m">yes</td><td>Connection curves flatten into charts.</td></tr>
+<tr><td class="m">11</td><td>The business</td><td class="m">120vh</td><td class="m">yes</td><td>Charts re-scale into business KPIs.</td></tr>
+<tr><td class="m">12</td><td>Scale</td><td class="m">130vh</td><td class="m">yes</td><td>Pull back. Hierarchy assembles in depth.</td></tr>
+<tr><td class="m">13</td><td>Before / after</td><td class="m">180vh</td><td class="m">yes</td><td>Fragments return, align, converge.</td></tr>
+<tr><td class="m">14</td><td>Final — the F mark</td><td class="m">160vh</td><td class="m">yes</td><td>Structure collapses to center. Light. Mark.</td></tr>
+<tr><td class="m">15</td><td>Close / footer</td><td class="m">100vh</td><td class="m">no</td><td>Static. Real page. Real links.</td></tr>
+</tbody>
+</table>
+<p><strong>Total ≈ 2,320vh</strong> — roughly 21,000px at a 900px viewport, about four to five minutes of deliberate scrolling. Each pinned chapter uses <code>scrub: 1</code> smoothing so the mechanism feels weighted rather than twitchy, and every chapter's internal timeline is normalized to <code>t ∈ [0,1]</code> so pacing changes never break keyframes.</p>
+
+<h2>04 · Section-by-section storyboard</h2>
+<p>Every chapter answers the same six questions: what the user sees, what the object does, what the camera does, what they learn about Forma, what copy appears, and how it becomes the next chapter.</p>
+
+<div class="ch">
+<span class="tag">CH 00 · Preload · Overlay</span>
+<h3>Ignition</h3>
+<dl>
+<dt>Sees</dt><dd>Black. A single hairline copper rule drawing left to right. <span class="mono">FORMA</span> in DM Mono, letter-spaced. A percentage counter. Nothing else.</dd>
+<dt>3D</dt><dd>Nothing rendered yet. Wave 0 assets downloading behind the gate: fonts, HDRI, hero dumbbell.</dd>
+<dt>Camera</dt><dd>Parked at the Chapter 01 start pose so the first frame after the gate is already composed.</dd>
+<dt>Learns</dt><dd>This is a considered product. The restraint sets expectations before a single pixel of 3D.</dd>
+<dt>Copy</dt><dd><span class="mono">FORMA</span> · <span class="mono">TRAIN. TRACK. TRANSFORM.</span></dd>
+<dt>Transition</dt><dd>At 100% the rule ignites copper, expands to full width, then wipes upward revealing the lit dumbbell already in frame. No fade from black — a reveal.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 01 · Hero · 160vh · pinned</span>
+<h3>The dumbbell</h3>
+<dl>
+<dt>Sees</dt><dd>A single premium adjustable dumbbell, three-quarter view, floating in a black studio void on a soft contact shadow. Knurled steel handle, rubber-coated plates with cast lettering, machined collars with a copper adjustment pin. Type sits left; the object owns the right two-thirds.</dd>
+<dt>3D</dt><dd>Idle: a 0.4°/s drift and a barely perceptible breathing float. As scroll begins it rotates 140° on Y and tips 8° on X, walking the specular highlight across the knurling and the rubber.</dd>
+<dt>Camera</dt><dd>Starts wide at 42mm, <code>[0, 0.35, 5.2]</code>. Dollies to 65mm at <code>[0.8, 0.1, 2.4]</code>, target sliding from the mass center to the collar. Ends in a genuine macro on the copper pin — the first appearance of the accent, on a real mechanical part.</dd>
+<dt>Learns</dt><dd>Forma is precise, physical, credible. Nothing is explained yet and nothing needs to be.</dd>
+<dt>Copy</dt><dd><span class="mono">FORMA</span> / <span class="mono">TRAIN. TRACK. TRANSFORM.</span><br><span class="q">Build stronger clients.<br>Run a stronger coaching business.</span><br>One system for clients, plans, progress, communication and the business behind your coaching.<br><span class="mono">START WITH FORMA →</span> · <span class="mono">SEE HOW IT WORKS</span></dd>
+<dt>Transition</dt><dd>On the macro of the collar, the pin rotates and releases with a real quarter-turn. The collar backs off its thread. That single mechanical action is the permission for everything that follows.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 02 · The problem · 200vh · pinned</span>
+<h3>Coaching gets complicated fast</h3>
+<dl>
+<dt>Sees</dt><dd>The dumbbell coming apart along believable axes — and, in the deep background at low opacity, flat rectangular fragments of a coach's real working life drifting in: a message thread, a spreadsheet grid, a PDF plan page, a progress-photo contact sheet, a note. Rendered as desaturated interface and document surfaces, never as logos or colored icons.</dd>
+<dt>3D</dt><dd>Collars translate outward along the handle axis. Plates slide off in pairs and hold in space in an exploded ring. The handle extends — a real telescoping action, inner sleeve emerging from outer — to full barbell length. Plates then travel back in and re-seat at the new outboard positions. The dumbbell has become a loaded barbell using its own parts.</dd>
+<dt>Camera</dt><dd>Pulls back and rolls 6° to reveal the growing length, holding the object roughly a third of frame height so the extension reads as growth. A slow lateral truck keeps the far collar in frame at full extension.</dd>
+<dt>Learns</dt><dd>The tools a coach uses are scattered — and the system in front of them is capable of absorbing that.</dd>
+<dt>Copy</dt><dd><span class="q">Coaching gets complicated fast.</span><br>Clients in chat.<br>Plans in spreadsheets.<br>Progress in photo folders.<br>Renewals in notes.<br><span class="pivot">Your coaching business shouldn't live in six different places.</span></dd>
+<dt>Transition</dt><dd>The fragments stop drifting and begin a slow drift <em>toward</em> the barbell, entering its gravity. They do not arrive yet — they're captured in Chapter 13. The camera drops to floor height, and the first bench component slides in from off-frame left.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 03 · Assembly · 280vh · pinned</span>
+<h3>The system evolves</h3>
+<dl>
+<dt>Sees</dt><dd>The longest, most mechanical passage on the site. A bench arrives and assembles under the bar. Uprights rise. A rack forms around it. Then the rack itself reconfigures into a full functional trainer with pulleys, cables and weight stacks. Continuous, weighted, deliberate.</dd>
+<dt>3D</dt><dd>Three movements. <strong>i — Bench:</strong> frame tubes slide in on the floor plane, feet rotate down and plant, the pad and its bolts settle last. <strong>ii — Rack:</strong> uprights telescope up from the bench frame's rear tubes; J-hooks index into position; the bar lifts and seats into them; copper adjustment pins snap home. <strong>iii — Trainer:</strong> uprights extend further and split into twin towers, pulley housings mount and their sheaves start turning, cables thread through and take up tension with real catenary sag, weight stacks build plate by plate from the same plates that started as dumbbell plates.</dd>
+<dt>Camera</dt><dd>A single continuous crane. Low and close on the bench bolts, rising and pulling back as the uprights extend, arcing 70° around the right tower as the pulleys mount, settling wide and slightly high as the stacks complete. One move, no cuts. Focal length drifts 35mm→28mm to let the structure feel large.</dd>
+<dt>Learns</dt><dd>This is the thesis in mechanics: the same system, evolving as the coaching gets more advanced. Nothing was replaced.</dd>
+<dt>Copy</dt><dd>Sparse and late. Two mono captions during the movements — <span class="mono">MORE CLIENTS.</span> / <span class="mono">MORE PROGRAMMING.</span> / <span class="mono">MORE TO RUN.</span> — then, on the completed machine: <span class="q">The system grows with you.</span></dd>
+<dt>Transition</dt><dd>The machine is complete and still. The camera begins moving <em>into</em> it, toward the gap between the towers. As it enters, edges nearest camera take a thin sienna ignition line.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 04 · Materialization · 220vh · pinned · THE HINGE</span>
+<h3>Metal becomes interface</h3>
+<dl>
+<dt>Sees</dt><dd>The most important 220vh on the site. Travelling through the machine, its physicality resolves into structure: edges become lines, bolts become nodes, cables become connections, plates become modules, frames become grid. The Forma Coach Dashboard assembles out of the machine's own geometry — not on top of it.</dd>
+<dt>3D</dt><dd>A four-stage crossfade in <em>material</em>, never in object. <strong>i Ignition:</strong> sienna→copper edge lines trace along every real chamfer. <strong>ii Dissolve:</strong> PBR surfaces drop metalness and opacity while the edge lines hold, leaving a lit wireframe standing in exact machine geometry. <strong>iii Re-index:</strong> bolts scale into node dots, cable curves straighten toward orthogonal routes, uprights and frame tubes rotate into the dashboard's layout grid, weight plates flatten into panel rectangles. <strong>iv Resolve:</strong> real product UI fades up inside those panels — sidebar, client table, KPI row — and the grid lines settle into actual interface borders.</dd>
+<dt>Camera</dt><dd>Continues its push through the tower gap, then decelerates hard and levels out so the dashboard arrives square to camera at the exact moment it becomes readable. The deceleration is the punctuation.</dd>
+<dt>Learns</dt><dd>Physical training infrastructure is digital coaching infrastructure. This is why the first three chapters existed.</dd>
+<dt>Copy</dt><dd>Nothing during the transformation. On arrival: <span class="q">Your training system,<br><span class="pivot">as a coaching system.</span></span></dd>
+<dt>Transition</dt><dd>The dashboard is now the scene's primary object. Camera holds; the client table's first row lifts a few millimetres toward camera, inviting Chapter 05.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 05 · Client workspace · 140vh · pinned</span>
+<h3>Every client. One clear workspace.</h3>
+<dl>
+<dt>Sees</dt><dd>The dashboard, credible and dense. Client rows carry name, avatar, subscription status, adherence, latest weight, assessment state, unread messages and next renewal. Rows detach and float forward into real depth as expanded client modules, then settle back.</dd>
+<dt>3D</dt><dd>Rows are separate planes on a shared grid. Three lift out on staggered Z, rotate ≤12° to catch light, and hold at readable depth. Behind them the machine's wireframe is still faintly present — the structure never fully leaves.</dd>
+<dt>Camera</dt><dd>Small moves only. A gentle 1.2× dolly and a 4° lateral drift for parallax. After Chapter 04 the visitor needs to read, not ride.</dd>
+<dt>Learns</dt><dd>Forma holds the whole client relationship in one place — training, money, communication and progress on one row.</dd>
+<dt>Copy</dt><dd><span class="q">Every client.<br>One clear workspace.</span><br>Status, adherence, weight, assessments, messages and renewals — per client, at a glance.</dd>
+<dt>Transition</dt><dd>The floated modules recede. The machine wireframe brightens back up and re-forms into a week structure — the plan builder's skeleton.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 06 · Plan builder · 200vh · pinned</span>
+<h3>Build plans the way you coach.</h3>
+<dl>
+<dt>Sees</dt><dd>The machine metaphor deliberately recalled. Its ghost geometry re-labels itself into the anatomy of a training plan, then the real Plan Builder resolves in its place and runs Workout → Nutrition → Cardio.</dd>
+<dt>3D</dt><dd>An explicit mapping, animated with connector lines drawn from part to label: frame → training week; stations → training days; attachments → exercises; weight plates → sets; cable position → exercise configuration. Then the builder UI takes over those coordinates. Workout rows populate (warm-up, working sets, exercise, sets, reps, weight, rest, video). The panel rotates on Y like a card turning and lands on Nutrition (meals, foods, serving sizes, macros, alternatives). Turns again to Cardio (type, duration, intensity, schedule).</dd>
+<dt>Camera</dt><dd>Static and square during the mapping so the analogy is legible. Then a short 15° arc on each panel turn so the rotation reads as physical rather than as a slide transition.</dd>
+<dt>Learns</dt><dd>Programming in Forma is structured the way coaches already think — and it covers all three modalities in one system.</dd>
+<dt>Copy</dt><dd><span class="q">Build plans the way you coach.</span><br><span class="mono">WORKOUT</span> · <span class="mono">NUTRITION</span> · <span class="mono">CARDIO</span><br><span class="pivot">One programming system.</span></dd>
+<dt>Transition</dt><dd>Camera picks one exercise row — Bench Press — and pushes into its thumbnail until the frame is filled by it.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 07 · Library · 160vh · pinned</span>
+<h3>Build once. Reuse intelligently.</h3>
+<dl>
+<dt>Sees</dt><dd>Emerging from the thumbnail into a large spatial library — a slightly curved wall of real exercise media with metadata, flown along rather than paged through. Then the same treatment for foods with real photography and macros.</dd>
+<dt>3D</dt><dd>An instanced grid on a gentle cylinder, 6–8 columns deep in Z. Cards nearest camera play muted video previews; distant cards stay static stills. At the midpoint the wall's contents cross-swap from exercises to foods with a staggered per-card flip, so it stays the same wall.</dd>
+<dt>Camera</dt><dd>A lateral tracking move with the wall's curvature, slight negative roll, shallow depth of field — the only chapter besides 04 and 08 that earns DOF.</dd>
+<dt>Learns</dt><dd>Forma ships real reusable content, and coaches can extend it with their own.</dd>
+<dt>Copy</dt><dd><span class="q">Build once.<br>Reuse intelligently.</span><br>Exercises: Bench Press · Chest · Barbell · Compound. Lat Pulldown · Back · Cable · Compound. Romanian Deadlift · Hamstrings · Barbell.<br>Foods: Chicken Breast · Rice · Oats · Eggs · Greek Yogurt — calories, protein, carbs, fat, serving size.<br>Reusable exercises, foods and templates. Still yours to customize.</dd>
+<dt>Transition</dt><dd>The wall recedes to become the dashboard again. One client row is highlighted. Camera settles on it.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 08 · Coach → client · 180vh · pinned</span>
+<h3>Powerful for the coach. Simple for the client.</h3>
+<dl>
+<dt>Sees</dt><dd>The set-piece. A single client card detaches from the dashboard, comes forward into open space, rotates, thickens, and resolves into a real smartphone running the Forma client app.</dd>
+<dt>3D</dt><dd>The card travels forward on a slight arc while rotating 180° on Y. Mid-rotation — edge-on to camera, its silhouette at its thinnest — the flat plane swaps for the phone GLB at matched silhouette, so the exchange is invisible. It continues rotating, gaining depth, chassis, bezel and screen. The card's own content re-lays-out into the app's Today view as it lands.</dd>
+<dt>Camera</dt><dd>Follows the card out with a matched arc, then holds still and lets the object finish the move. Shallow DOF racks from dashboard to phone as focus.</dd>
+<dt>Learns</dt><dd>Everything the coach builds becomes something simple in the client's hand. Same data, two surfaces.</dd>
+<dt>Copy</dt><dd><span class="q">Powerful for the coach.<br>Simple for the client.</span><br><span class="mono">TODAY · WORKOUT · NUTRITION · PROGRESS · ASSESSMENTS · MESSAGES</span></dd>
+<dt>Transition</dt><dd>The phone translates to the right third. The dashboard returns, scaled down, to the left third. A two-node stage.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 09 · Real-time coaching · 150vh · pinned</span>
+<h3>The session ends. The coaching doesn't.</h3>
+<dl>
+<dt>Sees</dt><dd>Coach on the left, client on the right, dark space between them. No arrows. Light and data move along soft catenary curves — the same curves the machine's cables described — and each exchange lands as a real UI state change on both ends.</dd>
+<dt>3D</dt><dd>Four scripted exchanges, each a particle travelling a curve with a subtle copper trail: coach sends a message → client's Messages badge increments; client completes a workout → coach's adherence figure ticks up; client uploads a progress photo → coach's gallery gains a frame; client submits an assessment → coach's assessment status flips to complete. Curve direction alternates so the space feels genuinely two-way.</dd>
+<dt>Camera</dt><dd>Locked wide, dead centre. The only chapter with a static camera — the motion is the content and the composition should feel like a stage.</dd>
+<dt>Learns</dt><dd>Forma is continuous, not session-based. Coaching keeps happening between appointments.</dd>
+<dt>Copy</dt><dd><span class="q">The session ends.<br><span class="pivot">The coaching doesn't.</span></span></dd>
+<dt>Transition</dt><dd>The curves stop discharging and persist. They begin to flatten toward a common baseline.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 10 · Progress · 140vh · pinned</span>
+<h3>See what's actually happening.</h3>
+<dl>
+<dt>Sees</dt><dd>The connection curves themselves becoming the charts. No new chart objects appear — the lines that carried the data are the lines that plot it.</dd>
+<dt>3D</dt><dd>Each curve's control points animate onto a chart's data coordinates; axes fade in beneath them; the copper trail becomes the series stroke. The weight-trend line resolves through 95 → 93.8 → 92.4 → 90.7 → 89.2. Three ring gauges spin up to 88% workout adherence, 92% nutrition adherence, 100% assessment completion. The progress-photo timeline builds from the frames delivered in Chapter 09.</dd>
+<dt>Camera</dt><dd>Eases from the wide two-node stage into a square-on read of the analytics panel, rising slightly so the charts sit at eye level.</dd>
+<dt>Learns</dt><dd>Because the plan, the logging and the messages live in one system, the reporting is a by-product rather than a chore.</dd>
+<dt>Copy</dt><dd><span class="q">See what's actually happening.</span><br>Progress becomes visible.<br>Adherence becomes measurable.<br><span class="pivot">Decisions become easier.</span></dd>
+<dt>Transition</dt><dd>The axes hold but the units re-scale. Training metrics roll over into business metrics.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 11 · The business · 120vh · pinned</span>
+<h3>Coach the client. Understand the business.</h3>
+<dl>
+<dt>Sees</dt><dd>The same analytics surface, now reporting on the practice: active clients, renewals this week, due this month, collected this month, retention, churn, subscriptions expiring.</dd>
+<dt>3D</dt><dd>Chart-to-chart morph, deliberately quiet — the point is that it's the same instrument pointed at a different subject. Panels re-tile from a training layout to a KPI grid. This is where the single Lora italic pull-quote of the entire site appears, set on black.</dd>
+<dt>Camera</dt><dd>A slow pull back that adds one contextual ring of panels around the primary set. Establishes that we're zooming out for the rest of the film.</dd>
+<dt>Learns</dt><dd>Forma manages the business, not just the training. This is the commercial argument for a coach.</dd>
+<dt>Copy</dt><dd><span class="q">Coach the client.<br>Understand the business.</span><br>Active clients · renewals this week · due this month · collected this month · retention · churn · subscriptions expiring.</dd>
+<dt>Transition</dt><dd>The camera keeps retreating. The panel set shrinks into one node of something larger.</dd>
+</dl>
+</div>
+<div class="note"><p><strong>Data integrity:</strong> per your brief, no vanity numbers. Adherence and weight figures above are the ones you supplied. Every business KPI ships as a labelled field with a realistic value — and I need <em>your</em> real reference figures before launch, or these stay as clearly-typed sample values rather than claims.</p></div>
+
+<div class="ch">
+<span class="tag">CH 12 · Scale · 130vh · pinned</span>
+<h3>Built to grow with your coaching business.</h3>
+<dl>
+<dt>Sees</dt><dd>One coach's workspace revealed as one node in the Forma platform. The hierarchy assembles spatially in depth — not as an org chart diagram, but as a structure with the same visual language as the machine.</dd>
+<dt>3D</dt><dd>Nodes and connectors — reusing the bolt-nodes and cable-connections established in Chapter 04 — build outward: Forma at the root; coaches; clients; then workout plans, nutrition plans, cardio, assessments, progress, messages, subscriptions, exercise library, food library, templates. Depth-of-field keeps only the active tier sharp as each layer arrives.</dd>
+<dt>Camera</dt><dd>Continuous slow retreat with a slight downward tilt, so new tiers enter from the frame edges rather than growing out of the centre.</dd>
+<dt>Learns</dt><dd>Forma is infrastructure. It doesn't break when a coach's practice gets bigger.</dd>
+<dt>Copy</dt><dd><span class="q">Built to grow with<br>your coaching business.</span></dd>
+<dt>Transition</dt><dd>Retreat stops. The Chapter 02 fragments — still drifting out at the edges of the scene all this time — brighten and start moving in.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 13 · Before / after · 180vh · pinned</span>
+<h3>Less admin. More coaching.</h3>
+<dl>
+<dt>Sees</dt><dd>The payoff for the problem stated in Chapter 02. The message thread, spreadsheet, PDF, photo folder, notes and manual renewal slips return — scattered, tilted, unaligned — then physically align, connect and consolidate into the single Forma interface.</dd>
+<dt>3D</dt><dd>Fragments arrive on the left in visible disorder with jittered rotations. Scroll drives them to a common plane: rotations zero out, gaps close, edges snap, connector lines fire between them, and they merge into one continuous surface which resolves as the Forma UI. The satisfaction is in the snap — easing is authored with a firm settle rather than a soft ease-out.</dd>
+<dt>Camera</dt><dd>Locked square. This beat is about alignment, and any camera movement would fight the reading of things becoming parallel.</dd>
+<dt>Learns</dt><dd>Concretely: the six places a coach's work currently lives become one.</dd>
+<dt>Copy</dt><dd>Before: <span class="mono">MESSAGES · SPREADSHEETS · PDFS · PHOTOS · NOTES · MANUAL RENEWALS</span><br>After: <span class="q">Less admin.<br>More coaching.</span></dd>
+<dt>Transition</dt><dd>The consolidated interface holds a beat, then its borders begin to detach as lines.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 14 · Final · 160vh · pinned</span>
+<h3>Your coaching system. Finally in one place.</h3>
+<dl>
+<dt>Sees</dt><dd>The film closes its own loop. The interface breaks into structural lines; those lines briefly reconstitute recognisable fragments of the machine — an upright, a pulley arc, a plate — then everything simplifies, moves to centre, and gold light travels through the structure until it forms the Forma F mark.</dd>
+<dt>3D</dt><dd>Three movements. <strong>i:</strong> UI borders detach and become free line segments. <strong>ii:</strong> segments re-form machine silhouettes for about 40% of the chapter — the visitor should recognise them. <strong>iii:</strong> segments converge; count reduces; a gold light sweep runs along the remaining paths; the surviving geometry resolves into the F. Then the mark holds, still, on black.</dd>
+<dt>Camera</dt><dd>Drifts to dead centre and stops moving entirely for the final third. After 2,300vh of motion, stillness is the effect.</dd>
+<dt>Learns</dt><dd>Everything they just watched was one system. The mark is the compression of the whole film.</dd>
+<dt>Copy</dt><dd><span class="mono">FORMA</span><br><span class="q">Your coaching system.<br><span class="pivot">Finally in one place.</span></span><br>Clients. Plans. Progress. Communication. Business. <span class="pivot">One system.</span><br><span class="mono">START WITH FORMA →</span> · <span class="mono">BOOK A DEMO</span></dd>
+<dt>Transition</dt><dd>Unpins into the real footer. WebGL stops rendering entirely.</dd>
+</dl>
+</div>
+
+<div class="ch">
+<span class="tag">CH 15 · Close · 100vh · static</span>
+<h3>The actual website</h3>
+<dl>
+<dt>Sees</dt><dd>A calm, conventional, genuinely useful close: the F mark small, the two CTAs, nav, product links, contact, legal, <span class="mono">useforma.fit</span>. Black surface, DM Mono labels, dotted-rule column dividers per the design system.</dd>
+<dt>3D</dt><dd>None. The canvas is unmounted or paused. This section exists so the site works as a website.</dd>
+<dt>Camera</dt><dd>—</dd>
+<dt>Learns</dt><dd>Where to click. That there's a real company here.</dd>
+<dt>Copy</dt><dd>CTAs, navigation, contact, legal.</dd>
+<dt>Transition</dt><dd>End of document.</dd>
+</dl>
+</div>
+
+<h2>05 · Camera choreography</h2>
+<p>One camera for the entire site. It is never cut, never teleported, and never duplicated — the visitor should believe they've been inside one continuous shot. Its position and target are driven along authored Catmull–Rom splines with per-chapter keys; focal length and roll are separate scalar tracks.</p>
+<table>
+<thead><tr><th class="m">Ch</th><th class="m">Focal</th><th class="m">Position → </th><th>Target</th><th>Move</th></tr></thead>
+<tbody>
+<tr><td class="m">01</td><td class="m">42→65</td><td class="m">[0,.35,5.2] → [.8,.1,2.4]</td><td>mass centre → collar</td><td>Orbit + dolly to macro</td></tr>
+<tr><td class="m">02</td><td class="m">50→38</td><td class="m">[.8,.1,2.4] → [0,.2,6.8]</td><td>bar centre</td><td>Pull back, 6° roll, lateral truck</td></tr>
+<tr><td class="m">03</td><td class="m">35→28</td><td class="m">[-1.2,-.4,3] → [3.4,1.9,7.6]</td><td>rising with structure</td><td>Single 70° crane arc, no cuts</td></tr>
+<tr><td class="m">04</td><td class="m">28→45</td><td class="m">[3.4,1.9,7.6] → [0,.9,3.1]</td><td>tower gap → dashboard</td><td>Push through, hard decelerate, level</td></tr>
+<tr><td class="m">05</td><td class="m">45→52</td><td class="m">[0,.9,3.1] → [.25,.9,2.6]</td><td>client rows</td><td>Micro dolly + parallax drift</td></tr>
+<tr><td class="m">06</td><td class="m">50</td><td class="m">square, ±15° arcs</td><td>builder panel</td><td>Static for mapping, arc per turn</td></tr>
+<tr><td class="m">07</td><td class="m">40</td><td class="m">lateral track along wall</td><td>leading card</td><td>Tracking, −3° roll, shallow DOF</td></tr>
+<tr><td class="m">08</td><td class="m">55→70</td><td class="m">follows card arc, then locks</td><td>card → phone</td><td>Matched arc, then focus rack</td></tr>
+<tr><td class="m">09</td><td class="m">40</td><td class="m">locked centre</td><td>midpoint of stage</td><td>Static. Motion is the content.</td></tr>
+<tr><td class="m">10</td><td class="m">40→48</td><td class="m">[0,.7,5.4] → [0,1.1,3.8]</td><td>analytics panel</td><td>Ease in and rise to eye level</td></tr>
+<tr><td class="m">11</td><td class="m">48→34</td><td class="m">retreat to [0,1.4,7.2]</td><td>KPI grid</td><td>Slow pull back, adds context ring</td></tr>
+<tr><td class="m">12</td><td class="m">34→24</td><td class="m">retreat to [0,3.2,14]</td><td>hierarchy root</td><td>Continuous retreat + downward tilt</td></tr>
+<tr><td class="m">13</td><td class="m">44</td><td class="m">locked square</td><td>convergence plane</td><td>Static. Alignment must read flat.</td></tr>
+<tr><td class="m">14</td><td class="m">44→50</td><td class="m">drift to [0,0,4.2], stop</td><td>centre</td><td>Drift, then absolute stillness</td></tr>
+</tbody>
+</table>
+<p>Two global rules: the camera's <code>up</code> vector is never allowed to flip, and roll is capped at ±8° for the whole film — beyond that it reads as a stunt rather than as cinematography. Field-of-view changes are always paired with a position change so they never feel like a zoom.</p>
+
+<h2>06 · Every 3D transformation</h2>
+<p>This is the heart of the build, so it's specified as data rather than prose. There is one persistent <code>parts</code> registry. Each part has a per-chapter target transform and target material. A "transformation" is never a swap — it's an interpolation of the same registry. Parts are created once, at load, and destroyed once, at the end.</p>
+<h3>Part-persistence matrix</h3>
+<table>
+<thead><tr><th>Part</th><th class="m">×</th><th>Ch 01–02</th><th>Ch 03</th><th>Ch 04</th><th>Ch 10–12</th></tr></thead>
+<tbody>
+<tr><td>Weight plate</td><td class="m">8</td><td>Dumbbell plates</td><td>Barbell plates → weight-stack plates</td><td>Information modules</td><td>KPI tiles</td></tr>
+<tr><td>Handle / shaft</td><td class="m">1</td><td>Dumbbell handle → telescopes to barbell</td><td>Racked bar</td><td>Dashboard spine / nav rail</td><td>Chart baseline</td></tr>
+<tr><td>Collar</td><td class="m">2</td><td>Collars, copper pin</td><td>Rack J-hook pins</td><td>Active-state indicators</td><td>Threshold markers</td></tr>
+<tr><td>Bolt</td><td class="m">24</td><td>—</td><td>Frame and pulley bolts</td><td>Graph nodes</td><td>Data points</td></tr>
+<tr><td>Cable</td><td class="m">4</td><td>—</td><td>Pulley cables under tension</td><td>Data connections</td><td>Chart series strokes</td></tr>
+<tr><td>Upright tube</td><td class="m">2</td><td>—</td><td>Rack uprights → trainer towers</td><td>Layout grid lines</td><td>Chart axes</td></tr>
+<tr><td>Bench pad</td><td class="m">1</td><td>—</td><td>Pad</td><td>Client-card surface</td><td>Progress-photo timeline</td></tr>
+<tr><td>Pulley sheave</td><td class="m">4</td><td>—</td><td>Rotating sheaves</td><td>Connection routing joints</td><td>Ring gauges</td></tr>
+</tbody>
+</table>
+<h3>Transformation ledger</h3>
+<table>
+<thead><tr><th class="m">#</th><th>Transformation</th><th>Mechanism</th><th class="m">Ch</th></tr></thead>
+<tbody>
+<tr><td class="m">T1</td><td>Collar release</td><td>Quarter-turn rotation on thread axis, then axial back-off</td><td class="m">01→02</td></tr>
+<tr><td class="m">T2</td><td>Dumbbell → barbell</td><td>Plates slide off axially and hold; handle telescopes (inner sleeve emerges); plates re-seat outboard</td><td class="m">02</td></tr>
+<tr><td class="m">T3</td><td>Bench assembly</td><td>Frame tubes translate on floor plane; feet rotate down and plant; pad + bolts settle last</td><td class="m">03</td></tr>
+<tr><td class="m">T4</td><td>Rack assembly</td><td>Uprights telescope from bench rear tubes; J-hooks index; bar lifts and seats; pins snap</td><td class="m">03</td></tr>
+<tr><td class="m">T5</td><td>Rack → functional trainer</td><td>Uprights extend and split into twin towers; pulley housings mount; cables thread and tension with catenary sag; stacks build from existing plates</td><td class="m">03</td></tr>
+<tr><td class="m">T6</td><td>Edge ignition</td><td>Emissive edge shader animates along real chamfers, sienna → copper</td><td class="m">04</td></tr>
+<tr><td class="m">T7</td><td>Surface dissolve</td><td>Metalness and opacity ramp to zero while edge lines hold; leaves lit wireframe in exact geometry</td><td class="m">04</td></tr>
+<tr><td class="m">T8</td><td>Re-index to interface</td><td>Bolts→nodes, cables→orthogonal routes, tubes→grid, plates→panels; then real UI fades into the panels</td><td class="m">04</td></tr>
+<tr><td class="m">T9</td><td>Row extraction</td><td>Client-row planes lift on staggered Z with ≤12° rotation</td><td class="m">05</td></tr>
+<tr><td class="m">T10</td><td>Machine → plan anatomy</td><td>Ghost geometry re-labels via drawn connectors, then hands its coordinates to the builder UI</td><td class="m">06</td></tr>
+<tr><td class="m">T11</td><td>Panel turn</td><td>Y-rotation card turn between Workout / Nutrition / Cardio</td><td class="m">06</td></tr>
+<tr><td class="m">T12</td><td>Thumbnail → library</td><td>Camera push into a card whose plane scales to become the library wall's origin</td><td class="m">06→07</td></tr>
+<tr><td class="m">T13</td><td>Exercise wall → food wall</td><td>Staggered per-card flip, same instanced wall, contents swapped</td><td class="m">07</td></tr>
+<tr><td class="m">T14</td><td>Card → phone</td><td>Arc + 180° Y-rotation; silhouette-matched geometry exchange at edge-on; content re-lays-out into app</td><td class="m">08</td></tr>
+<tr><td class="m">T15</td><td>Data exchange</td><td>Particle along catenary curve with copper trail; arrival mutates real UI state on the receiving surface</td><td class="m">09</td></tr>
+<tr><td class="m">T16</td><td>Curves → charts</td><td>Curve control points animate to data coordinates; axes fade in; trail becomes series stroke</td><td class="m">09→10</td></tr>
+<tr><td class="m">T17</td><td>Training → business metrics</td><td>Axis units re-scale; panels re-tile from training layout to KPI grid</td><td class="m">10→11</td></tr>
+<tr><td class="m">T18</td><td>Hierarchy assembly</td><td>Node/connector system builds outward in depth using Ch04's node and cable vocabulary</td><td class="m">12</td></tr>
+<tr><td class="m">T19</td><td>Fragment convergence</td><td>Jittered rotations zero out, gaps close, edges snap, connectors fire, surfaces merge</td><td class="m">13</td></tr>
+<tr><td class="m">T20</td><td>Interface → machine → F</td><td>UI borders detach as line segments; segments re-form machine silhouettes; converge; gold sweep; resolve to F mark</td><td class="m">14</td></tr>
+</tbody>
+</table>
+
+<h2>07 · 3D asset list</h2>
+<p>Three tiers. Tier A must be real modelled geometry to hit your quality bar. Tier B is procedural but detailed. Tier C is generated at runtime.</p>
+<table>
+<thead><tr><th>Asset</th><th class="m">Tier</th><th class="m">Tris</th><th class="m">Budget</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Adjustable dumbbell</td><td class="m">A</td><td class="m">≤90k</td><td class="m">≤900KB</td><td>The hero. Gets a macro shot in Ch01 — needs real knurling, cast plate lettering, machined collar, copper pin.</td></tr>
+<tr><td>Barbell + plate set</td><td class="m">A</td><td class="m">≤70k</td><td class="m">≤700KB</td><td>Telescoping sleeve must be real geometry. Plates shared with dumbbell where possible.</td></tr>
+<tr><td>Bench</td><td class="m">A</td><td class="m">≤50k</td><td class="m">≤500KB</td><td>Pad stitching and vinyl matter; frame must read as welded tube.</td></tr>
+<tr><td>Functional trainer</td><td class="m">A</td><td class="m">≤140k</td><td class="m">≤1.2MB</td><td>Towers, pulley housings, sheaves, stack, guide rods. Ch03's payoff.</td></tr>
+<tr><td>Smartphone</td><td class="m">A</td><td class="m">≤25k</td><td class="m">≤300KB</td><td>Needs credible bezel, chamfer and screen glass for Ch08.</td></tr>
+<tr><td>Power-rack uprights / J-hooks</td><td class="m">B</td><td class="m">≤30k</td><td class="m">—</td><td>Extruded profile + chamfer + bolt instances. Procedural is adequate.</td></tr>
+<tr><td>Weight-stack plates</td><td class="m">B</td><td class="m">≤20k</td><td class="m">—</td><td>Instanced from the plate mesh.</td></tr>
+<tr><td>Pulleys, cable hardware, collars, bolts</td><td class="m">B</td><td class="m">≤25k</td><td class="m">—</td><td>Lathed profiles; instanced heavily.</td></tr>
+<tr><td>Cables</td><td class="m">C</td><td class="m">—</td><td class="m">—</td><td>Tube geometry along a runtime catenary; doubles as Ch09 data curves.</td></tr>
+<tr><td>Desktop display (optional)</td><td class="m">B</td><td class="m">≤15k</td><td class="m">—</td><td>Only if you want a physical monitor in Ch04. My preference is no — the dashboard reads stronger unframed.</td></tr>
+<tr><td>Wireframe / node / grid layer</td><td class="m">C</td><td class="m">—</td><td class="m">—</td><td>Derived from Tier A/B edge data at load. Shared by Ch04, 09, 10, 12, 14.</td></tr>
+<tr><td>F-mark geometry</td><td class="m">C</td><td class="m">—</td><td class="m">—</td><td>Extruded from your logo SVG path. <strong>I need the vector.</strong></td></tr>
+<tr><td>HDRI environment</td><td class="m">A</td><td class="m">—</td><td class="m">≤400KB</td><td>Neutral studio softbox, 2k, KTX2-compressed.</td></tr>
+</tbody>
+</table>
+<h3>Which assets need real GLB, and how to get them</h3>
+<p>Tier A is five models. Options, in order of my preference:</p>
+<ol>
+<li><strong>Commission (recommended).</strong> Five models, hard-surface, PBR, shared material library, delivered as Draco-compressed GLB with a consistent scale and origin convention. This is the only route that reliably clears your quality bar and guarantees the five assets share a visual language — which the transformations depend on.</li>
+<li><strong>License.</strong> Marketplace gym-equipment models exist at usable quality, but they come from different authors, which means mismatched topology, scale, material conventions and detail density. Anything licensed needs a retopology and material-unification pass before it can transform believably.</li>
+<li><strong>Procedural stand-ins from me now, real models swapped in later.</strong> Fastest path to a reviewable experience. The architecture in Section 14 keeps asset loading behind a single provider, so swapping a procedural part for a GLB is a one-file change per asset and does not touch any animation code.</li>
+</ol>
+<div class="note"><p><strong>Shared visual language is a hard requirement, not a preference.</strong> All equipment must use one material library — same steel, same rubber, same powder-coat, same accent anodizing — and one scale convention. If the dumbbell's steel doesn't match the trainer's steel, T2 through T5 stop reading as one evolving system and the site's entire argument collapses.</p></div>
+
+<h2>08 · UI-to-3D transition strategy</h2>
+<p>The hardest craft problem here: the interface has to live in a 3D world without becoming science fiction. Three techniques, chosen per case, never mixed within one element.</p>
+<table>
+<thead><tr><th>Technique</th><th>Used for</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><strong>CSS3D</strong> — real DOM in the 3D transform space</td><td>Coach dashboard, plan builder, client modules, phone screen content</td><td>Text stays vector-crisp at any depth, remains real DOM (selectable, accessible, editable), and costs no texture memory. This is the default for anything the visitor must <em>read</em>.</td></tr>
+<tr><td><strong>Canvas → texture</strong></td><td>Library card thumbnails, progress photos, anything that must accept scene lighting, reflection or bend</td><td>Needed when UI has to be lit or curved with the wall geometry. Rendered offscreen once, then reused.</td></tr>
+<tr><td><strong>True geometry</strong></td><td>Grid lines, nodes, connectors, chart strokes, axes</td><td>These are the machine's parts continuing their life. They must be real 3D or the Ch04 hinge is a lie.</td></tr>
+</tbody>
+</table>
+<h3>Rules</h3>
+<ul>
+<li>Any UI the visitor must read sits within 18° of orthogonal to camera. Beyond that it becomes texture, not information.</li>
+<li>Type inside the 3D world uses the same scale and weights as the real product. No condensing, no letter-spacing tricks, no glow.</li>
+<li>No translucent panels, no scan lines, no corner brackets, no animated borders, no monospace-everything. Panels are <code>#111111</code> with a <code>rgba(230,226,220,.15)</code> hairline — the design system's own dark-card treatment.</li>
+<li>The accent appears in UI exactly where a real product would use it: active nav item, primary button, progress fill, one highlighted metric. Never as ambient glow.</li>
+<li>Depth is communicated by position and parallax, not by blur on the thing you're meant to read.</li>
+</ul>
+<div class="note"><p>I need <strong>real Forma product screenshots or the actual UI source</strong> for the dashboard, plan builder, library and client app. I'll build credible interface from your field lists in Chapters 05–08 either way, but the site's core promise is "this is a serious product" — and real UI is what delivers that. Recreating from the live app's code is far better than working from screenshots.</p></div>
+
+<h2>09 · Desktop composition</h2>
+<p>A fixed compositional contract across all fourteen chapters, so the visitor's eye never has to re-learn where to look:</p>
+<ul>
+<li><strong>Type zone:</strong> left column, 34% width, max 420px, vertically centred, with a 96px baseline offset from the object's optical centre. Type never crosses the object's silhouette.</li>
+<li><strong>Object zone:</strong> right 66%, optical centre at 58% width / 48% height. Slightly high and right of true centre — a standard product-photography bias that reads as composed rather than centred.</li>
+<li><strong>Exceptions:</strong> Ch09 (symmetrical two-node stage, copy centred below) and Ch13 (fragments left, resolved system right, copy top-centre). Both exceptions are earned by their content.</li>
+<li><strong>Persistent chrome:</strong> a minimal fixed header — F mark left, three nav items and <span class="mono">START WITH FORMA →</span> right, all DM Mono. It thins and loses its background on scroll, never disappears.</li>
+<li><strong>Progress:</strong> a 1px vertical copper rule at the right edge showing film position, with 14 chapter ticks. It's a chapter index, not a scrollbar — clicking a tick scrubs to that chapter.</li>
+<li><strong>Safe margins:</strong> 80px minimum. Object silhouettes may bleed past frame edges; type never does.</li>
+</ul>
+
+<h2>10 · Mobile and tablet adaptation</h2>
+<p>Not a shrunken desktop. Three distinct builds sharing one narrative and one copy deck.</p>
+<table>
+<thead><tr><th class="m">Tier</th><th>Approach</th><th>What changes</th></tr></thead>
+<tbody>
+<tr><td class="m">≥1280px<br>Desktop</td><td>Full live WebGL</td><td>The experience as specified. All 20 transformations, full camera choreography, DOF where noted.</td></tr>
+<tr><td class="m">768–1279px<br>Tablet</td><td>Reduced live WebGL</td><td>Same 14 chapters and same transformations, but: simplified camera paths (fewer spline keys, no roll), 50% instance counts on library and hierarchy, no DOF, single shadow-casting light, DPR capped at 1.5. Copy stacks above the object.</td></tr>
+<tr><td class="m">&lt;768px<br>Mobile</td><td><strong>Scrubbed frame sequences. No WebGL.</strong></td><td>Six pre-rendered sequences cover the six transformation chapters (02, 03, 04, 08, 13, 14) — 60 frames each, 750×1334, AVIF with WebP fallback, ~40–60KB per frame. Scroll scrubs the sequence in a <code>&lt;canvas&gt;</code>. The remaining chapters become real, native, scrollable DOM sections using the design system's mobile kit — genuinely good mobile layouts rather than compromised 3D.</td></tr>
+</tbody>
+</table>
+<p>This is a deliberate trade. A phone cannot run this scene at 60fps with any honesty, and a degraded version of a cinematic experience is worse than a well-made different one. Frame sequences give mobile visitors the same story beats — the dumbbell becoming a barbell, the machine becoming the dashboard, the fragments converging, the F mark — at guaranteed frame rate and a fraction of the payload. The sequences are rendered from the same three.js scene at build time, so they can never drift from the desktop art direction.</p>
+
+<h2>11 · Performance strategy</h2>
+<p>This has to remain a production website that ranks and converts, not a demo.</p>
+<h3>Budgets</h3>
+<ul>
+<li>Initial critical payload (to first meaningful frame): <strong>≤2.5MB</strong> — fonts, HDRI, hero dumbbell, app shell.</li>
+<li>Total 3D payload across the full scroll: <strong>≤4MB</strong>, Draco for geometry, Meshopt for the instanced sets, KTX2/BasisU for every texture.</li>
+<li>Frame budget: 16.6ms desktop, 22ms tablet. Draw calls ≤180 at peak (Ch03 and Ch12 are the peaks).</li>
+<li>Lights: two shadow-casting maximum, ever. One 1024px shadow map, plus a baked contact-shadow plane.</li>
+</ul>
+<h3>Techniques</h3>
+<ul>
+<li><strong>Adaptive DPR</strong> — measured frame time drives device pixel ratio between 1 and 2, with hysteresis so it doesn't oscillate visibly.</li>
+<li><strong>Render on demand</strong> — <code>frameloop="demand"</code> outside active scrubbing; invalidate on scroll and on the idle-motion tick only.</li>
+<li><strong>Hard stop when off-screen</strong> — an IntersectionObserver on the canvas wrapper pauses rendering entirely for Ch15 and anything above the fold on return visits. Also pauses on <code>visibilitychange</code>.</li>
+<li><strong>Instancing</strong> — plates, bolts, library cards and hierarchy nodes are all <code>InstancedMesh</code>. Ch12's hierarchy is one draw call.</li>
+<li><strong>Frustum and LOD</strong> — Tier A models ship at two LODs; the low LOD is used whenever the part is beyond mid-depth, which is most of Ch03 and all of Ch12.</li>
+<li><strong>Post-processing</strong> — SMAA always; a tightly-thresholded bloom that only the accent emissive can trigger; a subtle vignette. DOF only in Ch04, 07 and 08, and disabled below 1280px.</li>
+<li><strong>Code splitting</strong> — each chapter's scene module is a dynamic import, prefetched one chapter ahead.</li>
+<li><strong>prefers-reduced-motion</strong> — the whole film degrades to fourteen static hero frames (one authored keyframe per chapter) with the full copy deck as normal scrolling DOM. No parallax, no scrub, no autoplay. This is a first-class path, not an afterthought.</li>
+</ul>
+<h3>SEO and accessibility layer</h3>
+<p>The complete narrative — every headline, every supporting line, every feature list from Chapters 05–12 — exists as real, semantic, crawlable DOM: one <code>h1</code>, sequential <code>h2</code>s per chapter, real lists, real links. The canvas is <code>aria-hidden="true"</code> and purely presentational. Copy is positioned over the canvas in normal document flow rather than injected by the animation system, so it is present at first paint, indexable, translatable, screen-reader-navigable, and survives with JavaScript disabled via <code>&lt;noscript&gt;</code>. Keyboard users get chapter-to-chapter navigation through the progress-rail ticks as real focusable buttons.</p>
+
+<h2>12 · Typography direction</h2>
+<p>Straight from the bound design system — Poppins for display, DM Mono for every label, Lora italic once. The only addition is a cinematic scale for the pinned chapters, where type is larger and sparser than on a normal page.</p>
+<table>
+<thead><tr><th>Role</th><th class="m">Family / weight</th><th class="m">Size</th><th class="m">Tracking / leading</th></tr></thead>
+<tbody>
+<tr><td>Chapter headline</td><td class="m">Poppins 700</td><td class="m">clamp(34, 4.4vw, 60)</td><td class="m">−0.03em / 1.02</td></tr>
+<tr><td>Italic pivot line</td><td class="m">Poppins 400 italic</td><td class="m">inherits headline</td><td class="m">−0.02em / 1.02 · copper</td></tr>
+<tr><td>Hero H1</td><td class="m">Poppins 700</td><td class="m">clamp(40, 5.2vw, 68)</td><td class="m">−0.035em / 1.0</td></tr>
+<tr><td>Supporting body</td><td class="m">Poppins 400</td><td class="m">16 / 17</td><td class="m">0 / 1.55 · earth-warm</td></tr>
+<tr><td>Eyebrow</td><td class="m">DM Mono 500</td><td class="m">11</td><td class="m">0.14em UPPER · copper</td></tr>
+<tr><td>Nav / CTA / labels</td><td class="m">DM Mono 500</td><td class="m">13</td><td class="m">0.04em UPPER</td></tr>
+<tr><td>In-scene UI label</td><td class="m">DM Mono 500</td><td class="m">10–12</td><td class="m">0.06em UPPER</td></tr>
+<tr><td>Data / metric numeral</td><td class="m">DM Mono 500</td><td class="m">clamp(28, 3vw, 44)</td><td class="m">−0.02em / 0.95</td></tr>
+<tr><td>Pull quote (Ch11 only)</td><td class="m">Lora 400 italic</td><td class="m">26</td><td class="m">0 / 1.35</td></tr>
+<tr><td>Trust / meta line</td><td class="m">DM Mono 500</td><td class="m">11</td><td class="m">0.06em UPPER · 60% alpha</td></tr>
+</tbody>
+</table>
+<p>Headlines are sentence case; labels and CTAs are all-caps DM Mono with a <code>→</code> suffix that translates 3px on hover. Copy animates in with a 0.4s <code>cubic-bezier(0.16,1,0.3,1)</code> rise and a 40ms per-line stagger — lines only, never per-character.</p>
+
+<h2>13 · Color, material and lighting</h2>
+<h3>Palette in use</h3>
+<div class="sw">
+<div><i style="background:#000000"></i><span>#000000<br>void</span></div>
+<div><i style="background:#0a0a0a"></i><span>#0a0a0a<br>ink</span></div>
+<div><i style="background:#111111"></i><span>#111111<br>panel</span></div>
+<div><i style="background:#1a1a1a"></i><span>#1a1a1a<br>charcoal</span></div>
+<div><i style="background:#BF6E4E"></i><span>#BF6E4E<br>sienna</span></div>
+<div><i style="background:#AE7E56"></i><span>#AE7E56<br>copper</span></div>
+<div><i style="background:#D4A46A"></i><span>#D4A46A<br>gold</span></div>
+<div><i style="background:#E6E2DC"></i><span>#E6E2DC<br>earth-warm</span></div>
+</div>
+<p>Accent discipline: no more than <strong>4% of any frame's pixels</strong> may carry accent color. It appears on collars and pins, machine light strips, edge ignition during Ch04, active UI states, data-stream trails, and the final mark. Equipment bodies are steel, rubber and charcoal powder-coat — never orange.</p>
+<h3>Material library</h3>
+<table>
+<thead><tr><th>Material</th><th class="m">Base</th><th class="m">Metal</th><th class="m">Rough</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Knurled steel (handles, shafts)</td><td class="m">#8A8A8E</td><td class="m">1.0</td><td class="m">0.34</td><td>Knurl normal map, tri-planar; anisotropic highlight</td></tr>
+<tr><td>Rubber plate coating</td><td class="m">#131315</td><td class="m">0.0</td><td class="m">0.82</td><td>Fine noise normal; cast-in lettering as height</td></tr>
+<tr><td>Cast iron (stack plates)</td><td class="m">#2A2A2C</td><td class="m">0.85</td><td class="m">0.55</td><td>Sand-cast micro-roughness variation</td></tr>
+<tr><td>Powder-coat (frames, towers)</td><td class="m">#1C1C1E</td><td class="m">0.15</td><td class="m">0.62</td><td>Orange-peel normal at low amplitude</td></tr>
+<tr><td>Machined aluminium (housings)</td><td class="m">#B4B4B8</td><td class="m">1.0</td><td class="m">0.22</td><td>Circular tool-path anisotropy</td></tr>
+<tr><td>Chrome (guide rods, sheaves)</td><td class="m">#E8E8EA</td><td class="m">1.0</td><td class="m">0.06</td><td>Full environment reflection; the scene's sparkle</td></tr>
+<tr><td>Pad vinyl</td><td class="m">#16161A</td><td class="m">0.0</td><td class="m">0.68</td><td>Grain normal, stitch line, slight sheen</td></tr>
+<tr><td>Steel cable</td><td class="m">#6E6E72</td><td class="m">0.9</td><td class="m">0.42</td><td>Twisted-strand normal along tube</td></tr>
+<tr><td>Anodized accent (pins, strips)</td><td class="m">#AE7E56</td><td class="m">0.8</td><td class="m">0.30</td><td>Emissive 0→0.6 during Ch04 ignition</td></tr>
+</tbody>
+</table>
+<h3>Lighting rig — one rig, all fourteen chapters</h3>
+<ul>
+<li><strong>Environment:</strong> a single neutral studio HDRI at 0.7 intensity, providing all reflection and ambient. It is rotated slowly by scroll — this alone keeps every surface alive without any animated light.</li>
+<li><strong>Key:</strong> a large rect area light, high and camera-left, 3.2 intensity, warm-neutral 5200K. The only shadow caster for the physical chapters.</li>
+<li><strong>Rim:</strong> a narrow rect light behind and camera-right at 1.8, cooled slightly, to separate silhouette from the black void. This is what makes the equipment read as premium.</li>
+<li><strong>Fill:</strong> a very low hemisphere at 0.25 so shadow interiors aren't pure black.</li>
+<li><strong>Contact:</strong> a baked radial-gradient shadow plane beneath the object, scaled to its footprint. Cheaper and softer than a real shadow map for ground contact.</li>
+<li><strong>Practical accents:</strong> from Ch04 onward, emissive accent geometry is the primary light source — the interface lights its own scene. Key and rim drop to 30% across the Ch04 hinge, which is what sells "this is no longer a lit physical object."</li>
+<li><strong>Grade:</strong> ACES filmic tone mapping, exposure 1.05, output sRGB. Warm shadow lift of about 2% so black is never dead — matching the design system's warm-tinted shadow convention.</li>
+</ul>
+
+<h2>14 · Component architecture</h2>
+<p>React Three Fiber, one persistent canvas, one persistent object graph. Every chapter is a declarative scene module that reads from a shared progress store — chapters never own state that another chapter needs.</p>
+<pre>&lt;App&gt;
+├ &lt;SeoNarrative/&gt;            <b>always in DOM · real h1/h2/p/ul · crawlable</b>
+├ &lt;ScrollProvider&gt;           <b>Lenis + ScrollTrigger · owns the single clock</b>
+├ &lt;ChapterRail/&gt;             <b>progress ticks · real focusable buttons</b>
+├ &lt;Header/&gt;                  <b>F mark · nav · primary CTA</b>
+│
+├ &lt;Canvas frameloop="demand"&gt;
+│  ├ &lt;Stage/&gt;                <b>HDRI · key · rim · fill · contact · ACES</b>
+│  ├ &lt;CameraRig/&gt;            <b>spline position + target + fov + roll tracks</b>
+│  ├ &lt;PartsProvider&gt;         <b>THE registry · created once · never swapped</b>
+│  │  ├ &lt;Plates count={8}/&gt;        &lt;Handle/&gt;      &lt;Collars/&gt;
+│  │  ├ &lt;Bolts count={24}/&gt;         &lt;Cables count={4}/&gt;
+│  │  ├ &lt;Uprights/&gt;  &lt;BenchPad/&gt;  &lt;Pulleys/&gt;  &lt;WeightStack/&gt;
+│  │  └ &lt;EdgeLayer/&gt;               <b>derived edges · nodes · grid · charts</b>
+│  ├ &lt;FragmentField/&gt;        <b>Ch02 seeds → Ch13 convergence (persistent)</b>
+│  ├ &lt;UiLayer&gt;               <b>CSS3D · real product interface</b>
+│  │  ├ &lt;CoachDashboard/&gt;  &lt;ClientModules/&gt;  &lt;PlanBuilder/&gt;
+│  │  └ &lt;LibraryWall/&gt;     &lt;PhoneDevice/&gt; + &lt;ClientApp/&gt;
+│  ├ &lt;DataStreams/&gt;          <b>Ch09 curves → Ch10 series (same curves)</b>
+│  ├ &lt;Hierarchy/&gt;            <b>Ch12 · instanced nodes + connectors</b>
+│  ├ &lt;FMark/&gt;                <b>Ch14 · extruded from logo SVG</b>
+│  └ &lt;Post/&gt;                 <b>SMAA · gated bloom · vignette · DOF (3 ch only)</b>
+│
+└ &lt;CopyDeck/&gt;                <b>per-chapter DOM copy · normal flow · over canvas</b></pre>
+<p>Three architectural commitments worth calling out. <strong>PartsProvider is the spine</strong> — because every part persists for the whole film, no chapter is allowed to mount or unmount equipment geometry; it may only retarget it. <strong>EdgeLayer is derived, not authored</strong> — it reads its lines and nodes from the Tier A/B geometry at load, which is what guarantees the Ch04 wireframe sits in exactly the machine's shape. <strong>Copy lives in the DOM, not the canvas</strong> — the animation system positions and reveals it but never owns it, which is what keeps the site indexable and accessible.</p>
+
+<h2>15 · Animation architecture</h2>
+<p>One master timeline. Scroll is the only input. No chapter runs its own independent clock.</p>
+<pre>scroll → Lenis (smoothed) → ScrollTrigger (pin + scrub:1)
+       → <b>globalProgress</b> 0..1
+       → per-chapter <b>t</b> 0..1  (normalized, clamped, overlap-aware)
+       → <b>keyframe resolvers</b>
+            camera(t)      → position · target · fov · roll
+            parts(t)       → transform · material · visibility  per part
+            ui(t)          → mount · opacity · depth · layout state
+            lighting(t)    → intensities · env rotation · exposure
+            post(t)        → bloom threshold · dof focus
+       → single render (invalidate)</pre>
+<h3>Rules</h3>
+<ul>
+<li><strong>Scenes are data.</strong> Each chapter is a plain manifest — <code>{ id, length, pin, camera[], parts{}, ui{}, copy{} }</code> — declared in one file. Pacing and choreography are editable without touching component code, which is what makes art direction iterable.</li>
+<li><strong>Overlap windows.</strong> Adjacent chapters share a 12% crossfade window on camera and lighting tracks only, so the film has no seams. Part transforms never overlap — they hand off at exact boundaries so mechanics stay legible.</li>
+<li><strong>Everything is interpolation.</strong> No <code>.to()</code> chains firing on triggers, no autoplay tweens, no timeline that can desync from scroll position. Scrub backwards and every frame is identical to the forward pass — a hard requirement, and the thing most scroll sites get wrong.</li>
+<li><strong>Easing belongs to the mechanism.</strong> Mechanical actions (T1–T5) use a firm settle with a slight overshoot on seat and snap. Digital actions (T6–T20) use the design system's <code>cubic-bezier(0.16,1,0.3,1)</code>. Metal lands; interface eases.</li>
+<li><strong>Idle life.</strong> When scroll is still, the only motion permitted is HDRI rotation drift and a ≤2mm object float. Enough that the frame breathes; not enough to compete with the user.</li>
+</ul>
+
+<h2>16 · Asset-loading strategy</h2>
+<p>Four waves, each gated so the visitor never scrolls into an empty scene, and never waits at a spinner mid-film.</p>
+<table>
+<thead><tr><th class="m">Wave</th><th>Contents</th><th>Gate</th></tr></thead>
+<tbody>
+<tr><td class="m">0</td><td>Fonts (Poppins, DM Mono), HDRI, hero dumbbell, app shell, all copy</td><td>Hard gate. The Ch00 preloader. Nothing renders until resolved.</td></tr>
+<tr><td class="m">1</td><td>Barbell, plate set, bench, Ch02 fragment textures</td><td>Fetched during Ch01. Soft gate at the Ch01→02 boundary.</td></tr>
+<tr><td class="m">2</td><td>Rack, functional trainer, pulleys, stack, cable maps</td><td>Fetched during Ch02. Soft gate at the Ch02→03 boundary — the heaviest wave, and it has a full chapter of runway.</td></tr>
+<tr><td class="m">3</td><td>Phone, product UI textures, exercise media, food photography</td><td>Fetched during Ch03/04. Soft gate before Ch07.</td></tr>
+</tbody>
+</table>
+<p>A <strong>soft gate</strong> means: if the wave hasn't resolved when the visitor reaches the boundary, scrub decelerates and holds at the chapter's final frame with a 1px copper progress tick at the rail — the film pauses on a composed image rather than showing a loader. In practice, with a full chapter of runway per wave, this should almost never trigger.</p>
+<p>All Tier A geometry is Draco-compressed and loaded through a single shared <code>GLTFLoader</code> with a Meshopt decoder; all textures are KTX2/BasisU with mip chains. Frame sequences for mobile are fetched in ranges of 12 frames with two ranges of lookahead in the scroll direction. Everything is served immutable with long-lived cache headers and content-hashed filenames.</p>
+
+<h2>17 · Build sequence, and what I need from you</h2>
+<h3>Proposed phases</h3>
+<ol>
+<li><strong>Greybox the whole film.</strong> All 14 chapters, real camera choreography, real pacing, real copy — with procedural stand-in geometry. This validates the narrative and the scroll rhythm, which are the things that are expensive to change later. Reviewable end-to-end.</li>
+<li><strong>Lock the hinge.</strong> Ch04 alone, to final quality. If the machine-to-dashboard transformation doesn't land, nothing else matters. Build it, look at it, iterate on it in isolation.</li>
+<li><strong>Real assets in.</strong> Swap Tier A models behind the asset provider; unify the material library; final lighting and grade pass.</li>
+<li><strong>Real product UI.</strong> Replace placeholder interface with the actual Forma dashboard, builder, library and client app.</li>
+<li><strong>Mobile build.</strong> Render the six frame sequences from the finished desktop scene; build the native DOM chapters.</li>
+<li><strong>Performance, accessibility, SEO.</strong> Budget enforcement, reduced-motion path, semantic layer, Lighthouse pass.</li>
+</ol>
+<h3>Decisions and materials I need</h3>
+<ul>
+<li><strong>Tier A asset route</strong> — commission, license, or procedural-first with a later swap. This is the single biggest determinant of final quality.</li>
+<li><strong>Real Forma product UI</strong> — repository access is far better than screenshots. Dashboard, plan builder, library, client app.</li>
+<li><strong>The F mark as vector</strong> — Ch14 extrudes it directly; I can't fake this one.</li>
+<li><strong>Real business figures</strong> for Ch11, or explicit approval to show clearly-labelled sample values.</li>
+<li><strong>Mobile strategy sign-off</strong> — confirm you're comfortable with frame sequences instead of live WebGL under 768px.</li>
+<li><strong>Scroll length</strong> — 2,320vh is roughly a four-to-five-minute film. Tell me if that's too long and I'll retune the <code>PACING</code> constant; the architecture makes this a one-number change.</li>
+<li><strong>Demo booking destination</strong> for the secondary CTA.</li>
+</ul>
+
+<hr class="rule">
+<p class="eye">End of document</p>
+<p style="font-size:13px;color:#444">Nothing has been coded yet, per your instruction. Once you've reacted to the narrative and settled the asset route, I'd start with Phase 1 — the full greybox film — so you can scroll the whole story before we spend anything on models.</p>
+
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>
