@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import bannersIndexHandler from './_handlers/index.js';
 import bannersDetailHandler from './_handlers/detail.js';
 import forViewerHandler from './_handlers/for-viewer.js';
@@ -8,7 +9,7 @@ import usageActiveDayHandler from './_handlers/usage-active-day.js';
 import usageBumpHandler from './_handlers/usage-bump.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments: string[] = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments: string[] = getPathSegments(req, '/api/banners');
 
   if (segments.length === 0) {
     return bannersIndexHandler(req, res);

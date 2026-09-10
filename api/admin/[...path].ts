@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import stats from './_handlers/stats.js';
 import members from './_handlers/members.js';
 import growth from './_handlers/growth.js';
@@ -17,14 +18,14 @@ import usersPermissions from './_handlers/users-permissions.js';
 /**
  * Vercel catch-all router for `api/admin/*` — consolidates what used to be
  * 14 separate serverless functions into one, to stay under the Hobby plan's
- * per-deployment function cap. Dispatches on `req.query.path` (populated by
- * Vercel from the `[...path]` segment) and, for routes that previously relied
- * on a `[id].ts`-style filename to populate `req.query.id`, sets that manually
- * before delegating.
+ * per-deployment function cap. Dispatches on the path segments parsed from
+ * `req.url` (see `getPathSegments` — Vercel doesn't reliably auto-populate
+ * `req.query.path` for catch-all routes in this project) and, for routes that
+ * previously relied on a `[id].ts`-style filename to populate `req.query.id`,
+ * sets that manually before delegating.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const raw = req.query.path;
-  const path = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : [];
+  const path = getPathSegments(req, '/api/admin');
 
   if (path.length === 1 && path[0] === 'stats') {
     return stats(req, res);

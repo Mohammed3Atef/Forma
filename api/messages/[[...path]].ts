@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import messagesIndex from './_handlers/index.js';
 import messagesMarkRead from './_handlers/mark-read.js';
 import notificationsIndex from './_handlers/notifications-index.js';
@@ -17,7 +18,7 @@ import notificationsMarkRead from './_handlers/notifications-mark-read.js';
  *   /api/messages/notifications/mark-read -> notifications mark-read (was /api/notifications/mark-read)
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments: string[] = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments: string[] = getPathSegments(req, '/api/messages');
 
   if (segments.length === 0) {
     return messagesIndex(req, res);

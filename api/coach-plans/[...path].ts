@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { HttpError, handleError } from '../_lib/http.js';
+import { getPathSegments } from '../_lib/routePath.js';
 import meHandler from './_handlers/me.js';
 import trialHandler from './_handlers/trial.js';
 import changeRequestHandler from './_handlers/change-request.js';
@@ -26,8 +27,7 @@ import detailHandler from './_handlers/detail.js';
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const raw = req.query.path;
-    const path = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    const path = getPathSegments(req, '/api/coach-plans');
 
     if (path.length === 1 && path[0] === 'me') {
       return meHandler(req, res);

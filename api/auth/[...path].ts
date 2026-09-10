@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import signupHandler from './_handlers/signup.js';
 import loginHandler from './_handlers/login.js';
 import refreshHandler from './_handlers/refresh.js';
@@ -10,7 +11,7 @@ import requestPasswordResetHandler from './_handlers/request-password-reset.js';
 import confirmPasswordResetHandler from './_handlers/confirm-password-reset.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments = getPathSegments(req, '/api/auth');
   const [first] = segments;
   switch (first) {
     case 'signup': return signupHandler(req, res);

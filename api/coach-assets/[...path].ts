@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 
 import billingPlans from './_handlers/billing-plans.js';
 import billingPlansDetail from './_handlers/billing-plans-detail.js';
@@ -37,8 +38,7 @@ const routes: Record<string, { list: Handler; detail: Handler }> = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const path = req.query.path;
-  const segments = Array.isArray(path) ? path : path ? [path] : [];
+  const segments = getPathSegments(req, '/api/coach-assets');
 
   if (segments.length === 1 && segments[0] === 'seed-starter-library') {
     await seedStarterLibrary(req, res);

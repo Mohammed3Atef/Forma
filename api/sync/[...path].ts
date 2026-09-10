@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import pushHandler from './_handlers/push.js';
 import pullHandler from './_handlers/pull.js';
 import deletionsPushHandler from './_handlers/deletions-push.js';
@@ -7,7 +8,7 @@ import singletonHandler from './_handlers/singleton.js';
 import wipeHandler from './_handlers/wipe.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments = getPathSegments(req, '/api/sync');
   const key = segments.join('/');
   switch (key) {
     case 'push': return pushHandler(req, res);

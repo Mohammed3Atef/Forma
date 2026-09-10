@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import assessmentHandler from './_handlers/assessment.js';
 import workoutPlanHandler from './_handlers/workout-plan.js';
 import nutritionPlanHandler from './_handlers/nutrition-plan.js';
@@ -16,7 +17,7 @@ import logsWeightHandler from './_handlers/logs-weight.js';
 import logsCardioHandler from './_handlers/logs-cardio.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments = getPathSegments(req, '/api/client');
   const key = segments.join('/');
   switch (key) {
     case 'assessment': return assessmentHandler(req, res);

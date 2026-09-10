@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/routePath.js';
 import coachClientsIndex from './_handlers/index.js';
 import coachClientsDetail from './_handlers/detail.js';
 import invitesIndex from './_handlers/invites-index.js';
@@ -29,7 +30,7 @@ import transfersDetail from './_handlers/transfers-detail.js';
  * or 'transfers'.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments: string[] = Array.isArray(req.query.path) ? req.query.path : req.query.path ? [req.query.path] : [];
+  const segments: string[] = getPathSegments(req, '/api/coach-clients');
 
   if (segments.length === 0) {
     return coachClientsIndex(req, res);
