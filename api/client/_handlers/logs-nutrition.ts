@@ -1,81 +1,41 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { z } from 'zod';
 import { requireUser } from '../../_lib/withAuth.js';
 import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
-import { canReadClientData, isActiveSelf, resolveClientId } from '../_lib/access.js';
-import { nutritionLogsCol } from '../_lib/db.js';
-import type { NutritionLogDoc } from '../_lib/types.js';
+import { canReadClientData, resolveClientId } from '../_lib/access.js';
 import { syncRecordsCol } from '../../sync/_data.js';
 
 /**
- * Raw fitness log CRUD for `nutritionLogs` (mirrors `SyncEngine`'s
+ * Raw fitness log read for `nutritionLogs` (mirrors `SyncEngine`'s
  * `NutritionLog` doc, one per day). NOT coach-owned and no dedicated
  * coach-write rule — client-own write only; coach/admin(readAll) read only.
  *
- * GET reads from the generic `syncRecords` collection (`api/sync/*`), NOT the
- * dedicated `nutritionLogsCol` below — see `workout.ts`'s matching comment
- * for why (the client's SyncEngine pushes here via generic sync, never PUT).
+ * GET reads from the generic `syncRecords` collection (`api/sync/*`) — see
+ * `logs-workout.ts`'s matching comment for why (the client's SyncEngine
+ * pushes here via generic sync). Writes happen only through `api/sync/*`;
+ * this route is read-only (a formerly-dead PUT/DELETE pair writing to a
+ * separate `nutritionLogsCol` — never read by this GET — was removed).
  */
-const Body = z.object({
-  date: z.string(),
-  mealsEaten: z.record(z.string(), z.boolean()).default({}),
-  supplementsTaken: z.record(z.string(), z.boolean()).default({}),
-  customFoods: z.array(z.record(z.string(), z.unknown())).default([]),
-  itemOverrides: z.record(z.string(), z.record(z.string(), z.unknown()).nullable()).default({}),
-  substitutions: z
-    .record(z.string(), z.object({ source: z.enum(['approved_substitution', 'client_custom_substitution']), pendingApproval: z.boolean().optional() }))
-    .optional(),
-  extraItems: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))).default({}),
-  waterMl: z.number().default(0),
-  creatineTaken: z.boolean().default(false),
-});
-
-function logId(clientId: string, date: string): string {
-  return `${clientId}__${date}`;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    methodGuard(req, 'GET', 'PUT', 'DELETE');
+    methodGuard(req, 'GET');
     const user = await requireUser(req);
     const clientId = resolveClientId(req, user);
-    const col = await nutritionLogsCol();
 
-    if (req.method === 'GET') {
-      if (!(await canReadClientData(user, clientId))) throw new HttpError(403, 'Forbidden');
-      const syncCol = await syncRecordsCol();
-      const date = typeof req.query.date === 'string' ? req.query.date : undefined;
-      if (date) {
-        const rec = await syncCol.findOne({ clientId, collection: 'nutritionLogs', recordId: date });
-        res.status(200).json(rec?.data ?? null);
-        return;
-      }
-      const limit = Math.min(Number(req.query.limit) || 30, 200);
-      const recs = await syncCol
-        .find({ clientId, collection: 'nutritionLogs' })
-        .sort({ recordId: -1 })
-        .limit(limit)
-        .toArray();
-      res.status(200).json(recs.map((r) => r.data));
-      return;
-    }
-
-    if (req.method === 'PUT') {
-      if (!isActiveSelf(user, clientId)) throw new HttpError(403, 'Forbidden');
-      const body = Body.parse(req.body);
-      const now = Date.now();
-      const doc = { _id: logId(clientId, body.date), clientId, ...body, updatedAt: now } as NutritionLogDoc;
-      await col.replaceOne({ _id: doc._id }, doc, { upsert: true });
-      res.status(200).json(doc);
-      return;
-    }
-
-    // DELETE
+    if (!(await canReadClientData(user, clientId))) throw new HttpError(403, 'Forbidden');
+    const syncCol = await syncRecordsCol();
     const date = typeof req.query.date === 'string' ? req.query.date : undefined;
-    if (!date) throw new HttpError(400, 'date is required');
-    if (!isActiveSelf(user, clientId)) throw new HttpError(403, 'Forbidden');
-    await col.deleteOne({ _id: logId(clientId, date) });
-    res.status(204).end();
+    if (date) {
+      const rec = await syncCol.findOne({ clientId, collection: 'nutritionLogs', recordId: date });
+      res.status(200).json(rec?.data ?? null);
+      return;
+    }
+    const limit = Math.min(Number(req.query.limit) || 30, 200);
+    const recs = await syncCol
+      .find({ clientId, collection: 'nutritionLogs' })
+      .sort({ recordId: -1 })
+      .limit(limit)
+      .toArray();
+    res.status(200).json(recs.map((r) => r.data));
   } catch (e) {
     handleError(res, e);
   }

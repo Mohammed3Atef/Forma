@@ -5,16 +5,23 @@ import { verifyPassword } from '../../_lib/password.js';
 import { issueSession } from '../../_lib/tokens.js';
 import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
 import { toPublicUser } from '../../_lib/types.js';
+import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
 
 const Body = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1),
 });
 
+// 10 attempts / 15 min per (ip, email) pair — blunts both a single attacker
+// hammering one account and low-and-slow guessing spread across many emails.
+const LOGIN_MAX_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     methodGuard(req, 'POST');
     const body = Body.parse(req.body);
+    await enforceRateLimit('auth.login', `${getClientIp(req)}:${body.email}`, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
     const users = await usersCol();
     const doc = await users.findOne({ emailLower: body.email });
     // Deliberately identical error for "no such account" and "wrong password"

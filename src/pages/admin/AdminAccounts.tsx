@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import {
   setAccountStatus,
   setRole,
 } from '@/services/platform/accountsApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { passwordError } from '@/lib/password';
 import type { AccountStatus, Role, UserRecord } from '@/types';
 
@@ -32,10 +32,24 @@ const ROLE_FILTERS: (Role | 'all')[] = ['all', 'super_admin', 'admin', 'coach', 
 const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'pending', 'suspended', 'disabled'];
 const STATUSES: AccountStatus[] = ['active', 'pending', 'suspended', 'disabled'];
 
-/** Roles the actor is allowed to assign. */
+/** Roles the actor is allowed to assign when CREATING a new account. */
 function assignableRoles(actorRole: Role | undefined): Role[] {
   if (actorRole === 'super_admin') return ['client', 'coach', 'admin', 'super_admin'];
   if (actorRole === 'admin') return ['client', 'coach'];
+  return [];
+}
+
+/**
+ * Roles offered by the "change role" control on an EXISTING account.
+ * Deliberately excludes 'admin'/'super_admin' — unlike account creation,
+ * `PATCH /admin/users/:id/role` (api/admin/_handlers/users-role.ts) only
+ * ever accepts `z.enum(['client', 'coach'])`, even for a super_admin actor.
+ * Admin/super_admin accounts are provisioned via a separate seed script,
+ * not promoted through this control, so this always 400s and must stay
+ * hidden here regardless of what `assignableRoles` allows at creation time.
+ */
+function changeableRoles(actorRole: Role | undefined): Role[] {
+  if (actorRole === 'super_admin' || actorRole === 'admin') return ['client', 'coach'];
   return [];
 }
 
@@ -61,8 +75,12 @@ export function AdminAccounts() {
   const online = useOnlineStatus();
   const [selected, setSelected] = useState<UserRecord | null>(null);
   const [creating, setCreating] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const sel = useSelection();
   const canStatus = useCan('users.manageStatus');
+
+  // Clear any stale error from a previous account whenever the sheet's target changes.
+  useEffect(() => setActionError(null), [selected?.id]);
 
   const list = useInfiniteQuery({
     queryKey: ['users'],
@@ -95,6 +113,7 @@ export function AdminAccounts() {
       refresh();
       setSelected(null);
     },
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
   const roleMut = useMutation({
     mutationFn: ({ target, role }: { target: UserRecord; role: Role }) => setRole(target, role),
@@ -102,6 +121,7 @@ export function AdminAccounts() {
       refresh();
       setSelected(null);
     },
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
   const deleteMut = useMutation({
     mutationFn: (target: UserRecord) => deleteUser(target),
@@ -109,6 +129,7 @@ export function AdminAccounts() {
       refresh();
       setSelected(null);
     },
+    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
   const bulkStatusMut = useMutation({
     mutationFn: ({ targets, status }: { targets: UserRecord[]; status: AccountStatus }) => bulkSetAccountStatus(targets, status),
@@ -116,6 +137,11 @@ export function AdminAccounts() {
       refresh();
       sel.clear();
     },
+    onError: (e, vars) =>
+      void alertDialog({
+        title: t(`platform.status.${vars.status}`),
+        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+      }),
   });
 
   // Accounts the actor may act on in bulk (and may select).
@@ -271,9 +297,10 @@ export function AdminAccounts() {
             <AccountActions
               target={selected}
               actorRole={actorRole}
-              onSetStatus={(status) => statusMut.mutate({ target: selected, status })}
-              onSetRole={(role) => roleMut.mutate({ target: selected, role })}
-              onDelete={() => deleteMut.mutate(selected)}
+              error={actionError}
+              onSetStatus={(status) => { setActionError(null); statusMut.mutate({ target: selected, status }); }}
+              onSetRole={(role) => { setActionError(null); roleMut.mutate({ target: selected, role }); }}
+              onDelete={() => { setActionError(null); deleteMut.mutate(selected); }}
               busy={statusMut.isPending || roleMut.isPending || deleteMut.isPending || !online}
             />
           </div>
@@ -309,6 +336,7 @@ function StatusBadge({ status }: { status: AccountStatus }) {
 function AccountActions({
   target,
   actorRole,
+  error,
   onSetStatus,
   onSetRole,
   onDelete,
@@ -316,6 +344,7 @@ function AccountActions({
 }: {
   target: UserRecord;
   actorRole: Role | undefined;
+  error: string | null;
   onSetStatus: (s: AccountStatus) => void;
   onSetRole: (r: Role) => void;
   onDelete: () => void;
@@ -325,7 +354,7 @@ function AccountActions({
   const canStatus = useCan('users.manageStatus');
   const canRoles = useCan('users.manageRoles');
   const manageable = canManage(actorRole, target);
-  const roles = assignableRoles(actorRole);
+  const roles = changeableRoles(actorRole);
 
   if (!manageable) {
     return <p className="py-4 text-sm text-earth-muted" data-testid="cannot-edit-account">{t('admin.cannotEditSuper')}</p>;
@@ -368,6 +397,8 @@ function AccountActions({
         {target.email}
         {target.phone && <span className="mt-0.5 block font-mono text-[12px]" dir="ltr">{target.phone}</span>}
       </div>
+
+      {error && <p className="text-sm text-danger" data-testid="account-action-error">{error}</p>}
 
       {canRoles && roles.length > 0 && (
         <div>

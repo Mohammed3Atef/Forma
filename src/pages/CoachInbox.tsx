@@ -9,7 +9,7 @@ import { clientNoteRoute } from '@/lib/noteTarget';
 export function CoachInbox() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { enabled, notes, plans, targets } = useCoachContent();
+  const { enabled, notes, targets } = useCoachContent();
 
   return (
     <>
@@ -39,24 +39,6 @@ export function CoachInbox() {
                 <Cell label={t('coach.cardio')} value={targets.cardioMin} unit={t('common.min')} />
                 <Cell label={t('nutrition.calories')} value={targets.calories} />
                 <Cell label={t('nutrition.protein')} value={targets.protein} unit="g" />
-              </div>
-            </section>
-          )}
-
-          {/* Assigned plans */}
-          {plans.length > 0 && (
-            <section>
-              <h2 className="h2 mb-2">{t('coach.plans')}</h2>
-              <div className="space-y-2">
-                {plans.map((p) => (
-                  <div key={p.id} className="card">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{p.title}</span>
-                      <span className="font-mono text-[10.5px] uppercase text-earth-subtle">{t(`coach.kind.${p.kind}`)}</span>
-                    </div>
-                    {p.description && <p className="mt-1 whitespace-pre-wrap text-[13px] text-earth-muted">{p.description}</p>}
-                  </div>
-                ))}
               </div>
             </section>
           )}

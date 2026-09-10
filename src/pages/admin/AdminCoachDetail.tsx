@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
-import { confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchUser, setAccountStatus } from '@/services/platform/accountsApi';
@@ -56,12 +56,15 @@ export function AdminCoachDetail() {
     void qc.invalidateQueries({ queryKey: ['coachUser', coachId] });
     void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
   };
-  const tier = useMutation({ mutationFn: (tk: CoachTierKey) => setCoachTier(coachId, tk), onSuccess: invalidate });
-  const extend = useMutation({ mutationFn: (days: number) => extendCoachTrial(coachId, days), onSuccess: invalidate });
-  const renew = useMutation({ mutationFn: () => renewCoachPlan(coachId), onSuccess: invalidate });
-  const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); invalidate(); } });
-  const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: invalidate });
-  const acct = useMutation({ mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s), onSuccess: invalidate });
+  const onMutationError = (title: string) => (e: unknown) =>
+    void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+
+  const tier = useMutation({ mutationFn: (tk: CoachTierKey) => setCoachTier(coachId, tk), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.changeTier')) });
+  const extend = useMutation({ mutationFn: (days: number) => extendCoachTrial(coachId, days), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.extendTrial')) });
+  const renew = useMutation({ mutationFn: () => renewCoachPlan(coachId), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.renew')) });
+  const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); invalidate(); }, onError: onMutationError(t('adminCoaches.setLimit')) });
+  const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: invalidate, onError: onMutationError(t('admin.setEndDate')) });
+  const acct = useMutation({ mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.suspend')) });
   const onResolved = () => {
     setNote('');
     void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] });
@@ -79,8 +82,13 @@ export function AdminCoachDetail() {
       await resolvePlanChangeRequest(coachId, meId, 'accepted', note);
     },
     onSuccess: onResolved,
+    onError: onMutationError(t('admin.approveRequest')),
   });
-  const reject = useMutation({ mutationFn: () => resolvePlanChangeRequest(coachId, meId, 'rejected', note), onSuccess: onResolved });
+  const reject = useMutation({
+    mutationFn: () => resolvePlanChangeRequest(coachId, meId, 'rejected', note),
+    onSuccess: onResolved,
+    onError: onMutationError(t('admin.rejectRequest')),
+  });
 
   if (!isSuper) return <Navigate to="/admin" replace />;
   const p = plan.data;

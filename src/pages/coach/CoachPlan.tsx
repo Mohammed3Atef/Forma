@@ -9,6 +9,7 @@ import { Sheet } from '@/components/Sheet';
 import { TextAreaField } from '@/components/ui/Field';
 import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
+import { alertDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
   coachPlanState,
@@ -19,6 +20,7 @@ import {
   cancelPlanChangeRequest,
   type CoachTierKey,
 } from '@/services/platform/coachPlanApi';
+import { ApiError } from '@/services/platformApi';
 import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { shortDate } from '@/lib/utils';
 
@@ -49,6 +51,11 @@ export function CoachPlan() {
   const cancel = useMutation({
     mutationFn: () => cancelPlanChangeRequest(coachId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] }),
+    onError: (e) =>
+      void alertDialog({
+        title: t('coachPlan.cancelRequest'),
+        message: e instanceof ApiError ? e.message : t('common.errorGeneric'),
+      }).then(() => qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] })),
   });
 
   const p = plan.data;

@@ -4,8 +4,16 @@
  * shapes) — deliberately duplicated here rather than imported from `src/`,
  * same discipline as `api/_lib/types.ts`. Only the fields the admin oversight
  * routes actually read/write are included.
+ *
+ * `CoachClientDoc` itself is the one exception: it's the same `coachClients`
+ * Mongo document owned/exported canonically by `api/coach-clients/_types.ts`,
+ * so it's re-exported from there (type-only import — no runtime dependency
+ * on the coach-clients module) instead of being hand-mirrored a second time.
  */
 import type { Role } from '../../_lib/types.js';
+import type { CoachClientDoc } from '../../coach-clients/_types.js';
+
+export type { CoachClientDoc };
 
 export type SubscriptionStatus = 'trial' | 'active' | 'pending' | 'expired' | 'cancelled' | 'frozen' | 'ended';
 export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'custom';
@@ -23,26 +31,6 @@ export interface Subscription {
   frozenFrom?: number | null;
   frozenUntil?: number | null;
   note?: string;
-  updatedAt: number;
-}
-
-export type CoachClientStatus = 'active' | 'pending' | 'ended';
-export type TransferMode = 'fresh_start' | 'keep_plans';
-
-/** Mongo doc for `coachClients`, `_id` == `${coachId}__${clientId}` (owned by a parallel migration agent; read-only here). */
-export interface CoachClientDoc {
-  _id: string;
-  coachId: string;
-  clientId: string;
-  status: CoachClientStatus;
-  subscription?: Subscription;
-  inviteCode?: string;
-  endedAt?: number;
-  endedBy?: string;
-  endReason?: 'released' | 'transferred' | 'unassigned';
-  mode?: TransferMode;
-  createdBy: string;
-  createdAt: number;
   updatedAt: number;
 }
 

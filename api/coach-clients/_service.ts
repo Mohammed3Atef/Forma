@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getDb } from '../_lib/mongodb.js';
 import { HttpError } from '../_lib/http.js';
 import type { UserDoc } from '../_lib/types.js';
@@ -9,6 +10,15 @@ import type {
   TransferMode,
   TransferSubHandling,
 } from './_types.js';
+import {
+  archivedClientDataCol,
+  clientCardioPlansCol,
+  clientNutritionPlansCol,
+  clientWorkoutPlansCol,
+  coachNotesCol,
+  coachTargetsCol,
+} from '../client/_lib/db.js';
+import type { ArchivedClientDataDoc, ArchivedClientDataKind } from '../client/_lib/types.js';
 
 const SUB_DAY = 86_400_000;
 
@@ -168,19 +178,73 @@ export async function endRelationship(
 }
 
 /**
+ * Fresh-start transfer support: archives the client's current coach-owned
+ * content (workout/nutrition/cardio plan singletons, coach notes, coach-set
+ * targets) into `archivedClientData` — one doc per item, tagged with the
+ * PREVIOUS coach id, the client id, and an archive timestamp — then deletes
+ * the live docs so the new coach genuinely starts the client fresh (a GET on
+ * any of those routes behaves exactly like a brand-new client: `null`/empty).
+ *
+ * Called from `transferClientWithMode` BEFORE the client is reassigned, so a
+ * `fresh_start` transfer archives+clears and reassigns as one server-side
+ * operation — never a second client-triggered call (this codebase doesn't use
+ * Mongo multi-document transactions anywhere, so "atomic" here means "one
+ * request, sequential awaited writes," consistent with every other multi-step
+ * mutation in this file).
+ */
+async function archiveAndClearCoachOwnedData(clientId: string, previousCoachId: string, now: number): Promise<void> {
+  const [workoutPlan, nutritionPlan, cardioPlan, targets, notes] = await Promise.all([
+    (await clientWorkoutPlansCol()).findOne({ _id: clientId }),
+    (await clientNutritionPlansCol()).findOne({ _id: clientId }),
+    (await clientCardioPlansCol()).findOne({ _id: clientId }),
+    (await coachTargetsCol()).findOne({ _id: clientId }),
+    (await coachNotesCol()).find({ clientId }).toArray(),
+  ]);
+
+  const entries: ArchivedClientDataDoc[] = [];
+  // Generic over `T` (rather than typing `doc` as `Record<string, unknown>`
+  // directly) so this compiles for every source doc shape here, including the
+  // ones declared as plain `interface`s with no index signature (CoachTargetsDoc,
+  // CoachNoteDoc) — only the `_id: string` constraint is actually required.
+  function archiveOne<T extends { _id: string }>(kind: ArchivedClientDataKind, doc: T): void {
+    const { _id: sourceId, ...rest } = doc;
+    entries.push({
+      _id: crypto.randomUUID(),
+      clientId,
+      previousCoachId,
+      kind,
+      sourceId,
+      archivedAt: now,
+      data: rest as unknown as Record<string, unknown>,
+    });
+  }
+
+  if (workoutPlan) archiveOne('workoutPlan', workoutPlan);
+  if (nutritionPlan) archiveOne('nutritionPlan', nutritionPlan);
+  if (cardioPlan) archiveOne('cardioPlan', cardioPlan);
+  if (targets) archiveOne('coachTargets', targets);
+  for (const note of notes) archiveOne('coachNote', note);
+
+  if (entries.length) {
+    await (await archivedClientDataCol()).insertMany(entries);
+  }
+
+  await Promise.all([
+    (await clientWorkoutPlansCol()).deleteOne({ _id: clientId }),
+    (await clientNutritionPlansCol()).deleteOne({ _id: clientId }),
+    (await clientCardioPlansCol()).deleteOne({ _id: clientId }),
+    (await coachTargetsCol()).deleteOne({ _id: clientId }),
+    (await coachNotesCol()).deleteMany({ clientId }),
+  ]);
+}
+
+/**
  * Admin/super-admin transfer with an explicit mode + subscription handling.
  * Port of `transferClientWithMode()`: ends the old relationship (transfer
- * metadata), resolves the new subscription per `subscriptionHandling`, and
- * opens the new relationship.
- *
- * KNOWN GAP vs. the Firestore-era version: `mode === 'fresh_start'` there also
- * archives + clears the previous coach's `clientData` content (plans/notes/
- * targets/check-ins) via `archiveAndClearCoachData()`. That step is NOT ported
- * here — `clientData`/`planVersions` are out of this module's scope (only
- * `api/invites`, `api/coach-clients`, `api/transfers` may be touched) and have
- * no Mongo collection yet in this migration. The reassignment and subscription
- * handling below are still applied faithfully; content-clearing must be wired
- * in once `clientData` is ported.
+ * metadata), archives + clears the previous coach's plan/notes/targets content
+ * when `mode === 'fresh_start'` (see `archiveAndClearCoachOwnedData` above),
+ * resolves the new subscription per `subscriptionHandling`, and opens the new
+ * relationship.
  */
 export async function transferClientWithMode(
   clientId: string,
@@ -210,6 +274,13 @@ export async function transferClientWithMode(
         { $set: { status: 'ended', endedAt: now, endedBy: by, endReason: 'transferred', mode, updatedAt: now } },
       )
       .catch(() => undefined);
+  }
+
+  // Fresh start: archive + clear the PREVIOUS coach's plan/notes/targets
+  // content before the reassignment below, so the new coach starts clean.
+  // Only meaningful when there actually was a previous coach.
+  if (mode === 'fresh_start' && fromCoachId) {
+    await archiveAndClearCoachOwnedData(clientId, fromCoachId, now);
   }
 
   let subscription: SubscriptionDoc | undefined;

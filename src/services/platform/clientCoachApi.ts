@@ -1,7 +1,7 @@
 import { apiGet, apiPatch, apiPost, apiPut } from '@/services/platformApi';
 import { fetchUser } from './accountsApi';
 import { getRelationship } from './coachClientsApi';
-import type { ClientAssessment, AssignedPlan, CardioPlan, CoachClientRelationship, CoachNote, CoachTargets, FreezeRequest, PlanKind, UserProfile, UserRecord } from '@/types';
+import type { ClientAssessment, CardioPlan, CoachClientRelationship, CoachNote, CoachTargets, FreezeRequest, UserProfile, UserRecord } from '@/types';
 
 /**
  * Owner-side reads of coach-authored content for the signed-in client, over
@@ -28,16 +28,6 @@ function withId<T>(doc: Record<string, unknown>, id: string, extra?: Record<stri
 export async function fetchMyCoachNotes(clientId: string): Promise<CoachNote[]> {
   const list = await apiGet<Record<string, unknown>[]>(`/client/coach-notes${qs({ clientId })}`);
   return list.map((d) => withId<CoachNote>(d, d._id as string));
-}
-
-/**
- * "Assigned plan" cards (`workoutPlans`/`nutritionPlans`, title+description)
- * have no Mongo route — superseded by the singleton coach-authored plan model
- * (see planApi.ts / planVersionsApi.ts). Resolves empty; `useCoachContent`
- * already treats an empty plans list as "no content yet".
- */
-export async function fetchMyPlans(_clientId: string, _kind: PlanKind): Promise<AssignedPlan[]> {
-  return [];
 }
 
 export async function fetchMyCoachTargets(clientId: string): Promise<CoachTargets | null> {

@@ -6,6 +6,11 @@ import { hashPassword } from '../../_lib/password.js';
 import { issueSession } from '../../_lib/tokens.js';
 import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
+import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
+
+// 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
+const SIGNUP_MAX_ATTEMPTS = 5;
+const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
 
 /**
  * Coach self-registration only, per the product decision made for Phase 1:
@@ -25,6 +30,7 @@ const Body = z.object({
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     methodGuard(req, 'POST');
+    await enforceRateLimit('auth.signup', getClientIp(req), SIGNUP_MAX_ATTEMPTS, SIGNUP_WINDOW_MS);
     const body = Body.parse(req.body);
     const users = await usersCol();
     if (await users.findOne({ emailLower: body.email })) {

@@ -18,7 +18,7 @@ import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCo
 import { trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
 import { CoachStateBadge } from './CoachStateBadge';
 import type { AccountStatus } from '@/types';
@@ -50,6 +50,11 @@ export function CoachesPanel() {
       void qc.invalidateQueries({ queryKey: ['users'] });
       sel.clear();
     },
+    onError: (e, vars) =>
+      void alertDialog({
+        title: t(`platform.status.${vars.status}`),
+        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+      }),
   });
   const runBulk = async (status: AccountStatus) => {
     if (sel.count === 0) return;

@@ -26,10 +26,15 @@ const Body = z
     tier: z.string().trim().min(1).max(60).optional(),
     status: z.enum(['active', 'expired', 'suspended']).optional(),
     maxClients: z.number().int().min(0).optional(),
+    // Explicit admin-chosen end date override (or `null` to clear it back to
+    // "no end date"). Distinct from the `tier` branch below, which derives
+    // `endsAt` automatically from the tier's standard term length.
+    endsAt: z.number().int().nonnegative().nullable().optional(),
   })
-  .refine((b) => b.tier !== undefined || b.status !== undefined || b.maxClients !== undefined, {
-    message: 'At least one of tier, status, maxClients must be provided.',
-  });
+  .refine(
+    (b) => b.tier !== undefined || b.status !== undefined || b.maxClients !== undefined || b.endsAt !== undefined,
+    { message: 'At least one of tier, status, maxClients, endsAt must be provided.' },
+  );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -71,6 +76,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (body.tier !== undefined) {
       // A tier change (re)activates the plan, mirrors `setCoachTier`.
       set.status = 'active';
+    }
+
+    // Explicit end-date override — applied AFTER the tier branch so an
+    // admin-chosen date (or an explicit clear-to-null) always wins over the
+    // tier branch's auto-derived `endsAt`, even if both were somehow sent
+    // together.
+    if (body.endsAt !== undefined) {
+      set.endsAt = body.endsAt;
+      history.push({ at: now, action: 'endsAt', detail: body.endsAt === null ? 'cleared' : String(body.endsAt), by: user.id });
     }
 
     await plans.updateOne(

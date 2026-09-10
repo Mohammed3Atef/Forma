@@ -15,6 +15,8 @@ import logsWorkoutHandler from './_handlers/logs-workout.js';
 import logsNutritionHandler from './_handlers/logs-nutrition.js';
 import logsWeightHandler from './_handlers/logs-weight.js';
 import logsCardioHandler from './_handlers/logs-cardio.js';
+import logsChecklistHandler from './_handlers/logs-checklist.js';
+import photosHandler from './_handlers/photos.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segments = getPathSegments(req, '/api/client');
@@ -35,6 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     case 'logs/nutrition': return logsNutritionHandler(req, res);
     case 'logs/weight': return logsWeightHandler(req, res);
     case 'logs/cardio': return logsCardioHandler(req, res);
+    case 'logs/checklist': return logsChecklistHandler(req, res);
+    case 'photos': return photosHandler(req, res);
     default:
       res.status(404).json({ error: 'Not found' });
   }

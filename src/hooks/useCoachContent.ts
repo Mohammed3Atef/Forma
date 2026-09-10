@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchMyCoachNotes, fetchMyCoachTargets, fetchMyPlans } from '@/services/platform/clientCoachApi';
+import { fetchMyCoachNotes, fetchMyCoachTargets } from '@/services/platform/clientCoachApi';
 
 /**
  * Coach-authored content for the signed-in client (notes, assigned plans,
@@ -14,12 +14,9 @@ export function useCoachContent() {
   const cid = uid ?? '';
 
   const notes = useQuery({ queryKey: ['myCoachNotes', cid], queryFn: () => fetchMyCoachNotes(cid), enabled });
-  const wPlans = useQuery({ queryKey: ['myPlans', cid, 'workout'], queryFn: () => fetchMyPlans(cid, 'workout'), enabled });
-  const nPlans = useQuery({ queryKey: ['myPlans', cid, 'nutrition'], queryFn: () => fetchMyPlans(cid, 'nutrition'), enabled });
   const targets = useQuery({ queryKey: ['myCoachTargets', cid], queryFn: () => fetchMyCoachTargets(cid), enabled });
 
-  const plans = [...(wPlans.data ?? []), ...(nPlans.data ?? [])];
-  const hasContent = enabled && ((notes.data?.length ?? 0) > 0 || plans.length > 0 || !!targets.data);
+  const hasContent = enabled && ((notes.data?.length ?? 0) > 0 || !!targets.data);
 
-  return { enabled, notes: notes.data ?? [], plans, targets: targets.data ?? null, hasContent };
+  return { enabled, notes: notes.data ?? [], targets: targets.data ?? null, hasContent };
 }

@@ -66,9 +66,9 @@ function parseId(raw: unknown): { coachId: string; clientId: string } {
  *    `unassignClient()`.
  *  - `{ action: 'transfer' }` : an admin (`coaches.assign`; `clients.writeAll`
  *    additionally required for `mode: 'fresh_start'`) reassigns the client to
- *    a new coach directly. Port of `transferClientWithMode()` — see that
- *    function's doc comment for the one known gap (fresh-start content
- *    clearing isn't ported, `clientData` is out of scope here).
+ *    a new coach directly. Port of `transferClientWithMode()`, which for
+ *    `mode: 'fresh_start'` also archives + clears the previous coach's
+ *    plan/notes/targets content (see that function's doc comment).
  *  - `{ action: 'subscription', sub }` : the owning coach (or an admin with
  *    `clients.writeAll`) mutates an EXISTING relationship's subscription in
  *    place — set term/price, freeze/unfreeze, end, cancel, extend. Port of

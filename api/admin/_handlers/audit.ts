@@ -2,8 +2,9 @@ import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth.js';
-import { handleError, methodGuard } from '../../_lib/http.js';
+import { HttpError, handleError, methodGuard } from '../../_lib/http.js';
 import { auditLogsCol } from '../_lib/db.js';
+import { coachClientsCol, relId } from '../../coach-clients/_data.js';
 import type { AuditLogDoc } from '../_lib/types.js';
 
 /**
@@ -11,12 +12,34 @@ import type { AuditLogDoc } from '../_lib/types.js';
  * paginated); POST appends one entry (best-effort — same shape `writeAudit()`
  * elsewhere in the app will eventually call for every mutating admin action).
  * `adminAuditLogs` is append-only/immutable — there is no update/delete route.
+ *
+ * POST is reachable by any active signed-in user (not just admins) because a
+ * handful of legitimate non-admin flows log their own actions this way today
+ * (e.g. a coach recording `client.measurement` for one of their own clients —
+ * see `src/services/platform/coachApi.ts`). Everything else that calls
+ * `writeAudit()` from the frontend is admin/super-admin-only. Without a check
+ * here, any signed-in client or coach could POST an arbitrary `action` +
+ * `targetUserId` and have it appear indistinguishable from a real
+ * system-recorded admin event in the governance/activity views. Admins are
+ * trusted as before; everyone else is restricted to the known-safe action
+ * allow-list below, and only for a client they actually coach.
  */
 const CreateBody = z.object({
   action: z.string().trim().min(1).max(120),
   targetUserId: z.string().trim().min(1),
   metadata: z.record(z.unknown()).optional(),
 });
+
+/** Non-admin actions we know are legitimately self-logged today. Extend deliberately, not by default. */
+const NON_ADMIN_ALLOWED_ACTIONS = new Set(['client.measurement']);
+
+async function assertNonAdminWriteAllowed(user: { id: string; role: string }, body: { action: string; targetUserId: string }): Promise<void> {
+  if (!NON_ADMIN_ALLOWED_ACTIONS.has(body.action)) throw new HttpError(403, 'Forbidden');
+  if (user.role !== 'coach') throw new HttpError(403, 'Forbidden');
+  const coachClients = await coachClientsCol();
+  const owns = await coachClients.findOne({ _id: relId(user.id, body.targetUserId) });
+  if (!owns) throw new HttpError(403, 'Forbidden');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -27,6 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'POST') {
       const body = CreateBody.parse(req.body);
+      if (user.role !== 'admin' && user.role !== 'super_admin') {
+        await assertNonAdminWriteAllowed(user, body);
+      }
       const doc: AuditLogDoc = {
         _id: crypto.randomUUID(),
         actorId: user.id,

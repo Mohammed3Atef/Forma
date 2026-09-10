@@ -68,8 +68,8 @@ export async function submitCheckIn(clientId: string, id: string, data: CheckInS
 }
 
 /** Coach reviews a submitted check-in with feedback. The backend notifies the client. */
-export async function reviewCheckIn(clientId: string, id: string, coachId: string, feedback: string): Promise<void> {
-  await apiPost(`/client/check-ins${qs({ action: 'review', clientId, id })}`, { feedback, coachId });
+export async function reviewCheckIn(clientId: string, id: string, feedback: string): Promise<void> {
+  await apiPost(`/client/check-ins${qs({ action: 'review', clientId, id })}`, { feedback });
 }
 
 export interface CheckInTrendPoint {

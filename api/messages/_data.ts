@@ -4,6 +4,7 @@ import { hasPermission } from '../_lib/rbac.js';
 import { HttpError } from '../_lib/http.js';
 import type { AuthedUser } from '../_lib/withAuth.js';
 import type { Role } from '../_lib/types.js';
+import type { CoachClientDoc } from '../coach-clients/_types.js';
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `Message` / `MessageAttachment` /
@@ -53,16 +54,11 @@ export async function messagesCol(): Promise<Collection<MessageDoc>> {
 }
 
 /**
- * Minimal local mirror of the `coachClients` collection (owned by a parallel
- * migration module — we only ever read it here). `_id` is `${coachId}__${clientId}`.
+ * `coachClients` collection (owned by the `api/coach-clients` module — we
+ * only ever read it here). `_id` is `${coachId}__${clientId}`. `CoachClientDoc`
+ * is imported from there rather than re-declared so the two modules can't
+ * drift out of sync.
  */
-export interface CoachClientDoc {
-  _id: string;
-  coachId: string;
-  clientId: string;
-  status: 'active' | 'pending' | 'ended';
-}
-
 export async function coachClientsCol(): Promise<Collection<CoachClientDoc>> {
   return (await getDb()).collection<CoachClientDoc>('coachClients');
 }

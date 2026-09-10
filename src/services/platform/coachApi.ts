@@ -153,20 +153,19 @@ export interface ClientDay {
 /** Everything a client logged on one calendar day (for the coach activity view). */
 export async function fetchClientDay(clientId: string, date: string): Promise<ClientDay> {
   const base = { clientId, date };
-  const [w, n, wt, cardio] = await Promise.all([
+  const [w, n, wt, cardio, checklist] = await Promise.all([
     apiGet<Record<string, unknown> | null>(`/client/logs/workout${qs(base)}`),
     apiGet<Record<string, unknown> | null>(`/client/logs/nutrition${qs(base)}`),
     apiGet<Record<string, unknown> | null>(`/client/logs/weight${qs(base)}`),
     apiGet<Record<string, unknown>[]>(`/client/logs/cardio${qs(base)}`),
+    apiGet<Record<string, unknown> | null>(`/client/logs/checklist${qs(base)}`),
   ]);
   return {
     date,
     workout: w ? withId<WorkoutLog>(w, date, { dirty: false }) : null,
     nutrition: n ? withId<NutritionLog>(n, date, { dirty: false }) : null,
     weight: wt ? withId<WeightLog>(wt, date, { dirty: false }) : null,
-    // No Mongo `dailyChecklists` route exists yet — the coach day view already
-    // renders fine with a null checklist (see ClientActivityView).
-    checklist: null,
+    checklist: checklist ? withId<DailyChecklist>(checklist, date, { dirty: false }) : null,
     cardio: cardio.map((c) => withId<CardioLog>(c, c._id as string, { dirty: false })),
   };
 }
@@ -180,13 +179,14 @@ export async function fetchClientMeasurements(clientId: string): Promise<Measure
 }
 
 /**
- * A client's progress photos (newest first). No Mongo route exists yet for
- * `progressPhotos` (the CDN/local-blob photo metadata hasn't been ported off
- * Firestore) — resolves empty until that lands; the photos screen already
- * renders an empty state gracefully.
+ * A client's progress photos (newest first). Reads the generic `progressPhotos`
+ * sync collection (pushed by the client's `photoStore.ts` via SyncEngine) —
+ * see `api/client/_handlers/photos.ts`. Only CDN-uploaded photos have a
+ * viewable image for the coach; the rest render a placeholder.
  */
-export async function fetchClientPhotos(_clientId: string): Promise<ProgressPhoto[]> {
-  return [];
+export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto[]> {
+  const list = await apiGet<Record<string, unknown>[]>(`/client/photos${qs({ clientId })}`);
+  return list.map((d) => withId<ProgressPhoto>(d, d.id as string, { dirty: false }));
 }
 
 /** A client's cardio history (newest first). */

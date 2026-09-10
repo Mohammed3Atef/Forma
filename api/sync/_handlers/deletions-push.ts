@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { requireUser } from '../../_lib/withAuth.js';
 import { handleError, methodGuard } from '../../_lib/http.js';
-import { recordId, syncDeletionsCol } from '../_data.js';
+import { recordId, syncDeletionsCol, syncRecordsCol } from '../_data.js';
 
 const Body = z.object({
   deletions: z.array(
@@ -20,7 +20,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await requireUser(req);
     const body = Body.parse(req.body);
     const col = await syncDeletionsCol();
-    const recordsCol = (await import('../_data.js')).syncRecordsCol;
     const syncedAt = Date.now();
     for (const del of body.deletions) {
       await col.updateOne(
@@ -30,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       // Remove the live record too, so a subsequent pull of the data
       // collection doesn't resurrect it on another device.
-      await (await recordsCol()).deleteOne({ _id: recordId(user.id, del.collection, del.id) });
+      await (await syncRecordsCol()).deleteOne({ _id: recordId(user.id, del.collection, del.id) });
     }
     res.status(200).json({ flushed: body.deletions.length, syncedAt });
   } catch (e) {

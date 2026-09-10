@@ -20,15 +20,21 @@ export interface AccessPayload {
   accountStatus: AccountStatus;
 }
 
+const JWT_ALG = 'HS256' as const;
+
 export function signAccessToken(user: { id: string; role: Role; accountStatus: AccountStatus }): string {
   return jwt.sign({ role: user.role, accountStatus: user.accountStatus }, accessSecret(), {
     subject: user.id,
     expiresIn: ACCESS_TOKEN_TTL_SEC,
+    algorithm: JWT_ALG,
   });
 }
 
 export function verifyAccessToken(token: string): AccessPayload {
-  const decoded = jwt.verify(token, accessSecret());
+  // Explicitly pin the accepted algorithm rather than relying on the library's
+  // default inference from the secret's type — removes any doubt about alg
+  // confusion regardless of library version.
+  const decoded = jwt.verify(token, accessSecret(), { algorithms: [JWT_ALG] });
   if (typeof decoded === 'string' || !decoded.sub) throw new Error('Malformed access token');
   return { sub: decoded.sub, role: decoded.role as Role, accountStatus: decoded.accountStatus as AccountStatus };
 }

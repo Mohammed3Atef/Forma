@@ -167,6 +167,28 @@ export interface CoachTargetsDoc {
 }
 
 // ---------------------------------------------------------------------------
+// archivedClientData — one doc per archived item, written by a `fresh_start`
+// transfer (`api/coach-clients/_service.ts`'s `transferClientWithMode`) just
+// before it clears the previous coach's plan/notes/targets content so the new
+// coach genuinely starts the client fresh. Purely a historical/audit record —
+// no route reads it back today.
+// ---------------------------------------------------------------------------
+
+export type ArchivedClientDataKind = 'workoutPlan' | 'nutritionPlan' | 'cardioPlan' | 'coachNote' | 'coachTargets';
+
+export interface ArchivedClientDataDoc {
+  _id: string; // server-generated (crypto.randomUUID())
+  clientId: string;
+  previousCoachId: string;
+  kind: ArchivedClientDataKind;
+  /** The original document's own `_id`, so an archived item can be traced back if ever needed. */
+  sourceId: string;
+  archivedAt: number;
+  /** Verbatim snapshot of the original document's fields (minus `_id`). */
+  data: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
 // checkIns — many docs per client (one per ISO week), coach-owned EXCEPT the
 // client may update their OWN doc while status is still 'requested'.
 // ---------------------------------------------------------------------------

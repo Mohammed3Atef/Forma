@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost, ApiError } from '@/services/platformApi';
+import { apiDelete, apiGet, apiPatch, apiPost, ApiError } from '@/services/platformApi';
 import { writeAudit } from './auditApi';
 import { notify } from './notificationsApi';
 import type { CoachPlan, CoachPlanChangeRequest } from '@/types';
@@ -147,18 +147,10 @@ export async function setCoachPlanStatus(coachId: string, status: 'active' | 'su
   await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
 }
 
-/**
- * Super-admin: set (or clear) an explicit plan end date.
- *
- * NOTE: `PATCH /coach-plans/:coachId`'s body has no `endsAt` field at all (only
- * tier/status/maxClients), so there is currently no route that can apply an
- * arbitrary custom end date. Throwing here rather than silently ignoring the
- * admin's chosen date.
- */
+/** Super-admin: set (or clear, passing `null`) an explicit plan end date. */
 export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null): Promise<void> {
-  void coachId;
-  void endsAt;
-  throw new Error('Setting a custom plan end date is not supported by the current API.');
+  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { endsAt });
+  await writeAudit({ action: 'coachPlan.setEndsAt', targetUserId: coachId, metadata: { endsAt } });
 }
 
 /** Effective coach-plan status, folding the trial end date in. */
@@ -211,15 +203,15 @@ export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachP
 }
 
 /**
- * Coach: withdraw a pending request.
- *
- * NOTE: no route lets a coach self-cancel (only the admin accept/reject/delete
- * route exists, gated on `users.manageStatus`). Throwing here rather than
- * silently no-op-ing a click that appears to succeed.
+ * Coach: withdraw their own still-pending request via
+ * `DELETE /coach-plans/change-request` (scoped server-side to the calling
+ * coach's own request — only allowed while it's still 'pending'). Throws
+ * (surfaced by the caller's `onError`) if the request was already resolved
+ * out from under the coach, e.g. an admin accepted/rejected it first.
  */
 export async function cancelPlanChangeRequest(coachId: string): Promise<void> {
-  void coachId;
-  throw new Error('Cancelling a plan-change request is not supported by the current API.');
+  void coachId; // the backend resolves the coach from the auth token
+  await apiDelete('/coach-plans/change-request');
 }
 
 /** Super-admin: every pending plan-change request across all coaches. */

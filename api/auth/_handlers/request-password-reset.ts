@@ -3,9 +3,15 @@ import { z } from 'zod';
 import { passwordResetsCol, usersCol } from '../../_lib/mongodb.js';
 import { generateRawToken, hashRawToken } from '../../_lib/tokens.js';
 import { handleError, methodGuard } from '../../_lib/http.js';
+import { enforceRateLimit } from '../../_lib/rateLimit.js';
 
 const Body = z.object({ email: z.string().trim().toLowerCase().email() });
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
+// 5 requests / hour per target email — the response is constant either way
+// (see below) so this isn't about enumeration, just capping spam/log noise
+// against one address.
+const RESET_MAX_ATTEMPTS = 5;
+const RESET_WINDOW_MS = 60 * 60 * 1000;
 
 /**
  * TODO before this is production-usable: wire in a real email provider (e.g.
@@ -19,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     methodGuard(req, 'POST');
     const body = Body.parse(req.body);
+    await enforceRateLimit('auth.resetRequest', body.email, RESET_MAX_ATTEMPTS, RESET_WINDOW_MS);
     const users = await usersCol();
     const user = await users.findOne({ emailLower: body.email });
     // Always respond 200 regardless of whether the account exists, so this

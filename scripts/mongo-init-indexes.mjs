@@ -35,6 +35,10 @@ async function main() {
   await db.collection('passwordResets').createIndex({ userId: 1 }, { name: 'userId' });
   await db.collection('passwordResets').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'ttl_expiresAt' });
 
+  // Rate limiting (api/_lib/rateLimit.ts) — one doc per (bucket, key, window);
+  // TTL index reaps each window once it's expired so this never grows unbounded.
+  await db.collection('rateLimits').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'ttl_expiresAt' });
+
   // Generic sync backend (api/sync/*) — every push/pull filters by these.
   await db.collection('syncRecords').createIndex({ clientId: 1, collection: 1, syncedAt: 1 }, { name: 'clientId_collection_syncedAt' });
   await db.collection('syncDeletions').createIndex({ clientId: 1, collection: 1, syncedAt: 1 }, { name: 'clientId_collection_syncedAt' });
@@ -59,9 +63,10 @@ async function main() {
   await db.collection('checkIns').createIndex({ coachId: 1 }, { name: 'coachId' });
   await db.collection('coachNotes').createIndex({ clientId: 1, createdAt: -1 }, { name: 'clientId_createdAt' });
   await db.collection('planVersions').createIndex({ clientId: 1, kind: 1, versionNumber: -1 }, { name: 'clientId_kind_versionNumber' });
-  for (const coll of ['workoutLogs', 'nutritionLogs', 'cardioLogs', 'weightLogs']) {
-    await db.collection(coll).createIndex({ clientId: 1, date: -1 }, { name: 'clientId_date' });
-  }
+
+  // Fresh-start transfer archive (api/coach-clients/_service.ts's transferClientWithMode).
+  await db.collection('archivedClientData').createIndex({ clientId: 1, archivedAt: -1 }, { name: 'clientId_archivedAt' });
+  await db.collection('archivedClientData').createIndex({ previousCoachId: 1 }, { name: 'previousCoachId' });
 
   // Admin oversight / invites / transfers.
   await db.collection('adminAuditLogs').createIndex({ createdAt: -1 }, { name: 'createdAt' });

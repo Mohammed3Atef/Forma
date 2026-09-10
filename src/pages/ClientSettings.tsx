@@ -17,7 +17,6 @@ import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { parseDecimal, shortDate } from '@/lib/utils';
 import { Icon } from '@/components/Icon';
-import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
@@ -43,8 +42,6 @@ export function ClientSettings() {
   const cloud = useCloud();
   const selectedDay = useDay((s) => s.selected);
 
-  const [authOpen, setAuthOpen] = useState(false);
-  const [creds, setCreds] = useState({ email: '', password: '' });
   const [newRem, setNewRem] = useState<{ kind: ReminderKind; time: string }>({ kind: 'meal', time: '09:00' });
   const triggersAvailable = 'Notification' in window && 'showTrigger' in Notification.prototype;
   const [persisted, setPersisted] = useState(true);
@@ -214,9 +211,7 @@ export function ClientSettings() {
               <button type="button" onClick={() => void cloud.signOut()} className="btn-ghost flex-1">{t('settings.signOut')}</button>
             </div>
           </div>
-        ) : (
-          <button type="button" onClick={() => setAuthOpen(true)} className="btn-ghost mt-2 w-full">{t('settings.signIn')}</button>
-        )}
+        ) : null}
       </section>
 
       {/* Data — danger zone */}
@@ -232,18 +227,6 @@ export function ClientSettings() {
         </button>
         <button type="button" onClick={() => void resetAll()} className="btn-danger w-full text-sm">{t('settings.resetAll')}</button>
       </section>
-
-      <Sheet open={authOpen} onClose={() => setAuthOpen(false)} title={t('settings.cloud')}>
-        <div className="space-y-3">
-          <input className="input" type="email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
-          <input className="input" type="password" placeholder={t('settings.password')} value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} />
-          {cloud.error && <p className="text-sm text-danger">{cloud.error}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => void cloud.signIn(creds.email, creds.password, false).then((ok) => ok && setAuthOpen(false))} className="btn-primary flex-1">{t('settings.signIn')}</button>
-            <button type="button" onClick={() => void cloud.signIn(creds.email, creds.password, true).then((ok) => ok && setAuthOpen(false))} className="btn-ghost flex-1">{t('settings.signUp')}</button>
-          </div>
-        </div>
-      </Sheet>
     </div>
   );
 }

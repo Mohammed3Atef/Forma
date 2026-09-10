@@ -1,7 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Login } from '@/pages/auth/Login';
 import { Landing } from '@/pages/marketing/Landing';
 import { AcceptInvite } from '@/pages/auth/AcceptInvite';
+
+// Code-split: the cinematic rebuild pulls in three.js/@react-three/fiber/gsap,
+// which no other route needs — keep that weight out of everyone else's bundle.
+const Experience = lazy(() => import('@/pages/experience/Experience').then((m) => ({ default: m.Experience })));
 
 /**
  * Signed-out routes. Web visitors land on the marketing page at "/"; the auth
@@ -21,6 +26,14 @@ export function AnonymousApp() {
   return (
     <Routes>
       <Route path="/" element={isStandalone ? <Navigate to="/login" replace /> : <Landing />} />
+      <Route
+        path="/experience"
+        element={
+          <Suspense fallback={null}>
+            <Experience />
+          </Suspense>
+        }
+      />
       <Route path="/login" element={<Login />} />
       <Route path="/invite/:code" element={<AcceptInvite />} />
       <Route path="*" element={<Login />} />

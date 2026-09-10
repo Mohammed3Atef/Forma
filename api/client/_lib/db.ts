@@ -2,7 +2,7 @@ import type { Collection } from 'mongodb';
 import { getDb } from '../../_lib/mongodb.js';
 import type {
   AppNotificationDoc,
-  CardioLogDoc,
+  ArchivedClientDataDoc,
   ClientPlanDoc,
   ClientProfileDoc,
   ClientSettingsDoc,
@@ -10,11 +10,8 @@ import type {
   CoachTargetsDoc,
   FreezeRequestDoc,
   MeasurementLogDoc,
-  NutritionLogDoc,
   PlanVersionDoc,
   WeeklyCheckInDoc,
-  WeightLogDoc,
-  WorkoutLogDoc,
 } from './types.js';
 
 /** Coach⇄client relationship doc, built by a parallel agent this same session. */
@@ -81,22 +78,11 @@ export async function subscriptionRequestsCol(): Promise<Collection<FreezeReques
   return (await getDb()).collection<FreezeRequestDoc>('subscriptionRequests');
 }
 
-export async function workoutLogsCol(): Promise<Collection<WorkoutLogDoc>> {
-  return (await getDb()).collection<WorkoutLogDoc>('workoutLogs');
-}
-
-export async function nutritionLogsCol(): Promise<Collection<NutritionLogDoc>> {
-  return (await getDb()).collection<NutritionLogDoc>('nutritionLogs');
-}
-
-export async function cardioLogsCol(): Promise<Collection<CardioLogDoc>> {
-  return (await getDb()).collection<CardioLogDoc>('cardioLogs');
-}
-
-export async function weightLogsCol(): Promise<Collection<WeightLogDoc>> {
-  return (await getDb()).collection<WeightLogDoc>('weightLogs');
-}
-
 export async function planVersionsCol(): Promise<Collection<PlanVersionDoc>> {
   return (await getDb()).collection<PlanVersionDoc>('planVersions');
+}
+
+/** Fresh-start transfer archive — see `ArchivedClientDataDoc`'s doc comment. */
+export async function archivedClientDataCol(): Promise<Collection<ArchivedClientDataDoc>> {
+  return (await getDb()).collection<ArchivedClientDataDoc>('archivedClientData');
 }

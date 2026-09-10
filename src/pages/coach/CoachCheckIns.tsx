@@ -61,7 +61,7 @@ export function CoachCheckIns() {
           <p className="py-8 text-center text-sm text-earth-muted">{t('checkin.noCheckins')}</p>
         ) : (
           checkIns.map((c) => (
-            <CheckInRow key={c.id} checkIn={c} coachId={coachId} onReviewed={invalidate} locale={i18n.language} />
+            <CheckInRow key={c.id} checkIn={c} onReviewed={invalidate} locale={i18n.language} />
           ))
         )}
       </div>
@@ -69,12 +69,12 @@ export function CoachCheckIns() {
   );
 }
 
-function CheckInRow({ checkIn, coachId, onReviewed, locale }: { checkIn: WeeklyCheckIn; coachId: string; onReviewed: () => void; locale: string }) {
+function CheckInRow({ checkIn, onReviewed, locale }: { checkIn: WeeklyCheckIn; onReviewed: () => void; locale: string }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState(checkIn.coachFeedback ?? '');
   const review = useMutation({
-    mutationFn: () => reviewCheckIn(checkIn.clientId, checkIn.id, coachId, feedback),
+    mutationFn: () => reviewCheckIn(checkIn.clientId, checkIn.id, feedback),
     onSuccess: () => { setOpen(false); onReviewed(); },
   });
 

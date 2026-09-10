@@ -15,7 +15,7 @@ import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
-import { confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
 import type { AccountStatus } from '@/types';
 
@@ -41,6 +41,11 @@ export function AdminCoaches() {
   const renew = useMutation({
     mutationFn: (coachId: string) => renewCoachPlan(coachId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachAdmin'] }),
+    onError: (e) =>
+      void alertDialog({
+        title: t('adminCoaches.renew'),
+        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+      }),
   });
   const sel = useSelection();
   const rows = q.data?.rows ?? [];
@@ -54,6 +59,11 @@ export function AdminCoaches() {
       void qc.invalidateQueries({ queryKey: ['users'] });
       sel.clear();
     },
+    onError: (e, vars) =>
+      void alertDialog({
+        title: t(`platform.status.${vars.status}`),
+        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+      }),
   });
   const runBulk = async (status: AccountStatus) => {
     if (sel.count === 0) return;

@@ -259,20 +259,19 @@ export async function releaseClient(coachId: string, clientId: string, _by: stri
 }
 
 /**
- * FRESH START — snapshot the active plans into the RETAINED `planVersions`
- * history, then clear the active plans and all coach-authored content so the new
- * coach starts clean.
- *
- * NOT PORTED YET (matches the backend's own documented gap — see the "KNOWN
- * GAP" comment in `api/coach-clients/_service.ts`'s `transferClientWithMode`):
- * `clientData`/`planVersions` have no Mongo collection in this migration yet,
- * so there is nothing for this to call. `transferClientWithMode` below no
- * longer invokes this internally, exactly like the backend it now mirrors.
- * Kept as a no-op (rather than a throw) so a `fresh_start` transfer still
- * completes the reassignment even though content-clearing isn't wired up yet.
+ * FRESH START — archiving + clearing the previous coach's plan/notes/targets
+ * content is now handled automatically, SERVER-SIDE, inside
+ * `transferClientWithMode` (`api/coach-clients/_service.ts`) as one atomic
+ * step of the transfer itself: when `mode === 'fresh_start'`, the backend
+ * copies the client's workout/nutrition/cardio plan docs, coach notes, and
+ * coach-set targets into the `archivedClientData` collection (tagged with the
+ * previous coach id + an archive timestamp), then deletes the live docs,
+ * before reassigning the client. There is nothing left for the frontend to
+ * trigger — this is a deliberate permanent no-op, kept only so any existing
+ * call site still compiles/behaves unchanged. No call site invokes it today.
  */
 export async function archiveAndClearCoachData(_clientId: string, _by: string): Promise<void> {
-  console.warn('[coachClientsApi] archiveAndClearCoachData() is a no-op: clientData has no Mongo collection yet.');
+  // Intentional no-op — see the doc comment above.
 }
 
 /**

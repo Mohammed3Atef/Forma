@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { usersCol } from '../../_lib/mongodb.js';
-import { requireUser } from '../../_lib/withAuth.js';
+import { requireActive, requireUser } from '../../_lib/withAuth.js';
 import { handleError, methodGuard } from '../../_lib/http.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
 
@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     methodGuard(req, 'PATCH');
     const user = await requireUser(req);
+    requireActive(user);
     const patch = Body.parse(req.body);
     const set: Partial<UserDoc> = { updatedAt: Date.now() };
     for (const [k, v] of Object.entries(patch)) {
