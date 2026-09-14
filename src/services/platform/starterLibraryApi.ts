@@ -1,4 +1,4 @@
-import { apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { Exercise } from '@/types';
 
 export interface SeedResult {
@@ -43,7 +43,7 @@ export async function fetchStarterExercises(): Promise<Exercise[]> {
  * now in your library" totals this function has always returned.
  */
 export async function seedStarterLibrary(_coachId: string): Promise<SeedResult> {
-  const result = await apiPost<SeedApiResult>('/coach-assets/seed-starter-library');
+  const result: SeedApiResult = await trpc.coachAssets.seedStarterLibrary.mutate();
   return {
     exercises: result.exercises.inserted + result.exercises.skipped,
     foods: result.foods.inserted + result.foods.skipped,

@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-ssr
+.git
+*.local
+*.log
+.DS_Store
+gym tracker (1)

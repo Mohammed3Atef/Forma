@@ -2,20 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
-import type { MongoUserRecord } from '@/services/auth/mongoAuth';
-import { apiPost, setAccessToken } from '@/services/platformApi';
+import { setAccessToken } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import { getInvite, isClaimable } from '@/services/platform/inviteApi';
 import { passwordError } from '@/lib/password';
 import type { SignupInvite } from '@/types';
 
 type Phase = 'loading' | 'invalid' | 'ready' | 'joining' | 'done';
-
-/** Response shape of `POST /api/invites/claim` (see api/invites/claim.ts). */
-interface ClaimInviteResponse {
-  user: MongoUserRecord;
-  accessToken: string;
-  relationship: unknown;
-}
 
 /**
  * Public invite-claim screen at `/invite/:code`. Mobile-first.
@@ -99,7 +92,7 @@ export function AcceptInvite() {
     setPhase('joining');
     const email = (invite.email?.trim() || form.email.trim());
     try {
-      const { user, accessToken } = await apiPost<ClaimInviteResponse>('/coach-clients/invites/claim', {
+      const { user, accessToken } = await trpc.invites.claim.mutate({
         code: invite.code,
         email,
         phone: form.phone.trim(),

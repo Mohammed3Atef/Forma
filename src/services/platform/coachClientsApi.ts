@@ -1,4 +1,4 @@
-import { ApiError, apiGet, apiPatch, apiPost } from '@/services/platformApi';
+import { trpc, TRPCClientError } from '@/services/trpc';
 import type {
   BillingCycle,
   CoachClientRelationship,
@@ -56,17 +56,13 @@ export function relId(coachId: string, clientId: string): string {
 }
 
 export async function listRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
-  const docs = await apiGet<CoachClientApiDoc[]>(
-    `/coach-clients?coachId=${encodeURIComponent(coachId)}&status=active`,
-  );
+  const docs = await trpc.coachClients.list.query({ coachId, status: 'active' });
   return docs.map(fromApiDoc);
 }
 
 /** Every relationship a coach has ever had (active, ended, pending) — for revenue/churn dashboards. */
 export async function listAllRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
-  const docs = await apiGet<CoachClientApiDoc[]>(
-    `/coach-clients?coachId=${encodeURIComponent(coachId)}&status=all`,
-  );
+  const docs = await trpc.coachClients.list.query({ coachId, status: 'all' });
   return docs.map(fromApiDoc);
 }
 
@@ -80,7 +76,7 @@ export async function listAllRelationshipsForCoach(coachId: string): Promise<Coa
  * This is unused by any current component; kept for signature compatibility.
  */
 export async function linkCoachClient(coachId: string, clientId: string, _createdBy: string): Promise<void> {
-  await apiPost('/coach-clients', {
+  await trpc.coachClients.assign.mutate({
     clientId,
     coachId,
     subscription: { status: 'trial' as SubscriptionStatus, trialDays: 14 },
@@ -89,7 +85,7 @@ export async function linkCoachClient(coachId: string, clientId: string, _create
 
 /** Assigns a client to a coach (idempotent on the deterministic id). */
 export async function assignClientToCoach(coachId: string, clientId: string, _createdBy: string): Promise<void> {
-  await apiPost('/coach-clients', {
+  await trpc.coachClients.assign.mutate({
     clientId,
     coachId,
     // The Firestore-era version wrote no subscription at all; the migrated
@@ -119,26 +115,23 @@ export async function transferClient(
 
 /** Removes a client's coach assignment. */
 export async function unassignClient(clientId: string, coachId: string, _createdBy: string): Promise<void> {
-  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, {
-    action: 'end',
-    reason: 'unassigned',
-  });
+  await trpc.coachClients.end.mutate({ id: relId(coachId, clientId), reason: 'unassigned' });
 }
 
 // ---- subscription (lives on the relationship; coach-owned, client-readable) ----
 
 export async function getRelationship(coachId: string, clientId: string): Promise<CoachClientRelationship | null> {
   try {
-    const doc = await apiGet<CoachClientApiDoc>(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`);
+    const doc = await trpc.coachClients.get.query({ id: relId(coachId, clientId) });
     return fromApiDoc(doc);
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null;
+    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;
   }
 }
 
-async function patchSubscription(coachId: string, clientId: string, sub: Record<string, unknown>): Promise<void> {
-  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, { action: 'subscription', sub });
+async function patchSubscription(coachId: string, clientId: string, sub: Parameters<typeof trpc.coachClients.updateSubscription.mutate>[0]['sub']): Promise<void> {
+  await trpc.coachClients.updateSubscription.mutate({ id: relId(coachId, clientId), sub });
 }
 
 /** Set (or reset) the subscription term: starts active, ends after `months`/`days`. */
@@ -222,14 +215,14 @@ export function planToSubscriptionInput(plan: CoachSubscriptionPlan, currency?: 
 export async function getClientAssignment(
   clientId: string,
 ): Promise<{ coachId: string; rel: CoachClientRelationship } | null> {
-  const docs = await apiGet<CoachClientApiDoc[]>(`/coach-clients?clientId=${encodeURIComponent(clientId)}`);
+  const docs = await trpc.coachClients.list.query({ clientId });
   const active = docs.map(fromApiDoc).find((r) => r.status === 'active');
   return active ? { coachId: active.coachId, rel: active } : null;
 }
 
 /** Every coaching relationship a client has had (newest first) — the timeline source. */
 export async function listClientCoachHistory(clientId: string): Promise<CoachClientRelationship[]> {
-  const docs = await apiGet<CoachClientApiDoc[]>(`/coach-clients?clientId=${encodeURIComponent(clientId)}`);
+  const docs = await trpc.coachClients.list.query({ clientId });
   return docs.map(fromApiDoc).sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -244,7 +237,7 @@ export async function assignExistingClient(
   _createdBy: string,
   sub: ClientSubscriptionInput,
 ): Promise<void> {
-  await apiPost('/coach-clients', { clientId, coachId, subscription: sub });
+  await trpc.coachClients.assign.mutate({ clientId, coachId, subscription: sub });
 }
 
 /**
@@ -252,10 +245,7 @@ export async function assignExistingClient(
  * stay intact and the client becomes re-assignable.
  */
 export async function releaseClient(coachId: string, clientId: string, _by: string): Promise<void> {
-  await apiPatch(`/coach-clients/${encodeURIComponent(relId(coachId, clientId))}`, {
-    action: 'end',
-    reason: 'released',
-  });
+  await trpc.coachClients.end.mutate({ id: relId(coachId, clientId), reason: 'released' });
 }
 
 /**
@@ -295,8 +285,8 @@ export async function transferClientWithMode(
   if (!fromCoachId) {
     throw new Error('[coachClientsApi] transferClientWithMode() requires an existing fromCoachId relationship to PATCH.');
   }
-  await apiPatch(`/coach-clients/${encodeURIComponent(relId(fromCoachId, clientId))}`, {
-    action: 'transfer',
+  await trpc.coachClients.transfer.mutate({
+    id: relId(fromCoachId, clientId),
     toCoachId,
     mode,
     subscriptionHandling,

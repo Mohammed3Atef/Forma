@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import { uid } from '@/lib/utils';
 import type { CoachSubscriptionPlan } from '@/types';
 
@@ -13,7 +13,7 @@ import type { CoachSubscriptionPlan } from '@/types';
 
 /** All plans for a coach, ordered (active first unless includeArchived). */
 export async function listCoachPlans(coachId: string, includeArchived = false): Promise<CoachSubscriptionPlan[]> {
-  const docs = await apiGet<CoachSubscriptionPlan[]>(`/coach-assets/billing-plans?coachId=${encodeURIComponent(coachId)}`);
+  const docs = await trpc.coachAssets.billingPlans.list.query({ coachId });
   return docs
     .filter((p) => includeArchived || !p.archived)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.createdAt - b.createdAt);
@@ -24,7 +24,7 @@ export async function saveCoachPlan(
   input: Omit<CoachSubscriptionPlan, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number },
 ): Promise<CoachSubscriptionPlan> {
   const id = input.id ?? uid('plan');
-  return apiPost<CoachSubscriptionPlan>('/coach-assets/billing-plans', {
+  return trpc.coachAssets.billingPlans.save.mutate({
     id,
     name: input.name.trim(),
     unit: input.unit,
@@ -39,5 +39,5 @@ export async function saveCoachPlan(
 /** Hard-delete a plan (it's a reusable template; assigned subscriptions are independent snapshots). */
 export async function deleteCoachPlan(coachId: string, planId: string): Promise<void> {
   void coachId; // ownership is enforced server-side from the auth token
-  await apiDelete(`/coach-assets/billing-plans/${encodeURIComponent(planId)}`);
+  await trpc.coachAssets.billingPlans.delete.mutate({ id: planId });
 }

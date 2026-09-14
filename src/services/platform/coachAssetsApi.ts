@@ -1,4 +1,4 @@
-import { ApiError, apiDelete, apiGet, apiPost } from '@/services/platformApi';
+import { trpc, TRPCClientError } from '@/services/trpc';
 import { uid } from '@/lib/utils';
 import { saveClientMealPlan, saveClientWorkoutPlan } from './planApi';
 import type {
@@ -32,16 +32,16 @@ import type {
 // ---- Exercise library ------------------------------------------------------
 
 export async function listExercises(coachId: string): Promise<Exercise[]> {
-  const list = await apiGet<Exercise[]>(`/coach-assets/exercises?coachId=${encodeURIComponent(coachId)}`);
+  const list = await trpc.coachAssets.exercises.list.query({ coachId });
   return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function saveExercise(_coachId: string, exercise: Exercise): Promise<void> {
-  await apiPost<Exercise>('/coach-assets/exercises', exercise);
+  await trpc.coachAssets.exercises.save.mutate(exercise);
 }
 
 export async function deleteExercise(_coachId: string, exerciseId: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/exercises/${encodeURIComponent(exerciseId)}`);
+  await trpc.coachAssets.exercises.delete.mutate({ id: exerciseId });
 }
 
 // ---- Snapshot helper -------------------------------------------------------
@@ -81,24 +81,24 @@ export function snapshotPlanBody(body: PlanBody): PlanBody {
 // ---- Workout templates -----------------------------------------------------
 
 export async function listWorkoutTemplates(coachId: string): Promise<WorkoutTemplate[]> {
-  return apiGet<WorkoutTemplate[]>(`/coach-assets/workout-templates?coachId=${encodeURIComponent(coachId)}`);
+  return trpc.coachAssets.workoutTemplates.list.query({ coachId });
 }
 
 export async function getWorkoutTemplate(_coachId: string, id: string): Promise<WorkoutTemplate | null> {
   try {
-    return await apiGet<WorkoutTemplate>(`/coach-assets/workout-templates/${encodeURIComponent(id)}`);
+    return await trpc.coachAssets.workoutTemplates.get.query({ id });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null;
+    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;
   }
 }
 
 export async function saveWorkoutTemplate(template: WorkoutTemplate): Promise<void> {
-  await apiPost<WorkoutTemplate>('/coach-assets/workout-templates', template);
+  await trpc.coachAssets.workoutTemplates.save.mutate(template);
 }
 
 export async function deleteWorkoutTemplate(_coachId: string, id: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/workout-templates/${encodeURIComponent(id)}`);
+  await trpc.coachAssets.workoutTemplates.delete.mutate({ id });
 }
 
 export async function duplicateWorkoutTemplate(template: WorkoutTemplate): Promise<WorkoutTemplate> {
@@ -166,43 +166,43 @@ export async function saveClientPlanAsTemplate(
 // ---- Food library + alternative groups -------------------------------------
 
 export async function listFoods(coachId: string): Promise<LibraryFood[]> {
-  const list = await apiGet<LibraryFood[]>(`/coach-assets/foods?coachId=${encodeURIComponent(coachId)}`);
+  const list = await trpc.coachAssets.foods.list.query({ coachId });
   return [...list].sort((a, b) => a.name.en.localeCompare(b.name.en));
 }
 
 export async function saveFood(_coachId: string, food: LibraryFood): Promise<void> {
-  await apiPost<LibraryFood>('/coach-assets/foods', food);
+  await trpc.coachAssets.foods.save.mutate(food);
 }
 
 export async function deleteFood(_coachId: string, foodId: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/foods/${encodeURIComponent(foodId)}`);
+  await trpc.coachAssets.foods.delete.mutate({ id: foodId });
 }
 
 export async function listFoodGroups(coachId: string): Promise<FoodGroup[]> {
-  return apiGet<FoodGroup[]>(`/coach-assets/food-groups?coachId=${encodeURIComponent(coachId)}`);
+  return trpc.coachAssets.foodGroups.list.query({ coachId });
 }
 
 export async function saveFoodGroup(group: FoodGroup): Promise<void> {
-  await apiPost<FoodGroup>('/coach-assets/food-groups', group);
+  await trpc.coachAssets.foodGroups.save.mutate(group);
 }
 
 export async function deleteFoodGroup(_coachId: string, groupId: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/food-groups/${encodeURIComponent(groupId)}`);
+  await trpc.coachAssets.foodGroups.delete.mutate({ id: groupId });
 }
 
 // ---- Supplement library -----------------------------------------------------
 
 export async function listSupplements(coachId: string): Promise<LibrarySupplement[]> {
-  const list = await apiGet<LibrarySupplement[]>(`/coach-assets/supplements?coachId=${encodeURIComponent(coachId)}`);
+  const list = await trpc.coachAssets.supplements.list.query({ coachId });
   return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function saveSupplement(_coachId: string, supp: LibrarySupplement): Promise<void> {
-  await apiPost<LibrarySupplement>('/coach-assets/supplements', supp);
+  await trpc.coachAssets.supplements.save.mutate(supp);
 }
 
 export async function deleteSupplement(_coachId: string, suppId: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/supplements/${encodeURIComponent(suppId)}`);
+  await trpc.coachAssets.supplements.delete.mutate({ id: suppId });
 }
 
 // ---- Bulk delete (selection → batch removal) -------------------------------
@@ -239,15 +239,15 @@ export function bulkDeleteWorkoutTemplates(coachId: string, ids: string[]): Prom
 // ---- Nutrition templates (architecture; assign reuses MealPlan) ------------
 
 export async function listNutritionTemplates(coachId: string): Promise<NutritionTemplate[]> {
-  return apiGet<NutritionTemplate[]>(`/coach-assets/nutrition-templates?coachId=${encodeURIComponent(coachId)}`);
+  return trpc.coachAssets.nutritionTemplates.list.query({ coachId });
 }
 
 export async function saveNutritionTemplate(template: NutritionTemplate): Promise<void> {
-  await apiPost<NutritionTemplate>('/coach-assets/nutrition-templates', template);
+  await trpc.coachAssets.nutritionTemplates.save.mutate(template);
 }
 
 export async function deleteNutritionTemplate(_coachId: string, id: string): Promise<void> {
-  await apiDelete<void>(`/coach-assets/nutrition-templates/${encodeURIComponent(id)}`);
+  await trpc.coachAssets.nutritionTemplates.delete.mutate({ id });
 }
 
 /** Snapshot a nutrition template into a client's assigned meal plan (independent copy). */

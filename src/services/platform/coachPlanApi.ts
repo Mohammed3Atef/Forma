@@ -1,4 +1,5 @@
-import { apiDelete, apiGet, apiPatch, apiPost, ApiError } from '@/services/platformApi';
+import { apiGet, ApiError } from '@/services/platformApi';
+import { trpc, TRPCClientError } from '@/services/trpc';
 import { writeAudit } from './auditApi';
 import { notify } from './notificationsApi';
 import type { CoachPlan, CoachPlanChangeRequest } from '@/types';
@@ -31,10 +32,10 @@ const DAY_MS = 86_400_000;
  */
 export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
   try {
-    return await apiGet<CoachPlan>('/coach-plans/me');
+    return await trpc.coachPlans.me.query();
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null;
-    if (!(e instanceof ApiError) || e.status !== 403) throw e;
+    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
+    if (!(e instanceof TRPCClientError) || e.data?.code !== 'FORBIDDEN') throw e;
   }
   try {
     const detail = await apiGet<{ plan: (CoachPlan & { _id?: string }) | null }>(
@@ -54,7 +55,7 @@ export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
  */
 export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
   void coachId; // the backend resolves the coach from the auth token, not a client-supplied id
-  return apiPost<CoachPlan>('/coach-plans/trial');
+  return trpc.coachPlans.createTrial.mutate();
 }
 
 /**
@@ -107,7 +108,7 @@ export async function listAllCoachPlans(): Promise<CoachPlan[]> {
 
 /** Super-admin: upgrade/downgrade a coach to a tier (sets the cap + activates). */
 export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise<void> {
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, tier });
   await writeAudit({ action: 'coachPlan.setTier', targetUserId: coachId, metadata: { tier } });
 }
 
@@ -123,33 +124,33 @@ export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise
  */
 export async function extendCoachTrial(coachId: string, days: number): Promise<void> {
   const plan = await getCoachPlan(coachId);
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier: plan?.plan ?? 'trial' });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, tier: plan?.plan ?? 'trial' });
   await writeAudit({ action: 'coachPlan.extend', targetUserId: coachId, metadata: { days } });
 }
 
 /** Super-admin: renew a coach's term (default a full paid cycle) and (re)activate. See `extendCoachTrial` for the same day-offset caveat. */
 export async function renewCoachPlan(coachId: string, days = PAID_TERM_DAYS): Promise<void> {
   const plan = await getCoachPlan(coachId);
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { tier: plan?.plan ?? 'trial' });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, tier: plan?.plan ?? 'trial' });
   await writeAudit({ action: 'coachPlan.renew', targetUserId: coachId, metadata: { days } });
 }
 
 /** Super-admin: adjust a coach's client cap directly. */
 export async function setCoachMaxClients(coachId: string, maxClients: number): Promise<void> {
   const n = Math.max(0, Math.floor(maxClients));
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { maxClients: n });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, maxClients: n });
   await writeAudit({ action: 'coachPlan.setMaxClients', targetUserId: coachId, metadata: { maxClients: n } });
 }
 
 /** Super-admin: suspend/reactivate a coach PLAN (separate from the account). */
 export async function setCoachPlanStatus(coachId: string, status: 'active' | 'suspended'): Promise<void> {
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { status });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, status });
   await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
 }
 
 /** Super-admin: set (or clear, passing `null`) an explicit plan end date. */
 export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null): Promise<void> {
-  await apiPatch(`/coach-plans/${encodeURIComponent(coachId)}`, { endsAt });
+  await trpc.coachPlans.adminUpdate.mutate({ coachId, endsAt });
   await writeAudit({ action: 'coachPlan.setEndsAt', targetUserId: coachId, metadata: { endsAt } });
 }
 
@@ -174,7 +175,7 @@ export async function submitPlanChangeRequest(
   data: { requestedTier?: CoachTierKey; requestedMaxClients?: number; reason: string },
 ): Promise<void> {
   void coachId; // the backend resolves the coach from the auth token
-  await apiPost('/coach-plans/change-request', {
+  await trpc.coachPlans.submitChangeRequest.mutate({
     reason: data.reason.trim(),
     ...(data.requestedTier ? { requestedTier: data.requestedTier } : {}),
     ...(data.requestedMaxClients ? { requestedMaxClients: Math.max(0, Math.floor(data.requestedMaxClients)) } : {}),
@@ -194,10 +195,10 @@ export async function submitPlanChangeRequest(
  */
 export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachPlanChangeRequest | null> {
   try {
-    const pending = await apiGet<CoachPlanChangeRequest[]>('/coach-plans/admin-plan-change-requests');
+    const pending = await trpc.coachPlans.listPendingChangeRequests.query();
     return pending.find((r) => r.coachId === coachId) ?? null;
   } catch (e) {
-    if (e instanceof ApiError && e.status === 403) return null;
+    if (e instanceof TRPCClientError && e.data?.code === 'FORBIDDEN') return null;
     throw e;
   }
 }
@@ -211,12 +212,12 @@ export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachP
  */
 export async function cancelPlanChangeRequest(coachId: string): Promise<void> {
   void coachId; // the backend resolves the coach from the auth token
-  await apiDelete('/coach-plans/change-request');
+  await trpc.coachPlans.cancelChangeRequest.mutate();
 }
 
 /** Super-admin: every pending plan-change request across all coaches. */
 export async function listPendingPlanChangeRequests(): Promise<CoachPlanChangeRequest[]> {
-  return apiGet<CoachPlanChangeRequest[]>('/coach-plans/admin-plan-change-requests');
+  return trpc.coachPlans.listPendingChangeRequests.query();
 }
 
 /**
@@ -231,7 +232,7 @@ export async function resolvePlanChangeRequest(
   adminNote: string,
 ): Promise<void> {
   const note = adminNote.trim();
-  await apiPatch('/coach-plans/admin-plan-change-requests', { coachId, decision: outcome, adminNote: note });
+  await trpc.coachPlans.resolveChangeRequest.mutate({ coachId, decision: outcome, adminNote: note });
   // Notify the coach in their own bell that their request was reviewed. Best-effort.
   await notify({
     clientId: coachId,

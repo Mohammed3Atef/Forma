@@ -1,18 +1,17 @@
-import { apiGet, apiPut } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { TFunction } from 'i18next';
 import { writeAudit } from './auditApi';
 import type { CoachPlanTierConfig } from '@/types';
 
 /**
  * Admin-editable coach plan tiers (Layer A pricing/limits), backed by the
- * Mongo `coachPlanTiers` collection via `/api/plan-tiers/*` (was Firestore
- * `coachPlanTiers/{key}`). `GET /plan-tiers` already merges the always-present
- * built-in seed (trial/starter/pro/enterprise) with any Mongo overrides/customs
- * server-side (see `api/plan-tiers/_data.ts`), so this file no longer needs its
- * own seed/merge logic. `trial` is a protected built-in — don't archive it.
+ * Mongo `coachPlanTiers` collection via tRPC (was `/api/plan-tiers/*`).
+ * `coachPlanTiers.list` already merges the always-present built-in seed
+ * (trial/starter/pro/enterprise) with any Mongo overrides/customs server-side
+ * (see `api/coach-plans/_handlers/tiers-data.ts`), so this file no longer
+ * needs its own seed/merge logic. `trial` is a protected built-in — don't
+ * archive it.
  */
-
-const BASE = '/coach-plans/tiers';
 
 /** Display label for a tier key: explicit label → built-in i18n → the key itself. */
 export function tierLabel(tiers: CoachPlanTierConfig[], key: string | null | undefined, t: TFunction): string {
@@ -24,7 +23,7 @@ export function tierLabel(tiers: CoachPlanTierConfig[], key: string | null | und
 
 /** Built-in seed + Mongo overrides/customs (server-merged). Sorted by order. */
 export async function listCoachPlanTiers(includeArchived = false): Promise<CoachPlanTierConfig[]> {
-  return apiGet<CoachPlanTierConfig[]>(`${BASE}${includeArchived ? '?includeArchived=1' : ''}`);
+  return trpc.coachPlanTiers.list.query({ includeArchived });
 }
 
 export async function getCoachPlanTier(key: string): Promise<CoachPlanTierConfig | null> {
@@ -44,7 +43,8 @@ export async function saveCoachPlanTier(input: {
 }): Promise<void> {
   const key = input.key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   if (!key) throw new Error('A tier key is required.');
-  await apiPut(`${BASE}/${encodeURIComponent(key)}`, {
+  await trpc.coachPlanTiers.save.mutate({
+    key,
     label: (input.label ?? '').trim(),
     maxClients: Math.max(0, Math.floor(input.maxClients || 0)),
     priceMonthly: Math.max(0, Math.round(input.priceMonthly || 0)),
@@ -64,7 +64,8 @@ export async function saveCoachPlanTier(input: {
 export async function archiveCoachPlanTier(key: string): Promise<void> {
   if (key === 'trial') throw new Error('The trial tier cannot be removed.');
   const current = await getCoachPlanTier(key);
-  await apiPut(`${BASE}/${encodeURIComponent(key)}`, {
+  await trpc.coachPlanTiers.save.mutate({
+    key,
     label: current?.label ?? '',
     maxClients: current?.maxClients ?? 0,
     priceMonthly: current?.priceMonthly ?? 0,

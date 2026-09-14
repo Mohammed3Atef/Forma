@@ -36,7 +36,7 @@ export async function coachPlanTiersCol(): Promise<Collection<CoachPlanTierConfi
   return (await getDb()).collection<CoachPlanTierConfigDoc>('coachPlanTiers');
 }
 
-const SEED_ORDER: Record<string, number> = { trial: 0, starter: 1, pro: 2, enterprise: 3 };
+export const SEED_ORDER: Record<string, number> = { trial: 0, starter: 1, pro: 2, enterprise: 3 };
 
 /**
  * Built-in tiers as always-present seed/fallback (mirrors COACH_PLAN_TIERS in

@@ -1,13 +1,13 @@
-import { apiGet, apiPut } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { FeatureFlag } from '@/types';
 
 export async function listFlags(): Promise<FeatureFlag[]> {
-  return apiGet<FeatureFlag[]>('/banners/flags');
+  return trpc.flags.list.query();
 }
 
 /** Upserts a flag by id; the API records the audit entry. */
 export async function saveFlag(flag: FeatureFlag): Promise<void> {
-  await apiPut('/banners/flags', {
+  await trpc.flags.save.mutate({
     id: flag.id,
     enabled: flag.enabled,
     scope: flag.scope,

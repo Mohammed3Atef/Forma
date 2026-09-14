@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import { fetchUser } from './accountsApi';
 import { listRelationshipsForCoach } from './coachClientsApi';
 import { writeAudit } from './auditApi';
@@ -25,26 +25,17 @@ import type {
 } from '@/types';
 
 /**
- * Coach-side reads/writes over a client's Mongo-backed data at `/api/client/*`
- * (port of the old `clientData/{clientId}/**` Firestore tree). Access checks
- * (assigned coach / admin(clients.readAll|writeAll)) are enforced server-side —
- * see `api/client/_lib/access.ts` — so this file just calls the routes and
+ * Coach-side reads/writes over a client's data via the tRPC `client.*`
+ * procedures (port of the old `clientData/{clientId}/**` Firestore tree, then
+ * the Mongo-backed `/api/client/*` REST routes). Access checks (assigned
+ * coach / admin(clients.readAll|writeAll)) are enforced server-side — see
+ * `api/client/_lib/access.ts` — so this file just calls the procedures and
  * shapes the responses back into the frontend's existing domain types.
  */
 
 export interface Author {
   id: string;
   role: Role;
-}
-
-// ---- small local helpers ---------------------------------------------------
-
-/** Builds a `?a=1&b=2` query string, skipping undefined values. */
-function qs(params: Record<string, string | number | undefined>): string {
-  const usp = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== undefined) usp.set(k, String(v));
-  const s = usp.toString();
-  return s ? `?${s}` : '';
 }
 
 /** Mongo docs come back as `{_id, ...}`; the frontend types want `{id, ...}`. */
@@ -62,69 +53,53 @@ export async function listMyClients(coachId: string): Promise<UserRecord[]> {
 }
 
 export async function fetchClientProfile(clientId: string): Promise<UserProfile | null> {
-  return apiGet<UserProfile | null>(`/client/profile${qs({ clientId })}`);
+  return trpc.profile.get.query({ clientId }) as Promise<UserProfile | null>;
 }
 
 /** Read a client's onboarding assessment (coach/admin oversight, read-only). */
 export async function getClientAssessment(clientId: string): Promise<ClientAssessment | null> {
-  return apiGet<ClientAssessment | null>(`/client/assessment${qs({ clientId })}`);
+  return trpc.assessment.get.query({ clientId }) as Promise<ClientAssessment | null>;
 }
 
 /** Coach records review notes on a client's assessment (merge, doesn't reset status). */
 export async function setAssessmentCoachNotes(clientId: string, coachNotes: string): Promise<void> {
-  await apiPost(`/client/assessment${qs({ action: 'notes', clientId })}`, { clientId, coachNotes });
+  await trpc.assessment.setCoachNotes.mutate({ clientId, coachNotes });
 }
 
 /** Coach marks the assessment reviewed (locks further client edits until reset). The backend notifies the client itself. */
-export async function markAssessmentReviewed(clientId: string, reviewerId: string): Promise<void> {
-  await apiPost(`/client/assessment${qs({ action: 'review', clientId })}`, { clientId, reviewerId });
+export async function markAssessmentReviewed(clientId: string, _reviewerId: string): Promise<void> {
+  await trpc.assessment.review.mutate({ clientId });
 }
 
 /** Coach re-opens the assessment so the client can edit + resubmit. */
 export async function resetAssessment(clientId: string): Promise<void> {
-  await apiPost(`/client/assessment${qs({ action: 'reset', clientId })}`, { clientId });
+  await trpc.assessment.reset.mutate({ clientId });
 }
 
 // ---- subscription freeze requests ------------------------------------------
 
 /** Read a client's pending/last freeze request (coach oversight). */
 export async function getClientFreezeRequest(clientId: string): Promise<FreezeRequest | null> {
-  const doc = await apiGet<Record<string, unknown> | null>(`/client/subscription-request${qs({ clientId })}`);
+  const doc = await trpc.subscriptionRequest.get.query({ clientId });
   return doc ? withId<FreezeRequest>(doc, 'current') : null;
 }
 
 /** Coach records the decision on a client's freeze request (applying the freeze is done separately). The backend notifies the client. */
 export async function resolveFreezeRequest(
   clientId: string,
-  decidedBy: string,
+  _decidedBy: string,
   outcome: 'accepted' | 'rejected',
   coachNote: string,
 ): Promise<void> {
-  await apiPost(`/client/subscription-request${qs({ action: 'decide', clientId })}`, { clientId, decidedBy, outcome, coachNote });
+  await trpc.subscriptionRequest.decide.mutate({ clientId, outcome, coachNote });
 }
 
 /** Coach sets the client's initial fitness profile (optional, at creation). */
 export async function saveClientProfile(clientId: string, profile: UserProfile): Promise<void> {
-  await apiPut(`/client/profile${qs({ clientId })}`, { clientId, ...profile });
+  await trpc.profile.save.mutate({ clientId, ...profile });
 }
 
 // ---- raw fitness logs (coach read-only oversight) --------------------------
-
-/** Maps a `fetchClientLogs` collection name to its `/api/client/logs/*` route. */
-function logsPath(name: string): string {
-  switch (name) {
-    case 'workoutLogs':
-      return '/client/logs/workout';
-    case 'nutritionLogs':
-      return '/client/logs/nutrition';
-    case 'weightLogs':
-      return '/client/logs/weight';
-    case 'cardioLogs':
-      return '/client/logs/cardio';
-    default:
-      throw new Error(`fetchClientLogs: unsupported collection "${name}"`);
-  }
-}
 
 /**
  * The day-keyed logs (workout/nutrition/weight) use the calendar date as their
@@ -137,7 +112,23 @@ function logDocId(name: string, doc: Record<string, unknown>): string {
 
 /** Recent records from one of a client's log collections (newest first). */
 export async function fetchClientLogs<T>(clientId: string, name: string, max = 14): Promise<T[]> {
-  const list = await apiGet<Record<string, unknown>[]>(`${logsPath(name)}${qs({ clientId, limit: max })}`);
+  let list: Record<string, unknown>[];
+  switch (name) {
+    case 'workoutLogs':
+      list = await trpc.logsWorkout.list.query({ clientId, limit: max });
+      break;
+    case 'nutritionLogs':
+      list = await trpc.logsNutrition.list.query({ clientId, limit: max });
+      break;
+    case 'weightLogs':
+      list = await trpc.logsWeight.list.query({ clientId, limit: max });
+      break;
+    case 'cardioLogs':
+      list = await trpc.logsCardio.list.query({ clientId, limit: max });
+      break;
+    default:
+      throw new Error(`fetchClientLogs: unsupported collection "${name}"`);
+  }
   return list.map((d) => withId<T>(d, logDocId(name, d), { dirty: false }));
 }
 
@@ -152,13 +143,12 @@ export interface ClientDay {
 
 /** Everything a client logged on one calendar day (for the coach activity view). */
 export async function fetchClientDay(clientId: string, date: string): Promise<ClientDay> {
-  const base = { clientId, date };
   const [w, n, wt, cardio, checklist] = await Promise.all([
-    apiGet<Record<string, unknown> | null>(`/client/logs/workout${qs(base)}`),
-    apiGet<Record<string, unknown> | null>(`/client/logs/nutrition${qs(base)}`),
-    apiGet<Record<string, unknown> | null>(`/client/logs/weight${qs(base)}`),
-    apiGet<Record<string, unknown>[]>(`/client/logs/cardio${qs(base)}`),
-    apiGet<Record<string, unknown> | null>(`/client/logs/checklist${qs(base)}`),
+    trpc.logsWorkout.get.query({ clientId, date }),
+    trpc.logsNutrition.get.query({ clientId, date }),
+    trpc.logsWeight.get.query({ clientId, date }),
+    trpc.logsCardio.list.query({ clientId, date }),
+    trpc.logsChecklist.get.query({ clientId, date }),
   ]);
   return {
     date,
@@ -174,19 +164,19 @@ export async function fetchClientDay(clientId: string, date: string): Promise<Cl
 
 /** A client's full body-measurement history (oldest → newest by date). */
 export async function fetchClientMeasurements(clientId: string): Promise<MeasurementLog[]> {
-  const list = await apiGet<Record<string, unknown>[]>(`/client/measurements${qs({ clientId })}`);
-  return list.map((d) => withId<MeasurementLog>(d, d.date as string, { dirty: false }));
+  const list = await trpc.measurements.list.query({ clientId });
+  return list.map((d) => withId<MeasurementLog>(d, d.date));
 }
 
 /**
  * A client's progress photos (newest first). Reads the generic `progressPhotos`
  * sync collection (pushed by the client's `photoStore.ts` via SyncEngine) —
- * see `api/client/_handlers/photos.ts`. Only CDN-uploaded photos have a
- * viewable image for the coach; the rest render a placeholder.
+ * see `api/_trpc/routers/clientLogs.ts`'s `photosRouter`. Only CDN-uploaded
+ * photos have a viewable image for the coach; the rest render a placeholder.
  */
 export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto[]> {
-  const list = await apiGet<Record<string, unknown>[]>(`/client/photos${qs({ clientId })}`);
-  return list.map((d) => withId<ProgressPhoto>(d, d.id as string, { dirty: false }));
+  const list = await trpc.photos.list.query({ clientId });
+  return list.map((d) => withId<ProgressPhoto>(d as Record<string, unknown>, (d as { id: string }).id, { dirty: false }));
 }
 
 /** A client's cardio history (newest first). */
@@ -210,15 +200,15 @@ export async function saveClientMeasurement(
   values: Record<string, number>,
   updatedBy: string,
 ): Promise<void> {
-  await apiPut(`/client/measurements${qs({ clientId })}`, { clientId, date, values, updatedBy });
+  await trpc.measurements.save.mutate({ clientId, date, values });
   await writeAudit({ action: 'client.measurement', targetUserId: clientId, metadata: { date, by: updatedBy } });
 }
 
 // ---- coach notes -----------------------------------------------------------
 
 export async function listCoachNotes(clientId: string): Promise<CoachNote[]> {
-  const list = await apiGet<Record<string, unknown>[]>(`/client/coach-notes${qs({ clientId })}`);
-  return list.map((d) => withId<CoachNote>(d, d._id as string));
+  const list = await trpc.coachNotes.list.query({ clientId });
+  return list.map((d) => withId<CoachNote>(d, d._id));
 }
 
 /** Optional entity anchor for a coach note (where it's attached + the deep-link target). */
@@ -233,16 +223,14 @@ export interface NoteAnchor {
 export async function addCoachNote(
   clientId: string,
   body: string,
-  author: Author,
+  _author: Author,
   kind: 'note' | 'announcement' = 'note',
   anchor?: NoteAnchor,
 ): Promise<void> {
-  await apiPost(`/client/coach-notes${qs({ clientId })}`, {
+  await trpc.coachNotes.create.mutate({
     clientId,
     body,
     kind,
-    authorId: author.id,
-    authorRole: author.role,
     screen: anchor?.screen,
     date: anchor?.date,
     entityType: anchor?.entityType,
@@ -255,13 +243,14 @@ export async function broadcastAnnouncement(clientIds: string[], body: string, a
   await Promise.all(clientIds.map((id) => addCoachNote(id, body, author, 'announcement')));
 }
 
-// ---- assigned plans & templates (legacy — no Mongo route) ------------------
+// ---- assigned plans & templates (legacy — no backend route) ---------------
 //
 // These collections (`workoutPlans`/`nutritionPlans` "assigned plan" cards and
-// top-level `planTemplates`) have no route under `api/client/*` — they were
-// superseded by the singleton coach-authored plan + version history model
-// (see planApi.ts / planVersionsApi.ts). Nothing in the app currently calls
-// these besides `assignTemplate`, so they resolve to safe no-ops.
+// top-level `planTemplates`) have no procedure under the tRPC `client.*`
+// namespace — they were superseded by the singleton coach-authored plan +
+// version history model (see planApi.ts / planVersionsApi.ts). Nothing in the
+// app currently calls these besides `assignTemplate`, so they resolve to safe
+// no-ops.
 
 export async function listAssignedPlans(_clientId: string, _kind: PlanKind): Promise<AssignedPlan[]> {
   return [];
@@ -293,7 +282,7 @@ export async function assignTemplate(template: PlanTemplate, clientId: string, a
 // ---- coach targets ---------------------------------------------------------
 
 export async function getCoachTargets(clientId: string): Promise<CoachTargets | null> {
-  const doc = await apiGet<Record<string, unknown> | null>(`/client/coach-targets${qs({ clientId })}`);
+  const doc = await trpc.coachTargets.get.query({ clientId });
   return doc ? withId<CoachTargets>(doc, 'current') : null;
 }
 
@@ -301,7 +290,7 @@ export async function getCoachTargets(clientId: string): Promise<CoachTargets | 
 export async function setCoachTargets(
   clientId: string,
   targets: Pick<CoachTargets, 'waterMl' | 'steps' | 'cardioMin' | 'calories' | 'protein'>,
-  updatedBy: string,
+  _updatedBy: string,
 ): Promise<void> {
-  await apiPut(`/client/coach-targets${qs({ clientId })}`, { clientId, updatedBy, ...targets });
+  await trpc.coachTargets.set.mutate({ clientId, ...targets });
 }

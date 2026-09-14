@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { getDb } from '../_lib/mongodb.js';
-import { HttpError } from '../_lib/http.js';
+import { TRPCError } from '@trpc/server';
 import type { UserDoc } from '../_lib/types.js';
 import { addMonths, bumpActiveClientCount, buildSubscription, coachAtClientCap, coachClientsCol, relId } from './_data.js';
 import type {
@@ -43,7 +43,7 @@ export async function updateSubscription(coachId: string, clientId: string, acti
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
-  if (!existing) throw new HttpError(404, 'Relationship not found');
+  if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
   const now = Date.now();
   const cur: SubscriptionDoc = existing.subscription ?? { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
 
@@ -121,15 +121,15 @@ export async function assignExistingClient(
   const db = await getDb();
   const users = db.collection<UserDoc>('users');
   const client = await users.findOne({ _id: clientId });
-  if (!client) throw new HttpError(404, 'Client not found');
-  if (client.role !== 'client') throw new HttpError(400, 'Target user is not a client');
-  if (client.assignedCoachId) throw new HttpError(409, 'Client already has an assigned coach');
-  if (await coachAtClientCap(coachId)) throw new HttpError(409, 'Coach is at their client limit');
+  if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
+  if (client.role !== 'client') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Target user is not a client' });
+  if (client.assignedCoachId) throw new TRPCError({ code: 'CONFLICT', message: 'Client already has an assigned coach' });
+  if (await coachAtClientCap(coachId)) throw new TRPCError({ code: 'CONFLICT', message: 'Coach is at their client limit' });
 
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
-  if (existing && existing.status === 'active') throw new HttpError(409, 'Relationship already exists');
+  if (existing && existing.status === 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship already exists' });
 
   const now = Date.now();
   const subscription = buildSubscription(sub, now);
@@ -164,8 +164,8 @@ export async function endRelationship(
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
-  if (!existing) throw new HttpError(404, 'Relationship not found');
-  if (existing.status !== 'active') throw new HttpError(409, 'Relationship is not active');
+  if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
+  if (existing.status !== 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship is not active' });
 
   const now = Date.now();
   await col.updateOne({ _id: id }, { $set: { status: 'ended', endedAt: now, endedBy, endReason, updatedAt: now } });
@@ -261,7 +261,7 @@ export async function transferClientWithMode(
   // Cap gate BEFORE any mutation — mirrors the enforcement `firestore.rules`
   // applied at the `coachClients` doc-create layer (via `coachAtClientCap`).
   if ((movingCoaches || !fromCoachId) && (await coachAtClientCap(toCoachId))) {
-    throw new HttpError(409, 'Destination coach is at their client limit');
+    throw new TRPCError({ code: 'CONFLICT', message: 'Destination coach is at their client limit' });
   }
 
   const col = await coachClientsCol();

@@ -1,4 +1,5 @@
-import { apiGet, apiPost } from '@/services/platformApi';
+import { apiGet } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
@@ -45,7 +46,7 @@ function withBroadcastFlag(m: Message): Message {
 
 /** Messages in a client's 1:1 thread, oldest first. */
 export async function listMessages(clientId: string, max = 200): Promise<Message[]> {
-  const { messages } = await apiGet<MessagesPage>(`/messages?clientId=${encodeURIComponent(clientId)}`);
+  const { messages } = await trpc.messages.list.query({ clientId });
   const flagged = messages.map(withBroadcastFlag);
   return flagged.slice(Math.max(0, flagged.length - max));
 }
@@ -71,8 +72,7 @@ export function subscribeMessages(
   const poll = async () => {
     const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
     try {
-      const qs = fullRefresh ? '' : `&since=${cursor}`;
-      const page = await apiGet<MessagesPage>(`/messages?clientId=${encodeURIComponent(clientId)}${qs}`);
+      const page: MessagesPage = await trpc.messages.list.query(fullRefresh ? { clientId } : { clientId, since: cursor });
       if (cancelled) return;
       const incoming = page.messages.map(withBroadcastFlag);
       all = fullRefresh ? incoming : [...all, ...incoming];
@@ -105,7 +105,7 @@ export async function sendMessage(
   // `_from` is unused: the backend derives the sender's id + role from the
   // authenticated session, not the request body. Kept so this signature (and
   // every call site) doesn't need to change.
-  await apiPost('/messages', {
+  await trpc.messages.send.mutate({
     clientId,
     text: body.trim(),
     ...(opts?.category ? { category: opts.category } : {}),
@@ -117,7 +117,7 @@ export async function sendMessage(
 export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<void> {
   // `_readerRole` is unused: the backend infers the reader's role from the
   // authenticated session. Kept for signature compatibility.
-  await apiPost('/messages/mark-read', { clientId });
+  await trpc.messages.markRead.mutate({ clientId });
 }
 
 export interface ThreadMeta {

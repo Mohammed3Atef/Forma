@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { ClientTransferRequest, TransferMode, TransferSubHandling } from '@/types';
 
 /**
@@ -58,7 +58,7 @@ export async function submitTransferRequest(input: {
 }): Promise<void> {
   // `toCoachId` is inferred server-side from the signed-in (coach) caller —
   // the endpoint always uses the authenticated user's id, so it isn't sent.
-  await apiPost('/coach-clients/transfers', {
+  await trpc.transfers.create.mutate({
     clientId: input.clientId,
     fromCoachId: input.fromCoachId,
     reason: input.reason.trim(),
@@ -80,24 +80,24 @@ export async function getTransferRequest(toCoachId: string, clientId: string): P
 
 /** Requesting coach withdraws their own pending request. */
 export async function cancelTransferRequest(toCoachId: string, clientId: string): Promise<void> {
-  await apiPatch(`/coach-clients/transfers/${encodeURIComponent(transferReqId(toCoachId, clientId))}`, { action: 'cancel' });
+  await trpc.transfers.resolve.mutate({ id: transferReqId(toCoachId, clientId), action: 'cancel' });
 }
 
 /** Admin: every pending takeover request across all coaches. */
 export async function listPendingTransferRequests(): Promise<ClientTransferRequest[]> {
-  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/coach-clients/transfers?type=pending');
+  const docs = await trpc.transfers.list.query({ type: 'pending' });
   return docs.map(fromApiDoc);
 }
 
 /** Current coach: requests to take over MY clients (pending, newest first). */
 export async function listIncomingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
-  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/coach-clients/transfers?type=incoming');
+  const docs = await trpc.transfers.list.query({ type: 'incoming' });
   return docs.map(fromApiDoc);
 }
 
 /** Requesting coach: the status of requests I have made. */
 export async function listOutgoingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
-  const docs = await apiGet<ClientTransferRequestApiDoc[]>('/coach-clients/transfers?type=outgoing');
+  const docs = await trpc.transfers.list.query({ type: 'outgoing' });
   return docs.map(fromApiDoc);
 }
 
@@ -113,7 +113,8 @@ export async function resolveTransferRequest(
   outcome: 'accepted' | 'rejected',
   adminNote?: string,
 ): Promise<void> {
-  await apiPatch(`/coach-clients/transfers/${encodeURIComponent(transferReqId(toCoachId, clientId))}`, {
+  await trpc.transfers.resolve.mutate({
+    id: transferReqId(toCoachId, clientId),
     action: outcome === 'accepted' ? 'accept' : 'reject',
     ...(adminNote?.trim() ? { adminNote: adminNote.trim() } : {}),
   });

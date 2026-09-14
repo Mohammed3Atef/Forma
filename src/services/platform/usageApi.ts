@@ -1,19 +1,17 @@
-import { apiGet, apiPost } from '@/services/platformApi';
-import type { Role } from '@/types';
+import { trpc } from '@/services/trpc';
 
 /**
  * Record that a signed-in user was active today (idempotent per user/day).
- * The API derives the acting uid/role from the verified session; `uid`/`role`
- * are still accepted here for signature compatibility with existing callers.
+ * The API derives the acting uid/role from the verified session.
  */
-export async function recordActiveDay(uid: string, role: Role): Promise<void> {
-  await apiPost('/banners/usage/active-day', { uid, role });
+export async function recordActiveDay(): Promise<void> {
+  await trpc.usage.recordActiveDay.mutate();
 }
 
 /** Increment a platform usage counter for today (best-effort telemetry). */
 export async function bumpUsage(field: 'searches'): Promise<void> {
   try {
-    await apiPost('/banners/usage/bump', { field });
+    await trpc.usage.bump.mutate({ field });
   } catch {
     /* non-fatal */
   }
@@ -29,5 +27,5 @@ export interface UsageData {
 
 /** Admin usage aggregate: activeDays (last 30d) + usageStats (last 7d). Computed server-side. */
 export async function fetchUsage(): Promise<UsageData> {
-  return apiGet<UsageData>('/banners/usage');
+  return trpc.usage.fetch.query();
 }

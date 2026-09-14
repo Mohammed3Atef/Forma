@@ -28,15 +28,38 @@ export type NotificationType =
   | 'trial_expiring'
   | 'plan_change_requested';
 
+/**
+ * Backend-local mirror of `src/types/index.ts`'s `NoteScreen` — kept in sync
+ * by hand, same discipline as `Role`/`Permission` in `api/_lib/types.ts`.
+ * (Only needed now that tRPC actually type-checks this shape against the
+ * frontend's `AppNotification`, instead of the old REST route's `apiGet<T>`
+ * blind cast.)
+ */
+export type NoteScreen = 'nutrition' | 'workout' | 'cardio' | 'progress' | 'measurements' | 'photos';
+
+/** Backend-local mirror of `src/types/index.ts`'s `NoteEntityType`. */
+export type NoteEntityType =
+  | 'meal'
+  | 'food'
+  | 'water'
+  | 'supplement'
+  | 'exercise'
+  | 'workout_day'
+  | 'cardio_session'
+  | 'measurement'
+  | 'weight_entry'
+  | 'progress_photo'
+  | 'checkin';
+
 export interface NotificationDoc {
   _id: string;
   clientId: string;
   forRole: 'client' | 'coach';
   type: NotificationType;
   body?: string;
-  screen?: string;
+  screen?: NoteScreen;
   date?: string;
-  entityType?: string;
+  entityType?: NoteEntityType;
   entityId?: string;
   route?: string;
   seenAt?: number | null;

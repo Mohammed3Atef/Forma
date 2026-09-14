@@ -18,7 +18,7 @@ export function PresenceTracker() {
         if (localStorage.getItem(key)) return;
         localStorage.setItem(key, '1');
       } catch { /* storage blocked — still record */ }
-      void recordActiveDay(uid, role).catch(() => undefined);
+      void recordActiveDay().catch(() => undefined);
     };
     mark();
     const onVis = () => { if (document.visibilityState === 'visible') mark(); };

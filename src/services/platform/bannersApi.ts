@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut, ApiError } from '@/services/platformApi';
+import { trpc, TRPCClientError } from '@/services/trpc';
 import type { Role } from '@/types';
 
 export type BannerStyle = 'info' | 'success' | 'warning' | 'promo';
@@ -29,7 +29,7 @@ export interface Banner {
 const DAY = 86_400_000;
 
 export async function listBanners(): Promise<Banner[]> {
-  return apiGet<Banner[]>('/banners');
+  return trpc.banners.list.query();
 }
 
 /** Fields the API accepts on create/update (server owns id/createdBy/createdAt/updatedAt). */
@@ -58,10 +58,10 @@ function toBody(b: Banner) {
  */
 export async function saveBanner(b: Banner): Promise<void> {
   try {
-    await apiPut(`/banners/${encodeURIComponent(b.id)}`, toBody(b));
+    await trpc.banners.update.mutate({ id: b.id, ...toBody(b) });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      await apiPost('/banners', toBody(b));
+    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') {
+      await trpc.banners.create.mutate(toBody(b));
       return;
     }
     throw e;
@@ -69,7 +69,7 @@ export async function saveBanner(b: Banner): Promise<void> {
 }
 
 export async function deleteBanner(id: string): Promise<void> {
-  await apiDelete(`/banners/${encodeURIComponent(id)}`);
+  await trpc.banners.delete.mutate({ id });
 }
 
 export interface ViewerCtx {
@@ -100,5 +100,5 @@ export function matchesViewer(b: Banner, ctx: ViewerCtx, now = Date.now()): bool
  * values (as every current caller passes), so only `placement` is sent.
  */
 export async function fetchBannersForViewer(ctx: ViewerCtx): Promise<Banner[]> {
-  return apiGet<Banner[]>(`/banners/for-viewer?placement=${encodeURIComponent(ctx.placement)}`);
+  return trpc.banners.forViewer.query({ placement: ctx.placement });
 }

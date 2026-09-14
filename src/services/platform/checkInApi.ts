@@ -1,13 +1,14 @@
-import { apiGet, apiPatch, apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { WeeklyCheckIn } from '@/types';
 
 /**
- * Weekly check-ins over the Mongo-backed `/api/client/check-ins` route (port
- * of `clientData/{clientId}/checkIns/{weekStart}`). The coach creates/reviews;
- * the client may only update their OWN doc once, while it's still `requested`
- * — that "one-time submit while requested" rule is enforced server-side, but
- * we keep mirroring it in `submitCheckIn`'s caller-facing contract below since
- * it shapes what the client UI shows (see the Home check-in card / CheckIn page).
+ * Weekly check-ins over the tRPC `checkIns.*` procedures (port of
+ * `clientData/{clientId}/checkIns/{weekStart}`, then the Mongo-backed
+ * `/api/client/check-ins` REST route). The coach creates/reviews; the client
+ * may only update their OWN doc once, while it's still `requested` — that
+ * "one-time submit while requested" rule is enforced server-side, but we keep
+ * mirroring it in `submitCheckIn`'s caller-facing contract below since it
+ * shapes what the client UI shows (see the Home check-in card / CheckIn page).
  */
 
 /** Fields the client fills in on submit (all optional except photos object). */
@@ -22,14 +23,6 @@ export interface CheckInSubmission {
   progressPhotos?: { front?: string; side?: string; back?: string };
 }
 
-/** Builds a `?a=1&b=2` query string, skipping undefined values. */
-function qs(params: Record<string, string | number | undefined>): string {
-  const usp = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== undefined) usp.set(k, String(v));
-  const s = usp.toString();
-  return s ? `?${s}` : '';
-}
-
 /** Mongo's `_id` is `${clientId}__${weekStart}`; the frontend id IS the weekStart. */
 function toCheckIn(doc: Record<string, unknown>): WeeklyCheckIn {
   const { _id, ...rest } = doc;
@@ -37,14 +30,14 @@ function toCheckIn(doc: Record<string, unknown>): WeeklyCheckIn {
 }
 
 export async function getCheckIn(clientId: string, id: string): Promise<WeeklyCheckIn | null> {
-  const doc = await apiGet<Record<string, unknown> | null>(`/client/check-ins${qs({ clientId, id })}`);
+  const doc = await trpc.checkIns.get.query({ clientId, weekStart: id });
   return doc ? toCheckIn(doc) : null;
 }
 
 /** All of a client's check-ins, newest week first. */
 export async function listCheckIns(clientId: string): Promise<WeeklyCheckIn[]> {
-  const list = await apiGet<Record<string, unknown>[]>(`/client/check-ins${qs({ clientId })}`);
-  return list.map(toCheckIn);
+  const list = await trpc.checkIns.list.query({ clientId });
+  return list.map((d) => toCheckIn(d));
 }
 
 /** The most recent check-in (the Home card watches for status === 'requested'). */
@@ -59,17 +52,17 @@ export async function getActiveCheckIn(clientId: string): Promise<WeeklyCheckIn 
  * reviewed week) and notifies the client itself.
  */
 export async function requestCheckIn(coachId: string, clientId: string, weekStart: string, weekEnd: string): Promise<void> {
-  await apiPost(`/client/check-ins${qs({ action: 'request', clientId })}`, { clientId, weekStart, weekEnd, coachId });
+  await trpc.checkIns.request.mutate({ clientId, weekStart, weekEnd, coachId });
 }
 
 /** Client submits their check-in (once, while status is still 'requested' — enforced server-side). The backend notifies the coach. */
 export async function submitCheckIn(clientId: string, id: string, data: CheckInSubmission): Promise<void> {
-  await apiPatch(`/client/check-ins${qs({ clientId, id })}`, data);
+  await trpc.checkIns.submit.mutate({ clientId, weekStart: id, ...data });
 }
 
 /** Coach reviews a submitted check-in with feedback. The backend notifies the client. */
 export async function reviewCheckIn(clientId: string, id: string, feedback: string): Promise<void> {
-  await apiPost(`/client/check-ins${qs({ action: 'review', clientId, id })}`, { feedback });
+  await trpc.checkIns.review.mutate({ clientId, weekStart: id, feedback });
 }
 
 export interface CheckInTrendPoint {

@@ -1,7 +1,6 @@
-import type { VercelRequest } from '@vercel/node';
+import { TRPCError } from '@trpc/server';
 import { hasPermission } from '../../_lib/rbac.js';
-import { HttpError } from '../../_lib/http.js';
-import type { AuthedUser } from '../../_lib/withAuth.js';
+import type { AuthedUser } from '../../_trpc/context.js';
 import { coachClientsCol } from './db.js';
 
 /**
@@ -71,19 +70,12 @@ export async function canWriteClientOrCoach(user: AuthedUser, clientId: string):
 }
 
 /**
- * Resolves the target clientId for a request: an explicit `clientId` query
- * param or body field (coach/admin acting on a client), or the caller's own id
- * when they are a client. Throws 400 if neither is available.
+ * Resolves the target clientId for a call: an explicit `clientId` input field
+ * (coach/admin acting on a client), or the caller's own id when they are a
+ * client. Throws BAD_REQUEST if neither is available.
  */
-export function resolveClientId(req: VercelRequest, user: AuthedUser): string {
-  const fromQuery = typeof req.query.clientId === 'string' ? req.query.clientId : undefined;
-  const bodyRaw = req.body as Record<string, unknown> | undefined;
-  const fromBody = bodyRaw && typeof bodyRaw.clientId === 'string' ? (bodyRaw.clientId as string) : undefined;
-  const clientId = fromQuery ?? fromBody ?? (user.role === 'client' ? user.id : undefined);
-  if (!clientId) throw new HttpError(400, 'clientId is required');
+export function resolveClientId(inputClientId: string | undefined, user: AuthedUser): string {
+  const clientId = inputClientId ?? (user.role === 'client' ? user.id : undefined);
+  if (!clientId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'clientId is required' });
   return clientId;
-}
-
-export function requireForbiddenUnless(ok: boolean): void {
-  if (!ok) throw new HttpError(403, 'Forbidden');
 }

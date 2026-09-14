@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { AppNotification } from '@/types';
 
 /**
@@ -66,7 +66,7 @@ function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalM
   const poll = async () => {
     const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
     try {
-      const page = await apiGet<NotificationsPage>(`/messages/notifications${fullRefresh ? '' : `?since=${cursor}`}`);
+      const page: NotificationsPage = await trpc.notifications.list.query(fullRefresh ? undefined : { since: cursor });
       if (cancelled) return;
       // Newest-first from the server; merge any new rows in front.
       all = fullRefresh ? page.notifications : page.notifications.length > 0 ? [...page.notifications, ...all] : all;
@@ -92,7 +92,7 @@ export async function listNotifications(
   _forRole: 'client' | 'coach',
   max = 50,
 ): Promise<AppNotification[]> {
-  const { notifications } = await apiGet<NotificationsPage>('/messages/notifications');
+  const { notifications } = await trpc.notifications.list.query();
   return notifications.slice(0, max);
 }
 
@@ -118,9 +118,9 @@ export function subscribeCoachNotifications(_coachId: string, cb: (items: AppNot
 
 /** Marks a single notification seen (read-state lives on the notification). */
 export async function markNotificationSeen(_clientId: string, id: string): Promise<void> {
-  // `_clientId` is unused: `/notifications/mark-read` scopes to the caller's
+  // `_clientId` is unused: `notifications.markRead` scopes to the caller's
   // own feed + the given `id` — no clientId needed. Kept for signature compatibility.
-  await apiPost('/messages/notifications/mark-read', { id });
+  await trpc.notifications.markRead.mutate({ id });
 }
 
 /**
@@ -131,7 +131,7 @@ export async function markNotificationSeen(_clientId: string, id: string): Promi
  */
 export async function markMessageNotificationsSeen(clientId: string, _forRole: 'client' | 'coach'): Promise<void> {
   try {
-    await apiPost('/messages/mark-read', { clientId });
+    await trpc.messages.markRead.mutate({ clientId });
   } catch (e) {
     console.warn('[markMessageNotificationsSeen] failed (non-fatal):', e);
   }
@@ -142,6 +142,6 @@ export async function markMessageNotificationsSeen(clientId: string, _forRole: '
  * doc — the one-shot counterpart to `subscribeCoachNotifications`.
  */
 export async function listCoachNotifications(_coachId: string, max = 50): Promise<AppNotification[]> {
-  const { notifications } = await apiGet<NotificationsPage>('/messages/notifications');
+  const { notifications } = await trpc.notifications.list.query();
   return notifications.slice(0, max);
 }

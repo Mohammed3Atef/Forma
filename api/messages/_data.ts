@@ -1,8 +1,8 @@
 import { Collection } from 'mongodb';
+import { TRPCError } from '@trpc/server';
 import { getDb } from '../_lib/mongodb.js';
 import { hasPermission } from '../_lib/rbac.js';
-import { HttpError } from '../_lib/http.js';
-import type { AuthedUser } from '../_lib/withAuth.js';
+import type { AuthedUser } from '../_trpc/context.js';
 import type { Role } from '../_lib/types.js';
 import type { CoachClientDoc } from '../coach-clients/_types.js';
 
@@ -96,5 +96,5 @@ export async function authorizeThreadAccess(user: AuthedUser, clientId: string):
   if (user.id === clientId) return;
   if (hasPermission(user.role, user.accountStatus, user.permissions, 'clients.writeAll')) return;
   if (user.role === 'coach' && (await isAssignedCoach(user.id, clientId))) return;
-  throw new HttpError(403, 'Forbidden');
+  throw new TRPCError({ code: 'FORBIDDEN' });
 }
