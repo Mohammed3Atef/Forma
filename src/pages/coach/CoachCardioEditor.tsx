@@ -39,8 +39,13 @@ export function CoachCardioEditor() {
   const [editing, setEditing] = useState<SessForm | null>(null);
 
   useEffect(() => {
-    if (plan === null) setPlan(query.data ?? emptyPlan());
-  }, [query.data, plan]);
+    // Wait for the query to actually settle before falling back to an empty
+    // plan — otherwise the very first render (query.data still undefined
+    // while loading) locks in an empty plan before the real saved plan has a
+    // chance to arrive, and a coach reopening an existing client's cardio
+    // plan would silently see it as blank (and could overwrite it on save).
+    if (plan === null && !query.isLoading) setPlan(query.data ?? emptyPlan());
+  }, [query.data, query.isLoading, plan]);
 
   const save = useMutation({
     mutationFn: () => saveClientCardioPlan(clientId, plan!),
