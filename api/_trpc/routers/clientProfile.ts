@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, isActiveSelf, resolveClientId } from '../../client/_lib/access.js';
 import { clientProfilesCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
@@ -23,14 +23,14 @@ const ProfileFieldsSchema = z.object({
  * coach / admin(clients.writeAll) may write it.
  */
 export const profileRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const doc = await (await clientProfilesCol()).findOne({ _id: clientId });
     return doc?.profile ?? null;
   }),
 
-  save: protectedProcedure
+  save: authedProcedure
     .input(z.object({ clientId: z.string().optional() }).merge(ProfileFieldsSchema))
     .mutation(async ({ ctx, input }) => {
       const { clientId: inputClientId, ...body } = input;
@@ -72,7 +72,7 @@ const DraftBody = z.object({
  * review) OR assigned coach / admin(writeAll) for the review fields.
  */
 export const assessmentRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const doc = await (await clientProfilesCol()).findOne({ _id: clientId });
@@ -80,7 +80,7 @@ export const assessmentRouter = router({
   }),
 
   /** Client saves an in-progress draft (does not touch profile/main). */
-  saveDraft: protectedProcedure
+  saveDraft: authedProcedure
     .input(z.object({ clientId: z.string().optional() }).merge(DraftBody))
     .mutation(async ({ ctx, input }) => {
       const { clientId: inputClientId, ...patch } = input;
@@ -98,7 +98,7 @@ export const assessmentRouter = router({
     }),
 
   /** Submits the assessment AND the derived fitness profile atomically; syncs displayName; notifies the coach. */
-  submit: protectedProcedure
+  submit: authedProcedure
     .input(
       z.object({
         clientId: z.string().optional(),
@@ -158,7 +158,7 @@ export const assessmentRouter = router({
     }),
 
   /** Coach records review notes (merge, doesn't reset status). */
-  setCoachNotes: protectedProcedure
+  setCoachNotes: authedProcedure
     .input(z.object({ clientId: z.string().optional(), coachNotes: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -171,7 +171,7 @@ export const assessmentRouter = router({
     }),
 
   /** Coach marks the assessment reviewed (locks further client edits until reset). */
-  review: protectedProcedure.input(z.object({ clientId: z.string().optional() })).mutation(async ({ ctx, input }) => {
+  review: authedProcedure.input(z.object({ clientId: z.string().optional() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await clientProfilesCol();
@@ -187,7 +187,7 @@ export const assessmentRouter = router({
   }),
 
   /** Coach re-opens the assessment so the client can edit + resubmit. */
-  reset: protectedProcedure.input(z.object({ clientId: z.string().optional() })).mutation(async ({ ctx, input }) => {
+  reset: authedProcedure.input(z.object({ clientId: z.string().optional() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await clientProfilesCol();

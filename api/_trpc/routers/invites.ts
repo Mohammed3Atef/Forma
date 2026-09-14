@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure, protectedProcedure } from '../trpc.js';
+import { router, publicProcedure, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { usersCol } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
@@ -18,7 +18,7 @@ const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
 /** tRPC port of `api/coach-clients/_handlers/invites-{index,code,claim}.ts` (was `/api/invites/*`). */
 export const invitesRouter = router({
   /** The requesting coach's own invites, newest first (an admin with `coaches.assign` may pass `coachId` for oversight). */
-  list: protectedProcedure
+  list: authedProcedure
     .input(z.object({ status: z.enum(['pending', 'claimed', 'revoked', 'all']).optional(), coachId: z.string().trim().min(1).optional() }))
     .query(async ({ ctx, input }) => {
       const col = await invitesCol();

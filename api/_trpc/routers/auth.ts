@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure, protectedProcedure } from '../trpc.js';
+import { router, publicProcedure, protectedProcedure, authedProcedure } from '../trpc.js';
 import { usersCol, passwordResetsCol } from '../../_lib/mongodb.js';
 import { hashPassword, verifyPassword } from '../../_lib/password.js';
 import {
@@ -122,7 +122,18 @@ export const authRouter = router({
     clearRefreshCookie(ctx.res);
   }),
 
-  me: protectedProcedure.query(({ ctx }) => toPublicUser(ctx.user.doc)),
+  /**
+   * Deliberately `authedProcedure` (bare — no active-status requirement), NOT
+   * `protectedProcedure`: this is exactly what `sessionStore.refreshAccount()`
+   * calls on every app load to compute `phase` (via `phaseForStatus`) — the
+   * mechanism that routes a pending/suspended account to its dedicated
+   * `<AccountPending/>`/`<AccountSuspended/>` screen. Gating this endpoint on
+   * `active` would make it throw for exactly the accounts it exists to
+   * report on, bouncing them to the anonymous/login screen instead of their
+   * real status screen. Matches the old REST `me.ts`, which only ever called
+   * bare `requireUser()`.
+   */
+  me: authedProcedure.query(({ ctx }) => toPublicUser(ctx.user.doc)),
 
   /** Mirrors `sessionStore.updateSelf` — the signed-in user's own non-control fields only. */
   updateProfile: protectedProcedure

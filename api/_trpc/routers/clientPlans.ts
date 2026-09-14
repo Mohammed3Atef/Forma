@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { Collection } from 'mongodb';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, resolveClientId } from '../../client/_lib/access.js';
 import { clientCardioPlansCol, clientNutritionPlansCol, clientWorkoutPlansCol, planCollectionForKind, planVersionsCol } from '../../client/_lib/db.js';
 import type { ClientPlanDoc, PlanVersionDoc, PlanVersionKind } from '../../client/_lib/types.js';
@@ -16,7 +16,7 @@ const PlanBodySchema = z.object({ clientId: z.string().optional(), id: z.string(
 
 function makePlanRouter(colFn: () => Promise<Collection<ClientPlanDoc>>) {
   return router({
-    get: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+    get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
       const clientId = resolveClientId(input?.clientId, ctx.user);
       if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
       const doc = await (await colFn()).findOne({ _id: clientId });
@@ -28,7 +28,7 @@ function makePlanRouter(colFn: () => Promise<Collection<ClientPlanDoc>>) {
     }),
 
     /** Full replace, mirrors `setDoc` (not merge). */
-    save: protectedProcedure.input(PlanBodySchema).mutation(async ({ ctx, input }) => {
+    save: authedProcedure.input(PlanBodySchema).mutation(async ({ ctx, input }) => {
       const { clientId: inputClientId, ...body } = input;
       const clientId = resolveClientId(inputClientId, ctx.user);
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
@@ -58,7 +58,7 @@ async function writeActivePlan(clientId: string, kind: PlanVersionKind, snapshot
  * plan doc (`clientWorkoutPlans` etc.) — the doc the client reads day to day.
  */
 export const planVersionsRouter = router({
-  list: protectedProcedure
+  list: authedProcedure
     .input(z.object({ clientId: z.string().optional(), kind: KindEnum.optional() }).optional())
     .query(async ({ ctx, input }) => {
       const clientId = resolveClientId(input?.clientId, ctx.user);
@@ -70,7 +70,7 @@ export const planVersionsRouter = router({
     }),
 
   /** Snapshot the current plan as a new active version (deactivating the previous one). */
-  save: protectedProcedure
+  save: authedProcedure
     .input(z.object({ clientId: z.string().optional(), kind: KindEnum, plan: z.object({ name: z.string().optional() }).passthrough(), reason: z.string().trim().optional() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -100,7 +100,7 @@ export const planVersionsRouter = router({
     }),
 
   /** Make an older version active again and restore it into the assigned plan. */
-  restore: protectedProcedure
+  restore: authedProcedure
     .input(z.object({ clientId: z.string().optional(), versionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);

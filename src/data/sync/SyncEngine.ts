@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { apiGet, apiPost, apiPut } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import { getDataSource } from '@/data/dataSource';
 import type { Repository, SingletonRepository } from '@/data/repositories';
 import type { AppSettings, UserProfile } from '@/types';
@@ -7,8 +7,8 @@ import { clearAllTombstones, clearTombstone, listTombstones } from './tombstones
 
 /**
  * Conflict-safe one-way-then-merge sync between the local store (source of
- * truth while offline) and the Mongo-backed `/api/sync/*` endpoints. Strategy:
- * last-write-wins by `updatedAt`.
+ * truth while offline) and the Mongo-backed `trpc.sync.*` procedures.
+ * Strategy: last-write-wins by `updatedAt`.
  *
  *  push(): upload every locally-`dirty` record, then clear its dirty flag.
  *  pull(): download remote records and overwrite local ones that are older.
@@ -18,9 +18,9 @@ import { clearAllTombstones, clearTombstone, listTombstones } from './tombstones
  * clock at edit time — a device that edits offline and uploads hours later
  * would otherwise be permanently missed by everyone else's watermark).
  *
- * Deletions are mirrored as marker docs (`api/sync/deletions/*`) so OTHER
- * devices can apply them locally too; a record edited after its deletion
- * timestamp survives (edit-wins).
+ * Deletions are mirrored as marker docs (`trpc.sync.deletionsPush`/
+ * `deletionsPull`) so OTHER devices can apply them locally too; a record
+ * edited after its deletion timestamp survives (edit-wins).
  *
  * This replaced a Firestore-backed version (see docs/MONGO_MIGRATION_PLAN.md)
  * — the class shape and every public method are unchanged so `cloudStore.ts`
@@ -84,11 +84,10 @@ export class SyncEngine {
     };
     const dirty = all.filter((r) => r.dirty && !isDraft(r));
     if (dirty.length === 0) return 0;
-    const { syncedAt: _unused } = await apiPost<{ pushed: number; syncedAt: number }>('/sync/push', {
+    await trpc.sync.push.mutate({
       collection: name,
       records: dirty.map((rec) => ({ id: rec.id, updatedAt: rec.updatedAt, data: { ...rec, dirty: undefined } })),
     });
-    void _unused;
     // Compare-and-set: the user may have edited the record during the network
     // round-trip. Only clear the dirty flag if it's unchanged — otherwise the
     // newer edit stays dirty and syncs next pass.
@@ -103,9 +102,7 @@ export class SyncEngine {
 
   async pullCollection(name: CollName, since: number): Promise<{ pulled: number; maxSyncedAt: number }> {
     const repo = repoFor(name);
-    const res = await apiGet<{ records: { id: string; updatedAt: number; data: Record<string, unknown> }[]; maxSyncedAt: number }>(
-      `/sync/pull?collection=${encodeURIComponent(name)}&since=${since}`,
-    );
+    const res = await trpc.sync.pull.query({ collection: name, since });
     let pulled = 0;
     for (const rec of res.records) {
       const remote = rec.data as unknown as Dirty;
@@ -120,14 +117,11 @@ export class SyncEngine {
 
   /** Sync the profile + settings singletons (last-write-wins by updatedAt). */
   private async syncSingleton<T extends { updatedAt: number }>(name: 'profile' | 'settings', repo: SingletonRepository<T>): Promise<void> {
-    const [local, remote] = await Promise.all([
-      repo.get(),
-      apiGet<{ data: T; updatedAt: number } | null>(`/sync/singleton?name=${name}`),
-    ]);
+    const [local, remote] = await Promise.all([repo.get(), trpc.sync.singletonGet.query({ name })]);
     if (local && (!remote || local.updatedAt > remote.updatedAt)) {
-      await apiPut(`/sync/singleton`, { name, data: local, updatedAt: local.updatedAt });
+      await trpc.sync.singletonSet.mutate({ name, data: local, updatedAt: local.updatedAt });
     } else if (remote && (!local || remote.updatedAt > local.updatedAt)) {
-      await repo.set(remote.data);
+      await repo.set(remote.data as T);
     }
   }
 
@@ -141,7 +135,7 @@ export class SyncEngine {
     const tombs = await listTombstones();
     if (tombs.length === 0) return 0;
     try {
-      await apiPost('/sync/deletions/push', {
+      await trpc.sync.deletionsPush.mutate({
         deletions: tombs.map((t) => ({ collection: t.collection, id: t.id, deletedAt: t.deletedAt ?? Date.now() })),
       });
     } catch {
@@ -161,9 +155,7 @@ export class SyncEngine {
    * discard newer data).
    */
   async pullDeletions(since: number): Promise<{ applied: number; maxSyncedAt: number }> {
-    const res = await apiGet<{ deletions: { collection: string; id: string; deletedAt: number }[]; maxSyncedAt: number }>(
-      `/sync/deletions/pull?since=${since}`,
-    );
+    const res = await trpc.sync.deletionsPull.query({ since });
     let applied = 0;
     for (const marker of res.deletions) {
       if (!(COLLECTIONS as readonly string[]).includes(marker.collection)) continue;
@@ -179,7 +171,7 @@ export class SyncEngine {
 
   /** Delete ALL of this user's cloud data (used by "reset all data"). */
   async wipeCloud(): Promise<void> {
-    await apiPost('/sync/wipe');
+    await trpc.sync.wipe.mutate();
     await clearAllTombstones();
     for (const name of [...COLLECTIONS, 'profile', 'settings']) {
       await syncMeta.removeItem(this.cursorKey(name));

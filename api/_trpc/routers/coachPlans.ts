@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, roleProcedure, permissionProcedure } from '../trpc.js';
+import { router, roleProcedure, roleProcedureNoActive, permissionProcedure } from '../trpc.js';
 import {
   DAY_MS,
   PAID_TERM_DAYS,
@@ -17,16 +17,16 @@ import { COACH_PLAN_TIERS, getTier } from '../../coach-plans/_handlers/tiers-dat
 
 /** tRPC port of `api/coach-plans/_handlers/{me,trial,detail,change-request,admin-plan-change-requests}.ts`. */
 export const coachPlansRouter = router({
-  /** The signed-in coach's own Layer-A plan. */
-  me: roleProcedure('coach').query(async ({ ctx }) => {
+  /** The signed-in coach's own Layer-A plan. Deliberately no active-status requirement — matches the old REST `me.ts`. */
+  me: roleProcedureNoActive('coach').query(async ({ ctx }) => {
     const plans = await coachPlansCol();
     const doc = await plans.findOne({ _id: ctx.user.id });
     if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: 'No plan found for this coach yet.' });
     return toPublicCoachPlan(doc);
   }),
 
-  /** Creates the auto-trial plan for a newly self-signed-up coach. Idempotent — never downgrades an existing plan. */
-  createTrial: roleProcedure('coach').mutation(async ({ ctx }) => {
+  /** Creates the auto-trial plan for a newly self-signed-up coach. Idempotent — never downgrades an existing plan. Deliberately no active-status requirement — matches the old REST `trial.ts`. */
+  createTrial: roleProcedureNoActive('coach').mutation(async ({ ctx }) => {
     const plans = await coachPlansCol();
     const existing = await plans.findOne({ _id: ctx.user.id });
     if (existing) return toPublicCoachPlan(existing);

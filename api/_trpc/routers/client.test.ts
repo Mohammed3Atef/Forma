@@ -96,6 +96,18 @@ describe('client module — profile', () => {
     const updated = await asCoach.profile.save({ clientId: clientDoc._id, ...profileFields, age: 31 });
     expect(updated?.age).toBe(31);
   });
+
+  it('a suspended client can still read their own profile, but not write it — matches the old REST access.ts, which had no active check on the self-read branch', async () => {
+    const clientDoc = await insertUser({ _id: 'client-1', role: 'client', accountStatus: 'suspended' });
+    const asSuspendedSelf = appRouter.createCaller(ctxFor(authedUser(clientDoc)));
+
+    const got = await asSuspendedSelf.profile.get({ clientId: clientDoc._id });
+    expect(got).toBeNull(); // no profile saved yet, but the read itself must not throw
+
+    await expect(
+      asSuspendedSelf.profile.save({ clientId: clientDoc._id, ...profileFields }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
 });
 
 describe('client module — assessment', () => {

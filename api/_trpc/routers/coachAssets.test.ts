@@ -89,6 +89,16 @@ describe('coachAssets router — exercises (stripMeta resource: no coachId/creat
     expect(await asCoachA.coachAssets.exercises.list({})).toHaveLength(0);
   });
 
+  it('a suspended coach can still list/read their own library, but not save/update/delete — matches the old REST requireReadContext, which had no active check', async () => {
+    const asCoachA = appRouter.createCaller(ctxFor(coachA));
+    await asCoachA.coachAssets.exercises.save(exerciseInput);
+
+    const suspendedCoachA = { ...coachA, accountStatus: 'suspended' as const };
+    const asSuspendedCoachA = appRouter.createCaller(ctxFor(suspendedCoachA));
+    expect(await asSuspendedCoachA.coachAssets.exercises.list({})).toHaveLength(1);
+    await expect(asSuspendedCoachA.coachAssets.exercises.save({ ...exerciseInput, id: 'ex-2' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('save is an upsert: saving the same id twice replaces rather than duplicates', async () => {
     const asCoachA = appRouter.createCaller(ctxFor(coachA));
     await asCoachA.coachAssets.exercises.save(exerciseInput);

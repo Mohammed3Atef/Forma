@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteClientOrCoach, canWriteCoachOwned, isActiveSelf, resolveClientId } from '../../client/_lib/access.js';
 import { checkInsCol, measurementLogsCol, subscriptionRequestsCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
@@ -16,20 +16,20 @@ function checkInId(clientId: string, weekStart: string): string {
  * `status: 'requested'` (the one-time submit). No client delete.
  */
 export const checkInsRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await checkInsCol()).findOne({ _id: checkInId(clientId, input.weekStart) });
   }),
 
-  list: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await checkInsCol()).find({ clientId }).sort({ weekStart: -1 }).toArray();
   }),
 
   /** Idempotent: one doc per week. */
-  request: protectedProcedure
+  request: authedProcedure
     .input(z.object({ clientId: z.string().optional(), weekStart: z.string(), weekEnd: z.string(), coachId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -57,7 +57,7 @@ export const checkInsRouter = router({
     }),
 
   /** Client submits their OWN check-in, once, while it's still 'requested'. */
-  submit: protectedProcedure
+  submit: authedProcedure
     .input(
       z.object({
         clientId: z.string().optional(),
@@ -100,7 +100,7 @@ export const checkInsRouter = router({
     }),
 
   /** Coach reviews a submitted check-in with feedback. */
-  review: protectedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string(), feedback: z.string() })).mutation(async ({ ctx, input }) => {
+  review: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string(), feedback: z.string() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await checkInsCol();
@@ -114,7 +114,7 @@ export const checkInsRouter = router({
   }),
 
   /** Coach/admin only (no client delete rule). */
-  delete: protectedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).mutation(async ({ ctx, input }) => {
+  delete: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     await (await checkInsCol()).deleteOne({ _id: checkInId(clientId, input.weekStart) });
@@ -123,20 +123,20 @@ export const checkInsRouter = router({
 
 /** `measurementLogs` — NOT coach-owned (client keeps normal own-write), but a dedicated rule ALSO grants the assigned coach / admin(writeAll) write. */
 export const measurementsRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await measurementLogsCol()).findOne({ _id: `${clientId}__${input.date}` });
   }),
 
-  list: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await measurementLogsCol()).find({ clientId }).sort({ date: 1 }).toArray();
   }),
 
   /** Read-merges the existing day so partial entries don't wipe other body parts. */
-  save: protectedProcedure
+  save: authedProcedure
     .input(z.object({ clientId: z.string().optional(), date: z.string(), values: z.record(z.string(), z.number()) }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -157,7 +157,7 @@ export const measurementsRouter = router({
       return log;
     }),
 
-  delete: protectedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).mutation(async ({ ctx, input }) => {
+  delete: authedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteClientOrCoach(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     await (await measurementLogsCol()).deleteOne({ _id: `${clientId}__${input.date}` });
@@ -166,14 +166,14 @@ export const measurementsRouter = router({
 
 /** Singleton `subscriptionRequest` (freeze request) — NOT coach-owned: client creates/cancels; assigned coach/admin(writeAll) decides. */
 export const subscriptionRequestRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await subscriptionRequestsCol()).findOne({ _id: clientId });
   }),
 
   /** Client creates/resubmits. */
-  submit: protectedProcedure
+  submit: authedProcedure
     .input(z.object({ clientId: z.string().optional(), from: z.number().nullable().optional(), until: z.number().nullable().optional(), reason: z.string().trim().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -198,7 +198,7 @@ export const subscriptionRequestRouter = router({
     }),
 
   /** Client withdraws a pending request. */
-  cancel: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).mutation(async ({ ctx, input }) => {
+  cancel: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!isActiveSelf(ctx.user, clientId)) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await subscriptionRequestsCol();
@@ -210,7 +210,7 @@ export const subscriptionRequestRouter = router({
   }),
 
   /** Assigned coach / admin(writeAll) decides. */
-  decide: protectedProcedure
+  decide: authedProcedure
     .input(z.object({ clientId: z.string().optional(), outcome: z.enum(['accepted', 'rejected']), coachNote: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);

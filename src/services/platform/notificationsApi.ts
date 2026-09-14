@@ -2,14 +2,15 @@ import { trpc } from '@/services/trpc';
 import type { AppNotification } from '@/types';
 
 /**
- * Client for the Mongo-backed `/api/notifications*` routes. Firestore
- * `onSnapshot` listeners are replaced with `setInterval` + `apiGet` polling a
- * `since` cursor — see `pollFeed` below, which both "subscribe" exports share.
- * `GET /api/notifications` is already scoped to the AUTHENTICATED caller's own
- * feed (role-routed server-side — see `feedFilter` in `api/notifications/_data.ts`,
- * which merges a coach's own doc + every active client for a coach, or just a
- * client's own feed), so every function here is only ever called with the
- * signed-in user's own id in practice; the `clientId`/`coachId`/`forRole`
+ * Client for the Mongo-backed `trpc.notifications.*` procedures. Firestore
+ * `onSnapshot` listeners are replaced with `setInterval` + polling a `since`
+ * cursor — see `pollFeed` below, which both "subscribe" exports share.
+ * `notifications.list` is already scoped to the AUTHENTICATED caller's own
+ * feed (role-routed server-side — see `feedFilter` in
+ * `api/messages/_handlers/notifications-data.ts`, which merges a coach's own
+ * doc + every active client for a coach, or just a client's own feed), so
+ * every function here is only ever called with the signed-in user's own id
+ * in practice; the `clientId`/`coachId`/`forRole`
  * parameters are kept for signature compatibility with the Firestore-era
  * callers but aren't sent to the API.
  */

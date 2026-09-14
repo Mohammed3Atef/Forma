@@ -1,7 +1,7 @@
 import { Collection } from 'mongodb';
 import { getDb } from '../../_lib/mongodb.js';
 import { getActiveCoachClientIds } from '../_data.js';
-import type { AuthedUser } from '../../_lib/withAuth.js';
+import type { AuthedUser } from '../../_trpc/context.js';
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `AppNotification` /

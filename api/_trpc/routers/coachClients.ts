@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
 import { assignExistingClient, endRelationship, transferClientWithMode, updateSubscription, type SubscriptionAction } from '../../coach-clients/_service.js';
@@ -52,7 +52,7 @@ export const coachClientsRouter = router({
    * `?clientId=`: that client's full history, newest first (self, their assigned coach, or `users.read`).
    * neither     : "my own" list — a coach's active roster, or a client's own coaching history.
    */
-  list: protectedProcedure
+  list: authedProcedure
     .input(
       z.object({
         coachId: z.string().trim().min(1).optional(),
@@ -91,7 +91,7 @@ export const coachClientsRouter = router({
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'coachId or clientId is required' });
     }),
 
-  get: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
     const col = await coachClientsCol();
     const doc = await col.findOne({ _id: input.id });
     if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });

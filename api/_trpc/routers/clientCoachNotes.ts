@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, resolveClientId } from '../../client/_lib/access.js';
 import { coachNotesCol, coachTargetsCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
@@ -12,14 +12,14 @@ const NoteEntityTypeEnum = z.enum(['meal', 'food', 'water', 'supplement', 'exerc
 
 /** `coachNotes` is coach-owned: client read-only, only the assigned coach / admin(clients.writeAll) may write. */
 export const coachNotesRouter = router({
-  list: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await coachNotesCol();
     return col.find({ clientId }).sort({ createdAt: -1 }).limit(50).toArray();
   }),
 
-  create: protectedProcedure
+  create: authedProcedure
     .input(
       z.object({
         clientId: z.string().optional(),
@@ -64,7 +64,7 @@ export const coachNotesRouter = router({
       return note;
     }),
 
-  update: protectedProcedure
+  update: authedProcedure
     .input(z.object({ clientId: z.string().optional(), id: z.string().min(1), body: z.string().trim().min(1).max(4000) }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
@@ -77,7 +77,7 @@ export const coachNotesRouter = router({
       return updated;
     }),
 
-  delete: protectedProcedure.input(z.object({ clientId: z.string().optional(), id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
+  delete: authedProcedure.input(z.object({ clientId: z.string().optional(), id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     await (await coachNotesCol()).deleteOne({ _id: input.id, clientId });
@@ -86,13 +86,13 @@ export const coachNotesRouter = router({
 
 /** The singleton `coachTargets` doc — coach-owned: client read-only, only the assigned coach / admin(clients.writeAll) may write. */
 export const coachTargetsRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await coachTargetsCol()).findOne({ _id: clientId });
   }),
 
-  set: protectedProcedure
+  set: authedProcedure
     .input(
       z.object({
         clientId: z.string().optional(),

@@ -128,6 +128,31 @@ describe('auth module', () => {
     expect(relogin.user.id).toBe(signedUp.user.id);
   });
 
+  it('me works for a suspended/pending account (no active-status requirement) — this is exactly what sessionStore.refreshAccount() calls to detect that status and route to the right screen', async () => {
+    const usersCollection = await usersCol();
+    const now = Date.now();
+    const suspended: AuthedUser = {
+      id: 'suspended-1',
+      role: 'client',
+      accountStatus: 'suspended',
+      permissions: [],
+      doc: {
+        _id: 'suspended-1', email: 'susp@example.com', emailLower: 'susp@example.com', passwordHash: 'x',
+        displayName: 'Suspended', role: 'client', accountStatus: 'suspended', permissions: [], featureFlags: {},
+        createdBy: 'system', createdAt: now, updatedAt: now,
+      },
+    };
+    await usersCollection.insertOne(suspended.doc);
+    const { ctx } = ctxAnon();
+    const me = await appRouter.createCaller({ ...ctx, user: suspended }).auth.me();
+    expect(me.accountStatus).toBe('suspended');
+
+    // but a mutation like updateProfile still requires active
+    await expect(
+      appRouter.createCaller({ ...ctx, user: suspended }).auth.updateProfile({ displayName: 'x' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('password reset: request is a no-op-safe constant response, confirm requires a valid unused token and revokes sessions', async () => {
     const signupCtx = ctxAnon();
     await appRouter.createCaller(signupCtx.ctx).auth.signup({

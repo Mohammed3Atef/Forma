@@ -112,6 +112,17 @@ describe('coachClients router', () => {
     expect(await asCoach.coachClients.list({})).toHaveLength(1);
   });
 
+  it('list/get work for a suspended coach, but assign still requires an active account — matches the old REST index.ts/detail.ts (bare requireUser on GET, requireActive right before any mutation)', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', accountStatus: 'suspended' });
+    const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
+    const asSuspendedCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+
+    expect(await asSuspendedCoach.coachClients.list({})).toHaveLength(0);
+    await expect(
+      asSuspendedCoach.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('end releases the client and frees a cap slot', async () => {
     const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
@@ -208,6 +219,12 @@ describe('invites router', () => {
     ).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
   });
 
+  it('list works for a suspended coach (no active-status requirement) — matches the old REST invites-index.ts', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', accountStatus: 'suspended' });
+    const asSuspendedCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    await expect(asSuspendedCoach.invites.list({})).resolves.toEqual([]);
+  });
+
   it('only the owning coach or an admin with coaches.assign may revoke', async () => {
     const coachA = await insertUser({ _id: 'coach-a', role: 'coach' });
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
@@ -223,6 +240,12 @@ describe('invites router', () => {
 });
 
 describe('transfers router', () => {
+  it('list works for a suspended coach (no active-status requirement) — matches the old REST transfers-index.ts', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', accountStatus: 'suspended' });
+    const asSuspendedCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    await expect(asSuspendedCoach.transfers.list({ type: 'incoming' })).resolves.toEqual([]);
+  });
+
   it('a prospective coach requests a client, the current coach accepts, and the client is reassigned', async () => {
     const coachA = await insertUser({ _id: 'coach-a', role: 'coach' });
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });

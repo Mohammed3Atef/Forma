@@ -1,15 +1,15 @@
-import { apiGet } from '@/services/platformApi';
 import { trpc } from '@/services/trpc';
+import { listRelationshipsForCoach } from './coachClientsApi';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
- * Client for the Mongo-backed `/api/messages*` routes. The Firestore
- * `onSnapshot` realtime listeners this module used to hold are replaced with
- * `setInterval` + `apiGet` polling a `since` cursor (Vercel serverless can't
- * hold a WebSocket) — see `subscribeMessages` below, which every other
- * "subscribe" export in this file is built on top of. Every export keeps its
- * original name + signature so `MessageThread`, `CoachMessages`, and
- * `useCoachMessageUnread` need no changes.
+ * Client for the Mongo-backed `trpc.messages.*`/`trpc.notifications.*`
+ * procedures. The Firestore `onSnapshot` realtime listeners this module used
+ * to hold are replaced with `setInterval` + polling a `since` cursor (Vercel
+ * serverless can't hold a WebSocket) — see `subscribeMessages` below, which
+ * every other "subscribe" export in this file is built on top of. Every
+ * export keeps its original name + signature so `MessageThread`,
+ * `CoachMessages`, and `useCoachMessageUnread` need no changes.
  */
 
 interface MessagesPage {
@@ -152,11 +152,9 @@ export function subscribeThreadMeta(clientId: string, cb: (meta: ThreadMeta) => 
   );
 }
 
-/** Active client ids for a coach (via `/api/coach-clients`, mirrors the old inlined Firestore query). */
+/** Active client ids for a coach (via `trpc.coachClients.list`, mirrors the old inlined Firestore query). */
 export async function coachClientIds(coachId: string): Promise<string[]> {
-  const rels = await apiGet<Array<{ clientId: string }>>(
-    `/coach-clients?coachId=${encodeURIComponent(coachId)}&status=active`,
-  );
+  const rels = await listRelationshipsForCoach(coachId);
   return rels.map((r) => r.clientId);
 }
 

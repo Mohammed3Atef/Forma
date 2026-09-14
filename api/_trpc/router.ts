@@ -21,6 +21,7 @@ import { adminCoachesRouter } from './routers/adminCoaches.js';
 import { adminAuditRouter } from './routers/adminAudit.js';
 import { adminUsersRouter } from './routers/adminUsers.js';
 import { authRouter } from './routers/auth.js';
+import { syncRouter } from './routers/sync.js';
 
 /**
  * The merged app router, deployed as the single `api/trpc/[trpc].ts`
@@ -67,6 +68,7 @@ export const appRouter = router({
   adminAudit: adminAuditRouter,
   adminUsers: adminUsersRouter,
   auth: authRouter,
+  sync: syncRouter,
 });
 
 export type AppRouter = typeof appRouter;

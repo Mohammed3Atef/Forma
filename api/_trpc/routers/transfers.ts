@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { transferClientWithMode } from '../../coach-clients/_service.js';
 import { transferReqId, transfersCol } from '../../coach-clients/_handlers/transfers-data.js';
@@ -13,7 +13,7 @@ export const transfersRouter = router({
    * `outgoing` = requests I've made (I'm toCoachId).
    * `pending`  = every pending request platform-wide (admin oversight, requires `coaches.assign`).
    */
-  list: protectedProcedure.input(z.object({ type: z.enum(['incoming', 'outgoing', 'pending']) })).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ type: z.enum(['incoming', 'outgoing', 'pending']) })).query(async ({ ctx, input }) => {
     const col = await transfersCol();
     if (input.type === 'pending') {
       if (!hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'coaches.assign')) {

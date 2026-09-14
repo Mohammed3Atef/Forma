@@ -1,7 +1,7 @@
 import type { Collection } from 'mongodb';
 import { z, type ZodTypeAny } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure, roleProcedure } from '../trpc.js';
+import { router, authedProcedure, roleProcedure } from '../trpc.js';
 import { requireReadAccess } from '../../coach-assets/_lib/access.js';
 import {
   coachBillingPlansCol,
@@ -76,8 +76,13 @@ function keepMeta<TDoc extends AssetDoc>(doc: TDoc) {
 
 function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfig<TDoc, TPublic>) {
   return router({
-    /** GET list — any signed-in user who owns `coachId` (default: themself) or holds `users.read`. */
-    list: protectedProcedure
+    /**
+     * GET list — any signed-in user who owns `coachId` (default: themself) or
+     * holds `users.read`; deliberately `authedProcedure` (no active-status
+     * requirement) — matches the old REST `requireReadContext`, which allowed
+     * a pending/suspended coach to still read their OWN asset library.
+     */
+    list: authedProcedure
       .input(z.object({ coachId: z.string().optional() }).optional())
       .query(async ({ ctx, input }) => {
         const coachId = input?.coachId || ctx.user.id;
@@ -88,7 +93,7 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
         return docs.map((d) => cfg.toPublic(d));
       }),
 
-    get: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    get: authedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
       const col = await cfg.col();
       const doc = (await col.findOne({ _id: input.id } as Parameters<typeof col.findOne>[0])) as unknown as TDoc | null;
       if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: cfg.notFound });

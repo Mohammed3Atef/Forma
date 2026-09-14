@@ -75,6 +75,15 @@ describe('coachPlans router', () => {
     await expect(asClient.coachPlans.me()).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('me and createTrial work for a suspended coach — matches the old REST me.ts/trial.ts, which had no active check', async () => {
+    const suspendedCoach = authedUser({ _id: 'coach-2', role: 'coach', accountStatus: 'suspended' });
+    const asSuspendedCoach = appRouter.createCaller(ctxFor(suspendedCoach));
+    const created = await asSuspendedCoach.coachPlans.createTrial();
+    expect(created.plan).toBe('trial');
+    const me = await asSuspendedCoach.coachPlans.me();
+    expect(me.coachId).toBe('coach-2');
+  });
+
   it('me 404s before a trial/plan exists', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await expect(asCoach.coachPlans.me()).rejects.toMatchObject({ code: 'NOT_FOUND' });
@@ -126,6 +135,13 @@ describe('coachPlanTiers router', () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     const tiers = await asCoach.coachPlanTiers.list({});
     expect(tiers.map((t) => t.key)).toEqual(['trial', 'starter', 'pro', 'enterprise']);
+  });
+
+  it('list works for any signed-in user, active or not — matches the old REST tiers-index.ts (bare requireUser, no role/active check)', async () => {
+    const suspendedCoach = authedUser({ _id: 'coach-3', role: 'coach', accountStatus: 'suspended' });
+    const asSuspendedCoach = appRouter.createCaller(ctxFor(suspendedCoach));
+    const tiers = await asSuspendedCoach.coachPlanTiers.list({});
+    expect(tiers.length).toBeGreaterThan(0);
   });
 
   it('save requires users.manageStatus, upserts a custom tier, and protects trial from archival', async () => {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { TRPCError } from '@trpc/server';
 import { canReadClientData, resolveClientId } from '../../client/_lib/access.js';
 import { syncRecordsCol } from '../../sync/_data.js';
@@ -21,13 +21,13 @@ async function requireReadAccess(user: Parameters<typeof canReadClientData>[0], 
 
 function makeDayKeyedLogRouter(collection: string, defaultLimit: number, maxLimit: number) {
   return router({
-    get: protectedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).query(async ({ ctx, input }) => {
+    get: authedProcedure.input(z.object({ clientId: z.string().optional(), date: z.string() })).query(async ({ ctx, input }) => {
       const clientId = await requireReadAccess(ctx.user, input.clientId);
       const syncCol = await syncRecordsCol();
       const rec = await syncCol.findOne({ clientId, collection, recordId: input.date });
       return rec?.data ?? null;
     }),
-    list: protectedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+    list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
       const clientId = await requireReadAccess(ctx.user, input?.clientId);
       const syncCol = await syncRecordsCol();
       const limit = Math.min(input?.limit || defaultLimit, maxLimit);
@@ -44,13 +44,13 @@ export const logsChecklistRouter = makeDayKeyedLogRouter('dailyChecklists', 30, 
 
 /** cardioLogs allows several sessions per day, so it's keyed by its own generated id, not the date. */
 export const logsCardioRouter = router({
-  get: protectedProcedure.input(z.object({ clientId: z.string().optional(), id: z.string() })).query(async ({ ctx, input }) => {
+  get: authedProcedure.input(z.object({ clientId: z.string().optional(), id: z.string() })).query(async ({ ctx, input }) => {
     const clientId = await requireReadAccess(ctx.user, input.clientId);
     const syncCol = await syncRecordsCol();
     const rec = await syncCol.findOne({ clientId, collection: 'cardioLogs', recordId: input.id });
     return rec?.data ?? null;
   }),
-  list: protectedProcedure
+  list: authedProcedure
     .input(z.object({ clientId: z.string().optional(), date: z.string().optional(), limit: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const clientId = await requireReadAccess(ctx.user, input?.clientId);
@@ -65,7 +65,7 @@ export const logsCardioRouter = router({
 
 /** Coach-oversight read of a client's progress photos (the `progressPhotos` generic-sync collection). */
 export const photosRouter = router({
-  list: protectedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = await requireReadAccess(ctx.user, input?.clientId);
     const syncCol = await syncRecordsCol();
     const limit = Math.min(input?.limit || 200, 500);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import { feedFilter, notificationsCol, toPublicNotification, type NotificationDoc } from '../../messages/_handlers/notifications-data.js';
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -13,7 +13,7 @@ export const notificationsRouter = router({
    * `unreadCount` always reflects the whole feed; `notifications` is scoped
    * to `since` when given, else the last `DEFAULT_PAGE_SIZE`.
    */
-  list: protectedProcedure
+  list: authedProcedure
     .input(z.object({ since: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const base = await feedFilter(ctx.user);
@@ -28,7 +28,7 @@ export const notificationsRouter = router({
     }),
 
   /** Marks one notification (by id, scoped to the caller's own feed) or, with no id, the whole feed, as seen. */
-  markRead: protectedProcedure
+  markRead: authedProcedure
     .input(z.object({ id: z.string().trim().min(1).optional() }).optional())
     .mutation(async ({ ctx, input }) => {
       const base = await feedFilter(ctx.user);

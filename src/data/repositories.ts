@@ -35,7 +35,7 @@ export interface SingletonRepository<T> {
 
 /**
  * The whole data layer, local-only (IndexedDB via localforage), with the
- * Mongo-backed `/api/sync/*` endpoints layered on top by SyncEngine — see
+ * Mongo-backed `trpc.sync.*` procedures layered on top by SyncEngine — see
  * src/data/sync/SyncEngine.ts.
  */
 export interface DataSource {

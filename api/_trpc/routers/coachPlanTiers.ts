@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure, permissionProcedure } from '../trpc.js';
+import { router, authedProcedure, permissionProcedure } from '../trpc.js';
 import {
   COACH_PLAN_TIERS,
   SEED_ORDER,
@@ -13,8 +13,12 @@ import {
 
 /** tRPC port of `api/coach-plans/_handlers/{tiers-index,tiers-detail}.ts` (was `/api/plan-tiers/*`). */
 export const coachPlanTiersRouter = router({
-  /** Any signed-in user may read (coaches need labels/caps for their own plan UI; admins need them for overrides). */
-  list: protectedProcedure.input(z.object({ includeArchived: z.boolean().optional() }).optional()).query(async ({ input }) => {
+  /**
+   * Any signed-in user may read (coaches need labels/caps for their own plan
+   * UI; admins need them for overrides) — deliberately `authedProcedure`, no
+   * active-status requirement, matching the old REST `tiers-index.ts`.
+   */
+  list: authedProcedure.input(z.object({ includeArchived: z.boolean().optional() }).optional()).query(async ({ input }) => {
     const tiers = await listTiers(input?.includeArchived ?? false);
     return tiers.map(toPublicTier);
   }),

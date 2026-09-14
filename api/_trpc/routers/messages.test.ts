@@ -88,6 +88,19 @@ describe('messages router', () => {
     expect(page.messages.map((m) => m.body)).toEqual(['Hi coach', 'Hi there']);
   });
 
+  it('a suspended client can still send/list/markRead in their own thread — matches the old REST index.ts/mark-read.ts, which never checked accountStatus at all', async () => {
+    const suspendedClient = authedUser({ _id: 'client-2', role: 'client', accountStatus: 'suspended' });
+    await assignCoach(assignedCoach.id, suspendedClient.id);
+    const asSuspendedClient = appRouter.createCaller(ctxFor(suspendedClient));
+    const asCoach = appRouter.createCaller(ctxFor(assignedCoach));
+
+    await asSuspendedClient.messages.send({ clientId: suspendedClient.id, text: 'Still here' });
+    await asCoach.messages.send({ clientId: suspendedClient.id, text: 'Reply' });
+    const page = await asSuspendedClient.messages.list({ clientId: suspendedClient.id });
+    expect(page.messages).toHaveLength(2);
+    await expect(asSuspendedClient.messages.markRead({ clientId: suspendedClient.id })).resolves.toMatchObject({ ok: true });
+  });
+
   it('rejects an unrelated coach from reading or sending in the thread', async () => {
     await assignCoach(assignedCoach.id, client.id);
     const asOtherCoach = appRouter.createCaller(ctxFor(otherCoach));
@@ -138,6 +151,12 @@ describe('notifications router', () => {
   it('a client with no coach sees an empty feed', async () => {
     const asClient = appRouter.createCaller(ctxFor(client));
     expect(await asClient.notifications.list()).toEqual({ notifications: [], unreadCount: 0 });
+  });
+
+  it('works for a suspended client too — matches the old REST notifications-index.ts (bare requireUser)', async () => {
+    const suspendedClient = authedUser({ _id: 'client-3', role: 'client', accountStatus: 'suspended' });
+    const asSuspendedClient = appRouter.createCaller(ctxFor(suspendedClient));
+    expect(await asSuspendedClient.notifications.list()).toEqual({ notifications: [], unreadCount: 0 });
   });
 
   it('an admin (no notifications feed) always sees an empty feed', async () => {

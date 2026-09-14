@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc.js';
+import { router, authedProcedure } from '../trpc.js';
 import {
   authorizeThreadAccess,
   getAssignedCoachId,
@@ -27,7 +27,7 @@ export const messagesRouter = router({
    * `since`, only messages strictly after it; otherwise the last
    * `DEFAULT_PAGE_SIZE` messages. Returns a `cursor` for the next poll.
    */
-  list: protectedProcedure
+  list: authedProcedure
     .input(z.object({ clientId: z.string().trim().min(1), since: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       await authorizeThreadAccess(ctx.user, input.clientId);
@@ -46,7 +46,7 @@ export const messagesRouter = router({
     }),
 
   /** Sends a message into the thread as the caller, then best-effort notifies the other party. */
-  send: protectedProcedure
+  send: authedProcedure
     .input(
       z.object({
         clientId: z.string().trim().min(1),
@@ -95,7 +95,7 @@ export const messagesRouter = router({
    * best-effort clears any `message_received` notifications this thread
    * raised for the caller.
    */
-  markRead: protectedProcedure
+  markRead: authedProcedure
     .input(z.object({ clientId: z.string().trim().min(1) }))
     .mutation(async ({ ctx, input }) => {
       await authorizeThreadAccess(ctx.user, input.clientId);
