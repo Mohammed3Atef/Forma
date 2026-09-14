@@ -20,6 +20,7 @@ import { adminStatsRouter, adminMembersRouter, adminGrowthRouter } from './route
 import { adminCoachesRouter } from './routers/adminCoaches.js';
 import { adminAuditRouter } from './routers/adminAudit.js';
 import { adminUsersRouter } from './routers/adminUsers.js';
+import { authRouter } from './routers/auth.js';
 
 /**
  * The merged app router, deployed as the single `api/trpc/[trpc].ts`
@@ -65,6 +66,7 @@ export const appRouter = router({
   adminCoaches: adminCoachesRouter,
   adminAudit: adminAuditRouter,
   adminUsers: adminUsersRouter,
+  auth: authRouter,
 });
 
 export type AppRouter = typeof appRouter;

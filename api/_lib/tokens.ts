@@ -43,8 +43,15 @@ function hashToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+/**
+ * `Path=/` (was `/api/auth`) — widened once auth moved behind the single
+ * `/api/trpc` endpoint, so the browser still sends this cookie to
+ * `auth.refresh`/`auth.logout`. Still httpOnly + SameSite=Strict + an opaque
+ * random token, so this isn't a meaningful security regression (approved as
+ * part of the tRPC migration plan).
+ */
 function serializeCookie(name: string, value: string, maxAgeSec: number): string {
-  const parts = [`${name}=${value}`, 'Path=/api/auth', 'HttpOnly', 'SameSite=Strict', `Max-Age=${maxAgeSec}`];
+  const parts = [`${name}=${value}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', `Max-Age=${maxAgeSec}`];
   if (process.env.NODE_ENV === 'production') parts.push('Secure');
   return parts.join('; ');
 }

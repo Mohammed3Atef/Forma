@@ -1,8 +1,9 @@
 import type { AccountStatus, CoachOnboarding, Permission, Role } from '@/types';
-import { apiFetch, refreshSession, setAccessToken } from '@/services/platformApi';
+import { refreshSession, setAccessToken } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 
 /**
- * Client for the Mongo-backed auth API (`/api/auth/*`). This IS the live auth
+ * Client for the Mongo-backed auth API (`trpc.auth.*`). This IS the live auth
  * path — see `sessionStore.ts`. Every other `src/services/platform/*.ts` file
  * now goes through the same shared token store in `@/services/platformApi`.
  */
@@ -37,30 +38,24 @@ export interface MongoUserRecord {
 export const mongoAuth = {
   /** Coach self-registration only — client accounts come from the invite flow. */
   async signUpCoach(email: string, password: string, displayName: string, phone?: string): Promise<MongoUserRecord> {
-    const body = await apiFetch<{ user: MongoUserRecord; accessToken: string }>('/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, displayName, phone, role: 'coach' }),
-    });
+    const body = await trpc.auth.signup.mutate({ email, password, displayName, phone, role: 'coach' });
     setAccessToken(body.accessToken);
-    return body.user;
+    return body.user as MongoUserRecord;
   },
 
   async signIn(email: string, password: string): Promise<MongoUserRecord> {
-    const body = await apiFetch<{ user: MongoUserRecord; accessToken: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+    const body = await trpc.auth.login.mutate({ email, password });
     setAccessToken(body.accessToken);
-    return body.user;
+    return body.user as MongoUserRecord;
   },
 
   async signOutUser(): Promise<void> {
-    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => undefined);
+    await trpc.auth.logout.mutate().catch(() => undefined);
     setAccessToken(null);
   },
 
   async me(): Promise<MongoUserRecord> {
-    return apiFetch<MongoUserRecord>('/auth/me', { method: 'GET' });
+    return trpc.auth.me.query() as Promise<MongoUserRecord>;
   },
 
   /** Call on app load: exchanges the refresh cookie (if any) for a fresh access token. */
@@ -71,18 +66,18 @@ export const mongoAuth = {
   async updateProfile(
     patch: Partial<Pick<MongoUserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>,
   ): Promise<MongoUserRecord> {
-    return apiFetch<MongoUserRecord>('/auth/update-profile', { method: 'PATCH', body: JSON.stringify(patch) });
+    return trpc.auth.updateProfile.mutate(patch) as Promise<MongoUserRecord>;
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+    await trpc.auth.changePassword.mutate({ currentPassword, newPassword });
   },
 
   async requestPasswordReset(email: string): Promise<void> {
-    await apiFetch('/auth/request-password-reset', { method: 'POST', body: JSON.stringify({ email }) });
+    await trpc.auth.requestPasswordReset.mutate({ email });
   },
 
   async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
-    await apiFetch('/auth/confirm-password-reset', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
+    await trpc.auth.confirmPasswordReset.mutate({ token, newPassword });
   },
 };

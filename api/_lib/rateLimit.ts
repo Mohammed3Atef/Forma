@@ -1,7 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
 import type { Collection } from 'mongodb';
+import { TRPCError } from '@trpc/server';
 import { getDb } from './mongodb.js';
-import { HttpError } from './http.js';
 
 /**
  * Simple fixed-window rate limiter backed by Mongo. Serverless functions have
@@ -52,6 +52,6 @@ export async function enforceRateLimit(bucket: string, key: string, max: number,
   );
   const doc = await col.findOne({ _id });
   if ((doc?.count ?? 0) > max) {
-    throw new HttpError(429, 'Too many attempts — please wait a bit and try again.');
+    throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many attempts — please wait a bit and try again.' });
   }
 }
