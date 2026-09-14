@@ -36,9 +36,10 @@ export function getClientIp(req: VercelRequest): string {
 }
 
 /**
- * Throws `HttpError(429)` once more than `max` calls have been recorded for
- * `key` within the current `windowMs`-long window. Call this *before* doing
- * the sensitive work (password check, token creation, etc.), not after.
+ * Throws `TRPCError({code:'TOO_MANY_REQUESTS'})` once more than `max` calls
+ * have been recorded for `key` within the current `windowMs`-long window.
+ * Call this *before* doing the sensitive work (password check, token
+ * creation, etc.), not after.
  */
 export async function enforceRateLimit(bucket: string, key: string, max: number, windowMs: number): Promise<void> {
   const col = await rateLimitsCol();

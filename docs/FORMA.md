@@ -39,13 +39,15 @@ serves the frontend and will 404 any `/api/*` call.
 There are no Firestore-style security rules anymore. Auth is custom JWT-based:
 a short-lived (15 min) access token is kept in-memory on the client (never localStorage),
 and a rotating refresh token (30 days) is stored hashed (SHA-256) in Mongo, delivered via
-an httpOnly/SameSite=Strict cookie scoped to `/api/auth`. It's implemented in
-`api/auth/*.ts` (signup, login, refresh, logout, me, update-profile, change-password,
-request-password-reset, confirm-password-reset) and `api/_lib/tokens.ts`. On the frontend,
+an httpOnly/SameSite=Strict cookie scoped to `Path=/` (widened from `/api/auth` once auth
+moved behind the single tRPC endpoint). It's implemented in `api/_trpc/routers/auth.ts`
+(signup, login, refresh, logout, me, updateProfile, changePassword, requestPasswordReset,
+confirmPasswordReset) and `api/_lib/tokens.ts`. On the frontend,
 [src/services/auth/mongoAuth.ts](../src/services/auth/mongoAuth.ts) and
 [src/services/auth/sessionStore.ts](../src/services/auth/sessionStore.ts) sit on top of the
-shared [src/services/platformApi.ts](../src/services/platformApi.ts) client, which holds the
-in-memory access token and does fetch + automatic refresh-on-401 retry.
+shared [src/services/trpc.ts](../src/services/trpc.ts) client, which holds the in-memory
+access token (via [src/services/platformApi.ts](../src/services/platformApi.ts)) and does
+automatic refresh-on-401 retry.
 
 RBAC is enforced server-side: `api/_lib/rbac.ts` defines `ALL_PERMISSIONS`/`ROLE_PERMISSIONS`
 (ported from `roles.ts`), and `requireUser()` re-reads the live user doc from Mongo on every

@@ -30,8 +30,14 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
       return Promise.all(
         reqs.map(async (req) => {
           const [client, requester] = await Promise.all([
-            fetchUser(req.clientId).catch(() => null),
-            fetchUser(req.toCoachId).catch(() => null),
+            fetchUser(req.clientId).catch((e) => {
+              console.warn('[IncomingTransferRequests] fetchUser failed for clientId:', e);
+              return null;
+            }),
+            fetchUser(req.toCoachId).catch((e) => {
+              console.warn('[IncomingTransferRequests] fetchUser failed for toCoachId:', e);
+              return null;
+            }),
           ]);
           return {
             req,

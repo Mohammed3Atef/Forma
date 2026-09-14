@@ -59,10 +59,14 @@ export function AdminAssignments() {
       const reqs = await listPendingTransferRequests();
       return Promise.all(
         reqs.map(async (req) => {
+          const warnAndNull = (who: string) => (e: unknown) => {
+            console.warn(`[AdminAssignments] fetchUser failed for ${who}:`, e);
+            return null;
+          };
           const [client, requester, current] = await Promise.all([
-            fetchUser(req.clientId).catch(() => null),
-            fetchUser(req.toCoachId).catch(() => null),
-            fetchUser(req.fromCoachId).catch(() => null),
+            fetchUser(req.clientId).catch(warnAndNull('clientId')),
+            fetchUser(req.toCoachId).catch(warnAndNull('toCoachId')),
+            fetchUser(req.fromCoachId).catch(warnAndNull('fromCoachId')),
           ]);
           return {
             req,

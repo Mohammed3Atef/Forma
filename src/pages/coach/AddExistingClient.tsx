@@ -79,13 +79,23 @@ export function AddExistingClient({
     enabled: term.trim().length > 0,
     queryFn: async (): Promise<ResultRow[]> => {
       const users = await searchClients(term.trim());
-      const assignments = await Promise.all(users.map((u) => getClientAssignment(u.id).catch(() => null)));
+      const assignments = await Promise.all(
+        users.map((u) =>
+          getClientAssignment(u.id).catch((e) => {
+            console.warn('[AddExistingClient] getClientAssignment failed, treating as unassigned:', e);
+            return null;
+          }),
+        ),
+      );
       // Resolve coach display names once (dedupe).
       const coachIds = Array.from(new Set(assignments.map((a) => a?.coachId).filter(Boolean) as string[]));
       const coachMap = new Map<string, string>();
       await Promise.all(
         coachIds.map(async (cid) => {
-          const c = await fetchUser(cid).catch(() => null);
+          const c = await fetchUser(cid).catch((e) => {
+            console.warn('[AddExistingClient] fetchUser failed for coach label:', e);
+            return null;
+          });
           if (c) coachMap.set(cid, c.displayName || c.email);
         }),
       );

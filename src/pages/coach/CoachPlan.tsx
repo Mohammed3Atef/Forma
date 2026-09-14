@@ -20,7 +20,7 @@ import {
   cancelPlanChangeRequest,
   type CoachTierKey,
 } from '@/services/platform/coachPlanApi';
-import { ApiError } from '@/services/platformApi';
+import { TRPCClientError } from '@/services/trpc';
 import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { shortDate } from '@/lib/utils';
 
@@ -54,7 +54,7 @@ export function CoachPlan() {
     onError: (e) =>
       void alertDialog({
         title: t('coachPlan.cancelRequest'),
-        message: e instanceof ApiError ? e.message : t('common.errorGeneric'),
+        message: e instanceof TRPCClientError ? e.message : t('common.errorGeneric'),
       }).then(() => qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] })),
   });
 
