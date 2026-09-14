@@ -53,7 +53,13 @@ export const adminCoachesRouter = router({
     ]);
 
     const now = Date.now();
-    const planMap = new Map(plans.map((p) => [p.coachId, p]));
+    // `coachPlans` docs are keyed by `_id` == coachId — they never actually
+    // carry a separate `coachId` field (only `PublicCoachPlan`, the API
+    // response shape, synthesizes one). Keying this map by `p.coachId` (as the
+    // pre-migration REST handler also did — this bug predates the tRPC
+    // migration) meant `p.coachId` was always `undefined`, so every coach's
+    // plan/tier/state/maxClients silently rendered as null/"none" here.
+    const planMap = new Map(plans.map((p) => [p._id, p]));
     const priceByKey = new Map(allTiers.map((t) => [t.key, t.priceMonthly]));
 
     const clientsByCoach = new Map<string, number>();

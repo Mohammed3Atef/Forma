@@ -69,7 +69,6 @@ async function givePlan(coachId: string): Promise<void> {
   const db = await getDb();
   const doc: CoachPlanDoc = {
     _id: coachId,
-    coachId,
     plan: 'trial',
     status: 'active',
     maxClients: 10,
@@ -115,6 +114,12 @@ describe('admin module — coaches', () => {
     const list = await asAdmin.adminCoaches.list();
     expect(list.totalCoaches).toBe(1);
     expect(list.rows[0].clientCount).toBe(1);
+    // Regression guard: coachPlans docs are keyed by `_id` (== coachId) and never carry a
+    // separate `coachId` field — a prior bug (predating the tRPC migration) built this lookup
+    // by `p.coachId` instead of `p._id`, so `plan`/`state`/`maxClients` always came back
+    // null/"none"/undefined in production despite the underlying plan doc being correct.
+    expect(list.rows[0].plan?.plan).toBe('trial');
+    expect(list.rows[0].plan?.maxClients).toBe(10);
     expect(list.rows[0].state).toBe('trial');
 
     const detail = await asAdmin.adminCoaches.detail({ id: coachDoc._id });

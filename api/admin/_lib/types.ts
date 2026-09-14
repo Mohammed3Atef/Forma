@@ -37,10 +37,18 @@ export interface Subscription {
 export type CoachPlanTier = string;
 export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
 
-/** Mongo doc for `coachPlans` (Layer-A coach subscription to Forma itself), `_id` == coachId. */
+/**
+ * Mongo doc for `coachPlans` (Layer-A coach subscription to Forma itself),
+ * `_id` == coachId — there is deliberately NO separate `coachId` field stored
+ * on the document itself (only the derived `PublicCoachPlan` API-response
+ * shape in `api/coach-plans/_data.ts` synthesizes one via `{coachId: _id,
+ * ...rest}`). A stray `coachId` field on THIS type previously caused a real
+ * bug: `adminCoaches.list` built its plan lookup by (nonexistent) `p.coachId`
+ * instead of `p._id`, silently rendering every coach's tier/state/maxClients
+ * as null/"none" in the admin Coaches list.
+ */
 export interface CoachPlanDoc {
   _id: string;
-  coachId: string;
   plan: CoachPlanTier;
   status: CoachPlanStatus;
   maxClients: number;

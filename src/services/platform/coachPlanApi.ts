@@ -100,7 +100,7 @@ export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceM
 /** Super-admin: list every coach plan, via the aggregate `adminCoaches.list` (embeds each coach's plan). */
 export async function listAllCoachPlans(): Promise<CoachPlan[]> {
   const data = await trpc.adminCoaches.list.query();
-  return data.rows.map((r) => r.plan).filter((p) => p !== null) as CoachPlan[];
+  return data.rows.map((r) => r.plan).filter((p) => p !== null) as unknown as CoachPlan[];
 }
 
 /** Super-admin: upgrade/downgrade a coach to a tier (sets the cap + activates). */
