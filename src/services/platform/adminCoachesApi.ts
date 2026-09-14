@@ -1,4 +1,4 @@
-import { apiGet } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { CoachPlan, CoachPlanTierConfig, UserRecord } from '@/types';
 
 export interface CoachAdminRow {
@@ -28,8 +28,8 @@ export interface CoachAdminData {
 /**
  * Super-admin aggregate over all coaches + their Layer-A plans, with REAL
  * per-coach client counts derived from ACTIVE `coachClients` relationships.
- * Computed server-side by `GET /api/admin/coaches`.
+ * Computed server-side by `adminCoaches.list`.
  */
 export async function fetchCoachAdmin(): Promise<CoachAdminData> {
-  return apiGet<CoachAdminData>('/admin/coaches');
+  return trpc.adminCoaches.list.query() as Promise<CoachAdminData>;
 }

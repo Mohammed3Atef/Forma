@@ -16,6 +16,10 @@ import { workoutPlanRouter, nutritionPlanRouter, cardioPlanRouter, planVersionsR
 import { logsWorkoutRouter, logsNutritionRouter, logsWeightRouter, logsCardioRouter, logsChecklistRouter, photosRouter } from './routers/clientLogs.js';
 import { coachNotesRouter, coachTargetsRouter } from './routers/clientCoachNotes.js';
 import { checkInsRouter, measurementsRouter, subscriptionRequestRouter } from './routers/clientCheckIns.js';
+import { adminStatsRouter, adminMembersRouter, adminGrowthRouter } from './routers/adminAnalytics.js';
+import { adminCoachesRouter } from './routers/adminCoaches.js';
+import { adminAuditRouter } from './routers/adminAudit.js';
+import { adminUsersRouter } from './routers/adminUsers.js';
 
 /**
  * The merged app router, deployed as the single `api/trpc/[trpc].ts`
@@ -55,6 +59,12 @@ export const appRouter = router({
   checkIns: checkInsRouter,
   measurements: measurementsRouter,
   subscriptionRequest: subscriptionRequestRouter,
+  adminStats: adminStatsRouter,
+  adminMembers: adminMembersRouter,
+  adminGrowth: adminGrowthRouter,
+  adminCoaches: adminCoachesRouter,
+  adminAudit: adminAuditRouter,
+  adminUsers: adminUsersRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,18 +1,17 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
+import { router, permissionProcedure } from '../trpc.js';
 import { usersCol } from '../../_lib/mongodb.js';
-import { requireActive, requirePermission, requireUser } from '../../_lib/withAuth.js';
-import { handleError, methodGuard } from '../../_lib/http.js';
 import { toPublicUser, type PublicUser } from '../../_lib/types.js';
-import { coachClientsCol, coachPlansCol, coachPlanTiersCol } from '../_lib/db.js';
-import type { CoachPlanDoc, CoachPlanTierDoc } from '../_lib/types.js';
-import { coachPlanState } from '../_lib/subscription.js';
+import { coachClientsCol, coachPlansCol, coachPlanTiersCol } from '../../admin/_lib/db.js';
+import type { CoachPlanDoc, CoachPlanTierDoc } from '../../admin/_lib/types.js';
+import { coachPlanState } from '../../admin/_lib/subscription.js';
 
 /** Port of `src/services/platform/adminCoachesApi.ts`'s `fetchCoachAdmin()`. */
 export interface CoachAdminRow {
   coach: PublicUser;
   plan: CoachPlanDoc | null;
   state: 'trial' | 'active' | 'expired' | 'suspended' | 'none';
-  /** REAL count of active `coachClients` relationships (not the drift-prone `plan.activeClientCount`). */
   clientCount: number;
 }
 
@@ -31,13 +30,16 @@ export interface CoachAdminData {
   tiers: CoachPlanTierDoc[];
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    methodGuard(req, 'GET');
-    const user = await requireUser(req);
-    requireActive(user);
-    requirePermission(user, 'users.read');
+/** Complements `list`'s aggregate — single-coach detail (also used as a super-admin fallback read of a coach's plan; see coachPlanApi.ts's getCoachPlan). */
+export interface CoachDetail {
+  coach: PublicUser;
+  plan: CoachPlanDoc | null;
+  state: 'trial' | 'active' | 'expired' | 'suspended' | 'none';
+  clients: PublicUser[];
+}
 
+export const adminCoachesRouter = router({
+  list: permissionProcedure('users.read').query(async (): Promise<CoachAdminData> => {
     const users = await usersCol();
     const plansCol = await coachPlansCol();
     const relCol = await coachClientsCol();
@@ -85,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const total = rows.length;
 
-    const data: CoachAdminData = {
+    return {
       rows,
       totalCoaches: total,
       trialCoaches,
@@ -99,8 +101,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       top: [...rows].sort((a, b) => b.clientCount - a.clientCount).slice(0, 6),
       tiers: allTiers.filter((t) => !t.archived),
     };
-    res.status(200).json(data);
-  } catch (e) {
-    handleError(res, e);
-  }
-}
+  }),
+
+  detail: permissionProcedure('users.read')
+    .input(z.object({ id: z.string().trim().min(1) }))
+    .query(async ({ input }): Promise<CoachDetail> => {
+      const users = await usersCol();
+      const plansCol = await coachPlansCol();
+      const relCol = await coachClientsCol();
+
+      const coachDoc = await users.findOne({ _id: input.id, role: 'coach' });
+      if (!coachDoc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Coach not found' });
+
+      const [plan, relDocs] = await Promise.all([
+        plansCol.findOne({ _id: input.id }),
+        relCol.find({ coachId: input.id, status: 'active' }).toArray(),
+      ]);
+
+      const clientIds = relDocs.map((r) => r.clientId);
+      const clientDocs = clientIds.length ? await users.find({ _id: { $in: clientIds } }).toArray() : [];
+
+      return {
+        coach: toPublicUser(coachDoc),
+        plan: plan ?? null,
+        state: coachPlanState(plan ?? null, Date.now()),
+        clients: clientDocs.map(toPublicUser),
+      };
+    }),
+});

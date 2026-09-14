@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { AuditLog } from '@/types';
 
 /**
@@ -13,7 +13,7 @@ export async function writeAudit(entry: {
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   try {
-    await apiPost('/admin/audit', {
+    await trpc.adminAudit.create.mutate({
       action: entry.action,
       targetUserId: entry.targetUserId,
       metadata: entry.metadata ?? {},
@@ -25,12 +25,10 @@ export async function writeAudit(entry: {
 
 export interface AuditPage {
   logs: AuditLog[];
-  /** Opaque pagination cursor returned by `/api/admin/audit` (an encoded `createdAt:id` string), or `null` on the last page. */
+  /** Opaque pagination cursor returned by `adminAudit.list` (an encoded `createdAt:id` string), or `null` on the last page. */
   cursor: string | null;
 }
 
 export async function fetchAuditPage(pageSize = 25, after?: string | null): Promise<AuditPage> {
-  const qs = new URLSearchParams({ pageSize: String(pageSize) });
-  if (after != null) qs.set('cursor', after);
-  return apiGet<AuditPage>(`/admin/audit?${qs.toString()}`);
+  return trpc.adminAudit.list.query({ pageSize, cursor: after ?? undefined }) as Promise<AuditPage>;
 }

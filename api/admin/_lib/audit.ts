@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { auditLogsCol } from './db.js';
-import type { AuthedUser } from '../../_lib/withAuth.js';
+import type { AuthedUser } from '../../_trpc/context.js';
 
 /**
  * Best-effort append-only audit write — mirrors `src/services/platform/auditApi.ts`'s

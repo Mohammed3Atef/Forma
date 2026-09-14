@@ -1,4 +1,3 @@
-import { apiGet, ApiError } from '@/services/platformApi';
 import { trpc, TRPCClientError } from '@/services/trpc';
 import { writeAudit } from './auditApi';
 import { notify } from './notificationsApi';
@@ -23,12 +22,12 @@ export const PAID_TERM_DAYS = 30;
 const DAY_MS = 86_400_000;
 
 /**
- * Reads the signed-in coach's own plan via `GET /coach-plans/me`. For a
- * non-coach caller (a super-admin viewing another coach's plan from
- * `AdminCoachDetail.tsx`), `/coach-plans/me` 403s (there is no dedicated
- * "read any coach's plan" route under `api/coach-plans/`), so this falls back
- * to the admin coach-detail endpoint (`api/admin/coaches/[id].ts`), which
- * embeds the same doc shape under `.plan`.
+ * Reads the signed-in coach's own plan via `coachPlans.me`. For a non-coach
+ * caller (a super-admin viewing another coach's plan from
+ * `AdminCoachDetail.tsx`), `coachPlans.me` 403s (there is no dedicated
+ * "read any coach's plan" procedure under `coachPlans.*`), so this falls back
+ * to the admin coach-detail procedure (`adminCoaches.detail`), which embeds
+ * the same doc shape under `.plan`.
  */
 export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
   try {
@@ -38,12 +37,10 @@ export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
     if (!(e instanceof TRPCClientError) || e.data?.code !== 'FORBIDDEN') throw e;
   }
   try {
-    const detail = await apiGet<{ plan: (CoachPlan & { _id?: string }) | null }>(
-      `/admin/coaches/${encodeURIComponent(coachId)}`,
-    );
-    return detail.plan;
+    const detail = await trpc.adminCoaches.detail.query({ id: coachId });
+    return (detail.plan as CoachPlan | null) ?? null;
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null;
+    if (e instanceof TRPCClientError && (e.data?.code === 'NOT_FOUND' || e.data?.code === 'FORBIDDEN')) return null;
     throw e;
   }
 }
@@ -100,10 +97,10 @@ export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceM
   enterprise: { maxClients: 1000, priceMonthly: 0 },
 };
 
-/** Super-admin: list every coach plan, via the aggregate `GET /admin/coaches` (embeds each coach's plan). */
+/** Super-admin: list every coach plan, via the aggregate `adminCoaches.list` (embeds each coach's plan). */
 export async function listAllCoachPlans(): Promise<CoachPlan[]> {
-  const data = await apiGet<{ rows: Array<{ plan: (CoachPlan & { _id?: string }) | null }> }>('/admin/coaches');
-  return data.rows.map((r) => r.plan).filter((p): p is CoachPlan => p !== null);
+  const data = await trpc.adminCoaches.list.query();
+  return data.rows.map((r) => r.plan).filter((p) => p !== null) as CoachPlan[];
 }
 
 /** Super-admin: upgrade/downgrade a coach to a tier (sets the cap + activates). */

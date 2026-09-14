@@ -1,4 +1,4 @@
-import { apiGet } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { Role, Subscription, SubscriptionStatus, UserRecord } from '@/types';
 
 const DAY = 86_400_000;
@@ -28,10 +28,10 @@ export interface MembersData {
  * Super-admin/admin member console aggregate: every user + (for clients) their
  * coach and Layer-B subscription, with join-date segments, a client-subscription
  * breakdown, and an "expiring within 7 days" list. Computed server-side by
- * `GET /api/admin/members`.
+ * `adminMembers.get`.
  */
 export async function fetchMembers(): Promise<MembersData> {
-  return apiGet<MembersData>('/admin/members');
+  return trpc.adminMembers.get.query() as Promise<MembersData>;
 }
 
 export type MemberSegment = 'all' | 'week' | 'month' | 'older';

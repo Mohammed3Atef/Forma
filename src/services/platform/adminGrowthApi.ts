@@ -1,4 +1,4 @@
-import { apiGet } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { SubscriptionStatus } from '@/types';
 
 export interface GrowthPoint { label: string; value: number }
@@ -20,9 +20,8 @@ export interface GrowthData {
 /**
  * Platform growth + money aggregate for the admin: weekly signup trend (last 8
  * weeks), new-member deltas, client-subscription MRR + breakdown, and clients
- * whose subscription ends within 7 days. Computed server-side by
- * `GET /api/admin/growth`.
+ * whose subscription ends within 7 days. Computed server-side by `adminGrowth.get`.
  */
 export async function fetchGrowth(): Promise<GrowthData> {
-  return apiGet<GrowthData>('/admin/growth');
+  return trpc.adminGrowth.get.query();
 }

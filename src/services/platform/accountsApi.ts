@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost, ApiError } from '@/services/platformApi';
+import { trpc, TRPCClientError } from '@/services/trpc';
 import type { AccountStatus, Permission, Role, UserRecord } from '@/types';
 
 /** Params for `createUser` — an admin/coach provisioning a new account server-side. */
@@ -16,7 +16,7 @@ export interface CreateAccountParams {
 
 export interface UserPage {
   users: UserRecord[];
-  /** Opaque pagination cursor returned by `/api/admin/users` (an encoded `createdAt:id` string), or `null` on the last page. */
+  /** Opaque pagination cursor returned by `adminUsers.list` (an encoded `createdAt:id` string), or `null` on the last page. */
   cursor: string | null;
 }
 
@@ -25,23 +25,21 @@ export interface UserPage {
  * client-side over the loaded pages, matching the pre-migration behavior.
  */
 export async function fetchUsersPage(pageSize = 25, after?: string | null): Promise<UserPage> {
-  const qs = new URLSearchParams({ pageSize: String(pageSize) });
-  if (after != null) qs.set('cursor', after);
-  return apiGet<UserPage>(`/admin/users?${qs.toString()}`);
+  return trpc.adminUsers.list.query({ pageSize, cursor: after ?? undefined }) as Promise<UserPage>;
 }
 
 export async function fetchUser(uid: string): Promise<UserRecord | null> {
   try {
-    return await apiGet<UserRecord>(`/admin/users/${encodeURIComponent(uid)}`);
+    return (await trpc.adminUsers.get.query({ id: uid })) as UserRecord;
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null;
+    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;
   }
 }
 
 /** All accounts of a given role (for pickers; capped — paginate later if needed). */
 export async function fetchByRole(role: Role, max = 200): Promise<UserRecord[]> {
-  return apiGet<UserRecord[]>(`/admin/users/by-role?role=${encodeURIComponent(role)}&max=${max}`);
+  return trpc.adminUsers.byRole.query({ role, max }) as Promise<UserRecord[]>;
 }
 
 /**
@@ -52,16 +50,25 @@ export async function fetchByRole(role: Role, max = 200): Promise<UserRecord[]> 
 export async function searchClients(value: string, max = 20): Promise<UserRecord[]> {
   const v = value.trim();
   if (!v) return [];
-  return apiGet<UserRecord[]>(`/admin/users/search-clients?value=${encodeURIComponent(v)}&max=${max}`);
+  return trpc.adminUsers.searchClients.query({ value: v, max }) as Promise<UserRecord[]>;
 }
 
 /** Provisions a new account (admin-driven); the API records the audit entry. */
 export async function createUser(params: CreateAccountParams): Promise<UserRecord> {
-  return apiPost<UserRecord>('/admin/users', params);
+  return trpc.adminUsers.create.mutate({
+    email: params.email,
+    password: params.password,
+    displayName: params.displayName ?? '',
+    phone: params.phone,
+    role: params.role,
+    accountStatus: params.accountStatus,
+    permissions: params.permissions,
+    assignedCoachId: params.assignedCoachId,
+  }) as Promise<UserRecord>;
 }
 
 export async function setAccountStatus(target: UserRecord, status: AccountStatus): Promise<void> {
-  await apiPatch(`/admin/users/${encodeURIComponent(target.id)}/status`, { status });
+  await trpc.adminUsers.setStatus.mutate({ id: target.id, status });
 }
 
 /** Outcome of a bulk operation: how many docs succeeded vs. failed. */
@@ -77,7 +84,7 @@ export interface BulkResult {
  * failures.
  */
 export async function bulkSetAccountStatus(targets: UserRecord[], status: AccountStatus): Promise<BulkResult> {
-  return apiPost<BulkResult>('/admin/users/bulk-status', { targetIds: targets.map((t) => t.id), status });
+  return trpc.adminUsers.bulkSetStatus.mutate({ targetIds: targets.map((t) => t.id), status });
 }
 
 /**
@@ -86,13 +93,14 @@ export async function bulkSetAccountStatus(targets: UserRecord[], status: Accoun
  * only to purge a record entirely.
  */
 export async function deleteUser(target: UserRecord): Promise<void> {
-  await apiDelete(`/admin/users/${encodeURIComponent(target.id)}`);
+  await trpc.adminUsers.delete.mutate({ id: target.id });
 }
 
 export async function setRole(target: UserRecord, role: Role): Promise<void> {
-  await apiPatch(`/admin/users/${encodeURIComponent(target.id)}/role`, { role });
+  if (role !== 'client' && role !== 'coach') return;
+  await trpc.adminUsers.setRole.mutate({ id: target.id, role });
 }
 
 export async function setPermissions(target: UserRecord, permissions: Permission[]): Promise<void> {
-  await apiPatch(`/admin/users/${encodeURIComponent(target.id)}/permissions`, { permissions });
+  await trpc.adminUsers.setPermissions.mutate({ id: target.id, permissions });
 }

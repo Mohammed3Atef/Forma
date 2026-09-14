@@ -1,4 +1,4 @@
-import { apiGet } from '@/services/platformApi';
+import { trpc } from '@/services/trpc';
 import type { Role } from '@/types';
 
 export interface PlatformStats {
@@ -8,7 +8,7 @@ export interface PlatformStats {
   suspended: number;
 }
 
-/** Aggregate account counts, computed server-side by `GET /api/admin/stats`. */
+/** Aggregate account counts, computed server-side by `adminStats.get`. */
 export async function fetchPlatformStats(): Promise<PlatformStats> {
-  return apiGet<PlatformStats>('/admin/stats');
+  return trpc.adminStats.get.query();
 }
