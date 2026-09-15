@@ -1,25 +1,27 @@
+import { colors } from '@/theme/colors';
+
 /** Per-muscle accent colours used for dots and the muscle-split chart. */
 const MAP: Record<string, string> = {
-  Chest: '#E5520F',
-  Shoulders: '#FFB627',
-  Triceps: '#FF8A3D',
-  Quads: '#C8440A',
-  Quadriceps: '#C8440A',
+  Chest: colors.brandOrange,
+  Shoulders: colors.brandGold,
+  Triceps: colors.brandOrangeHover,
+  Quads: colors.brandOrangeDark,
+  Quadriceps: colors.brandOrangeDark,
   Hamstrings: '#8B6914',
   Calves: '#5C3A2A',
   Calf: '#5C3A2A',
-  Back: '#2E5D3C',
-  Lats: '#2E5D3C',
-  Biceps: '#C2CCAE',
+  Back: colors.teal,
+  Lats: colors.teal,
+  Biceps: colors.violet,
   'Rear Delts': '#E8C8B4',
-  Glutes: '#C8440A',
+  Glutes: colors.brandOrangeDark,
   Core: '#E6E2DC',
   Abs: '#E6E2DC',
 };
 
 export function muscleColor(muscle: string | undefined | null): string {
-  if (!muscle) return '#E5520F';
-  return MAP[muscle] ?? MAP[muscle.trim()] ?? '#E5520F';
+  if (!muscle) return colors.brandOrange;
+  return MAP[muscle] ?? MAP[muscle.trim()] ?? colors.brandOrange;
 }
 
 /**

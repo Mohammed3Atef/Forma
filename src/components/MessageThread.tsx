@@ -18,6 +18,7 @@ import { alertDialog } from "@/stores/dialogStore";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
+import { colors } from "@/theme/colors";
 
 /** Format an elapsed-seconds count as m:ss for the recording indicator. */
 function fmtElapsed(total: number): string {
@@ -29,10 +30,10 @@ function fmtElapsed(total: number): string {
 /** Per-category bubble styling + attention-flash colour for coach broadcasts. */
 const CATEGORY: Record<MessageCategory, { bubble: string; flash: string }> = {
   message: { bubble: "", flash: "" },
-  announcement: { bubble: "border border-brand/60 bg-brand/15 text-white", flash: "rgba(229,82,15,0.55)" },
-  offer: { bubble: "border border-success/60 bg-success/15 text-white", flash: "rgba(34,197,94,0.5)" },
-  reminder: { bubble: "border border-warn/60 bg-warn/15 text-white", flash: "rgba(245,158,11,0.5)" },
-  update: { bubble: "border border-sky-400/60 bg-sky-400/15 text-white", flash: "rgba(56,189,248,0.5)" },
+  announcement: { bubble: "border border-brand/60 bg-brand/15 text-white", flash: `${colors.brandOrange}8c` },
+  offer: { bubble: "border border-success/60 bg-success/15 text-white", flash: `${colors.success}80` },
+  reminder: { bubble: "border border-warn/60 bg-warn/15 text-white", flash: `${colors.warning}80` },
+  update: { bubble: "border border-info/60 bg-info/15 text-white", flash: `${colors.info}80` },
 };
 
 /**

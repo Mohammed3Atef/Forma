@@ -6,8 +6,9 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { TrainingGuideSheet } from '@/components/TrainingGuideSheet';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { colors } from '@/theme/colors';
 
-const COLORS = ['#E5520F', '#C8440A', '#FFB627', '#2E5D3C', '#FF8A3D'];
+const COLORS = [colors.brandOrange, colors.brandOrangeDark, colors.brandGold, colors.teal, colors.brandOrangeHover];
 
 export function Workout() {
   const { t } = useTranslation();

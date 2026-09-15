@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { colors } from '@/theme/colors';
 
 /**
  * Native-only setup for the Capacitor Android/iOS shells. No-op on the web so
@@ -11,7 +12,7 @@ export async function initNative(): Promise<void> {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     // Style.Dark → light icons/text, for our dark charcoal background.
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: '#0B0C0F' });
+    await StatusBar.setBackgroundColor({ color: colors.background });
   } catch {
     /* status-bar plugin unavailable — ignore */
   }
