@@ -17,6 +17,24 @@ interface PhotoState {
   url: (photo: ProgressPhoto) => Promise<string | null>;
 }
 
+/**
+ * Best-effort CDN upload so the coach / a second device can see the image.
+ * Failures are swallowed by the caller — the local blob still works and
+ * metadata syncs regardless. Shared by `add()` (fresh upload) and `load()`
+ * (retries any photo a PRIOR session never got this far for — e.g. the app
+ * was closed/backgrounded mid-upload — so a photo can't silently stay
+ * local-only forever; see the retry pass in `load()` below).
+ */
+async function tryUploadToCdn(photo: ProgressPhoto, file: Blob): Promise<ProgressPhoto> {
+  const owner = useSession.getState().uid;
+  if (!isBunnyConfigured() || !owner || owner === 'local-user') return photo;
+  const blob = await downscaleImage(file);
+  const { url } = await uploadImageToBunny(blob, { folder: `Forma/${owner}` });
+  const updated: ProgressPhoto = { ...photo, cdnUrl: url, updatedAt: Date.now(), dirty: true };
+  await getDataSource().progressPhotos.put(updated);
+  return updated;
+}
+
 export const usePhotos = create<PhotoState>((set, get) => ({
   photos: [],
   loaded: false,
@@ -24,6 +42,24 @@ export const usePhotos = create<PhotoState>((set, get) => ({
   async load() {
     const photos = await getDataSource().progressPhotos.getAll();
     set({ photos: photos.sort((a, b) => b.date.localeCompare(a.date)), loaded: true });
+
+    // Retry any photo a previous session never finished uploading to the CDN
+    // (e.g. the app closed/lost connectivity mid-upload) — otherwise a photo
+    // missing its cdnUrl would stay local-only-visible forever with no
+    // indication anything was wrong.
+    for (const photo of photos) {
+      if (photo.cdnUrl) continue;
+      void (async () => {
+        try {
+          const blob = await blobStore.get(photo.localKey);
+          if (!blob) return;
+          const updated = await tryUploadToCdn(photo, blob);
+          if (updated.cdnUrl) set({ photos: get().photos.map((p) => (p.id === photo.id ? updated : p)) });
+        } catch {
+          /* still offline / still failing — next load() retries again */
+        }
+      })();
+    }
   },
 
   async add(pose, file, opts) {
@@ -44,19 +80,11 @@ export const usePhotos = create<PhotoState>((set, get) => ({
     await getDataSource().progressPhotos.put(photo);
     set({ photos: [photo, ...get().photos] });
 
-    // Best-effort CDN upload so the coach / a second device can see the image.
-    // Failures are swallowed — the local blob still works and metadata syncs.
-    const owner = useSession.getState().uid;
-    if (isBunnyConfigured() && owner && owner !== 'local-user') {
-      try {
-        const blob = await downscaleImage(file);
-        const { url } = await uploadImageToBunny(blob, { folder: `Forma/${owner}` });
-        const updated: ProgressPhoto = { ...photo, cdnUrl: url, updatedAt: Date.now(), dirty: true };
-        await getDataSource().progressPhotos.put(updated);
-        set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
-      } catch {
-        /* offline / upload failed — keep local copy */
-      }
+    try {
+      const updated = await tryUploadToCdn(photo, file);
+      if (updated.cdnUrl) set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
+    } catch {
+      /* offline / upload failed — keep local copy; load()'s retry pass will pick it up next launch */
     }
   },
 

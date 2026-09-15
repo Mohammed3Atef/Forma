@@ -184,6 +184,13 @@ async function listDir(relPath: string): Promise<BunnyListItem[]> {
   return (await res.json().catch(() => [])) as BunnyListItem[];
 }
 
+/** Extensions this gallery actually renders via `<img>` — anything else (e.g. a `.pdf` message attachment under the same CDN zone) is skipped rather than pushed in broken. */
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif', 'bmp', 'svg']);
+function isImageFile(name: string): boolean {
+  const ext = name.split('.').pop()?.toLowerCase();
+  return !!ext && IMAGE_EXTENSIONS.has(ext);
+}
+
 /**
  * Recursively list every uploaded image under the `Forma/` folder (super-admin
  * media gallery). Returns files with their public CDN URLs, newest first.
@@ -203,6 +210,7 @@ export async function listAllImages(root = 'Forma', maxDepth = 4): Promise<CdnIm
           if (depth < maxDepth) await walk(childRel, depth + 1);
           return;
         }
+        if (!isImageFile(it.ObjectName)) return; // e.g. a message attachment (.pdf) under the same CDN zone
         const parts = childRel.split('/'); // ["Forma", "{clientId}", …, "file"]
         out.push({
           url: `${base}/${childRel}`,
