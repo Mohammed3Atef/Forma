@@ -5,24 +5,30 @@
  * Do NOT add new hex values in components — add them here first.
  */
 export const colors = {
-  background: '#0B0C0F', // app bg (surface.DEFAULT)
-  surface: '#15171C', // cards (surface.card)
-  surfaceSunken: '#111318', // nav rails / recessed panels
-  surfaceElevated: '#1B1F26', // raised inputs/tiles (surface.raised)
-  surfaceHover: '#222832',
-  border: '#2E3642', // line.DEFAULT
-  borderSoft: '#20262E', // line.soft
-  textPrimary: '#F5F5F5', // earth.DEFAULT
-  textSecondary: '#9CA3AF', // earth.muted
-  textMuted: '#6B7280', // earth.subtle
-  brandOrange: '#E5520F', // brand.DEFAULT (primary action / accent / focus)
-  brandOrangeHover: '#F2611C',
-  brandOrangeDark: '#C8440A', // AA-safe white-on-fill
+  background: '#0C0A09', // app bg (surface.DEFAULT)
+  surface: '#141110', // cards (surface.card)
+  surfaceSunken: '#141110', // nav rails / recessed panels
+  surfaceElevated: '#1B1714', // raised inputs/tiles (surface.raised)
+  surfaceHover: '#241E1A',
+  surfaceStrong: '#2E2621', // switch tracks / empty bar-chart fills (surface.strong)
+  border: '#2E2A28', // line.DEFAULT
+  borderSoft: '#221F1D', // line.soft
+  textPrimary: '#F8F4F1', // earth.DEFAULT
+  textSecondary: '#ABA19B', // earth.muted
+  textMuted: '#7C726C', // earth.subtle
+  brandOrange: '#FF8B02', // brand.DEFAULT (primary action / accent / focus)
+  brandOrangeHover: '#FFB208',
+  brandOrangeDark: '#C8440A', // gradient base / AA-safe fill
+  brandOrangePressed: '#FF4C01', // pressed/active fill — also the gradient's dark stop
+  brandInk: '#1A0E05', // dark text on bright gradient-filled surfaces
   brandGold: '#FFB627', // gold — sparing premium/revenue accent
-  success: '#4CAF50', // success.light
+  success: '#3FB27F', // ok green — text/border/tint and solid fills alike
   warning: '#F5A623', // warn
   danger: '#F0483E',
-  info: '#6E7BF2', // system (admin accent)
+  info: '#5B8DEF', // informational blue (brand orange no longer doubles as "info")
+  violet: '#8B7CF0', // data-differentiation accent (e.g. nutrition/macro charts)
+  teal: '#2FB8B0', // data-differentiation accent
+  rose: '#EF5D8F', // data-differentiation accent
 } as const;
 
 export type ColorToken = keyof typeof colors;

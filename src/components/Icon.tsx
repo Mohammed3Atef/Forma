@@ -102,7 +102,7 @@ const ICON_TONES = {
   success: 'text-success-light',
   warning: 'text-warn',
   danger: 'text-danger',
-  info: 'text-system',
+  info: 'text-info',
 } as const;
 export type IconTone = keyof typeof ICON_TONES;
 

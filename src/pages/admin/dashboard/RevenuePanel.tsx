@@ -31,7 +31,7 @@ export function RevenuePanel() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard icon="bolt" value={d.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="system" />
+        <MetricCard icon="bolt" value={d.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="brand" />
         <MetricCard icon="target" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} tone="brand" />
         <MetricCard icon="trophy" value={activePaid} label={t('admin.activePaidCoaches')} />
         <MetricCard icon="dumbbell" value={d.totalClients} label={t('adminCoaches.totalClients')} />

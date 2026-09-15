@@ -7,7 +7,7 @@ export const radius = {
   md: '0.75rem', // rounded-xl (inputs)
   lg: '1rem', // rounded-2xl (desktop modals)
   xl: '18px', // rounded-xl2 (cards)
-  '2xl': '26px', // rounded-sheet (mobile bottom sheet)
+  '2xl': '30px', // rounded-sheet (mobile bottom sheet)
   full: '9999px', // pills, avatars, icon buttons
 } as const;
 

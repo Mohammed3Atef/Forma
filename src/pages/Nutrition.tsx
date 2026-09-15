@@ -9,6 +9,7 @@ import { confirmDelete } from "@/stores/dialogStore";
 import { useLocalized } from "@/hooks/useLocalized";
 import { Icon } from "@/components/Icon";
 import { ProgressRing } from "@/components/ProgressRing";
+import { colors } from "@/theme/colors";
 import { Sheet } from "@/components/Sheet";
 import { TopBar } from "@/components/TopBar";
 import { WaitingForCoach } from "@/components/WaitingForCoach";
@@ -90,25 +91,25 @@ export function Nutrition() {
       key: "calories",
       value: consumed.calories,
       target: targets.calories,
-      color: "#E5520F",
+      color: colors.brandOrange,
     },
     {
       key: "protein",
       value: consumed.protein,
       target: targets.protein,
-      color: "#FFB627",
+      color: colors.brandGold,
     },
     {
       key: "carbs",
       value: consumed.carbs,
       target: targets.carbs,
-      color: "#C8440A",
+      color: colors.violet,
     },
     {
       key: "fats",
       value: consumed.fats,
       target: targets.fats,
-      color: "#2E5D3C",
+      color: colors.teal,
     },
   ] as const;
 

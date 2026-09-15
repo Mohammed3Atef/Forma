@@ -100,7 +100,7 @@ export function CoachesPanel() {
         <MetricCard icon="check" value={d.activeCoaches} label={t('adminCoaches.active')} tone="success" />
         <MetricCard icon="info" value={d.expiredCoaches} label={t('adminCoaches.expired')} tone={d.expiredCoaches ? 'danger' : 'default'} />
         <MetricCard icon="dumbbell" value={d.totalClients} label={t('adminCoaches.totalClients')} />
-        <MetricCard icon="bolt" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} tone="system" />
+        <MetricCard icon="bolt" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} tone="brand" />
       </div>
 
       <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">

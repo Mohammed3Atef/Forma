@@ -46,7 +46,7 @@ export function OverviewPanel() {
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <MetricCard icon="user" value={s?.total ?? '—'} label={t('admin.totalAccounts')} onClick={() => navigate('/admin/accounts')} />
-          <MetricCard icon="trophy" value={s?.byRole.coach ?? '—'} label={t('admin.coaches')} tone="system" />
+          <MetricCard icon="trophy" value={s?.byRole.coach ?? '—'} label={t('admin.coaches')} tone="brand" />
           <MetricCard icon="dumbbell" value={s?.byRole.client ?? '—'} label={t('admin.clients')} />
           <MetricCard icon="settings" value={s?.byRole.admin ?? '—'} label={t('admin.admins')} />
           <MetricCard icon="timer" value={s?.pending ?? '—'} label={t('platform.status.pending')} tone={s?.pending ? 'warn' : 'default'} />
@@ -56,7 +56,7 @@ export function OverviewPanel() {
 
       {isSuper && coaches.data ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard icon="bolt" value={coaches.data.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="system" />
+          <MetricCard icon="bolt" value={coaches.data.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="brand" />
           <MetricCard icon="trophy" value={coaches.data.activeCoaches} label={t('adminCoaches.active')} />
           <MetricCard icon="timer" value={coaches.data.trialCoaches} label={t('adminCoaches.trial')} />
           <MetricCard icon="target" value={`${coaches.data.conversionRate}%`} label={t('adminCoaches.conversion')} tone="brand" />

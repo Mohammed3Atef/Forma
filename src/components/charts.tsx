@@ -1,11 +1,13 @@
 /**
- * Lightweight, dependency-free charts in the MyRocky style.
+ * Lightweight, dependency-free charts in the Forma design-system style.
  * (Recharts is still available elsewhere, but these match the design exactly.)
  */
+import { useId } from 'react';
+import { colors } from '@/theme/colors';
 
-const COPPER = '#E5520F';
-const TRACK = 'rgba(230,226,220,0.16)';
-const SUBTLE = 'rgba(230,226,220,0.40)';
+const COPPER = colors.brandOrange;
+const TRACK = 'rgba(255,238,228,0.16)';
+const SUBTLE = 'rgba(255,238,228,0.4)';
 
 export interface BarDatum {
   label: string;
@@ -65,6 +67,8 @@ export function LineChart({
   unit?: string;
   emptyLabel?: string;
 }) {
+  const areaGradId = useId();
+  const lineGradId = useId();
   if (data.length < 2) {
     return (
       <div
@@ -89,9 +93,13 @@ export function LineChart({
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="block w-full">
       <defs>
-        <linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={areaGradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={COPPER} stopOpacity="0.28" />
           <stop offset="100%" stopColor={COPPER} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={lineGradId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={colors.brandOrangeHover} />
+          <stop offset="100%" stopColor={colors.brandOrangePressed} />
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((t, i) => (
@@ -101,12 +109,12 @@ export function LineChart({
           x2={W - pad}
           y1={pad + t * (H - pad * 2)}
           y2={pad + t * (H - pad * 2)}
-          stroke="rgba(230,226,220,0.09)"
+          stroke="rgba(255,238,228,0.09)"
           strokeWidth="1"
         />
       ))}
-      <path d={area} fill="url(#lcg)" />
-      <path d={path} fill="none" stroke={COPPER} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={area} fill={`url(#${areaGradId})`} />
+      <path d={path} fill="none" stroke={`url(#${lineGradId})`} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={last[0]} cy={last[1]} r="5.5" fill={COPPER} />
       <circle cx={last[0]} cy={last[1]} r="10" fill={COPPER} opacity="0.18" />
       <text x={pad} y={14} fill={SUBTLE} className="font-mono" style={{ fontSize: 9 }}>

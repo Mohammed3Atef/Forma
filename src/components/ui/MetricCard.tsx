@@ -1,15 +1,14 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/Icon";
 
-type Tone = "default" | "brand" | "warn" | "danger" | "success" | "system";
+type Tone = "default" | "brand" | "warn" | "danger" | "success";
 
 const TONE_ICON: Record<Tone, string> = {
   default: "border-line bg-surface-raised text-earth-muted",
   brand: "border-brand/30 bg-brand/10 text-brand",
   warn: "border-warn/30 bg-warn/10 text-warn",
   danger: "border-danger/30 bg-danger/10 text-danger",
-  success: "border-success-light/30 bg-success-light/10 text-success-light",
-  system: "border-system/30 bg-system-soft text-system",
+  success: "border-success/30 bg-success/10 text-success",
 };
 
 /**
@@ -37,7 +36,7 @@ export function MetricCard({
 }) {
   const deltaColor =
     delta?.dir === "up"
-      ? "text-success-light"
+      ? "text-success"
       : delta?.dir === "down"
         ? "text-danger"
         : "text-earth-muted";

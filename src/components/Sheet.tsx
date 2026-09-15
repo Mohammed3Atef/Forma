@@ -84,7 +84,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
         tabIndex={-1}
         data-testid="sheet-panel"
         data-sheet-size={size}
-        className={`relative flex max-h-[88%] w-full max-w-md flex-col overflow-hidden rounded-t-sheet border-t border-line bg-[#0c0c0c] shadow-deep [animation:sheetRise_0.35s_var(--ease-card)] motion-reduce:animate-none focus:outline-none md:max-h-[85vh] md:rounded-2xl md:border ${SIZE_MD[size]}`}>
+        className={`relative flex max-h-[88%] w-full max-w-md flex-col overflow-hidden rounded-t-sheet border-t border-line bg-surface-card shadow-deep [animation:sheetRise_0.35s_var(--ease-card)] motion-reduce:animate-none focus:outline-none md:max-h-[85vh] md:rounded-2xl md:border ${SIZE_MD[size]}`}>
         {/* Grab handle — mobile bottom-sheet affordance only. */}
         <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-white/20 md:hidden" />
         {hasHeader && (
@@ -103,7 +103,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
         <div className={`min-h-0 flex-1 overflow-y-auto px-5 pb-8 md:px-6 md:pb-6 ${hasHeader ? '' : 'pt-2 md:pt-5'}`}>
           {children}
         </div>
-        {footer && <div className="shrink-0 border-t border-line bg-[#0c0c0c] px-5 py-4 md:px-6">{footer}</div>}
+        {footer && <div className="shrink-0 border-t border-line bg-surface-card px-5 py-4 md:px-6">{footer}</div>}
       </div>
     </div>,
     document.body,

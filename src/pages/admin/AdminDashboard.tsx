@@ -49,7 +49,7 @@ export function AdminDashboard() {
         eyebrow={t(isSuper ? 'platform.superAdmin' : 'platform.admin')}
         title={t('admin.controlCenter')}
       />
-      <Tabs tabs={tabs} active={active} onChange={setTab} testIdPrefix="admin-tab" accent="system" />
+      <Tabs tabs={tabs} active={active} onChange={setTab} testIdPrefix="admin-tab" />
       <div className="mt-6">
         {active === 'overview' ? <OverviewPanel /> : null}
         {active === 'growth' ? <GrowthPanel /> : null}

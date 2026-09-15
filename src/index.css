@@ -31,7 +31,8 @@ html[dir='rtl'] .eyebrow,
 html[dir='rtl'] .ui-label,
 html[dir='rtl'] .btn,
 html[dir='rtl'] .seg button,
-html[dir='rtl'] .stat-label {
+html[dir='rtl'] .stat-label,
+html[dir='rtl'] .pill {
   text-transform: none;
   letter-spacing: 0;
   font-family: theme('fontFamily.arabic');
@@ -75,6 +76,40 @@ input[type='number'] {
   .card-hover {
     @apply transition-all duration-200 ease-card hover:-translate-y-0.5 hover:bg-surface-hover hover:shadow-elevated;
   }
+  /* Featured/hero card — gradient surface + gradient hairline border + a soft
+     radial brand halo behind the content. Use sparingly (one per screen: the
+     "today" hero, an at-risk-client spotlight, a subscription summary). */
+  .card-featured {
+    @apply relative overflow-hidden rounded-xl2 bg-gradient-surface-hi p-5 shadow-featured;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+  .card-featured::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: theme('backgroundImage.gradient-line');
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-featured::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: theme('backgroundImage.gradient-halo');
+    pointer-events: none;
+  }
+  .card-featured > * {
+    position: relative;
+    z-index: 1;
+  }
 
   /* ---- Eyebrow / labels (DM Mono — the signature) ---- */
   .eyebrow {
@@ -104,15 +139,25 @@ input[type='number'] {
     min-height: var(--btn-lg, 3.25rem);
   }
   .btn-primary {
-    /* Resting fill = deep orange (#C8440A) so white label hits WCAG AA (4.8:1);
-       brightens to the primary orange on hover, depresses to pressed on click. */
-    @apply btn border border-brand-dark bg-brand-dark text-white hover:bg-brand active:bg-brand-pressed;
+    /* Gradient fill (amber → orange → deep orange) with near-black ink text —
+       ink-on-bright-gradient clears AA more comfortably than white-on-flat-orange
+       did, and matches the design's --on-brand treatment. */
+    @apply btn bg-gradient-brand text-brand-ink shadow-glow transition-shadow
+      hover:brightness-[1.07] hover:shadow-[0_12px_34px_rgba(255,110,2,0.32)];
+  }
+  .btn-secondary {
+    /* Outlined — the neutral "second" action next to a primary gradient button. */
+    @apply btn border border-line-strong bg-surface-raised text-earth hover:bg-surface-hover;
+  }
+  .btn-tonal {
+    /* Soft brand-tinted fill — a lower-emphasis alternative to the full gradient. */
+    @apply btn border border-brand/25 bg-brand/[0.13] text-brand-hover hover:bg-brand/20;
   }
   .btn-light {
     @apply btn border border-white bg-white text-black;
   }
   .btn-ghost {
-    @apply btn border border-white/35 bg-transparent text-white hover:bg-white/5;
+    @apply btn border border-transparent bg-transparent text-earth-muted hover:bg-surface-raised hover:text-earth;
   }
   .btn-danger {
     @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
@@ -129,7 +174,8 @@ input[type='number'] {
   /* ---- Inputs ---- */
   .input {
     @apply w-full rounded-xl border border-line bg-surface-raised px-4 py-3 text-white
-      placeholder:text-earth-subtle focus:border-brand/60 focus:outline-none;
+      placeholder:text-earth-faint focus:border-brand/60 focus:bg-surface-hover focus:outline-none
+      focus:shadow-[0_0_0_3px_rgba(255,139,2,0.15)];
   }
   .label {
     @apply mb-1 block font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-earth-muted;
@@ -168,12 +214,12 @@ input[type='number'] {
   /* ---- Chips ---- */
   .chip {
     @apply shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted
-      transition-colors hover:border-line/80 hover:text-earth motion-reduce:transition-none;
+      transition-colors hover:border-line-strong hover:text-earth motion-reduce:transition-none;
   }
   .chip-on {
-    /* Selected = brand fill (matches the segmented-control's `.on`), not a stark
-       white that fights the dark theme. */
-    @apply border-brand bg-brand text-white hover:border-brand hover:text-white;
+    /* Selected = a soft brand tint (matches the design's `.chip.on`) — the
+       segmented control below is the one that gets a full gradient fill. */
+    @apply border-brand/40 bg-brand/[0.13] text-brand hover:border-brand/40 hover:text-brand;
   }
 
   /* ---- Segmented control ---- */
@@ -184,7 +230,7 @@ input[type='number'] {
     @apply h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
   }
   .seg button.on {
-    @apply bg-brand text-white;
+    @apply bg-gradient-brand text-brand-ink;
   }
 
   /* ---- Progress bar ---- */
@@ -192,7 +238,34 @@ input[type='number'] {
     @apply h-1.5 overflow-hidden rounded-full bg-white/10;
   }
   .prog > span {
-    @apply block h-full rounded-full bg-brand;
+    @apply block h-full rounded-full bg-gradient-brand;
+  }
+
+  /* ---- Status pill (rounded badge + leading dot) ---- */
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1
+      font-mono text-[10px] font-medium uppercase tracking-[0.07em];
+  }
+  .pill-dot {
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current;
+  }
+  .pill-ok {
+    @apply border-success/30 bg-success/[0.14] text-success;
+  }
+  .pill-warn {
+    @apply border-warn/30 bg-warn/[0.14] text-warn;
+  }
+  .pill-bad {
+    @apply border-danger/30 bg-danger/[0.14] text-danger;
+  }
+  .pill-info {
+    @apply border-info/30 bg-info/[0.14] text-info;
+  }
+  .pill-brand {
+    @apply border-brand/30 bg-brand/[0.13] text-brand;
+  }
+  .pill-mute {
+    @apply border-line bg-surface-card text-earth-subtle;
   }
 }
 
@@ -234,6 +307,20 @@ input[type='number'] {
   100% {
     transform: translateX(300%);
   }
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+/* Skeleton loading placeholder — a moving highlight sweep rather than a flat pulse. */
+.sk {
+  background: linear-gradient(90deg, theme('colors.surface.raised') 25%, theme('colors.surface.hover') 37%, theme('colors.surface.raised') 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
 }
 
 .anim-rise {
@@ -307,7 +394,8 @@ input[type='number'] {
   .reveal,
   .reveal-in,
   .float-y,
-  .glow-pulse {
+  .glow-pulse,
+  .sk {
     animation: none;
     transition: none;
   }

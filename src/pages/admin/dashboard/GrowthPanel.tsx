@@ -48,7 +48,7 @@ export function GrowthPanel() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard icon="user" value={d.totalMembers} label={t('adminMembers.members')} delta={{ value: `${weekDelta >= 0 ? '+' : ''}${weekDelta}`, dir: deltaDir }} hint={t('adminGrowth.vsPrevWeek')} />
         <MetricCard icon="plus" value={d.newThisMonth} label={t('adminMembers.newThisMonth')} tone="brand" />
-        <MetricCard icon="bolt" value={money(totalMrr)} label={t('adminGrowth.monthlyRevenue')} hint={t('admin.perMonth')} tone="system" />
+        <MetricCard icon="bolt" value={money(totalMrr)} label={t('adminGrowth.monthlyRevenue')} hint={t('admin.perMonth')} tone="brand" />
         <MetricCard icon="calendar" value={d.expiringClients.length + expiringTrials.length} label={t('adminGrowth.endingSoon')} tone={urgent ? 'danger' : d.expiringClients.length + expiringTrials.length ? 'warn' : 'default'} />
       </div>
 
