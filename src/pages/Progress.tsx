@@ -14,7 +14,7 @@ import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { StatTile } from '@/components/StatTile';
 import { BarChart, LineChart } from '@/components/charts';
-import { logVolume, logSetCount, prByExercise } from '@/lib/calc';
+import { logVolume, logSetCount, prByExercise, exerciseTrend } from '@/lib/calc';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { parseDecimal, shortDate, today, weekStartOf, addDays } from '@/lib/utils';
 import { ProgressPhotosBody } from '@/pages/ProgressPhotos';
@@ -207,25 +207,32 @@ export function Progress() {
 
       {tab === 'strength' && (
         <div className="space-y-3">
-          <div className="card-featured">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
-                <Icon name="trophy" size={22} />
-              </span>
-              <div>
-                <p className="font-display text-lg font-semibold">{t('gt.personalRecordsN', { n: records.length })}</p>
-                <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.est1rmSub')}</p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1">
+          {records.length > 0 &&
+            (() => {
+              const top = records[0];
+              const topEx = plan?.exercises[top.exerciseId];
+              const trend = exerciseTrend(logs, top.exerciseId, 8);
+              const delta = trend.length >= 2 ? Math.round((trend[trend.length - 1] - trend[0]) * 10) / 10 : null;
+              return (
+                <div className="card-featured">
+                  <p className="eyebrow mb-2">{t('gt.estimated1rm', { name: topEx?.name ?? top.exerciseId })}</p>
+                  {delta != null && (
+                    <p className="mb-4 text-sm text-earth">
+                      {t(delta >= 0 ? 'gt.strongestLiftUp' : 'gt.strongestLiftDown', { n: Math.abs(delta), sessions: trend.length })}
+                    </p>
+                  )}
+                  <LineChart data={trend} unit={t('common.kg')} emptyLabel={t('progress.noData')} />
+                </div>
+              );
+            })()}
+          <div className="card divide-y divide-line-soft p-0">
             {records.length === 0 && <p className="py-8 text-center text-sm text-earth-muted">{t('gt.noRecords')}</p>}
             {records.map((pr) => {
               const ex = plan?.exercises[pr.exerciseId];
               return (
-                <button key={pr.exerciseId} type="button" onClick={() => navigate(`/workout/exercise/${pr.exerciseId}`)} className="row w-full text-start">
-                  <span className="row-av" style={{ color: muscleColor(ex?.targetMuscle) }}>
-                    <Icon name="trophy" size={18} />
+                <button key={pr.exerciseId} type="button" onClick={() => navigate(`/workout/exercise/${pr.exerciseId}`)} className="rowline w-full text-start">
+                  <span className="tk-ic" style={{ color: muscleColor(ex?.targetMuscle) }}>
+                    <Icon name="trophy" size={15} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex?.name ?? pr.exerciseId}</p>
@@ -294,7 +301,7 @@ export function Progress() {
         <div className="space-y-3">
           <div className="hdr rounded-t-xl2 border border-b-0 border-line bg-surface-card px-5">
             <p className="ui-label">{t('gt.measurements')}</p>
-            <button type="button" className="sec-link inline-flex items-center gap-1" onClick={() => navigate('/progress/measurements')}>
+            <button type="button" className="btn-tonal btn-sm" onClick={() => navigate('/progress/measurements')}>
               <Icon name="plus" size={13} /> {t('gt.log')}
             </button>
           </div>

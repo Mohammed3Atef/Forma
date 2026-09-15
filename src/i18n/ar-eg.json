@@ -333,7 +333,9 @@
     "watchVideo": "شوف الفيديو",
     "confirmFinish": "تنهي وتحفظ التمرين ده؟",
     "elapsed": "اللي عدى",
-    "notStarted": "لسه مبدأش — دوس ابدأ"
+    "notStarted": "لسه مبدأش — دوس ابدأ",
+    "exerciseOf": "تمرين {{i}} من {{n}}",
+    "upNext": "جاي بعده"
   },
   "nutrition": {
     "title": "التغذية",
@@ -605,6 +607,9 @@
     "muscleSplit": "توزيع العضلات",
     "personalRecordsN": "{{n}} أرقام قياسية",
     "est1rmSub": "أقصى تكرار واحد تقديري لكل تمرين",
+    "estimated1rm": "أقصى تكرار تقديري · {{name}}",
+    "strongestLiftUp": "زاد {{n}} كجم في آخر {{sessions}} حصص — أسرع تمرين بيتحسّن.",
+    "strongestLiftDown": "نقص {{n}} كجم في آخر {{sessions}} حصص.",
     "est1rm": "أقصى 1 تقديري",
     "bodyweight": "وزن الجسم",
     "weightDown": "قل {{n}} كجم في الفترة دي.",
@@ -1239,11 +1244,16 @@
     "viewHistory": "شوف السجل ({{n}})",
     "hideHistory": "إخفاء السجل",
     "monthsShort": "{{n}} شهر",
+    "renewedMonths": "تجديد · {{n}} شهر",
+    "term": "المدة",
     "current": "الحالي",
     "totalMonths": "{{n}} شهر إجمالاً",
     "totalPaid": "{{amount}} إجمالاً",
     "requestDatesHint": "اختار التواريخ اللي عايز توقف اشتراكك فيها.",
-    "editDatesHint": "عدّل تواريخ التجميد قبل ما تقبل."
+    "editDatesHint": "عدّل تواريخ التجميد قبل ما تقبل.",
+    "setByCoach": "مدرّبك هو اللي بيحدده — كلّمه لو عايز تغيّر المدة أو السعر.",
+    "pauseTitle": "وقّف اشتراكك مؤقتًا",
+    "historyTitle": "السجل"
   },
   "coachView": {
     "viewAsClient": "عرض كعميل",

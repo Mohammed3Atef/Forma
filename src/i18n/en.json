@@ -280,7 +280,9 @@
     "watchVideo": "Watch video",
     "confirmFinish": "Finish and save this workout?",
     "elapsed": "Elapsed",
-    "notStarted": "Not started — press Start"
+    "notStarted": "Not started — press Start",
+    "exerciseOf": "Exercise {{i}} of {{n}}",
+    "upNext": "Up next"
   },
   "nutrition": {
     "title": "Nutrition",
@@ -553,6 +555,9 @@
     "personalRecordsN": "{{n}} personal records",
     "est1rmSub": "Estimated 1-rep max per lift",
     "est1rm": "Est 1RM",
+    "estimated1rm": "Estimated 1RM · {{name}}",
+    "strongestLiftUp": "Up {{n}}kg over your last {{sessions}} sessions — your fastest-moving lift.",
+    "strongestLiftDown": "Down {{n}}kg over your last {{sessions}} sessions.",
     "bodyweight": "Bodyweight",
     "weightDown": "Down {{n}}kg over this period.",
     "weightUp": "Up {{n}}kg over this period.",
@@ -1213,11 +1218,16 @@
     "viewHistory": "View history ({{n}})",
     "hideHistory": "Hide history",
     "monthsShort": "{{n}} mo",
+    "renewedMonths": "Renewed · {{n}} months",
+    "term": "Term",
     "current": "Current",
     "totalMonths": "{{n}} months total",
     "totalPaid": "{{amount}} paid",
     "requestDatesHint": "Choose the dates you'd like to pause your subscription.",
-    "editDatesHint": "Adjust the freeze dates before accepting."
+    "editDatesHint": "Adjust the freeze dates before accepting.",
+    "setByCoach": "Set by your coach — message them for term or price changes.",
+    "pauseTitle": "Pause your subscription",
+    "historyTitle": "History"
   },
   "coachView": {
     "viewAsClient": "Viewing as client",

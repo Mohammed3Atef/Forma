@@ -114,7 +114,7 @@ export function RoutineDetail() {
                 )}
               </div>
             )}
-            <div>{section.exerciseIds.map(renderExercise)}</div>
+            <div className="card py-1">{section.exerciseIds.map(renderExercise)}</div>
           </div>
         ))}
         <EntityNotes screen="workout" entityType="workout_day" entityId={day.id} />

@@ -172,8 +172,8 @@ export function Home() {
         </div>
       </header>
 
-      {/* Week at a glance */}
-      <WeekStrip doneDates={doneDates} />
+      {/* Week at a glance — tapping a day jumps into it (or opens its finished session) */}
+      <WeekStrip doneDates={doneDates} onSelect={(key, done) => (done ? openSession(key) : setDay(key))} />
 
       {/* Weekly check-in requested by the coach — an action-required item, not a generic teaser */}
       {checkIn?.status === 'requested' && (
@@ -357,15 +357,15 @@ export function Home() {
               {t('gt.viewAll')}
             </button>
           </div>
-          <div>
+          <div className="card divide-y divide-line-soft p-0">
             {recent.map((l) => {
               const day = plan?.days.find((d) => d.id === l.dayId);
               return (
-                <button key={l.id} type="button" onClick={() => openSession(l.date)} className="row w-full text-start">
-                  <span className="row-av">
-                    <Icon name="dumbbell" size={20} />
+                <button key={l.id} type="button" onClick={() => openSession(l.date)} className="rowline w-full text-start">
+                  <span className="tk-ic">
+                    <Icon name="dumbbell" size={15} />
                   </span>
-                  <div className="min-w-0 flex-1">
+                  <div className="grow min-w-0">
                     <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
                     <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
                       {parseDay(l.date).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' })}
@@ -373,7 +373,7 @@ export function Home() {
                       {formatDuration(l.durationSec)} · {(logVolume(l) / 1000).toFixed(1)}t
                     </p>
                   </div>
-                  <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
+                  <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
                 </button>
               );
             })}

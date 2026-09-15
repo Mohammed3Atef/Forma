@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/Icon';
 import { Pill } from '@/components/ui/Pill';
 import type { Subscription, SubscriptionPeriod } from '@/types';
 
@@ -21,7 +22,7 @@ interface Row {
  */
 export function SubscriptionHistory({ sub, history }: { sub?: Subscription | null; history?: SubscriptionPeriod[] }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const rows: Row[] = [...(history ?? [])];
   if (sub) rows.push({ startAt: sub.startAt, endAt: sub.endAt, months: sub.months, price: sub.price, currency: sub.currency, current: true });
@@ -38,22 +39,27 @@ export function SubscriptionHistory({ sub, history }: { sub?: Subscription | nul
       </button>
       {open && (
         <div className="space-y-2" data-testid="sub-history">
-          <ul className="space-y-1.5 text-[13px]">
+          <div className="card divide-y divide-line-soft p-0">
             {rows
               .slice()
               .reverse()
               .map((r, i) => (
-                <li key={i} className="flex items-center justify-between gap-2 border-b border-line-soft pb-1.5 last:border-0">
-                  <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.startAt)} → {fmtDate(r.endAt)}</span>
-                  <span className="flex items-center gap-2">
-                    {r.months != null && <span className="text-earth-muted">{t('subscription.monthsShort', { n: r.months })}</span>}
-                    {r.price != null && <span className="font-medium">{r.price}{r.currency ? ` ${r.currency}` : ''}</span>}
-                    {r.current && <Pill tone="ok">{t('subscription.current')}</Pill>}
-                  </span>
-                </li>
+                <div key={i} className="rowline">
+                  <span className="tk-ic"><Icon name="calendar" size={14} /></span>
+                  <div className="grow min-w-0">
+                    <p className="h3 flex items-center gap-1.5 truncate">
+                      {r.months != null ? t('subscription.renewedMonths', { n: r.months }) : t('subscription.term')}
+                      {r.current && <Pill tone="ok">{t('subscription.current')}</Pill>}
+                    </p>
+                    <p className="bd-s font-mono">{fmtDate(r.startAt)} → {fmtDate(r.endAt)}</p>
+                  </div>
+                  {r.price != null && (
+                    <span className="shrink-0 font-mono text-[13px] font-medium text-earth">{r.price}{r.currency ? ` ${r.currency}` : ''}</span>
+                  )}
+                </div>
               ))}
-          </ul>
-          <div className="flex items-center justify-between text-[13px] font-medium">
+          </div>
+          <div className="flex items-center justify-between px-1 text-[13px] font-medium">
             <span>{t('subscription.totalMonths', { n: totalMonths })}</span>
             {totalPaid > 0 && <span>{t('subscription.totalPaid', { amount: `${totalPaid}${currency ? ` ${currency}` : ''}` })}</span>}
           </div>

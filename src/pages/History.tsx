@@ -117,30 +117,33 @@ export function History() {
         <h2 className="h2">{t('gt.workoutsN', { n: monthSessions.length })}</h2>
         <span className="font-mono text-[12px] text-brand">{(monthVolume / 1000).toFixed(1)}t</span>
       </div>
-      <div>
-        {monthSessions.map((l) => {
-          const d = new Date(cursor.y, cursor.m, Number(l.date.slice(8, 10)));
-          const day = plan?.days.find((x) => x.id === l.dayId);
-          return (
-            <button key={l.id} type="button" onClick={() => openDay(l.date)} className="row w-full text-start">
-              <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
-                <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
-                <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
-                  {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
+      {monthSessions.length === 0 ? (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
+      ) : (
+        <div className="card divide-y divide-line-soft p-0">
+          {monthSessions.map((l) => {
+            const d = new Date(cursor.y, cursor.m, Number(l.date.slice(8, 10)));
+            const day = plan?.days.find((x) => x.id === l.dayId);
+            return (
+              <button key={l.id} type="button" onClick={() => openDay(l.date)} className="rowline w-full text-start">
+                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
+                  <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
+                  <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
+                    {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
+                  </span>
                 </span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
-                <p className="font-mono text-[11.5px] text-earth-muted">
-                  {logExerciseCount(l)} {t('gt.exercises').toLowerCase()} · {logSetCount(l)} {t('common.sets')} · {formatDuration(l.durationSec)}
-                </p>
-              </div>
-              <span className="font-mono text-[12px] text-brand">{(logVolume(l) / 1000).toFixed(1)}t</span>
-            </button>
-          );
-        })}
-        {monthSessions.length === 0 && <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>}
-      </div>
+                <div className="grow min-w-0">
+                  <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
+                  <p className="font-mono text-[11.5px] text-earth-muted">
+                    {logExerciseCount(l)} {t('gt.exercises').toLowerCase()} · {logSetCount(l)} {t('common.sets')} · {formatDuration(l.durationSec)}
+                  </p>
+                </div>
+                <span className="shrink-0 font-mono text-[12px] text-brand">{(logVolume(l) / 1000).toFixed(1)}t</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

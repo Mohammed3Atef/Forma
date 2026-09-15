@@ -48,51 +48,63 @@ export function ClientSubscriptionSection() {
   const canSubmit = !!reason.trim() && !!from && !!until && toMs(until) > toMs(from) && !submit.isPending;
 
   return (
-    <section data-testid="client-subscription">
-      <h2 className="h2 mb-2">{t('subscription.title')}</h2>
-      <div className="card space-y-3">
-        <div className="flex items-center justify-between">
+    <section data-testid="client-subscription" className="space-y-4">
+      {/* Hero — status, term, price, and the one line that matters: who controls it */}
+      <div className="card-featured space-y-2">
+        <div className="flex items-center justify-between gap-2">
           <Pill testId="client-sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
           {sub && <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(sub.startAt)} → {fmtDate(sub.endAt)}</span>}
         </div>
-
         {sub?.price != null && (
-          <p className="text-[13px]" data-testid="client-sub-price">
-            <span className="text-earth-subtle">{t('subscription.price')}: </span>
-            <span className="font-medium">{sub.price}{sub.currency ? ` ${sub.currency}` : ''}</span>
+          <p className="font-display text-3xl font-bold" data-testid="client-sub-price">
+            {sub.price}<span className="ms-1 text-sm font-normal text-earth-muted">{sub.currency ?? ''}</span>
           </p>
         )}
+        <p className="text-sm text-earth-muted">{t('subscription.setByCoach')}</p>
+      </div>
 
-        {pending ? (
-          <>
-            <p className="text-sm text-warn">{t('subscription.requestPending')}</p>
-            {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from)} → {fmtDate(r.until)}</p>}
-            <button type="button" className="btn-ghost w-full disabled:opacity-40" data-testid="freeze-cancel" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
-              {t('subscription.cancelRequest')}
-            </button>
-          </>
-        ) : (
-          <>
-            {r?.status === 'accepted' && <p className="text-sm text-success">{t('subscription.requestAccepted')}{r.coachNote ? ` — ${r.coachNote}` : ''}</p>}
-            {r?.status === 'rejected' && <p className="text-sm text-danger">{t('subscription.requestRejected')}{r.coachNote ? ` — ${r.coachNote}` : ''}</p>}
-            <p className="text-[13px] text-earth-muted">{t('subscription.requestDatesHint')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="label">{t('subscription.from')}</label>
-                <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+      {/* Pause request — its own labelled card */}
+      <div>
+        <p className="ui-label mb-2 px-1">{t('subscription.pauseTitle')}</p>
+        <div className="card space-y-3">
+          {pending ? (
+            <>
+              <p className="text-sm text-warn">{t('subscription.requestPending')}</p>
+              {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from)} → {fmtDate(r.until)}</p>}
+              <button type="button" className="btn-ghost w-full disabled:opacity-40" data-testid="freeze-cancel" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+                {t('subscription.cancelRequest')}
+              </button>
+            </>
+          ) : (
+            <>
+              {r?.status === 'accepted' && <p className="text-sm text-success">{t('subscription.requestAccepted')}{r.coachNote ? ` — ${r.coachNote}` : ''}</p>}
+              {r?.status === 'rejected' && <p className="text-sm text-danger">{t('subscription.requestRejected')}{r.coachNote ? ` — ${r.coachNote}` : ''}</p>}
+              <p className="text-[13px] text-earth-muted">{t('subscription.requestDatesHint')}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">{t('subscription.from')}</label>
+                  <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">{t('subscription.until')}</label>
+                  <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+                </div>
               </div>
               <div>
-                <label className="label">{t('subscription.until')}</label>
-                <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+                <label className="label">{t('subscription.reason')}</label>
+                <textarea className="input min-h-16" data-testid="freeze-reason" placeholder={t('subscription.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
               </div>
-            </div>
-            <textarea className="input min-h-16" data-testid="freeze-reason" placeholder={t('subscription.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
-            <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="freeze-submit" disabled={!canSubmit} onClick={() => submit.mutate()}>
-              {t('subscription.submitRequest')}
-            </button>
-          </>
-        )}
+              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="freeze-submit" disabled={!canSubmit} onClick={() => submit.mutate()}>
+                {t('subscription.submitRequest')}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
+      {/* History — its own labelled section, visible by default */}
+      <div>
+        <p className="ui-label mb-2 px-1">{t('subscription.historyTitle')}</p>
         <SubscriptionHistory sub={sub} history={history} />
       </div>
     </section>

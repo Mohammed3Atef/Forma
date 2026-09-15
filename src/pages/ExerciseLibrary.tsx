@@ -48,7 +48,7 @@ export function ExerciseLibrary() {
       <TopBar
         title={t('gt.exerciseLibrary')}
         eyebrow={t('gt.movementsN', { n: Object.keys(plan.exercises).length })}
-        onBack={() => navigate('/settings')}
+        onBack={() => navigate('/workout')}
       />
 
       <div className="relative mb-3">
@@ -66,22 +66,26 @@ export function ExerciseLibrary() {
         ))}
       </div>
 
-      <div>
-        {list.map((ex) => {
-          const pr = prs.get(ex.id);
-          return (
-            <button key={ex.id} type="button" onClick={() => navigate(`/workout/exercise/${ex.id}`)} className="row w-full text-start">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
-                <p className="font-mono text-[11.5px] text-earth-muted">{muscleLabel(ex.targetMuscle, t)}</p>
-              </div>
-              {pr && <span className="font-mono text-[12px] text-earth-muted">{pr.e1rm}{t('common.kg')}</span>}
-              <Icon name="chevron" size={16} className="text-earth-subtle" />
-            </button>
-          );
-        })}
-      </div>
+      {list.length === 0 ? (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
+      ) : (
+        <div className="card divide-y divide-line-soft p-0">
+          {list.map((ex) => {
+            const pr = prs.get(ex.id);
+            return (
+              <button key={ex.id} type="button" onClick={() => navigate(`/workout/exercise/${ex.id}`)} className="rowline w-full text-start">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} />
+                <div className="grow min-w-0">
+                  <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
+                  <p className="font-mono text-[11.5px] text-earth-muted">{muscleLabel(ex.targetMuscle, t)}</p>
+                </div>
+                {pr && <span className="shrink-0 font-mono text-[12px] text-earth-muted">{pr.e1rm}{t('common.kg')}</span>}
+                <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

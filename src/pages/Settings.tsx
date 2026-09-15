@@ -43,18 +43,26 @@ const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
 type Tab = 'profile' | 'preferences' | 'account';
 const TABS: Tab[] = ['profile', 'preferences', 'account'];
 
-/** One grouped-settings row: icon chip + label(+sub) + trailing control — matches the design's settings() row exactly. */
-function Row({ icon, label, sub, children }: { icon: IconName; label: string; sub?: string; children: ReactNode }) {
+/**
+ * One grouped-settings row: icon chip + label(+sub) + trailing control —
+ * matches the design's settings() row exactly. `stack` drops the control onto
+ * its own full-width line below the label, for controls too wide to share a
+ * row at mobile widths (e.g. a 3-way language segmented control).
+ */
+function Row({ icon, label, sub, stack, children }: { icon: IconName; label: string; sub?: string; stack?: boolean; children: ReactNode }) {
   return (
-    <div className="row">
-      <span className="row-av">
-        <Icon name={icon} size={16} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{label}</span>
-        {sub && <span className="block truncate text-[12px] text-earth-subtle">{sub}</span>}
-      </span>
-      <span className="flex shrink-0 items-center gap-2">{children}</span>
+    <div className={`row ${stack ? 'flex-col !items-stretch gap-2.5' : ''}`}>
+      <div className={stack ? 'flex items-center gap-3.5' : 'contents'}>
+        <span className="row-av">
+          <Icon name={icon} size={16} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium leading-snug">{label}</span>
+          {sub && <span className="block text-[12px] text-earth-subtle">{sub}</span>}
+        </span>
+        {!stack && <span className="flex shrink-0 items-center gap-2">{children}</span>}
+      </div>
+      {stack && <div>{children}</div>}
     </div>
   );
 }
@@ -202,32 +210,40 @@ export function Settings() {
               <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void updateContact(phone); }} />
             </div>
           )}
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="label">{t('settings.age')}</label>
-              <input className="input" inputMode="numeric" value={profile.age} onChange={(e) => void updateProfile({ age: Number(e.target.value) || 0 })} />
-            </div>
-            <div>
-              <label className="label">{t('settings.weight')}</label>
-              <input className="input" inputMode="decimal" value={profile.weightKg} onChange={(e) => void updateProfile({ weightKg: parseDecimal(e.target.value) })} />
-            </div>
-            <div>
-              <label className="label">{t('settings.height')}</label>
-              <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: parseDecimal(e.target.value) })} />
-            </div>
-          </div>
-          <div>
-            <label className="label">{t('settings.goal')}</label>
-            <select className="input" value={profile.goal} onChange={(e) => void updateProfile({ goal: e.target.value as Goal })}>
-              {GOALS.map((g) => <option key={g} value={g}>{t(`settings.goals.${g}`)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">{t('settings.activity')}</label>
-            <select className="input" value={profile.activityLevel} onChange={(e) => void updateProfile({ activityLevel: e.target.value as ActivityLevel })}>
-              {ACTIVITY.map((a) => <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>)}
-            </select>
-          </div>
+          {/* Cloud/coached clients have this data live elsewhere (a real Assessment
+              + ongoing weight tracking in Progress) — showing a frozen one-time
+              snapshot here just drifts out of sync with it. Local-only accounts
+              have no assessment/coach, so this is their only profile entry. */}
+          {!cloud && (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="label">{t('settings.age')}</label>
+                  <input className="input" inputMode="numeric" value={profile.age} onChange={(e) => void updateProfile({ age: Number(e.target.value) || 0 })} />
+                </div>
+                <div>
+                  <label className="label">{t('settings.weight')}</label>
+                  <input className="input" inputMode="decimal" value={profile.weightKg} onChange={(e) => void updateProfile({ weightKg: parseDecimal(e.target.value) })} />
+                </div>
+                <div>
+                  <label className="label">{t('settings.height')}</label>
+                  <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: parseDecimal(e.target.value) })} />
+                </div>
+              </div>
+              <div>
+                <label className="label">{t('settings.goal')}</label>
+                <select className="input" value={profile.goal} onChange={(e) => void updateProfile({ goal: e.target.value as Goal })}>
+                  {GOALS.map((g) => <option key={g} value={g}>{t(`settings.goals.${g}`)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">{t('settings.activity')}</label>
+                <select className="input" value={profile.activityLevel} onChange={(e) => void updateProfile({ activityLevel: e.target.value as ActivityLevel })}>
+                  {ACTIVITY.map((a) => <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>)}
+                </select>
+              </div>
+            </>
+          )}
           {cloud && (
             <button type="button" data-testid="change-password" className="btn-ghost w-full" onClick={() => setPwOpen(true)}>
               <Icon name="settings" size={16} /> {t('auth.changePassword')}
@@ -241,8 +257,8 @@ export function Settings() {
           <section>
             <p className="ui-label mb-2 px-1">{t('settings.preferences')}</p>
             <div className="card py-1">
-              <Row icon="globe" label={t('settings.language')}>
-                <div className="seg" style={{ minWidth: 0 }}>
+              <Row icon="globe" label={t('settings.language')} stack>
+                <div className="seg">
                   {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
                     <button key={l} type="button" onClick={() => void setLocale(l)} className={settings.locale === l ? 'on' : ''}>
                       {l === 'en' ? 'EN' : l === 'ar' ? 'ع' : 'مصري'}

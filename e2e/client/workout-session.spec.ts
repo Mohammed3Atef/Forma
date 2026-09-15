@@ -52,6 +52,10 @@ test('start, log, and finish a real workout session; verify it appears in Histor
     return;
   }
 
+  // Session is now a one-exercise-at-a-time stepper (matches the design) — the
+  // first exercise is shown by default, with an "Exercise 1 of N" label.
+  await expect(page.getByText(/^exercise 1 of \d+$/i)).toBeVisible();
+
   // Begin recording (starts the timer / marks the session as started).
   const startTimerBtn = page.getByRole('button', { name: /^start$/i });
   if (await startTimerBtn.isVisible().catch(() => false)) {

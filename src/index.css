@@ -138,6 +138,10 @@ input[type='number'] {
   .btn-lg {
     min-height: var(--btn-lg, 3.25rem);
   }
+  .btn-sm {
+    @apply px-3 text-[11px];
+    min-height: 2.125rem;
+  }
   .btn-primary {
     /* Gradient fill (amber → orange → deep orange) with near-black ink text —
        ink-on-bright-gradient clears AA more comfortably than white-on-flat-orange
@@ -209,6 +213,16 @@ input[type='number'] {
   }
   .row-av {
     @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-raised text-brand;
+  }
+
+  /* ---- Dense in-card data row (measurements, PR lists, subscription
+     history, "up next" previews) — tighter than `.row`, no chevron affordance,
+     lives inside a `.card` rather than floating on the page background. */
+  .rowline {
+    @apply flex items-center gap-2.5 border-b border-line-soft px-4 py-2.5 last:border-b-0;
+  }
+  .tk-ic {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/[0.13] text-brand;
   }
 
   /* ---- Chips ---- */
