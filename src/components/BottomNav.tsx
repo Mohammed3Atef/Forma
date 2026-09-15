@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { CLIENT_NAV, type NavItem } from '@/config/nav';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
+import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
 
 export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   const { t } = useTranslation();
   const coachUnread = useCoachMessageUnread(); // 0 unless a coach is signed in
+  const clientUnread = useClientMessageUnread(); // 0 unless a client is signed in
   return (
     <nav
       data-testid="bottom-nav"
@@ -45,12 +47,16 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
                   <>
                     <span className={`relative ${isActive ? 'text-brand' : ''}`}>
                       <Icon name={item.icon} size={22} />
-                      {item.key === 'coachMessages' && coachUnread > 0 && (
+                      {((item.key === 'coachMessages' && coachUnread > 0) ||
+                        (item.badge === 'clientUnread' && clientUnread > 0)) && (
                         <span
                           data-testid="nav-messages-badge"
-                          className="absolute -end-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold text-white"
+                          className="absolute -end-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-brand px-1 text-[9px] font-bold text-brand-ink"
                         >
-                          {coachUnread > 9 ? '9+' : coachUnread}
+                          {(() => {
+                            const n = item.key === 'coachMessages' ? coachUnread : clientUnread;
+                            return n > 9 ? '9+' : n;
+                          })()}
                         </span>
                       )}
                     </span>

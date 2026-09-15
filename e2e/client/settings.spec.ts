@@ -3,22 +3,11 @@ import { CLIENT_AUTH, watchPage } from './helpers';
 
 test.use({ storageState: CLIENT_AUTH });
 
-test('Profile: coach info, subscription status, and assessment summary render', async ({ page }) => {
+test('Profile tab: change-password form renders', async ({ page }) => {
   const { consoleErrors, failedRequests } = watchPage(page);
 
   await page.goto('/settings');
-  await expect(page.getByTestId('open-settings')).toBeVisible();
-
-  // Full "Your Coach" card — same regression surface as the compact Home card.
-  await expect(page.getByTestId('coach-info')).toBeVisible({ timeout: 15_000 });
-
-  // Subscription state — should show "Active" for this account.
-  const subSection = page.getByTestId('client-subscription');
-  if (await subSection.isVisible().catch(() => false)) {
-    await expect(page.getByTestId('client-sub-status')).toContainText(/active/i);
-  } else {
-    console.log('[settings.spec] no subscription section rendered — coach has not set a subscription term.');
-  }
+  await expect(page.getByTestId('settings-tab-profile')).toBeVisible();
 
   // Change-password form renders (verify only — do not actually submit a change
   // to this shared QA account's login credentials).
@@ -29,6 +18,25 @@ test('Profile: coach info, subscription status, and assessment summary render', 
   if (consoleErrors.length) console.warn('[settings.spec] console errors:', consoleErrors);
   const bad = failedRequests.filter((r) => r.status >= 400);
   if (bad.length) console.warn('[settings.spec] failed requests:', bad);
+});
+
+test('Account tab: coach info and subscription link render', async ({ page }) => {
+  await page.goto('/settings');
+  await page.getByTestId('settings-tab-account').click();
+
+  // Full "Your Coach" card — same regression surface as the compact Home card.
+  await expect(page.getByTestId('coach-info')).toBeVisible({ timeout: 15_000 });
+
+  // Subscription now has its own destination (matches the design's nav rail,
+  // which lists it as a sibling of Settings rather than a section inside it).
+  await page.getByTestId('settings-subscription-link').click();
+  await expect(page).toHaveURL(/\/settings\/subscription/);
+  const subSection = page.getByTestId('client-subscription');
+  if (await subSection.isVisible().catch(() => false)) {
+    await expect(page.getByTestId('client-sub-status')).toContainText(/active/i);
+  } else {
+    console.log('[settings.spec] no subscription section rendered — coach has not set a subscription term.');
+  }
 });
 
 test('App settings: a safe preference change persists after reload', async ({ page }) => {

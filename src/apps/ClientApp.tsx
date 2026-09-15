@@ -35,6 +35,7 @@ import { ProgressPhotos } from '@/pages/ProgressPhotos';
 import { Measurements } from '@/pages/Measurements';
 import { Settings } from '@/pages/Settings';
 import { ClientSettings } from '@/pages/ClientSettings';
+import { ClientSubscriptionPage } from '@/pages/ClientSubscriptionPage';
 import { VideoManager } from '@/pages/VideoManager';
 import { ImportData } from '@/pages/ImportData';
 import { Notifications } from '@/pages/Notifications';
@@ -132,6 +133,7 @@ function ClientGate() {
         <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
         <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
         <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
+        <Route path="/settings/subscription" element={<AppShell><ClientSubscriptionPage /></AppShell>} />
         <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
         <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
         <Route path="*" element={<AppShell><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />

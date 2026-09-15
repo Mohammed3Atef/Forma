@@ -10,37 +10,71 @@ export interface NavItem {
   end?: boolean;
   /** Render as the prominent raised center action (client workout button). */
   center?: boolean;
+  /** Live unread-count badge (e.g. Inbox). */
+  badge?: 'clientUnread';
+}
+
+/** A labelled group of nav items — `group` resolves to the i18n key `nav.<group>`. */
+export interface NavGroup {
+  group: string;
+  items: NavItem[];
 }
 
 /**
- * Client bottom bar: four flanking tabs + a prominent center Workout button.
- * Everything else (Cardio, History, Coach updates, …) lives in the full menu
- * sheet (CLIENT_MENU), opened from the brand bar.
+ * Client bottom bar — matches the approved design's exact tab set, order,
+ * icons and labels: Today / Fuel / Train (center FAB) / Progress / Inbox.
+ * Everything else lives in the grouped "Navigate" menu sheet (CLIENT_MENU),
+ * opened from the brand bar.
  */
 export const CLIENT_NAV: NavItem[] = [
-  { to: '/', icon: 'home', key: 'home', end: true },
-  { to: '/nutrition', icon: 'meal', key: 'nutrition' },
-  { to: '/workout', icon: 'dumbbell', key: 'workout', center: true },
+  { to: '/', icon: 'home', key: 'today', end: true },
+  { to: '/nutrition', icon: 'meal', key: 'fuel' },
+  { to: '/workout', icon: 'dumbbell', key: 'train', center: true },
   { to: '/progress', icon: 'chart', key: 'progress' },
-  { to: '/settings', icon: 'user', key: 'settings' },
+  { to: '/messages', icon: 'chat', key: 'inbox', badge: 'clientUnread' },
 ];
 
-/** Every client destination — shown in the "menu" sheet (overflow + shortcuts). */
-export const CLIENT_MENU: NavItem[] = [
-  { to: '/', icon: 'home', key: 'home', end: true },
-  { to: '/workout', icon: 'dumbbell', key: 'workout' },
-  { to: '/workout/library', icon: 'search', key: 'exerciseLibrary' },
-  { to: '/nutrition', icon: 'meal', key: 'nutrition' },
-  { to: '/cardio', icon: 'activity', key: 'cardio' },
-  { to: '/progress', icon: 'chart', key: 'progress' },
-  { to: '/progress/measurements', icon: 'ruler', key: 'measurements' },
-  { to: '/history', icon: 'calendar', key: 'history' },
-  { to: '/check-ins', icon: 'calendar', key: 'checkins' },
-  { to: '/messages', icon: 'info', key: 'messages' },
-  { to: '/coach-notes', icon: 'info', key: 'coachNotes' },
-  { to: '/notifications', icon: 'bell', key: 'notifications' },
-  { to: '/settings', icon: 'user', key: 'settings' },
-  { to: '/settings/app', icon: 'settings', key: 'settingsApp' },
+/**
+ * Every client destination, grouped exactly like the design's nav rail
+ * (Daily / Track / Coach / You) — shown in the "Navigate" menu sheet. Real
+ * destinations the prototype doesn't have a slot for (Cardio, History, Coach
+ * Notes) are folded into the group they naturally belong with; Notifications
+ * isn't repeated here since the bell in the brand bar already reaches it.
+ */
+export const CLIENT_MENU: NavGroup[] = [
+  {
+    group: 'groupDaily',
+    items: [
+      { to: '/', icon: 'home', key: 'today', end: true },
+      { to: '/workout', icon: 'dumbbell', key: 'train' },
+      { to: '/nutrition', icon: 'meal', key: 'fuel' },
+      { to: '/cardio', icon: 'activity', key: 'cardio' },
+      { to: '/workout/library', icon: 'list', key: 'exerciseLibrary' },
+    ],
+  },
+  {
+    group: 'groupTrack',
+    items: [
+      { to: '/progress', icon: 'chart', key: 'progress' },
+      { to: '/progress/measurements', icon: 'ruler', key: 'measurements' },
+      { to: '/history', icon: 'calendar', key: 'history' },
+    ],
+  },
+  {
+    group: 'groupCoach',
+    items: [
+      { to: '/messages', icon: 'chat', key: 'inbox', badge: 'clientUnread' },
+      { to: '/check-ins', icon: 'check', key: 'checkins' },
+      { to: '/coach-notes', icon: 'info', key: 'coachNotes' },
+    ],
+  },
+  {
+    group: 'groupYou',
+    items: [
+      { to: '/settings/subscription', icon: 'shield', key: 'subscription' },
+      { to: '/settings', icon: 'user', key: 'settings' },
+    ],
+  },
 ];
 
 export const COACH_NAV: NavItem[] = [
