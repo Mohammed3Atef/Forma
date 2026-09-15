@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon';
 import { listVersions, restoreVersion } from '@/services/platform/planVersionsApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { confirmDialog } from '@/stores/dialogStore';
+import { Pill } from '@/components/ui/Pill';
 import type { CardioPlan, MealPlan, PlanVersion, PlanVersionKind, WorkoutPlan } from '@/types';
 
 type AnyPlan = WorkoutPlan | MealPlan | CardioPlan;
@@ -84,7 +85,7 @@ export function PlanVersionHistory() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('planVersions.version')} {v.versionNumber}</span>
-                    {v.active && <span className="chip border-success/50 text-success" data-testid="version-active">{t('planVersions.active')}</span>}
+                    {v.active && <Pill testId="version-active" tone="ok">{t('planVersions.active')}</Pill>}
                   </div>
                   <div className="truncate text-[13px] text-earth-muted">{v.name}</div>
                   <div className="mt-0.5 font-mono text-[11px] text-earth-subtle">{summarize(kind, v.snapshot, t)}</div>

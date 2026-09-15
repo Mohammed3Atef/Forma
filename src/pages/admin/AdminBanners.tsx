@@ -15,6 +15,7 @@ import {
   listBanners, saveBanner, deleteBanner,
   type Banner, type BannerStyle, type BannerPlacement, type BannerSegment,
 } from '@/services/platform/bannersApi';
+import { Pill } from '@/components/ui/Pill';
 import type { Role } from '@/types';
 
 const STYLE_CLASS: Record<BannerStyle, string> = {
@@ -71,7 +72,7 @@ export function AdminBanners() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className={`chip text-[11px] ${b.active ? 'border-success/50 text-success' : 'border-line text-earth-subtle'}`}>{b.active ? t('adminBanners.on') : t('adminBanners.off')}</span>
+                  <Pill tone={b.active ? 'ok' : 'mute'}>{b.active ? t('adminBanners.on') : t('adminBanners.off')}</Pill>
                   <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => toggle.mutate(b)}>{b.active ? t('adminBanners.disable') : t('adminBanners.enable')}</button>
                   <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => setEditing(b)}>{t('common.edit')}</button>
                 </div>

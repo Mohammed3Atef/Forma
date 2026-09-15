@@ -9,12 +9,13 @@ import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns, requestCheckIn, reviewCheckIn } from '@/services/platform/checkInApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { shortDate, today, weekRange } from '@/lib/utils';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { CheckInStatus, WeeklyCheckIn } from '@/types';
 
-const PILL: Record<CheckInStatus, string> = {
-  requested: 'border-warn/50 text-warn',
-  submitted: 'border-brand/50 text-brand',
-  reviewed: 'border-success/50 text-success',
+const TONE: Record<CheckInStatus, PillTone> = {
+  requested: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
 };
 
 /** Coach weekly check-ins for one client: request, review (feedback + mark reviewed), history. */
@@ -85,7 +86,7 @@ function CheckInRow({ checkIn, onReviewed, locale }: { checkIn: WeeklyCheckIn; o
           <span className="block font-medium">{shortDate(checkIn.weekStart, locale)} – {shortDate(checkIn.weekEnd, locale)}</span>
           {checkIn.currentWeight != null && <span className="block font-mono text-[12px] text-earth-subtle">{checkIn.currentWeight} {t('common.kg')}</span>}
         </span>
-        <span className={`chip ${PILL[checkIn.status]}`}>{t(`checkin.status.${checkIn.status}`)}</span>
+        <Pill tone={TONE[checkIn.status]}>{t(`checkin.status.${checkIn.status}`)}</Pill>
         <Icon name={open ? 'chevronDown' : 'chevron'} size={16} className="text-earth-subtle" />
       </button>
 

@@ -11,14 +11,15 @@ import { cloudAvailable } from "@/data/dataSource";
 import { useSession } from "@/services/auth/sessionStore";
 import { fetchMyAssessment } from "@/services/platform/clientCoachApi";
 import { assessmentStatus } from "@/lib/assessment";
+import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus } from "@/types";
 
-const PILL: Record<AssessmentStatus, string> = {
-  not_started: "border-line text-earth-subtle",
-  in_progress: "border-warn/50 text-warn",
-  submitted: "border-brand/50 text-brand",
-  reviewed: "border-success/50 text-success",
-  updated_after_review: "border-warn/50 text-warn",
+const TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: "mute",
+  in_progress: "warn",
+  submitted: "brand",
+  reviewed: "ok",
+  updated_after_review: "warn",
 };
 
 /**
@@ -63,9 +64,9 @@ export function MyAssessment() {
         eyebrow={t("gt.profile")}
         onBack={() => navigate("/settings")}
         right={
-          <span className={`chip ${PILL[status]}`}>
+          <Pill tone={TONE[status]}>
             {t(`assessment.status.${status}`)}
-          </span>
+          </Pill>
         }
       />
 

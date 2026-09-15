@@ -9,6 +9,7 @@ import { SECTION_KINDS, copyExercise } from '@/lib/workoutPresets';
 import { uid } from '@/lib/utils';
 import { warmupCountOf } from '@/stores/workoutStore';
 import { confirmDialog } from '@/stores/dialogStore';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
 
 type View = { level: 'plan' } | { level: 'day'; dayId: string } | { level: 'section'; dayId: string; sectionId: string };
@@ -156,12 +157,15 @@ export function PlanBuilder({
   }
 
   // ===================== RENDER =====================
+  const isDesktop = useIsDesktop();
   const day = view.level !== 'plan' ? days.find((d) => d.id === view.dayId) : undefined;
   const section = view.level === 'section' && day ? day.sections?.find((s) => s.id === view.sectionId) : undefined;
+  // On desktop the day list stays visible as a permanent left pane, so "back"
+  // from a day just clears the right-pane selection instead of leaving the list.
+  const backFromDay = () => setView({ level: 'plan' });
 
   // ---- Level 3: section ----
-  if (view.level === 'section' && day && section) {
-    return (
+  const sectionView = view.level === 'section' && day && section && (
       <div className="space-y-4" data-testid="builder-section">
         <button type="button" className="btn-ghost" onClick={() => setView({ level: 'day', dayId: day.id })}>
           <Icon name="chevronLeft" size={16} /> {day.title}
@@ -227,22 +231,20 @@ export function PlanBuilder({
         </Sheet>
       </div>
     );
-  }
 
   // ---- Level 2: day ----
-  if (view.level === 'day' && day) {
-    const idx = days.findIndex((d) => d.id === day.id);
-    return (
+  const dayIdx = day ? days.findIndex((d) => d.id === day.id) : -1;
+  const dayView = view.level === 'day' && day && (
       <div className="space-y-4" data-testid="builder-day">
-        <button type="button" className="btn-ghost" onClick={() => setView({ level: 'plan' })}>
+        <button type="button" className="btn-ghost" onClick={backFromDay}>
           <Icon name="chevronLeft" size={16} /> {t('coachEditor.workoutTitle')}
         </button>
         <TextInput label={t('coachEditor.dayTitle')} data-testid="day-title" value={day.title} onChange={(e) => mapDay(day.id, (d) => ({ ...d, title: e.target.value }))} />
         <TextInput label={t('coachEditor.dayFocus')} data-testid="day-focus" value={day.focus} onChange={(e) => mapDay(day.id, (d) => ({ ...d, focus: e.target.value }))} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className="chip" onClick={() => duplicateDay(day.id)}>{t('coachEditor.duplicateDay')}</button>
-          <button type="button" className="chip" disabled={idx === 0} onClick={() => setDays(move(days, idx, -1))}>↑ {t('coachEditor.moveUp')}</button>
-          <button type="button" className="chip" disabled={idx === days.length - 1} onClick={() => setDays(move(days, idx, 1))}>↓ {t('coachEditor.moveDown')}</button>
+          <button type="button" className="chip" disabled={dayIdx === 0} onClick={() => setDays(move(days, dayIdx, -1))}>↑ {t('coachEditor.moveUp')}</button>
+          <button type="button" className="chip" disabled={dayIdx === days.length - 1} onClick={() => setDays(move(days, dayIdx, 1))}>↓ {t('coachEditor.moveDown')}</button>
           <button type="button" className="chip text-danger" onClick={() => void removeDay(day)}>{t('coachEditor.removeDay')}</button>
         </div>
 
@@ -270,32 +272,64 @@ export function PlanBuilder({
         </button>
       </div>
     );
-  }
 
-  // ---- Level 1: plan overview ----
-  return (
+  // ---- Level 1: plan overview (day list) ----
+  const dayList = days.length === 0 ? (
+    <EmptyState text={t('coachEditor.emptyDays')} />
+  ) : (
+    <div className="space-y-2">
+      {days.map((d) => (
+        <button
+          key={d.id}
+          type="button"
+          data-testid="builder-day-card"
+          className={`card-tap flex w-full items-center gap-3 text-start ${isDesktop && view.level !== 'plan' && day?.id === d.id ? 'border-brand/50 bg-brand/[0.06]' : ''}`}
+          onClick={() => setView({ level: 'day', dayId: d.id })}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{d.title}</span>
+            <span className="block truncate text-[12px] text-earth-subtle">
+              {d.focus ? `${d.focus} · ` : ''}{t('coachEditor.sectionCount', { n: (d.sections ?? []).length })} · {t('coachEditor.exerciseCount', { n: d.exerciseIds.length })}
+            </span>
+          </span>
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
+        </button>
+      ))}
+    </div>
+  );
+  const planView = (
     <div className="space-y-4" data-testid="builder-plan">
       {header}
-      {days.length === 0 ? (
-        <EmptyState text={t('coachEditor.emptyDays')} />
-      ) : (
-        <div className="space-y-2">
-          {days.map((d) => (
-            <button key={d.id} type="button" data-testid="builder-day-card" className="card-tap flex w-full items-center gap-3 text-start" onClick={() => setView({ level: 'day', dayId: d.id })}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{d.title}</span>
-                <span className="block truncate text-[12px] text-earth-subtle">
-                  {d.focus ? `${d.focus} · ` : ''}{t('coachEditor.sectionCount', { n: (d.sections ?? []).length })} · {t('coachEditor.exerciseCount', { n: d.exerciseIds.length })}
-                </span>
-              </span>
-              <Icon name="chevron" size={18} className="text-earth-subtle" />
-            </button>
-          ))}
-        </div>
-      )}
+      {dayList}
       <button type="button" data-testid="builder-add-day" className="btn-ghost w-full" onClick={addDay}>
         <Icon name="plus" size={16} /> {t('coachEditor.addDay')}
       </button>
+    </div>
+  );
+
+  // Mobile/tablet: exactly one level on screen at a time (unchanged drill-down).
+  if (!isDesktop) return sectionView || dayView || planView;
+
+  // Desktop: the day list stays visible as a permanent left pane (matches the
+  // design's builder split-view) while the right pane shows whichever day/
+  // section is selected — editing a plan no longer means losing the day list.
+  return (
+    <div className="flex flex-col gap-5 lg:flex-row" data-testid="builder-plan">
+      <div className="w-full shrink-0 space-y-4 lg:w-72">
+        {header}
+        {dayList}
+        <button type="button" data-testid="builder-add-day" className="btn-ghost w-full" onClick={addDay}>
+          <Icon name="plus" size={16} /> {t('coachEditor.addDay')}
+        </button>
+      </div>
+      <div className="min-w-0 flex-1">
+        {sectionView || dayView || (
+          <div className="card flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-earth-subtle">
+            <Icon name="dumbbell" size={28} />
+            <p className="text-sm">{t('coachEditor.selectDayPrompt')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

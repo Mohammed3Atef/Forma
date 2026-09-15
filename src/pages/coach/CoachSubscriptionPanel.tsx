@@ -22,23 +22,24 @@ import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscri
 import { parseDecimal } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, UserRecord } from '@/types';
 
-const SUB_PILL: Record<string, string> = {
-  none: 'border-line text-earth-subtle',
-  trial: 'border-brand/50 text-brand',
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  frozen: 'border-warn/50 text-warn',
-  expired: 'border-danger/50 text-danger',
-  cancelled: 'border-danger/50 text-danger',
-  ended: 'border-danger/50 text-danger',
+const SUB_TONE: Record<string, PillTone> = {
+  none: 'mute',
+  trial: 'brand',
+  active: 'ok',
+  pending: 'warn',
+  frozen: 'warn',
+  expired: 'bad',
+  cancelled: 'bad',
+  ended: 'bad',
 };
-const ACCT_PILL: Record<AccountStatus, string> = {
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  suspended: 'border-danger/50 text-danger',
-  disabled: 'border-danger/50 text-danger',
+const ACCT_TONE: Record<AccountStatus, PillTone> = {
+  active: 'ok',
+  pending: 'warn',
+  suspended: 'bad',
+  disabled: 'bad',
 };
 
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
@@ -109,7 +110,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         <h2 className="h2 mb-2">{t('subscription.title')}</h2>
         <div className="card space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <span data-testid="sub-status" className={`chip ${SUB_PILL[status]}`}>{t(`subscription.status.${status}`)}</span>
+            <Pill testId="sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
             {sub && status !== 'ended' && <span className="font-mono text-[12px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>}
           </div>
 
@@ -182,7 +183,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
       <section>
         <h2 className="h2 mb-2">{t('subscription.accountTitle')}</h2>
         <div className="card space-y-3">
-          <span data-testid="acct-status" className={`chip ${ACCT_PILL[acctStatus]}`}>{t(`subscription.acct.${acctStatus}`)}</span>
+          <Pill testId="acct-status" tone={ACCT_TONE[acctStatus]}>{t(`subscription.acct.${acctStatus}`)}</Pill>
           <div className="flex flex-wrap gap-2">
             {/* Suspend ⇄ Unsuspend (hidden once trashed — restore first). */}
             {acctStatus !== 'disabled' &&

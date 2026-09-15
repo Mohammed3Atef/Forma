@@ -767,6 +767,7 @@
     "sectionCount": "{{n}} sections",
     "dayCount": "{{n}} days",
     "emptyDays": "Add your first workout day",
+    "selectDayPrompt": "Select a day to edit its sections and exercises",
     "emptySections": "Add a section like Chest, Back, or Legs",
     "emptyExercises": "Add an exercise from your library",
     "progression": "Progression notes (optional)",

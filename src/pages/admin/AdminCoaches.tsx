@@ -17,14 +17,15 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus } from '@/types';
 
-const STATE_PILL: Record<string, string> = {
-  trial: 'border-brand/50 text-brand',
-  active: 'border-success/50 text-success',
-  expired: 'border-danger/50 text-danger',
-  suspended: 'border-danger/50 text-danger',
-  none: 'border-line text-earth-subtle',
+const STATE_TONE: Record<string, PillTone> = {
+  trial: 'brand',
+  active: 'ok',
+  expired: 'bad',
+  suspended: 'bad',
+  none: 'mute',
 };
 
 /** Super-admin: SaaS control panel — all coaches, their plan tier, usage & status. */
@@ -90,7 +91,7 @@ export function AdminCoaches() {
       </span>
     ) },
     { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{tierLabel(tiers, r.plan?.plan ?? 'none', t)}</span> },
-    { key: 'state', header: t('subscription.accountTitle'), cell: (r) => <span className={`chip text-[11px] ${STATE_PILL[r.state]}`}>{t(`adminCoaches.state.${r.state}`)}</span> },
+    { key: 'state', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={STATE_TONE[r.state]}>{t(`adminCoaches.state.${r.state}`)}</Pill> },
     { key: 'used', header: t('adminCoaches.clientsUsed'), cell: (r) => <span className="font-mono text-sm">{r.plan ? `${r.clientCount}/${r.plan.maxClients}` : '—'}</span>, className: 'text-end' },
     { key: 'renews', header: t('adminCoaches.renews'), cell: renewsCell },
     { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },

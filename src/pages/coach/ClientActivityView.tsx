@@ -10,6 +10,7 @@ import { computeConsumed } from '@/stores/nutritionStore';
 import { warmupCountOf } from '@/stores/workoutStore';
 import { logSetCount, logVolume } from '@/lib/calc';
 import { today } from '@/lib/utils';
+import { Pill } from '@/components/ui/Pill';
 
 function shiftDay(key: string, delta: number): string {
   const [y, m, d] = key.split('-').map(Number);
@@ -173,10 +174,10 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
                       return (
                         <div key={origId} className="flex items-center justify-between gap-2 text-[13px]">
                           <span className="min-w-0 truncate">{repl ? repl.name.en : t('nutrition.removed')}</span>
-                          <span className={`chip ${tag.source === 'approved_substitution' ? 'border-success/50 text-success' : 'border-warn/50 text-warn'}`}>
+                          <Pill tone={tag.source === 'approved_substitution' ? 'ok' : 'warn'}>
                             {tag.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')}
                             {tag.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : ''}
-                          </span>
+                          </Pill>
                         </div>
                       );
                     })}

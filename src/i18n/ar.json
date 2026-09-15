@@ -767,6 +767,7 @@
     "sectionCount": "{{n}} أقسام",
     "dayCount": "{{n}} أيام",
     "emptyDays": "أضِف أول يوم تمرين",
+    "selectDayPrompt": "اختر يومًا لتعديل أقسامه وتمارينه",
     "emptySections": "أضِف قسمًا مثل صدر أو ظهر أو أرجل",
     "emptyExercises": "أضِف تمرينًا من مكتبتك",
     "progression": "ملاحظات التدرّج (اختياري)",

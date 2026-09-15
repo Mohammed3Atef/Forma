@@ -5,12 +5,13 @@ import { SubscriptionHistory } from '@/components/SubscriptionHistory';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useSession } from '@/services/auth/sessionStore';
 import { cancelFreezeRequest, fetchMyFreezeRequest, submitFreezeRequest } from '@/services/platform/clientCoachApi';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 
-const SUB_PILL: Record<string, string> = {
-  active: 'border-success/50 text-success',
-  frozen: 'border-warn/50 text-warn',
-  ended: 'border-danger/50 text-danger',
-  none: 'border-line text-earth-subtle',
+const SUB_TONE: Record<string, PillTone> = {
+  active: 'ok',
+  frozen: 'warn',
+  ended: 'bad',
+  none: 'mute',
 };
 const fmtDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
@@ -51,7 +52,7 @@ export function ClientSubscriptionSection() {
       <h2 className="h2 mb-2">{t('subscription.title')}</h2>
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
-          <span data-testid="client-sub-status" className={`chip ${SUB_PILL[status]}`}>{t(`subscription.status.${status}`)}</span>
+          <Pill testId="client-sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
           {sub && <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(sub.startAt)} → {fmtDate(sub.endAt)}</span>}
         </div>
 

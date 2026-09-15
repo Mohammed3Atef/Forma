@@ -25,25 +25,26 @@ import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { shortDate } from '@/lib/utils';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, SignupInvite } from '@/types';
 
 type AddMode = 'choose' | 'create' | 'existing';
 
-const ACCT_PILL: Record<AccountStatus, string> = {
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  suspended: 'border-danger/50 text-danger',
-  disabled: 'border-danger/50 text-danger',
+const ACCT_TONE: Record<AccountStatus, PillTone> = {
+  active: 'ok',
+  pending: 'warn',
+  suspended: 'bad',
+  disabled: 'bad',
 };
-const SUB_PILL: Record<string, string> = {
-  none: 'border-line text-earth-subtle',
-  trial: 'border-brand/50 text-brand',
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  frozen: 'border-warn/50 text-warn',
-  expired: 'border-danger/50 text-danger',
-  cancelled: 'border-danger/50 text-danger',
-  ended: 'border-danger/50 text-danger',
+const SUB_TONE: Record<string, PillTone> = {
+  none: 'mute',
+  trial: 'brand',
+  active: 'ok',
+  pending: 'warn',
+  frozen: 'warn',
+  expired: 'bad',
+  cancelled: 'bad',
+  ended: 'bad',
 };
 const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
 const PAGE = 20;
@@ -135,7 +136,7 @@ export function CoachClients() {
         </span>
       ),
     },
-    { key: 'status', header: t('subscription.accountTitle'), cell: (r) => <span className={`chip text-[11px] ${ACCT_PILL[r.client.accountStatus]}`}>{t(`subscription.acct.${r.client.accountStatus}`)}</span> },
+    { key: 'status', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.client.accountStatus]}>{t(`subscription.acct.${r.client.accountStatus}`)}</Pill> },
     { key: 'assess', header: t('assessment.title'), cell: (r) => <span className="text-[12px] text-earth-subtle">{t(`assessment.status.${r.assessment}`)}</span> },
     { key: 'last', header: t('coachDash.recentActivity'), cell: (r) => <span className="text-[12px] text-earth-subtle">{r.lastActivity ? shortDate(r.lastActivity, i18n.language) : '—'}</span> },
     { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.addedAt).toISOString().slice(0, 10), i18n.language)}</span> },
@@ -232,7 +233,7 @@ export function CoachClients() {
                   <span className="block truncate font-medium">{c.displayName || c.email}</span>
                   <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>
                 </span>
-                <span className={`chip ${ACCT_PILL[c.accountStatus]}`}>{t(`subscription.acct.${c.accountStatus}`)}</span>
+                <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
                 <Icon name="chevron" size={18} />
               </button>
             ))}
@@ -434,12 +435,12 @@ function ClientPreview({ row, coachId, onOpen, onMessage }: { row: ClientDashboa
           <p className="font-semibold">{c.displayName || c.email}</p>
           <p className="text-[12px] text-earth-subtle">{c.email}</p>
         </div>
-        <span className={`chip text-[11px] ${ACCT_PILL[c.accountStatus]}`}>{t(`subscription.acct.${c.accountStatus}`)}</span>
+        <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
       </div>
       <div className="space-y-2 text-sm">
         <Row label={t('subscription.title')}>
           <span className="flex items-center gap-2">
-            <span data-testid="preview-sub-status" className={`chip text-[11px] ${SUB_PILL[subStatus]}`}>{t(`subscription.status.${subStatus}`)}</span>
+            <Pill testId="preview-sub-status" tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
             {sub && subStatus !== 'ended' && (
               <span className="font-mono text-[11px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>
             )}

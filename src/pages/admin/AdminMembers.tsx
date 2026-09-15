@@ -19,19 +19,20 @@ import { fetchMembers, inSegment, type MemberRow, type MemberSegment } from '@/s
 import { bumpUsage } from '@/services/platform/usageApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import { shortDate } from '@/lib/utils';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, Role } from '@/types';
 
-const ACCT_PILL: Record<AccountStatus, string> = {
-  active: 'border-success/50 text-success',
-  pending: 'border-warn/50 text-warn',
-  suspended: 'border-danger/50 text-danger',
-  disabled: 'border-danger/50 text-danger',
+const ACCT_TONE: Record<AccountStatus, PillTone> = {
+  active: 'ok',
+  pending: 'warn',
+  suspended: 'bad',
+  disabled: 'bad',
 };
-const SUB_PILL: Record<string, string> = {
-  none: 'border-line text-earth-subtle', trial: 'border-brand/50 text-brand',
-  active: 'border-success/50 text-success', pending: 'border-warn/50 text-warn',
-  frozen: 'border-warn/50 text-warn', expired: 'border-danger/50 text-danger',
-  cancelled: 'border-danger/50 text-danger', ended: 'border-danger/50 text-danger',
+const SUB_TONE: Record<string, PillTone> = {
+  none: 'mute', trial: 'brand',
+  active: 'ok', pending: 'warn',
+  frozen: 'warn', expired: 'bad',
+  cancelled: 'bad', ended: 'bad',
 };
 
 /** Admin member console: every account, join-date segments, client-subscription oversight + control. */
@@ -99,8 +100,8 @@ export function AdminMembers() {
       </span>
     ) },
     { key: 'role', header: t('adminMembers.role'), cell: (r) => <span className="text-[13px]">{t(`roles.${r.user.role}`)}</span> },
-    { key: 'acct', header: t('subscription.accountTitle'), cell: (r) => <span className={`chip text-[11px] ${ACCT_PILL[r.user.accountStatus]}`}>{t(`subscription.acct.${r.user.accountStatus}`)}</span> },
-    { key: 'sub', header: t('adminMembers.subscription'), cell: (r) => r.user.role === 'client' ? <span className={`chip text-[11px] ${SUB_PILL[r.subState ?? 'none']}`}>{t(`subscription.status.${r.subState ?? 'none'}`)}</span> : <span className="text-earth-subtle">—</span> },
+    { key: 'acct', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill> },
+    { key: 'sub', header: t('adminMembers.subscription'), cell: (r) => r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <span className="text-earth-subtle">—</span> },
     { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (r) => canManage(r.user.role) && r.user.id !== actorId ? (
       <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
@@ -187,7 +188,7 @@ export function AdminMembers() {
                     <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
                     <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span>
                   </span>
-                  {r.user.role === 'client' ? <span className={`chip text-[11px] ${SUB_PILL[r.subState ?? 'none']}`}>{t(`subscription.status.${r.subState ?? 'none'}`)}</span> : <span className={`chip text-[11px] ${ACCT_PILL[r.user.accountStatus]}`}>{t(`subscription.acct.${r.user.accountStatus}`)}</span>}
+                  {r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill>}
                 </button>
               ))}
             </div>

@@ -26,14 +26,15 @@ import { assessmentStatus } from "@/lib/assessment";
 import { CoachSubscriptionPanel } from "@/pages/coach/CoachSubscriptionPanel";
 import { CoachTimeline } from "@/components/coach/CoachTimeline";
 import { Icon, type IconName } from "@/components/Icon";
+import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus, WeightLog, WorkoutLog } from "@/types";
 
-const ASSESS_PILL: Record<AssessmentStatus, string> = {
-  not_started: "border-line text-earth-subtle",
-  in_progress: "border-warn/50 text-warn",
-  submitted: "border-brand/50 text-brand",
-  reviewed: "border-success/50 text-success",
-  updated_after_review: "border-warn/50 text-warn",
+const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: "mute",
+  in_progress: "warn",
+  submitted: "brand",
+  reviewed: "ok",
+  updated_after_review: "warn",
 };
 
 export function CoachClientDetail() {
@@ -219,12 +220,9 @@ export function CoachClientDetail() {
                 {t("assessment.coachHint")}
               </span>
             </span>
-            <span
-              data-testid="assessment-status-badge"
-              className={`chip ${ASSESS_PILL[assessStatus]}`}
-            >
+            <Pill testId="assessment-status-badge" tone={ASSESS_TONE[assessStatus]}>
               {t(`assessment.status.${assessStatus}`)}
-            </span>
+            </Pill>
             <Icon name="chevron" size={18} className="rtl:rotate-180" />
           </button>
 

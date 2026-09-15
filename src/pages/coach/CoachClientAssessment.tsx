@@ -14,14 +14,15 @@ import {
 } from '@/services/platform/coachApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import { assessmentStatus } from '@/lib/assessment';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
 
-const PILL: Record<AssessmentStatus, string> = {
-  not_started: 'border-line text-earth-subtle',
-  in_progress: 'border-warn/50 text-warn',
-  submitted: 'border-brand/50 text-brand',
-  reviewed: 'border-success/50 text-success',
-  updated_after_review: 'border-warn/50 text-warn',
+const TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: 'mute',
+  in_progress: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
+  updated_after_review: 'warn',
 };
 
 /** Coach review of a client's onboarding assessment: read answers, add notes, mark reviewed / reset, build plans. */
@@ -63,7 +64,7 @@ export function CoachClientAssessment() {
         title={t('assessment.title')}
         eyebrow={t('platform.coachPortal')}
         onBack={() => navigate(`/coach/client/${clientId}`)}
-        right={<span data-testid="assessment-status" className={`chip ${PILL[status]}`}>{t(`assessment.status.${status}`)}</span>}
+        right={<Pill testId="assessment-status" tone={TONE[status]}>{t(`assessment.status.${status}`)}</Pill>}
       />
 
       {q.isLoading ? (

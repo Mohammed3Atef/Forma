@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Pill } from '@/components/ui/Pill';
 import type { Subscription, SubscriptionPeriod } from '@/types';
 
 const fmtDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '—');
@@ -47,7 +48,7 @@ export function SubscriptionHistory({ sub, history }: { sub?: Subscription | nul
                   <span className="flex items-center gap-2">
                     {r.months != null && <span className="text-earth-muted">{t('subscription.monthsShort', { n: r.months })}</span>}
                     {r.price != null && <span className="font-medium">{r.price}{r.currency ? ` ${r.currency}` : ''}</span>}
-                    {r.current && <span className="chip border-success/50 text-success">{t('subscription.current')}</span>}
+                    {r.current && <Pill tone="ok">{t('subscription.current')}</Pill>}
                   </span>
                 </li>
               ))}

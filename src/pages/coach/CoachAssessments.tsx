@@ -8,14 +8,15 @@ import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { getClientAssessment, listMyClients } from '@/services/platform/coachApi';
 import { assessmentStatus } from '@/lib/assessment';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
 
-const PILL: Record<AssessmentStatus, string> = {
-  not_started: 'border-line text-earth-subtle',
-  in_progress: 'border-warn/50 text-warn',
-  submitted: 'border-brand/60 text-brand',
-  reviewed: 'border-success/50 text-success',
-  updated_after_review: 'border-brand/60 text-brand',
+const TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: 'mute',
+  in_progress: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
+  updated_after_review: 'brand',
 };
 // Submitted / re-submitted assessments float to the top — they need review.
 const PRIORITY: Record<AssessmentStatus, number> = {
@@ -69,7 +70,7 @@ export function CoachAssessments() {
             >
               <Avatar name={client.displayName || client.email} photoUrl={client.photoUrl} />
               <span className="min-w-0 flex-1 truncate font-medium">{client.displayName || client.email}</span>
-              <span className={`chip text-[11px] ${PILL[status]}`}>{t(`assessment.status.${status}`)}</span>
+              <Pill tone={TONE[status]}>{t(`assessment.status.${status}`)}</Pill>
               <Icon name="chevron" size={16} className="text-earth-subtle" />
             </button>
           ))}

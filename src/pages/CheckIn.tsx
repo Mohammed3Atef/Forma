@@ -11,6 +11,14 @@ import { isBunnyConfigured } from '@/services/platform/bunnyUploadApi';
 import { getCheckIn, submitCheckIn, type CheckInSubmission } from '@/services/platform/checkInApi';
 import { useSession } from '@/services/auth/sessionStore';
 import { shortDate } from '@/lib/utils';
+import { Pill, type PillTone } from '@/components/ui/Pill';
+import type { CheckInStatus } from '@/types';
+
+const TONE: Record<CheckInStatus, PillTone> = {
+  requested: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
+};
 
 /** Client weekly check-in: a quick form when 'requested', a read-only summary + coach feedback otherwise. */
 export function CheckIn() {
@@ -93,7 +101,7 @@ export function CheckIn() {
         </>
       ) : (
         <>
-          <span className="chip border-success/50 text-success">{t(`checkin.status.${checkIn.status}`)}</span>
+          <Pill tone={TONE[checkIn.status]}>{t(`checkin.status.${checkIn.status}`)}</Pill>
           {checkIn.status === 'reviewed' && checkIn.coachFeedback && (
             <div className="card border border-brand/30">
               <p className="label">{t('checkin.coachFeedback')}</p>
