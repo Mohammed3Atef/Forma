@@ -60,7 +60,7 @@ export function VideoManager() {
         <div className="card flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">{t('video.offlineSaved', { done: downloadedCount, total: downloadable.length })}</p>
-            <p className="text-xs text-slate-400">{t('video.offlineHint')}</p>
+            <p className="text-xs text-earth-muted">{t('video.offlineHint')}</p>
           </div>
           <button
             type="button"
@@ -120,7 +120,7 @@ export function VideoManager() {
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('video.setUrl')}>
         <div className="space-y-3">
           <input className="input" placeholder="https://…/video.mp4" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} />
-          <p className="text-xs text-slate-500">{t('video.fallback')}</p>
+          <p className="text-xs text-earth-subtle">{t('video.fallback')}</p>
           <button type="button" onClick={() => void saveUrl()} className="btn-primary w-full">{t('common.save')}</button>
         </div>
       </Sheet>

@@ -235,6 +235,9 @@
     "nextReminder": "Next reminder",
     "noReminder": "No reminders scheduled",
     "restDay": "Rest day — pick a workout",
+    "dayOfRotation": "Day {{n}} of {{total}} this rotation",
+    "todaysPlan": "Today's plan",
+    "tasksLeft": "{{n}} left",
     "quick": {
       "addWeight": "Add Weight"
     },
@@ -293,6 +296,7 @@
     "beverages": "Beverages",
     "target": "Target",
     "remaining": "Remaining",
+    "overTarget": "Over target",
     "creatineTaken": "Creatine taken"
   },
   "cardio": {
@@ -485,6 +489,9 @@
     "volume": "Volume",
     "time": "Time",
     "volumeTrend": "Volume trend",
+    "volumeTrendUp": "Up {{t}}t over this stretch — trending the right way.",
+    "volumeTrendDown": "Down {{t}}t over this stretch.",
+    "volumeTrendFlat": "Not enough sessions yet to show a trend.",
     "last8weeks": "last 8 weeks",
     "recent": "Recent",
     "viewAll": "View all",
@@ -527,6 +534,9 @@
     "est1rmSub": "Estimated 1-rep max per lift",
     "est1rm": "Est 1RM",
     "bodyweight": "Bodyweight",
+    "weightDown": "Down {{n}}kg over this period.",
+    "weightUp": "Up {{n}}kg over this period.",
+    "weightHolding": "Holding steady over this period.",
     "measurements": "Measurements",
     "log": "Log",
     "athlete": "Athlete",

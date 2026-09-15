@@ -16,9 +16,18 @@ import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { Pill, type PillTone } from '@/components/ui/Pill';
+import type { AssessmentStatus } from '@/types';
 
 const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
 const ACTIVITY: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: 'mute',
+  in_progress: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
+  updated_after_review: 'warn',
+};
 
 /** Lean client Profile: identity, subscription, assessment summary, coach. Settings live at /settings/app. */
 export function Settings() {
@@ -61,7 +70,7 @@ export function Settings() {
       />
 
       {/* Identity summary + avatar */}
-      <div className="card space-y-3">
+      <div className="card-featured space-y-3">
         {cloud ? (
           <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} folder={`Forma/${uid}/avatar`} onChange={(url) => void updateSelf({ photoUrl: url })} />
         ) : null}
@@ -85,7 +94,7 @@ export function Settings() {
             <span className="block font-medium">{t('assessment.title')}</span>
             <span className="block text-[13px] text-earth-muted">{t('assessment.lastUpdated')}: {assessment.data.updatedAt ? new Date(assessment.data.updatedAt).toLocaleDateString(i18n.language) : '—'}</span>
           </span>
-          <span className="chip">{t(`assessment.status.${aStatus}`)}</span>
+          <Pill tone={ASSESS_TONE[aStatus]}>{t(`assessment.status.${aStatus}`)}</Pill>
           <Icon name="chevron" size={16} className="text-earth-subtle" />
         </button>
       )}

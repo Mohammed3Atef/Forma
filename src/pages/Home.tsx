@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
@@ -19,6 +19,8 @@ import { BarChart } from '@/components/charts';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { CoachCard } from '@/components/CoachCard';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { WeekStrip } from '@/components/WeekStrip';
+import { TaskRow } from '@/components/TaskRow';
 import { logVolume, logSetCount } from '@/lib/calc';
 import { formatDuration, weekStartOf } from '@/lib/utils';
 import type { WorkoutDay, WorkoutPlan } from '@/types';
@@ -105,7 +107,25 @@ export function Home() {
   const recent = finished.slice(0, 3);
   const remaining = Math.max(0, goal - week.workouts);
 
-  const [hover, setHover] = useState(false);
+  // Week-strip: which calendar days this week already have a finished session.
+  const doneDates = useMemo(() => new Set(finished.map((l) => l.date)), [finished]);
+  // Position within the plan's day-rotation (real, not a fabricated "week n of m").
+  const rotationLabel = plan ? t('home.dayOfRotation', { n: (finished.length % plan.days.length) + 1, total: plan.days.length }) : null;
+
+  // Today's 3-pillar task list (nutrition / workout / cardio) — the exact set the
+  // real per-day checklist already derives (see habitLogic.buildChecklist), just
+  // read back out here so the hero ring and the task rows always agree.
+  const mealsDone = useMemo(() => {
+    if (!mealPlan || !checklist) return null;
+    const keys = mealPlan.meals.map((m) => `meal:${m.id}`);
+    return keys.length > 0 && keys.every((k) => checklist.items[k]?.done);
+  }, [mealPlan, checklist]);
+  const workoutDone = checklist?.items.workout?.done ?? false;
+  const hasCardioTarget = !!checklist && 'cardio' in checklist.items;
+  const cardioDone = checklist?.items.cardio?.done ?? false;
+  const coreTasks = [mealsDone !== null, plan != null, hasCardioTarget].filter(Boolean).length;
+  const coreTasksDone = [mealsDone === true, workoutDone, hasCardioTarget && cardioDone].filter(Boolean).length;
+  const todayPct = coreTasks ? coreTasksDone / coreTasks : 0;
 
   const startSuggested = async () => {
     if (readOnly) return; // subscription paused/ended → workouts are view-only
@@ -152,33 +172,115 @@ export function Home() {
         </div>
       </header>
 
-      {/* Weekly check-in requested by the coach — prominent call to action */}
+      {/* Week at a glance */}
+      <WeekStrip doneDates={doneDates} />
+
+      {/* Weekly check-in requested by the coach — an action-required item, not a generic teaser */}
       {checkIn?.status === 'requested' && (
         <button
           type="button"
           data-testid="home-checkin"
           onClick={() => navigate(`/check-in/${checkIn.id}`)}
-          className="card-tap flex w-full items-center gap-4 border border-brand/40 text-start"
+          className="card-tap flex w-full items-center gap-4 border border-warn/40 bg-warn/[0.06] text-start"
         >
-          <span className="row-av bg-brand/15 text-brand">
+          <span className="row-av bg-warn/15 text-warn">
             <Icon name="calendar" size={20} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="eyebrow mb-1 block text-brand">{t('checkin.requiredTitle')}</span>
+            <span className="eyebrow mb-1 block text-warn">{t('checkin.requiredTitle')}</span>
             <span className="block text-sm text-earth-muted">{t('checkin.requiredBody')}</span>
           </span>
           <Icon name="chevron" size={18} className="rtl:rotate-180" />
         </button>
       )}
 
-      {/* Your coach (compact) */}
-      <CoachInfoCard compact />
-
-      {/* Coach announcements / assigned plans (only when the client has a coach) */}
-      <CoachCard />
-
       {/* No plan yet — make it clear the client is waiting on their coach. */}
       {!plan && <WaitingForCoach />}
+
+      {/* FEATURED: today's single most important action */}
+      {plan && (
+        <div className="card-featured">
+          <p className="eyebrow mb-3">
+            {dateEyebrow}
+            {rotationLabel ? ` · ${rotationLabel}` : ''}
+          </p>
+          <div className="flex flex-wrap items-center gap-5">
+            <ProgressRing value={todayPct} size={104} stroke={8} label={`${Math.round(todayPct * 100)}%`} sublabel={t('common.today')} />
+            <div className="min-w-[180px] flex-1">
+              <h2 className="h1">
+                {active && !active.finished ? t('workout.resumeSession') : suggestedDay ? suggestedDay.title : t('home.restDay')}
+              </h2>
+              {suggestedDay && <p className="mt-1 text-sm text-earth-muted">{suggestedDay.focus}</p>}
+              {suggestedDay &&
+                (() => {
+                  const m = dayMeta(suggestedDay, plan);
+                  return (
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11.5px] text-earth-muted">
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="list" size={14} /> {m.ex}&nbsp;{t('gt.exercises').toLowerCase()}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="bolt" size={14} /> {m.sets}&nbsp;{t('common.sets')}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="timer" size={14} /> ~{m.timeMin}&nbsp;{t('common.min')}
+                      </span>
+                    </div>
+                  );
+                })()}
+              {suggestedDay && (
+                <button type="button" disabled={readOnly} onClick={() => void startSuggested()} className="btn-primary mt-4 w-full disabled:opacity-40">
+                  <Icon name="play" size={15} /> {active && !active.finished ? t('workout.resumeSession') : t('gt.startWorkout')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Today's plan — the same 3 pillars behind the ring above, as tappable rows */}
+      {plan && checklist && coreTasks > 0 && (
+        <div className="card p-0">
+          <div className="flex items-center justify-between px-5 pt-4">
+            <p className="ui-label">{t('home.todaysPlan')}</p>
+            <span className="pill pill-brand">{t('home.tasksLeft', { n: coreTasks - coreTasksDone })}</span>
+          </div>
+          <div className="px-5 pb-1">
+            {mealsDone !== null && (
+              <TaskRow
+                icon="meal"
+                tone="ok"
+                title={t('nav.nutrition')}
+                subtitle={`${Math.round(consumed.calories)} / ${targets?.calories ?? 0} kcal`}
+                done={mealsDone}
+                onClick={() => navigate('/nutrition')}
+              />
+            )}
+            <TaskRow
+              icon="dumbbell"
+              tone="brand"
+              title={suggestedDay ? suggestedDay.title : t('nav.workout')}
+              subtitle={workoutDone ? t('workout.resumeSession') : active && !active.finished ? t('workout.resumeSession') : t('gt.startWorkout')}
+              done={workoutDone}
+              onClick={() => void startSuggested()}
+            />
+            {hasCardioTarget && (
+              <TaskRow
+                icon="activity"
+                tone="info"
+                title={t('nav.cardio')}
+                subtitle={`${todaySteps.toLocaleString()} ${t('home.steps').toLowerCase()}`}
+                done={cardioDone}
+                onClick={() => navigate('/cardio')}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* From your coach */}
+      <CoachInfoCard compact />
+      <CoachCard />
 
       {/* Weekly goal — tap through to the history/calendar of completed workouts */}
       <button
@@ -200,66 +302,23 @@ export function Home() {
         </div>
         {(() => {
           const wk = streaks.workout;
-          const active = wk.current > 0;
+          const streakActive = wk.current > 0;
           // Active workout streak → flame + current. Otherwise show the best
           // streak on record (trophy) so the number still reflects an achievement.
           return (
             <div
               className="flex items-center gap-1.5"
-              title={active ? t('gt.currentStreak') : t('gt.bestStreak')}
+              title={streakActive ? t('gt.currentStreak') : t('gt.bestStreak')}
             >
-              <Icon name={active ? 'flame' : 'trophy'} size={18} className={active ? 'text-brand' : 'text-earth-subtle'} />
-              <span className={`font-mono text-lg font-medium ${active ? '' : 'text-earth-muted'}`}>
-                {active ? wk.current : wk.longest}
+              <Icon name={streakActive ? 'flame' : 'trophy'} size={18} className={streakActive ? 'text-brand' : 'text-earth-subtle'} />
+              <span className={`font-mono text-lg font-medium ${streakActive ? '' : 'text-earth-muted'}`}>
+                {streakActive ? wk.current : wk.longest}
               </span>
             </div>
           );
         })()}
         <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
       </button>
-
-      {/* Up next hero */}
-      {suggestedDay && plan && (
-        <button
-          type="button"
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          onClick={() => void startSuggested()}
-          disabled={readOnly}
-          className={`relative w-full overflow-hidden rounded-hero border border-brand/25 p-6 text-start transition-transform active:scale-[0.99] ${readOnly ? 'opacity-50' : ''}`}
-          style={{
-            background:
-              'radial-gradient(120% 120% at 85% 0%, rgba(255,139,2,0.22), transparent 50%), linear-gradient(150deg,#2a1d14,#1a140d,#120d08)',
-          }}
-        >
-          <p className="eyebrow mb-3">
-            {t('gt.upNext')} · {t('gt.recommended')}
-          </p>
-          <h2 className="font-display text-[28px] font-bold leading-tight tracking-[-0.02em]">
-            {active && !active.finished ? t('workout.resumeSession') : suggestedDay.title}
-          </h2>
-          <p className="mt-1 text-sm text-earth-muted">{suggestedDay.focus}</p>
-          {(() => {
-            const m = dayMeta(suggestedDay, plan);
-            return (
-              <div className="mt-4 flex items-center gap-5 font-mono text-[11.5px] text-earth-muted">
-                <span className="flex items-center gap-1.5">
-                  <Icon name="list" size={14} /> {m.ex}&nbsp;{t('gt.exercises').toLowerCase()}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Icon name="bolt" size={14} /> {m.sets}&nbsp;{t('common.sets')}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Icon name="timer" size={14} /> ~{m.timeMin}&nbsp;{t('common.min')}
-                </span>
-              </div>
-            );
-          })()}
-          <span className="btn-light mt-5 w-full" style={{ transform: hover ? 'translateY(-1px)' : undefined }}>
-            <Icon name="play" size={15} /> {t('gt.startWorkout')}
-          </span>
-        </button>
-      )}
 
       {/* This week */}
       <div className="sec-head">
@@ -271,20 +330,6 @@ export function Home() {
         <StatTile icon="arrowUp" value={(week.volume / 1000).toFixed(1)} unit="t" label={t('gt.volume')} />
         <StatTile icon="timer" value={week.timeMin} unit="m" label={t('gt.time')} />
       </div>
-
-      {/* Today's daily checklist — only meaningful once a plan/targets exist. */}
-      {plan && checklist && Object.keys(checklist.items).length > 0 && (
-        <button type="button" onClick={() => navigate('/nutrition')} className="card-tap mt-3 flex w-full items-center gap-4 text-start">
-          <ProgressRing value={checklist.completionPct / 100} size={56} stroke={6} label={`${checklist.completionPct}%`} />
-          <div className="flex-1">
-            <h2 className="h2">{t('home.dailyChecklist')}</h2>
-            <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
-              {Math.round(consumed.calories)} / {targets?.calories ?? 0} kcal · {todaySteps.toLocaleString()} {t('home.steps').toLowerCase()}
-            </p>
-          </div>
-          <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
-        </button>
-      )}
 
       {/* Volume trend */}
       {finished.length > 0 && (

@@ -39,7 +39,7 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
   // Blob missing locally (e.g. record synced from another device) — neutral placeholder.
   if (missing) {
     return (
-      <div className={`flex flex-col items-center justify-center gap-1 bg-surface-raised text-slate-500 ${className}`}>
+      <div className={`flex flex-col items-center justify-center gap-1 bg-surface-raised text-earth-subtle ${className}`}>
         <Icon name="image" size={20} />
         <span className="text-[10px]">{t(`progress.${photo.pose}`)}</span>
       </div>
@@ -124,7 +124,7 @@ export function ProgressPhotos() {
           ))}
         </div>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
-        <p className="mb-2 text-xs text-slate-400">
+        <p className="mb-2 text-xs text-earth-muted">
           {t('progress.addPhoto')} — {t(`progress.${pose}`)}
         </p>
         <div className="flex gap-2">
@@ -159,7 +159,7 @@ export function ProgressPhotos() {
             if (!a && !b) return null;
             return (
               <div key={p}>
-                <p className="mb-1 text-xs uppercase text-slate-400">{t(`progress.${p}`)}</p>
+                <p className="mb-1 text-xs uppercase text-earth-muted">{t(`progress.${p}`)}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
                   {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
@@ -191,7 +191,7 @@ export function ProgressPhotos() {
         </div>
       ))}
 
-      {byDate.length === 0 && <p className="text-sm text-slate-500">{t('progress.noData')}</p>}
+      {byDate.length === 0 && <p className="text-sm text-earth-subtle">{t('progress.noData')}</p>}
     </div>
   );
 }

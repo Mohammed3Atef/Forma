@@ -194,7 +194,7 @@ export function WorkoutSession() {
   if (summary) {
     return (
       <div className="anim-fade flex min-h-[80vh] flex-col items-center justify-center px-2 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_0_40px_rgba(46,93,60,0.6)]">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_0_40px_rgba(63,178,127,0.5)]">
           <Icon name="check" size={36} />
         </div>
         <p className="eyebrow mt-7">{t('gt.workoutComplete')}</p>
@@ -221,7 +221,7 @@ export function WorkoutSession() {
     let workingNo = 0;
     return (
       <div className="-mx-5 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-black px-5 py-3">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
           <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
             <Icon name="chevronDown" size={20} />
           </button>
@@ -285,7 +285,7 @@ export function WorkoutSession() {
   return (
     <div className="-mx-5 flex min-h-screen flex-col">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-black px-5 py-3">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
         <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
           <Icon name="chevronDown" size={20} />
         </button>
@@ -298,19 +298,11 @@ export function WorkoutSession() {
           )}
         </div>
         {recording ? (
-          <button
-            type="button"
-            onClick={openFinish}
-            className="flex h-[42px] items-center rounded-full bg-brand px-5 font-mono text-[12px] font-medium uppercase tracking-[0.04em] text-white transition-transform active:scale-95"
-          >
+          <button type="button" onClick={openFinish} className="btn-primary h-[42px] px-5">
             {t('common.finish')}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={beginTimer}
-            className="flex h-[42px] items-center gap-1.5 rounded-full bg-brand px-5 font-mono text-[12px] font-medium uppercase tracking-[0.04em] text-white transition-transform active:scale-95"
-          >
+          <button type="button" onClick={beginTimer} className="btn-primary h-[42px] px-5">
             <Icon name="play" size={14} /> {t('common.start')}
           </button>
         )}

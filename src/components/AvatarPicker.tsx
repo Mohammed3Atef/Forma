@@ -54,7 +54,7 @@ export function AvatarPicker({ name, photoUrl, folder, onChange }: { name?: stri
           aria-label={photoUrl ? t('upload.replace') : t('upload.addPhoto')}
           className="group relative block h-16 w-16 overflow-hidden rounded-full disabled:opacity-50"
         >
-          <Avatar name={name} photoUrl={photoUrl} size="lg" rounded="rounded-full" className="h-16 w-16" />
+          <Avatar name={name} photoUrl={photoUrl} size="lg" ring className="h-16 w-16" />
           <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none">
             <Icon name={busy ? 'timer' : 'camera'} size={22} />
           </span>

@@ -143,11 +143,24 @@ export function Progress() {
 
       {tab === 'overview' && (
         <div className="space-y-3">
-          <div className="card">
-            <div className="mb-2 flex items-baseline justify-between">
-              <span className="ui-label">{t('gt.weeklyVolume')}</span>
+          <div className="card-featured">
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="eyebrow">{t('gt.weeklyVolume')}</span>
               <span className="font-mono text-[11px] text-brand">{t('gt.last8weeks')}</span>
             </div>
+            {(() => {
+              const nonZero = overview.trend.map((b) => b.value).filter((v) => v > 0);
+              const first = nonZero[0];
+              const last = nonZero[nonZero.length - 1];
+              const up = first != null && last != null && last > first;
+              return (
+                <p className="mb-3 text-sm text-earth">
+                  {nonZero.length >= 2
+                    ? t(up ? 'gt.volumeTrendUp' : 'gt.volumeTrendDown', { t: (Math.abs(last - first) / 1000).toFixed(1) })
+                    : t('gt.volumeTrendFlat')}
+                </p>
+              );
+            })()}
             <BarChart data={overview.trend} format={(v) => `${Math.round(v / 1000)}t`} />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -179,12 +192,11 @@ export function Progress() {
 
       {tab === 'records' && (
         <div className="space-y-1">
-          <div
-            className="mb-3 rounded-hero border border-brand/25 p-5 shadow-featured"
-            style={{ background: 'linear-gradient(135deg, rgba(255,139,2,0.28), rgba(255,139,2,0.06))' }}
-          >
+          <div className="card-featured mb-3">
             <div className="flex items-center gap-3">
-              <Icon name="trophy" size={26} className="text-brand" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
+                <Icon name="trophy" size={22} />
+              </span>
               <div>
                 <p className="font-display text-lg font-semibold">{t('gt.personalRecordsN', { n: records.length })}</p>
                 <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.est1rmSub')}</p>
@@ -217,13 +229,22 @@ export function Progress() {
 
       {tab === 'body' && (
         <div className="space-y-3">
-          <div className="card">
+          <div className="card-featured">
             <div className="mb-1 flex items-baseline justify-between">
-              <span className="ui-label">{t('gt.bodyweight')}</span>
+              <span className="eyebrow">{t('gt.bodyweight')}</span>
               <span className="font-display text-2xl font-bold">
                 {body.current ?? (profileWeight || '–')}<span className="ml-1 text-sm font-normal text-earth-muted">{t('common.kg')}</span>
               </span>
             </div>
+            {body.series.length >= 2 && (
+              <p className="mb-3 text-sm text-earth">
+                {(() => {
+                  const change = Math.round((body.series[body.series.length - 1] - body.series[0]) * 10) / 10;
+                  if (change === 0) return t('gt.weightHolding');
+                  return t(change < 0 ? 'gt.weightDown' : 'gt.weightUp', { n: Math.abs(change) });
+                })()}
+              </p>
+            )}
             <LineChart data={body.series} unit={t('common.kg')} emptyLabel={t('progress.noData')} />
             <button type="button" onClick={openWeight} className="btn-ghost mt-3 w-full">
               <Icon name="plus" size={15} /> {t('home.quick.addWeight')}
@@ -248,7 +269,7 @@ export function Progress() {
                   <span className="font-display text-[15px] font-medium">{label}</span>
                   <div className="flex items-center gap-3">
                     {delta != null && delta !== 0 && (
-                      <span className={`font-mono text-[12px] ${improving ? 'text-success-light' : 'text-earth-subtle'}`}>
+                      <span className={`font-mono text-[12px] ${improving ? 'text-success' : 'text-earth-subtle'}`}>
                         {delta > 0 ? '+' : ''}{delta}
                       </span>
                     )}

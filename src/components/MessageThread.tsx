@@ -189,7 +189,7 @@ export function MessageThread({
             const cat = m.broadcast && m.category ? m.category : null;
             const style = cat ? CATEGORY[cat] : null;
             const flash = cat && !mine ? "flash-attn" : "";
-            const bubbleClass = style?.bubble || (mine ? "bg-brand text-slate-950" : "bg-surface-raised text-white");
+            const bubbleClass = style?.bubble || (mine ? "bg-gradient-brand text-brand-ink" : "bg-surface-hover text-earth");
             const media = !!m.attachment && m.attachment.kind !== "file";
             return (
               <div key={m.id} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`} data-testid="message-bubble">
@@ -203,14 +203,14 @@ export function MessageThread({
                         <Attachment attachment={m.attachment} onLoad={onMediaLoad} />
                       </div>
                       {m.body && (
-                        <div className={`mt-1 w-fit max-w-full rounded-2xl px-3 py-2 text-sm ${bubbleClass}`}>
+                        <div className={`mt-1 w-fit max-w-full rounded-2xl px-3 py-2 text-sm ${mine ? "rounded-ee-[5px]" : "rounded-es-[5px]"} ${bubbleClass}`}>
                           <p className="whitespace-pre-wrap break-words">{m.body}</p>
                         </div>
                       )}
                     </>
                   ) : (
                     <div
-                      className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm ${bubbleClass} ${flash}`}
+                      className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm ${mine ? "rounded-ee-[5px]" : "rounded-es-[5px]"} ${bubbleClass} ${flash}`}
                       style={flash ? ({ "--flash": style?.flash } as CSSProperties) : undefined}
                     >
                       {cat && (

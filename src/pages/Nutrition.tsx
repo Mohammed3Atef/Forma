@@ -60,7 +60,7 @@ export function Nutrition() {
     );
   }
   if (!log || !targets)
-    return <p className="text-slate-400">{t("progress.noData")}</p>;
+    return <p className="text-earth-muted">{t("progress.noData")}</p>;
 
   const openEditor = (
     mode: EditorMode,
@@ -160,41 +160,59 @@ export function Nutrition() {
     <div className="anim-rise space-y-4">
       <TopBar title={t("nutrition.title")} eyebrow={t("nav.nutrition")} />
 
-      {/* Macro rings */}
-      <div className="card grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-1">
-        {macros.map((m) => (
-          <div key={m.key} className="flex flex-col items-center">
-            <ProgressRing
-              value={m.target ? m.value / m.target : 0}
-              size={62}
-              stroke={6}
-              color={m.color}
-              label={String(Math.round(m.value))}
-            />
-            <span className="mt-1 text-[10px] uppercase text-slate-400">
-              {t(`nutrition.${m.key}`)}
-            </span>
-            <span className="text-[10px] text-slate-500">/{m.target}</span>
+      {/* FEATURED: remaining calories today, protein/carbs/fat mini-bars below */}
+      {(() => {
+        const remaining = targets.calories - consumed.calories;
+        const pct = targets.calories ? Math.min(1, consumed.calories / targets.calories) : 0;
+        const subMacros = macros.filter((m) => m.key !== "calories");
+        return (
+          <div className="card-featured">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="eyebrow mb-1.5">{remaining >= 0 ? t("nutrition.remaining") : t("nutrition.overTarget")}</p>
+                <p className="num text-[34px] leading-none text-earth">
+                  {Math.abs(Math.round(remaining))}
+                  <span className="ms-1 text-[15px] text-earth-subtle">kcal</span>
+                </p>
+                <p className="mt-1.5 text-[13px] text-earth-muted">
+                  {Math.round(consumed.calories).toLocaleString()} / {targets.calories.toLocaleString()}
+                </p>
+              </div>
+              <ProgressRing value={pct} size={76} stroke={7} label={`${Math.round(pct * 100)}%`} />
+            </div>
+            <div className="mt-4 flex gap-2">
+              {subMacros.map((m) => (
+                <div key={m.key} className="min-w-0 flex-1 rounded-xl border border-line bg-surface-card px-3 py-2.5">
+                  <p className="ui-label text-[8.5px]">{t(`nutrition.${m.key}`)}</p>
+                  <p className="num mt-1 text-earth">
+                    {Math.round(m.value)}
+                    <span className="text-[10px] text-earth-subtle">/{m.target}</span>
+                  </p>
+                  <div className="prog thin mt-1.5">
+                    <span style={{ width: `${m.target ? Math.min(100, (m.value / m.target) * 100) : 0}%`, background: m.color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Water */}
       <div className="card">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon name="water" size={20} className="text-accent" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/15 text-info">
+              <Icon name="water" size={17} />
+            </span>
             <span className="font-semibold">{t("nutrition.water")}</span>
           </div>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-earth-muted">
             {log.waterMl} / {targets.waterMl} ml
           </span>
         </div>
-        <div className="mb-3 h-2 overflow-hidden rounded-full bg-surface-raised">
-          <div
-            className="h-full rounded-full bg-accent transition-all"
-            style={{ width: `${waterPct * 100}%` }}
-          />
+        <div className="prog mb-3">
+          <span style={{ width: `${waterPct * 100}%` }} />
         </div>
         <div className="flex gap-2">
           {[250, 500, 1000].map((ml) => (
@@ -251,16 +269,16 @@ export function Nutrition() {
           return (
             <section
               key={meal.id}
-              className={`card ${eaten ? "ring-1 ring-brand/40" : ""}`}
+              className={`card ${eaten ? "border-success/30 bg-success/[0.03]" : ""}`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-bold">{loc(meal.label)}</h2>
                   <p
-                    className="flex flex-wrap gap-x-2 text-xs text-slate-400"
+                    className="flex flex-wrap gap-x-2 text-xs text-earth-muted"
                     dir="ltr"
                   >
-                    <span className="font-semibold text-slate-300">
+                    <span className="font-semibold text-earth-muted">
                       {Math.round(mealMacros.kcal)} kcal
                     </span>
                     <span>P {Math.round(mealMacros.p)}</span>
@@ -272,13 +290,13 @@ export function Nutrition() {
                   type="button"
                   disabled={readOnly}
                   onClick={() => void toggleMeal(meal.id)}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl disabled:opacity-40 ${eaten ? "bg-brand text-slate-950" : "bg-surface-raised text-slate-400"}`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl border disabled:opacity-40 ${eaten ? "border-success bg-success text-[#06210f]" : "border-line-strong bg-surface-raised text-earth-muted"}`}
                   aria-label={t("nutrition.markEaten")}
                 >
                   <Icon name="check" size={20} />
                 </button>
               </div>
-              <ul className="mt-2 space-y-1.5 text-sm text-slate-300 ">
+              <ul className="mt-2 space-y-1.5 text-sm text-earth-muted ">
                 {meal.items.map((item) => {
                   const overridden = item.id in log.itemOverrides;
                   const replacement = overridden
@@ -299,12 +317,12 @@ export function Nutrition() {
                           {/* Original — struck-through when replaced/removed for the day */}
                           <p
                             className={
-                              overridden ? "text-slate-500 line-through" : ""
+                              overridden ? "text-earth-subtle line-through" : ""
                             }
                           >
                             <span>{loc(item.name)}</span>
                             {item.quantity && (
-                              <span className="text-slate-500">
+                              <span className="text-earth-subtle">
                                 {" "}
                                 · {item.quantity}
                               </span>
@@ -317,7 +335,7 @@ export function Nutrition() {
                               </p>
                               {foodLine(replacement) && (
                                 <p
-                                  className="text-[11px] text-slate-500"
+                                  className="text-[11px] text-earth-subtle"
                                   dir="ltr"
                                 >
                                   {foodLine(replacement)}
@@ -328,7 +346,7 @@ export function Nutrition() {
                           {sub && (
                             <span
                               data-testid="sub-badge"
-                              className={`mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] ${sub.source === "approved_substitution" ? "bg-success/20 text-success" : "bg-warn/15 text-warn"}`}
+                              className={`mt-0.5 inline-flex pill ${sub.source === "approved_substitution" ? "pill-ok" : "pill-warn"}`}
                             >
                               {sub.source === "approved_substitution"
                                 ? t("nutritionSub.approvedSubstitution")
@@ -339,7 +357,7 @@ export function Nutrition() {
                             </span>
                           )}
                           {overridden && !replacement && (
-                            <p className="text-[11px] text-slate-500">
+                            <p className="text-[11px] text-earth-subtle">
                               {t("nutrition.removed")}
                             </p>
                           )}
@@ -431,7 +449,7 @@ export function Nutrition() {
                     <div className="min-w-0">
                       <p className="text-brand-light">+ {loc(f.name)}</p>
                       {foodLine(f) && (
-                        <p className="text-[11px] text-slate-500" dir="ltr">
+                        <p className="text-[11px] text-earth-subtle" dir="ltr">
                           {foodLine(f)}
                         </p>
                       )}
@@ -512,7 +530,7 @@ export function Nutrition() {
               >
                 <div className="min-w-0">
                   <p>{loc(f.name)}</p>
-                  <p className="text-[11px] text-slate-500" dir="ltr">
+                  <p className="text-[11px] text-earth-subtle" dir="ltr">
                     {f.quantity ? `${f.quantity} · ` : ""}
                     {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}
                   </p>
@@ -575,11 +593,13 @@ export function Nutrition() {
               return (
                 <li key={s.id}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icon name="pill" size={18} className="text-slate-400" />
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
+                        <Icon name="pill" size={17} />
+                      </span>
                       <div>
                         <p className="text-sm font-medium">{s.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-earth-subtle">
                           {[loc(s.dose), s.timing ? loc(s.timing) : ""]
                             .filter(Boolean)
                             .join(" · ")}
@@ -590,7 +610,7 @@ export function Nutrition() {
                       type="button"
                       disabled={readOnly}
                       onClick={() => void toggleSupplement(s.id)}
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg disabled:opacity-40 ${taken ? "bg-brand text-slate-950" : "bg-surface-raised text-slate-400"}`}
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg border disabled:opacity-40 ${taken ? "border-success bg-success text-[#06210f]" : "border-line-strong bg-surface-raised text-earth-muted"}`}
                     >
                       <Icon name="check" size={16} />
                     </button>
@@ -610,7 +630,7 @@ export function Nutrition() {
 
       {/* Notes — only when the coach added any. */}
       {(plan.generalNotes.length > 0 || plan.beverageNotes.length > 0) && (
-        <div className="card text-sm text-slate-300">
+        <div className="card text-sm text-earth-muted">
           {plan.generalNotes.length > 0 && (
             <>
               <h2 className="mb-2 font-bold">{t("nutrition.notes")}</h2>
@@ -623,7 +643,7 @@ export function Nutrition() {
           )}
           {plan.beverageNotes.length > 0 && (
             <>
-              <h3 className="mb-1 mt-3 font-semibold text-slate-400">
+              <h3 className="mb-1 mt-3 font-semibold text-earth-muted">
                 {t("nutrition.beverages")}
               </h3>
               <ul className="list-inside list-disc space-y-1">

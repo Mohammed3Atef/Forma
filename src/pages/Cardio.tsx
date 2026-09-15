@@ -17,6 +17,7 @@ import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyCardioPlan } from '@/services/platform/clientCoachApi';
+import { colors } from '@/theme/colors';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
 /** Types where a constant speed/incline makes distance & calories computable. */
@@ -126,40 +127,42 @@ export function Cardio() {
       <TopBar title={t('cardio.title')} eyebrow={t('nav.cardio')} />
 
       {/* Combined daily activity goal — done when EITHER target is met. */}
-      <div className={`card ${activityMet ? 'ring-1 ring-brand/40' : ''}`}>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon name="activity" size={22} className="text-brand" />
+      <div className="card-featured">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-info/15 text-info">
+              <Icon name="activity" size={19} />
+            </span>
             <div>
-              <p className="font-semibold">{t('cardio.goal')}</p>
-              <p className="text-xs text-slate-400">{goalHint}</p>
+              <p className="eyebrow mb-0.5">{t('cardio.goal')}</p>
+              <p className="text-[13px] text-earth-muted">{goalHint}</p>
             </div>
           </div>
           {activityMet && (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-slate-950">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-success bg-success text-[#06210f]">
               <Icon name="check" size={16} />
             </span>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-xl font-bold">
+            <p className="num text-xl text-earth">
               {todaySteps.toLocaleString()}
-              {stepsTarget > 0 && <span className="text-sm font-normal text-slate-400"> / {stepsTarget.toLocaleString()}</span>}
+              {stepsTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {stepsTarget.toLocaleString()}</span>}
             </p>
-            <p className="mb-1 text-xs text-slate-400">{t('cardio.steps')}</p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${stepsTarget > 0 ? Math.min(100, (todaySteps / stepsTarget) * 100) : 0}%` }} />
+            <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.steps')}</p>
+            <div className="prog thin">
+              <span style={{ width: `${stepsTarget > 0 ? Math.min(100, (todaySteps / stepsTarget) * 100) : 0}%`, background: colors.info }} />
             </div>
           </div>
           <div>
-            <p className="text-xl font-bold">
+            <p className="num text-xl text-earth">
               {todayCardioMin}
-              {cardioTarget > 0 && <span className="text-sm font-normal text-slate-400"> / {cardioTarget} {t('common.min')}</span>}
+              {cardioTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {cardioTarget} {t('common.min')}</span>}
             </p>
-            <p className="mb-1 text-xs text-slate-400">{t('cardio.minutes')}</p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-brand" style={{ width: `${cardioTarget > 0 ? Math.min(100, (todayCardioMin / cardioTarget) * 100) : 0}%` }} />
+            <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.minutes')}</p>
+            <div className="prog thin">
+              <span style={{ width: `${cardioTarget > 0 ? Math.min(100, (todayCardioMin / cardioTarget) * 100) : 0}%` }} />
             </div>
           </div>
         </div>
@@ -200,7 +203,7 @@ export function Cardio() {
         </div>
         <p className="font-mono text-4xl font-bold tabular-nums text-brand-light">{formatDuration(elapsed)}</p>
         {running != null && liveParams && (
-          <p className="mt-1.5 font-mono text-[12.5px] text-slate-400" dir="ltr">
+          <p className="mt-1.5 font-mono text-[12.5px] text-earth-muted" dir="ltr">
             {cardioDistanceKm(liveParams.speedKmh, elapsed).toFixed(2)} km · ~
             {cardioCalories(liveParams.speedKmh, liveParams.inclinePct, weightForCalc, elapsed)} {t('cardio.kcal')}
           </p>
@@ -227,12 +230,15 @@ export function Cardio() {
         <h2 className="mb-2 font-bold">{t('cardio.history')}</h2>
         <ul className="space-y-2">
           {cardioLogs.slice(0, 30).map((c) => (
-            <li key={c.id} className="card flex items-center justify-between py-3">
-              <div>
+            <li key={c.id} className="card flex items-center gap-3 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-info/15 text-info">
+                <Icon name="activity" size={16} />
+              </span>
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">{t(`cardio.types.${c.type}`)}</p>
-                <p className="text-xs text-slate-400">{shortDate(c.date, i18n.language)}</p>
+                <p className="text-xs text-earth-muted">{shortDate(c.date, i18n.language)}</p>
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-300">
+              <div className="flex shrink-0 items-center gap-3 text-sm text-earth-muted">
                 {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
                 {c.steps != null && <span>{c.steps.toLocaleString()} {t('cardio.steps')}</span>}
                 {c.distanceKm != null && <span>{c.distanceKm} km</span>}
@@ -242,7 +248,7 @@ export function Cardio() {
               </div>
             </li>
           ))}
-          {cardioLogs.length === 0 && <li className="text-sm text-slate-500">{t('progress.noData')}</li>}
+          {cardioLogs.length === 0 && <li className="text-sm text-earth-subtle">{t('progress.noData')}</li>}
         </ul>
       </div>
 
@@ -250,7 +256,7 @@ export function Cardio() {
         <div className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
             {TYPES.map((ty) => (
-              <button key={ty} type="button" onClick={() => setType(ty)} className={`rounded-full px-3 py-1.5 text-sm ${type === ty ? 'bg-brand text-slate-950' : 'bg-surface-raised text-slate-300'}`}>
+              <button key={ty} type="button" onClick={() => setType(ty)} className={`chip ${type === ty ? 'chip-on' : ''}`}>
                 {t(`cardio.types.${ty}`)}
               </button>
             ))}
@@ -280,7 +286,7 @@ export function Cardio() {
       {/* Pre-start setup: speed + incline drive automatic distance/calories. */}
       <Sheet open={setupOpen} onClose={() => setSetupOpen(false)} title={t('cardio.setup')}>
         <div className="space-y-3">
-          <p className="text-sm text-slate-400">{t('cardio.setupHint')}</p>
+          <p className="text-sm text-earth-muted">{t('cardio.setupHint')}</p>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="label" htmlFor="cardio-speed">{t('cardio.speed')}</label>

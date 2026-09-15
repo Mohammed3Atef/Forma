@@ -112,7 +112,7 @@ export function ClientSettings() {
           <span>{t('settings.language')}</span>
           <div className="flex gap-1">
             {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
-              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${settings.locale === l ? 'bg-brand text-slate-950' : 'bg-surface-raised'}`}>
+              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${settings.locale === l ? 'bg-brand text-brand-ink' : 'bg-surface-raised'}`}>
                 {l === 'en' ? 'English' : l === 'ar' ? 'العربية' : 'مصري'}
               </button>
             ))}
@@ -164,23 +164,23 @@ export function ClientSettings() {
             <Icon name="plus" size={16} /> {t('common.add')}
           </button>
         </div>
-        {!settings.notificationsEnabled && <p className="text-xs text-slate-500">{t('settings.enableNotifications')} ↑</p>}
-        {settings.notificationsEnabled && !triggersAvailable && <p className="text-xs text-slate-500">{t('settings.notifWhileOpen')}</p>}
+        {!settings.notificationsEnabled && <p className="text-xs text-earth-subtle">{t('settings.enableNotifications')} ↑</p>}
+        {settings.notificationsEnabled && !triggersAvailable && <p className="text-xs text-earth-subtle">{t('settings.notifWhileOpen')}</p>}
       </section>
 
       {/* Links */}
       <section className="space-y-2">
         <button type="button" onClick={() => navigate('/settings/videos')} className="card flex w-full items-center justify-between">
           <span className="flex items-center gap-2"><Icon name="video" size={18} /> {t('settings.videos')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
         </button>
         <button type="button" onClick={() => navigate('/settings/import')} className="card flex w-full items-center justify-between">
           <span className="flex items-center gap-2"><Icon name="download" size={18} /> {t('settings.import')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
         </button>
         <button type="button" onClick={() => void forceUpdate()} className="card flex w-full items-center justify-between">
           <span className="flex items-center gap-2"><Icon name="timer" size={18} /> {t('settings.forceUpdate')}</span>
-          <Icon name="chevron" size={18} className="text-slate-500" />
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
         </button>
       </section>
 
@@ -191,21 +191,21 @@ export function ClientSettings() {
           <SyncStatusBadge />
         </div>
         {!cloud.available ? (
-          <p className="text-sm text-slate-400">{t('settings.localOnly')}</p>
+          <p className="text-sm text-earth-muted">{t('settings.localOnly')}</p>
         ) : cloud.user ? (
           <div className="space-y-2">
             {cloud.error ? (
               <p className="text-sm font-medium text-danger">
                 <span className="flex items-center gap-1.5"><Icon name="close" size={16} /> {t('cloudState.error')}</span>
-                <span className="mt-1 block break-words text-xs font-normal text-slate-400">{cloud.error}</span>
+                <span className="mt-1 block break-words text-xs font-normal text-earth-muted">{cloud.error}</span>
               </p>
             ) : (
               <p className="flex items-center gap-1.5 text-sm font-medium text-brand">
                 <Icon name="check" size={16} /> {cloud.syncing ? t('settings.syncing') : t('settings.synced')}
               </p>
             )}
-            <p className="text-sm text-slate-300">{cloud.user.email}</p>
-            {cloud.lastSync && <p className="text-xs text-slate-500">{t('settings.lastSync')}: {new Date(cloud.lastSync).toLocaleTimeString()}</p>}
+            <p className="text-sm text-earth-muted">{cloud.user.email}</p>
+            {cloud.lastSync && <p className="text-xs text-earth-subtle">{t('settings.lastSync')}: {new Date(cloud.lastSync).toLocaleTimeString()}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={() => void cloud.syncNow(true)} disabled={cloud.syncing} className="btn-primary flex-1">{cloud.syncing ? '…' : t('settings.syncNow')}</button>
               <button type="button" onClick={() => void cloud.signOut()} className="btn-ghost flex-1">{t('settings.signOut')}</button>
@@ -223,7 +223,7 @@ export function ClientSettings() {
         </p>
         <button type="button" onClick={() => void clearDay()} className="btn-ghost w-full justify-between text-sm">
           <span className="flex items-center gap-2"><Icon name="close" size={16} /> {t('settings.clearDay')}</span>
-          <span className="text-xs text-slate-400">{shortDate(selectedDay, settings.locale)}</span>
+          <span className="text-xs text-earth-muted">{shortDate(selectedDay, settings.locale)}</span>
         </button>
         <button type="button" onClick={() => void resetAll()} className="btn-danger w-full text-sm">{t('settings.resetAll')}</button>
       </section>

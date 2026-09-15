@@ -235,6 +235,9 @@
     "nextReminder": "التذكير القادم",
     "noReminder": "لا توجد تذكيرات",
     "restDay": "يوم راحة — اختر تمريناً",
+    "dayOfRotation": "اليوم {{n}} من {{total}} في هذه الدورة",
+    "todaysPlan": "خطة اليوم",
+    "tasksLeft": "{{n}} متبقٍ",
     "quick": {
       "addWeight": "أضف الوزن"
     },
@@ -293,6 +296,7 @@
     "beverages": "المشروبات",
     "target": "الهدف",
     "remaining": "المتبقي",
+    "overTarget": "تجاوزت الهدف",
     "creatineTaken": "تم أخذ الكرياتين"
   },
   "cardio": {
@@ -485,6 +489,9 @@
     "volume": "الحجم",
     "time": "الوقت",
     "volumeTrend": "اتجاه الحجم",
+    "volumeTrendUp": "ارتفع {{t}} كجم خلال هذه الفترة — في الاتجاه الصحيح.",
+    "volumeTrendDown": "انخفض {{t}} كجم خلال هذه الفترة.",
+    "volumeTrendFlat": "لا توجد جلسات كافية بعد لإظهار اتجاه.",
     "last8weeks": "آخر 8 أسابيع",
     "recent": "الأحدث",
     "viewAll": "عرض الكل",
@@ -527,6 +534,9 @@
     "est1rmSub": "أقصى تكرار واحد تقديري لكل تمرين",
     "est1rm": "أقصى 1 تقديري",
     "bodyweight": "وزن الجسم",
+    "weightDown": "انخفض {{n}} كجم خلال هذه الفترة.",
+    "weightUp": "زاد {{n}} كجم خلال هذه الفترة.",
+    "weightHolding": "ثابت خلال هذه الفترة.",
     "measurements": "القياسات",
     "log": "سجّل",
     "athlete": "رياضي",

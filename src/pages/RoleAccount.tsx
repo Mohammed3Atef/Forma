@@ -90,7 +90,7 @@ export function RoleAccount() {
           <span>{t('settings.language')}</span>
           <div className="flex gap-1">
             {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
-              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${locale === l ? 'bg-brand text-slate-950' : 'bg-surface-raised'}`}>
+              <button key={l} type="button" onClick={() => void setLocale(l)} className={`chip ${locale === l ? 'chip-on' : ''}`}>
                 {l === 'en' ? 'English' : l === 'ar' ? 'العربية' : 'مصري'}
               </button>
             ))}
