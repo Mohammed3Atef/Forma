@@ -45,11 +45,17 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
       </div>
     );
   }
-  if (!src) return <div className={`animate-pulse bg-surface-raised ${className}`} />;
+  if (!src) return <div className={`sk ${className}`} />;
   return <img src={src} alt={photo.pose} className={className} onClick={onView ? () => onView(src) : undefined} />;
 }
 
-export function ProgressPhotos() {
+/**
+ * The real content of the Progress Photos experience (capture, compare, dated
+ * gallery) — no header, so it can be embedded as the Progress screen's Photos
+ * tab (matching the prototype's 4-tab structure) as well as rendered as its
+ * own standalone page (`/progress/photos`, still a real deep-link target).
+ */
+export function ProgressPhotosBody() {
   const { t } = useTranslation();
   const photos = usePhotos((s) => s.photos);
   const load = usePhotos((s) => s.load);
@@ -57,7 +63,6 @@ export function ProgressPhotos() {
   const remove = usePhotos((s) => s.remove);
   const loaded = usePhotos((s) => s.loaded);
 
-  const navigate = useNavigate();
   const [pose, setPose] = useState<PhotoPose>('front');
   const [compare, setCompare] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -111,27 +116,25 @@ export function ProgressPhotos() {
   };
 
   return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
-
+    <div className="space-y-4">
       {/* Capture */}
-      <div className="card">
+      <div className="card-featured">
         <div className="mb-3 flex gap-1.5">
           {POSES.map((p) => (
-            <button key={p} type="button" onClick={() => setPose(p)} className={`flex-1 py-2 ${pose === p ? 'chip chip-on' : 'chip'}`}>
+            <button key={p} type="button" onClick={() => setPose(p)} className={`chip flex-1 justify-center py-2 ${pose === p ? 'chip-on' : ''}`}>
               {t(`progress.${p}`)}
             </button>
           ))}
         </div>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
-        <p className="mb-2 text-xs text-earth-muted">
+        <p className="mb-3 text-sm text-earth-muted">
           {t('progress.addPhoto')} — {t(`progress.${pose}`)}
         </p>
         <div className="flex gap-2">
-          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary btn-lg flex-1 disabled:opacity-40">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary flex-1 disabled:opacity-40">
             <Icon name="image" size={18} /> {t('progress.gallery')}
           </button>
-          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-ghost btn-lg flex-1 disabled:opacity-40">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-secondary flex-1 disabled:opacity-40">
             <Icon name="camera" size={18} /> {t('progress.camera')}
           </button>
         </div>
@@ -173,7 +176,7 @@ export function ProgressPhotos() {
       {/* Gallery by date */}
       {byDate.map(([date, items]) => (
         <div key={date} className="card">
-          <h2 className="mb-2 font-bold">{date}</h2>
+          <p className="ui-label mb-2">{date}</p>
           <div className="grid grid-cols-3 gap-2">
             {items.map((ph) => (
               <div key={ph.id} className="relative">
@@ -192,6 +195,18 @@ export function ProgressPhotos() {
       ))}
 
       {byDate.length === 0 && <p className="text-sm text-earth-subtle">{t('progress.noData')}</p>}
+    </div>
+  );
+}
+
+/** Standalone page wrapper (deep-linkable at `/progress/photos`). */
+export function ProgressPhotos() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <div className="anim-rise space-y-4">
+      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
+      <ProgressPhotosBody />
     </div>
   );
 }

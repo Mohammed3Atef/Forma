@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Locale, ReminderKind } from '@/types';
@@ -16,14 +16,23 @@ import { confirmDialog, alertDialog, confirmDelete } from '@/stores/dialogStore'
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { parseDecimal, shortDate } from '@/lib/utils';
-import { Icon } from '@/components/Icon';
+import { Icon, type IconName } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { Switch } from '@/components/ui/Switch';
 
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
+/** One grouped-settings row: icon chip + label(+sub) + trailing control — matches the design's settings() row exactly. */
+function Row({ icon, label, sub, children }: { icon: IconName; label: string; sub?: string; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className={`relative h-7 w-12 rounded-full transition-colors ${on ? 'bg-brand' : 'bg-surface-raised'}`} role="switch" aria-checked={on}>
-      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${on ? 'start-6' : 'start-1'}`} />
-    </button>
+    <div className="row">
+      <span className="row-av">
+        <Icon name={icon} size={16} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{label}</span>
+        {sub && <span className="block truncate text-[12px] text-earth-subtle">{sub}</span>}
+      </span>
+      <span className="flex shrink-0 items-center gap-2">{children}</span>
+    </div>
   );
 }
 
@@ -106,37 +115,37 @@ export function ClientSettings() {
       <TopBar title={t('settings.title')} eyebrow={t('gt.profile')} onBack={() => navigate('/settings')} right={<SyncStatusBadge />} />
 
       {/* Preferences */}
-      <section className="card space-y-3">
-        <h2 className="font-bold">{t('settings.preferences')}</h2>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.language')}</span>
-          <div className="flex gap-1">
-            {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
-              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${settings.locale === l ? 'bg-brand text-brand-ink' : 'bg-surface-raised'}`}>
-                {l === 'en' ? 'English' : l === 'ar' ? 'العربية' : 'مصري'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.restDefault')}</span>
-          <input className="input h-10 w-24 text-center" inputMode="decimal" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Math.max(0, parseDecimal(e.target.value)) })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.weeklyGoal')}</span>
-          <input className="input h-10 w-24 text-center" inputMode="numeric" value={settings.weeklyWorkoutGoal ?? 5} onChange={(e) => void updateSettings({ weeklyWorkoutGoal: Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)) })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.keepAwake')}</span>
-          <Toggle on={settings.keepAwakeDuringWorkout} onClick={() => void updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.vibration')}</span>
-          <Toggle on={settings.vibrationEnabled} onClick={() => void updateSettings({ vibrationEnabled: !settings.vibrationEnabled })} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span>{t('settings.notifications')}</span>
-          <Toggle on={settings.notificationsEnabled} onClick={() => void (settings.notificationsEnabled ? updateSettings({ notificationsEnabled: false }) : enableNotifications())} />
+      <section>
+        <p className="ui-label mb-2 px-1">{t('settings.preferences')}</p>
+        <div className="card py-1">
+          <Row icon="globe" label={t('settings.language')}>
+            <div className="seg" style={{ minWidth: 0 }}>
+              {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
+                <button key={l} type="button" onClick={() => void setLocale(l)} className={settings.locale === l ? 'on' : ''}>
+                  {l === 'en' ? 'EN' : l === 'ar' ? 'ع' : 'مصري'}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row icon="timer" label={t('settings.restDefault')}>
+            <input className="input h-10 w-20 py-1 text-center" inputMode="decimal" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Math.max(0, parseDecimal(e.target.value)) })} />
+          </Row>
+          <Row icon="target" label={t('settings.weeklyGoal')}>
+            <input className="input h-10 w-20 py-1 text-center" inputMode="numeric" value={settings.weeklyWorkoutGoal ?? 5} onChange={(e) => void updateSettings({ weeklyWorkoutGoal: Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)) })} />
+          </Row>
+          <Row icon="flame" label={t('settings.keepAwake')}>
+            <Switch on={settings.keepAwakeDuringWorkout} onChange={() => void updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout })} label={t('settings.keepAwake')} />
+          </Row>
+          <Row icon="bolt" label={t('settings.vibration')}>
+            <Switch on={settings.vibrationEnabled} onChange={() => void updateSettings({ vibrationEnabled: !settings.vibrationEnabled })} label={t('settings.vibration')} />
+          </Row>
+          <Row icon="bell" label={t('settings.notifications')}>
+            <Switch
+              on={settings.notificationsEnabled}
+              onChange={() => void (settings.notificationsEnabled ? updateSettings({ notificationsEnabled: false }) : enableNotifications())}
+              label={t('settings.notifications')}
+            />
+          </Row>
         </div>
       </section>
 
@@ -147,7 +156,7 @@ export function ClientSettings() {
           <div key={r.id} className="flex items-center gap-2">
             <input type="time" value={r.time} onChange={(e) => void updateReminder({ ...r, time: e.target.value })} className="input h-10 w-28 py-1" />
             <span className="flex-1 truncate text-sm">{t(`reminderKinds.${r.kind}`)}</span>
-            <Toggle on={r.enabled} onClick={() => void updateReminder({ ...r, enabled: !r.enabled })} />
+            <Switch on={r.enabled} onChange={() => void updateReminder({ ...r, enabled: !r.enabled })} label={t(`reminderKinds.${r.kind}`)} />
             <button type="button" onClick={async () => { if (await confirmDelete()) void removeReminder(r.id); }} className="icon-btn h-9 w-9 text-danger" aria-label={t('common.delete')}>
               <Icon name="close" size={16} />
             </button>

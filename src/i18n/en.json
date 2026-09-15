@@ -530,6 +530,10 @@
     "overview": "Overview",
     "records": "Records",
     "body": "Body",
+    "weight": "Weight",
+    "strength": "Strength",
+    "measure": "Measure",
+    "photos": "Photos",
     "weeklyVolume": "Weekly volume",
     "totalVolume": "Total volume",
     "avgDuration": "Avg duration",
@@ -1270,7 +1274,16 @@
     "sleep": "Sleep",
     "notes": "Notes",
     "photos": "Progress photos",
-    "status": { "requested": "Requested", "submitted": "Submitted", "reviewed": "Reviewed" }
+    "status": { "requested": "Requested", "submitted": "Submitted", "reviewed": "Reviewed" },
+    "steps": { "body": "Body", "training": "Training", "nutrition": "Nutrition", "notes": "Notes" },
+    "stepOf": "Step {{n}} of {{total}} · {{name}}",
+    "minLeft": "~{{n}} min left",
+    "bodyIntro": "Your coach reviews this before adjusting next week's plan.",
+    "trainingIntro": "How training felt this week.",
+    "nutritionIntro": "How the nutrition targets felt this week.",
+    "notesIntro": "Last step — then this goes to your coach.",
+    "back": "Back",
+    "continue": "Continue"
   },
   "clientCoach": {
     "title": "Your coach",

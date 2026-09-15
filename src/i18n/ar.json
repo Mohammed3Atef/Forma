@@ -530,6 +530,10 @@
     "overview": "نظرة عامة",
     "records": "الأرقام القياسية",
     "body": "الجسم",
+    "weight": "الوزن",
+    "strength": "القوة",
+    "measure": "القياسات",
+    "photos": "الصور",
     "weeklyVolume": "الحجم الأسبوعي",
     "totalVolume": "إجمالي الحجم",
     "avgDuration": "متوسط المدة",
@@ -1270,7 +1274,16 @@
     "sleep": "النوم",
     "notes": "ملاحظات",
     "photos": "صور التقدّم",
-    "status": { "requested": "مطلوبة", "submitted": "مُرسلة", "reviewed": "تمت المراجعة" }
+    "status": { "requested": "مطلوبة", "submitted": "مُرسلة", "reviewed": "تمت المراجعة" },
+    "steps": { "body": "الجسم", "training": "التمرين", "nutrition": "التغذية", "notes": "ملاحظات" },
+    "stepOf": "الخطوة {{n}} من {{total}} · {{name}}",
+    "minLeft": "~{{n}} دقيقة متبقية",
+    "bodyIntro": "يراجع مدرّبك هذا قبل تعديل خطة الأسبوع القادم.",
+    "trainingIntro": "كيف كان التمرين هذا الأسبوع.",
+    "nutritionIntro": "كيف كانت أهداف التغذية هذا الأسبوع.",
+    "notesIntro": "الخطوة الأخيرة — ثم يُرسل هذا لمدرّبك.",
+    "back": "رجوع",
+    "continue": "متابعة"
   },
   "clientCoach": {
     "title": "مدرّبك",

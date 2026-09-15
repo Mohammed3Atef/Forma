@@ -583,6 +583,10 @@
     "overview": "نظرة عامة",
     "records": "الأرقام القياسية",
     "body": "الجسم",
+    "weight": "الوزن",
+    "strength": "القوة",
+    "measure": "القياسات",
+    "photos": "الصور",
     "weeklyVolume": "الحجم الأسبوعي",
     "totalVolume": "إجمالي الحجم",
     "avgDuration": "متوسط المدة",
@@ -1300,7 +1304,16 @@
       "requested": "مطلوبة",
       "submitted": "متبعوتة",
       "reviewed": "اتراجعت"
-    }
+    },
+    "steps": { "body": "الجسم", "training": "التمرين", "nutrition": "التغذية", "notes": "ملاحظات" },
+    "stepOf": "الخطوة {{n}} من {{total}} · {{name}}",
+    "minLeft": "~{{n}} دقيقة متبقية",
+    "bodyIntro": "مدرّبك بيراجع ده قبل ما يعدّل خطة الأسبوع الجاي.",
+    "trainingIntro": "التمرين كان عامل إزاي الأسبوع ده.",
+    "nutritionIntro": "أهداف التغذية كانت عاملة إزاي الأسبوع ده.",
+    "notesIntro": "آخر خطوة — وبعدها ده بيتبعت لمدرّبك.",
+    "back": "رجوع",
+    "continue": "كمّل"
   },
   "clientCoach": {
     "title": "مدرّبك",

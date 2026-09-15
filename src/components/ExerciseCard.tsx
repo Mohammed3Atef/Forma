@@ -175,7 +175,7 @@ export function ExerciseCard({
                   onClick={() => onToggleDone(set.setIndex)}
                   className={`flex h-10 w-10 items-center justify-center rounded-[10px] border transition-transform active:scale-90 ${
                     set.done
-                      ? "border-success bg-success text-white"
+                      ? "border-success bg-success text-[#06210f]"
                       : "border-line bg-surface-raised text-earth-subtle"
                   }`}
                   aria-label={t("common.done")}

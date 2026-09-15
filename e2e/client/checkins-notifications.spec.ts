@@ -22,12 +22,19 @@ test.describe('Check-ins', () => {
     const requestedRow = page.getByTestId('checkin-history-row').filter({ hasText: /requested/i }).first();
     if (await requestedRow.isVisible().catch(() => false)) {
       await requestedRow.click();
+      // The check-in is a real 4-step wizard now (Body → Training → Nutrition →
+      // Notes) — advance through each step with "Continue" before the final
+      // step's Submit button appears.
+      await expect(page.getByTestId('checkin-next')).toBeVisible();
+      await page.getByTestId('checkin-next').click(); // Body -> Training
+      await page.getByTestId('checkin-next').click(); // Training -> Nutrition
+      await page.getByTestId('checkin-next').click(); // Nutrition -> Notes
       await expect(page.getByTestId('checkin-submit')).toBeVisible();
-      // Fill realistic values via the real sliders/inputs, then submit.
+      // Fill a realistic note, then submit.
       await page.getByTestId('checkin-notes').fill('Felt strong this week, sleep was a bit inconsistent.');
       await page.getByTestId('checkin-submit').click();
       await expect(page.getByText(/submitted|reviewed/i)).toBeVisible({ timeout: 15_000 });
-      console.log('[checkins.spec] submitted a pending check-in through the real UI.');
+      console.log('[checkins.spec] submitted a pending check-in through the real 4-step wizard.');
     } else {
       console.log('[checkins.spec] no pending ("requested") check-in — nothing to submit; verified history renders.');
     }
