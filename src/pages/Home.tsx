@@ -205,7 +205,13 @@ export function Home() {
             {rotationLabel ? ` · ${rotationLabel}` : ''}
           </p>
           <div className="flex flex-wrap items-center gap-5">
-            <ProgressRing value={todayPct} size={104} stroke={8} label={`${Math.round(todayPct * 100)}%`} sublabel={t('common.today')} />
+            <ProgressRing
+              value={todayPct}
+              size={104}
+              stroke={8}
+              label={`${Math.round(todayPct * 100)}%`}
+              sublabel={coreTasks - coreTasksDone > 0 ? t('home.tasksLeft', { n: coreTasks - coreTasksDone }) : t('common.done')}
+            />
             <div className="min-w-[180px] flex-1">
               <h2 className="h1">
                 {active && !active.finished ? t('workout.resumeSession') : suggestedDay ? suggestedDay.title : t('home.restDay')}

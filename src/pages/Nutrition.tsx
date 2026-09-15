@@ -244,6 +244,9 @@ export function Nutrition() {
       </div>
 
       {/* Meals */}
+      <div className="sec-head">
+        <h2 className="h2">{t("nutrition.mealsHeading", { done: plan.meals.filter((m) => log.mealsEaten[m.id]).length, total: plan.meals.length })}</h2>
+      </div>
       <div className="space-y-3">
         {plan.meals.map((meal) => {
           const eaten = !!log.mealsEaten[meal.id];

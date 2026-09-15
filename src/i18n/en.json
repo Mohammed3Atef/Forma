@@ -275,6 +275,7 @@
   },
   "nutrition": {
     "title": "Nutrition",
+    "mealsHeading": "Meals · {{done}} of {{total}} logged",
     "macros": "Macros",
     "calories": "Calories",
     "protein": "Protein",
@@ -481,6 +482,10 @@
     "thisWeek": "This week",
     "weeklyGoal": "Weekly goal",
     "toGo": "{{n}} workouts to go this week",
+    "last": "last",
+    "current": "Current",
+    "thisMonth": "this month",
+    "toGoalLabel": "To goal",
     "goalReached": "Weekly goal reached",
     "currentStreak": "Current workout streak",
     "bestStreak": "Best workout streak",

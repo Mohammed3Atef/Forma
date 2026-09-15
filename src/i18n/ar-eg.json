@@ -328,6 +328,7 @@
   },
   "nutrition": {
     "title": "التغذية",
+    "mealsHeading": "الوجبات · {{done}} من {{total}} متسجلة",
     "macros": "الماكروز",
     "calories": "السعرات",
     "protein": "البروتين",
@@ -534,6 +535,10 @@
     "thisWeek": "الأسبوع ده",
     "weeklyGoal": "هدف الأسبوع",
     "toGo": "باقي {{n}} تمارين الأسبوع ده",
+    "last": "آخر مرة",
+    "current": "الحالي",
+    "thisMonth": "الشهر ده",
+    "toGoalLabel": "للهدف",
     "goalReached": "حقّقت هدف الأسبوع 💪",
     "currentStreak": "سلسلة التمارين الحالية",
     "bestStreak": "أحسن سلسلة تمارين",

@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useCardio } from '@/stores/cardioStore';
 import { useWorkout } from '@/stores/workoutStore';
 import { useMeasurements } from '@/stores/measurementStore';
 import { useSettings } from '@/stores/settingsStore';
+import { useSession } from '@/services/auth/sessionStore';
+import { cloudAvailable } from '@/data/dataSource';
+import { fetchMyAssessment } from '@/services/platform/clientCoachApi';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
@@ -12,7 +16,7 @@ import { StatTile } from '@/components/StatTile';
 import { BarChart, LineChart } from '@/components/charts';
 import { logVolume, logSetCount, prByExercise } from '@/lib/calc';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
-import { parseDecimal, shortDate, today, weekStartOf } from '@/lib/utils';
+import { parseDecimal, shortDate, today, weekStartOf, addDays } from '@/lib/utils';
 
 type Tab = 'overview' | 'records' | 'body';
 
@@ -83,6 +87,13 @@ export function Progress() {
     const series = weightLogs.map((w) => w.weightKg);
     const current = series.length ? series[series.length - 1] : null;
 
+    // Change over the last ~30 days: the latest entry on/before that cutoff
+    // (falls back to the oldest entry we have, so a client with only 3 weeks
+    // of history still gets a real, if shorter, delta rather than nothing).
+    const cutoff = addDays(today(), -30);
+    const monthAgo = [...weightLogs].reverse().find((w) => w.date <= cutoff) ?? weightLogs[0];
+    const monthDelta = current != null && monthAgo && monthAgo !== weightLogs[weightLogs.length - 1] ? Math.round((current - monthAgo.weightKg) * 10) / 10 : null;
+
     // Latest + previous value for each measurement key, plus bodyweight.
     const keyVals = (key: string): { cur: number; prev: number | null } | null => {
       if (key === 'bodyweight') {
@@ -103,8 +114,16 @@ export function Progress() {
       .map((key) => ({ key, ...(keyVals(key) ?? { cur: NaN, prev: null }) }))
       .filter((r) => !Number.isNaN(r.cur));
 
-    return { series, current, rows };
+    return { series, current, rows, monthDelta };
   }, [weightLogs, measureLogs]);
+
+  // Real target weight, when the client set one during their assessment —
+  // never fabricated; the "to goal" stat simply doesn't render without it.
+  const uid = useSession((s) => s.uid) ?? '';
+  const assessmentEnabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const assessment = useQuery({ queryKey: ['assessment', uid], queryFn: () => fetchMyAssessment(uid), enabled: assessmentEnabled });
+  const targetWeightKg = assessment.data?.goals?.targetWeightKg;
+  const toGoal = targetWeightKg && body.current != null ? Math.round((body.current - targetWeightKg) * 10) / 10 : null;
 
   // Log today's bodyweight from the Body tab.
   const [weightOpen, setWeightOpen] = useState(false);
@@ -250,6 +269,23 @@ export function Progress() {
               <Icon name="plus" size={15} /> {t('home.quick.addWeight')}
             </button>
           </div>
+
+          {(body.current != null || toGoal != null) && (
+            <div className="grid grid-cols-2 gap-3">
+              <StatTile
+                icon="scale"
+                value={body.current ?? '–'}
+                unit={t('common.kg')}
+                label={t('gt.current')}
+                delta={
+                  body.monthDelta != null && body.monthDelta !== 0
+                    ? { value: `${Math.abs(body.monthDelta)}${t('common.kg')} ${t('gt.thisMonth')}`, dir: body.monthDelta < 0 ? 'down' : 'up' }
+                    : undefined
+                }
+              />
+              {toGoal != null && <StatTile icon="target" value={Math.abs(toGoal)} unit={t('common.kg')} label={t('gt.toGoalLabel')} />}
+            </div>
+          )}
 
           <div className="sec-head">
             <h2 className="h2">{t('gt.measurements')}</h2>
