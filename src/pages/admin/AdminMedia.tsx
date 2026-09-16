@@ -53,7 +53,7 @@ export function AdminMedia() {
       <TopBar
         testId="admin-media"
         title={t('adminMedia.title')}
-        eyebrow={t('platform.superAdmin')}
+        eyebrow={t('nav.groupGovern')}
         right={
           <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('adminMedia.refresh')} onClick={() => void images.refetch()}>
             <Icon name="rotate" size={18} />

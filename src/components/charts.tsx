@@ -127,6 +127,64 @@ export function LineChart({
   );
 }
 
+/** One slice of a `DonutChart`. */
+export interface DonutSlice {
+  label: string;
+  value: number;
+  color: string;
+}
+
+/**
+ * Simple ring/donut chart — a center value + a legend, matching the design's
+ * role-distribution donut. Stroke-based (no external chart lib): each slice is
+ * a circle segment via `stroke-dasharray`/`stroke-dashoffset`.
+ */
+export function DonutChart({ data, centerLabel, size = 130 }: { data: DonutSlice[]; centerLabel?: string; size?: number }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const r = size / 2 - 16;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="flex flex-col items-center gap-3.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+          {data.map((d, i) => {
+            const frac = total ? d.value / total : 0;
+            const dash = frac * c;
+            const el = (
+              <circle
+                key={i}
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                fill="none"
+                stroke={d.color}
+                strokeWidth={16}
+                strokeDasharray={`${dash} ${c - dash}`}
+                strokeDashoffset={-offset}
+              />
+            );
+            offset += dash;
+            return el;
+          })}
+        </svg>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-mono text-xl text-earth">{total}</span>
+          {centerLabel && <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-earth-subtle">{centerLabel}</span>}
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+        {data.map((d, i) => (
+          <span key={i} className="inline-flex items-center gap-1.5 font-mono text-[9.5px] text-earth-subtle">
+            <i className="inline-block h-[9px] w-[9px] rounded-full" style={{ background: d.color }} />
+            {d.label} · {d.value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Tiny inline sparkline. */
 export function Spark({ data, w = 70, h = 26 }: { data: number[]; w?: number; h?: number }) {
   if (!data || data.length < 2) return null;

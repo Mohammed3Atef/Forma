@@ -141,23 +141,89 @@ export const COACH_SIDEBAR: NavGroup[] = [
   },
 ];
 
-/** Shared by admin and super_admin; super-admin-only screens are gated inside. */
+/**
+ * Admin bottom bar (mobile) — matches the design's exact tab set: Overview /
+ * Accounts / Subscriptions / Governance. Identical for admin and super_admin
+ * (the design's mobile `NAV` has no role-specific tabs) — the extra
+ * super-admin destinations (Coaches, Plans, Media) live in the grouped
+ * sidebar/"Navigate" sheet only, same lean-bar convention as client/coach.
+ */
 export const ADMIN_NAV: NavItem[] = [
   { to: '/admin', icon: 'chart', key: 'adminOverview', end: true },
   { to: '/admin/accounts', icon: 'user', key: 'adminAccounts' },
-  { to: '/admin/members', icon: 'user', key: 'adminMembers' },
-  { to: '/admin/banners', icon: 'bolt', key: 'adminBanners' },
-  { to: '/admin/assignments', icon: 'target', key: 'adminAssignments' },
-  { to: '/admin/governance', icon: 'settings', key: 'adminGovernance' },
-  { to: '/admin/analytics', icon: 'bolt', key: 'adminAnalytics' },
+  { to: '/admin/subscriptions', icon: 'bolt', key: 'adminSubscriptions' },
+  { to: '/admin/governance', icon: 'shield', key: 'adminGovernance' },
+];
+export const SUPER_ADMIN_NAV: NavItem[] = ADMIN_NAV;
+
+/**
+ * Every admin destination, grouped like the design's nav rail (Monitor /
+ * Manage / Monetise / Govern / You). Regular admins don't get the
+ * super-admin-only items (Coaches, Plans, Media) — see `SUPER_ADMIN_SIDEBAR`.
+ */
+export const ADMIN_SIDEBAR: NavGroup[] = [
+  {
+    group: 'groupMonitor',
+    items: [
+      { to: '/admin', icon: 'chart', key: 'adminOverview', end: true },
+      { to: '/admin/analytics', icon: 'bolt', key: 'adminAnalytics' },
+    ],
+  },
+  {
+    group: 'groupManage',
+    items: [
+      { to: '/admin/accounts', icon: 'user', key: 'adminAccounts' },
+      { to: '/admin/members', icon: 'user', key: 'adminMembers' },
+      { to: '/admin/assignments', icon: 'target', key: 'adminAssignments' },
+    ],
+  },
+  {
+    group: 'groupMonetise',
+    items: [{ to: '/admin/subscriptions', icon: 'bolt', key: 'adminSubscriptions' }],
+  },
+  {
+    group: 'groupGovern',
+    items: [
+      { to: '/admin/governance', icon: 'shield', key: 'adminGovernance' },
+      { to: '/admin/audit', icon: 'list', key: 'adminAudit' },
+      { to: '/admin/banners', icon: 'image', key: 'adminBanners' },
+    ],
+  },
+  {
+    group: 'groupYou',
+    items: [{ to: '/admin/settings', icon: 'settings', key: 'adminSettings' }],
+  },
 ];
 
-/** Super admin gets an extra Media/Images tab (oversight of all uploads). */
-export const SUPER_ADMIN_NAV: NavItem[] = [
-  ...ADMIN_NAV,
-  { to: '/admin/coaches', icon: 'trophy', key: 'adminCoaches' },
-  { to: '/admin/plans', icon: 'list', key: 'adminPlans' },
-  { to: '/admin/media', icon: 'image', key: 'adminImages' },
+/** Super admin: the same groups, with Coaches/Plans/Media folded into their groups. */
+export const SUPER_ADMIN_SIDEBAR: NavGroup[] = [
+  ADMIN_SIDEBAR[0],
+  {
+    group: 'groupManage',
+    items: [
+      { to: '/admin/coaches', icon: 'trophy', key: 'adminCoaches' },
+      { to: '/admin/accounts', icon: 'user', key: 'adminAccounts' },
+      { to: '/admin/members', icon: 'user', key: 'adminMembers' },
+      { to: '/admin/assignments', icon: 'target', key: 'adminAssignments' },
+    ],
+  },
+  {
+    group: 'groupMonetise',
+    items: [
+      { to: '/admin/plans', icon: 'list', key: 'adminPlans' },
+      { to: '/admin/subscriptions', icon: 'bolt', key: 'adminSubscriptions' },
+    ],
+  },
+  {
+    group: 'groupGovern',
+    items: [
+      { to: '/admin/governance', icon: 'shield', key: 'adminGovernance' },
+      { to: '/admin/audit', icon: 'list', key: 'adminAudit' },
+      { to: '/admin/banners', icon: 'image', key: 'adminBanners' },
+      { to: '/admin/media', icon: 'image', key: 'adminImages' },
+    ],
+  },
+  ADMIN_SIDEBAR[4],
 ];
 
 export const NAV: Record<Role, NavItem[]> = {

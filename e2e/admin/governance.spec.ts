@@ -2,10 +2,12 @@ import { test, expect } from '@playwright/test';
 import { AUTH, trackIssues, reportIssues } from './_helpers';
 
 /**
- * AdminGovernance: feature flags + roles/permissions reference + audit log.
- * Run this file AFTER accounts/coaches/banners in the suite (alphabetical file
- * order already puts it there) so the audit-log check has real recent actions
- * from this same session to find.
+ * AdminGovernance: feature flags + roles/permissions reference (now a real
+ * capability×role matrix table). The audit log was extracted to its own
+ * `/admin/audit` destination — this file's last test still checks it (just at
+ * the new route) since it needs to run AFTER accounts/coaches/banners in the
+ * suite (alphabetical file order already puts it there) for real recent
+ * actions from this same session to find.
  */
 test.describe('Super admin: Governance', () => {
   test.use({ storageState: AUTH('super') });
@@ -61,8 +63,11 @@ test.describe('Super admin: Governance', () => {
   });
 
   test('audit log lists real recent admin actions from this session', async ({ page }) => {
-    await page.goto('/admin/governance');
+    // Audit log is now its own destination (/admin/audit), extracted out of
+    // Governance to match the design's separate "Govern → Audit" screen.
+    await page.goto('/admin/audit');
     await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('admin-audit')).toBeVisible();
     const body = await page.locator('body').innerText();
     // Earlier specs in this run performed user.updateStatus (accounts.spec)
     // and flag.update (this file's first test) mutations — both should show

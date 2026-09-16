@@ -5,14 +5,14 @@ import { Icon } from './Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
-import { ADMIN_NAV, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_NAV, type NavGroup, type NavItem } from '@/config/nav';
+import { ADMIN_SIDEBAR, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_SIDEBAR, type NavGroup, type NavItem } from '@/config/nav';
 
 /**
  * Full-navigation sheet — every destination for the current role, including
- * the ones not in the (lean) bottom bar. Every role now gets the same grouped
- * rendering (Daily/Track/Coach/You for the client, Today/Coaching/Content/
- * Business/You for the coach — matching the design's nav rail exactly);
- * admin/super-admin stay a single unnamed group until their own nav pass.
+ * the ones not in the (lean) bottom bar. Every role gets the same grouped
+ * rendering matching its design's nav rail exactly (Daily/Track/Coach/You for
+ * the client, Today/Coaching/Content/Business/You for the coach, Monitor/
+ * Manage/Monetise/Govern/You for admin/super-admin).
  */
 export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -57,9 +57,9 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
     role === 'coach'
       ? COACH_SIDEBAR
       : role === 'super_admin'
-        ? [{ group: '', items: SUPER_ADMIN_NAV }]
+        ? SUPER_ADMIN_SIDEBAR
         : role === 'admin'
-          ? [{ group: '', items: ADMIN_NAV }]
+          ? ADMIN_SIDEBAR
           : CLIENT_MENU;
 
   return (

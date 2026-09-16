@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { Pagination } from '@/components/ui/Pagination';
+import { DashboardSection } from '@/components/ui/DashboardSection';
 import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import { fetchByRole, fetchUser } from '@/services/platform/accountsApi';
 import { assignClientToCoach, unassignClient } from '@/services/platform/coachClientsApi';
 import { listPendingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
+import { fetchCoachAdmin } from '@/services/platform/adminCoachesApi';
 import { TransferWizard } from '@/components/coach/TransferWizard';
 import { confirmDialog } from '@/stores/dialogStore';
 import type { ClientTransferRequest, UserRecord } from '@/types';
@@ -20,6 +23,7 @@ const REQ_FLAG_DAYS = 3; // surface requests waiting longer than this
 
 export function AdminAssignments() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const actorId = useSession((s) => s.account?.id ?? 'self');
   const canAssign = useCan('coaches.assign');
@@ -100,6 +104,16 @@ export function AdminAssignments() {
     onSuccess: refresh,
   });
 
+  // Real per-coach capacity — matches the design's `assign()` second section.
+  const coachAdmin = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: canAssign, staleTime: 120_000 });
+  const capacityRows = useMemo(() => {
+    const rows = coachAdmin.data?.rows ?? [];
+    return rows
+      .filter((r) => r.plan?.maxClients)
+      .map((r) => ({ r, pct: Math.min(100, Math.round((r.clientCount / r.plan!.maxClients) * 100)) }))
+      .sort((a, b) => b.pct - a.pct);
+  }, [coachAdmin.data]);
+
   if (!canAssign) {
     return (
       <>
@@ -176,6 +190,26 @@ export function AdminAssignments() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {capacityRows.length > 0 && (
+        <div className="mb-6">
+          <DashboardSection title={t('admin.coachCapacity')} icon="trophy">
+            <div className="card divide-y divide-line-soft p-0">
+              {capacityRows.map(({ r, pct }) => (
+                <button key={r.coach.id} type="button" data-testid="assign-coach-capacity-row" className="rowline w-full text-start" onClick={() => navigate(`/admin/coaches/${r.coach.id}`)}>
+                  <span className="min-w-0 flex-1">
+                    <span className="mb-1 flex items-center justify-between gap-2">
+                      <span className="truncate font-medium">{r.coach.displayName || r.coach.email}</span>
+                      <span className="shrink-0 font-mono text-[12px] text-earth-muted">{r.clientCount}/{r.plan!.maxClients}</span>
+                    </span>
+                    <span className="prog thin block"><span style={{ width: `${pct}%` }} /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </DashboardSection>
         </div>
       )}
 

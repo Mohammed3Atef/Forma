@@ -50,7 +50,7 @@ export function AdminBanners() {
   return (
     <div data-testid="admin-banners">
       <PageHeader
-        eyebrow={t('platform.superAdmin')}
+        eyebrow={t('nav.groupGovern')}
         title={t('adminBanners.title')}
         actions={<button type="button" data-testid="banner-new" className="btn-primary h-[42px] gap-2 px-4" onClick={() => setEditing(blank(actorId))}><Icon name="plus" size={18} /> {t('adminBanners.new')}</button>}
       />

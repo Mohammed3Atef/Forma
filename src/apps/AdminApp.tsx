@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { CommandHost } from '@/components/CommandHost';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { ADMIN_NAV, SUPER_ADMIN_NAV } from '@/config/nav';
+import { ADMIN_NAV, ADMIN_SIDEBAR, SUPER_ADMIN_SIDEBAR } from '@/config/nav';
 import { useRole } from '@/services/auth/permissions';
 import { queryClient } from '@/services/platform/queryClient';
 import { RoleAccount } from '@/pages/RoleAccount';
@@ -23,6 +23,8 @@ const AdminMedia = lazy(() => import('@/pages/admin/AdminMedia').then((m) => ({ 
 const AdminCoaches = lazy(() => import('@/pages/admin/AdminCoaches').then((m) => ({ default: m.AdminCoaches })));
 const AdminCoachDetail = lazy(() => import('@/pages/admin/AdminCoachDetail').then((m) => ({ default: m.AdminCoachDetail })));
 const AdminPlans = lazy(() => import('@/pages/admin/AdminPlans').then((m) => ({ default: m.AdminPlans })));
+const AdminSubscriptions = lazy(() => import('@/pages/admin/AdminSubscriptions').then((m) => ({ default: m.AdminSubscriptions })));
+const AdminAudit = lazy(() => import('@/pages/admin/AdminAudit').then((m) => ({ default: m.AdminAudit })));
 
 /**
  * Admin / super-admin shell. Both roles share the `/admin/*` prefix and nav;
@@ -30,9 +32,10 @@ const AdminPlans = lazy(() => import('@/pages/admin/AdminPlans').then((m) => ({ 
  * inside each screen. Online platform reads run through React Query.
  */
 export function AdminApp() {
-  const nav = useRole() === 'super_admin' ? SUPER_ADMIN_NAV : ADMIN_NAV;
+  const isSuper = useRole() === 'super_admin';
+  const sidebar = isSuper ? SUPER_ADMIN_SIDEBAR : ADMIN_SIDEBAR;
   const shell = (node: ReactNode) => (
-    <ResponsiveShell navItems={nav} sidebarItems={nav}>
+    <ResponsiveShell navItems={ADMIN_NAV} sidebarItems={sidebar}>
       {node}
     </ResponsiveShell>
   );
@@ -51,6 +54,8 @@ export function AdminApp() {
         <Route path="/admin/coaches" element={shell(<AdminCoaches />)} />
         <Route path="/admin/coaches/:coachId" element={shell(<AdminCoachDetail />)} />
         <Route path="/admin/plans" element={shell(<AdminPlans />)} />
+        <Route path="/admin/subscriptions" element={shell(<AdminSubscriptions />)} />
+        <Route path="/admin/audit" element={shell(<AdminAudit />)} />
         <Route path="/admin/media" element={shell(<AdminMedia />)} />
         <Route path="/admin/notifications" element={shell(<Notifications />)} />
         <Route path="/admin/settings" element={shell(<RoleAccount />)} />

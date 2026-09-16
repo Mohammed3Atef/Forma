@@ -71,33 +71,38 @@ export function AdminPlans() {
       />
       <p className="mb-4 text-[13px] text-earth-muted">{t('adminPlans.hint')}</p>
 
-      <div className="card divide-y divide-line-soft p-0" data-testid="plan-list">
-        {q.isLoading ? (
-          <p className="p-5 text-sm text-earth-muted">{t('auth.working')}</p>
-        ) : tiers.length === 0 ? (
-          <p className="p-5 text-sm text-earth-muted">{t('adminPlans.none')}</p>
-        ) : (
-          tiers.map((tr) => (
-            <div key={tr.key} className="flex items-center gap-3 px-5 py-3" data-testid="plan-row" data-key={tr.key}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">
-                  {tierLabel(tiers, tr.key, t)}
-                  {tr.archived ? ` · ${t('adminPlans.archived')}` : tr.active === false ? ` · ${t('adminPlans.inactive')}` : ''}
+      {q.isLoading ? (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+      ) : tiers.length === 0 ? (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('adminPlans.none')}</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="plan-list">
+          {tiers.map((tr) => (
+            <div key={tr.key} className={`card ${tr.archived ? 'opacity-60' : ''}`} data-testid="plan-row" data-key={tr.key}>
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-base font-semibold">{tierLabel(tiers, tr.key, t)}</span>
+                  {(tr.archived || tr.active === false) && (
+                    <span className="mt-1 inline-block chip text-[10.5px]">{tr.archived ? t('adminPlans.archived') : t('adminPlans.inactive')}</span>
+                  )}
                 </span>
-                <span className="block truncate text-[12px] text-earth-subtle">
-                  {t('adminCoaches.clientLimit')}: {tr.maxClients} · {tr.priceMonthly} {tr.currency ?? ''}{t('admin.perMonth')}
-                </span>
-              </span>
-              <button type="button" className="btn-ghost h-9 px-3 text-[13px]" data-testid="plan-edit" onClick={() => openEdit(tr)}>{t('common.edit')}</button>
-              {tr.key !== 'trial' && !tr.archived && (
-                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="plan-archive" disabled={archive.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doArchive(tr)}>
-                  {t('adminPlans.archive')}
-                </button>
-              )}
+              </div>
+              <p className="font-display text-2xl font-bold leading-none">
+                {tr.priceMonthly}<span className="ms-1 text-sm font-normal text-earth-muted">{tr.currency ?? ''}{t('admin.perMonth')}</span>
+              </p>
+              <p className="mt-2 text-[13px] text-earth-muted">{t('adminCoaches.clientLimit')}: {tr.maxClients}</p>
+              <div className="mt-4 flex gap-2">
+                <button type="button" className="btn-tonal btn-sm flex-1" data-testid="plan-edit" onClick={() => openEdit(tr)}>{t('common.edit')}</button>
+                {tr.key !== 'trial' && !tr.archived && (
+                  <button type="button" className="btn-ghost btn-sm flex-1 text-danger" data-testid="plan-archive" disabled={archive.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doArchive(tr)}>
+                    {t('adminPlans.archive')}
+                  </button>
+                )}
+              </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={form?.isNew ? t('adminPlans.add') : t('adminPlans.edit')}>
         {form && (

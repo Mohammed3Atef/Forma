@@ -6,6 +6,12 @@ import { AUTH, trackIssues, reportIssues } from './_helpers';
  * the "Coach Plans" oversight side that lives on the coach detail screen:
  * extend trial (additive, safe) and a tier change that is verified to revert
  * cleanly, so the demo coach's tier is left exactly as found.
+ *
+ * AdminCoaches now has a desktop split-pane (matches the design's `coaches()`
+ * table+preview split) — at Playwright's 1280px default viewport, clicking a
+ * table row selects it into the right-hand preview pane instead of navigating
+ * straight to `/admin/coaches/:id`; reaching the full detail screen goes
+ * through the preview's "View client details" button.
  */
 test.describe('Super admin: Coaches list + detail', () => {
   test.use({ storageState: AUTH('super') });
@@ -32,6 +38,8 @@ test.describe('Super admin: Coaches list + detail', () => {
     await page.goto('/admin/coaches');
     await page.waitForLoadState('networkidle');
     await page.getByTestId('admin-coaches-table').getByTestId('data-row').filter({ hasText: 'demo.coachb@forma.test' }).click();
+    await expect(page.getByTestId('admin-coach-preview')).toBeVisible();
+    await page.getByTestId('admin-coach-open-profile').click();
     await expect(page.getByTestId('admin-coach-detail')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
@@ -49,6 +57,8 @@ test.describe('Super admin: Coaches list + detail', () => {
     await page.goto('/admin/coaches');
     await page.waitForLoadState('networkidle');
     await page.getByTestId('admin-coaches-table').getByTestId('data-row').filter({ hasText: 'demo.coachc@forma.test' }).click();
+    await expect(page.getByTestId('admin-coach-preview')).toBeVisible();
+    await page.getByTestId('admin-coach-open-profile').click();
     await expect(page.getByTestId('admin-coach-detail')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
@@ -68,6 +78,8 @@ test.describe('Super admin: Coaches list + detail', () => {
     await page.goto('/admin/coaches');
     await page.waitForLoadState('networkidle');
     await page.getByTestId('admin-coaches-table').getByTestId('data-row').filter({ hasText: 'demo.coachb@forma.test' }).click();
+    await expect(page.getByTestId('admin-coach-preview')).toBeVisible();
+    await page.getByTestId('admin-coach-open-profile').click();
     await expect(page.getByTestId('admin-coach-detail')).toBeVisible();
     await page.waitForLoadState('networkidle');
 

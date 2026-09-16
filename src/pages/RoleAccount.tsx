@@ -13,13 +13,14 @@ import { confirmDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { shortDate } from '@/lib/utils';
 
 /** Common billing currencies a coach can default to (ISO codes). */
 const CURRENCIES = ['EGP', 'USD', 'SAR', 'AED', 'EUR', 'GBP', 'KWD', 'QAR'] as const;
 
 /** Account / settings screen for the coach and admin shells: edit profile + sign out. */
 export function RoleAccount() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const account = useSession((s) => s.account);
   const updateSelf = useSession((s) => s.updateSelf);
@@ -28,6 +29,7 @@ export function RoleAccount() {
   const setLocale = useSettings((s) => s.setLocale);
 
   const isCoach = account?.role === 'coach';
+  const isAdmin = account?.role === 'admin' || account?.role === 'super_admin';
   const coachId = account?.id ?? '';
   const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: isCoach && !!coachId, staleTime: 300_000 });
   const tiers = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: isCoach, staleTime: 300_000 });
@@ -85,6 +87,21 @@ export function RoleAccount() {
           <button type="button" className="btn-primary mt-3 w-full" onClick={() => navigate('/coach/plan')}>
             {atCapacity ? t('coachDash.upgradePlan') : t('nav.coachPlan')}
           </button>
+        </div>
+      )}
+
+      {isAdmin && account && (
+        <div className="card-featured mb-4">
+          <div className="flex items-center gap-3.5">
+            <Avatar name={account.displayName} photoUrl={account.photoUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-lg font-semibold">{account.displayName || account.email}</h2>
+              {account.email && <p className="truncate text-[13px] text-earth-muted">{account.email}</p>}
+              <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-brand">
+                {t(`roles.${account.role}`)} · {t('timeline.since', { date: shortDate(new Date(account.createdAt).toISOString().slice(0, 10), i18n.language) })}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
