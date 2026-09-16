@@ -50,7 +50,7 @@ export function CoachTemplates() {
       <TopBar
         testId="coach-templates"
         title={t('workoutTemplate.title')}
-        eyebrow={t('platform.coachPortal')}
+        eyebrow={t('nav.groupContent')}
         right={
           <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('workoutTemplate.new')} data-testid="template-new" onClick={() => navigate('/coach/templates/new')}>
             <Icon name="plus" size={20} />

@@ -19,6 +19,8 @@ import { broadcast, subscribeThreadMeta, type ThreadMeta } from '@/services/plat
 import { alertDialog } from '@/stores/dialogStore';
 
 const CATEGORIES: MessageCategory[] = ['announcement', 'offer', 'reminder', 'update'];
+const INBOX_FILTERS = ['all', 'unread', 'broadcasts'] as const;
+type InboxFilter = (typeof INBOX_FILTERS)[number];
 
 /** Inbox preview label key for an attachment-only message, by kind. */
 const ATTACH_PREVIEW: Record<MessageAttachment['kind'], string> = {
@@ -38,6 +40,8 @@ export function CoachMessages() {
   const isDesktop = useIsDesktop();
   const [broadcasting, setBroadcasting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<InboxFilter>('all');
 
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
   const clientList = clients.data ?? [];
@@ -53,10 +57,20 @@ export function CoachMessages() {
     return () => unsubs.forEach((u) => u());
   }, [clientIds]);
 
-  const list = useMemo(
+  const sorted = useMemo(
     () => [...clientList].sort((a, b) => (metaMap[b.id]?.last?.createdAt ?? 0) - (metaMap[a.id]?.last?.createdAt ?? 0)),
     [clientList, metaMap],
   );
+  const list = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return sorted.filter((c) => {
+      if (query && !`${c.displayName ?? ''} ${c.email ?? ''}`.toLowerCase().includes(query)) return false;
+      const meta = metaMap[c.id];
+      if (filter === 'unread' && (meta?.unreadForCoach ?? 0) === 0) return false;
+      if (filter === 'broadcasts' && !meta?.last?.broadcast) return false;
+      return true;
+    });
+  }, [sorted, metaMap, q, filter]);
   const selectedClient = list.find((c) => c.id === selectedId) ?? null;
   const pg = usePagination(list, 30);
 
@@ -77,14 +91,17 @@ export function CoachMessages() {
       ) : isDesktop ? (
         /* Desktop split: inbox list + selected conversation */
         <div data-testid="coach-desktop-messages" className="flex gap-5">
-          <div className="card max-h-[calc(100dvh-12rem)] w-80 shrink-0 divide-y divide-line-soft overflow-y-auto p-0">
-            {list.length === 0 ? (
-              <p className="p-4 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
-            ) : (
-              list.map((c) => (
-                <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
-              ))
-            )}
+          <div className="w-80 shrink-0 space-y-3">
+            <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} />
+            <div className="card max-h-[calc(100dvh-16rem)] divide-y divide-line-soft overflow-y-auto p-0">
+              {list.length === 0 ? (
+                <p className="p-4 text-center text-sm text-earth-muted">{t(clientList.length ? 'search.noResults' : 'coach.noClients')}</p>
+              ) : (
+                list.map((c) => (
+                  <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
+                ))
+              )}
+            </div>
           </div>
           <div className="min-w-0 flex-1">
             {selectedClient && coachId ? (
@@ -101,16 +118,23 @@ export function CoachMessages() {
             )}
           </div>
         </div>
-      ) : list.length === 0 ? (
+      ) : clientList.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('coach.noClients')}</p>
       ) : (
         <>
-          <div className="card divide-y divide-line-soft">
-            {pg.pageItems.map((c) => (
-              <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
-            ))}
-          </div>
-          <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+          <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} />
+          {list.length === 0 ? (
+            <p className="py-8 text-center text-sm text-earth-muted">{t('search.noResults')}</p>
+          ) : (
+            <>
+              <div className="card divide-y divide-line-soft">
+                {pg.pageItems.map((c) => (
+                  <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
+                ))}
+              </div>
+              <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+            </>
+          )}
         </>
       )}
 
@@ -118,6 +142,23 @@ export function CoachMessages() {
         {coachId && <BroadcastForm coachId={coachId} role={account?.role ?? 'coach'} clients={list} onDone={() => setBroadcasting(false)} />}
       </Sheet>
     </>
+  );
+}
+
+/** Search + All/Unread/Broadcasts filter chips above the thread list — matches the design's `inbox()` header. */
+function InboxFilters({ q, onQ, filter, onFilter }: { q: string; onQ: (v: string) => void; filter: InboxFilter; onFilter: (f: InboxFilter) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-2.5">
+      <SearchField aria-label={t('messages.searchInbox')} placeholder={t('messages.searchInbox')} value={q} onChange={(e) => onQ(e.target.value)} />
+      <div className="flex gap-2">
+        {INBOX_FILTERS.map((f) => (
+          <button key={f} type="button" onClick={() => onFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>
+            {t(`messages.filters.${f}`)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -141,7 +182,7 @@ function ThreadRow({ client, meta, onOpen, active = false }: { client: UserRecor
         <span className="block truncate font-medium">{client.displayName || client.email}</span>
         <span className="block truncate text-[13px] text-earth-muted">{preview}</span>
       </span>
-      {unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">{unread}</span>}
+      {unread > 0 && <span data-testid="thread-unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-brand px-1 font-mono text-[10px] font-bold text-brand-ink">{unread > 9 ? '9+' : unread}</span>}
       <Icon name="chevron" size={18} className="text-earth-subtle" />
     </button>
   );

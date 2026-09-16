@@ -3,7 +3,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { BottomNav } from '@/components/BottomNav';
 import { ReminderBanner } from '@/components/ReminderBanner';
 import { WhatsAppFab } from '@/components/WhatsAppFab';
-import type { NavItem } from '@/config/nav';
+import type { NavItem, NavGroup } from '@/config/nav';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { SidebarNav } from './SidebarNav';
 import { DesktopTopBar } from './DesktopTopBar';
@@ -22,7 +22,7 @@ export function ResponsiveShell({
   children,
 }: {
   navItems: NavItem[];
-  sidebarItems: NavItem[];
+  sidebarItems: NavItem[] | NavGroup[];
   children: ReactNode;
 }) {
   // Data-dense pages opt into full width via useFullBleed(); others stay capped.

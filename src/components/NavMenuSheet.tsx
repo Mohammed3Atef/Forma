@@ -4,13 +4,15 @@ import { Sheet } from './Sheet';
 import { Icon } from './Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
-import { ADMIN_NAV, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_NAV, type NavItem } from '@/config/nav';
+import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
+import { ADMIN_NAV, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_NAV, type NavGroup, type NavItem } from '@/config/nav';
 
 /**
- * Full-navigation sheet — every destination for the current role, including the
- * ones not in the (lean) bottom bar. Client gets the grouped CLIENT_MENU
- * (Daily/Track/Coach/You — matches the design's nav rail exactly); coach/admin
- * keep their flat destination lists for now.
+ * Full-navigation sheet — every destination for the current role, including
+ * the ones not in the (lean) bottom bar. Every role now gets the same grouped
+ * rendering (Daily/Track/Coach/You for the client, Today/Coaching/Content/
+ * Business/You for the coach — matching the design's nav rail exactly);
+ * admin/super-admin stay a single unnamed group until their own nav pass.
  */
 export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -18,6 +20,7 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
   const { pathname } = useLocation();
   const role = useSession((s) => s.account?.role);
   const clientUnread = useClientMessageUnread();
+  const coachUnread = useCoachMessageUnread();
 
   const isActive = (to: string, end?: boolean) => (end ? pathname === to : to !== '/' && pathname.startsWith(to));
   const go = (to: string) => {
@@ -27,7 +30,7 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
 
   const row = (item: NavItem) => {
     const active = isActive(item.to, item.end);
-    const badge = item.badge === 'clientUnread' ? clientUnread : 0;
+    const badge = item.badge === 'clientUnread' ? clientUnread : item.key === 'coachMessages' ? coachUnread : 0;
     return (
       <button
         key={item.key}
@@ -50,44 +53,24 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
     );
   };
 
-  if (role !== 'coach' && role !== 'admin' && role !== 'super_admin') {
-    return (
-      <Sheet open={open} onClose={onClose} title={t('nav.menu')}>
-        <div data-testid="nav-menu" className="space-y-1">
-          {CLIENT_MENU.map((g) => (
-            <div key={g.group}>
-              <p className="ui-label px-1 pb-1 pt-3 first:pt-0">{t(`nav.${g.group}`)}</p>
-              <div className="rounded-xl2 border border-line bg-surface-card px-3">{g.items.map(row)}</div>
-            </div>
-          ))}
-        </div>
-      </Sheet>
-    );
-  }
+  const groups: NavGroup[] =
+    role === 'coach'
+      ? COACH_SIDEBAR
+      : role === 'super_admin'
+        ? [{ group: '', items: SUPER_ADMIN_NAV }]
+        : role === 'admin'
+          ? [{ group: '', items: ADMIN_NAV }]
+          : CLIENT_MENU;
 
-  const items = role === 'coach' ? COACH_SIDEBAR : role === 'super_admin' ? SUPER_ADMIN_NAV : ADMIN_NAV;
   return (
     <Sheet open={open} onClose={onClose} title={t('nav.menu')}>
-      <div className="grid grid-cols-2 gap-2.5" data-testid="nav-menu">
-        {items.map((item) => {
-          const active = isActive(item.to, item.end);
-          return (
-            <button
-              key={item.key}
-              type="button"
-              data-testid={`menu-${item.key}`}
-              onClick={() => go(item.to)}
-              className={`flex items-center gap-3 rounded-xl2 border px-3 py-3 text-start ${
-                active ? 'border-brand/50 bg-brand/10 text-white' : 'border-line bg-surface-card text-earth'
-              }`}
-            >
-              <span className={active ? 'text-brand' : 'text-earth-muted'}>
-                <Icon name={item.icon} size={20} />
-              </span>
-              <span className="font-medium">{t(`nav.${item.key}`)}</span>
-            </button>
-          );
-        })}
+      <div data-testid="nav-menu" className="space-y-1">
+        {groups.map((g, gi) => (
+          <div key={g.group || gi}>
+            {g.group && <p className="ui-label px-1 pb-1 pt-3 first:pt-0">{t(`nav.${g.group}`)}</p>}
+            <div className="rounded-xl2 border border-line bg-surface-card px-3">{g.items.map(row)}</div>
+          </div>
+        ))}
       </div>
     </Sheet>
   );

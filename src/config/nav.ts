@@ -77,32 +77,68 @@ export const CLIENT_MENU: NavGroup[] = [
   },
 ];
 
+/**
+ * Coach bottom bar (mobile) — matches the design's exact tab set: Dashboard /
+ * Clients / Inbox / Revenue ("Business"). The design's 5th tab ("More") isn't
+ * a separate destination here — the brand bar's hamburger menu (present for
+ * every role) already opens the full grouped destination list (COACH_SIDEBAR),
+ * same as the client shell.
+ */
 export const COACH_NAV: NavItem[] = [
-  { to: '/coach', icon: 'user', key: 'coachClients', end: true },
-  { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
-  { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
-  { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
-  { to: '/coach/messages', icon: 'info', key: 'coachMessages' },
-  { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
+  { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
+  { to: '/coach/clients', icon: 'user', key: 'coachClients' },
+  { to: '/coach/messages', icon: 'chat', key: 'coachMessages' },
+  { to: '/coach/revenue', icon: 'bolt', key: 'coachRevenue' },
 ];
 
 /**
- * Fuller destination list for the desktop/tablet sidebar (the mobile bottom bar
- * keeps the lean COACH_NAV). "Clients" points at `/coach/clients` because the
- * `/coach` index redirects to the dashboard on desktop.
+ * Every coach destination, grouped exactly like the design's nav rail (Today /
+ * Coaching / Content / Business) — used for the desktop sidebar AND the mobile
+ * "Navigate" menu sheet. Real destinations beyond the design's 8-item rail
+ * (Assessments, Adherence, Client Plans, My Plan) are folded into the group
+ * they naturally belong with, plus a trailing "You" group for account/settings
+ * (the design reaches these via its own account chrome, which this app doesn't
+ * have yet — a bottom group is the real equivalent).
  */
-export const COACH_SIDEBAR: NavItem[] = [
-  { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
-  { to: '/coach/clients', icon: 'user', key: 'coachClients' },
-  { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
-  { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
-  { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
-  { to: '/coach/messages', icon: 'info', key: 'coachMessages' },
-  { to: '/coach/assessments', icon: 'check', key: 'coachAssessments' },
-  { to: '/coach/reports', icon: 'chart', key: 'coachReports' },
-  { to: '/coach/plan', icon: 'bolt', key: 'coachPlan' },
-  { to: '/coach/subscription-plans', icon: 'calendar', key: 'coachSubscriptionPlans' },
-  { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
+export const COACH_SIDEBAR: NavGroup[] = [
+  {
+    group: 'groupToday',
+    items: [
+      { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
+      { to: '/coach/messages', icon: 'chat', key: 'coachMessages' },
+    ],
+  },
+  {
+    group: 'groupCoaching',
+    items: [
+      { to: '/coach/clients', icon: 'user', key: 'coachClients' },
+      { to: '/coach/checkins', icon: 'check', key: 'coachCheckins' },
+      { to: '/coach/assessments', icon: 'list', key: 'coachAssessments' },
+      { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
+    ],
+  },
+  {
+    group: 'groupContent',
+    items: [
+      { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
+      { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
+    ],
+  },
+  {
+    group: 'groupBusiness',
+    items: [
+      { to: '/coach/revenue', icon: 'bolt', key: 'coachRevenue' },
+      { to: '/coach/reports', icon: 'chart', key: 'coachReports' },
+      { to: '/coach/subscription-plans', icon: 'calendar', key: 'coachSubscriptionPlans' },
+    ],
+  },
+  {
+    group: 'groupYou',
+    items: [
+      { to: '/coach/plan', icon: 'shield', key: 'coachPlan' },
+      { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
+    ],
+  },
 ];
 
 /** Shared by admin and super_admin; super-admin-only screens are gated inside. */

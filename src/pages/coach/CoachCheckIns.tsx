@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { CheckInSummary } from '@/components/CheckInSummary';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns, requestCheckIn, reviewCheckIn } from '@/services/platform/checkInApi';
-import { fetchUser } from '@/services/platform/accountsApi';
 import { shortDate, today, weekRange } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { CheckInStatus, WeeklyCheckIn } from '@/types';
@@ -21,12 +20,10 @@ const TONE: Record<CheckInStatus, PillTone> = {
 /** Coach weekly check-ins for one client: request, review (feedback + mark reviewed), history. */
 export function CoachCheckIns() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '' } = useParams();
   const coachId = useSession((s) => s.account?.id) ?? '';
 
-  const user = useQuery({ queryKey: ['user', clientId], queryFn: () => fetchUser(clientId), enabled: !!clientId });
   const list = useQuery({ queryKey: ['checkIns', clientId], queryFn: () => listCheckIns(clientId), enabled: !!clientId });
   const checkIns = list.data ?? [];
 
@@ -39,11 +36,9 @@ export function CoachCheckIns() {
     onSuccess: invalidate,
   });
 
-  const name = user.data?.displayName || user.data?.email || t('coach.client');
-
   return (
     <>
-      <TopBar testId="coach-checkins" title={t('checkin.title')} eyebrow={name} onBack={() => navigate(`/coach/client/${clientId}`)} />
+      <TopBar testId="coach-checkins" title={t('checkin.title')} dense />
 
       <button
         type="button"

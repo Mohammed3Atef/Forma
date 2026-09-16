@@ -27,6 +27,48 @@ export function QuickAction({ icon, label, onClick }: { icon: IconName; label: s
   );
 }
 
+/** The real reason a client is flagged in `needsAttention`, most-urgent first. */
+export function attentionReason(row: ClientDashboardRow, t: (k: string, o?: Record<string, unknown>) => string, locale: string): string {
+  if (row.toReview) return t('coachDash.reasonCheckin');
+  if (row.assessment === 'submitted' || row.assessment === 'updated_after_review') return t('coachDash.reasonAssessment');
+  if (row.workouts7d === 0) {
+    return row.lastActivity
+      ? t('coachDash.reasonInactiveSince', { date: shortDate(row.lastActivity, locale) })
+      : t('coachDash.reasonNeverActive');
+  }
+  return t('coachDash.reasonGeneric');
+}
+
+/** What tapping the CTA on an attention row should do. */
+export function attentionAction(row: ClientDashboardRow): { labelKey: string; to: string } {
+  if (row.toReview) return { labelKey: 'coachDash.review', to: `/coach/client/${row.client.id}/checkins` };
+  if (row.assessment === 'submitted' || row.assessment === 'updated_after_review') {
+    return { labelKey: 'coachDash.review', to: `/coach/client/${row.client.id}/assessment` };
+  }
+  return { labelKey: 'coachDash.message', to: `/coach/messages/${row.client.id}` };
+}
+
+/** Dense action-required row: avatar/name/real reason + a per-item CTA button (design's `.rowline` + `.tk-ic`). */
+export function AttentionRow({ row, onOpen, onAction }: { row: ClientDashboardRow; onOpen: () => void; onAction: () => void }) {
+  const { t, i18n } = useTranslation();
+  const name = row.client.displayName || row.client.email;
+  const action = attentionAction(row);
+  return (
+    <div className="rowline">
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-start">
+        <Avatar name={name} photoUrl={row.client.photoUrl} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-medium">{name}</span>
+          <span className="block truncate text-[12px] text-earth-subtle">{attentionReason(row, t, i18n.language)}</span>
+        </span>
+      </button>
+      <button type="button" onClick={onAction} className="btn-tonal btn-sm shrink-0">
+        {t(action.labelKey)}
+      </button>
+    </div>
+  );
+}
+
 /** A clickable client row (avatar + name + last-active + 7-day workouts). */
 export function ClientRow({ row, onOpen }: { row: ClientDashboardRow; onOpen: () => void }) {
   const { t, i18n } = useTranslation();

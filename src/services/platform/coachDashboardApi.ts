@@ -15,6 +15,7 @@ export interface ClientDashboardRow {
   lastActivity: string | null; // YYYY-MM-DD of the latest finished workout
   assessment: AssessmentStatus;
   needsAttention: boolean;
+  toReview: boolean; // has a submitted check-in awaiting the coach's review
   addedAt: number; // when the coach took this client on (active relationship's createdAt)
 }
 
@@ -199,6 +200,6 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     churn,
     templatesCreated: wTpl.length + nTpl.length,
     assessmentsReviewed,
-    clients: rows.map(({ toReview: _toReview, ...row }) => row),
+    clients: rows,
   };
 }

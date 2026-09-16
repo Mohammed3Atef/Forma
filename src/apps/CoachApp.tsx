@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { CommandHost } from '@/components/CommandHost';
 import { CoachPlanProvider, CoachPlanGate } from '@/components/coach/CoachPlanProvider';
+import { CoachClientWorkspaceLayout } from '@/components/coach/CoachClientWorkspaceLayout';
 import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { COACH_NAV, COACH_SIDEBAR } from '@/config/nav';
@@ -37,6 +38,11 @@ const PlanVersionHistory = lazy(() => import('@/pages/coach/PlanVersionHistory')
 const CoachAdherence = lazy(() => import('@/pages/coach/CoachAdherence').then((m) => ({ default: m.CoachAdherence })));
 const CoachMessages = lazy(() => import('@/pages/coach/CoachMessages').then((m) => ({ default: m.CoachMessages })));
 const CoachMessageThread = lazy(() => import('@/pages/coach/CoachMessageThread').then((m) => ({ default: m.CoachMessageThread })));
+const CoachClientNotes = lazy(() => import('@/pages/coach/CoachClientNotes').then((m) => ({ default: m.CoachClientNotes })));
+const CoachClientSubscriptionTab = lazy(() => import('@/pages/coach/CoachClientSubscriptionTab').then((m) => ({ default: m.CoachClientSubscriptionTab })));
+const CoachClientHistory = lazy(() => import('@/pages/coach/CoachClientHistory').then((m) => ({ default: m.CoachClientHistory })));
+const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) => ({ default: m.CoachRevenue })));
+const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOverview').then((m) => ({ default: m.CoachCheckInsOverview })));
 
 /** `/coach` landing: dashboard on tablet/desktop, clients list on mobile. */
 function CoachIndex() {
@@ -68,18 +74,33 @@ export function CoachApp() {
         <Route path="/coach/dashboard" element={shell(<CoachDashboard />)} />
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
         <Route path="/coach/assessments" element={shell(<CoachAssessments />)} />
+        <Route path="/coach/checkins" element={shell(<CoachCheckInsOverview />)} />
         <Route path="/coach/reports" element={shell(<CoachReports />)} />
+        <Route path="/coach/revenue" element={shell(<CoachRevenue />)} />
         <Route path="/coach/plan" element={shell(<CoachPlan />)} />
         <Route path="/coach/subscription-plans" element={shell(<CoachSubscriptionPlans />)} />
-        <Route path="/coach/client/:clientId" element={shell(<CoachClientDetail />)} />
+
+        {/* Persistent client workspace — pinned header + tab rail (see
+            CoachClientWorkspaceLayout); each child is an existing page's own
+            content, just trimmed of its duplicate header. */}
+        <Route path="/coach/client/:clientId" element={shell(<CoachClientWorkspaceLayout />)}>
+          <Route index element={<CoachClientDetail />} />
+          <Route path="assessment" element={<CoachClientAssessment />} />
+          <Route path="checkins" element={<CoachCheckIns />} />
+          <Route path="workout" element={<CoachPlanGate><CoachWorkoutEditor /></CoachPlanGate>} />
+          <Route path="nutrition" element={<CoachPlanGate><CoachNutritionEditor /></CoachPlanGate>} />
+          <Route path="cardio" element={<CoachPlanGate><CoachCardioEditor /></CoachPlanGate>} />
+          <Route path="notes" element={<CoachClientNotes />} />
+          <Route path="subscription" element={<CoachClientSubscriptionTab />} />
+          <Route path="history" element={<CoachClientHistory />} />
+        </Route>
+        {/* Kept outside the workspace shell: a deep-link-only legacy detail
+            view, and the "view as client" impersonation screen (its own
+            internal tab rail — Progress is the workspace's escape hatch into
+            this), plus plan version history (reached from within the editors). */}
         <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
         <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
-        <Route path="/coach/client/:clientId/assessment" element={shell(<CoachClientAssessment />)} />
-        <Route path="/coach/client/:clientId/checkins" element={shell(<CoachCheckIns />)} />
-        <Route path="/coach/client/:clientId/workout" element={gated(<CoachWorkoutEditor />)} />
-        <Route path="/coach/client/:clientId/nutrition" element={gated(<CoachNutritionEditor />)} />
-        <Route path="/coach/client/:clientId/cardio" element={gated(<CoachCardioEditor />)} />
         <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />
         <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
         <Route path="/coach/templates" element={shell(<CoachTemplates />)} />

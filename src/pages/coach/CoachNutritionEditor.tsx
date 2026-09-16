@@ -8,6 +8,7 @@ import { Sheet } from '@/components/Sheet';
 import { SearchField, TextInput } from '@/components/ui/Field';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { useSession } from '@/services/auth/sessionStore';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { parseDecimal, uid } from '@/lib/utils';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
 import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
@@ -70,6 +71,8 @@ export function CoachNutritionEditor() {
   const [editing, setEditing] = useState<{ mealId: string; form: FoodForm } | null>(null);
   const [pick, setPick] = useState('');
   const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string; timing: string } | null>(null);
+  const isDesktop = useIsDesktop();
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
 
   const policy = { ...DEFAULT_POLICY, ...(plan?.substitutionPolicy ?? {}) };
   const setPolicy = (patch: Partial<SubstitutionPolicy>) => plan && setPlan({ ...plan, substitutionPolicy: { ...policy, ...patch } });
@@ -91,12 +94,21 @@ export function CoachNutritionEditor() {
     },
   });
 
+  // Keep the desktop pane-b selection valid as meals are added/removed.
+  useEffect(() => {
+    if (!plan) return;
+    if (!plan.meals.some((m) => m.id === selectedMealId)) setSelectedMealId(plan.meals[0]?.id ?? null);
+  }, [plan, selectedMealId]);
+
   if (!plan) return null;
 
   const setTarget = (key: keyof MealPlan['targets'], v: string) => setPlan({ ...plan, targets: { ...plan.targets, [key]: num(v) } });
 
-  const addMeal = () =>
-    setPlan({ ...plan, meals: [...plan.meals, { id: uid('meal'), slot: 'breakfast', label: { en: `${t('coachEditor.meal')} ${plan.meals.length + 1}`, ar: '' }, items: [] }] });
+  const addMeal = () => {
+    const m: Meal = { id: uid('meal'), slot: 'breakfast', label: { en: `${t('coachEditor.meal')} ${plan.meals.length + 1}`, ar: '' }, items: [] };
+    setPlan({ ...plan, meals: [...plan.meals, m] });
+    setSelectedMealId(m.id);
+  };
 
   const patchMeal = (mealId: string, patch: Partial<Meal>) =>
     setPlan({ ...plan, meals: plan.meals.map((m) => (m.id === mealId ? { ...m, ...patch } : m)) });
@@ -152,13 +164,72 @@ export function CoachNutritionEditor() {
   };
   const removeSupp = (id: string) => setPlan({ ...plan, supplements: plan.supplements.filter((s) => s.id !== id) });
 
+  const mealCard = (meal: Meal) => (
+    <div key={meal.id} className="card">
+      <div className="mb-3 flex items-end gap-2">
+        <TextInput label={t('coachEditor.mealLabel')} fieldClassName="flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: { ...meal.label, en: e.target.value } })} />
+        <button type="button" className="icon-btn h-11 w-11 shrink-0 text-danger" aria-label={t('coachEditor.removeMeal')} onClick={() => void removeMeal(meal)}>
+          <Icon name="close" size={18} />
+        </button>
+      </div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {SLOTS.map((s) => (
+          <button key={s} type="button" onClick={() => patchMeal(meal.id, { slot: s })} className={`chip text-[11px] ${meal.slot === s ? 'chip-on' : ''}`}>
+            {t(`coachEditor.slots.${s}`)}
+          </button>
+        ))}
+      </div>
+      <div className="divide-y divide-line-soft">
+        {meal.items.map((f) => (
+          <div key={f.id} className="flex items-center gap-3 py-2.5">
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-start"
+              onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), groupId: f.allowedAlternativeGroupId ?? null, allowCustom: !!f.allowCustomSubstitution } })}
+            >
+              <span className="block truncate font-medium">{f.name.en || t('coachEditor.untitledFood')}</span>
+              <span className="block truncate text-[12px] text-earth-subtle">{f.quantity} · {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
+            </button>
+            <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => removeFood(meal.id, f.id)}>
+              <Icon name="minus" size={18} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" data-testid="nutrition-add-food" className="btn-ghost mt-3 w-full" onClick={() => setEditing({ mealId: meal.id, form: blankFood() })}>
+        {t('coachEditor.addFood')}
+      </button>
+    </div>
+  );
+
+  const mealList = (
+    <div className="space-y-2">
+      {plan.meals.map((meal) => (
+        <button
+          key={meal.id}
+          type="button"
+          onClick={() => setSelectedMealId(meal.id)}
+          className={`card-tap flex w-full items-center gap-3 text-start ${isDesktop && selectedMealId === meal.id ? 'border-brand/50 bg-brand/[0.06]' : ''}`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{meal.label.en || t('coachEditor.untitledFood')}</span>
+            <span className="block truncate text-[12px] text-earth-subtle">
+              {t(`coachEditor.slots.${meal.slot}`)} · {t('coachEditor.foodCount', { n: meal.items.length })}
+            </span>
+          </span>
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
+        </button>
+      ))}
+    </div>
+  );
+  const selectedMeal = plan.meals.find((m) => m.id === selectedMealId);
+
   return (
     <>
       <TopBar
         testId="coach-nutrition-editor"
         title={t('coachEditor.nutritionTitle')}
-        eyebrow={t('platform.coachPortal')}
-        onBack={() => navigate(`/coach/client/${clientId}`)}
+        dense
         right={
           <button type="button" data-testid="nutrition-save" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
             {t('common.save')}
@@ -202,50 +273,35 @@ export function CoachNutritionEditor() {
         ))}
       </div>
 
-      {/* Meals */}
-      <div className="space-y-4">
-        {plan.meals.map((meal) => (
-          <div key={meal.id} className="card">
-            <div className="mb-3 flex items-end gap-2">
-              <TextInput label={t('coachEditor.mealLabel')} fieldClassName="flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: { ...meal.label, en: e.target.value } })} />
-              <button type="button" className="icon-btn h-11 w-11 shrink-0 text-danger" aria-label={t('coachEditor.removeMeal')} onClick={() => void removeMeal(meal)}>
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {SLOTS.map((s) => (
-                <button key={s} type="button" onClick={() => patchMeal(meal.id, { slot: s })} className={`chip text-[11px] ${meal.slot === s ? 'chip-on' : ''}`}>
-                  {t(`coachEditor.slots.${s}`)}
-                </button>
-              ))}
-            </div>
-            <div className="divide-y divide-line-soft">
-              {meal.items.map((f) => (
-                <div key={f.id} className="flex items-center gap-3 py-2.5">
-                  <button
-                    type="button"
-                    className="min-w-0 flex-1 text-start"
-                    onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), groupId: f.allowedAlternativeGroupId ?? null, allowCustom: !!f.allowCustomSubstitution } })}
-                  >
-                    <span className="block truncate font-medium">{f.name.en || t('coachEditor.untitledFood')}</span>
-                    <span className="block truncate text-[12px] text-earth-subtle">{f.quantity} · {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
-                  </button>
-                  <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => removeFood(meal.id, f.id)}>
-                    <Icon name="minus" size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button type="button" data-testid="nutrition-add-food" className="btn-ghost mt-3 w-full" onClick={() => setEditing({ mealId: meal.id, form: blankFood() })}>
-              {t('coachEditor.addFood')}
+      {/* Meals — desktop: list pane-a + editor pane-b (matches the Workout builder's split); mobile: expanded list, unchanged. */}
+      <h2 className="h2 mb-2">{t('coachEditor.meals')}</h2>
+      {isDesktop ? (
+        <div className="flex flex-col gap-5 lg:flex-row">
+          <div className="w-full shrink-0 space-y-2 lg:w-72">
+            {mealList}
+            <button type="button" data-testid="nutrition-add-meal" className="btn-ghost w-full" onClick={addMeal}>
+              {t('coachEditor.addMeal')}
             </button>
           </div>
-        ))}
-      </div>
-
-      <button type="button" data-testid="nutrition-add-meal" className="btn-ghost mt-4 w-full" onClick={addMeal}>
-        {t('coachEditor.addMeal')}
-      </button>
+          <div className="min-w-0 flex-1">
+            {selectedMeal ? (
+              mealCard(selectedMeal)
+            ) : (
+              <div className="card flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-earth-subtle">
+                <Icon name="meal" size={28} />
+                <p className="text-sm">{t('coachEditor.selectMealPrompt')}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-4">{plan.meals.map(mealCard)}</div>
+          <button type="button" data-testid="nutrition-add-meal" className="btn-ghost mt-4 w-full" onClick={addMeal}>
+            {t('coachEditor.addMeal')}
+          </button>
+        </>
+      )}
 
       {/* Supplements */}
       <h2 className="h2 mb-2 mt-6">{t('nutrition.supplements')}</h2>

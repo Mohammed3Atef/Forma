@@ -62,8 +62,7 @@ export function CoachClientAssessment() {
       <TopBar
         testId="coach-client-assessment"
         title={t('assessment.title')}
-        eyebrow={t('platform.coachPortal')}
-        onBack={() => navigate(`/coach/client/${clientId}`)}
+        dense
         right={<Pill testId="assessment-status" tone={TONE[status]}>{t(`assessment.status.${status}`)}</Pill>}
       />
 

@@ -112,7 +112,7 @@ export function CoachWorkoutEditor() {
       <TopBar
         testId="coach-workout-editor"
         title={t('coachEditor.workoutTitle')}
-        eyebrow={t('platform.coachPortal')}
+        dense
         onBack={() => void exit()}
         right={
           <button type="button" data-testid="workout-save" disabled={save.isPending} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>

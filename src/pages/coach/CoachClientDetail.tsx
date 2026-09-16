@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TopBar } from "@/components/TopBar";
 import { StatTile } from "@/components/StatTile";
 import { Sheet } from "@/components/Sheet";
 import { TextAreaField } from "@/components/ui/Field";
@@ -10,7 +9,6 @@ import { useSession } from "@/services/auth/sessionStore";
 import {
   addCoachNote,
   fetchClientLogs,
-  fetchClientProfile,
   getClientAssessment,
   listCoachNotes,
   type Author,
@@ -23,8 +21,6 @@ import {
 import { fetchUser } from "@/services/platform/accountsApi";
 import { releaseClient } from "@/services/platform/coachClientsApi";
 import { assessmentStatus } from "@/lib/assessment";
-import { CoachSubscriptionPanel } from "@/pages/coach/CoachSubscriptionPanel";
-import { CoachTimeline } from "@/components/coach/CoachTimeline";
 import { Icon, type IconName } from "@/components/Icon";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus, WeightLog, WorkoutLog } from "@/types";
@@ -66,11 +62,6 @@ export function CoachClientDetail() {
   const user = useQuery({
     queryKey: ["user", clientId],
     queryFn: () => fetchUser(clientId),
-    enabled: !!clientId,
-  });
-  const profile = useQuery({
-    queryKey: ["clientProfile", clientId],
-    queryFn: () => fetchClientProfile(clientId),
     enabled: !!clientId,
   });
   const workouts = useQuery({
@@ -116,24 +107,9 @@ export function CoachClientDetail() {
   ).length;
   const lastWeight = weights.data?.[0]?.weightKg;
 
-  // Prefer the name the client entered in their assessment (authoritative) over a
-  // sign-up `displayName` that may still be an email-prefix fallback.
-  const name = assessment.data?.basic?.fullName?.trim() || user.data?.displayName || user.data?.email || t("coach.client");
-
   return (
     <>
-      <div className="w-full">
-        <TopBar
-          testId="coach-client-detail"
-          title={name}
-          eyebrow={
-            profile.data?.goal
-              ? t(`settings.goals.${profile.data.goal}`)
-              : t("platform.coachPortal")
-          }
-          onBack={() => navigate("/coach")}
-        />
-
+      <div className="w-full" data-testid="coach-client-detail">
         {user.data?.phone && (
           <a
             href={`tel:${user.data.phone}`}
@@ -246,13 +222,6 @@ export function CoachClientDetail() {
           </button>
         </div>
 
-        {/* Subscription, account status + freeze requests */}
-        <CoachSubscriptionPanel
-          clientId={clientId}
-          coachId={account?.id ?? ""}
-          account={user.data ?? null}
-        />
-
         {/* Targets (read-only summary) — sourced from the nutrition plan, the single targets editor. */}
         <h2 className="h2 mb-2 mt-6">{t("coach.targets")}</h2>
         <div className="card">
@@ -292,10 +261,6 @@ export function CoachClientDetail() {
             </p>
           )}
         </div>
-
-        {/* Coaching history (current + previous coaches) */}
-        <h2 className="h2 mb-2 mt-6">{t("timeline.title")}</h2>
-        <CoachTimeline clientId={clientId} />
       </div>
 
       <ManageSheet
