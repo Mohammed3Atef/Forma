@@ -1770,5 +1770,21 @@
     },
     "none": "No coaching history yet.",
     "unknownCoach": "A coach"
+  },
+  "workspace": {
+    "tabs": {
+      "overview": "Overview",
+      "workout": "Workout",
+      "nutrition": "Nutrition",
+      "cardio": "Cardio",
+      "progress": "Progress",
+      "assessments": "Assessments",
+      "checkins": "Check-ins",
+      "messages": "Messages",
+      "notes": "Notes",
+      "subscription": "Subscription",
+      "history": "History"
+    },
+    "editPlan": "Edit plan"
   }
 }

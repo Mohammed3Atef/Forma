@@ -1837,5 +1837,21 @@
     },
     "none": "لسه مفيش سجل تدريب.",
     "unknownCoach": "مدرب"
+  },
+  "workspace": {
+    "tabs": {
+      "overview": "نظرة عامة",
+      "workout": "التمرين",
+      "nutrition": "الأكل",
+      "cardio": "الكارديو",
+      "progress": "التقدم",
+      "assessments": "التقييمات",
+      "checkins": "المتابعات",
+      "messages": "الرسايل",
+      "notes": "الملاحظات",
+      "subscription": "الاشتراك",
+      "history": "السجل"
+    },
+    "editPlan": "عدّل الخطة"
   }
 }

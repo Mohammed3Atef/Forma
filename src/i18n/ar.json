@@ -1770,5 +1770,21 @@
     },
     "none": "لا يوجد سجل تدريب بعد.",
     "unknownCoach": "مدرب"
+  },
+  "workspace": {
+    "tabs": {
+      "overview": "نظرة عامة",
+      "workout": "التمرين",
+      "nutrition": "التغذية",
+      "cardio": "الكارديو",
+      "progress": "التقدم",
+      "assessments": "التقييمات",
+      "checkins": "المتابعات",
+      "messages": "الرسائل",
+      "notes": "الملاحظات",
+      "subscription": "الاشتراك",
+      "history": "السجل"
+    },
+    "editPlan": "تعديل الخطة"
   }
 }
