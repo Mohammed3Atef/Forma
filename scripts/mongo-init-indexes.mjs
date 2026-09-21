@@ -52,9 +52,17 @@ async function main() {
   await db.collection('coachClients').createIndex({ coachId: 1, status: 1 }, { name: 'coachId_status' });
   await db.collection('coachClients').createIndex({ clientId: 1 }, { name: 'clientId' });
 
-  // Coach-owned asset libraries — every one queried by coachId on page load.
+  // Coach-owned asset libraries — queried by coachId on every page load, AND
+  // a bare logical `id` is only unique PER COACH (two coaches legitimately
+  // share ids, e.g. every coach who seeds the starter library gets a row
+  // with `id: "wger-12"`), so this must be a UNIQUE COMPOUND index, not just
+  // an index on `coachId` alone — see the identity-model comment in
+  // `api/coach-assets/_lib/types.ts`. The app also self-ensures this index at
+  // runtime (`api/coach-assets/_lib/db.ts`), so running this script isn't a
+  // hard prerequisite, but it documents the exact index and covers a
+  // freshly-provisioned database before the app has served a single request.
   for (const coll of ['coachExercises', 'coachWorkoutTemplates', 'coachNutritionTemplates', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachBillingPlans']) {
-    await db.collection(coll).createIndex({ coachId: 1 }, { name: 'coachId' });
+    await db.collection(coll).createIndex({ coachId: 1, id: 1 }, { unique: true, name: 'uniq_coachId_id' });
   }
 
   // Per-client data, coach-owned or client-owned.

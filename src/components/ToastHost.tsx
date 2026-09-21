@@ -4,12 +4,12 @@ import { useToasts, type Toast, type ToastVariant } from '@/stores/toastStore';
 import { Avatar } from './Avatar';
 import { Icon, type IconName, type IconTone } from './Icon';
 
-/** Per-variant accent: left border tint + icon. */
-const VARIANT: Record<ToastVariant, { bar: string; icon: IconName; tone: IconTone }> = {
-  info: { bar: 'border-s-brand', icon: 'bell', tone: 'brand' },
-  success: { bar: 'border-s-success', icon: 'check', tone: 'success' },
-  warning: { bar: 'border-s-warn', icon: 'info', tone: 'warning' },
-  danger: { bar: 'border-s-danger', icon: 'info', tone: 'danger' },
+/** Per-variant accent: left border tint + icon + bottom countdown-bar fill. */
+const VARIANT: Record<ToastVariant, { bar: string; track: string; icon: IconName; tone: IconTone }> = {
+  info: { bar: 'border-s-brand', track: 'bg-brand', icon: 'bell', tone: 'brand' },
+  success: { bar: 'border-s-success', track: 'bg-success', icon: 'check', tone: 'success' },
+  warning: { bar: 'border-s-warn', track: 'bg-warn', icon: 'info', tone: 'warning' },
+  danger: { bar: 'border-s-danger', track: 'bg-danger', icon: 'info', tone: 'danger' },
 };
 
 const AUTO_DISMISS_MS = 5000;
@@ -56,10 +56,15 @@ function ToastItem({ toast }: { toast: Toast }) {
       aria-live="polite"
       data-testid="toast"
       onClick={clickable ? activate : undefined}
-      className={`anim-rise card-elevated pointer-events-auto flex w-full max-w-sm items-start gap-3 border-s-4 p-3.5 sm:w-[28rem] sm:max-w-none ${v.bar} ${
+      className={`anim-rise card-elevated relative flex w-full max-w-sm items-start gap-3 overflow-hidden border-s-4 p-3.5 pointer-events-auto sm:w-[28rem] sm:max-w-none ${v.bar} ${
         clickable ? 'cursor-pointer hover:bg-surface-hover' : ''
       }`}
     >
+      <span
+        className={`toast-timer absolute inset-x-0 bottom-0 h-[3px] opacity-70 ${v.track}`}
+        style={{ animationDuration: `${AUTO_DISMISS_MS}ms` }}
+        aria-hidden="true"
+      />
       {toast.avatar ? (
         <Avatar name={toast.avatar.name} photoUrl={toast.avatar.photoUrl} size="sm" className="shrink-0" />
       ) : (

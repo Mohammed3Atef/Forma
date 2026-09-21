@@ -40,7 +40,8 @@ import {
   saveFoodGroup,
   saveSupplement,
 } from '@/services/platform/coachAssetsApi';
-import { fetchStarterExercises } from '@/services/platform/starterLibraryApi';
+import { seedStarterLibrary } from '@/services/platform/starterLibraryApi';
+import { LoadStarterLibraryButton } from '@/pages/coach/LoadStarterLibraryButton';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement } from '@/types';
@@ -84,13 +85,17 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   const qc = useQueryClient();
   const isDesktop = useIsDesktop();
   const [search, setSearch] = useState('');
+  const [muscleFilter, setMuscleFilter] = useState('');
   const [editing, setEditing] = useState<Exercise | null>(null);
   const [viewing, setViewing] = useState<Exercise | null>(null);
   const lib = useQuery({ queryKey: ['exerciseLibrary', coachId], queryFn: () => listExercises(coachId), enabled: !!coachId });
 
+  const muscles = useMemo(() => [...new Set((lib.data ?? []).map((e) => e.targetMuscle).filter(Boolean))].sort(), [lib.data]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const all = lib.data ?? [];
+    let all = lib.data ?? [];
+    if (muscleFilter) all = all.filter((e) => e.targetMuscle === muscleFilter);
     if (!q) return all;
     return all.filter(
       (e) =>
@@ -100,25 +105,41 @@ function ExercisesTab({ coachId }: { coachId: string }) {
         (e.equipment ?? '').toLowerCase().includes(q) ||
         (e.tags ?? []).some((tg) => tg.toLowerCase().includes(q)),
     );
-  }, [lib.data, search]);
+  }, [lib.data, search, muscleFilter]);
 
   const saveMut = useMutation({
     mutationFn: (ex: Exercise) => saveExercise(coachId, ex),
-    onSuccess: () => { setEditing(null); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onSuccess: (sync, savedEx) => {
+      setEditing(null);
+      void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] });
+      void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
+      if (sync.status === 'failed') {
+        showToast({ title: t('common.saved'), body: t('coachLib.templateSyncFailed'), variant: 'warning', onClick: () => saveMut.mutate(savedEx) });
+      } else if (sync.affectedTemplates > 0) {
+        showToast({ title: t('common.saved'), body: t('coachLib.templatesUpdated', { n: sync.affectedTemplates }), variant: 'success' });
+      } else {
+        showToast({ title: t('common.saved'), variant: 'success' });
+      }
+    },
     onError: libError(t('coachLib.newExercise'), t('common.savedFailed')),
   });
-  // One-tap starter library: import the shared public-domain exercise dataset
-  // into the coach's own coachAssets (chunked writes). Re-importing is safe —
-  // ids are stable so it upserts rather than duplicating.
+  // One-tap starter library: seeds ALL FIVE categories (exercises, foods,
+  // food groups, supplements, workout templates) in one backend call — NOT
+  // just exercises. (A previous version of this button only imported
+  // exercises via repeated one-off saves, which is why a coach could end up
+  // with a full exercise library but no starter foods/groups/supplements/
+  // templates at all with no way to get them from this tab.) Idempotent —
+  // ids are stable so re-running only fills in whatever's still missing.
   const loadStarter = useMutation({
-    mutationFn: async () => {
-      const items = await fetchStarterExercises();
-      for (let i = 0; i < items.length; i += 20) {
-        await Promise.all(items.slice(i, i + 20).map((ex) => saveExercise(coachId, ex)));
+    mutationFn: () => seedStarterLibrary(coachId),
+    onSuccess: (res) => {
+      for (const k of ['exerciseLibrary', 'foods', 'foodGroups', 'supplements', 'workoutTemplates']) void qc.invalidateQueries({ queryKey: [k, coachId] });
+      if (res.errors.length) {
+        showToast({ title: t('starter.loadedTitle'), body: t('starter.loadedWithErrors', { categories: res.errors.map((e) => e.category).join(', ') }), variant: 'warning' });
+      } else {
+        showToast({ title: t('starter.loadedTitle'), body: t('starter.loaded', { exercises: res.exercises, foods: res.foods, groups: res.groups, supplements: res.supplements, templates: res.templates }), variant: 'success' });
       }
-      return items.length;
     },
-    onSuccess: (n) => { void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); showToast({ title: t('coachLib.loadStarter'), body: String(n), variant: 'success' }); },
     onError: libError(t('coachLib.loadStarter'), t('common.errorGeneric')),
   });
   const delMut = useMutation({
@@ -155,18 +176,26 @@ function ExercisesTab({ coachId }: { coachId: string }) {
 
   return (
     <>
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-3 flex items-center gap-2">
         <div className="relative flex-1">
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
           <input className="input ps-10" data-testid="lib-search" placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button type="button" className="btn-ghost h-[42px] whitespace-nowrap px-3 text-[13px] disabled:opacity-40" data-testid="lib-load-starter" disabled={loadStarter.isPending} onClick={async () => { if (await confirmDialog({ title: t('coachLib.loadStarter'), message: t('coachLib.loadStarterConfirm') })) loadStarter.mutate(); }}>
+        <button type="button" className="btn-ghost h-[42px] whitespace-nowrap px-3 text-[13px] disabled:opacity-40" data-testid="lib-load-starter" disabled={loadStarter.isPending} onClick={async () => { if (await confirmDialog({ title: t('coachLib.loadStarter'), message: t('starter.confirm') })) loadStarter.mutate(); }}>
           {loadStarter.isPending ? t('auth.working') : t('coachLib.loadStarter')}
         </button>
         <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachLib.newExercise')} data-testid="lib-new" onClick={() => setEditing(blankExercise())}>
           <Icon name="plus" size={20} />
         </button>
       </div>
+      {muscles.length > 0 && (
+        <div className="mb-4 flex gap-2 overflow-x-auto">
+          <button type="button" className={`chip shrink-0 ${!muscleFilter ? 'chip-on' : ''}`} onClick={() => setMuscleFilter('')}>{t('coachLib.allMuscles')}</button>
+          {muscles.map((m) => (
+            <button key={m} type="button" data-testid={`lib-muscle-${m}`} className={`chip shrink-0 ${muscleFilter === m ? 'chip-on' : ''}`} onClick={() => setMuscleFilter(muscleFilter === m ? '' : m)}>{m}</button>
+          ))}
+        </div>
+      )}
       {lib.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : isDesktop ? (
@@ -222,6 +251,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachLib.exercise')}>
         {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} pending={saveMut.isPending} coachId={coachId} />}
       </Sheet>
+      <p className="mt-4 text-center text-[11px] text-earth-faint">{t('coachLib.dataAttribution')}</p>
     </>
   );
 }
@@ -335,7 +365,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
         <EmptyState
           icon={search ? 'search' : 'meal'}
           title={search ? t('coachLib.noResults') : t('coachFoods.empty')}
-          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : undefined}
+          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : <LoadStarterLibraryButton variant="ghost" />}
         />
       ) : (
         <div className="card divide-y divide-line-soft">
@@ -457,7 +487,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
           ))}
         </div>
       ) : (
-        <EmptyState icon="list" title={t('coachFoods.noGroups')} message={t('coachFoods.noGroupsMessage')} />
+        <EmptyState icon="list" title={t('coachFoods.noGroups')} message={t('coachFoods.noGroupsMessage')} action={<LoadStarterLibraryButton variant="ghost" />} />
       )}
       <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
       <BulkActionBar count={sel.count} onClear={sel.clear}>
@@ -564,7 +594,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
         <EmptyState
           icon={search ? 'search' : 'pill'}
           title={search ? t('coachLib.noResults') : t('coachSupps.empty')}
-          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : undefined}
+          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : <LoadStarterLibraryButton variant="ghost" />}
         />
       ) : (
         <div className="card divide-y divide-line-soft">

@@ -11,6 +11,7 @@ import {
   reactToMessage,
   sendMessage,
   subscribeMessages,
+  type MessageSubscription,
 } from "@/services/platform/messagesApi";
 import { markMessageNotificationsSeen } from "@/services/platform/notificationsApi";
 import { isBunnyConfigured, uploadFileToBunny, UploadError } from "@/services/platform/bunnyUploadApi";
@@ -149,6 +150,12 @@ export function MessageThread({
   // the same array — a prepend never raises this value.
   const prevNewestAtRef = useRef(0);
   const oldestCursorRef = useRef<number | null>(null);
+  // The live poll subscription — react/submitEdit/doDelete patch its internal
+  // cache via `.patch()` after a successful mutation, so the NEXT poll tick
+  // doesn't emit a stale copy of that message over the local update (see
+  // `subscribeMessages`'s doc comment for the exact "reaction flickers off
+  // then back on" bug this fixes).
+  const subRef = useRef<MessageSubscription | null>(null);
 
   const combined = useMemo(() => {
     if (justSent.length === 0) return messages;
@@ -187,7 +194,11 @@ export function MessageThread({
       // the user asks to load older we only need a reasonable default.
       if (msgs.length >= 200) setHasOlder(true);
     });
-    return unsub;
+    subRef.current = unsub;
+    return () => {
+      subRef.current = null;
+      unsub();
+    };
   }, [clientId]);
 
   const loadOlder = async () => {
@@ -523,6 +534,7 @@ export function MessageThread({
       const updated = await editMessage(clientId, editingId, text);
       setMessages((cur) => cur.map((m) => (m.id === updated.id ? updated : m)));
       setJustSent((cur) => cur.map((m) => (m.id === updated.id ? updated : m)));
+      subRef.current?.patch(updated.id, updated);
       cancelEdit();
     } catch {
       await alertDialog({ title: t("messages.editUnavailable"), message: t("common.errorGeneric") });
@@ -535,6 +547,7 @@ export function MessageThread({
       const updated = await deleteMessage(clientId, m.id);
       setMessages((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
       setJustSent((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
+      subRef.current?.patch(updated.id, updated);
     } catch {
       await alertDialog({ title: t("messages.deleteUnavailable"), message: t("common.errorGeneric") });
     }
@@ -546,6 +559,7 @@ export function MessageThread({
       const updated = await reactToMessage(clientId, m.id, next);
       setMessages((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
       setJustSent((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
+      subRef.current?.patch(updated.id, updated);
     } catch {
       // Non-fatal — the next poll tick will show the real state either way.
     }

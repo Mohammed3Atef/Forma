@@ -761,6 +761,23 @@ export interface Exercise {
   /** Demo image (e.g. seeded library); coaches may still attach a video. */
   imageUrl?: string | null;
   images?: string[];
+  // ---- Import provenance (seeded/imported exercises only) -------------------
+  /** External catalog id this row was imported from (e.g. a wger exercise id). */
+  sourceId?: string;
+  sourceProvider?: 'wger';
+  /** Raw category name from the source provider (kept distinct from `category`, which uses Forma's own vocabulary). */
+  sourceCategory?: string;
+  /** Full primary+secondary muscle name list from the source provider (richer than `targetMuscle`). */
+  muscles?: string[];
+  secondaryMuscles?: string[];
+  /** Structured equipment list from the source provider (alongside the legacy joined `equipment` string). */
+  equipmentList?: string[];
+  // ---- Library → template/plan link (embedded copies only; never set on a
+  // real `coachExercises` library doc) ----------------------------------------
+  /** The coach-library exercise id this embedded copy was picked from. */
+  libraryExerciseId?: string;
+  /** Whether this embedded copy still receives auto-sync from the library exercise (see `pickFromLibrary`/`SYNCED_EXERCISE_FIELDS`). */
+  librarySyncEnabled?: boolean;
 }
 
 /** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */

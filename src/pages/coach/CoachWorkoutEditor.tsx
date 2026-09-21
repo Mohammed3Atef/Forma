@@ -153,7 +153,7 @@ export function CoachWorkoutEditor() {
           </SubmitButton>
         }
       />
-      <PlanBuilder days={plan.days} exercises={plan.exercises} onChange={change} coachId={coachId} header={header} />
+      <PlanBuilder days={plan.days} exercises={plan.exercises} onChange={change} coachId={coachId} clientId={clientId} header={header} />
       <Sheet open={asTemplate} onClose={() => setAsTemplate(false)} size="md" title={t('coachEditor.saveAsTemplate')}>
         <SaveAsTemplateForm coachId={coachId} plan={plan} onDone={() => setAsTemplate(false)} />
       </Sheet>

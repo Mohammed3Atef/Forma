@@ -13,7 +13,11 @@ export function AccountPending() {
   const recheck = async () => {
     setBusy(true);
     try {
-      await refreshAccount();
+      // This page never renders `session.error` itself — a non-silent
+      // failure here would only leak a stale backend error onto a LATER
+      // visit to the Login screen (the exact bug class this mirrors the fix
+      // for in sessionStore.ts's bootstrap/visibilitychange call sites).
+      await refreshAccount({ silent: true });
     } finally {
       setBusy(false);
     }

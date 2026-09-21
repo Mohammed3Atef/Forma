@@ -416,6 +416,22 @@ input[type='number'] {
   animation: fadeIn 0.3s var(--ease-card) both;
 }
 
+/* Toast auto-dismiss countdown — shrinks edge-to-edge over the toast's own
+   lifetime (duration set per-instance via inline `animationDuration`). */
+@keyframes toastShrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+.toast-timer {
+  animation-name: toastShrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
 /* Attention pulse for coach broadcast messages (announcement/offer/…). The
    glow colour is set per-category via the `--flash` custom property. */
 @keyframes flashAttn {
@@ -484,6 +500,11 @@ input[type='number'] {
   .sk {
     animation: none;
     transition: none;
+  }
+  /* A static bar (no shrink animation) would misleadingly imply unlimited
+     time — hide it instead; the toast still auto-dismisses on its timer. */
+  .toast-timer {
+    display: none;
   }
   /* Never leave reveal content stuck invisible when motion is off. */
   .reveal {

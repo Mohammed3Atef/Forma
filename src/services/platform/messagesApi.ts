@@ -58,14 +58,30 @@ export async function listMessages(clientId: string, max = 200): Promise<Message
 /**
  * Polling replacement for the old Firestore listener: fetches the thread on an
  * interval and re-emits the (trimmed) list, oldest first. Returns an
- * unsubscribe that stops the interval.
+ * unsubscribe that stops the interval — callable exactly as before, but also
+ * carries a `.patch()` method (see `MessageSubscription`) so a caller whose
+ * own mutation (react/edit/delete) just changed a message locally can update
+ * THIS loop's internal `all` cache too. Without that, the very next poll
+ * tick emits `all` unchanged — a `since`-cursor tick never re-fetches an
+ * already-seen message just because its `reactions`/`body`/`deletedAt`
+ * changed, only `createdAt` moving the cursor forward — which overwrites the
+ * caller's local update back to the old state until the next full-refresh
+ * tick (up to `FULL_REFRESH_EVERY` ticks later) catches it up again. That
+ * revert-then-restore is exactly the "reaction added, disappears, comes back
+ * a few seconds later" symptom.
  */
+export interface MessageSubscription {
+  (): void;
+  /** Patch one message in this loop's own cache so the next poll tick doesn't emit a stale copy over a just-applied local change. */
+  patch: (id: string, updated: Message) => void;
+}
+
 export function subscribeMessages(
   clientId: string,
   cb: (msgs: Message[]) => void,
   max = 200,
   intervalMs = THREAD_POLL_MS,
-): () => void {
+): MessageSubscription {
   let cancelled = false;
   let cursor: number | undefined;
   let all: Message[] = [];
@@ -91,10 +107,15 @@ export function subscribeMessages(
 
   void poll();
   const interval = setInterval(() => void poll(), intervalMs);
-  return () => {
+  const unsubscribe = (() => {
     cancelled = true;
     clearInterval(interval);
+  }) as MessageSubscription;
+  unsubscribe.patch = (id, updated) => {
+    const idx = all.findIndex((m) => m.id === id);
+    if (idx !== -1) all = [...all.slice(0, idx), updated, ...all.slice(idx + 1)];
   };
+  return unsubscribe;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '@/components/Icon';
 
 export interface TabDef {
@@ -45,11 +46,12 @@ export function Tabs({
   testIdPrefix?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const onColor = 'bg-gradient-brand text-brand-ink';
   return (
     <div
       role="tablist"
-      aria-label="Sections"
+      aria-label={t('common.sections')}
       className={`-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
     >
       {tabs.map((tab) => {

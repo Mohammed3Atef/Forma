@@ -132,6 +132,39 @@ export const STARTER_FOODS: StarterFood[] = [
   fd('pomegranate', 'Pomegranate', 'رمان', '100 g', 83, 1.7, 19, 1.2, 'Fruits'),
 ];
 
+// ---- Supplements (the dedicated `coachSupplements` resource — distinct from
+// the "Supplements"-category FOOD items above, which are LibraryFood rows) --
+
+export interface StarterSupplement {
+  id: string;
+  name: string;
+  dose: LocalizedText;
+  timing?: LocalizedText;
+  category?: string;
+}
+
+function sp(slug: string, name: string, doseEn: string, doseAr: string, timingEn?: string, timingAr?: string): StarterSupplement {
+  return {
+    id: `seed-supp-${slug}`,
+    name,
+    dose: { en: doseEn, ar: doseAr },
+    ...(timingEn ? { timing: { en: timingEn, ar: timingAr ?? timingEn } } : {}),
+  };
+}
+
+export const STARTER_SUPPLEMENTS: StarterSupplement[] = [
+  sp('whey-protein', 'Whey Protein Isolate', '1 scoop (30 g)', 'سكوب واحد (٣٠ جم)', 'Post-workout or between meals', 'بعد التمرين أو بين الوجبات'),
+  sp('creatine-mono', 'Creatine Monohydrate', '5 g', '٥ جم', 'Any time, daily', 'في أي وقت يوميًا'),
+  sp('multivitamin', 'Multivitamin', '1 tablet', 'قرص واحد', 'With breakfast', 'مع الفطار'),
+  sp('omega-3', 'Omega-3 Fish Oil', '1–2 g', '١-٢ جم', 'With a meal', 'مع وجبة'),
+  sp('vitamin-d3', 'Vitamin D3', '1 capsule (2000–4000 IU)', 'كبسولة واحدة (٢٠٠٠-٤٠٠٠ وحدة)', 'With a fat-containing meal', 'مع وجبة فيها دهون'),
+  sp('magnesium', 'Magnesium Glycinate', '200–400 mg', '٢٠٠-٤٠٠ مجم', 'Before bed', 'قبل النوم'),
+  sp('electrolytes', 'Electrolyte Mix', '1 serving', 'حصة واحدة', 'During/after training', 'خلال أو بعد التمرين'),
+  sp('caffeine', 'Caffeine / Pre-Workout', '150–300 mg', '١٥٠-٣٠٠ مجم', '20–30 min before training', '٢٠-٣٠ دقيقة قبل التمرين'),
+  sp('bcaa', 'BCAA', '5–10 g', '٥-١٠ جم', 'Around training', 'حول وقت التمرين'),
+  sp('casein', 'Casein Protein', '1 scoop (30 g)', 'سكوب واحد (٣٠ جم)', 'Before bed', 'قبل النوم'),
+];
+
 // ---- Food groups (approved-alternative sets) -------------------------------
 
 export interface StarterFoodGroup {

@@ -99,13 +99,28 @@ function ClientGate() {
       await useHabits.getState().refresh(day);
     };
     void refresh();
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+    // Both listeners exist because neither alone covers every "came back to
+    // this app" case: `visibilitychange` fires when this tab is un-hidden
+    // (switching tabs, restoring from the taskbar) but NOT when the browser
+    // window merely loses/regains OS focus while staying visible (e.g. two
+    // windows open side-by-side — coach in one, client in the other); `focus`
+    // covers that but not the tab-switch case. There's no push/WebSocket layer
+    // (Vercel serverless can't hold one), so this refetch-on-return is how the
+    // client sees a coach's just-made change without a manual reload.
+    let inFlight = false;
+    const onReturn = () => {
+      if (document.visibilityState !== 'visible' || inFlight) return;
+      inFlight = true;
+      void refresh().finally(() => {
+        inFlight = false;
+      });
     };
-    document.addEventListener('visibilitychange', onVisible);
+    document.addEventListener('visibilitychange', onReturn);
+    window.addEventListener('focus', onReturn);
     return () => {
       cancelled = true;
-      document.removeEventListener('visibilitychange', onVisible);
+      document.removeEventListener('visibilitychange', onReturn);
+      window.removeEventListener('focus', onReturn);
     };
   }, [submitted, uid, displayName]);
 

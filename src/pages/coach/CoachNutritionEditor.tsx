@@ -17,6 +17,7 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { parseDecimal, uid } from '@/lib/utils';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
 import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
+import { FoodSearchPicker } from '@/components/workout/FoodSearchPicker';
 import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
@@ -494,6 +495,11 @@ export function CoachNutritionEditor() {
                 <div className="my-3 h-px bg-line-soft" />
               </div>
             )}
+            <div>
+              <label className="label mb-1.5 block">{t('coachEditor.searchFoodDatabase')}</label>
+              <FoodSearchPicker onPick={(f) => setEditing({ ...editing, form: { ...editing.form, name: f.name, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) } })} />
+              <div className="my-3 h-px bg-line-soft" />
+            </div>
             <TextInput label={t('field.name')} data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
             <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
             <div className="grid grid-cols-2 gap-2">

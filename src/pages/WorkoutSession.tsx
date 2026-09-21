@@ -151,8 +151,18 @@ export function WorkoutSession() {
       </div>
     );
   }
-  // Resuming a persisted session: the effect above is re-pointing `active`.
-  if (!active) return null;
+  // Resuming a persisted session: the effect above is re-pointing `active` —
+  // a brief gap where there's real data to resume but it isn't wired up yet.
+  // A bare `null` here used to flash a blank screen; show a lightweight
+  // in-progress state instead, matching the sibling branches above.
+  if (!active) {
+    return (
+      <div className="space-y-4 pt-16 text-center">
+        <Icon name="rotate" size={22} className="mx-auto animate-spin text-earth-subtle" />
+        <p className="text-earth-muted">{t('auth.working')}</p>
+      </div>
+    );
+  }
 
   const day = plan.days.find((d) => d.id === active.dayId);
   const recording = !!active.startedAt || active.finished;

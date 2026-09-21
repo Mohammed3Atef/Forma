@@ -35,7 +35,7 @@ export function CoachViewProgress({ clientId }: { clientId: string }) {
       {/* Bodyweight trend + history */}
       {weights.length > 0 && (
         <div className="card">
-          <h2 className="mb-2 font-bold">{t('progress.bodyweight')}</h2>
+          <h2 className="mb-2 font-bold">{t('gt.bodyweight')}</h2>
           {weightDelta != null && weightDelta !== 0 && (
             <p className="mb-2 text-sm text-earth">
               {t(weightDelta < 0 ? 'gt.weightDown' : 'gt.weightUp', { n: Math.abs(weightDelta) })}
