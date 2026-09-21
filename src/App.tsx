@@ -63,7 +63,7 @@ export function App() {
   useEffect(() => {
     if (!cloudAvailable()) return; // local-only mode has no identity doc to re-read
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void useSession.getState().refreshAccount();
+      if (document.visibilityState === 'visible') void useSession.getState().refreshAccount({ silent: true });
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);

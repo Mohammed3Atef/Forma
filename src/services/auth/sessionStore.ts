@@ -41,8 +41,17 @@ interface SessionState {
    */
   hydrate: (user: MongoUserRecord) => void;
   signOut: () => Promise<void>;
-  /** Re-fetches the signed-in user's own identity doc and recomputes `phase`. */
-  refreshAccount: () => Promise<void>;
+  /**
+   * Re-fetches the signed-in user's own identity doc and recomputes `phase`.
+   * `silent` (used by the bootstrap/background call sites — `init()`'s
+   * session restore and `App.tsx`'s visibilitychange refetch) skips setting
+   * `error` on failure: those callers run without the user having done
+   * anything, so a raw backend error ("Not authenticated") must never appear
+   * on the Login screen as if it were a response to a login attempt. An
+   * explicit user action (e.g. AccountPending's "check again" button) keeps
+   * the error surfaced.
+   */
+  refreshAccount: (opts?: { silent?: boolean }) => Promise<void>;
   updateContact: (phone: string) => Promise<void>;
   updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>) => Promise<void>;
   /** Sends a password-reset email (works while signed out). */
@@ -75,7 +84,7 @@ export const useSession = create<SessionState>((set, get) => ({
         set({ phase: 'anonymous', uid: null, account: null });
         return;
       }
-      await get().refreshAccount();
+      await get().refreshAccount({ silent: true });
     })();
   },
 
@@ -128,7 +137,7 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ phase: 'anonymous', uid: null, account: null });
   },
 
-  async refreshAccount() {
+  async refreshAccount(opts) {
     try {
       const user = await mongoAuth.me();
       set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
@@ -139,7 +148,12 @@ export const useSession = create<SessionState>((set, get) => ({
       // clear it too, matching what `signOut()` does, instead of leaving a
       // stale token sitting in memory alongside the now-anonymous phase.
       setAccessToken(null);
-      set({ phase: 'anonymous', uid: null, account: null, error: e instanceof Error ? e.message : 'Failed to load account' });
+      set({
+        phase: 'anonymous',
+        uid: null,
+        account: null,
+        ...(opts?.silent ? {} : { error: e instanceof Error ? e.message : 'Failed to load account' }),
+      });
     }
   },
 
