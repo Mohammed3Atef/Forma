@@ -24,7 +24,7 @@ interface TopBarProps {
 
 /** Screen header: optional back chevron + copper eyebrow + H1, optional right slot. */
 export function TopBar({ title, eyebrow, sub, right, onBack, onTitleClick, sticky, dense, avatar, testId }: TopBarProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const rtl = i18n.dir() === 'rtl';
   // `.h1`/`.h2` use a very tight line-height; with `truncate` (overflow-hidden)
   // that clips glyph tops/bottoms — worse in RTL (deep descenders). Give the
@@ -34,14 +34,16 @@ export function TopBar({ title, eyebrow, sub, right, onBack, onTitleClick, stick
   return (
     <div
       className={`flex ${dense ? 'items-center' : 'items-end'} justify-between ${pad} ${sticky ? 'sticky z-20 -mx-5 bg-surface/95 px-5 backdrop-blur-md' : ''}`}
-      // Stick BELOW the sticky BrandBar (logo h-9 = 2.25rem + its top padding),
-      // otherwise both pin to top-0 and the BrandBar clips this title.
-      style={sticky ? { top: 'calc(2.25rem + max(0.75rem, env(safe-area-inset-top, 0px)))' } : undefined}
+      // Stick BELOW the sticky BrandBar, otherwise both pin to top-0 and the
+      // BrandBar clips this title. TopBar only ever renders inside the
+      // mobile shell (BrandBar), never the desktop one — see DetailPanel.tsx
+      // for the equivalent desktop-shell offset.
+      style={sticky ? { top: 'calc(var(--brandbar-logo-h) + max(0.75rem, env(safe-area-inset-top, 0px)))' } : undefined}
       data-testid={testId}
     >
       <div className="flex min-w-0 items-center gap-3">
         {onBack && (
-          <button type="button" onClick={onBack} className={`icon-btn ${dense ? 'h-9 w-9' : 'h-[42px] w-[42px]'}`} aria-label="Back">
+          <button type="button" onClick={onBack} className={`icon-btn ${dense ? 'h-9 w-9' : 'h-11 w-11'}`} aria-label={t('common.back')}>
             <Icon name="chevronLeft" size={20} className={rtl ? 'rotate-180' : ''} />
           </button>
         )}

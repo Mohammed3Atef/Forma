@@ -5,8 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { CheckInSummary } from '@/components/CheckInSummary';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns, requestCheckIn, reviewCheckIn } from '@/services/platform/checkInApi';
+import { alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { shortDate, today, weekRange } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { CheckInStatus, WeeklyCheckIn } from '@/types';
@@ -27,13 +31,20 @@ export function CoachCheckIns() {
   const list = useQuery({ queryKey: ['checkIns', clientId], queryFn: () => listCheckIns(clientId), enabled: !!clientId });
   const checkIns = list.data ?? [];
 
-  const invalidate = () => void qc.invalidateQueries({ queryKey: ['checkIns', clientId] });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['checkIns', clientId] });
+    void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
+  };
   const thisWeek = weekRange(today());
   const weekExists = checkIns.some((c) => c.weekStart === thisWeek.weekStart);
 
   const request = useMutation({
     mutationFn: () => requestCheckIn(coachId, clientId, thisWeek.weekStart, thisWeek.weekEnd),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      showToast({ title: t('checkin.request'), variant: 'success' });
+    },
+    onError: (e) => void alertDialog({ title: t('checkin.request'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   return (
@@ -52,9 +63,9 @@ export function CoachCheckIns() {
 
       <div className="mt-4 space-y-2">
         {list.isLoading ? (
-          <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+          <LoadingState variant="list" count={3} />
         ) : checkIns.length === 0 ? (
-          <p className="py-8 text-center text-sm text-earth-muted">{t('checkin.noCheckins')}</p>
+          <EmptyState icon="calendar" title={t('checkin.noCheckins')} message={t('checkin.noCheckinsCoachMessage')} />
         ) : (
           checkIns.map((c) => (
             <CheckInRow key={c.id} checkIn={c} onReviewed={invalidate} locale={i18n.language} />
@@ -71,7 +82,12 @@ function CheckInRow({ checkIn, onReviewed, locale }: { checkIn: WeeklyCheckIn; o
   const [feedback, setFeedback] = useState(checkIn.coachFeedback ?? '');
   const review = useMutation({
     mutationFn: () => reviewCheckIn(checkIn.clientId, checkIn.id, feedback),
-    onSuccess: () => { setOpen(false); onReviewed(); },
+    onSuccess: () => {
+      setOpen(false);
+      onReviewed();
+      showToast({ title: t('checkin.markReviewed'), variant: 'success' });
+    },
+    onError: (e) => void alertDialog({ title: t('checkin.markReviewed'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   return (

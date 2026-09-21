@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,15 +7,18 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { Pagination } from '@/components/ui/Pagination';
 import { DashboardSection } from '@/components/ui/DashboardSection';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
-import { fetchByRole, fetchUser } from '@/services/platform/accountsApi';
+import { fetchByRole } from '@/services/platform/accountsApi';
 import { assignClientToCoach, unassignClient } from '@/services/platform/coachClientsApi';
 import { listPendingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
 import { fetchCoachAdmin } from '@/services/platform/adminCoachesApi';
 import { TransferWizard } from '@/components/coach/TransferWizard';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import type { ClientTransferRequest, UserRecord } from '@/types';
 
 const DAY_MS = 86_400_000;
@@ -32,6 +35,7 @@ export function AdminAssignments() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<UserRecord | null>(null);
   const [wizard, setWizard] = useState<{ client: UserRecord; presetCoachId?: string } | null>(null);
+  const [wizardFooter, setWizardFooter] = useState<ReactNode>(null);
 
   const clients = useQuery({ queryKey: ['usersByRole', 'client'], queryFn: () => fetchByRole('client') });
   const coaches = useQuery({ queryKey: ['usersByRole', 'coach'], queryFn: () => fetchByRole('coach') });
@@ -52,60 +56,76 @@ export function AdminAssignments() {
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['usersByRole', 'client'] });
-    void qc.invalidateQueries({ queryKey: ['users'] });
     void qc.invalidateQueries({ queryKey: ['pendingTransfers'] });
+    // A reassignment changes a coach's real client count — this page's own
+    // "Coach capacity" panel (`coachAdmin`, below) reads that count, so it
+    // must be invalidated here too or it can show a stale capacity for up to
+    // its 120s staleTime right after the very action that changed it. This
+    // used to invalidate the top-level `['users']` key instead, which forces
+    // every OTHER page's cached user list/filter/page variant (Accounts,
+    // Members, etc.) to refetch for a single client's reassignment — broader
+    // than what actually changed, without even covering the data this page
+    // itself depends on.
+    void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
   };
 
-  // Pending takeover requests across all coaches (admin oversight).
-  const pendingReqs = useQuery({
+  // Pending takeover requests across all coaches (admin oversight). This used
+  // to enrich each request with 3 `fetchUser` calls (client, requesting coach,
+  // current coach); `clients`/`coaches` above already loaded every client and
+  // every coach for this same page, so the enrichment is now a local lookup —
+  // zero extra requests, not just fewer of them.
+  const pendingReqsQuery = useQuery({
     queryKey: ['pendingTransfers'],
-    queryFn: async () => {
-      const reqs = await listPendingTransferRequests();
-      return Promise.all(
-        reqs.map(async (req) => {
-          const warnAndNull = (who: string) => (e: unknown) => {
-            console.warn(`[AdminAssignments] fetchUser failed for ${who}:`, e);
-            return null;
-          };
-          const [client, requester, current] = await Promise.all([
-            fetchUser(req.clientId).catch(warnAndNull('clientId')),
-            fetchUser(req.toCoachId).catch(warnAndNull('toCoachId')),
-            fetchUser(req.fromCoachId).catch(warnAndNull('fromCoachId')),
-          ]);
-          return {
-            req,
-            clientName: client?.displayName || client?.email || req.clientId,
-            requesterName: requester?.displayName || requester?.email || req.toCoachId,
-            currentName: current?.displayName || current?.email || req.fromCoachId,
-            client,
-          };
-        }),
-      );
-    },
+    queryFn: () => listPendingTransferRequests(),
     enabled: canAssign,
   });
+  const clientById = useMemo(() => new Map((clients.data ?? []).map((c) => [c.id, c])), [clients.data]);
+  const pendingReqs = useMemo(
+    () =>
+      (pendingReqsQuery.data ?? []).map((req) => {
+        const client = clientById.get(req.clientId) ?? null;
+        return {
+          req,
+          clientName: client?.displayName || client?.email || req.clientId,
+          requesterName: coachName.get(req.toCoachId) ?? req.toCoachId,
+          currentName: coachName.get(req.fromCoachId) ?? req.fromCoachId,
+          client,
+        };
+      }),
+    [pendingReqsQuery.data, clientById, coachName],
+  );
 
   const assignMut = useMutation({
     mutationFn: ({ client, coachId }: { client: UserRecord; coachId: string }) => assignClientToCoach(coachId, client.id, actorId),
     onSuccess: () => {
       refresh();
       setSelected(null);
+      showToast({ title: t('common.saved'), variant: 'success' });
     },
+    onError: (e) => void alertDialog({ title: t('admin.assignClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const unassignMut = useMutation({
     mutationFn: (client: UserRecord) => unassignClient(client.id, client.assignedCoachId!, actorId),
     onSuccess: () => {
       refresh();
       setSelected(null);
+      showToast({ title: t('common.removed'), variant: 'success' });
     },
+    onError: (e) => void alertDialog({ title: t('admin.unassign'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const rejectReqMut = useMutation({
     mutationFn: (r: ClientTransferRequest) => resolveTransferRequest(r.toCoachId, r.clientId, actorId, 'rejected'),
-    onSuccess: refresh,
+    onSuccess: () => { refresh(); showToast({ title: t('transferReq.rejectDone'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('transferReq.reject'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
+  const doRejectReq = async (r: ClientTransferRequest, requesterName: string) => {
+    if (await confirmDialog({ title: t('transferReq.reject'), message: t('transferReq.confirmReject', { coach: requesterName }), danger: true })) {
+      rejectReqMut.mutate(r);
+    }
+  };
 
   // Real per-coach capacity — matches the design's `assign()` second section.
-  const coachAdmin = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: canAssign, staleTime: 120_000 });
+  const coachAdmin = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), enabled: canAssign, staleTime: 120_000 });
   const capacityRows = useMemo(() => {
     const rows = coachAdmin.data?.rows ?? [];
     return rows
@@ -156,11 +176,11 @@ export function AdminAssignments() {
       <TopBar testId="admin-assignments" title={t('admin.assignments')} eyebrow={t('platform.superAdmin')} />
 
       {/* Pending takeover requests (coach → admin/current-coach) */}
-      {(pendingReqs.data ?? []).length > 0 && (
+      {pendingReqs.length > 0 && (
         <div className="mb-4 space-y-2" data-testid="admin-pending-transfers">
           <p className="label">{t('transferReq.pendingTitle')}</p>
           <div className="card divide-y divide-line-soft p-0">
-            {(pendingReqs.data ?? []).map(({ req, clientName, requesterName, currentName, client }) => {
+            {pendingReqs.map(({ req, clientName, requesterName, currentName, client }) => {
               const days = Math.floor((Date.now() - req.requestedAt) / DAY_MS);
               return (
                 <div key={req.id} className="px-3 py-3" data-testid="admin-transfer-request" data-client-id={req.clientId}>
@@ -182,7 +202,7 @@ export function AdminAssignments() {
                     >
                       {t('transfer.action')}
                     </button>
-                    <button type="button" data-testid="admin-transfer-reject" className="btn-ghost h-9 flex-1 text-[13px] text-danger" disabled={rejectReqMut.isPending} onClick={() => rejectReqMut.mutate(req)}>
+                    <button type="button" data-testid="admin-transfer-reject" className="btn-ghost h-9 flex-1 text-[13px] text-danger" disabled={rejectReqMut.isPending} onClick={() => void doRejectReq(req, requesterName)}>
                       {t('transferReq.reject')}
                     </button>
                   </div>
@@ -221,9 +241,14 @@ export function AdminAssignments() {
       </div>
 
       {clients.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={5} />
       ) : filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('admin.noClients')}</p>
+        <EmptyState
+          icon="search"
+          title={t('admin.noClients')}
+          message={t('admin.noClientsMessage')}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button>}
+        />
       ) : (
         <>
           <div className="card divide-y divide-line-soft">
@@ -284,13 +309,13 @@ export function AdminAssignments() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-earth-muted">{t('admin.noCoaches')}</p>
+              <EmptyState icon="user" title={t('admin.noCoaches')} message={t('admin.noCoachesMessage')} />
             )}
           </div>
         )}
       </Sheet>
 
-      <Sheet open={!!wizard} onClose={() => setWizard(null)} size="wizard" title={t('transfer.title')}>
+      <Sheet open={!!wizard} onClose={() => setWizard(null)} size="wizard" title={t('transfer.title')} footer={wizardFooter}>
         {wizard && (
           <TransferWizard
             client={wizard.client}
@@ -301,6 +326,7 @@ export function AdminAssignments() {
             presetCoachId={wizard.presetCoachId}
             onCancel={() => setWizard(null)}
             onDone={() => { setWizard(null); refresh(); }}
+            onFooterChange={setWizardFooter}
           />
         )}
       </Sheet>

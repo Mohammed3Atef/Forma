@@ -38,7 +38,7 @@ export function ResponsiveShell({
           <DesktopTopBar />
         </div>
         <ReminderBanner />
-        <main className={`mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-28 pt-1 md:px-6 md:pb-8 md:pt-5 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
+        <main className={`mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-1 md:px-6 md:pb-8 md:pt-5 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
           {children}
         </main>
         <div className="md:hidden">

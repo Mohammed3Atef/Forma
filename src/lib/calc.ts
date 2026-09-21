@@ -97,19 +97,57 @@ export function prByExercise(logs: WorkoutLog[]): Map<string, ExercisePR> {
   return best;
 }
 
-/** Top working-set e1rm trend for one exercise across recent finished sessions. */
-export function exerciseTrend(logs: WorkoutLog[], exerciseId: string, limit = 8): number[] {
+export interface TrendPoint {
+  date: string; // YYYY-MM-DD, the finished session's date
+  value: number;
+}
+
+/** Top working-set e1rm trend for one exercise across recent finished sessions, newest last. */
+export function exerciseTrend(logs: WorkoutLog[], exerciseId: string, limit = 8): TrendPoint[] {
   return logs
     .filter((l) => l.finished)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((l) => {
       const ex = l.exercises.find((e) => e.exerciseId === exerciseId);
-      if (!ex) return 0;
-      return ex.sets.reduce(
-        (best, s) => (s.done && s.weightKg && s.actualReps ? Math.max(best, e1rm(s.weightKg, s.actualReps)) : best),
-        0,
-      );
+      const best = ex
+        ? ex.sets.reduce((m, s) => (s.done && s.weightKg && s.actualReps ? Math.max(m, e1rm(s.weightKg, s.actualReps)) : m), 0)
+        : 0;
+      return { date: l.date, value: best };
     })
-    .filter((v) => v > 0)
+    .filter((p) => p.value > 0)
     .slice(-limit);
+}
+
+export interface WeeklyVolumeBucket {
+  value: number; // total completed-set volume (kg) logged in that week
+  weekStart: string; // YYYY-MM-DD, the bucket's week-start day (weekStartOf)
+}
+
+/**
+ * Total logged volume per week for the trailing `weeks` weeks (default 8),
+ * bucketed by the same week-start convention as the rest of the app
+ * (`weekStartOf`). Shared by Home's "Volume trend" and Progress's "Weekly
+ * volume" charts — previously duplicated independently in both places, which
+ * risked the two drifting out of sync. Returns oldest → newest (last bucket
+ * = the current week); no i18n/label text — callers own that.
+ */
+export function weeklyVolumeTrend(logs: WorkoutLog[], weekStartOf: (d: Date) => Date, now = new Date(), weeks = 8): WeeklyVolumeBucket[] {
+  const parseDay = (key: string): Date => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const curMon = weekStartOf(now).getTime();
+  const buckets = Array.from({ length: weeks }, () => 0);
+  logs
+    .filter((l) => l.finished)
+    .forEach((l) => {
+      const wkMon = weekStartOf(parseDay(l.date)).getTime();
+      const idx = weeks - 1 - Math.round((curMon - wkMon) / (7 * 86_400_000));
+      if (idx >= 0 && idx < weeks) buckets[idx] += logVolume(l);
+    });
+  return buckets.map((value, i) => {
+    const d = new Date(curMon);
+    d.setDate(d.getDate() - (weeks - 1 - i) * 7);
+    return { value, weekStart: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` };
+  });
 }

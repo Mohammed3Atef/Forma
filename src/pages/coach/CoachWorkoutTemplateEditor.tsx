@@ -4,7 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { TextInput } from '@/components/ui/Field';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { showToast } from '@/stores/toastStore';
 import { PlanBuilder } from '@/components/workout/PlanBuilder';
 import { useSession } from '@/services/auth/sessionStore';
 import { uid } from '@/lib/utils';
@@ -67,6 +70,7 @@ export function CoachWorkoutTemplateEditor() {
       baselineRef.current = JSON.stringify(tpl);
       void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
       void qc.invalidateQueries({ queryKey: ['workoutTemplate', coachId, tpl!.id] });
+      showToast({ title: t('common.saved'), variant: 'success' });
       navigate(`/coach/templates/${tpl!.id}`); // back to the read-only preview
     },
   });
@@ -77,7 +81,14 @@ export function CoachWorkoutTemplateEditor() {
     navigate(isNew ? '/coach/templates' : `/coach/templates/${templateId}`);
   };
 
-  if (!tpl) return null;
+  if (!tpl) {
+    return (
+      <>
+        <TopBar testId="coach-template-editor" title={t('workoutTemplate.editorTitle')} eyebrow={t('platform.coachPortal')} onBack={() => void exit()} />
+        <LoadingState variant="list" count={4} />
+      </>
+    );
+  }
 
   const patch = (p: Partial<WorkoutTemplate>) => setTpl((cur) => (cur ? { ...cur, ...p } : cur));
   const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => patch({ days, exercises });
@@ -118,9 +129,9 @@ export function CoachWorkoutTemplateEditor() {
         eyebrow={t('platform.coachPortal')}
         onBack={() => void exit()}
         right={
-          <button type="button" data-testid="template-save" disabled={save.isPending || !tpl.name.trim()} className="btn-primary h-[42px] px-4 text-xs disabled:opacity-40" onClick={() => save.mutate()}>
+          <SubmitButton type="button" data-testid="template-save" pending={save.isPending} disabled={!tpl.name.trim()} className="h-[42px] px-4 text-xs" onClick={() => save.mutate()}>
             {t('common.save')}
-          </button>
+          </SubmitButton>
         }
       />
       <div data-testid="coach-desktop-plan-builder">

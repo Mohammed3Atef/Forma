@@ -1,23 +1,20 @@
-import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { DashboardSection } from '@/components/ui/DashboardSection';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { BarChart } from '@/components/charts';
 import type { CoachDashboard } from '@/services/platform/coachDashboardApi';
-import { firstName } from './parts';
 
+/**
+ * Fleet-wide engagement KPIs. The per-client "who's most/least active"
+ * breakdown used to be duplicated here as a top-8 bar chart (same sort as
+ * Reports' full ranking table, just less complete and with the misleading
+ * last-bar "current" highlight) — removed in favor of one link to the real
+ * ranking on the Reports page instead of showing two versions of it.
+ */
 export function EngagementPanel({ d }: { d: CoachDashboard }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const assessmentCompletion = d.totalClients ? Math.round((d.assessmentsReviewed / d.totalClients) * 100) : 0;
-  const chart = useMemo(
-    () =>
-      [...d.clients]
-        .sort((a, b) => b.workouts7d - a.workouts7d)
-        .slice(0, 8)
-        .map((c) => ({ label: firstName(c.client.displayName || c.client.email), value: c.workouts7d })),
-    [d.clients],
-  );
 
   return (
     <div className="space-y-6">
@@ -29,14 +26,12 @@ export function EngagementPanel({ d }: { d: CoachDashboard }) {
         <MetricCard icon="chat" value={d.unreadMessages} label={t('coachDash.unread')} tone={d.unreadMessages > 0 ? 'danger' : 'default'} />
       </div>
 
-      <DashboardSection title={t('coachDash.adherenceOverview')} icon="chart">
-        {chart.length === 0 || chart.every((c) => c.value === 0) ? (
-          <EmptyState icon="chart" title={t('coachDash.noClients')} />
-        ) : (
-          <div className="card">
-            <BarChart data={chart} />
-          </div>
-        )}
+      <DashboardSection
+        title={t('coachDash.adherenceOverview')}
+        icon="chart"
+        action={<button type="button" className="sec-link" onClick={() => navigate('/coach/reports')}>{t('coachDash.viewFullRanking')}</button>}
+      >
+        <p className="text-sm text-earth-muted">{t('coachDash.rankingMovedHint')}</p>
       </DashboardSection>
     </div>
   );

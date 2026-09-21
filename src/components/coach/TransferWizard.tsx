@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SelectField, TextInput } from '@/components/ui/Field';
 import { transferClientWithMode, type ClientSubscriptionInput } from '@/services/platform/coachClientsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { confirmDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { parseDecimal } from '@/lib/utils';
 import type { SubscriptionStatus, TransferMode, TransferSubHandling, UserRecord } from '@/types';
 
@@ -24,6 +26,7 @@ export function TransferWizard({
   presetCoachId,
   onDone,
   onCancel,
+  onFooterChange,
 }: {
   client: UserRecord;
   fromCoachId: string | undefined;
@@ -33,12 +36,17 @@ export function TransferWizard({
   presetCoachId?: string;
   onDone: () => void;
   onCancel: () => void;
+  /** Reports the step-nav footer up to the caller's Sheet `footer` prop, so it stays pinned below the scrolling body. */
+  onFooterChange: (footer: ReactNode) => void;
 }) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
   const [step, setStep] = useState(1);
   const [toCoachId, setToCoachId] = useState<string | null>(presetCoachId ?? null);
-  const [mode, setMode] = useState<TransferMode>(canFreshStart ? 'fresh_start' : 'keep_plans');
+  // Default to the non-destructive option — Fresh Start (which archives the
+  // client's plans/notes/messages/check-ins) requires an explicit pick, never
+  // a pre-selected default.
+  const [mode, setMode] = useState<TransferMode>('keep_plans');
   const [subHandling, setSubHandling] = useState<TransferSubHandling>('keep');
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>('pending');
   const [months, setMonths] = useState('1');
@@ -47,6 +55,9 @@ export function TransferWizard({
 
   const targets = coaches.filter((c) => c.id !== fromCoachId);
   const toCoachName = coaches.find((c) => c.id === toCoachId)?.displayName || coaches.find((c) => c.id === toCoachId)?.email || '';
+
+  const monthsInvalid = subStatus === 'active' && months.trim() !== '' && !(parseDecimal(months) >= 1);
+  const priceInvalid = price.trim() !== '' && parseDecimal(price) < 0;
 
   const buildSub = (): ClientSubscriptionInput | undefined => {
     if (subHandling !== 'new') return undefined;
@@ -57,10 +68,63 @@ export function TransferWizard({
     return sub;
   };
 
+  const [runError, setRunError] = useState<string | null>(null);
   const run = useMutation({
     mutationFn: () => transferClientWithMode(client.id, fromCoachId, toCoachId!, mode, subHandling, actorId, buildSub()),
-    onSuccess: onDone,
+    onSuccess: () => {
+      showToast({ title: t('transfer.confirm'), variant: 'success' });
+      onDone();
+    },
+    onError: (e) => setRunError(e instanceof Error ? e.message : t('common.errorGeneric')),
   });
+  const doRun = async () => {
+    setRunError(null);
+    if (mode === 'fresh_start') {
+      const ok = await confirmDialog({
+        title: t('transfer.typeFresh'),
+        message: t('transfer.confirmFreshStart', { name: client.displayName || client.email, coach: toCoachName }),
+        confirmLabel: t('transfer.confirm'),
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    run.mutate();
+  };
+
+  const nextDisabled = (step === 1 && !toCoachId) || (step === 3 && subHandling === 'new' && (monthsInvalid || priceInvalid));
+  const footer = (
+    <div className="flex gap-2">
+      <button type="button" className="btn-ghost flex-1" data-testid="transfer-back" onClick={() => (step === 1 ? onCancel() : setStep((s) => s - 1))}>
+        {step === 1 ? t('common.cancel') : t('transfer.back')}
+      </button>
+      {step < 4 ? (
+        <button
+          type="button"
+          className="btn-primary flex-1 disabled:opacity-40"
+          data-testid="transfer-next"
+          disabled={nextDisabled}
+          onClick={() => setStep((s) => s + 1)}
+        >
+          {t('transfer.next')}
+        </button>
+      ) : (
+        <button
+          type="button"
+          data-testid="transfer-confirm"
+          disabled={run.isPending || !online}
+          title={!online ? t('offline.actionDisabled') : undefined}
+          onClick={() => void doRun()}
+          className={`flex-1 disabled:opacity-40 ${mode === 'fresh_start' ? 'btn-danger' : 'btn-primary'}`}
+        >
+          {run.isPending ? t('auth.working') : !online ? t('offline.actionDisabled') : t('transfer.confirm')}
+        </button>
+      )}
+    </div>
+  );
+  // Report the footer up to the caller's Sheet on every relevant change — the
+  // wizard doesn't render its own step nav any more (see `onFooterChange`).
+  useEffect(() => { onFooterChange(footer); }, [step, toCoachId, mode, subHandling, nextDisabled, run.isPending, online, onFooterChange]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onFooterChange(null), [onFooterChange]);
 
   const StepDots = () => (
     <div className="mb-4 flex items-center gap-1.5" data-testid="transfer-steps">
@@ -133,9 +197,9 @@ export function TransferWizard({
       {step === 3 && (
         <div className="space-y-2">
           <p className="label">{t('transfer.step.subscription')}</p>
-          <Option active={subHandling === 'keep'} onClick={() => setSubHandling('keep')} title={t('transfer.subKeep')} desc="" testId="transfer-sub-keep" />
-          <Option active={subHandling === 'new'} onClick={() => setSubHandling('new')} title={t('transfer.subNew')} desc="" testId="transfer-sub-new" />
-          <Option active={subHandling === 'expire'} onClick={() => setSubHandling('expire')} title={t('transfer.subExpire')} desc="" testId="transfer-sub-expire" />
+          <Option active={subHandling === 'keep'} onClick={() => setSubHandling('keep')} title={t('transfer.subKeep')} desc={t('transfer.subKeepDesc')} testId="transfer-sub-keep" />
+          <Option active={subHandling === 'new'} onClick={() => setSubHandling('new')} title={t('transfer.subNew')} desc={t('transfer.subNewDesc')} testId="transfer-sub-new" />
+          <Option active={subHandling === 'expire'} onClick={() => setSubHandling('expire')} title={t('transfer.subExpire')} desc={t('transfer.subExpireDesc')} testId="transfer-sub-expire" />
           {subHandling === 'new' && (
             <div className="space-y-2 pt-1">
               <SelectField label={t('transfer.subStatusLabel')} data-testid="transfer-sub-status" value={subStatus} onChange={(e) => setSubStatus(e.target.value as SubscriptionStatus)}>
@@ -144,10 +208,28 @@ export function TransferWizard({
                 ))}
               </SelectField>
               {subStatus === 'active' && (
-                <TextInput label={t('field.months')} inputMode="numeric" data-testid="transfer-sub-months" placeholder={t('common.min')} value={months} onChange={(e) => setMonths(e.target.value)} />
+                <TextInput
+                  label={t('field.months')}
+                  inputMode="numeric"
+                  data-testid="transfer-sub-months"
+                  placeholder={t('common.min')}
+                  value={months}
+                  onChange={(e) => setMonths(e.target.value)}
+                  error={monthsInvalid ? t('transfer.monthsInvalid') : undefined}
+                  helper={monthsInvalid ? undefined : t('transfer.monthsHelper')}
+                />
               )}
               <div className="flex gap-2">
-                <TextInput label={t('field.price')} fieldClassName="flex-1" inputMode="decimal" data-testid="transfer-sub-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+                <TextInput
+                  label={t('field.price')}
+                  fieldClassName="flex-1"
+                  inputMode="decimal"
+                  data-testid="transfer-sub-price"
+                  placeholder={t('invite.priceOptional')}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  error={priceInvalid ? t('transfer.priceInvalid') : undefined}
+                />
                 <TextInput label={t('field.currency')} fieldClassName="w-24" data-testid="transfer-sub-currency" placeholder="EGP" value={currency} onChange={(e) => setCurrency(e.target.value)} />
               </div>
             </div>
@@ -175,29 +257,9 @@ export function TransferWizard({
             <p><span className="text-earth-subtle">{t('transfer.step.type')}:</span> {t(mode === 'fresh_start' ? 'transfer.typeFresh' : 'transfer.typeKeep')}</p>
             <p><span className="text-earth-subtle">{t('transfer.step.subscription')}:</span> {t(subHandling === 'keep' ? 'transfer.subKeep' : subHandling === 'new' ? 'transfer.subNew' : 'transfer.subExpire')}</p>
           </div>
-          <button type="button" data-testid="transfer-confirm" disabled={run.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => run.mutate()} className="btn-primary w-full disabled:opacity-40">
-            {run.isPending ? t('auth.working') : !online ? t('offline.actionDisabled') : t('transfer.confirm')}
-          </button>
+          {runError && <p className="text-sm text-danger" role="alert" data-testid="transfer-error">{runError}</p>}
         </div>
       )}
-
-      {/* Footer nav */}
-      <div className="flex gap-2">
-        <button type="button" className="btn-ghost flex-1" data-testid="transfer-back" onClick={() => (step === 1 ? onCancel() : setStep((s) => s - 1))}>
-          {step === 1 ? t('common.cancel') : t('transfer.back')}
-        </button>
-        {step < 4 && (
-          <button
-            type="button"
-            className="btn-primary flex-1 disabled:opacity-40"
-            data-testid="transfer-next"
-            disabled={step === 1 && !toCoachId}
-            onClick={() => setStep((s) => s + 1)}
-          >
-            {t('transfer.next')}
-          </button>
-        )}
-      </div>
     </div>
   );
 }

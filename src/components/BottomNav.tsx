@@ -1,14 +1,29 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { CLIENT_NAV, type NavItem } from '@/config/nav';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
+import { confirmLeave, hasNavGuard } from '@/stores/navGuardStore';
+import type { MouseEvent } from 'react';
 
 export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const coachUnread = useCoachMessageUnread(); // 0 unless a coach is signed in
   const clientUnread = useClientMessageUnread(); // 0 unless a client is signed in
+  // A dirty editor (see useUnsavedGuard) must be able to stop a tab switch the
+  // same way it stops any other navigation — NavLink normally navigates on its
+  // own, so when a guard is actually armed this intercepts the click, asks
+  // first, and replays the navigation only once confirmed. No guard armed →
+  // NavLink's own instant navigation is left untouched.
+  const guardedClick = (to: string) => (e: MouseEvent) => {
+    if (!hasNavGuard()) return;
+    e.preventDefault();
+    void confirmLeave().then((ok) => {
+      if (ok) navigate(to);
+    });
+  };
   return (
     <nav
       data-testid="bottom-nav"
@@ -22,6 +37,7 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
               <NavLink
                 to={item.to}
                 end={item.end ?? false}
+                onClick={guardedClick(item.to)}
                 data-testid={`nav-${item.key}`}
                 aria-label={t(`nav.${item.key}`)}
                 className={({ isActive }) =>
@@ -38,6 +54,7 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
               <NavLink
                 to={item.to}
                 end={item.end ?? false}
+                onClick={guardedClick(item.to)}
                 data-testid={`nav-${item.key}`}
                 className={({ isActive }) =>
                   `flex flex-col items-center gap-1.5 py-1.5 ${isActive ? 'text-brand' : 'text-earth-subtle'}`

@@ -9,6 +9,7 @@ import { Slider } from '@/components/Slider';
 import { TagInput } from '@/components/TagInput';
 import { saveAssessmentProgress, submitAssessment } from '@/services/platform/clientCoachApi';
 import { useSettings } from '@/stores/settingsStore';
+import { showToast } from '@/stores/toastStore';
 import { downscaleImage } from '@/lib/image';
 import { parseDecimal } from '@/lib/utils';
 import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
@@ -206,6 +207,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       // Re-edit flow (MyAssessment): refresh the cached status and hand back.
       if (onDone) {
         await qc.invalidateQueries({ queryKey: ['assessment', uid] });
+        showToast({ title: t('common.saved'), variant: 'success' });
         onDone();
         return;
       }
@@ -609,7 +611,7 @@ function PhotoPicker({ pose, uid, url, onChange }: { pose: 'front' | 'side' | 'b
         <span className="font-medium">{t(`progress.${pose}`)}</span>
         <div className="flex items-center gap-2">
           {url && <img src={url} alt={pose} className="h-12 w-9 rounded object-cover" />}
-          <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onFile(e)} />
+          <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
           <button type="button" disabled={busy || !isBunnyConfigured()} className="chip disabled:opacity-40" onClick={() => ref.current?.click()}>
             {busy ? t('upload.uploading') : url ? t('upload.replace') : t('upload.addPhoto')}
           </button>

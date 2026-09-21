@@ -141,6 +141,10 @@ test.describe.serial('Coach A <-> client@forma.test (main QA thread)', () => {
       if (await attachBtn.count()) {
         const fileInput = coachPage.locator('[data-testid="message-thread"] input[type="file"]');
         await fileInput.setInputFiles(TEST_PNG);
+        // Selecting a file now holds it in the composer preview instead of
+        // uploading immediately — confirm the preview, then Send.
+        await expect(coachPage.getByTestId('composer-attachment-preview')).toBeVisible({ timeout: 5_000 });
+        await coachPage.getByTestId('message-send').click();
         await expect(coachPage.locator('[data-testid="message-thread"] img').last()).toBeVisible({ timeout: 20_000 });
         console.log('[coachA<->client] image attachment sent and rendered.');
       } else {

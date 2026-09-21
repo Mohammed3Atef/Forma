@@ -14,6 +14,7 @@ import { listMyClients } from '@/services/platform/coachApi';
 import { fetchMyCoach } from '@/services/platform/clientCoachApi';
 import { cloudAvailable } from '@/data/dataSource';
 import { clientNoteRoute } from '@/lib/noteTarget';
+import { useBack } from '@/hooks/useBack';
 import type { AppNotification, NotificationType } from '@/types';
 
 const ICON: Record<NotificationType, IconName> = {
@@ -60,6 +61,7 @@ export function Notifications() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { items, isCoach, isAdmin, loading } = useNotifications();
+  const goBack = useBack(() => navigate(isAdmin ? '/admin' : isCoach ? '/coach' : '/'));
   const uid = useSession((s) => s.uid) ?? '';
   const coachId = useSession((s) => s.account?.assignedCoachId);
 
@@ -145,7 +147,7 @@ export function Notifications() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={() => navigate(isAdmin ? '/admin' : isCoach ? '/coach' : '/')} />
+      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={goBack} />
 
       {loading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>

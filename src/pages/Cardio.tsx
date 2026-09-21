@@ -12,6 +12,8 @@ import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
 import { confirmDelete } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
 import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
 import { cloudAvailable } from '@/data/dataSource';
@@ -83,16 +85,27 @@ export function Cardio() {
   };
 
   // One entry capturing what you actually did, e.g. "10k steps in 40 min".
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const saveManual = async () => {
-    await addCardio({
-      type,
-      durationSec: parseDecimal(form.minutes) * 60,
-      steps: form.steps ? parseDecimal(form.steps) || null : null,
-      distanceKm: form.distance ? parseDecimal(form.distance) || null : null,
-      caloriesBurned: form.calories ? parseDecimal(form.calories) || null : null,
-    });
-    setForm({ minutes: '', steps: '', distance: '', calories: '' });
-    setLogOpen(false);
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await addCardio({
+        type,
+        durationSec: parseDecimal(form.minutes) * 60,
+        steps: form.steps ? parseDecimal(form.steps) || null : null,
+        distanceKm: form.distance ? parseDecimal(form.distance) || null : null,
+        caloriesBurned: form.calories ? parseDecimal(form.calories) || null : null,
+      });
+      setForm({ minutes: '', steps: '', distance: '', calories: '' });
+      setLogOpen(false);
+      showToast({ title: t('common.saved'), variant: 'success' });
+    } catch {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const uid = useSession((s) => s.uid);
@@ -242,13 +255,13 @@ export function Cardio() {
                 {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
                 {c.steps != null && <span>{c.steps.toLocaleString()} {t('cardio.steps')}</span>}
                 {c.distanceKm != null && <span>{c.distanceKm} km</span>}
-                <button type="button" onClick={async () => { if (await confirmDelete()) void removeCardio(c.id); }} className="text-danger">
+                <button type="button" onClick={async () => { if (await confirmDelete()) void removeCardio(c.id); }} className="text-danger" aria-label={t('common.delete')}>
                   <Icon name="close" size={16} />
                 </button>
               </div>
             </li>
           ))}
-          {cardioLogs.length === 0 && <li className="text-sm text-earth-subtle">{t('progress.noData')}</li>}
+          {cardioLogs.length === 0 && <li className="py-2 text-sm text-earth-subtle">{t('cardio.noLogsYet')}</li>}
         </ul>
       </div>
 
@@ -279,7 +292,10 @@ export function Cardio() {
               <input className="input" inputMode="decimal" placeholder="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} />
             </div>
           </div>
-          <button type="button" onClick={() => void saveManual()} className="btn-primary btn-lg w-full">{t('common.save')}</button>
+          {saveError && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
+          <SubmitButton type="button" pending={saving} onClick={() => void saveManual()} size="lg" fullWidth>
+            {t('common.save')}
+          </SubmitButton>
         </div>
       </Sheet>
 

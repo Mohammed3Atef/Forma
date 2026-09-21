@@ -38,12 +38,16 @@ test.describe('Super admin: Governance', () => {
       const before = (await first.innerText()).trim();
 
       await first.click();
+      await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+      await page.getByTestId('confirm-accept').click();
       await page.waitForLoadState('networkidle');
       const after = (await first.innerText()).trim();
       expect(after).not.toBe(before);
 
       // Revert immediately — we don't know what this flag gates in production.
       await first.click();
+      await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+      await page.getByTestId('confirm-accept').click();
       await page.waitForLoadState('networkidle');
       const reverted = (await first.innerText()).trim();
       expect(reverted).toBe(before);

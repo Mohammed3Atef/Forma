@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 
 /**
@@ -16,6 +17,7 @@ export function TagInput({
   placeholder?: string;
   testId?: string;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState('');
 
   const add = () => {
@@ -41,7 +43,7 @@ export function TagInput({
             }
           }}
         />
-        <button type="button" className="btn-ghost px-4" onClick={add} aria-label="add" disabled={!draft.trim()}>
+        <button type="button" className="btn-ghost px-4" onClick={add} aria-label={t('common.add')} disabled={!draft.trim()}>
           <Icon name="plus" size={18} />
         </button>
       </div>

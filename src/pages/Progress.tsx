@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useTabParam } from "@/components/ui/Tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useCardio } from "@/stores/cardioStore";
 import { useWorkout } from "@/stores/workoutStore";
@@ -13,12 +14,15 @@ import { Icon } from "@/components/Icon";
 import { Sheet } from "@/components/Sheet";
 import { TopBar } from "@/components/TopBar";
 import { StatTile } from "@/components/StatTile";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { showToast } from "@/stores/toastStore";
 import { BarChart, LineChart } from "@/components/charts";
 import {
   logVolume,
   logSetCount,
   prByExercise,
   exerciseTrend,
+  weeklyVolumeTrend,
 } from "@/lib/calc";
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import {
@@ -33,13 +37,15 @@ import { ProgressPhotosBody } from "@/pages/ProgressPhotos";
 // Matches the prototype's 4-tab Progress screen exactly (Weight / Strength / Measure / Photos).
 type Tab = "weight" | "strength" | "measure" | "photos";
 
-function parseDay(key: string): Date {
-  const [y, m, d] = key.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
 // Measurement parts where a decrease is the improvement.
 const GOOD_WHEN_DOWN = new Set(["waist", "abdomen", "bodyweight", "hips"]);
+
+// Weight-chart period control — the full weight-log history is already
+// loaded client-side (see `useCardio`), so filtering it by a selected
+// window is free; no backend range param needed.
+const WEIGHT_RANGES = ["7d", "30d", "3m", "6m", "1y", "all"] as const;
+type WeightRange = (typeof WEIGHT_RANGES)[number];
+const WEIGHT_RANGE_DAYS: Record<WeightRange, number | null> = { "7d": 7, "30d": 30, "3m": 90, "6m": 180, "1y": 365, all: null };
 
 export function Progress() {
   const { t, i18n } = useTranslation();
@@ -50,18 +56,30 @@ export function Progress() {
   const logs = useWorkout((s) => s.logs);
   const measureLogs = useMeasurements((s) => s.logs);
   const profileWeight = useSettings((s) => s.profile?.weightKg);
-  const [tab, setTab] = useState<Tab>("weight");
+  // URL-synced (replace, like every other tab bar in the app) so navigating
+  // into Measurements/History/Photos and back — via a real back-navigation,
+  // not a fresh mount — restores the same tab instead of resetting to Weight.
+  const [tab, setTab] = useTabParam("tab", "weight");
+  // Same URL-synced pattern as the main tab bar — shareable/back-friendly.
+  const [weightRangeRaw, setWeightRange] = useTabParam("wr", "30d");
+  const weightRange = (WEIGHT_RANGES as readonly string[]).includes(weightRangeRaw) ? (weightRangeRaw as WeightRange) : "30d";
 
   const finished = useMemo(() => logs.filter((l) => l.finished), [logs]);
 
+  // Chart-only weight series for the selected period — `body.current`/
+  // `body.monthDelta` below stay computed from the FULL history (unaffected
+  // KPIs); only the chart + its insight sentence reflect the period picker.
+  const weightChart = useMemo(() => {
+    const days = WEIGHT_RANGE_DAYS[weightRange];
+    const cutoff = days == null ? null : addDays(today(), -days);
+    const points = (cutoff == null ? weightLogs : weightLogs.filter((w) => w.date >= cutoff)).map((w) => ({ date: w.date, value: w.weightKg }));
+    const delta = points.length >= 2 ? Math.round((points[points.length - 1].value - points[0].value) * 10) / 10 : null;
+    return { points, delta };
+  }, [weightLogs, weightRange]);
+
   const overview = useMemo(() => {
-    const curMon = weekStartOf(new Date()).getTime();
-    const buckets = Array.from({ length: 8 }, () => 0);
-    finished.forEach((l) => {
-      const wkMon = weekStartOf(parseDay(l.date)).getTime();
-      const idx = 7 - Math.round((curMon - wkMon) / (7 * 86_400_000));
-      if (idx >= 0 && idx < 8) buckets[idx] += logVolume(l);
-    });
+    // Shared with Home.tsx's "Volume trend" — see `weeklyVolumeTrend`'s doc comment.
+    const buckets = weeklyVolumeTrend(finished, weekStartOf);
     const totalVol = finished.reduce((v, l) => v + logVolume(l), 0);
     const totalSets = finished.reduce((n, l) => n + logSetCount(l), 0);
     const durations = finished.filter((l) => l.durationSec > 0);
@@ -89,10 +107,17 @@ export function Progress() {
     const maxMuscle = muscles[0]?.[1] ?? 1;
 
     return {
-      trend: buckets.map((v, i) => ({
-        label: i === 7 ? t("gt.now") : `-${7 - i}w`,
-        value: v,
+      trend: buckets.map((b, i) => ({
+        label: i === buckets.length - 1 ? t("gt.now") : `-${buckets.length - 1 - i}w`,
+        value: b.value,
+        date: b.weekStart,
       })),
+      // Full-window first vs. last bucket (real zeros included), matching
+      // what "over the last 8 weeks" actually means — was previously
+      // filtering to non-zero buckets first, which could silently compare
+      // two non-adjacent weeks while implying the whole window.
+      volumeDelta: (buckets[buckets.length - 1].value - buckets[0].value) / 1000,
+      hasAnyVolume: buckets.some((b) => b.value > 0),
       totalVol,
       totalSets,
       avgDur,
@@ -177,16 +202,29 @@ export function Progress() {
   // Log today's bodyweight from the Body tab.
   const [weightOpen, setWeightOpen] = useState(false);
   const [weightVal, setWeightVal] = useState("");
+  const [weightSaving, setWeightSaving] = useState(false);
+  const [weightError, setWeightError] = useState(false);
   const openWeight = () => {
     // `|| undefined` also skips an unset (0) profile weight.
     const seed = body.current ?? (profileWeight || undefined);
     setWeightVal(seed != null ? String(seed) : "");
+    setWeightError(false);
     setWeightOpen(true);
   };
   const saveWeight = async () => {
     const n = parseDecimal(weightVal); // accepts "93.5", "93,5", Arabic digits
-    if (n > 0) await logWeight(n, today());
-    setWeightOpen(false);
+    if (!(n > 0)) return;
+    setWeightSaving(true);
+    setWeightError(false);
+    try {
+      await logWeight(n, today());
+      setWeightOpen(false);
+      showToast({ title: t('common.saved'), variant: 'success' });
+    } catch {
+      setWeightError(true);
+    } finally {
+      setWeightSaving(false);
+    }
   };
 
   return (
@@ -198,7 +236,7 @@ export function Progress() {
           <button
             type="button"
             onClick={() => navigate("/history")}
-            className="icon-btn h-[42px] w-[42px]"
+            className="icon-btn h-11 w-11"
             aria-label={t("gt.history")}
           >
             <Icon name="calendar" size={18} />
@@ -231,25 +269,33 @@ export function Progress() {
                 </span>
               </span>
             </div>
-            {body.series.length >= 2 && (
+            <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {WEIGHT_RANGES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  data-testid={`weight-range-${r}`}
+                  onClick={() => setWeightRange(r)}
+                  className={`chip ${weightRange === r ? "chip-on" : ""}`}
+                >
+                  {t(`gt.range.${r}`)}
+                </button>
+              ))}
+            </div>
+            {weightChart.delta != null && (
               <p className="mb-3 text-sm text-earth">
-                {(() => {
-                  const change =
-                    Math.round(
-                      (body.series[body.series.length - 1] - body.series[0]) *
-                        10,
-                    ) / 10;
-                  if (change === 0) return t("gt.weightHolding");
-                  return t(change < 0 ? "gt.weightDown" : "gt.weightUp", {
-                    n: Math.abs(change),
-                  });
-                })()}
+                {weightChart.delta === 0
+                  ? t("gt.weightHolding")
+                  : t(weightChart.delta < 0 ? "gt.weightDown" : "gt.weightUp", {
+                      n: Math.abs(weightChart.delta),
+                    })}
               </p>
             )}
             <LineChart
-              data={body.series}
+              data={weightChart.points}
               unit={t("common.kg")}
               emptyLabel={t("progress.noData")}
+              locale={i18n.language}
             />
             <button
               type="button"
@@ -298,7 +344,7 @@ export function Progress() {
               const trend = exerciseTrend(logs, top.exerciseId, 8);
               const delta =
                 trend.length >= 2
-                  ? Math.round((trend[trend.length - 1] - trend[0]) * 10) / 10
+                  ? Math.round((trend[trend.length - 1].value - trend[0].value) * 10) / 10
                   : null;
               return (
                 <div className="card-featured">
@@ -321,6 +367,7 @@ export function Progress() {
                     data={trend}
                     unit={t("common.kg")}
                     emptyLabel={t("progress.noData")}
+                    locale={i18n.language}
                   />
                 </div>
               );
@@ -378,26 +425,19 @@ export function Progress() {
                 {t("gt.last8weeks")}
               </span>
             </div>
-            {(() => {
-              const nonZero = overview.trend
-                .map((b) => b.value)
-                .filter((v) => v > 0);
-              const first = nonZero[0];
-              const last = nonZero[nonZero.length - 1];
-              const up = first != null && last != null && last > first;
-              return (
-                <p className="mb-3 text-sm text-earth">
-                  {nonZero.length >= 2
-                    ? t(up ? "gt.volumeTrendUp" : "gt.volumeTrendDown", {
-                        t: (Math.abs(last - first) / 1000).toFixed(1),
-                      })
-                    : t("gt.volumeTrendFlat")}
-                </p>
-              );
-            })()}
+            <p className="mb-3 text-sm text-earth">
+              {overview.hasAnyVolume
+                ? t(overview.volumeDelta >= 0 ? "gt.volumeTrendUp" : "gt.volumeTrendDown", {
+                    t: Math.abs(overview.volumeDelta).toFixed(1),
+                  })
+                : t("gt.volumeTrendFlat")}
+            </p>
             <BarChart
               data={overview.trend}
               format={(v) => `${Math.round(v / 1000)}t`}
+              unit="t"
+              locale={i18n.language}
+              emptyLabel={t("progress.noData")}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -426,8 +466,12 @@ export function Progress() {
           </div>
           {overview.muscles.length > 0 && (
             <>
-              <div className="sec-head">
+              <div className="sec-head flex items-baseline justify-between">
                 <h2 className="h2">{t("gt.muscleSplit")}</h2>
+                {/* Unlike the volume/1RM charts above (capped to the last 8
+                    weeks/sessions), this is a cumulative all-time count —
+                    labelled explicitly so it doesn't read as the same window. */}
+                <span className="font-mono text-[11px] text-brand">{t("gt.allTime")}</span>
               </div>
               <div className="card space-y-3">
                 {overview.muscles.map(([muscle, count]) => (
@@ -536,13 +580,18 @@ export function Progress() {
               onChange={(e) => setWeightVal(e.target.value)}
             />
           </div>
-          <button
+          {weightError && (
+            <p role="alert" className="text-sm text-danger">{t("common.savedFailed")}</p>
+          )}
+          <SubmitButton
             type="button"
+            pending={weightSaving}
             onClick={() => void saveWeight()}
-            className="btn-primary btn-lg w-full"
+            size="lg"
+            fullWidth
           >
             {t("common.save")}
-          </button>
+          </SubmitButton>
         </div>
       </Sheet>
     </div>

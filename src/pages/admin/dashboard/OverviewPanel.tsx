@@ -24,7 +24,7 @@ export function OverviewPanel() {
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const stats = useQuery({ queryKey: ['platformStats'], queryFn: fetchPlatformStats, staleTime: 120_000 });
   const recent = useQuery({ queryKey: ['audit', 'recent'], queryFn: () => fetchAuditPage(6), staleTime: 60_000 });
-  const coaches = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: isSuper, staleTime: 120_000 });
+  const coaches = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), enabled: isSuper, staleTime: 120_000 });
   const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, enabled: isSuper, staleTime: 120_000 });
   const planReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
   const transferReqs = useQuery({ queryKey: ['pendingTransfers', 'count'], queryFn: listPendingTransferRequests, staleTime: 60_000 });

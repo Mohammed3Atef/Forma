@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
 import { SelectField, TextAreaField } from '@/components/ui/Field';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { SubscriptionHistory } from '@/components/SubscriptionHistory';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { setAccountStatus } from '@/services/platform/accountsApi';
 import {
   cancelSubscription,
@@ -68,22 +70,56 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     void qc.invalidateQueries({ queryKey: ['freezeRequest', clientId] });
     void qc.invalidateQueries({ queryKey: ['user', clientId] });
   };
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const succeed = (title: string) => () => {
+    invalidate();
+    showToast({ title, variant: 'success' });
+  };
 
   // ---- mutations ----
   const setStatus = useMutation({
     mutationFn: (s: AccountStatus) => setAccountStatus(account!, s),
     onSuccess: invalidate,
   });
-  const unfreeze = useMutation({ mutationFn: () => unfreezeSubscription(coachId, clientId), onSuccess: invalidate });
-  const end = useMutation({ mutationFn: () => endSubscription(coachId, clientId), onSuccess: invalidate });
-  const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: invalidate });
-  const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: invalidate });
+  const unfreeze = useMutation({ mutationFn: () => unfreezeSubscription(coachId, clientId), onSuccess: succeed(t('subscription.unfreeze')), onError: onErr(t('subscription.unfreeze')) });
+  const end = useMutation({ mutationFn: () => endSubscription(coachId, clientId), onSuccess: succeed(t('subscription.end')), onError: onErr(t('subscription.end')) });
+  const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: succeed(t('subscription.cancel')), onError: onErr(t('subscription.cancel')) });
+  const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: succeed(t('subscription.extend')), onError: onErr(t('subscription.extend')) });
   const decide = useMutation({
     mutationFn: ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) =>
       resolveFreezeRequest(clientId, coachId, outcome, note).then(async () => {
         if (outcome === 'accepted') await freezeSubscription(coachId, clientId, from, until, note);
       }),
-    onSuccess: invalidate,
+    onSuccess: succeed(t('subscription.pauseTitle')),
+    onError: onErr(t('subscription.pauseTitle')),
+  });
+  // These three used to be plain unguarded `async` functions passed straight
+  // into the sheets' `onSave` — no pending state, no try/catch, so a failed
+  // write left the coach staring at an unresponsive sheet with no explanation.
+  const setTerm = useMutation({
+    mutationFn: (args: { start: string; term: { months?: number; days?: number }; price?: number; planName?: string }) =>
+      setSubscriptionTerm(coachId, clientId, toMs(args.start), args.term, args.price, coachCurrency, args.planName),
+    onSuccess: () => {
+      invalidate();
+      setSheet(null);
+      showToast({ title: t('subscription.setTerm'), variant: 'success' });
+    },
+  });
+  const freeze = useMutation({
+    mutationFn: (args: { from: string; until: string; note: string }) => freezeSubscription(coachId, clientId, toMs(args.from), toMs(args.until), args.note),
+    onSuccess: () => {
+      invalidate();
+      setSheet(null);
+      showToast({ title: t('subscription.freeze'), variant: 'success' });
+    },
+  });
+  const setPrice = useMutation({
+    mutationFn: (args: { price: number; currency: string }) => setSubscriptionPrice(coachId, clientId, args.price, args.currency),
+    onSuccess: () => {
+      invalidate();
+      setSheet(null);
+      showToast({ title: t('subscription.setPrice'), variant: 'success' });
+    },
   });
 
   const changeStatus = async (s: AccountStatus) => {
@@ -96,6 +132,11 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   };
   const doEnd = async () => {
     if (await confirmDialog({ title: t('subscription.end'), message: t('subscription.confirmEnd'), danger: true })) end.mutate();
+  };
+  const doExtend = async (days: number) => {
+    const base = sub?.endAt && sub.endAt > Date.now() ? sub.endAt : Date.now();
+    const newEnd = toDate(base + days * 86_400_000);
+    if (await confirmDialog({ title: t('subscription.extend'), message: t('subscription.confirmExtend', { n: days, date: newEnd }) })) extend.mutate(days);
   };
 
   const pending = request.data?.status === 'pending';
@@ -160,7 +201,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
                 <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
               ) : null}
               {(status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && (
-                <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => extend.mutate(30)}>{t('subscription.extend')}</button>
+                <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => void doExtend(30)}>{t('subscription.extend')}</button>
               )}
             </div>
           )}
@@ -220,22 +261,18 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         initialMonths={sub?.months ?? 3}
         coachId={coachId}
         currency={coachCurrency}
-        onSave={async (start, term, price, planName) => {
-          await setSubscriptionTerm(coachId, clientId, toMs(start), term, price, coachCurrency, planName);
-          invalidate();
-          setSheet(null);
-        }}
+        pending={setTerm.isPending}
+        error={setTerm.isError}
+        onSave={(start, term, price, planName) => setTerm.mutate({ start, term, price, planName })}
       />
 
       {/* Freeze sheet */}
       <FreezeSheet
         open={sheet === 'freeze'}
         onClose={() => setSheet(null)}
-        onSave={async (from, until, note) => {
-          await freezeSubscription(coachId, clientId, toMs(from), toMs(until), note);
-          invalidate();
-          setSheet(null);
-        }}
+        pending={freeze.isPending}
+        error={freeze.isError}
+        onSave={(from, until, note) => freeze.mutate({ from, until, note })}
       />
 
       {/* Price sheet */}
@@ -244,11 +281,9 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         onClose={() => setSheet(null)}
         initialPrice={sub?.price != null ? String(sub.price) : ''}
         initialCurrency={sub?.currency ?? 'EGP'}
-        onSave={async (price, currency) => {
-          await setSubscriptionPrice(coachId, clientId, price, currency);
-          invalidate();
-          setSheet(null);
-        }}
+        pending={setPrice.isPending}
+        error={setPrice.isError}
+        onSave={(price, currency) => setPrice.mutate({ price, currency })}
       />
     </div>
   );
@@ -291,7 +326,7 @@ function FreezeRequestCard({ request, onDecide, busy }: { request: { from?: numb
   );
 }
 
-function PriceSheet({ open, onClose, initialPrice, initialCurrency, onSave }: { open: boolean; onClose: () => void; initialPrice: string; initialCurrency: string; onSave: (price: number, currency: string) => void }) {
+function PriceSheet({ open, onClose, initialPrice, initialCurrency, pending, error, onSave }: { open: boolean; onClose: () => void; initialPrice: string; initialCurrency: string; pending: boolean; error: boolean; onSave: (price: number, currency: string) => void }) {
   const { t } = useTranslation();
   const [price, setPrice] = useState(initialPrice);
   const [currency, setCurrency] = useState(initialCurrency);
@@ -308,9 +343,10 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, onSave }: { 
             <input className="input" data-testid="price-currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
           </div>
         </div>
-        <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="price-save" disabled={!(Number(price) >= 0) || price.trim() === ''} onClick={() => onSave(Number(price), currency.trim())}>
+        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
+        <SubmitButton type="button" fullWidth data-testid="price-save" disabled={!(Number(price) >= 0) || price.trim() === ''} pending={pending} onClick={() => onSave(Number(price), currency.trim())}>
           {t('common.save')}
-        </button>
+        </SubmitButton>
       </div>
     </Sheet>
   );
@@ -323,6 +359,8 @@ function SetTermSheet({
   initialMonths,
   coachId,
   currency,
+  pending,
+  error,
   onSave,
 }: {
   open: boolean;
@@ -331,6 +369,8 @@ function SetTermSheet({
   initialMonths: number;
   coachId: string;
   currency: string;
+  pending: boolean;
+  error: boolean;
   onSave: (start: string, term: { months?: number; days?: number }, price?: number, planName?: string) => void;
 }) {
   const { t } = useTranslation();
@@ -382,21 +422,23 @@ function SetTermSheet({
           <label className="label">{t('coachPlans.price')} ({currency})</label>
           <input className="input" inputMode="decimal" data-testid="term-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
         </div>
-        <button
+        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
+        <SubmitButton
           type="button"
-          className="btn-primary w-full disabled:opacity-40"
+          fullWidth
           data-testid="term-save"
           disabled={!start || !(dur > 0)}
+          pending={pending}
           onClick={() => onSave(start, unit === 'days' ? { days: dur } : { months: dur }, price.trim() ? parseDecimal(price) || 0 : undefined, planName)}
         >
           {t('common.save')}
-        </button>
+        </SubmitButton>
       </div>
     </Sheet>
   );
 }
 
-function FreezeSheet({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (from: string, until: string, note: string) => void }) {
+function FreezeSheet({ open, onClose, pending, error, onSave }: { open: boolean; onClose: () => void; pending: boolean; error: boolean; onSave: (from: string, until: string, note: string) => void }) {
   const { t } = useTranslation();
   const [from, setFrom] = useState(todayStr());
   const [until, setUntil] = useState('');
@@ -415,9 +457,10 @@ function FreezeSheet({ open, onClose, onSave }: { open: boolean; onClose: () => 
           </div>
         </div>
         <TextAreaField label={t('field.notes')} className="min-h-16" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
-        <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="freeze-save" disabled={!from || !until || toMs(until) <= toMs(from)} onClick={() => onSave(from, until, note)}>
+        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
+        <SubmitButton type="button" fullWidth data-testid="freeze-save" disabled={!from || !until || toMs(until) <= toMs(from)} pending={pending} onClick={() => onSave(from, until, note)}>
           {t('subscription.freeze')}
-        </button>
+        </SubmitButton>
       </div>
     </Sheet>
   );

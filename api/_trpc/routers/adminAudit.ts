@@ -41,20 +41,53 @@ async function assertNonAdminWriteAllowed(user: { id: string; role: string }, bo
   if (!owns) throw new TRPCError({ code: 'FORBIDDEN' });
 }
 
+/** Escapes regex metacharacters so a user-supplied action/category string can't be interpreted as a pattern. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export const adminAuditRouter = router({
   list: permissionProcedure('audit.read')
-    .input(z.object({ pageSize: z.number().optional(), cursor: z.string().optional() }).optional())
+    .input(
+      z
+        .object({
+          pageSize: z.number().optional(),
+          cursor: z.string().optional(),
+          /** Exact actor user id. */
+          actorId: z.string().trim().min(1).optional(),
+          /** Exact target user id. */
+          targetUserId: z.string().trim().min(1).optional(),
+          /** An exact action key (contains a '.') or a bare category prefix (e.g. "users" matches "users.*"). */
+          action: z.string().trim().min(1).max(120).optional(),
+          since: z.number().int().nonnegative().optional(),
+          until: z.number().int().nonnegative().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const col = await auditLogsCol();
       const pageSize = Math.min(Math.max(input?.pageSize || 25, 1), 100);
-      const filter: Record<string, unknown> = {};
+      // Every filter is a server-side query condition (not client-side over
+      // whatever pages happen to be loaded), combined with `$and` so the
+      // cursor's own `$or` boundary never clobbers the other filters.
+      const conditions: Record<string, unknown>[] = [];
+      if (input?.actorId) conditions.push({ actorId: input.actorId });
+      if (input?.targetUserId) conditions.push({ targetUserId: input.targetUserId });
+      if (input?.action) {
+        conditions.push(
+          input.action.includes('.') ? { action: input.action } : { action: { $regex: `^${escapeRegex(input.action)}\\.` } },
+        );
+      }
+      if (input?.since != null) conditions.push({ createdAt: { $gte: input.since } });
+      if (input?.until != null) conditions.push({ createdAt: { $lte: input.until } });
       if (input?.cursor) {
         const [ts, id] = input.cursor.split(':');
         const tsNum = Number(ts);
         if (Number.isFinite(tsNum) && id) {
-          filter.$or = [{ createdAt: { $lt: tsNum } }, { createdAt: tsNum, _id: { $lt: id } }];
+          conditions.push({ $or: [{ createdAt: { $lt: tsNum } }, { createdAt: tsNum, _id: { $lt: id } }] });
         }
       }
+      const filter: Record<string, unknown> = conditions.length ? { $and: conditions } : {};
       const docs = await col.find(filter).sort({ createdAt: -1, _id: -1 }).limit(pageSize).toArray();
       const logs = docs.map((d) => ({
         id: d._id,

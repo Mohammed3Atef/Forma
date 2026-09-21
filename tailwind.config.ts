@@ -49,8 +49,8 @@ const config: Config = {
         earth: {
           DEFAULT: '#F8F4F1', // primary text
           muted: '#ABA19B', // secondary text
-          subtle: '#7C726C', // tertiary text
-          faint: '#564E49', // placeholder / least-emphasis text
+          subtle: '#948A83', // tertiary text — meets WCAG AA (4.5:1) on every surface tier
+          faint: '#6F6660', // placeholder / least-emphasis text
         },
         // Flattened-to-solid equivalents of the design's translucent warm-white
         // borders (rgba(255,238,228,<alpha>) over the new bg) — kept as solid hex

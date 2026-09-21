@@ -6,12 +6,16 @@ import { useSettings } from "@/stores/settingsStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { EntityNotes } from "@/components/EntityNotes";
 import { confirmDelete } from "@/stores/dialogStore";
+import { showToast } from "@/stores/toastStore";
 import { useLocalized } from "@/hooks/useLocalized";
 import { Icon } from "@/components/Icon";
 import { ProgressRing } from "@/components/ProgressRing";
 import { colors } from "@/theme/colors";
 import { Sheet } from "@/components/Sheet";
 import { TopBar } from "@/components/TopBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TextInput } from "@/components/ui/Field";
 import { WaitingForCoach } from "@/components/WaitingForCoach";
 import { uid } from "@/lib/utils";
 import { foodLine } from "@/lib/foodFormat";
@@ -59,8 +63,14 @@ export function Nutrition() {
       </div>
     );
   }
-  if (!log || !targets)
-    return <p className="text-earth-muted">{t("progress.noData")}</p>;
+  if (!log || !targets) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t("nutrition.title")} eyebrow={t("nutrition.title")} />
+        <LoadingState variant="list" count={3} />
+      </div>
+    );
+  }
 
   const openEditor = (
     mode: EditorMode,
@@ -83,6 +93,7 @@ export function Nutrition() {
           }
         : { name: "", quantity: "", protein: "", carbs: "", fats: "" },
     );
+    setEditorError(false);
     setEditor(mode);
   };
 
@@ -113,12 +124,14 @@ export function Nutrition() {
     },
   ] as const;
 
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [editorError, setEditorError] = useState(false);
   const submitEditor = async () => {
     if (!editor) return;
     const protein = Number(form.protein) || 0;
     const carbs = Number(form.carbs) || 0;
     const fats = Number(form.fats) || 0;
-    const name = form.name.trim() || "Custom food";
+    const name = form.name.trim() || t("nutritionSub.customFood");
     const existingId = editor.type !== "replace" ? editor.foodId : undefined;
     const food: FoodItem = {
       id: existingId ?? uid("food"),
@@ -129,14 +142,23 @@ export function Nutrition() {
       fats,
       calories: Math.round(protein * 4 + carbs * 4 + fats * 9),
     };
-    if (editor.type === "replace")
-      await replaceItem(editor.itemId, food, {
-        source: "client_custom_substitution",
-        pendingApproval: !!policy?.requireCoachApproval,
-      });
-    else if (editor.type === "addMeal") await addMealItem(editor.mealId, food);
-    else await addCustomFood(food);
-    setEditor(null);
+    setEditorSaving(true);
+    setEditorError(false);
+    try {
+      if (editor.type === "replace")
+        await replaceItem(editor.itemId, food, {
+          source: "client_custom_substitution",
+          pendingApproval: !!policy?.requireCoachApproval,
+        });
+      else if (editor.type === "addMeal") await addMealItem(editor.mealId, food);
+      else await addCustomFood(food);
+      setEditor(null);
+      showToast({ title: t("common.saved"), variant: "success" });
+    } catch {
+      setEditorError(true);
+    } finally {
+      setEditorSaving(false);
+    }
   };
 
   // Coach substitution policy (carried on the synced meal plan).
@@ -231,6 +253,7 @@ export function Nutrition() {
             disabled={readOnly}
             onClick={() => void addWater(-250)}
             className="icon-btn h-11 w-11 disabled:opacity-40"
+            aria-label={`${t("common.decrease")} · ${t("nutrition.water")} 250 ml`}
           >
             <Icon name="minus" size={16} />
           </button>
@@ -614,6 +637,8 @@ export function Nutrition() {
                       disabled={readOnly}
                       onClick={() => void toggleSupplement(s.id)}
                       className={`flex h-9 w-9 items-center justify-center rounded-lg border disabled:opacity-40 ${taken ? "border-success bg-success text-[#06210f]" : "border-line-strong bg-surface-raised text-earth-muted"}`}
+                      aria-label={s.name}
+                      aria-pressed={taken}
                     >
                       <Icon name="check" size={16} />
                     </button>
@@ -669,59 +694,48 @@ export function Nutrition() {
         }
       >
         <div className="space-y-3">
-          <input
-            className="input"
+          <TextInput
+            label={t("settings.name")}
+            helper={t("nutrition.nameOptionalHint")}
             placeholder={t("settings.name")}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
-          <input
-            className="input"
-            placeholder={`${t("nutrition.quantity")} (e.g. 200 g)`}
+          <TextInput
+            label={t("nutrition.quantity")}
+            placeholder={t("nutrition.quantityExample")}
             value={form.quantity}
             onChange={(e) => setForm({ ...form, quantity: e.target.value })}
           />
           <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="label">{t("nutrition.protein")}</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                placeholder="0"
-                value={form.protein}
-                onChange={(e) => setForm({ ...form, protein: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label">{t("nutrition.carbs")}</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                placeholder="0"
-                value={form.carbs}
-                onChange={(e) => setForm({ ...form, carbs: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label">{t("nutrition.fats")}</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                placeholder="0"
-                value={form.fats}
-                onChange={(e) => setForm({ ...form, fats: e.target.value })}
-              />
-            </div>
+            <TextInput
+              label={t("nutrition.protein")}
+              inputMode="numeric"
+              placeholder="0"
+              value={form.protein}
+              onChange={(e) => setForm({ ...form, protein: e.target.value })}
+            />
+            <TextInput
+              label={t("nutrition.carbs")}
+              inputMode="numeric"
+              placeholder="0"
+              value={form.carbs}
+              onChange={(e) => setForm({ ...form, carbs: e.target.value })}
+            />
+            <TextInput
+              label={t("nutrition.fats")}
+              inputMode="numeric"
+              placeholder="0"
+              value={form.fats}
+              onChange={(e) => setForm({ ...form, fats: e.target.value })}
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => void submitEditor()}
-            className="btn-primary btn-lg w-full"
-          >
+          {editorError && <p role="alert" className="text-sm text-danger">{t("common.savedFailed")}</p>}
+          <SubmitButton type="button" pending={editorSaving} onClick={() => void submitEditor()} size="lg" fullWidth>
             {editor?.type === "replace"
               ? t("nutrition.replace")
               : t("common.add")}
-          </button>
+          </SubmitButton>
         </div>
       </Sheet>
 

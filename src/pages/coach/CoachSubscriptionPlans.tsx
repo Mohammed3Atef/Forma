@@ -70,7 +70,7 @@ export function CoachSubscriptionPlans() {
         title={t('coachPlans.title')}
         eyebrow={t('platform.coachPortal')}
         right={
-          <button type="button" data-testid="coach-plan-add" className="icon-btn h-[42px] w-[42px] disabled:opacity-40" aria-label={t('coachPlans.add')} disabled={!canWrite || !online} onClick={openNew}>
+          <button type="button" data-testid="coach-plan-add" className="icon-btn h-11 w-11 disabled:opacity-40" aria-label={t('coachPlans.add')} disabled={!canWrite || !online} onClick={openNew}>
             <Icon name="plus" size={20} />
           </button>
         }

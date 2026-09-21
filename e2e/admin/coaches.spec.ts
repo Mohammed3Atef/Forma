@@ -64,6 +64,8 @@ test.describe('Super admin: Coaches list + detail', () => {
 
     const before = await page.getByTestId('admin-coach-detail').innerText();
     await page.getByTestId('coach-extend-trial').click();
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await page.getByTestId('confirm-accept').click();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     const after = await page.getByTestId('admin-coach-detail').innerText();

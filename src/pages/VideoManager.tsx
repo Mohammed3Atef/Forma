@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { VideoAsset, VideoStatus } from '@/types';
 import { useVideos } from '@/stores/videoStore';
@@ -8,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
+import { useBack } from '@/hooks/useBack';
 
 const STATUS_LABEL: Record<VideoStatus, string> = {
   'link-pending': 'video.linkPending',
@@ -35,7 +35,7 @@ export function VideoManager() {
   const remove = useVideos((s) => s.remove);
   const setUrl = useVideos((s) => s.setUrl);
   const plan = useWorkout((s) => s.plan);
-  const navigate = useNavigate();
+  const goBack = useBack('/settings?tab=preferences');
 
   const downloadable = assets.filter((a) => a.kind === 'file');
   const downloadedCount = assets.filter((a) => a.status === 'downloaded').length;
@@ -54,7 +54,7 @@ export function VideoManager() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('video.title')} eyebrow={t('settings.videos')} onBack={() => navigate('/settings')} />
+      <TopBar title={t('video.title')} eyebrow={t('settings.videos')} onBack={goBack} />
 
       {downloadable.length > 0 && (
         <div className="card flex items-center justify-between gap-3">
@@ -86,7 +86,7 @@ export function VideoManager() {
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <button type="button" onClick={() => setPlaying(a)} className="icon-btn h-9 w-9" aria-label="play">
+              <button type="button" onClick={() => setPlaying(a)} className="icon-btn h-9 w-9" aria-label={t('common.play')}>
                 <Icon name="play" size={16} />
               </button>
               <button

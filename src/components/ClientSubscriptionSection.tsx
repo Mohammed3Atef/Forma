@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SubscriptionHistory } from '@/components/SubscriptionHistory';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useSession } from '@/services/auth/sessionStore';
 import { cancelFreezeRequest, fetchMyFreezeRequest, submitFreezeRequest } from '@/services/platform/clientCoachApi';
+import { showToast } from '@/stores/toastStore';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 
 const SUB_TONE: Record<string, PillTone> = {
@@ -21,14 +24,13 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
  * Client-facing subscription card: status + dates + price plus the freeze-request
  * flow (pick start/end dates + reason → submit / pending+cancel / accepted+rejected)
  * and read-only subscription history. Shared between the coach inbox screen and
- * Settings so the request affordance is discoverable. Renders nothing until a
- * coach has actually set a subscription term.
+ * Settings so the request affordance is discoverable.
  */
 export function ClientSubscriptionSection() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const uid = useSession((s) => s.uid) ?? '';
-  const { sub, history, status } = useSubscription();
+  const { sub, history, status, hasCoach } = useSubscription();
   const req = useQuery({ queryKey: ['myFreezeRequest', uid], queryFn: () => fetchMyFreezeRequest(uid), enabled: !!uid && uid !== 'local-user' });
   const [reason, setReason] = useState('');
   const [from, setFrom] = useState(todayStr());
@@ -37,11 +39,24 @@ export function ClientSubscriptionSection() {
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['myFreezeRequest', uid] });
   const submit = useMutation({
     mutationFn: () => submitFreezeRequest(uid, { reason, from: toMs(from), until: toMs(until) }),
-    onSuccess: () => { setReason(''); invalidate(); },
+    onSuccess: () => {
+      setReason('');
+      invalidate();
+      showToast({ title: t('subscription.requestSubmitted'), variant: 'success' });
+    },
   });
   const cancel = useMutation({ mutationFn: () => cancelFreezeRequest(uid), onSuccess: invalidate });
 
-  if (status === 'none') return null; // coach hasn't set a subscription yet
+  if (status === 'none') {
+    return (
+      <EmptyState
+        testId="client-subscription-none"
+        icon="shield"
+        title={t('subscription.noneTitle')}
+        message={t(hasCoach ? 'subscription.noneBodyHasCoach' : 'subscription.noneBodyNoCoach')}
+      />
+    );
+  }
 
   const r = req.data;
   const pending = r?.status === 'pending';
@@ -71,9 +86,10 @@ export function ClientSubscriptionSection() {
             <>
               <p className="text-sm text-warn">{t('subscription.requestPending')}</p>
               {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from)} → {fmtDate(r.until)}</p>}
-              <button type="button" className="btn-ghost w-full disabled:opacity-40" data-testid="freeze-cancel" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+              {cancel.isError && <p role="alert" className="text-sm text-danger">{t('common.errorGeneric')}</p>}
+              <SubmitButton type="button" variant="ghost" fullWidth data-testid="freeze-cancel" pending={cancel.isPending} onClick={() => cancel.mutate()}>
                 {t('subscription.cancelRequest')}
-              </button>
+              </SubmitButton>
             </>
           ) : (
             <>
@@ -94,9 +110,10 @@ export function ClientSubscriptionSection() {
                 <label className="label">{t('subscription.reason')}</label>
                 <textarea className="input min-h-16" data-testid="freeze-reason" placeholder={t('subscription.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
               </div>
-              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="freeze-submit" disabled={!canSubmit} onClick={() => submit.mutate()}>
+              {submit.isError && <p role="alert" className="text-sm text-danger">{t('common.errorGeneric')}</p>}
+              <SubmitButton type="button" fullWidth data-testid="freeze-submit" disabled={!canSubmit} pending={submit.isPending} onClick={() => submit.mutate()}>
                 {t('subscription.submitRequest')}
-              </button>
+              </SubmitButton>
             </>
           )}
         </div>

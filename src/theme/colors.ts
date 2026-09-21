@@ -15,7 +15,7 @@ export const colors = {
   borderSoft: '#221F1D', // line.soft
   textPrimary: '#F8F4F1', // earth.DEFAULT
   textSecondary: '#ABA19B', // earth.muted
-  textMuted: '#7C726C', // earth.subtle
+  textMuted: '#948A83', // earth.subtle — meets WCAG AA (4.5:1) on every surface tier
   brandOrange: '#FF8B02', // brand.DEFAULT (primary action / accent / focus)
   brandOrangeHover: '#FFB208',
   brandOrangeDark: '#C8440A', // gradient base / AA-safe fill

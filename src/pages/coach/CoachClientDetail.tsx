@@ -54,6 +54,7 @@ export function CoachClientDetail() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["myClients", coachId] });
       void qc.invalidateQueries({ queryKey: ["coachDashboard", coachId] });
+      void qc.invalidateQueries({ queryKey: ["coachDashboardSummaries", coachId] });
       setSheet(null);
       navigate("/coach");
     },
@@ -65,7 +66,13 @@ export function CoachClientDetail() {
     enabled: !!clientId,
   });
   const workouts = useQuery({
-    queryKey: ["clientLogs", clientId, "workoutLogs"],
+    // The limit is part of the key — `CoachAdherence.tsx` caches the SAME
+    // conceptual query under `['clientLogs', id, 'workoutLogs']` but with a
+    // different limit (30, for its rolling adherence window); without the
+    // limit in the key, TanStack Query would treat them as one cache entry
+    // and whichever page loaded first would silently truncate the other's
+    // data for the life of that cache entry.
+    queryKey: ["clientLogs", clientId, "workoutLogs", 10],
     queryFn: () => fetchClientLogs<WorkoutLog>(clientId, "workoutLogs", 10),
     enabled: !!clientId,
   });

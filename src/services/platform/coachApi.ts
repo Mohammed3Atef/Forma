@@ -1,6 +1,4 @@
 import { trpc } from '@/services/trpc';
-import { fetchUser } from './accountsApi';
-import { listRelationshipsForCoach } from './coachClientsApi';
 import { writeAudit } from './auditApi';
 import type {
   AssignedPlan,
@@ -46,10 +44,29 @@ function withId<T>(doc: Record<string, unknown>, id: string, extra?: Record<stri
 
 // ---- clients ---------------------------------------------------------------
 
+/** One round trip (relationships + user profiles joined server-side) — was an N+1 of one `fetchUser` per client. */
 export async function listMyClients(coachId: string): Promise<UserRecord[]> {
-  const rels = await listRelationshipsForCoach(coachId);
-  const users = await Promise.all(rels.map((r) => fetchUser(r.clientId)));
-  return users.filter((u): u is UserRecord => !!u);
+  return trpc.coachClients.listMyClientUsers.query({ coachId }) as Promise<UserRecord[]>;
+}
+
+export interface ClientDashboardSummary {
+  clientId: string;
+  workouts7d: number;
+  lastActivity: string | null;
+  assessment: 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review';
+  fullName: string | null;
+  toReview: boolean;
+}
+
+/**
+ * Per-client workouts7d/lastActivity/assessment/toReview for every one of a
+ * coach's active clients, in three bounded backend queries total — was one
+ * `workoutLogs.list` + `assessment.get` + `checkIns.list` fan-out PER client
+ * (the coach dashboard N+1). Shared by the dashboard, `CoachAdherence`, and
+ * `CoachAssessments` — see `coachClients.dashboardSummaries`' doc comment.
+ */
+export async function listClientDashboardSummaries(coachId: string): Promise<ClientDashboardSummary[]> {
+  return trpc.coachClients.dashboardSummaries.query({ coachId }) as Promise<ClientDashboardSummary[]>;
 }
 
 export async function fetchClientProfile(clientId: string): Promise<UserProfile | null> {

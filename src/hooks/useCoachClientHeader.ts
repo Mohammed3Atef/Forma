@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchClientProfile, getClientAssessment } from '@/services/platform/coachApi';
+import { fetchClientLogs, fetchClientProfile, getClientAssessment } from '@/services/platform/coachApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { getRelationship } from '@/services/platform/coachClientsApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
 import type { PillTone } from '@/components/ui/Pill';
+import type { WeightLog } from '@/types';
 
 export const SUB_TONE: Record<string, PillTone> = {
   none: 'mute',
@@ -29,11 +30,13 @@ export function useCoachClientHeader(clientId: string) {
   const profile = useQuery({ queryKey: ['clientProfile', clientId], queryFn: () => fetchClientProfile(clientId), enabled: !!clientId });
   const assessment = useQuery({ queryKey: ['clientAssessment', clientId], queryFn: () => getClientAssessment(clientId), enabled: !!clientId });
   const rel = useQuery({ queryKey: ['relationship', coachId, clientId], queryFn: () => getRelationship(coachId, clientId), enabled: !!coachId && !!clientId });
+  const weight = useQuery({ queryKey: ['clientLogs', clientId, 'weightLogs'], queryFn: () => fetchClientLogs<WeightLog>(clientId, 'weightLogs', 1), enabled: !!clientId });
 
   const name = assessment.data?.basic?.fullName?.trim() || user.data?.displayName || user.data?.email || '';
   const sub = rel.data?.subscription;
   const subStatus = effectiveSubscriptionStatus(sub);
   const daysLeft = sub ? subscriptionDaysLeft(sub) : null;
+  const currentWeightKg = weight.data?.[0]?.weightKg ?? assessment.data?.basic?.weightKg ?? null;
 
   return {
     name,
@@ -41,6 +44,8 @@ export function useCoachClientHeader(clientId: string) {
     goal: profile.data?.goal,
     subStatus,
     daysLeft,
+    assessment: assessment.data ?? null,
+    currentWeightKg,
     isLoading: user.isLoading || assessment.isLoading,
   };
 }

@@ -1,6 +1,7 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
 import { uid } from '@/lib/utils';
-import { saveClientMealPlan, saveClientWorkoutPlan } from './planApi';
+import { getClientWorkoutPlan, saveClientMealPlan, saveClientWorkoutPlan } from './planApi';
+import { saveAsNewVersion } from './planVersionsApi';
 import type {
   Exercise,
   FoodGroup,
@@ -117,8 +118,18 @@ export async function duplicateWorkoutTemplate(template: WorkoutTemplate): Promi
   return copy;
 }
 
-/** Snapshot a template into a client's assigned workout plan (independent copy). */
+/**
+ * Snapshot a template into a client's assigned workout plan (independent copy).
+ * This REPLACES whatever the client's current plan is — if one already exists,
+ * it's auto-saved as a version first (`planVersions.save` also mirrors it, but
+ * only the version the caller is about to overwrite matters here) so the coach
+ * can always restore it from Plan Version History even after a one-tap assign.
+ */
 export async function assignWorkoutTemplate(template: WorkoutTemplate, clientId: string, assignedBy: string): Promise<void> {
+  const existing = await getClientWorkoutPlan(clientId);
+  if (existing) {
+    await saveAsNewVersion(clientId, 'workout', existing, assignedBy, `Auto-saved before assigning template "${template.name}"`);
+  }
   const body = snapshotPlanBody({ days: template.days, exercises: template.exercises });
   const now = Date.now();
   const plan: WorkoutPlan = {

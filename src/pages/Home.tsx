@@ -21,7 +21,7 @@ import { CoachCard } from '@/components/CoachCard';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
 import { WeekStrip } from '@/components/WeekStrip';
 import { TaskRow } from '@/components/TaskRow';
-import { logVolume, logSetCount } from '@/lib/calc';
+import { logVolume, logSetCount, weeklyVolumeTrend } from '@/lib/calc';
 import { formatDuration, weekStartOf } from '@/lib/utils';
 import type { WorkoutDay, WorkoutPlan } from '@/types';
 
@@ -71,17 +71,13 @@ export function Home() {
     return { ex: day.exerciseIds.length, sets, timeMin: Math.round((sets * (restAvg + 45)) / 60) };
   };
 
-  // This-week aggregates + 8-week volume trend.
-  const { week, trend, goal } = useMemo(() => {
+  // This-week aggregates + 8-week volume trend (shared bucket logic with
+  // Progress.tsx's "Weekly volume" chart — see `weeklyVolumeTrend`'s doc
+  // comment for why this used to be duplicated independently in both places).
+  const { week, trend, volumeDelta, goal } = useMemo(() => {
     const curMon = weekStartOf(new Date()).getTime();
     const inWeek = finished.filter((l) => weekStartOf(parseDay(l.date)).getTime() === curMon);
-    const buckets = Array.from({ length: 8 }, () => 0);
-    finished.forEach((l) => {
-      const wkMon = weekStartOf(parseDay(l.date)).getTime();
-      const diffWeeks = Math.round((curMon - wkMon) / (7 * 86_400_000));
-      const idx = 7 - diffWeeks;
-      if (idx >= 0 && idx < 8) buckets[idx] += logVolume(l);
-    });
+    const buckets = weeklyVolumeTrend(finished, weekStartOf);
     return {
       week: {
         workouts: inWeek.length,
@@ -89,10 +85,14 @@ export function Home() {
         volume: inWeek.reduce((v, l) => v + logVolume(l), 0),
         timeMin: Math.round(inWeek.reduce((s, l) => s + l.durationSec, 0) / 60),
       },
-      trend: buckets.map((v, i) => ({
-        label: i === 7 ? t('gt.now') : `-${7 - i}w`,
-        value: v,
+      trend: buckets.map((b, i) => ({
+        label: i === buckets.length - 1 ? t('gt.now') : `-${buckets.length - 1 - i}w`,
+        value: b.value,
+        date: b.weekStart,
       })),
+      // Full-window first vs. last bucket (real zeros included) — an honest
+      // "over the last 8 weeks" delta, not a filtered/skipped comparison.
+      volumeDelta: (buckets[buckets.length - 1].value - buckets[0].value) / 1000,
       goal: settings?.weeklyWorkoutGoal ?? 5,
     };
   }, [finished, settings?.weeklyWorkoutGoal, t]);
@@ -344,7 +344,14 @@ export function Home() {
             <span className="ui-label">{t('gt.volumeTrend')}</span>
             <span className="font-mono text-[11px] text-brand">{t('gt.last8weeks')}</span>
           </div>
-          <BarChart data={trend} format={(v) => `${Math.round(v / 1000)}t`} />
+          {Math.abs(volumeDelta) >= 0.05 ? (
+            <p className="mb-2 text-sm text-earth">
+              {t(volumeDelta >= 0 ? 'gt.volumeTrendUp' : 'gt.volumeTrendDown', { t: Math.abs(volumeDelta).toFixed(1) })}
+            </p>
+          ) : (
+            <p className="mb-2 text-sm text-earth">{t('gt.volumeTrendFlat')}</p>
+          )}
+          <BarChart data={trend} format={(v) => `${Math.round(v / 1000)}t`} unit="t" locale={i18n.language} emptyLabel={t('progress.noData')} />
         </div>
       )}
 

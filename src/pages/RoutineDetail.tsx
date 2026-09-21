@@ -6,6 +6,8 @@ import { Icon } from "@/components/Icon";
 import { TopBar } from "@/components/TopBar";
 import { StatTile } from "@/components/StatTile";
 import { EntityNotes } from "@/components/EntityNotes";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useBack } from "@/hooks/useBack";
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import type { Exercise, WorkoutDay, WorkoutSection } from "@/types";
 
@@ -22,12 +24,19 @@ export function RoutineDetail() {
   const plan = useWorkout((s) => s.plan);
   const startSession = useWorkout((s) => s.startSession);
   const { readOnly, status } = useSubscription();
+  const goBack = useBack("/workout");
 
   const day = plan?.days.find((d) => d.id === dayId);
   if (!plan || !day) {
     return (
-      <div className="pt-10 text-center">
-        <p className="text-earth-muted">{t("progress.noData")}</p>
+      <div className="anim-rise">
+        <TopBar title={t("workout.session")} onBack={goBack} />
+        <EmptyState
+          icon="dumbbell"
+          title={t("routineDetail.notFoundTitle")}
+          message={t("routineDetail.notFoundMessage")}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={goBack}>{t("common.back")}</button>}
+        />
       </div>
     );
   }
@@ -92,7 +101,7 @@ export function RoutineDetail() {
 
   return (
     <div className="anim-rise pb-28">
-      <TopBar title={day.title} eyebrow={day.focus} onBack={() => navigate("/workout")} />
+      <TopBar title={day.title} eyebrow={day.focus} onBack={goBack} />
 
       <div className="grid grid-cols-2 gap-3">
         <StatTile icon="list" value={day.exerciseIds.length} label={t("gt.exercises")} />

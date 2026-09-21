@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
-import { Icon, type IconName } from '@/components/Icon';
+import { Icon } from '@/components/Icon';
 import type { ClientDashboardRow } from '@/services/platform/coachDashboardApi';
 import { shortDate } from '@/lib/utils';
 
@@ -13,18 +13,6 @@ export function greetingKey(hour: number): 'coachDash.goodMorning' | 'coachDash.
   if (hour < 12) return 'coachDash.goodMorning';
   if (hour < 18) return 'coachDash.goodAfternoon';
   return 'coachDash.goodEvening';
-}
-
-/** Quick-action tile used on the Overview / Content tabs. */
-export function QuickAction({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="card card-hover flex items-center gap-3 text-start">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand/40 bg-brand/10 text-brand">
-        <Icon name={icon} size={18} />
-      </span>
-      <span className="min-w-0 truncate text-sm font-medium">{label}</span>
-    </button>
-  );
 }
 
 /** The real reason a client is flagged in `needsAttention`, most-urgent first. */

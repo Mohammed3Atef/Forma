@@ -1,13 +1,9 @@
 import { listAllRelationshipsForCoach } from './coachClientsApi';
-import { fetchClientLogs, getClientAssessment, listMyClients } from './coachApi';
-import { listCheckIns } from './checkInApi';
+import { listClientDashboardSummaries, listMyClients } from './coachApi';
 import { coachUnreadCount } from './messagesApi';
 import { listWorkoutTemplates, listNutritionTemplates } from './coachAssetsApi';
-import { assessmentStatus } from '@/lib/assessment';
 import { effectiveSubscriptionStatus } from '@/lib/subscription';
-import type { AssessmentStatus, SubscriptionStatus, UserRecord, WorkoutLog } from '@/types';
-
-const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+import type { AssessmentStatus, Subscription, SubscriptionStatus, UserRecord } from '@/types';
 
 export interface ClientDashboardRow {
   client: UserRecord;
@@ -17,6 +13,7 @@ export interface ClientDashboardRow {
   needsAttention: boolean;
   toReview: boolean; // has a submitted check-in awaiting the coach's review
   addedAt: number; // when the coach took this client on (active relationship's createdAt)
+  subscription: Subscription | undefined; // from the same relationship list already fetched below — no per-row fetch
 }
 
 /** One upcoming renewal (next payment due), for the dashboard breakdown. */
@@ -68,49 +65,61 @@ function monthBounds(now: number): { start: number; end: number } {
 }
 
 /**
- * One-shot coach dashboard aggregate. Reuses existing per-client reads
- * (listMyClients, fetchClientLogs, getClientAssessment, listCheckIns) plus the
- * messages unread total. Client-side N+1 — fine for typical client counts;
- * call via React Query with a stale window. No new Firestore schema.
+ * One-shot coach dashboard aggregate. `listMyClients` and
+ * `listClientDashboardSummaries` are each one batched backend round trip
+ * (roster+profiles joined server-side; workouts7d/lastActivity/assessment/
+ * toReview aggregated server-side across every client) — this used to fan out
+ * three per-client reads (workoutLogs.list + assessment.get + checkIns.list)
+ * for every client in `clients.map(...)`. Call via React Query with a stale
+ * window. No new Firestore schema.
  */
 export async function getCoachDashboard(coachId: string): Promise<CoachDashboard> {
-  const clients = await listMyClients(coachId);
-  const since = cutoff(7);
-  const [rels, wTpl, nTpl] = await Promise.all([
+  const [clients, summaries, rels, wTpl, nTpl, unreadMessages] = await Promise.all([
+    listMyClients(coachId),
+    listClientDashboardSummaries(coachId),
     listAllRelationshipsForCoach(coachId),
     listWorkoutTemplates(coachId).catch(() => []),
     listNutritionTemplates(coachId).catch(() => []),
+    coachUnreadCount(coachId).catch(() => 0),
   ]);
 
   // When each client was taken on — the active relationship's createdAt (falls
   // back to any relationship). Drives the "Added" column in the client list.
+  // Also carries the relationship's own `subscription` onto each row, so
+  // `ClientPreview` (CoachClients.tsx) can read it directly instead of firing
+  // its own `coachClients.get` request per row — this list is already ONE
+  // bounded request, not one per client.
   const addedById = new Map<string, number>();
+  const subById = new Map<string, Subscription | undefined>();
   for (const r of rels) {
-    if (r.status === 'active' || !addedById.has(r.clientId)) addedById.set(r.clientId, r.createdAt);
+    if (r.status === 'active' || !addedById.has(r.clientId)) {
+      addedById.set(r.clientId, r.createdAt);
+      subById.set(r.clientId, r.subscription);
+    }
   }
 
-  const [rows, unreadMessages] = await Promise.all([
-    Promise.all(
-      clients.map(async (client) => {
-        const [logs, assessment, checkIns] = await Promise.all([
-          fetchClientLogs<WorkoutLog>(client.id, 'workoutLogs', 30),
-          getClientAssessment(client.id),
-          listCheckIns(client.id),
-        ]);
-        const finished = logs.filter((w) => w.finished);
-        const workouts7d = finished.filter((w) => w.date >= since).length;
-        const lastActivity = finished.reduce<string | null>((m, w) => (!m || w.date > m ? w.date : m), null);
-        const assess = assessmentStatus(assessment);
-        const toReview = checkIns.some((c) => c.status === 'submitted');
-        const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || workouts7d === 0 || toReview;
-        // Prefer the client's assessment name over a sign-up email-prefix fallback.
-        const fullName = assessment?.basic?.fullName?.trim();
-        const displayClient = fullName ? { ...client, displayName: fullName } : client;
-        return { client: displayClient, workouts7d, lastActivity, assessment: assess, needsAttention, toReview, addedAt: addedById.get(client.id) ?? client.createdAt };
-      }),
-    ),
-    coachUnreadCount(coachId).catch(() => 0),
-  ]);
+  const summaryByClient = new Map(summaries.map((s) => [s.clientId, s]));
+  const rows: ClientDashboardRow[] = clients.map((client) => {
+    const s = summaryByClient.get(client.id);
+    const workouts7d = s?.workouts7d ?? 0;
+    const lastActivity = s?.lastActivity ?? null;
+    const assess = s?.assessment ?? 'not_started';
+    const toReview = s?.toReview ?? false;
+    const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || workouts7d === 0 || toReview;
+    // Prefer the client's assessment name over a sign-up email-prefix fallback.
+    const fullName = s?.fullName;
+    const displayClient = fullName ? { ...client, displayName: fullName } : client;
+    return {
+      client: displayClient,
+      workouts7d,
+      lastActivity,
+      assessment: assess,
+      needsAttention,
+      toReview,
+      addedAt: addedById.get(client.id) ?? client.createdAt,
+      subscription: subById.get(client.id),
+    };
+  });
 
   const activeClients = clients.filter((c) => c.accountStatus === 'active').length;
   const pendingAssessments = rows.filter((r) => r.assessment === 'submitted' || r.assessment === 'updated_after_review').length;

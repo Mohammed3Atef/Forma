@@ -23,7 +23,7 @@ export function BulkActionBar({
   return (
     <div
       data-testid="bulk-action-bar"
-      className={`fixed bottom-[88px] left-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-2xl -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-2xl border border-line bg-surface/95 px-4 py-3 shadow-elevated backdrop-blur-md md:bottom-6 ${className}`}
+      className={`fixed bottom-[calc(var(--bottomnav-h)+1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-2xl -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-2xl border border-line bg-surface/95 px-4 py-3 shadow-elevated backdrop-blur-md md:bottom-6 ${className}`}
     >
       <span className="shrink-0 text-sm font-semibold" data-testid="bulk-count">
         {t("common.bulk.selected", { n: count })}

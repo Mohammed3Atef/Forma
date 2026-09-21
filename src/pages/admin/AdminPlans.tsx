@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Icon } from '@/components/Icon';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { archiveCoachPlanTier, listCoachPlanTiers, saveCoachPlanTier, tierLabel } from '@/services/platform/coachPlanTiersApi';
@@ -45,9 +47,14 @@ export function AdminPlans() {
         order: Number(f.order) || undefined,
         active: f.active,
       }),
-    onSuccess: () => { setForm(null); invalidate(); },
+    onSuccess: () => { setForm(null); invalidate(); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('adminPlans.add'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
-  const archive = useMutation({ mutationFn: (key: string) => archiveCoachPlanTier(key), onSuccess: invalidate });
+  const archive = useMutation({
+    mutationFn: (key: string) => archiveCoachPlanTier(key),
+    onSuccess: () => { invalidate(); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('adminPlans.archive'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+  });
 
   if (!isSuper) return <Navigate to="/admin" replace />;
 
@@ -64,7 +71,7 @@ export function AdminPlans() {
         title={t('adminPlans.title')}
         eyebrow={t('platform.superAdmin')}
         right={
-          <button type="button" data-testid="plan-add" className="icon-btn h-[42px] w-[42px]" aria-label={t('adminPlans.add')} onClick={openNew}>
+          <button type="button" data-testid="plan-add" className="icon-btn h-11 w-11" aria-label={t('adminPlans.add')} onClick={openNew}>
             <Icon name="plus" size={20} />
           </button>
         }
@@ -111,8 +118,22 @@ export function AdminPlans() {
               <TextInput label={t('adminPlans.key')} data-testid="plan-key" placeholder="growth" helper={t('adminPlans.keyHint')} value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} />
             )}
             <TextInput label={t('adminPlans.label')} data-testid="plan-label" placeholder={form.key || t('adminPlans.label')} value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
-            <TextInput label={t('adminCoaches.clientLimit')} inputMode="numeric" data-testid="plan-max" value={form.maxClients} onChange={(e) => setForm({ ...form, maxClients: e.target.value })} />
-            <TextInput label={t('adminPlans.priceMonthly')} inputMode="decimal" data-testid="plan-price" value={form.priceMonthly} onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })} />
+            <TextInput
+              label={t('adminCoaches.clientLimit')}
+              inputMode="numeric"
+              data-testid="plan-max"
+              value={form.maxClients}
+              onChange={(e) => setForm({ ...form, maxClients: e.target.value })}
+              error={!(Number(form.maxClients) >= 0) ? t('adminCoaches.limitInvalid') : undefined}
+            />
+            <TextInput
+              label={t('adminPlans.priceMonthly')}
+              inputMode="decimal"
+              data-testid="plan-price"
+              value={form.priceMonthly}
+              onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })}
+              error={Number(form.priceMonthly) < 0 ? t('transfer.priceInvalid') : undefined}
+            />
             <div className="grid grid-cols-2 gap-2">
               <TextInput label={t('field.currency')} data-testid="plan-currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
               <TextInput label={t('adminPlans.order')} inputMode="numeric" data-testid="plan-order" value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })} />
@@ -121,16 +142,17 @@ export function AdminPlans() {
               <span className="label">{t('adminPlans.active')}</span>
               <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-5 w-5 accent-brand" data-testid="plan-active" />
             </label>
-            <button
+            <SubmitButton
               type="button"
-              className="btn-primary w-full disabled:opacity-40"
+              fullWidth
               data-testid="plan-save"
-              disabled={save.isPending || !online || (form.isNew && !form.key.trim()) || !(Number(form.maxClients) >= 0)}
-              title={!online ? t('offline.actionDisabled') : undefined}
+              disabled={(form.isNew && !form.key.trim()) || !(Number(form.maxClients) >= 0) || Number(form.priceMonthly) < 0}
+              offline={!online}
+              pending={save.isPending}
               onClick={() => save.mutate(form)}
             >
               {t('common.save')}
-            </button>
+            </SubmitButton>
           </div>
         )}
       </Sheet>

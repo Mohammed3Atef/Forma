@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
+import { TextInput } from '@/components/ui/Field';
 import { useSession } from '@/services/auth/sessionStore';
 import { passwordError } from '@/lib/password';
 import { alertDialog } from '@/stores/dialogStore';
@@ -38,11 +39,39 @@ export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose:
   return (
     <Sheet open={open} onClose={onClose} title={t('auth.changePassword')}>
       <div className="space-y-3">
-        <input className="input" type="password" autoComplete="current-password" data-testid="change-pw-current" placeholder={t('auth.currentPassword')} value={current} onChange={(e) => setCurrent(e.target.value)} />
-        <input className="input" type="password" autoComplete="new-password" data-testid="change-pw-new" placeholder={t('auth.newPassword')} value={pw} onChange={(e) => setPw(e.target.value)} />
-        <input className="input" type="password" autoComplete="new-password" data-testid="change-pw-confirm" placeholder={t('auth.confirmPassword')} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-        <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
-        {err && <p className="text-sm text-danger" data-testid="change-pw-error">{err}</p>}
+        <TextInput
+          label={t('auth.currentPassword')}
+          srOnlyLabel
+          type="password"
+          autoComplete="current-password"
+          data-testid="change-pw-current"
+          placeholder={t('auth.currentPassword')}
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
+        <TextInput
+          label={t('auth.newPassword')}
+          srOnlyLabel
+          type="password"
+          autoComplete="new-password"
+          data-testid="change-pw-new"
+          placeholder={t('auth.newPassword')}
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          error={err ?? undefined}
+          helper={err ? undefined : t('auth.pwHint')}
+        />
+        <TextInput
+          label={t('auth.confirmPassword')}
+          srOnlyLabel
+          type="password"
+          autoComplete="new-password"
+          data-testid="change-pw-confirm"
+          placeholder={t('auth.confirmPassword')}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          aria-invalid={err ? true : undefined}
+        />
         <button type="button" data-testid="change-pw-save" disabled={busy || !current || !pw || !confirm} onClick={() => void submit()} className="btn-primary w-full disabled:opacity-40">
           {busy ? t('auth.working') : t('common.save')}
         </button>

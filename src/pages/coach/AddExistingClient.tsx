@@ -17,6 +17,8 @@ import {
   submitTransferRequest,
 } from '@/services/platform/transferApi';
 import { useSession } from '@/services/auth/sessionStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import type { CoachClientRelationship, UserRecord } from '@/types';
 
 /** Format a millisecond timestamp as a short localized date (joined date). */
@@ -248,17 +250,22 @@ function ClientResultDetail({
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
+      showToast({ title: t('coach.addClient'), variant: 'success' });
       onDone();
     },
+    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   const request = useMutation({
     mutationFn: () => submitTransferRequest({ toCoachId: meId, clientId: c.id, fromCoachId: row.coachId!, reason }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }); showToast({ title: t('transferReq.pending'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('transferReq.request'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const cancelReq = useMutation({
     mutationFn: () => cancelTransferRequest(meId, c.id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }),
+    onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   // A coach who somehow lands on their own client can release them straight from here.
   const release = useMutation({
@@ -266,8 +273,11 @@ function ClientResultDetail({
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
+      showToast({ title: t('common.removed'), variant: 'success' });
       onDone();
     },
+    onError: (e) => void alertDialog({ title: t('release.confirm'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   const pendingReq = myReq.data && myReq.data.status === 'pending' ? myReq.data : null;
@@ -296,7 +306,16 @@ function ClientResultDetail({
       {mine && (
         <div className="space-y-2" data-testid="existing-already-assigned">
           <p className="text-sm text-earth-muted">{t('existing.alreadyYours')}</p>
-          <button type="button" className="btn-ghost w-full text-danger" data-testid="existing-release" disabled={release.isPending} onClick={() => release.mutate()}>
+          <button
+            type="button"
+            className="btn-ghost w-full text-danger"
+            data-testid="existing-release"
+            disabled={release.isPending}
+            onClick={async () => {
+              const ok = await confirmDialog({ title: t('release.title'), message: t('release.body'), confirmLabel: t('release.confirm'), danger: true });
+              if (ok) release.mutate();
+            }}
+          >
             {release.isPending ? t('auth.working') : t('release.action')}
           </button>
         </div>
@@ -334,6 +353,8 @@ function ClientResultDetail({
             <>
               <TextAreaField
                 label={t('field.reason')}
+                required
+                helper={t('transferReq.reasonRequiredHint')}
                 className="min-h-[72px]"
                 data-testid="existing-transfer-reason"
                 placeholder={t('transferReq.reasonPlaceholder')}

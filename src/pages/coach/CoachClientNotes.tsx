@@ -8,6 +8,8 @@ import { TextAreaField } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useSession } from '@/services/auth/sessionStore';
 import { addCoachNote, listCoachNotes, type Author } from '@/services/platform/coachApi';
+import { alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 
 /**
  * The workspace's `notes` tab — every internal coach note for this client, in
@@ -30,7 +32,9 @@ export function CoachClientNotes() {
       setBody('');
       setOpen(false);
       void qc.invalidateQueries({ queryKey: ['coachNotes', clientId] });
+      showToast({ title: t('common.saved'), variant: 'success' });
     },
+    onError: (e) => void alertDialog({ title: t('coach.notes'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   return (

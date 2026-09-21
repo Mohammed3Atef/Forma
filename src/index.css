@@ -5,6 +5,17 @@
 :root {
   color-scheme: dark;
   --ease-card: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Real, designed heights of persistent chrome, named once so sticky/fixed
+     UI elsewhere computes its offset from a single source instead of each
+     repeating the same magic number with its own explanatory comment. Values
+     match what was already hardcoded at every consumer (BrandBar, TopBar,
+     BottomNav, BulkActionBar, ResponsiveShell) — this is a pure refactor,
+     not a size change; DetailPanel's `--desktop-topbar-h` use is the one
+     genuinely new consumer (see its own comment). */
+  --brandbar-logo-h: 2.25rem; /* BrandBar's `h-9` logo — TopBar's sticky offset clears exactly this */
+  --desktop-topbar-h: 4rem; /* DesktopTopBar's rendered height (py-3 padding + its search-input row) */
+  --bottomnav-h: 4.5rem; /* BottomNav's own content height; safe-area-inset-bottom is added separately at each use site, not folded in here, since it varies by device */
 }
 
 html,
@@ -36,6 +47,45 @@ html[dir='rtl'] .pill {
   text-transform: none;
   letter-spacing: 0;
   font-family: theme('fontFamily.arabic');
+}
+
+/* ---- Scrollbars — subtle Forma-styled scrollbar everywhere, replacing the
+   browser default. Firefox inherits `scrollbar-color`/`scrollbar-width` from
+   `:root`, so one declaration covers every scrollable descendant; WebKit's
+   `::-webkit-scrollbar` pseudo-elements are NOT inherited, so `*` is needed
+   to reach every custom scroll container (sidebars, the Messenger list and
+   thread, Sheets, tables, menus). Low-contrast at rest, clearly discoverable
+   on hover, a touch of brand warmth only while actively dragging — never a
+   bright-orange scrollbar at rest. */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.line.strong') transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.line.strong') transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: theme('colors.line.strong');
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: theme('colors.earth.faint');
+}
+*::-webkit-scrollbar-thumb:active {
+  background-color: theme('colors.brand.dark');
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Hide number-input spinners (we use custom steppers) */
@@ -139,8 +189,24 @@ input[type='number'] {
     min-height: var(--btn-lg, 3.25rem);
   }
   .btn-sm {
-    @apply px-3 text-[11px];
+    @apply relative px-3 text-[11px];
     min-height: 2.125rem;
+  }
+  /* `.btn-sm`/`.chip`/`.seg button`/`.sec-link`/`.icon-btn` all render smaller
+     than the ~44px touch-target guideline by design (compact commands sitting
+     inline next to text, or a deliberately tight design-system size) — rather
+     than growing them visually and disturbing the established layout rhythm,
+     each gets an invisible expanded hit area via `::before`. `inset: -4px` is
+     small enough that adjacent same-row buttons (this codebase's tightest
+     real gap is `gap-1.5` = 6px) don't meaningfully steal each other's taps. */
+  .btn-sm::before,
+  .chip::before,
+  .seg button::before,
+  .sec-link::before,
+  .icon-btn::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
   }
   .btn-primary {
     /* Gradient fill (amber → orange → deep orange) with near-black ink text —
@@ -167,9 +233,12 @@ input[type='number'] {
     @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
   }
 
-  /* Circular icon-only button (42px ring style from the design). */
+  /* Circular icon-only button. Every call site supplies its own height/width
+     utility (this class has no intrinsic size) — sizes in the wild range from
+     32px to 44px; the `::before` hit-area below (see `.btn-sm` above) tops up
+     whichever one a given call site uses without changing any visual sizes. */
   .icon-btn {
-    @apply inline-flex shrink-0 items-center justify-center rounded-full border border-white/15
+    @apply relative inline-flex shrink-0 items-center justify-center rounded-full border border-white/15
       bg-transparent text-white transition-transform duration-200 ease-card
       hover:bg-white/5 active:scale-90 disabled:opacity-40
       motion-reduce:transition-none motion-reduce:active:scale-100;
@@ -196,7 +265,10 @@ input[type='number'] {
     @apply ms-0.5 font-mono text-sm font-normal text-earth-muted;
   }
   .stat-label {
-    @apply font-mono text-[10.5px] uppercase tracking-[0.08em] text-earth-muted;
+    /* `min-h` (not a fixed height) reserves room for a 2-line wrap — longer
+       Arabic labels wrap instead of being clipped, and every tile in the same
+       grid row still lines up whether its own label wraps or not. */
+    @apply font-mono text-[10.5px] uppercase leading-[1.35] tracking-[0.08em] text-earth-muted min-h-[2.4em];
   }
 
   /* ---- Section heading ---- */
@@ -204,7 +276,7 @@ input[type='number'] {
     @apply mb-3.5 mt-7 flex items-baseline justify-between;
   }
   .sec-link {
-    @apply font-mono text-[11px] uppercase tracking-[0.04em] text-brand;
+    @apply relative font-mono text-[11px] uppercase tracking-[0.04em] text-brand;
   }
 
   /* ---- List row ---- */
@@ -227,7 +299,7 @@ input[type='number'] {
 
   /* ---- Chips ---- */
   .chip {
-    @apply shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted
+    @apply relative shrink-0 rounded-full border border-line bg-surface-card px-4 py-2 font-mono text-xs tracking-[0.02em] text-earth-muted
       transition-colors hover:border-line-strong hover:text-earth motion-reduce:transition-none;
   }
   .chip-on {
@@ -241,7 +313,7 @@ input[type='number'] {
     @apply flex gap-1 rounded-full border border-line bg-surface-card p-1;
   }
   .seg button {
-    @apply h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
+    @apply relative h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
   }
   .seg button.on {
     @apply bg-gradient-brand text-brand-ink;

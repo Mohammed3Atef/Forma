@@ -1,13 +1,18 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { StatTile } from '@/components/StatTile';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { DetailPanel } from '@/components/ui/DetailPanel';
+import { SplitPane } from '@/components/ui/SplitPane';
+import { SearchField } from '@/components/ui/Field';
+import { MobileCardList } from '@/components/ui/MobileCardList';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { usePagination } from '@/hooks/usePagination';
@@ -21,6 +26,7 @@ import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, CoachPlanTierConfig } from '@/types';
@@ -43,12 +49,32 @@ export function AdminCoaches() {
   const online = useOnlineStatus();
   const isDesktop = useIsDesktop();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const q = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, enabled: isSuper });
+  // Debounced so search runs server-side (over every coach on the platform,
+  // not a stale client-cached page) without firing a request per keystroke.
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+  // Collapse to the bare `['coachAdmin']` key when unfiltered — every other
+  // reader (AdminAssignments, AdminSubscriptions, OverviewPanel,
+  // AdminCoachDetail's invalidation) uses that same bare key for the
+  // unfiltered payload; keying an empty search as `['coachAdmin', '']`
+  // fetched and cached the identical data a second time under a different key.
+  const q = useQuery({
+    queryKey: debouncedSearch ? ['coachAdmin', debouncedSearch] : ['coachAdmin'],
+    queryFn: () => fetchCoachAdmin(debouncedSearch),
+    enabled: isSuper,
+  });
   const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
   const pendingSet = new Set((pendingReqs.data ?? []).map((r) => r.coachId));
   const renew = useMutation({
     mutationFn: (coachId: string) => renewCoachPlan(coachId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachAdmin'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
+      showToast({ title: t('adminCoaches.renew'), variant: 'success' });
+    },
     onError: (e) =>
       void alertDialog({
         title: t('adminCoaches.renew'),
@@ -57,21 +83,31 @@ export function AdminCoaches() {
   });
   const setStatus = useMutation({
     mutationFn: ({ coachId, status }: { coachId: string; status: 'active' | 'suspended' }) => setCoachPlanStatus(coachId, status),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachAdmin'] }),
-    onError: (e) =>
-      void alertDialog({ title: t('adminCoaches.suspend'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onSuccess: (_v, { status }) => {
+      void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
+      showToast({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), variant: 'success' });
+    },
+    onError: (e, { status }) =>
+      void alertDialog({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const sel = useSelection();
   const rows = q.data?.rows ?? [];
-  const pg = usePagination(rows, 25);
+  const pg = usePagination(rows, 25, debouncedSearch);
   const pageIds = pg.pageItems.map((r) => r.coach.id);
+  // "Select all" only ever means the CURRENT page (`pageIds`, above) — carrying
+  // a selection across a search or page change would silently keep ids that
+  // are no longer even visible, contradicting that "select all" semantics.
+  const clearSelection = sel.clear;
+  useEffect(() => { clearSelection(); }, [debouncedSearch, pg.page, clearSelection]);
   const bulkStatus = useMutation({
     mutationFn: ({ ids, status }: { ids: string[]; status: AccountStatus }) =>
       bulkSetAccountStatus(rows.filter((r) => ids.includes(r.coach.id)).map((r) => r.coach), status),
-    onSuccess: () => {
+    onSuccess: (result) => {
       void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
       void qc.invalidateQueries({ queryKey: ['users'] });
+      void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
       sel.clear();
+      showToast({ title: t('common.bulk.done', { ok: result.ok }), variant: result.failed ? 'warning' : 'success' });
     },
     onError: (e, vars) =>
       void alertDialog({
@@ -128,8 +164,8 @@ export function AdminCoaches() {
       columns={columns}
       rows={pg.pageItems}
       rowKey={(r) => r.coach.id}
-      selectedKey={isDesktop ? selectedId : undefined}
-      onRowClick={(r) => (isDesktop ? setSelectedId(r.coach.id) : navigate(`/admin/coaches/${r.coach.id}`))}
+      selectedKey={selectedId}
+      onRowClick={(r) => setSelectedId(r.coach.id)}
       selection={{
         isSelected: (r) => sel.has(r.coach.id),
         onToggle: (r) => sel.toggle(r.coach.id),
@@ -137,7 +173,45 @@ export function AdminCoaches() {
         someSelected: pageIds.some((id) => sel.has(id)),
         onToggleAll: (on) => sel.setMany(pageIds, on),
       }}
-      empty={t('adminCoaches.none')}
+      empty={<span className="flex flex-col items-center gap-1 py-4"><span className="font-medium text-earth">{t('adminCoaches.none')}</span><span className="text-[13px] text-earth-subtle">{t('adminCoaches.noneMessage')}</span></span>}
+    />
+  );
+  // Mobile fallback — DataTable is desktop-only by contract; this used to
+  // reuse `table` directly below 1024px (a 7-column table squeezed onto a
+  // phone, no card treatment at all), the exact pattern this component's own
+  // doc comment says never to do.
+  const mobileList = (
+    <MobileCardList
+      testId="admin-coaches-cards"
+      items={pg.pageItems}
+      rowKey={(r) => r.coach.id}
+      onItemClick={(r) => navigate(`/admin/coaches/${r.coach.id}`)}
+      selection={{ isSelected: (r) => sel.has(r.coach.id), onToggle: (r) => sel.toggle(r.coach.id) }}
+      empty={<EmptyState icon="trophy" title={t('adminCoaches.none')} message={t('adminCoaches.noneMessage')} />}
+      renderItem={(r) => {
+        // Renewing itself stays a tap-through to the detail page (a real
+        // action button here would nest inside MobileCardList's own row
+        // button, which isn't valid — a plain badge still surfaces the
+        // "needs attention" state without hiding it).
+        const needsRenew = !!r.plan && (r.state === 'expired' || r.state === 'suspended' || (trialDaysLeft(r.plan) ?? 99) <= 5);
+        const hasReq = pendingSet.has(r.coach.id);
+        return (
+          <span className="flex items-center gap-3">
+            <Avatar name={r.coach.displayName || r.coach.email} photoUrl={r.coach.photoUrl} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{r.coach.displayName || r.coach.email}</span>
+              <span className="block truncate text-[12px] text-earth-subtle">{r.coach.email}</span>
+              <span className="mt-1 flex flex-wrap items-center gap-2">
+                <Pill tone={STATE_TONE[r.state]}>{t(`adminCoaches.state.${r.state}`)}</Pill>
+                <span className="font-mono text-[11px] text-earth-subtle">{tierLabel(tiers, r.plan?.plan ?? 'none', t)}</span>
+                {r.plan && <span className="font-mono text-[11px] text-earth-subtle">{r.clientCount}/{r.plan.maxClients}</span>}
+                {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
+                {needsRenew && <span className="chip border-warn/50 text-[10.5px] text-warn">{t('adminCoaches.renew')}</span>}
+              </span>
+            </span>
+          </span>
+        );
+      }}
     />
   );
 
@@ -145,7 +219,7 @@ export function AdminCoaches() {
     <div data-testid="admin-coaches">
       <TopBar title={t('adminCoaches.title')} eyebrow={t('platform.superAdmin')} />
       {q.isLoading || !d ? (
-        <p className="py-10 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="cards" count={6} />
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
@@ -156,13 +230,16 @@ export function AdminCoaches() {
             <StatTile icon="dumbbell" value={d.totalClients} label={t('adminCoaches.totalClients')} />
             <StatTile icon="bolt" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} />
           </div>
+          <SearchField aria-label={t('adminCoaches.searchCoaches')} placeholder={t('adminCoaches.searchCoaches')} value={search} onChange={(e) => setSearch(e.target.value)} />
           {isDesktop ? (
-            <div className="flex gap-5">
-              <div className="min-w-0 flex-1 space-y-4">
-                {table}
-                <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
-              </div>
-              <div className="w-80 shrink-0">
+            <SplitPane
+              main={
+                <div className="space-y-4">
+                  {table}
+                  <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+                </div>
+              }
+              detail={
                 <DetailPanel testId="admin-coach-preview" empty={!selected} emptyMessage={t('coachDash.selectClient')}>
                   {selected && (
                     <CoachPreview
@@ -179,11 +256,11 @@ export function AdminCoaches() {
                     />
                   )}
                 </DetailPanel>
-              </div>
-            </div>
+              }
+            />
           ) : (
             <>
-              {table}
+              {mobileList}
               <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
             </>
           )}

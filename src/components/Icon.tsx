@@ -43,7 +43,8 @@ type IconName =
   | 'chat'
   | 'mic'
   | 'globe'
-  | 'shield';
+  | 'shield'
+  | 'columns';
 
 const PATHS: Record<IconName, string> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -90,6 +91,8 @@ const PATHS: Record<IconName, string> = {
   mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
   globe: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18',
   shield: 'M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3zM9.5 12l2 2 3.5-4',
+  // Two side-by-side panels — a before/after photo compare, not a chart.
+  columns: 'M4 4h7v16H4zM13 4h7v16h-7z',
 };
 
 /** Design-system size scale (px). Numeric sizes still accepted for fine control. */

@@ -1,10 +1,18 @@
 import { z } from 'zod';
-import { router, protectedProcedure, permissionProcedure } from '../trpc.js';
+import { router, permissionProcedure } from '../trpc.js';
 import { flagsCol, toPublicFlag, writeFlagAudit } from '../../banners/_handlers/flags-lib.js';
 
 /** tRPC port of `api/banners/_handlers/flags-index.ts`. */
 export const flagsRouter = router({
-  list: protectedProcedure.query(async () => {
+  /**
+   * Gated on `flags.manage` (same as `save`) — this was `protectedProcedure`
+   * with no permission check at all, so any active client/coach could read
+   * every flag doc including its `targetId` (per-coach/per-client targeting
+   * data). Nothing in the app actually reads flags outside `AdminGovernance`
+   * (confirmed: it's the only frontend caller of `flags.list`), so tightening
+   * this doesn't remove any real feature-gating capability.
+   */
+  list: permissionProcedure('flags.manage').query(async () => {
     const col = await flagsCol();
     const docs = await col.find({}).toArray();
     return docs.map(toPublicFlag);

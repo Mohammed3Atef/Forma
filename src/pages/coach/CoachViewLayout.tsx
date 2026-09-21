@@ -15,6 +15,7 @@ import { CoachViewProgress } from '@/pages/coach/CoachViewProgress';
 import { useSession } from '@/services/auth/sessionStore';
 import { addCoachNote, listCoachNotes, type Author } from '@/services/platform/coachApi';
 import { fetchUser } from '@/services/platform/accountsApi';
+import { useBack } from '@/hooks/useBack';
 
 const TABS = ['activity', 'nutrition', 'cardio', 'measurements', 'photos', 'progress'] as const;
 type Tab = (typeof TABS)[number];
@@ -30,6 +31,7 @@ export function CoachViewLayout() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '', tab = 'activity' } = useParams();
+  const goBack = useBack(`/coach/client/${clientId}`);
   const activeTab = (TABS.includes(tab as Tab) ? tab : 'activity') as Tab;
   const account = useSession((s) => s.account);
   const author: Author = { id: account?.id ?? 'self', role: account?.role ?? 'coach' };
@@ -58,16 +60,16 @@ export function CoachViewLayout() {
 
   return (
     <>
-      <TopBar testId="coach-view" title={name} eyebrow={t('coachView.viewAsClient')} onBack={() => navigate(`/coach/client/${clientId}`)} />
+      <TopBar testId="coach-view" title={name} eyebrow={t('coachView.viewAsClient')} onBack={goBack} />
 
-      {/* Tab bar */}
+      {/* Tab bar — replace, not push, so switching tabs doesn't pile up history */}
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {TABS.map((tb) => (
           <button
             key={tb}
             type="button"
             data-testid={`coach-view-tab-${tb}`}
-            onClick={() => navigate(`/coach/client/${clientId}/view/${tb}`)}
+            onClick={() => navigate(`/coach/client/${clientId}/view/${tb}`, { replace: true })}
             className={`chip whitespace-nowrap ${activeTab === tb ? 'chip-on' : ''}`}
           >
             {t(`coachView.tabs.${tb}`)}

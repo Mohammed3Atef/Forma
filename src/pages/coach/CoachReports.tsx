@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSession } from '@/services/auth/sessionStore';
 import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
@@ -29,7 +30,7 @@ export function CoachReports() {
   return (
     <div className="anim-rise" data-testid="coach-reports">
       <TopBar title={t('coachDash.reportsTitle')} eyebrow={t('nav.groupBusiness')} />
-      {q.isLoading || !d ? <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p> : <ReportsPanel d={d} />}
+      {q.isLoading || !d ? <LoadingState variant="cards" count={6} /> : <ReportsPanel d={d} />}
     </div>
   );
 }

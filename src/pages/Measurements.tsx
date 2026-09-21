@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMeasurements } from '@/stores/measurementStore';
 import { useDay } from '@/stores/dayStore';
@@ -8,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { MeasurementForm, MEASUREMENT_KEYS as KEYS } from '@/components/MeasurementForm';
 import { EntityNotes } from '@/components/EntityNotes';
+import { useBack } from '@/hooks/useBack';
 import { shortDate } from '@/lib/utils';
 
 export function Measurements() {
@@ -45,11 +45,11 @@ export function Measurements() {
   const a = forDate(dateA);
   const b = forDate(dateB);
 
-  const navigate = useNavigate();
+  const goBack = useBack('/progress?tab=measure');
 
   return (
     <div className="anim-rise space-y-4">
-      <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
+      <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={goBack} />
 
       {/* Entry form for the selected day */}
       <MeasurementForm

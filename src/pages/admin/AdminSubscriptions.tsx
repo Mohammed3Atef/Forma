@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
+import { fetchGrowth } from '@/services/platform/adminGrowthApi';
 import { listPendingPlanChangeRequests, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 
@@ -29,9 +30,12 @@ export function AdminSubscriptions() {
   useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const q = useQuery({ queryKey: ['coachAdmin'], queryFn: fetchCoachAdmin, staleTime: 120_000 });
+  const q = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), staleTime: 120_000 });
   const reqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, staleTime: 60_000 });
+  // Client-subscription money + client terms ending soon — real data that used to live on the old Growth tab.
+  const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, staleTime: 120_000 });
   const d = q.data;
+  const g = growth.data;
 
   const nameOf = (cid: string) => {
     const row = d?.rows.find((r) => r.coach.id === cid);
@@ -64,7 +68,8 @@ export function AdminSubscriptions() {
   const topCoaches = useMemo(() => [...(d?.rows ?? [])].filter((r) => r.clientCount > 0).sort((a, b) => b.clientCount - a.clientCount).slice(0, 6), [d]);
 
   const pending = reqs.data ?? [];
-  const needsAction = pending.length + expiringTrials.filter((x) => x.days <= 3).length;
+  const expiringClients = g?.expiringClients ?? [];
+  const needsAction = pending.length + expiringTrials.filter((x) => x.days <= 3).length + expiringClients.filter((x) => x.days <= 3).length;
 
   return (
     <div data-testid="admin-subscriptions">
@@ -77,6 +82,13 @@ export function AdminSubscriptions() {
             <p className="eyebrow mb-2">{t('admin.trackedRevenue')}</p>
             <p className="font-display text-[34px] font-bold leading-none">{d.trackedRevenue}<span className="ms-1 text-base font-normal text-earth-muted">{t('admin.perMonth')}</span></p>
             <p className="mt-2 text-sm text-earth-muted">{t('admin.pricingNote')}</p>
+            {g && (
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[12px] text-earth-muted">
+                <span>{t('adminGrowth.coachMrr')} · <span className="text-earth">{d.trackedRevenue}</span></span>
+                <span>{t('adminGrowth.clientMrr')} · <span className="text-earth">{g.clientMrr} {g.currency}</span></span>
+                <span>{t('adminGrowth.totalMrr')} · <span className="text-earth">{d.trackedRevenue + g.clientMrr}</span></span>
+              </div>
+            )}
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <MetricCard icon="timer" value={d.trialCoaches} label={t('adminCoaches.trial')} tone="brand" />
               <MetricCard icon="check" value={d.activeCoaches} label={t('adminCoaches.active')} tone="success" />
@@ -86,7 +98,7 @@ export function AdminSubscriptions() {
           </div>
 
           <DashboardSection title={t('admin.needsAction', { n: needsAction })} icon="bolt">
-            {pending.length === 0 && expiringTrials.length === 0 ? (
+            {pending.length === 0 && expiringTrials.length === 0 && expiringClients.length === 0 ? (
               <EmptyState icon="check" tone="brand" title={t('admin.noRequests')} />
             ) : (
               <div className="card divide-y divide-line-soft p-0">
@@ -111,6 +123,16 @@ export function AdminSubscriptions() {
                       <span className="block truncate text-[12px] text-earth-subtle">{t('adminGrowth.coachTrial')}</span>
                     </span>
                     <span className={`shrink-0 font-mono text-[12px] ${days <= 1 ? 'text-danger' : days <= 3 ? 'text-warn' : 'text-earth-muted'}`}>{t('subscription.daysLeft', { n: Math.max(0, days) })}</span>
+                  </button>
+                ))}
+                {expiringClients.map((x) => (
+                  <button key={`client-${x.clientId}`} type="button" onClick={() => navigate(`/admin/clients/${x.clientId}`)} className="rowline w-full text-start" data-testid="admin-expiring-client">
+                    <span className="tk-ic"><Icon name="user" size={15} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{x.name}</span>
+                      <span className="block truncate text-[12px] text-earth-subtle">{t('adminGrowth.clientSub')} · {nameOf(x.coachId)}</span>
+                    </span>
+                    <span className={`shrink-0 font-mono text-[12px] ${x.days <= 1 ? 'text-danger' : x.days <= 3 ? 'text-warn' : 'text-earth-muted'}`}>{t('subscription.daysLeft', { n: Math.max(0, x.days) })}</span>
                   </button>
                 ))}
               </div>
@@ -162,7 +184,7 @@ export function AdminSubscriptions() {
                   </button>
                 ))
               ) : (
-                <p className="py-4 text-center text-sm text-earth-muted">{t('adminCoaches.none')}</p>
+                <p className="py-4 text-center text-sm text-earth-muted">{t('admin.noRevenueByCoach')}</p>
               )}
             </div>
           </DashboardSection>

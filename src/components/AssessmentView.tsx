@@ -124,7 +124,7 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
                 if (!url) return null;
                 return (
                   <button key={pose} type="button" className="block" onClick={() => viewImages(urls, urls.indexOf(url))}>
-                    <img src={url} alt={pose} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                    <img src={url} alt={pose} loading="lazy" className="aspect-[3/4] w-full rounded-xl object-cover" />
                     <span className="mt-1 block text-center text-[11px] text-earth-subtle">{t(`progress.${pose}`)}</span>
                   </button>
                 );

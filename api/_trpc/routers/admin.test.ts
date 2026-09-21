@@ -103,30 +103,47 @@ describe('admin module — stats/members/growth', () => {
 });
 
 describe('admin module — coaches', () => {
-  it('lists coaches with real client counts and reads one coach detail', async () => {
+  it('is super_admin-only (a plain admin is FORBIDDEN); lists coaches with real client counts, reads one coach detail, and search narrows rows without moving the KPI totals', async () => {
     const adminDoc = await insertUser({ _id: 'admin-1', role: 'admin' });
-    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const superAdminDoc = await insertUser({ _id: 'super-admin-1', role: 'super_admin' });
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', displayName: 'Ahmed Coach' });
+    const otherCoachDoc = await insertUser({ _id: 'coach-2', role: 'coach', displayName: 'Sara Coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await assignCoach(coachDoc._id, clientDoc._id);
     await givePlan(coachDoc._id);
+    await givePlan(otherCoachDoc._id);
     const asAdmin = appRouter.createCaller(ctxFor(authedUser(adminDoc)));
+    const asSuperAdmin = appRouter.createCaller(ctxFor(authedUser(superAdminDoc)));
 
-    const list = await asAdmin.adminCoaches.list();
-    expect(list.totalCoaches).toBe(1);
-    expect(list.rows[0].clientCount).toBe(1);
+    // A plain admin — even though they hold `users.read` — cannot reach this
+    // full per-coach admin rollup; the frontend already restricts the whole
+    // AdminCoaches page to super_admin, and the backend now matches.
+    await expect(asAdmin.adminCoaches.list()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asAdmin.adminCoaches.detail({ id: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const list = await asSuperAdmin.adminCoaches.list();
+    expect(list.totalCoaches).toBe(2);
+    expect(list.rows.find((r) => r.coach.id === coachDoc._id)?.clientCount).toBe(1);
     // Regression guard: coachPlans docs are keyed by `_id` (== coachId) and never carry a
     // separate `coachId` field — a prior bug (predating the tRPC migration) built this lookup
     // by `p.coachId` instead of `p._id`, so `plan`/`state`/`maxClients` always came back
     // null/"none"/undefined in production despite the underlying plan doc being correct.
-    expect(list.rows[0].plan?.plan).toBe('trial');
-    expect(list.rows[0].plan?.maxClients).toBe(10);
-    expect(list.rows[0].state).toBe('trial');
+    const row = list.rows.find((r) => r.coach.id === coachDoc._id);
+    expect(row?.plan?.plan).toBe('trial');
+    expect(row?.plan?.maxClients).toBe(10);
+    expect(row?.state).toBe('trial');
 
-    const detail = await asAdmin.adminCoaches.detail({ id: coachDoc._id });
+    // `search` narrows the returned `rows` server-side over the whole
+    // collection, but the KPI totals stay based on the unfiltered set.
+    const searched = await asSuperAdmin.adminCoaches.list({ search: 'ahmed' });
+    expect(searched.rows.map((r) => r.coach.id)).toEqual([coachDoc._id]);
+    expect(searched.totalCoaches).toBe(2); // unaffected by the search term
+
+    const detail = await asSuperAdmin.adminCoaches.detail({ id: coachDoc._id });
     expect(detail.clients).toHaveLength(1);
     expect(detail.clients[0].id).toBe(clientDoc._id);
 
-    await expect(asAdmin.adminCoaches.detail({ id: 'nope' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(asSuperAdmin.adminCoaches.detail({ id: 'nope' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
@@ -152,6 +169,38 @@ describe('admin module — audit', () => {
 
     const asClient = appRouter.createCaller(ctxFor(authedUser(clientDoc)));
     await expect(asClient.adminAudit.list()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('list filters server-side by actorId, targetUserId, an exact action, and a bare category prefix', async () => {
+    const adminDoc = await insertUser({ _id: 'admin-1', role: 'admin' });
+    const otherAdmin = await insertUser({ _id: 'admin-2', role: 'admin' });
+    const clientA = await insertUser({ _id: 'client-a', role: 'client' });
+    const clientB = await insertUser({ _id: 'client-b', role: 'client' });
+    const asAdmin = appRouter.createCaller(ctxFor(authedUser(adminDoc)));
+    const asOtherAdmin = appRouter.createCaller(ctxFor(authedUser(otherAdmin)));
+
+    await asAdmin.adminAudit.create({ action: 'users.setStatus', targetUserId: clientA._id });
+    await asAdmin.adminAudit.create({ action: 'users.setRole', targetUserId: clientB._id });
+    await asOtherAdmin.adminAudit.create({ action: 'coachPlan.setTier', targetUserId: clientA._id });
+
+    // Exact actor.
+    const byActor = await asAdmin.adminAudit.list({ actorId: otherAdmin._id });
+    expect(byActor.logs.map((l) => l.action)).toEqual(['coachPlan.setTier']);
+
+    // Exact target.
+    const byTarget = await asAdmin.adminAudit.list({ targetUserId: clientB._id });
+    expect(byTarget.logs.map((l) => l.action)).toEqual(['users.setRole']);
+
+    // Exact action key (contains a '.').
+    const byExactAction = await asAdmin.adminAudit.list({ action: 'users.setRole' });
+    expect(byExactAction.logs).toHaveLength(1);
+
+    // Bare category prefix (no '.') matches every action under that category,
+    // but not an unrelated category that happens to share a prefix string.
+    const byCategory = await asAdmin.adminAudit.list({ action: 'users' });
+    expect(byCategory.logs.map((l) => l.action).sort()).toEqual(['users.setRole', 'users.setStatus']);
+    const byOtherCategory = await asAdmin.adminAudit.list({ action: 'coachPlan' });
+    expect(byOtherCategory.logs.map((l) => l.action)).toEqual(['coachPlan.setTier']);
   });
 });
 
@@ -198,6 +247,35 @@ describe('admin module — users', () => {
     await expect(asAdmin.adminUsers.delete({ id: created.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await asSuper.adminUsers.delete({ id: created.id });
     await expect(asAdmin.adminUsers.get({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('list.search matches name/email/phone case-insensitively across the WHOLE collection, not just one page, and composes with role/status', async () => {
+    const admin = await insertUser({ _id: 'admin-1', role: 'admin' });
+    const asAdmin = appRouter.createCaller(ctxFor(authedUser(admin)));
+
+    // Enough unrelated accounts to span more than one default page (25), so a
+    // match on the LAST inserted (oldest by createdAt, since list sorts desc)
+    // account proves the search isn't limited to an already-loaded page.
+    for (let i = 0; i < 30; i++) {
+      await insertUser({ _id: `filler-${i}`, email: `filler${i}@example.com`, role: 'client', createdAt: Date.now() - (30 - i) * 1000 });
+    }
+    await insertUser({ _id: 'needle-1', email: 'needle@example.com', displayName: 'Needle Haystack', role: 'client', accountStatus: 'suspended', createdAt: Date.now() - 100_000 });
+
+    const bySearch = await asAdmin.adminUsers.list({ search: 'needle' });
+    expect(bySearch.users.map((u) => u.id)).toEqual(['needle-1']);
+
+    // Case-insensitive, and matches on displayName too (not just email).
+    const byName = await asAdmin.adminUsers.list({ search: 'HAYSTACK' });
+    expect(byName.users.map((u) => u.id)).toEqual(['needle-1']);
+
+    // Composes with role/status filters (AND, not OR).
+    const wrongStatus = await asAdmin.adminUsers.list({ search: 'needle', status: 'active' });
+    expect(wrongStatus.users).toHaveLength(0);
+    const rightStatus = await asAdmin.adminUsers.list({ search: 'needle', status: 'suspended', role: 'client' });
+    expect(rightStatus.users.map((u) => u.id)).toEqual(['needle-1']);
+
+    // A search string with regex metacharacters doesn't throw or match everything.
+    await expect(asAdmin.adminUsers.list({ search: 'a+b(c' })).resolves.toMatchObject({ users: [] });
   });
 
   it('users.get is readable by ANY active signed-in user (not gated by users.read) — fixes the client "Your Coach" card', async () => {

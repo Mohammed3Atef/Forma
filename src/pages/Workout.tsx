@@ -55,7 +55,7 @@ export function Workout() {
         title={t('gt.routines')}
         eyebrow={t('workout.weeklyPlan')}
         right={
-          <button type="button" onClick={() => setGuideOpen(true)} className="icon-btn h-[42px] w-[42px]" aria-label={t('guide.title')}>
+          <button type="button" onClick={() => setGuideOpen(true)} className="icon-btn h-11 w-11" aria-label={t('guide.title')}>
             <Icon name="info" size={20} />
           </button>
         }
@@ -102,7 +102,7 @@ export function Workout() {
               {isOpen && (
                 <div className="border-t border-line px-4 pb-4 pt-1">
                   {day.exerciseIds.length === 0 ? (
-                    <p className="py-4 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
+                    <p className="py-4 text-center text-sm text-earth-muted">{t('workout.dayEmpty')}</p>
                   ) : (
                     <ul className="divide-y divide-line-soft">
                       {day.exerciseIds.map((id) => {

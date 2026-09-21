@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchBannersForViewer, type Banner, type BannerPlacement, type BannerStyle } from '@/services/platform/bannersApi';
@@ -39,6 +40,7 @@ function saveDismissed(ids: Set<string>) {
  * coming back.
  */
 export function BannerHost() {
+  const { t } = useTranslation();
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid);
   const createdAt = useSession((s) => s.account?.createdAt ?? 0);
@@ -78,7 +80,7 @@ export function BannerHost() {
         <div key={b.id} className={`relative rounded-xl border px-4 py-3 ${STYLE[b.style]}`} data-testid="app-banner">
           <button
             type="button"
-            aria-label="Dismiss"
+            aria-label={t('common.dismiss')}
             className="icon-btn absolute end-1.5 top-1.5 h-8 w-8 text-earth-subtle"
             onClick={() => dismiss(b.id)}
           >

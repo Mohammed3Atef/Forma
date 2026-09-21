@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ import { useHabits } from '@/stores/habitStore';
 import { usePhotos } from '@/stores/photoStore';
 import { clearAllLocalData, clearDayData } from '@/data/reset';
 import { confirmDialog, alertDialog, confirmDelete } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { CoachInfoCard } from '@/components/CoachInfoCard';
@@ -26,6 +27,7 @@ import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Icon, type IconName } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Switch } from '@/components/ui/Switch';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
@@ -42,6 +44,65 @@ const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
 
 type Tab = 'profile' | 'preferences' | 'account';
 const TABS: Tab[] = ['profile', 'preferences', 'account'];
+
+type SaveStatusValue = 'idle' | 'saving' | 'saved' | 'error';
+
+/** Tracks saving/saved/failed for a group of autosaved fields (e.g. one per tab). */
+function useSaveStatus() {
+  const [status, setStatus] = useState<SaveStatusValue>('idle');
+  const resetTimer = useRef<number | undefined>(undefined);
+  const run = async (fn: () => Promise<void>) => {
+    window.clearTimeout(resetTimer.current);
+    setStatus('saving');
+    try {
+      await fn();
+      setStatus('saved');
+      resetTimer.current = window.setTimeout(() => setStatus('idle'), 2000);
+    } catch {
+      setStatus('error');
+      resetTimer.current = window.setTimeout(() => setStatus('idle'), 3000);
+    }
+  };
+  return { status, run };
+}
+
+/** Small subtle indicator — "Saving…" / "Saved" / "Couldn't save", auto-clears. */
+function SaveStatusBadge({ status }: { status: SaveStatusValue }) {
+  const { t } = useTranslation();
+  if (status === 'idle') return null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[12px] ${status === 'error' ? 'text-danger' : 'text-earth-subtle'}`} role={status === 'error' ? 'alert' : 'status'}>
+      {status === 'saving' && <Icon name="rotate" size={12} className="animate-spin" />}
+      {status === 'saved' && <Icon name="check" size={12} className="text-success" />}
+      {status === 'saving' ? t('settings.saving') : status === 'saved' ? t('common.saved') : t('settings.saveFailed')}
+    </span>
+  );
+}
+
+/**
+ * Local-state mirror of a store value, committed after `delay`ms of no further
+ * changes — so typing doesn't write to the network/IDB on every keystroke.
+ */
+function useDebouncedField<T>(storeValue: T, commit: (v: T) => Promise<void>, status: ReturnType<typeof useSaveStatus>, delay = 600) {
+  const [local, setLocal] = useState(storeValue);
+  const lastExternal = useRef(storeValue);
+  useEffect(() => {
+    if (storeValue !== lastExternal.current) {
+      lastExternal.current = storeValue;
+      setLocal(storeValue);
+    }
+  }, [storeValue]);
+  const timer = useRef<number | undefined>(undefined);
+  const onChange = (v: T) => {
+    setLocal(v);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      lastExternal.current = v;
+      void status.run(() => commit(v));
+    }, delay);
+  };
+  return [local, onChange] as const;
+}
 
 /**
  * One grouped-settings row: icon chip + label(+sub) + trailing control —
@@ -117,7 +178,27 @@ export function Settings() {
     void ensurePersistentStorage().then(() => isStoragePersisted().then(setPersisted));
   }, []);
 
-  if (!profile || !settings) return null;
+  // Autosave status + debounced commits — hooks run unconditionally (before
+  // the profile/settings null-check below) with safe fallbacks, so typing
+  // doesn't write to the network on every keystroke and the field shows a
+  // Saving…/Saved/Couldn't-save state instead of saving silently.
+  const profileStatus = useSaveStatus();
+  const prefsStatus = useSaveStatus();
+  const [nameLocal, onNameChange] = useDebouncedField(profile?.name ?? '', (v) => updateProfile({ name: v }), profileStatus);
+  const [ageLocal, onAgeChange] = useDebouncedField(profile?.age ?? 0, (v) => updateProfile({ age: v }), profileStatus);
+  const [weightLocal, onWeightChange] = useDebouncedField(profile?.weightKg ?? 0, (v) => updateProfile({ weightKg: v }), profileStatus);
+  const [heightLocal, onHeightChange] = useDebouncedField(profile?.heightCm ?? 0, (v) => updateProfile({ heightCm: v }), profileStatus);
+  const [restLocal, onRestChange] = useDebouncedField(settings?.restDefaultSec ?? 0, (v) => updateSettings({ restDefaultSec: v }), prefsStatus);
+  const [weeklyGoalLocal, onWeeklyGoalChange] = useDebouncedField(settings?.weeklyWorkoutGoal ?? 5, (v) => updateSettings({ weeklyWorkoutGoal: v }), prefsStatus);
+
+  if (!profile || !settings) {
+    return (
+      <>
+        <TopBar title={t('settings.title')} eyebrow={t('gt.athlete')} />
+        <LoadingState variant="list" count={4} />
+      </>
+    );
+  }
 
   const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale.startsWith('ar') ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' });
 
@@ -129,16 +210,21 @@ export function Settings() {
   const clearDay = async () => {
     const ok = await confirmDialog({ title: t('settings.clearDay'), message: t('settings.clearDayConfirm', { date: shortDate(selectedDay, settings.locale) }), confirmLabel: t('common.delete'), danger: true });
     if (!ok) return;
-    await clearDayData(selectedDay);
-    await Promise.all([
-      useNutrition.getState().load(selectedDay),
-      useWorkout.getState().load(),
-      useCardio.getState().load(),
-      usePhotos.getState().load(),
-    ]);
-    useWorkout.getState().loadDay(selectedDay);
-    await useHabits.getState().refresh(selectedDay);
-    if (cloudState.user) void cloudState.syncNow(true);
+    try {
+      await clearDayData(selectedDay);
+      await Promise.all([
+        useNutrition.getState().load(selectedDay),
+        useWorkout.getState().load(),
+        useCardio.getState().load(),
+        usePhotos.getState().load(),
+      ]);
+      useWorkout.getState().loadDay(selectedDay);
+      await useHabits.getState().refresh(selectedDay);
+      if (cloudState.user) void cloudState.syncNow(true);
+      showToast({ title: t('common.removed'), variant: 'success' });
+    } catch {
+      await alertDialog({ title: t('settings.clearDay'), message: t('common.errorGeneric') });
+    }
   };
 
   const forceUpdate = async () => {
@@ -164,7 +250,13 @@ export function Settings() {
       if (!navigator.onLine) {
         await alertDialog({ title: t('settings.resetAll'), message: t('settings.resetOffline') });
       } else {
-        try { await cloudState.wipeCloud(); } catch { /* ignore */ }
+        try {
+          await cloudState.wipeCloud();
+        } catch {
+          // Local data is wiped either way (below) — telling them the cloud
+          // half failed is better than a silent partial reset.
+          await alertDialog({ title: t('settings.resetAll'), message: t('settings.resetCloudFailed') });
+        }
       }
     }
     await clearAllLocalData();
@@ -186,7 +278,7 @@ export function Settings() {
         ) : null}
         <div>
           <h2 className="truncate font-display text-lg font-semibold">{profile.name}</h2>
-          <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.memberSince', { date: memberSince, unit: t('common.kg') })}</p>
+          <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.memberSince', { date: memberSince })}</p>
         </div>
       </div>
 
@@ -201,13 +293,16 @@ export function Settings() {
       {tab === 'profile' && (
         <section className="card space-y-3">
           <div>
-            <label className="label">{t('settings.name')}</label>
-            <input className="input" value={profile.name} onChange={(e) => void updateProfile({ name: e.target.value })} />
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="label mb-0" htmlFor="settings-name">{t('settings.name')}</label>
+              <SaveStatusBadge status={profileStatus.status} />
+            </div>
+            <input id="settings-name" className="input" value={nameLocal} onChange={(e) => onNameChange(e.target.value)} />
           </div>
           {cloud && (
             <div>
               <label className="label">{t('settings.phone')}</label>
-              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void updateContact(phone); }} />
+              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void profileStatus.run(() => updateContact(phone)); }} />
             </div>
           )}
           {/* Cloud/coached clients have this data live elsewhere (a real Assessment
@@ -216,29 +311,30 @@ export function Settings() {
               have no assessment/coach, so this is their only profile entry. */}
           {!cloud && (
             <>
+              <div className="flex items-center justify-end"><SaveStatusBadge status={profileStatus.status} /></div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="label">{t('settings.age')}</label>
-                  <input className="input" inputMode="numeric" value={profile.age} onChange={(e) => void updateProfile({ age: Number(e.target.value) || 0 })} />
+                  <input className="input" inputMode="numeric" value={ageLocal} onChange={(e) => onAgeChange(Number(e.target.value) || 0)} />
                 </div>
                 <div>
                   <label className="label">{t('settings.weight')}</label>
-                  <input className="input" inputMode="decimal" value={profile.weightKg} onChange={(e) => void updateProfile({ weightKg: parseDecimal(e.target.value) })} />
+                  <input className="input" inputMode="decimal" value={weightLocal} onChange={(e) => onWeightChange(parseDecimal(e.target.value))} />
                 </div>
                 <div>
                   <label className="label">{t('settings.height')}</label>
-                  <input className="input" inputMode="decimal" value={profile.heightCm} onChange={(e) => void updateProfile({ heightCm: parseDecimal(e.target.value) })} />
+                  <input className="input" inputMode="decimal" value={heightLocal} onChange={(e) => onHeightChange(parseDecimal(e.target.value))} />
                 </div>
               </div>
               <div>
                 <label className="label">{t('settings.goal')}</label>
-                <select className="input" value={profile.goal} onChange={(e) => void updateProfile({ goal: e.target.value as Goal })}>
+                <select className="input" value={profile.goal} onChange={(e) => void profileStatus.run(() => updateProfile({ goal: e.target.value as Goal }))}>
                   {GOALS.map((g) => <option key={g} value={g}>{t(`settings.goals.${g}`)}</option>)}
                 </select>
               </div>
               <div>
                 <label className="label">{t('settings.activity')}</label>
-                <select className="input" value={profile.activityLevel} onChange={(e) => void updateProfile({ activityLevel: e.target.value as ActivityLevel })}>
+                <select className="input" value={profile.activityLevel} onChange={(e) => void profileStatus.run(() => updateProfile({ activityLevel: e.target.value as ActivityLevel }))}>
                   {ACTIVITY.map((a) => <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>)}
                 </select>
               </div>
@@ -255,33 +351,36 @@ export function Settings() {
       {tab === 'preferences' && (
         <>
           <section>
-            <p className="ui-label mb-2 px-1">{t('settings.preferences')}</p>
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="ui-label">{t('settings.preferences')}</p>
+              <SaveStatusBadge status={prefsStatus.status} />
+            </div>
             <div className="card py-1">
               <Row icon="globe" label={t('settings.language')} stack>
                 <div className="seg">
                   {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
-                    <button key={l} type="button" onClick={() => void setLocale(l)} className={settings.locale === l ? 'on' : ''}>
+                    <button key={l} type="button" onClick={() => void prefsStatus.run(() => setLocale(l))} className={settings.locale === l ? 'on' : ''}>
                       {l === 'en' ? 'EN' : l === 'ar' ? 'ع' : 'مصري'}
                     </button>
                   ))}
                 </div>
               </Row>
               <Row icon="timer" label={t('settings.restDefault')}>
-                <input className="input h-10 w-20 py-1 text-center" inputMode="decimal" value={settings.restDefaultSec} onChange={(e) => void updateSettings({ restDefaultSec: Math.max(0, parseDecimal(e.target.value)) })} />
+                <input className="input h-10 w-20 py-1 text-center" inputMode="decimal" value={restLocal} onChange={(e) => onRestChange(Math.max(0, parseDecimal(e.target.value)))} />
               </Row>
               <Row icon="target" label={t('settings.weeklyGoal')}>
-                <input className="input h-10 w-20 py-1 text-center" inputMode="numeric" value={settings.weeklyWorkoutGoal ?? 5} onChange={(e) => void updateSettings({ weeklyWorkoutGoal: Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)) })} />
+                <input className="input h-10 w-20 py-1 text-center" inputMode="numeric" value={weeklyGoalLocal} onChange={(e) => onWeeklyGoalChange(Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)))} />
               </Row>
               <Row icon="flame" label={t('settings.keepAwake')}>
-                <Switch on={settings.keepAwakeDuringWorkout} onChange={() => void updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout })} label={t('settings.keepAwake')} />
+                <Switch on={settings.keepAwakeDuringWorkout} onChange={() => void prefsStatus.run(() => updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout }))} label={t('settings.keepAwake')} />
               </Row>
               <Row icon="bolt" label={t('settings.vibration')}>
-                <Switch on={settings.vibrationEnabled} onChange={() => void updateSettings({ vibrationEnabled: !settings.vibrationEnabled })} label={t('settings.vibration')} />
+                <Switch on={settings.vibrationEnabled} onChange={() => void prefsStatus.run(() => updateSettings({ vibrationEnabled: !settings.vibrationEnabled }))} label={t('settings.vibration')} />
               </Row>
               <Row icon="bell" label={t('settings.notifications')}>
                 <Switch
                   on={settings.notificationsEnabled}
-                  onChange={() => void (settings.notificationsEnabled ? updateSettings({ notificationsEnabled: false }) : enableNotifications())}
+                  onChange={() => void prefsStatus.run(() => (settings.notificationsEnabled ? updateSettings({ notificationsEnabled: false }) : enableNotifications()))}
                   label={t('settings.notifications')}
                 />
               </Row>

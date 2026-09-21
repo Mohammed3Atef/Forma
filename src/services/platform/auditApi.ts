@@ -29,6 +29,17 @@ export interface AuditPage {
   cursor: string | null;
 }
 
-export async function fetchAuditPage(pageSize = 25, after?: string | null): Promise<AuditPage> {
-  return trpc.adminAudit.list.query({ pageSize, cursor: after ?? undefined }) as Promise<AuditPage>;
+export interface AuditFilters {
+  /** Exact actor user id. */
+  actorId?: string;
+  /** Exact target user id. */
+  targetUserId?: string;
+  /** An exact action key, or a bare category prefix (e.g. "users" matches "users.*"). */
+  action?: string;
+  since?: number;
+  until?: number;
+}
+
+export async function fetchAuditPage(pageSize = 25, after?: string | null, filters?: AuditFilters): Promise<AuditPage> {
+  return trpc.adminAudit.list.query({ pageSize, cursor: after ?? undefined, ...filters }) as Promise<AuditPage>;
 }

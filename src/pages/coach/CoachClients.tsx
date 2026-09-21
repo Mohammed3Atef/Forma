@@ -9,13 +9,14 @@ import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { DetailPanel } from '@/components/ui/DetailPanel';
+import { SplitPane } from '@/components/ui/SplitPane';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
-import { getRelationship } from '@/services/platform/coachClientsApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
@@ -25,6 +26,7 @@ import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { shortDate } from '@/lib/utils';
+import { alertDialog } from '@/stores/dialogStore';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, SignupInvite } from '@/types';
 
@@ -58,12 +60,24 @@ export function CoachClients() {
   const { canWrite } = useCoachPlan(); // false when the coach's own plan has lapsed
   const online = useOnlineStatus(); // adding a client writes to Firestore — needs connectivity
   useFullBleed();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(() => params.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
   const [visible, setVisible] = useState(PAGE);
   const [adding, setAdding] = useState(() => params.get('new') === '1');
   const [addMode, setAddMode] = useState<AddMode>('choose');
+  // `?new=1` (the command palette's "add client" shortcut) only worked as a
+  // lazy initializer — a no-op if this page was already mounted. Reacting to
+  // the param directly opens the sheet even when navigating here from itself,
+  // then clears it so it can't reopen on a later back/refresh.
+  useEffect(() => {
+    if (params.get('new') !== '1') return;
+    setAddMode('choose');
+    setAdding(true);
+    const next = new URLSearchParams(params);
+    next.delete('new');
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Single back affordance for the Add-Client sheet. The "existing" sub-flow
   // registers a context-aware handler (detail → search list); when it's null we
@@ -77,10 +91,13 @@ export function CoachClients() {
     queryFn: () => listMyClients(coachId!),
     enabled: !!coachId,
   });
+  // Mobile used to skip this fetch entirely (`enabled: isDesktop`), so the
+  // phone list only ever had name/email/status — no adherence/attention/
+  // check-in signal to help a coach decide who to look at first.
   const dash = useQuery({
     queryKey: ['coachDashboard', coachId],
     queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId && isDesktop,
+    enabled: !!coachId,
     staleTime: 60_000,
   });
 
@@ -115,6 +132,32 @@ export function CoachClients() {
       return !q || matches(r.client.displayName || '', r.client.email, r.client.phone, q);
     });
   }, [dash.data, search, statusFilter]);
+  // Mobile row signal — keyed lookup into the same dashboard rows the desktop
+  // table already uses, so both breakpoints show the coaching signal.
+  const dashByClientId = useMemo(() => {
+    const m = new Map<string, ClientDashboardRow>();
+    (dash.data?.clients ?? []).forEach((r) => m.set(r.client.id, r));
+    return m;
+  }, [dash.data]);
+
+  const hasActiveFilter = search.trim() !== '' || statusFilter !== 'all';
+  const clientsEmpty = (
+    <EmptyState
+      icon={hasActiveFilter ? 'search' : 'user'}
+      title={hasActiveFilter ? t('coach.noClientsFilteredTitle') : t('coach.noClientsTitle')}
+      message={hasActiveFilter ? t('coach.noClientsFilteredMessage') : t('coach.noClientsMessage')}
+      action={hasActiveFilter
+        ? <button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>{t('common.clearFilters')}</button>
+        : <button type="button" className="btn-primary btn-sm" onClick={openAdd}>{t('coach.addClient')}</button>}
+    />
+  );
+  // DataTable renders `empty` inside a table cell — a plain inline version avoids double card borders.
+  const clientsEmptyInline = (
+    <span className="flex flex-col items-center gap-2 py-4">
+      <span className="font-medium text-earth">{hasActiveFilter ? t('coach.noClientsFilteredTitle') : t('coach.noClientsTitle')}</span>
+      <span className="text-[13px] text-earth-subtle">{hasActiveFilter ? t('coach.noClientsFilteredMessage') : t('coach.noClientsMessage')}</span>
+    </span>
+  );
 
   useEffect(() => { setVisible(PAGE); }, [search, statusFilter]);
   const shown = filtered.slice(0, visible);
@@ -178,10 +221,10 @@ export function CoachClients() {
         eyebrow={t('platform.coachPortal')}
         right={
           <div className="flex items-center gap-1.5">
-            <button type="button" data-testid="coach-add-client" className="icon-btn h-[42px] w-[42px]" aria-label={t('coach.addClient')} disabled={!canWrite || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={openAdd}>
+            <button type="button" data-testid="coach-add-client" className="icon-btn h-11 w-11" aria-label={t('coach.addClient')} disabled={!canWrite || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={openAdd}>
               <Icon name="plus" size={20} />
             </button>
-            <button type="button" className="icon-btn h-[42px] w-[42px] md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
+            <button type="button" className="icon-btn h-11 w-11 md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
               <Icon name="user" size={20} />
             </button>
           </div>
@@ -201,8 +244,8 @@ export function CoachClients() {
       {filterBar}
 
       {isDesktop ? (
-        <div className="flex gap-5">
-          <div className="min-w-0 flex-1">
+        <SplitPane
+          main={
             <DataTable
               testId="coach-desktop-clients"
               columns={columns}
@@ -210,33 +253,45 @@ export function CoachClients() {
               rowKey={(r) => r.client.id}
               selectedKey={selectedId}
               onRowClick={(r) => setSelectedId(r.client.id)}
-              empty={dash.isLoading ? t('auth.working') : t('coach.noClients')}
+              empty={dash.isLoading ? t('auth.working') : clientsEmptyInline}
             />
-          </div>
-          <div className="w-80 shrink-0">
+          }
+          detail={
             <DetailPanel testId="coach-desktop-preview" empty={!selected} emptyMessage={t('coachDash.selectClient')}>
-              {selected && <ClientPreview row={selected} coachId={coachId ?? ''} onOpen={() => navigate(`/coach/client/${selected.client.id}`)} onMessage={() => navigate(`/coach/messages/${selected.client.id}`)} />}
+              {selected && <ClientPreview row={selected} onOpen={() => navigate(`/coach/client/${selected.client.id}`)} onMessage={() => navigate(`/coach/messages/${selected.client.id}`)} />}
             </DetailPanel>
-          </div>
-        </div>
+          }
+        />
       ) : clients.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : filtered.length === 0 ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{t('coach.noClients')}</div>
+        clientsEmpty
       ) : (
         <>
           <div className="card divide-y divide-line-soft">
-            {shown.map((c) => (
-              <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
-                <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{c.displayName || c.email}</span>
-                  <span className="block truncate text-[13px] text-earth-muted">{c.email}</span>
-                </span>
-                <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
-                <Icon name="chevron" size={18} />
-              </button>
-            ))}
+            {shown.map((c) => {
+              const row = dashByClientId.get(c.id);
+              const signal = row
+                ? row.toReview
+                  ? { text: t('coachDash.reasonCheckin'), tone: 'text-warn' }
+                  : row.needsAttention
+                    ? { text: t('coachDash.needsAttention'), tone: 'text-danger' }
+                    : row.lastActivity
+                      ? { text: t('coachDash.lastActive', { date: row.lastActivity }), tone: 'text-earth-muted' }
+                      : { text: t('coachDash.noActivity'), tone: 'text-earth-subtle' }
+                : null;
+              return (
+                <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
+                  <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{c.displayName || c.email}</span>
+                    <span className={`block truncate text-[12.5px] ${signal?.tone ?? 'text-earth-muted'}`}>{signal?.text ?? c.email}</span>
+                  </span>
+                  <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
+                  <Icon name="chevron" size={18} />
+                </button>
+              );
+            })}
           </div>
           <div ref={sentinel} />
           {visible < filtered.length && (
@@ -349,10 +404,12 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
       setPrefill({ name: '', email: '', phone: '' });
       void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
     },
+    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const revoke = useMutation({
     mutationFn: (code: string) => revokeInvite(code),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
+    onError: (e) => void alertDialog({ title: t('invite.revoke'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   const copy = async (code: string) => {
@@ -365,6 +422,22 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
     } catch {
       /* clipboard blocked — the link text is still visible to copy manually */
     }
+  };
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const share = async (code: string) => {
+    kept.current.add(code);
+    const link = inviteLink(code);
+    try {
+      await navigator.share({ title: t('invite.shareTitle'), text: t('invite.shareText', { coach: coachName }), url: link });
+    } catch {
+      /* user cancelled the share sheet — not an error */
+    }
+  };
+  const whatsapp = (code: string) => {
+    kept.current.add(code);
+    const link = inviteLink(code);
+    const text = `${t('invite.shareText', { coach: coachName })} ${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   };
 
   return (
@@ -394,20 +467,35 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
         ) : (
           <div className="card divide-y divide-line-soft">
             {(pending.data ?? []).map((inv: SignupInvite) => (
-              <div key={inv.code} className="flex items-center gap-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-sm">{inv.code}</span>
-                    <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
+              <div key={inv.code} className="space-y-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-sm">{inv.code}</span>
+                      <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
+                      {inv.expiresAt != null && (
+                        <span className="text-[10px] text-earth-subtle">{t('invite.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}</span>
+                      )}
+                    </span>
+                    <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
                   </span>
-                  <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
-                </span>
-                <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
-                  {copied === inv.code ? t('invite.copied') : t('invite.copy')}
-                </button>
-                <button type="button" data-testid="coach-invite-revoke" className="btn-ghost h-8 px-3 text-[11px] text-danger" onClick={() => revoke.mutate(inv.code)}>
-                  {t('invite.revoke')}
-                </button>
+                  <button type="button" data-testid="coach-invite-revoke" disabled={revoke.isPending} className="btn-ghost h-8 px-3 text-[11px] text-danger disabled:opacity-40" onClick={() => revoke.mutate(inv.code)}>
+                    {t('invite.revoke')}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
+                    <Icon name="download" size={13} /> {copied === inv.code ? t('invite.copied') : t('invite.copy')}
+                  </button>
+                  {canShare && (
+                    <button type="button" data-testid="coach-invite-share" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void share(inv.code)}>
+                      <Icon name="chat" size={13} /> {t('invite.share')}
+                    </button>
+                  )}
+                  <button type="button" data-testid="coach-invite-whatsapp" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => whatsapp(inv.code)}>
+                    <Icon name="chat" size={13} /> {t('invite.whatsapp')}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -417,15 +505,13 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   );
 }
 
-function ClientPreview({ row, coachId, onOpen, onMessage }: { row: ClientDashboardRow; coachId: string; onOpen: () => void; onMessage: () => void }) {
+function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
   const { t, i18n } = useTranslation();
   const c = row.client;
-  const rel = useQuery({
-    queryKey: ['relationship', coachId, c.id],
-    queryFn: () => getRelationship(coachId, c.id),
-    enabled: !!coachId && !!c.id,
-  });
-  const sub = rel.data?.subscription;
+  // `row.subscription` comes from the SAME relationship list `getCoachDashboard`
+  // already fetched (one bounded request) — this used to be its own per-row
+  // `coachClients.get` fetch on every preview-panel open.
+  const sub = row.subscription;
   const subStatus = effectiveSubscriptionStatus(sub);
   return (
     <div className="space-y-4">

@@ -1,9 +1,15 @@
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Icon, type IconName } from '@/components/Icon';
+import { Sheet } from '@/components/Sheet';
 import { Pill } from '@/components/ui/Pill';
 import { useCoachClientHeader, SUB_TONE } from '@/hooks/useCoachClientHeader';
+import { useBack } from '@/hooks/useBack';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { ClientSwitcherSheet } from '@/components/coach/ClientSwitcherSheet';
 
 interface WorkspaceTab {
   key: string;
@@ -24,6 +30,11 @@ const TABS: WorkspaceTab[] = [
   { key: 'subscription', labelKey: 'workspace.tabs.subscription', icon: 'shield' },
   { key: 'history', labelKey: 'workspace.tabs.history', icon: 'rotate' },
 ];
+
+// Mobile keeps only the 4 highest-traffic tabs visible; everything else moves
+// into the "More" sheet instead of an unusable 11-item horizontal-scroll rail.
+const MOBILE_PRIMARY = ['overview', 'workout', 'nutrition', 'progress'];
+const MOBILE_MORE = TABS.filter((tb) => !MOBILE_PRIMARY.includes(tb.key));
 
 /**
  * Two of the 11 tabs are intentional escape hatches to already-complete,
@@ -47,6 +58,15 @@ function tabPath(clientId: string, key: string): string {
   }
 }
 
+/** Which tab key the current pathname corresponds to, for this client — used both to highlight the active tab and to preserve it when switching clients. */
+function activeTabKey(pathname: string, clientId: string): string {
+  const hit = TABS.find((tb) => {
+    const to = tabPath(clientId, tb.key);
+    return tb.key === 'overview' ? pathname === to : pathname.startsWith(to);
+  });
+  return hit?.key ?? 'overview';
+}
+
 /**
  * The coach's persistent client workspace: a pinned header (back, avatar,
  * name, subscription-status pill, goal/renewal line, Message/Edit-plan
@@ -57,10 +77,22 @@ function tabPath(clientId: string, key: string): string {
  */
 export function CoachClientWorkspaceLayout() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const navigate = useGuardedNav();
+  const goBack = useBack('/coach/clients');
   const { pathname } = useLocation();
   const { clientId = '' } = useParams();
   const { name, photoUrl, goal, subStatus, daysLeft } = useCoachClientHeader(clientId);
+  const isDesktop = useIsDesktop();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const currentTab = activeTabKey(pathname, clientId);
+
+  const switchTo = (nextClientId: string) => {
+    setSwitcherOpen(false);
+    // Stay on the equivalent tab — a coach switching from A's Workout tab
+    // expects to land on B's Workout tab, not back at the overview.
+    navigate(tabPath(nextClientId, currentTab), { replace: true });
+  };
 
   const subLine = [
     goal ? t(`settings.goals.${goal}`) : null,
@@ -74,17 +106,20 @@ export function CoachClientWorkspaceLayout() {
       <div className="border-b border-line pb-0">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5">
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" onClick={() => navigate('/coach/clients')} className="icon-btn h-9 w-9 shrink-0" aria-label={t('common.back')}>
+            <button type="button" onClick={goBack} className="icon-btn h-9 w-9 shrink-0" aria-label={t('common.back')}>
               <Icon name="chevronLeft" size={18} className="rtl:rotate-180" />
             </button>
-            <Avatar name={name} photoUrl={photoUrl} size="md" />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate font-display text-lg font-semibold">{name || t('coach.client')}</h1>
-                <Pill tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
+            <button type="button" className="flex min-w-0 items-center gap-3 text-start" data-testid="workspace-switch-trigger" onClick={() => setSwitcherOpen(true)} aria-label={t('workspace.switchClient')}>
+              <Avatar name={name} photoUrl={photoUrl} size="md" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate font-display text-lg font-semibold">{name || t('coach.client')}</h1>
+                  <Pill tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
+                  <Icon name="chevronDown" size={14} className="shrink-0 text-earth-subtle" />
+                </div>
+                {subLine && <p className="truncate text-[12.5px] text-earth-subtle">{subLine}</p>}
               </div>
-              {subLine && <p className="truncate text-[12.5px] text-earth-subtle">{subLine}</p>}
-            </div>
+            </button>
           </div>
           <div className="flex shrink-0 gap-2">
             <button type="button" className="btn-secondary btn-sm" onClick={() => navigate(`/coach/messages/${clientId}`)}>
@@ -96,7 +131,7 @@ export function CoachClientWorkspaceLayout() {
           </div>
         </div>
         <div className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map((tb) => {
+          {(isDesktop ? TABS : TABS.filter((tb) => MOBILE_PRIMARY.includes(tb.key))).map((tb) => {
             const to = tabPath(clientId, tb.key);
             const active = tb.key === 'overview' ? pathname === to : pathname.startsWith(to);
             return (
@@ -104,7 +139,7 @@ export function CoachClientWorkspaceLayout() {
                 key={tb.key}
                 type="button"
                 data-testid={`workspace-tab-${tb.key}`}
-                onClick={() => navigate(to)}
+                onClick={() => navigate(to, { replace: true })}
                 className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
                   active ? 'text-white' : 'text-earth-subtle hover:text-earth'
                 }`}
@@ -114,11 +149,46 @@ export function CoachClientWorkspaceLayout() {
               </button>
             );
           })}
+          {!isDesktop && (
+            <button
+              type="button"
+              data-testid="workspace-tab-more"
+              onClick={() => setMoreOpen(true)}
+              className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
+                MOBILE_MORE.some((tb) => tb.key === currentTab) ? 'text-white' : 'text-earth-subtle hover:text-earth'
+              }`}
+            >
+              {t('workspace.tabs.more')}
+              {MOBILE_MORE.some((tb) => tb.key === currentTab) && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gradient-brand" />}
+            </button>
+          )}
         </div>
       </div>
       <div className="pt-4">
         <Outlet />
       </div>
+
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} size="sm" title={t('workspace.tabs.more')}>
+        <div className="space-y-1" data-testid="workspace-more-sheet">
+          {MOBILE_MORE.map((tb) => {
+            const to = tabPath(clientId, tb.key);
+            const active = tb.key === currentTab;
+            return (
+              <button
+                key={tb.key}
+                type="button"
+                data-testid={`workspace-more-${tb.key}`}
+                className={`row w-full text-start ${active ? 'bg-brand/10' : ''}`}
+                onClick={() => { setMoreOpen(false); navigate(to, { replace: true }); }}
+              >
+                <Icon name={tb.icon} size={18} className="text-earth-muted" />
+                <span className="min-w-0 flex-1">{t(tb.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
+      <ClientSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} currentClientId={clientId} onSelect={switchTo} />
     </div>
   );
 }

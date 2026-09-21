@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Slider } from '@/components/Slider';
 import { NumberStepper } from '@/components/NumberStepper';
 import { PosePhotoPicker } from '@/components/PosePhotoPicker';
@@ -11,6 +12,7 @@ import { CheckInSummary } from '@/components/CheckInSummary';
 import { isBunnyConfigured } from '@/services/platform/bunnyUploadApi';
 import { getCheckIn, submitCheckIn, type CheckInSubmission } from '@/services/platform/checkInApi';
 import { useSession } from '@/services/auth/sessionStore';
+import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { CheckInStatus } from '@/types';
@@ -47,6 +49,7 @@ export function CheckIn() {
       void qc.invalidateQueries({ queryKey: ['checkIn', uid, id] });
       void qc.invalidateQueries({ queryKey: ['activeCheckIn', uid] });
       void qc.invalidateQueries({ queryKey: ['checkInsHistory', uid] });
+      showToast({ title: t('checkin.submitted'), variant: 'success' });
     },
   });
 
@@ -74,7 +77,7 @@ export function CheckIn() {
     return (
       <div className="anim-rise">
         <TopBar title={t('checkin.title')} onBack={() => navigate(-1)} />
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={3} />
       </div>
     );
   }
@@ -199,6 +202,11 @@ export function CheckIn() {
       </div>
 
       <div className="sticky bottom-0 border-t border-line bg-surface px-5 py-4">
+        {submit.isError && (
+          <p role="alert" className="mb-3 text-center text-sm text-danger" data-testid="checkin-error">
+            {t('common.errorGeneric')}
+          </p>
+        )}
         <button type="button" data-testid={isLast ? 'checkin-submit' : 'checkin-next'} className="btn-primary btn-lg w-full disabled:opacity-40" disabled={submit.isPending} onClick={goNext}>
           {isLast ? (submit.isPending ? t('auth.working') : (<><Icon name="check" size={16} /> {t('checkin.submit')}</>)) : (<>{t('checkin.continue')} <Icon name="chevron" size={16} className="rtl:rotate-180" /></>)}
         </button>

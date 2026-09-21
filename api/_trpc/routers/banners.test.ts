@@ -120,3 +120,26 @@ describe('banners router', () => {
     expect(visible.map((b) => b.title).sort()).toEqual(['Coach only', 'Everyone']);
   });
 });
+
+describe('flags router', () => {
+  it('list requires flags.manage — a plain coach/client cannot read flag targeting data', async () => {
+    const asAdmin = appRouter.createCaller(ctxFor(admin));
+    await asAdmin.flags.save({ id: 'nutritionV2', enabled: true, scope: 'coach', targetId: coach.id });
+
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await expect(asCoach.flags.list()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const client = authedUser({ _id: 'client-1', role: 'client' });
+    const asClient = appRouter.createCaller(ctxFor(client));
+    await expect(asClient.flags.list()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const list = await asAdmin.flags.list();
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: 'nutritionV2', enabled: true, scope: 'coach', targetId: coach.id });
+  });
+
+  it('save requires flags.manage', async () => {
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await expect(asCoach.flags.save({ id: 'x', enabled: true, scope: 'global' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+});

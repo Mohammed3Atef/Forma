@@ -35,14 +35,43 @@ export function CommandPalette({
   const [q, setQ] = useState('');
   const [idx, setIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) {
+      restoreFocusRef.current = document.activeElement as HTMLElement | null;
       setQ('');
       setIdx(0);
       const id = window.setTimeout(() => inputRef.current?.focus(), 10);
-      return () => window.clearTimeout(id);
+      return () => {
+        window.clearTimeout(id);
+        restoreFocusRef.current?.focus();
+      };
     }
+  }, [open]);
+
+  // Tab/Shift+Tab stay inside the palette instead of leaking focus to the
+  // page behind the backdrop — the palette's own arrow-key navigation covers
+  // the common case, but Tab is still a plausible keyboard path out of it.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
   const filtered = useMemo(() => {
@@ -83,7 +112,7 @@ export function CommandPalette({
   return (
     <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label={t('search.commands')}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm anim-fade" onClick={onClose} />
-      <div className="absolute inset-x-0 top-[12vh] mx-auto w-[92%] max-w-xl anim-rise">
+      <div ref={panelRef} className="absolute inset-x-0 top-[12vh] mx-auto w-[92%] max-w-xl anim-rise">
         <div className="card-elevated overflow-hidden p-0">
           <div className="flex items-center gap-3 border-b border-line px-4 py-3">
             <Icon name="search" size={18} className="shrink-0 text-earth-muted" />

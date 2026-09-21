@@ -8,6 +8,8 @@ import { DashboardSection } from '@/components/ui/DashboardSection';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { SearchField, SelectField } from '@/components/ui/Field';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
@@ -17,7 +19,8 @@ import { useSession } from '@/services/auth/sessionStore';
 import { setAccountStatus } from '@/services/platform/accountsApi';
 import { fetchMembers, inSegment, type MemberRow, type MemberSegment } from '@/services/platform/adminMembersApi';
 import { bumpUsage } from '@/services/platform/usageApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, Role } from '@/types';
@@ -59,7 +62,15 @@ export function AdminMembers() {
     return () => clearTimeout(id);
   }, [search]);
 
-  const q = useQuery({ queryKey: ['adminMembers'], queryFn: fetchMembers, staleTime: 60_000 });
+  // Debounced so search runs server-side (over the whole collection, not a
+  // stale client-cached page) without firing a request on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const q = useQuery({ queryKey: ['adminMembers', debouncedSearch], queryFn: () => fetchMembers(debouncedSearch), staleTime: 60_000 });
   const d = q.data;
 
   const canManage = (r: Role) =>
@@ -67,7 +78,11 @@ export function AdminMembers() {
 
   const status = useMutation({
     mutationFn: ({ row, next }: { row: MemberRow; next: AccountStatus }) => setAccountStatus(row.user, next),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['adminMembers'] }),
+    onSuccess: (_v, { next }) => {
+      void qc.invalidateQueries({ queryKey: ['adminMembers'] });
+      showToast({ title: t(`platform.status.${next}`), variant: 'success' });
+    },
+    onError: (e) => void alertDialog({ title: t('adminMembers.suspend'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   const rows = useMemo(() => {
@@ -81,6 +96,11 @@ export function AdminMembers() {
     });
     return list.sort((a, b) => (sort === 'newest' ? b.user.createdAt - a.user.createdAt : a.user.createdAt - b.user.createdAt));
   }, [d?.rows, search, roleFilter, statusFilter, segment, sort]);
+
+  // `rows` can be every account on the platform (no server pagination on this
+  // endpoint's non-search path) — page it client-side rather than mounting a
+  // table/card row per account. Resets to page 1 whenever any filter changes.
+  const pg = usePagination(rows, 25, `${debouncedSearch}|${roleFilter}|${statusFilter}|${segment}|${sort}`);
 
   const openMember = (r: MemberRow) => navigate(r.user.role === 'coach' ? `/admin/coaches/${r.user.id}` : `/admin/clients/${r.user.id}`);
   const quickAction = async (r: MemberRow) => {
@@ -104,7 +124,7 @@ export function AdminMembers() {
     { key: 'sub', header: t('adminMembers.subscription'), cell: (r) => r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <span className="text-earth-subtle">—</span> },
     { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (r) => canManage(r.user.role) && r.user.id !== actorId ? (
-      <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
+      <button type="button" disabled={status.isPending} className="btn-ghost h-8 px-3 text-[11px] disabled:opacity-40" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
         {r.user.accountStatus === 'suspended' || r.user.accountStatus === 'disabled' ? t('adminMembers.reactivate') : t('adminMembers.suspend')}
       </button>
     ) : null },
@@ -175,23 +195,28 @@ export function AdminMembers() {
           {/* Members list */}
           {rows.length === 0 ? (
             <EmptyState icon="user" title={t('adminMembers.noMembers')} />
-          ) : isDesktop ? (
-            <div className="hidden lg:block">
-              <DataTable testId="admin-members-table" columns={columns} rows={rows} rowKey={(r) => r.user.id} onRowClick={openMember} empty={t('adminMembers.noMembers')} />
-            </div>
           ) : (
-            <div className="card divide-y divide-line-soft">
-              {rows.map((r) => (
-                <button key={r.user.id} type="button" onClick={() => openMember(r)} className="row w-full text-start">
-                  <Avatar name={r.user.displayName || r.user.email} photoUrl={r.user.photoUrl} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
-                    <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span>
-                  </span>
-                  {r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill>}
-                </button>
-              ))}
-            </div>
+            <>
+              {isDesktop ? (
+                <div className="hidden lg:block">
+                  <DataTable testId="admin-members-table" columns={columns} rows={pg.pageItems} rowKey={(r) => r.user.id} onRowClick={openMember} empty={t('adminMembers.noMembers')} />
+                </div>
+              ) : (
+                <div className="card divide-y divide-line-soft">
+                  {pg.pageItems.map((r) => (
+                    <button key={r.user.id} type="button" onClick={() => openMember(r)} className="row w-full text-start">
+                      <Avatar name={r.user.displayName || r.user.email} photoUrl={r.user.photoUrl} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
+                        <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span>
+                      </span>
+                      {r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
+            </>
           )}
         </div>
       )}

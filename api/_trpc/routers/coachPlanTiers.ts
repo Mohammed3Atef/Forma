@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, authedProcedure, permissionProcedure } from '../trpc.js';
+import { router, authedProcedure, roleProcedure } from '../trpc.js';
 import {
   COACH_PLAN_TIERS,
   SEED_ORDER,
@@ -23,8 +23,15 @@ export const coachPlanTiersRouter = router({
     return tiers.map(toPublicTier);
   }),
 
-  /** Create/update a tier (deterministic doc id = key); `archived: true` folds in the old soft-delete route (trial protected). */
-  save: permissionProcedure('users.manageStatus')
+  /**
+   * Create/update a tier (deterministic doc id = key); `archived: true` folds
+   * in the old soft-delete route (trial protected). Super-admin-only — this
+   * edits GLOBAL pricing/caps that every coach on the tier inherits; the
+   * frontend (`AdminPlans.tsx`) already restricts the whole page to super
+   * admin, so this tightens the backend to match rather than leaving it
+   * reachable by a plain `admin` calling the mutation directly.
+   */
+  save: roleProcedure('super_admin')
     .input(
       z.object({
         key: z.string().min(1),

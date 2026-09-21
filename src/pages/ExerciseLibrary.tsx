@@ -4,12 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { useWorkout } from '@/stores/workoutStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise } from '@/lib/calc';
+import { useBack } from '@/hooks/useBack';
 
 export function ExerciseLibrary() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useBack('/workout');
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
   const [search, setSearch] = useState('');
@@ -41,14 +45,21 @@ export function ExerciseLibrary() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [plan, search, cat, categoryOf]);
 
-  if (!plan) return <p className="pt-10 text-center text-earth-muted">{t('progress.noData')}</p>;
+  if (!plan) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('gt.exerciseLibrary')} onBack={goBack} />
+        <WaitingForCoach messageKey="clientCoach.waitingWorkout" />
+      </div>
+    );
+  }
 
   return (
     <div className="anim-rise">
       <TopBar
         title={t('gt.exerciseLibrary')}
         eyebrow={t('gt.movementsN', { n: Object.keys(plan.exercises).length })}
-        onBack={() => navigate('/workout')}
+        onBack={goBack}
       />
 
       <div className="relative mb-3">
@@ -67,7 +78,12 @@ export function ExerciseLibrary() {
       </div>
 
       {list.length === 0 ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
+        <EmptyState
+          icon="search"
+          title={t('exerciseLibrary.noResultsTitle')}
+          message={t('exerciseLibrary.noResultsMessage')}
+          action={(search || cat !== 'All') ? <button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setCat('All'); }}>{t('common.clearFilters')}</button> : undefined}
+        />
       ) : (
         <div className="card divide-y divide-line-soft p-0">
           {list.map((ex) => {

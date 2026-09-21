@@ -20,10 +20,18 @@ import { formatDuration } from '@/lib/utils';
 import { logVolume, logSetCount, logExerciseCount } from '@/lib/calc';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { HAPTIC, vibrate } from '@/lib/haptics';
+import { confirmDialog } from '@/stores/dialogStore';
+import { useBack } from '@/hooks/useBack';
 
 export function WorkoutSession() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // All four exit paths (minimize, discard, save, and the read-only "Done")
+  // share one target so browser Back always agrees with whichever button was
+  // tapped: prefer wherever the session was actually opened from (Home,
+  // History, RoutineDetail, a notification), falling back to the routines
+  // list only for a direct deep link.
+  const goBack = useBack('/workout');
 
   const plan = useWorkout((s) => s.plan);
   const active = useWorkout((s) => s.active);
@@ -155,7 +163,7 @@ export function WorkoutSession() {
 
   const minimize = () => {
     discardDraft(); // no-op if already started/saved
-    navigate('/workout');
+    goBack();
   };
 
   const handleToggle = (exerciseId: string, setIndex: number) => {
@@ -191,9 +199,16 @@ export function WorkoutSession() {
   };
 
   const doDiscard = async () => {
+    const ok = await confirmDialog({
+      title: t('gt.finishWorkoutQ'),
+      message: t('gt.discardConfirm'),
+      confirmLabel: t('gt.discard'),
+      danger: true,
+    });
+    if (!ok) return;
     setConfirmOpen(false);
     await discardActive();
-    navigate('/');
+    goBack();
   };
 
   // Open the finish sheet, prefilling the duration with the tracked time so the
@@ -220,7 +235,7 @@ export function WorkoutSession() {
           <StatTile icon="bolt" value={summary.sets} label={t('gt.setsDone')} />
           <StatTile icon="list" value={summary.exercises} label={t('gt.exercises')} />
         </div>
-        <button type="button" onClick={() => navigate('/')} className="btn-primary mt-8 w-full max-w-sm">
+        <button type="button" onClick={goBack} className="btn-primary mt-8 w-full max-w-sm">
           {t('common.done')}
         </button>
       </div>
@@ -235,7 +250,7 @@ export function WorkoutSession() {
     return (
       <div className="-mx-5 flex min-h-screen flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
-          <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
+          <button type="button" onClick={minimize} className="icon-btn h-11 w-11" aria-label={t('common.minimize')}>
             <Icon name="chevronDown" size={20} />
           </button>
           <div className="flex flex-col items-center">
@@ -287,7 +302,7 @@ export function WorkoutSession() {
             );
           })}
 
-          <button type="button" onClick={() => navigate('/workout')} className="btn-primary w-full">
+          <button type="button" onClick={goBack} className="btn-primary w-full">
             {t('common.done')}
           </button>
         </div>
@@ -299,7 +314,7 @@ export function WorkoutSession() {
     <div className="-mx-5 flex min-h-screen flex-col">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
-        <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
+        <button type="button" onClick={minimize} className="icon-btn h-11 w-11" aria-label={t('common.minimize')}>
           <Icon name="chevronDown" size={20} />
         </button>
         <div className="flex flex-col items-center">

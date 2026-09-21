@@ -8,20 +8,25 @@ import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Pill } from '@/components/ui/Pill';
 import { CoachChecklist } from '@/pages/coach/onboarding/CoachChecklist';
+import { QuickActionsGrid, QuickActionsTrigger, type QuickAction as QuickActionItem } from '@/components/ui/QuickActions';
 import type { CoachDashboard } from '@/services/platform/coachDashboardApi';
 import { shortDate } from '@/lib/utils';
-import { AttentionRow, ClientRow, QuickAction, attentionAction, attentionReason } from './parts';
+import { AttentionRow, attentionAction, attentionReason } from './parts';
 
 export function OverviewPanel({ d }: { d: CoachDashboard }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
+  const quickActions: QuickActionItem[] = [
+    { key: 'add-client', icon: 'plus', label: t('coachDash.addClient'), onClick: () => navigate('/coach/clients?new=1') },
+    { key: 'create-template', icon: 'list', label: t('coachDash.createTemplate'), onClick: () => navigate('/coach/templates/new') },
+    { key: 'open-library', icon: 'dumbbell', label: t('coachDash.openLibrary'), onClick: () => navigate('/coach/library') },
+    { key: 'review-assessments', icon: 'check', label: t('coachDash.reviewAssessments'), onClick: () => navigate('/coach/assessments') },
+    { key: 'send-broadcast', icon: 'chat', label: t('coachDash.sendBroadcast'), onClick: () => navigate('/coach/messages') },
+  ];
+
   const attentionAll = useMemo(() => d.clients.filter((c) => c.needsAttention), [d.clients]);
   const attention = attentionAll.slice(0, 6);
-  const recent = useMemo(
-    () => [...d.clients].sort((a, b) => (b.lastActivity ?? '').localeCompare(a.lastActivity ?? '')).slice(0, 6),
-    [d.clients],
-  );
   // The single most urgent client: oldest/never activity first among those needing attention.
   const worst = useMemo(
     () => [...attentionAll].sort((a, b) => (a.lastActivity ?? '').localeCompare(b.lastActivity ?? ''))[0] ?? null,
@@ -72,54 +77,38 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <DashboardSection title={t('coachDash.needsAttention')} icon="info">
+        {attention.length === 0 ? (
+          <EmptyState icon="check" tone="brand" title={t('coachDash.allGood')} />
+        ) : (
+          <div className="card divide-y divide-line-soft overflow-hidden p-0">
+            {attention.map((c) => (
+              <AttentionRow
+                key={c.client.id}
+                row={c}
+                onOpen={() => navigate(`/coach/client/${c.client.id}`)}
+                onAction={() => navigate(attentionAction(c).to)}
+              />
+            ))}
+          </div>
+        )}
+      </DashboardSection>
+
+      <DashboardSection
+        title={t('coachDash.quickActions')}
+        icon="bolt"
+        action={<QuickActionsTrigger actions={quickActions} title={t('coachDash.quickActions')} />}
+      >
+        <QuickActionsGrid actions={quickActions} />
+      </DashboardSection>
+
+      {/* Concise — revenue is already the header's hero stat, no need to repeat it here. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <MetricCard icon="user" value={d.totalClients} label={t('coachDash.totalClients')} hint={`${d.activeClients} ${t('coachDash.activeClients').toLowerCase()}`} onClick={() => navigate('/coach/clients')} />
         <MetricCard icon="target" value={`${d.adherencePct}%`} label={t('coachDash.adherence')} tone="brand" />
         <MetricCard icon="check" value={d.pendingAssessments} label={t('coachDash.pendingAssessments')} tone={d.pendingAssessments > 0 ? 'warn' : 'default'} onClick={() => navigate('/coach/assessments')} />
         <MetricCard icon="calendar" value={d.checkinsToReview} label={t('coachDash.checkins')} tone={d.checkinsToReview > 0 ? 'warn' : 'default'} />
         <MetricCard icon="chat" value={d.unreadMessages} label={t('coachDash.unread')} tone={d.unreadMessages > 0 ? 'danger' : 'default'} onClick={() => navigate('/coach/messages')} />
-        <MetricCard icon="bolt" value={`${d.revenueThisMonth} ${d.currency}`} label={t('coachDash.revenueThisMonth')} tone="success" />
-      </div>
-
-      <DashboardSection title={t('coachDash.quickActions')} icon="bolt">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-          <QuickAction icon="plus" label={t('coachDash.addClient')} onClick={() => navigate('/coach/clients?new=1')} />
-          <QuickAction icon="list" label={t('coachDash.createTemplate')} onClick={() => navigate('/coach/templates/new')} />
-          <QuickAction icon="dumbbell" label={t('coachDash.openLibrary')} onClick={() => navigate('/coach/library')} />
-          <QuickAction icon="check" label={t('coachDash.reviewAssessments')} onClick={() => navigate('/coach/assessments')} />
-          <QuickAction icon="chat" label={t('coachDash.sendBroadcast')} onClick={() => navigate('/coach/messages')} />
-        </div>
-      </DashboardSection>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DashboardSection title={t('coachDash.needsAttention')} icon="info">
-          {attention.length === 0 ? (
-            <EmptyState icon="check" tone="brand" title={t('coachDash.allGood')} />
-          ) : (
-            <div className="card divide-y divide-line-soft overflow-hidden p-0">
-              {attention.map((c) => (
-                <AttentionRow
-                  key={c.client.id}
-                  row={c}
-                  onOpen={() => navigate(`/coach/client/${c.client.id}`)}
-                  onAction={() => navigate(attentionAction(c).to)}
-                />
-              ))}
-            </div>
-          )}
-        </DashboardSection>
-
-        <DashboardSection title={t('coachDash.recentActivity')} icon="activity">
-          {recent.length === 0 ? (
-            <EmptyState icon="user" title={t('coachDash.noClients')} action={<button type="button" className="btn-primary" onClick={() => navigate('/coach/clients?new=1')}>{t('coachDash.addClient')}</button>} />
-          ) : (
-            <div className="card divide-y divide-line-soft overflow-hidden p-0 [&>button]:px-5">
-              {recent.map((c) => (
-                <ClientRow key={c.client.id} row={c} onOpen={() => navigate(`/coach/client/${c.client.id}`)} />
-              ))}
-            </div>
-          )}
-        </DashboardSection>
       </div>
 
       {/* Upcoming renewals — real data, previously only surfaced inside Analytics */}

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PhotoPose, ProgressPhoto } from '@/types';
-import { useNavigate } from 'react-router-dom';
 import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
-import { confirmDelete } from '@/stores/dialogStore';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { confirmDelete, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { viewImages } from '@/stores/imageViewerStore';
+import { useBack } from '@/hooks/useBack';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -46,7 +48,7 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
     );
   }
   if (!src) return <div className={`sk ${className}`} />;
-  return <img src={src} alt={photo.pose} className={className} onClick={onView ? () => onView(src) : undefined} />;
+  return <img src={src} alt={photo.pose} loading="lazy" className={className} onClick={onView ? () => onView(src) : undefined} />;
 }
 
 /**
@@ -101,6 +103,9 @@ export function ProgressPhotosBody() {
     setBusy(true);
     try {
       await add(pose, file);
+      showToast({ title: t('common.saved'), variant: 'success' });
+    } catch {
+      await alertDialog({ title: t('progress.photos'), message: t('common.savedFailed') });
     } finally {
       setBusy(false);
     }
@@ -142,7 +147,7 @@ export function ProgressPhotosBody() {
       </div>
 
       <button type="button" onClick={() => setCompare((v) => !v)} className="btn-ghost w-full" disabled={dates.length < 2}>
-        <Icon name="chart" size={18} /> {t('progress.compare')}
+        <Icon name="columns" size={18} /> {t('progress.compare')}
       </button>
 
       {/* Compare view */}
@@ -182,7 +187,7 @@ export function ProgressPhotosBody() {
               <div key={ph.id} className="relative">
                 <PhotoImg photo={ph} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} />
                 <span className="absolute bottom-1 start-1 rounded bg-black/60 px-1 text-[10px]">{t(`progress.${ph.pose}`)}</span>
-                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger">
+                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger" aria-label={t('common.delete')}>
                   <Icon name="close" size={14} />
                 </button>
               </div>
@@ -194,7 +199,7 @@ export function ProgressPhotosBody() {
         </div>
       ))}
 
-      {byDate.length === 0 && <p className="text-sm text-earth-subtle">{t('progress.noData')}</p>}
+      {byDate.length === 0 && <EmptyState icon="camera" title={t('progressPhotos.emptyTitle')} message={t('progressPhotos.emptyMessage')} />}
     </div>
   );
 }
@@ -202,10 +207,10 @@ export function ProgressPhotosBody() {
 /** Standalone page wrapper (deep-linkable at `/progress/photos`). */
 export function ProgressPhotos() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const goBack = useBack('/progress?tab=photos');
   return (
     <div className="anim-rise space-y-4">
-      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
+      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={goBack} />
       <ProgressPhotosBody />
     </div>
   );

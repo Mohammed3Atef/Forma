@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { useBack } from '@/hooks/useBack';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns } from '@/services/platform/checkInApi';
@@ -20,6 +23,7 @@ const TONE: Record<CheckInStatus, PillTone> = {
 export function CheckInHistory() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useBack('/');
   const uid = useSession((s) => s.uid) ?? '';
   const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
   const q = useQuery({ queryKey: ['checkInsHistory', uid], queryFn: () => listCheckIns(uid), enabled });
@@ -27,12 +31,12 @@ export function CheckInHistory() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('checkin.history')} eyebrow={t('app.name')} onBack={() => navigate('/')} />
+      <TopBar title={t('checkin.history')} eyebrow={t('app.name')} onBack={goBack} />
 
       {q.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={3} />
       ) : items.length === 0 ? (
-        <p className="py-10 text-center text-sm text-earth-muted">{t('checkin.noCheckins')}</p>
+        <EmptyState icon="calendar" title={t('checkin.noCheckins')} />
       ) : (
         <div className="card divide-y divide-line-soft p-0">
           {items.map((c) => (

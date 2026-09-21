@@ -40,20 +40,40 @@ const StatusEnum = z.enum(['active', 'suspended', 'pending', 'disabled']);
  */
 export const adminUsersRouter = router({
   list: permissionProcedure('users.read')
-    .input(z.object({ pageSize: z.number().optional(), cursor: z.string().optional(), role: RoleEnum.optional(), status: StatusEnum.optional() }).optional())
+    .input(
+      z.object({
+        pageSize: z.number().optional(),
+        cursor: z.string().optional(),
+        role: RoleEnum.optional(),
+        status: StatusEnum.optional(),
+        // Case-insensitive substring match on name/email/phone, applied
+        // server-side across the WHOLE collection — was previously only
+        // filtered client-side over whatever pages had already been
+        // paged in, so searching for an account beyond the first ~25
+        // loaded rows silently came back "No accounts found".
+        search: z.string().trim().max(200).optional(),
+      }).optional(),
+    )
     .query(async ({ input }) => {
       const users = await usersCol();
       const pageSize = Math.min(Math.max(input?.pageSize || 25, 1), 100);
       const filter: Record<string, unknown> = {};
       if (input?.role) filter.role = input.role;
       if (input?.status) filter.accountStatus = input.status;
+      const andConds: Record<string, unknown>[] = [];
       if (input?.cursor) {
         const [ts, id] = input.cursor.split(':');
         const tsNum = Number(ts);
         if (Number.isFinite(tsNum) && id) {
-          filter.$or = [{ createdAt: { $lt: tsNum } }, { createdAt: tsNum, _id: { $lt: id } }];
+          andConds.push({ $or: [{ createdAt: { $lt: tsNum } }, { createdAt: tsNum, _id: { $lt: id } }] });
         }
       }
+      if (input?.search) {
+        const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(escapeRegExp(input.search), 'i');
+        andConds.push({ $or: [{ email: re }, { displayName: re }, { phone: re }] });
+      }
+      if (andConds.length) filter.$and = andConds;
       const docs = await users.find(filter).sort({ createdAt: -1, _id: -1 }).limit(pageSize).toArray();
       const nextCursor = docs.length === pageSize ? `${docs[docs.length - 1].createdAt}:${docs[docs.length - 1]._id}` : null;
       return { users: docs.map(toPublicUser), cursor: nextCursor };
