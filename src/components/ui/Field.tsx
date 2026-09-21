@@ -42,7 +42,7 @@ export function FormField({ label, htmlFor, required, helper, error, srOnlyLabel
       )}
       {children}
       {error ? (
-        <p id={descId} className="mt-1 text-[12px] text-danger">{error}</p>
+        <p id={descId} role="alert" className="mt-1 text-[12px] text-danger">{error}</p>
       ) : helper ? (
         <p id={descId} className="mt-1 text-[12px] text-earth-subtle">{helper}</p>
       ) : null}
@@ -144,6 +144,7 @@ export const SearchField = forwardRef<HTMLInputElement, FieldExtras & InputHTMLA
             ref={ref}
             id={fieldId}
             aria-describedby={descId}
+            aria-invalid={error ? true : undefined}
             className={`input ps-10 ${className ?? ''}`}
             {...rest}
           />

@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteClientOrCoach, canWriteCoachOwned, isActiveSelf, resolveClientId } from '../../client/_lib/access.js';
-import { checkInsCol, measurementLogsCol, subscriptionRequestsCol } from '../../client/_lib/db.js';
+import { checkInsCol, coachClientsCol, measurementLogsCol, subscriptionRequestsCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
+import { hasPermission } from '../../_lib/rbac.js';
 import type { FreezeRequestDoc, MeasurementLogDoc, WeeklyCheckInDoc } from '../../client/_lib/types.js';
 
 function checkInId(clientId: string, weekStart: string): string {
@@ -27,6 +28,42 @@ export const checkInsRouter = router({
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     return (await checkInsCol()).find({ clientId }).sort({ weekStart: -1 }).toArray();
   }),
+
+  /**
+   * Latest + previous (reviewed) check-in for every one of a coach's active
+   * clients, in one query — was one `checkIns.list` request per client
+   * (`CoachCheckInsOverview`'s `useQueries` N+1). Unlike `workouts7d`/
+   * `assessment`, this screen needs the actual check-in records (dates,
+   * status, submitted values) to render the row + the review queue, so it
+   * doesn't fit `coachClients.dashboardSummaries`' coarse boolean shape —
+   * it gets its own batched endpoint instead of forcing a shared one.
+   */
+  listForCoachClients: authedProcedure
+    .input(z.object({ coachId: z.string().trim().min(1).optional() }))
+    .query(async ({ ctx, input }) => {
+      const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
+      const coachId = input.coachId ?? ctx.user.id;
+      if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
+      const relCol = await coachClientsCol();
+      const rels = await relCol.find({ coachId, status: 'active' }).toArray();
+      const clientIds = [...new Set(rels.map((r) => r.clientId))];
+      if (clientIds.length === 0) return [];
+
+      const col = await checkInsCol();
+      const docs = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1 }).toArray();
+      const byClient = new Map<string, WeeklyCheckInDoc[]>();
+      for (const d of docs) {
+        const arr = byClient.get(d.clientId);
+        if (arr) arr.push(d);
+        else byClient.set(d.clientId, [d]);
+      }
+      return clientIds.map((clientId) => {
+        const all = byClient.get(clientId) ?? [];
+        const latest = all[0] ?? null;
+        const previous = all.slice(1).find((c) => c.status === 'submitted' || c.status === 'reviewed') ?? null;
+        return { clientId, latest, previous };
+      });
+    }),
 
   /** Idempotent: one doc per week. */
   request: authedProcedure

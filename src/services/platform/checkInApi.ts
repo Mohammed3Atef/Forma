@@ -46,6 +46,27 @@ export async function getActiveCheckIn(clientId: string): Promise<WeeklyCheckIn 
   return list[0] ?? null;
 }
 
+export interface CoachClientCheckInSummary {
+  clientId: string;
+  latest: WeeklyCheckIn | null;
+  previous: WeeklyCheckIn | null;
+}
+
+/**
+ * Latest + previous check-in for every one of a coach's active clients, in
+ * one batched request — was one `checkIns.list` request per client
+ * (`CoachCheckInsOverview`'s N+1). See `checkIns.listForCoachClients`' doc
+ * comment.
+ */
+export async function listCheckInsForCoachClients(coachId: string): Promise<CoachClientCheckInSummary[]> {
+  const rows = await trpc.checkIns.listForCoachClients.query({ coachId });
+  return rows.map((r) => ({
+    clientId: r.clientId,
+    latest: r.latest ? toCheckIn(r.latest) : null,
+    previous: r.previous ? toCheckIn(r.previous) : null,
+  }));
+}
+
 /**
  * Coach requests a check-in for a week. The backend is idempotent (one doc
  * per week, keyed by weekStart — won't clobber an already-requested/submitted/

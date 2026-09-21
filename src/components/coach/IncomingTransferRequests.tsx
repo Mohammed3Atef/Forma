@@ -4,6 +4,8 @@ import { Avatar } from '@/components/Avatar';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { releaseClient } from '@/services/platform/coachClientsApi';
 import { listIncomingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import type { ClientTransferRequest } from '@/types';
 
 interface Enriched {
@@ -53,6 +55,7 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
     void qc.invalidateQueries({ queryKey: ['incomingTransfers', coachId] });
     void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
     void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
+    void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', coachId] });
   };
 
   const approve = useMutation({
@@ -60,11 +63,13 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
       await resolveTransferRequest(r.toCoachId, r.clientId, coachId, 'accepted');
       await releaseClient(coachId, r.clientId, coachId); // free the client so the requester can assign
     },
-    onSuccess: refresh,
+    onSuccess: () => { refresh(); showToast({ title: t('transferReq.approveDone'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('transferReq.approve'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const reject = useMutation({
     mutationFn: (r: ClientTransferRequest) => resolveTransferRequest(r.toCoachId, r.clientId, coachId, 'rejected'),
-    onSuccess: refresh,
+    onSuccess: () => { refresh(); showToast({ title: t('transferReq.rejectDone'), variant: 'success' }); },
+    onError: (e) => void alertDialog({ title: t('transferReq.reject'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   const items = q.data ?? [];
@@ -90,7 +95,15 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
                 data-testid="incoming-transfer-approve"
                 className="btn-primary h-9 flex-1 text-[13px] disabled:opacity-40"
                 disabled={approve.isPending || reject.isPending}
-                onClick={() => approve.mutate(req)}
+                onClick={async () => {
+                  const ok = await confirmDialog({
+                    title: t('transferReq.approve'),
+                    message: t('transferReq.confirmApprove', { client: clientName, coach: requesterName }),
+                    confirmLabel: t('transferReq.approve'),
+                    danger: true,
+                  });
+                  if (ok) approve.mutate(req);
+                }}
               >
                 {t('transferReq.approve')}
               </button>
@@ -99,7 +112,15 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
                 data-testid="incoming-transfer-reject"
                 className="btn-ghost h-9 flex-1 text-[13px] text-danger disabled:opacity-40"
                 disabled={approve.isPending || reject.isPending}
-                onClick={() => reject.mutate(req)}
+                onClick={async () => {
+                  const ok = await confirmDialog({
+                    title: t('transferReq.reject'),
+                    message: t('transferReq.confirmReject', { coach: requesterName }),
+                    confirmLabel: t('transferReq.reject'),
+                    danger: true,
+                  });
+                  if (ok) reject.mutate(req);
+                }}
               >
                 {t('transferReq.reject')}
               </button>

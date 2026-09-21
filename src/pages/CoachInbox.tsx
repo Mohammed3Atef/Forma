@@ -4,16 +4,18 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { useCoachContent } from '@/hooks/useCoachContent';
+import { useBack } from '@/hooks/useBack';
 import { clientNoteRoute } from '@/lib/noteTarget';
 
 export function CoachInbox() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useBack('/');
   const { enabled, notes, targets } = useCoachContent();
 
   return (
     <>
-      <TopBar title={t('clientCoach.title')} eyebrow={t('app.name')} onBack={() => navigate('/')} />
+      <TopBar title={t('clientCoach.title')} eyebrow={t('app.name')} onBack={goBack} />
 
       {!enabled ? (
         <div className="card py-10 text-center text-sm text-earth-muted">{t('clientCoach.signedOut')}</div>

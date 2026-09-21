@@ -1,16 +1,16 @@
-import { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
 import { SubscriptionGate } from '@/components/SubscriptionGate';
 import { ClientNotesProvider } from '@/components/ClientNotesProvider';
 import { Onboarding } from '@/components/Onboarding';
 import { Splash } from '@/components/Splash';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { queryClient } from '@/services/platform/queryClient';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { useAssessmentStatus } from '@/hooks/useAssessmentStatus';
-import { AssessmentWizard } from '@/pages/onboarding/AssessmentWizard';
 import { loadCoachAssignedContent, scopeLocalToUser } from '@/services/platform/clientSync';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition } from '@/stores/nutritionStore';
@@ -20,28 +20,37 @@ import { useMeasurements } from '@/stores/measurementStore';
 import { useHabits } from '@/stores/habitStore';
 import { useReminders } from '@/services/reminders/reminderStore';
 import { useDay } from '@/stores/dayStore';
+// Eager: the landing route (`/`, the single most common first paint) + the
+// gate/overlay components `ClientGate` itself renders outside `<Routes>`.
 import { Home } from '@/pages/Home';
-import { CoachInbox } from '@/pages/CoachInbox';
-import { Workout } from '@/pages/Workout';
-import { RoutineDetail } from '@/pages/RoutineDetail';
-import { ExerciseLibrary } from '@/pages/ExerciseLibrary';
-import { ExerciseDetail } from '@/pages/ExerciseDetail';
-import { WorkoutSession } from '@/pages/WorkoutSession';
-import { Nutrition } from '@/pages/Nutrition';
-import { Cardio } from '@/pages/Cardio';
-import { Progress } from '@/pages/Progress';
-import { History } from '@/pages/History';
-import { ProgressPhotos } from '@/pages/ProgressPhotos';
-import { Measurements } from '@/pages/Measurements';
-import { Settings } from '@/pages/Settings';
-import { ClientSettings } from '@/pages/ClientSettings';
-import { VideoManager } from '@/pages/VideoManager';
-import { ImportData } from '@/pages/ImportData';
-import { Notifications } from '@/pages/Notifications';
-import { CheckIn } from '@/pages/CheckIn';
-import { CheckInHistory } from '@/pages/CheckInHistory';
-import { MyAssessment } from '@/pages/MyAssessment';
-import { Messages } from '@/pages/Messages';
+
+// Every other client route is lazy — this used to import all ~20 pages
+// eagerly into one `ClientApp` chunk (183KB) while Coach/Admin already
+// lazy-load their own heavy routes; a client now only downloads the page(s)
+// they actually visit.
+const AssessmentWizard = lazy(() => import('@/pages/onboarding/AssessmentWizard').then((m) => ({ default: m.AssessmentWizard })));
+const CoachInbox = lazy(() => import('@/pages/CoachInbox').then((m) => ({ default: m.CoachInbox })));
+const Workout = lazy(() => import('@/pages/Workout').then((m) => ({ default: m.Workout })));
+const RoutineDetail = lazy(() => import('@/pages/RoutineDetail').then((m) => ({ default: m.RoutineDetail })));
+const ExerciseLibrary = lazy(() => import('@/pages/ExerciseLibrary').then((m) => ({ default: m.ExerciseLibrary })));
+const ExerciseDetail = lazy(() => import('@/pages/ExerciseDetail').then((m) => ({ default: m.ExerciseDetail })));
+const WorkoutSession = lazy(() => import('@/pages/WorkoutSession').then((m) => ({ default: m.WorkoutSession })));
+const Nutrition = lazy(() => import('@/pages/Nutrition').then((m) => ({ default: m.Nutrition })));
+const Cardio = lazy(() => import('@/pages/Cardio').then((m) => ({ default: m.Cardio })));
+const Progress = lazy(() => import('@/pages/Progress').then((m) => ({ default: m.Progress })));
+const History = lazy(() => import('@/pages/History').then((m) => ({ default: m.History })));
+const ProgressPhotos = lazy(() => import('@/pages/ProgressPhotos').then((m) => ({ default: m.ProgressPhotos })));
+const Measurements = lazy(() => import('@/pages/Measurements').then((m) => ({ default: m.Measurements })));
+const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })));
+const ClientSettings = lazy(() => import('@/pages/ClientSettings').then((m) => ({ default: m.ClientSettings })));
+const ClientSubscriptionPage = lazy(() => import('@/pages/ClientSubscriptionPage').then((m) => ({ default: m.ClientSubscriptionPage })));
+const VideoManager = lazy(() => import('@/pages/VideoManager').then((m) => ({ default: m.VideoManager })));
+const ImportData = lazy(() => import('@/pages/ImportData').then((m) => ({ default: m.ImportData })));
+const Notifications = lazy(() => import('@/pages/Notifications').then((m) => ({ default: m.Notifications })));
+const CheckIn = lazy(() => import('@/pages/CheckIn').then((m) => ({ default: m.CheckIn })));
+const CheckInHistory = lazy(() => import('@/pages/CheckInHistory').then((m) => ({ default: m.CheckInHistory })));
+const MyAssessment = lazy(() => import('@/pages/MyAssessment').then((m) => ({ default: m.MyAssessment })));
+const Messages = lazy(() => import('@/pages/Messages').then((m) => ({ default: m.Messages })));
 
 /**
  * The client experience — the original single-user tracker, unchanged. Mounted
@@ -106,36 +115,45 @@ function ClientGate() {
   // A coach `reset` flips it back and re-gates the app. Local-only mode keeps
   // the simple profile overlay.
   if (enabled && isLoading) return <Splash />;
-  if (blocked) return <AssessmentWizard uid={uid} displayName={displayName} />;
+  if (blocked) {
+    return (
+      <Suspense fallback={<Splash />}>
+        <AssessmentWizard uid={uid} displayName={displayName} />
+      </Suspense>
+    );
+  }
 
   return (
     <ClientNotesProvider>
       <Onboarding />
-      <Routes>
-        <Route path="/" element={<AppShell showDayNav><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
-        <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
-        <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
-        <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
-        <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
-        <Route path="/assessment" element={<AppShell><MyAssessment /></AppShell>} />
-        <Route path="/messages" element={<AppShell><Messages /></AppShell>} />
-        <Route path="/workout" element={<AppShell><SubscriptionGate><Workout /></SubscriptionGate></AppShell>} />
-        <Route path="/workout/routine/:dayId" element={<AppShell><SubscriptionGate><RoutineDetail /></SubscriptionGate></AppShell>} />
-        <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
-        <Route path="/workout/exercise/:exId" element={<AppShell><ExerciseDetail /></AppShell>} />
-        <Route path="/workout/session" element={<AppShell hideNav><SubscriptionGate><WorkoutSession /></SubscriptionGate></AppShell>} />
-        <Route path="/nutrition" element={<AppShell showDayNav><SubscriptionGate><Nutrition /></SubscriptionGate></AppShell>} />
-        <Route path="/cardio" element={<AppShell showDayNav><SubscriptionGate><Cardio /></SubscriptionGate></AppShell>} />
-        <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
-        <Route path="/history" element={<AppShell><History /></AppShell>} />
-        <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
-        <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
-        <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
-        <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
-        <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
-        <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
-        <Route path="*" element={<AppShell><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
-      </Routes>
+      <Suspense fallback={<div className="px-5 pt-6"><LoadingState variant="cards" count={4} /></div>}>
+        <Routes>
+          <Route path="/" element={<AppShell showDayNav><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
+          <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
+          <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
+          <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
+          <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
+          <Route path="/assessment" element={<AppShell><MyAssessment /></AppShell>} />
+          <Route path="/messages" element={<AppShell><Messages /></AppShell>} />
+          <Route path="/workout" element={<AppShell><SubscriptionGate><Workout /></SubscriptionGate></AppShell>} />
+          <Route path="/workout/routine/:dayId" element={<AppShell><SubscriptionGate><RoutineDetail /></SubscriptionGate></AppShell>} />
+          <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
+          <Route path="/workout/exercise/:exId" element={<AppShell><ExerciseDetail /></AppShell>} />
+          <Route path="/workout/session" element={<AppShell hideNav><SubscriptionGate><WorkoutSession /></SubscriptionGate></AppShell>} />
+          <Route path="/nutrition" element={<AppShell showDayNav><SubscriptionGate><Nutrition /></SubscriptionGate></AppShell>} />
+          <Route path="/cardio" element={<AppShell showDayNav><SubscriptionGate><Cardio /></SubscriptionGate></AppShell>} />
+          <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
+          <Route path="/history" element={<AppShell><History /></AppShell>} />
+          <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
+          <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
+          <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
+          <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
+          <Route path="/settings/subscription" element={<AppShell><ClientSubscriptionPage /></AppShell>} />
+          <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
+          <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </ClientNotesProvider>
   );
 }

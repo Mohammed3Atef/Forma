@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { StatTile } from '@/components/StatTile';
+import { LineChart } from '@/components/charts';
 import { fetchClientMeasurements, fetchClientWeightLogs } from '@/services/platform/coachApi';
 import { shortDate } from '@/lib/utils';
 
-/** Coach view of a client's body progress: bodyweight history + latest measurements. */
+/** Coach view of a client's body progress: bodyweight trend + history + latest measurements. */
 export function CoachViewProgress({ clientId }: { clientId: string }) {
   const { t, i18n } = useTranslation();
   const weightsQ = useQuery({ queryKey: ['clientWeightLogs', clientId], queryFn: () => fetchClientWeightLogs(clientId), enabled: !!clientId });
@@ -15,6 +17,13 @@ export function CoachViewProgress({ clientId }: { clientId: string }) {
   const latest = weights[0]?.weightKg;
   const measures = measuresQ.data ?? [];
   const lastMeasure = measures[measures.length - 1];
+  // Chart wants oldest→newest; also drives "who's progressing" at a glance
+  // (the raw list below stays for exact per-entry values).
+  const weightTrend = useMemo(
+    () => [...weights].reverse().map((w) => ({ date: w.date, value: w.weightKg })),
+    [weights],
+  );
+  const weightDelta = weightTrend.length >= 2 ? Math.round((weightTrend[weightTrend.length - 1].value - weightTrend[0].value) * 10) / 10 : null;
 
   return (
     <div className="space-y-4">
@@ -23,11 +32,17 @@ export function CoachViewProgress({ clientId }: { clientId: string }) {
         <StatTile icon="ruler" value={measures.length} label={t('measure.title')} />
       </div>
 
-      {/* Bodyweight history */}
+      {/* Bodyweight trend + history */}
       {weights.length > 0 && (
         <div className="card">
           <h2 className="mb-2 font-bold">{t('progress.bodyweight')}</h2>
-          <ul className="space-y-1 text-sm">
+          {weightDelta != null && weightDelta !== 0 && (
+            <p className="mb-2 text-sm text-earth">
+              {t(weightDelta < 0 ? 'gt.weightDown' : 'gt.weightUp', { n: Math.abs(weightDelta) })}
+            </p>
+          )}
+          <LineChart data={weightTrend} unit={t('common.kg')} emptyLabel={t('progress.noData')} locale={i18n.language} />
+          <ul className="mt-3 space-y-1 text-sm">
             {weights.slice(0, 20).map((w) => (
               <li key={w.id} className="flex items-center justify-between">
                 <span className="text-earth-muted">{shortDate(w.date, i18n.language)}</span>
@@ -54,7 +69,12 @@ export function CoachViewProgress({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {weights.length === 0 && measures.length === 0 && <p className="py-8 text-center text-sm text-earth-muted">{t('coachView.noProgress')}</p>}
+      {(weightsQ.isLoading || measuresQ.isLoading) && weights.length === 0 && measures.length === 0 && (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('common.loading')}</p>
+      )}
+      {!weightsQ.isLoading && !measuresQ.isLoading && weights.length === 0 && measures.length === 0 && (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('coachView.noProgress')}</p>
+      )}
     </div>
   );
 }

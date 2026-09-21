@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node .tmp-prod-test-setup4.mjs)",
+      "Bash(node .tmp-prod-flow-test.mjs)"
+    ]
+  }
+}

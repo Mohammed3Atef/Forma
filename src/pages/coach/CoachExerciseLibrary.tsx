@@ -5,13 +5,16 @@ import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextAreaField, TextInput } from '@/components/ui/Field';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { TagInput } from '@/components/TagInput';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
 import { ExerciseView } from '@/components/workout/ExerciseView';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { RowCheckbox } from '@/components/ui/RowCheckbox';
+import { useTabParam } from '@/components/ui/Tabs';
 import { usePagination } from '@/hooks/usePagination';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSelection } from '@/hooks/useSelection';
@@ -38,8 +41,14 @@ import {
   saveSupplement,
 } from '@/services/platform/coachAssetsApi';
 import { fetchStarterExercises } from '@/services/platform/starterLibraryApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement } from '@/types';
+
+/** Shared onError for the library's many CRUD mutations — a generic alert naming the action, instead of leaving a failed save/delete completely silent. */
+function libError(title: string, fallback: string) {
+  return (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : fallback });
+}
 
 type Tab = 'exercises' | 'foods' | 'groups' | 'supplements';
 
@@ -48,11 +57,11 @@ export function CoachExerciseLibrary() {
   useFullBleed();
   const { t } = useTranslation();
   const coachId = useSession((s) => s.account?.id ?? '');
-  const [tab, setTab] = useState<Tab>('exercises');
+  const [tab, setTab] = useTabParam('tab', 'exercises');
 
   return (
     <>
-      <TopBar testId="coach-library" title={t('coachLib.title')} eyebrow={t('platform.coachPortal')} />
+      <TopBar testId="coach-library" title={t('coachLib.title')} eyebrow={t('nav.groupContent')} />
       <div className="mb-4 flex gap-2">
         {(['exercises', 'foods', 'groups', 'supplements'] as Tab[]).map((tb) => (
           <button key={tb} type="button" data-testid={`lib-tab-${tb}`} onClick={() => setTab(tb)} className={`chip ${tab === tb ? 'chip-on' : ''}`}>
@@ -93,7 +102,11 @@ function ExercisesTab({ coachId }: { coachId: string }) {
     );
   }, [lib.data, search]);
 
-  const saveMut = useMutation({ mutationFn: (ex: Exercise) => saveExercise(coachId, ex), onSuccess: () => { setEditing(null); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); } });
+  const saveMut = useMutation({
+    mutationFn: (ex: Exercise) => saveExercise(coachId, ex),
+    onSuccess: () => { setEditing(null); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: libError(t('coachLib.newExercise'), t('common.savedFailed')),
+  });
   // One-tap starter library: import the shared public-domain exercise dataset
   // into the coach's own coachAssets (chunked writes). Re-importing is safe —
   // ids are stable so it upserts rather than duplicating.
@@ -105,9 +118,14 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       }
       return items.length;
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }),
+    onSuccess: (n) => { void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); showToast({ title: t('coachLib.loadStarter'), body: String(n), variant: 'success' }); },
+    onError: libError(t('coachLib.loadStarter'), t('common.errorGeneric')),
   });
-  const delMut = useMutation({ mutationFn: (id: string) => deleteExercise(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }) });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteExercise(coachId, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
+  });
   const remove = async (ex: Exercise) => { if (await confirmDialog({ title: t('common.delete'), message: ex.name, danger: true })) delMut.mutate(ex.id); };
 
   const sel = useSelection();
@@ -116,6 +134,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
   const bulkDel = useMutation({
     mutationFn: (ids: string[]) => bulkDeleteExercises(coachId, ids),
     onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
   });
   const runBulkDelete = async () => {
     if (sel.count === 0) return;
@@ -130,7 +149,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
     { key: 'sets', header: t('coachLib.setsReps'), cell: (ex) => <span className="font-mono text-[12px] text-earth-subtle">{ex.workingSets}×{ex.repRange} · {ex.restSec}s</span> },
     { key: 'tags', header: t('coachLib.tags'), cell: (ex) => <span className="text-[12px] text-earth-subtle">{(ex.tags ?? []).join(', ') || '—'}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (ex) => (
-      <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(ex); }}><Icon name="close" size={16} /></button>
+      <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(ex); }}><Icon name="close" size={16} /></button>
     ) },
   ];
 
@@ -144,7 +163,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
         <button type="button" className="btn-ghost h-[42px] whitespace-nowrap px-3 text-[13px] disabled:opacity-40" data-testid="lib-load-starter" disabled={loadStarter.isPending} onClick={async () => { if (await confirmDialog({ title: t('coachLib.loadStarter'), message: t('coachLib.loadStarterConfirm') })) loadStarter.mutate(); }}>
           {loadStarter.isPending ? t('auth.working') : t('coachLib.loadStarter')}
         </button>
-        <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coachLib.newExercise')} data-testid="lib-new" onClick={() => setEditing(blankExercise())}>
+        <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachLib.newExercise')} data-testid="lib-new" onClick={() => setEditing(blankExercise())}>
           <Icon name="plus" size={20} />
         </button>
       </div>
@@ -167,7 +186,11 @@ function ExercisesTab({ coachId }: { coachId: string }) {
           empty={search ? t('coachLib.noResults') : t('coachLib.empty')}
         />
       ) : filtered.length === 0 ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachLib.empty')}</div>
+        <EmptyState
+          icon={search ? 'search' : 'dumbbell'}
+          title={search ? t('coachLib.noResults') : t('coachLib.empty')}
+          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : undefined}
+        />
       ) : (
         <div className="card divide-y divide-line-soft">
           {pg.pageItems.map((ex) => (
@@ -177,7 +200,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
                 <span className="block truncate font-medium">{ex.name}</span>
                 <span className="block truncate text-[12px] text-earth-subtle">{[ex.targetMuscle, ex.category, ex.equipment].filter(Boolean).join(' · ') || t('coachLib.noMeta')}</span>
               </button>
-              <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => void remove(ex)}><Icon name="close" size={18} /></button>
+              <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={() => void remove(ex)}><Icon name="close" size={18} /></button>
             </div>
           ))}
         </div>
@@ -197,7 +220,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
         )}
       </Sheet>
       <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachLib.exercise')}>
-        {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} />}
+        {editing && <ExerciseForm initial={editing} onSave={(ex) => saveMut.mutate(ex)} pending={saveMut.isPending} coachId={coachId} />}
       </Sheet>
     </>
   );
@@ -225,8 +248,16 @@ function FoodsTab({ coachId }: { coachId: string }) {
     return all.filter((f) => f.name.en.toLowerCase().includes(q) || (f.category ?? '').toLowerCase().includes(q) || (f.tags ?? []).some((tg) => tg.toLowerCase().includes(q)));
   }, [foods.data, search]);
 
-  const saveMut = useMutation({ mutationFn: (f: LibraryFood) => saveFood(coachId, f), onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); } });
-  const delMut = useMutation({ mutationFn: (id: string) => deleteFood(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['foods', coachId] }) });
+  const saveMut = useMutation({
+    mutationFn: (f: LibraryFood) => saveFood(coachId, f),
+    onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: libError(t('coachFoods.newFood'), t('common.savedFailed')),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteFood(coachId, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['foods', coachId] }); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
+  });
   const remove = async (f: LibraryFood) => { if (await confirmDialog({ title: t('common.delete'), message: f.name.en, danger: true })) delMut.mutate(f.id); };
 
   const sel = useSelection();
@@ -235,6 +266,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
   const bulkDel = useMutation({
     mutationFn: (ids: string[]) => bulkDeleteFoods(coachId, ids),
     onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['foods', coachId] }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
   });
   const runBulkDelete = async () => {
     if (sel.count === 0) return;
@@ -250,7 +282,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
     { key: 'fat', header: t('nutrition.fats'), cell: (f) => <span className="font-mono text-earth-subtle">{f.fats}</span>, className: 'text-end' },
     { key: 'cat', header: t('coachLib.category'), cell: (f) => <span className="text-[12px] text-earth-subtle">{f.category || '—'}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (f) => (
-      <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(f); }}><Icon name="close" size={16} /></button>
+      <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={(e) => { e.stopPropagation(); void remove(f); }}><Icon name="close" size={16} /></button>
     ) },
   ];
 
@@ -277,7 +309,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
           <input className="input ps-10" data-testid="food-search" placeholder={t('coachFoods.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coachFoods.newFood')} data-testid="food-new" onClick={() => setForm(blankFoodForm())}>
+        <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachFoods.newFood')} data-testid="food-new" onClick={() => setForm(blankFoodForm())}>
           <Icon name="plus" size={20} />
         </button>
       </div>
@@ -300,7 +332,11 @@ function FoodsTab({ coachId }: { coachId: string }) {
           empty={search ? t('coachLib.noResults') : t('coachFoods.empty')}
         />
       ) : filtered.length === 0 ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachFoods.empty')}</div>
+        <EmptyState
+          icon={search ? 'search' : 'meal'}
+          title={search ? t('coachLib.noResults') : t('coachFoods.empty')}
+          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : undefined}
+        />
       ) : (
         <div className="card divide-y divide-line-soft">
           {pg.pageItems.map((f) => (
@@ -310,7 +346,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
                 <span className="block truncate font-medium">{f.name.en}</span>
                 <span className="block truncate text-[12px] text-earth-subtle" dir="ltr">{f.quantity ? `${f.quantity} · ` : ''}{f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
               </button>
-              <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => void remove(f)}><Icon name="close" size={18} /></button>
+              <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={() => void remove(f)}><Icon name="close" size={18} /></button>
             </div>
           ))}
         </div>
@@ -337,7 +373,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
               <div className="label mb-1.5">{t('coachLib.tags')}</div>
               <TagInput values={form.tags} onChange={(v) => setForm({ ...form, tags: v })} placeholder={t('coachLib.tagsPlaceholder')} />
             </div>
-            <button type="button" data-testid="lf-save" disabled={!form.name.trim()} onClick={submit} className="btn-primary w-full disabled:opacity-40">{t('common.save')}</button>
+            <SubmitButton type="button" data-testid="lf-save" disabled={!form.name.trim()} pending={saveMut.isPending} onClick={submit} fullWidth>{t('common.save')}</SubmitButton>
           </div>
         )}
       </Sheet>
@@ -356,8 +392,16 @@ function GroupsTab({ coachId }: { coachId: string }) {
   const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
   const foods = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
 
-  const saveMut = useMutation({ mutationFn: (g: FoodGroup) => saveFoodGroup(g), onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }); } });
-  const delMut = useMutation({ mutationFn: (id: string) => deleteFoodGroup(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }) });
+  const saveMut = useMutation({
+    mutationFn: (g: FoodGroup) => saveFoodGroup(g),
+    onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: libError(t('coachFoods.newGroup'), t('common.savedFailed')),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteFoodGroup(coachId, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
+  });
   const remove = async (g: FoodGroup) => { if (await confirmDialog({ title: t('common.delete'), message: g.name, danger: true })) delMut.mutate(g.id); };
 
   const sel = useSelection();
@@ -365,6 +409,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
   const bulkDel = useMutation({
     mutationFn: (ids: string[]) => bulkDeleteFoodGroups(coachId, ids),
     onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
   });
   const runBulkDelete = async () => {
     if (sel.count === 0) return;
@@ -390,7 +435,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
     <>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-[13px] text-earth-muted">{t('coachFoods.groupsHint')}</p>
-        <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coachFoods.newGroup')} data-testid="group-new" onClick={() => setForm({ id: null, name: '', notes: '', foodIds: [] })}>
+        <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachFoods.newGroup')} data-testid="group-new" onClick={() => setForm({ id: null, name: '', notes: '', foodIds: [] })}>
           <Icon name="plus" size={20} />
         </button>
       </div>
@@ -406,13 +451,13 @@ function GroupsTab({ coachId }: { coachId: string }) {
                   <span className="block truncate font-medium">{g.name || t('coachFoods.untitledGroup')}</span>
                   <span className="block truncate text-[12px] text-earth-subtle">{t('coachFoods.foodCount', { n: g.foods.length })}</span>
                 </button>
-                <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => void remove(g)}><Icon name="close" size={18} /></button>
+                <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={() => void remove(g)}><Icon name="close" size={18} /></button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="card py-10 text-center text-sm text-earth-muted">{t('coachFoods.noGroups')}</div>
+        <EmptyState icon="list" title={t('coachFoods.noGroups')} message={t('coachFoods.noGroupsMessage')} />
       )}
       <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
       <BulkActionBar count={sel.count} onClear={sel.clear}>
@@ -426,7 +471,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
             <div>
               <div className="label mb-1.5">{t('coachFoods.pickFoods')}</div>
               {(foods.data?.length ?? 0) === 0 ? (
-                <p className="text-[12px] text-earth-subtle">{t('coachFoods.empty')}</p>
+                <p className="text-[12px] text-earth-subtle">{t('coachFoods.addFoodsFirst')}</p>
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="grp-foods">
                   {(foods.data ?? []).map((f) => {
@@ -440,7 +485,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
                 </div>
               )}
             </div>
-            <button type="button" data-testid="grp-save" disabled={!form.name.trim() || form.foodIds.length === 0} onClick={submit} className="btn-primary w-full disabled:opacity-40">{t('common.save')}</button>
+            <SubmitButton type="button" data-testid="grp-save" disabled={!form.name.trim() || form.foodIds.length === 0} pending={saveMut.isPending} onClick={submit} fullWidth>{t('common.save')}</SubmitButton>
           </div>
         )}
       </Sheet>
@@ -467,8 +512,16 @@ function SupplementsTab({ coachId }: { coachId: string }) {
     return all.filter((s) => s.name.toLowerCase().includes(q) || s.dose.en.toLowerCase().includes(q));
   }, [supps.data, search]);
 
-  const saveMut = useMutation({ mutationFn: (s: LibrarySupplement) => saveSupplement(coachId, s), onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['supplements', coachId] }); } });
-  const delMut = useMutation({ mutationFn: (id: string) => deleteSupplement(coachId, id), onSuccess: () => void qc.invalidateQueries({ queryKey: ['supplements', coachId] }) });
+  const saveMut = useMutation({
+    mutationFn: (s: LibrarySupplement) => saveSupplement(coachId, s),
+    onSuccess: () => { setForm(null); void qc.invalidateQueries({ queryKey: ['supplements', coachId] }); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: libError(t('coachSupps.newSupp'), t('common.savedFailed')),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteSupplement(coachId, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['supplements', coachId] }); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
+  });
   const remove = async (s: LibrarySupplement) => { if (await confirmDialog({ title: t('common.delete'), message: s.name, danger: true })) delMut.mutate(s.id); };
 
   const sel = useSelection();
@@ -476,6 +529,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
   const bulkDel = useMutation({
     mutationFn: (ids: string[]) => bulkDeleteSupplements(coachId, ids),
     onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['supplements', coachId] }); },
+    onError: libError(t('common.delete'), t('common.errorGeneric')),
   });
   const runBulkDelete = async () => {
     if (sel.count === 0) return;
@@ -500,14 +554,18 @@ function SupplementsTab({ coachId }: { coachId: string }) {
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
           <input className="input ps-10" data-testid="supp-search" placeholder={t('coachSupps.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('coachSupps.newSupp')} data-testid="supp-new" onClick={() => setForm(blankSuppForm())}>
+        <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachSupps.newSupp')} data-testid="supp-new" onClick={() => setForm(blankSuppForm())}>
           <Icon name="plus" size={20} />
         </button>
       </div>
       {supps.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : filtered.length === 0 ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{search ? t('coachLib.noResults') : t('coachSupps.empty')}</div>
+        <EmptyState
+          icon={search ? 'search' : 'pill'}
+          title={search ? t('coachLib.noResults') : t('coachSupps.empty')}
+          action={search ? <button type="button" className="btn-tonal btn-sm" onClick={() => setSearch('')}>{t('common.clearFilters')}</button> : undefined}
+        />
       ) : (
         <div className="card divide-y divide-line-soft">
           {pg.pageItems.map((s) => (
@@ -518,7 +576,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
                 <span className="block truncate font-medium">{s.name}</span>
                 <span className="block truncate text-[12px] text-earth-subtle">{[s.dose.en, s.timing?.en].filter(Boolean).join(' · ') || t('coachLib.noMeta')}</span>
               </button>
-              <button type="button" className="text-danger" aria-label={t('common.delete')} onClick={() => void remove(s)}><Icon name="close" size={18} /></button>
+              <button type="button" className="text-danger disabled:opacity-40" disabled={delMut.isPending} aria-label={t('common.delete')} onClick={() => void remove(s)}><Icon name="close" size={18} /></button>
             </div>
           ))}
         </div>
@@ -533,7 +591,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
             <TextInput label={t('field.name')} data-testid="supp-name" placeholder={t('coachEditor.suppName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <TextInput label={t('field.dose')} data-testid="supp-dose" placeholder={t('coachEditor.suppDose')} value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
             <TextInput label={t('field.timing')} data-testid="supp-timing" placeholder={t('coachEditor.suppTiming')} value={form.timing} onChange={(e) => setForm({ ...form, timing: e.target.value })} />
-            <button type="button" data-testid="supp-save" disabled={!form.name.trim()} onClick={submit} className="btn-primary w-full disabled:opacity-40">{t('common.save')}</button>
+            <SubmitButton type="button" data-testid="supp-save" disabled={!form.name.trim()} pending={saveMut.isPending} onClick={submit} fullWidth>{t('common.save')}</SubmitButton>
           </div>
         )}
       </Sheet>

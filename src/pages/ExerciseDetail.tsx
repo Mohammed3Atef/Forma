@@ -1,22 +1,24 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { VideoAsset } from '@/types';
 import { useWorkout } from '@/stores/workoutStore';
 import { useVideos } from '@/stores/videoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
-import { BarChart } from '@/components/charts';
+import { LineChart } from '@/components/charts';
 import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { playVideo } from '@/stores/videoPopupStore';
 import { useLocalized } from '@/hooks/useLocalized';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise, exerciseTrend } from '@/lib/calc';
 import { shortDate } from '@/lib/utils';
+import { useBack } from '@/hooks/useBack';
 
 export function ExerciseDetail() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const goBack = useBack('/workout/library');
   const loc = useLocalized();
   const { exId } = useParams();
   const plan = useWorkout((s) => s.plan);
@@ -44,7 +46,17 @@ export function ExerciseDetail() {
   }, [logs, exId]);
 
   if (!ex || !exId) {
-    return <p className="pt-10 text-center text-earth-muted">{t('progress.noData')}</p>;
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('nav.workout')} onBack={goBack} />
+        <EmptyState
+          icon="info"
+          title={t('exerciseDetail.notFoundTitle')}
+          message={t('exerciseDetail.notFoundMessage')}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={goBack}>{t('common.back')}</button>}
+        />
+      </div>
+    );
   }
 
   const cues = loc(ex.notes)
@@ -68,9 +80,9 @@ export function ExerciseDetail() {
       <TopBar
         title={ex.name}
         eyebrow={muscleLabel(ex.targetMuscle, t)}
-        onBack={() => navigate(-1)}
+        onBack={goBack}
         right={
-          <button type="button" onClick={openVideo} className="icon-btn h-[42px] w-[42px]" aria-label={t('workout.watchVideo')}>
+          <button type="button" onClick={openVideo} className="icon-btn h-11 w-11" aria-label={t('workout.watchVideo')}>
             <Icon name="video" size={18} />
           </button>
         }
@@ -130,7 +142,7 @@ export function ExerciseDetail() {
       {pr && (
         <div
           className="mb-4 rounded-hero border border-brand/25 p-5 shadow-featured"
-          style={{ background: 'linear-gradient(135deg, rgba(229,82,15,0.28), rgba(229,82,15,0.06))' }}
+          style={{ background: 'linear-gradient(135deg, rgba(255,139,2,0.28), rgba(255,139,2,0.06))' }}
         >
           <div className="flex items-center gap-2">
             <Icon name="trophy" size={16} className="text-brand" />
@@ -151,15 +163,23 @@ export function ExerciseDetail() {
         </div>
       )}
 
-      {/* 1RM trend */}
+      {/* 1RM trend — a LineChart with real session dates, not a BarChart with
+          session-ordinal labels (was "1","2","3"…"now", so two sessions 3
+          days apart and two 3 months apart rendered identically). */}
       {trend.length >= 2 && (
         <div className="card mb-4">
           <span className="ui-label">{t('gt.trend1rm')}</span>
+          {(() => {
+            const delta = Math.round((trend[trend.length - 1].value - trend[0].value) * 10) / 10;
+            if (delta === 0) return null;
+            return (
+              <p className="mt-1 text-sm text-earth">
+                {t(delta > 0 ? 'gt.trend1rmUp' : 'gt.trend1rmDown', { n: Math.abs(delta), sessions: trend.length })}
+              </p>
+            );
+          })()}
           <div className="mt-2">
-            <BarChart
-              data={trend.map((v, i) => ({ label: i === trend.length - 1 ? t('gt.now') : String(i + 1), value: v }))}
-              format={(v) => String(v)}
-            />
+            <LineChart data={trend} unit={t('common.kg')} emptyLabel={t('progress.noData')} locale={i18n.language} />
           </div>
         </div>
       )}

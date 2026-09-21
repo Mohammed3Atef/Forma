@@ -42,8 +42,7 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
       <MeasurementForm
         date={date}
         existing={existing}
-        saving={save.isPending}
-        onSave={(_d, vals) => save.mutate(vals)}
+        onSave={(_d, vals) => save.mutateAsync(vals)}
         extras={(k) => <EntityNotes screen="measurements" date={date} entityType="measurement" entityId={k} label={labelOf(k)} />}
       />
 

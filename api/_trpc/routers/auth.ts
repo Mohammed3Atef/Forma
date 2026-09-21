@@ -17,6 +17,8 @@ import {
 } from '../../_lib/tokens.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
 import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
+import { sendPasswordResetEmail } from '../../_lib/email.js';
+import { verifyGoogleIdToken } from '../../_lib/google.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
 const SIGNUP_MAX_ATTEMPTS = 5;
@@ -174,14 +176,9 @@ export const authRouter = router({
       await revokeAllUserSessions(ctx.user.id);
     }),
 
-  /**
-   * TODO before this is production-usable: wire in a real email provider (e.g.
-   * Resend) to actually deliver the reset link — this route currently only
-   * creates the token and logs it server-side outside production.
-   */
   requestPasswordReset: publicProcedure
     .input(z.object({ email: z.string().trim().toLowerCase().email() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       await enforceRateLimit('auth.resetRequest', input.email, RESET_MAX_ATTEMPTS, RESET_WINDOW_MS);
       const users = await usersCol();
       const user = await users.findOne({ emailLower: input.email });
@@ -197,10 +194,19 @@ export const authRouter = router({
           expiresAt: new Date(Date.now() + RESET_TTL_MS),
           used: false,
         });
-        if (process.env.NODE_ENV !== 'production') {
-          console.info(`[auth] password reset token for ${user.email}: ${raw}`);
+        const origin = ctx.req.headers.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+        const resetUrl = `${origin}/reset/${raw}`;
+        if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
+          console.info(`[auth] password reset link for ${user.email}: ${resetUrl}`);
         } else {
-          console.warn('[auth] password reset requested but no email provider is configured — token was not delivered.');
+          // Never let a delivery failure change this endpoint's response —
+          // that would reopen the account-enumeration hole the constant
+          // `{ ok: true }` reply exists to close.
+          try {
+            await sendPasswordResetEmail(user.email, resetUrl);
+          } catch (e) {
+            console.error('[auth] failed to send password reset email:', e);
+          }
         }
       }
       return { ok: true };
@@ -223,5 +229,32 @@ export const authRouter = router({
       await resets.updateOne({ _id: tokenHash }, { $set: { used: true } });
       await revokeAllUserSessions(reset.userId);
       return { ok: true };
+    }),
+
+  /**
+   * Sign-in-with-Google, verified against Google's own servers via
+   * `verifyGoogleIdToken` — never trust the ID token's claims unchecked.
+   * Login only: a Google account with no matching Forma account is rejected
+   * rather than auto-creating one, mirroring the product's existing rule that
+   * self-service signup is a deliberate, explicit action (and coach-only).
+   */
+  googleSignIn: publicProcedure
+    .input(z.object({ idToken: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      await enforceRateLimit('auth.googleSignIn', getClientIp(ctx.req), LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
+      let profile;
+      try {
+        profile = await verifyGoogleIdToken(input.idToken);
+      } catch (e) {
+        console.error('[auth] Google ID token verification failed:', e);
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Could not verify this Google sign-in.' });
+      }
+      const users = await usersCol();
+      const doc = await users.findOne({ emailLower: profile.email.toLowerCase() });
+      if (!doc) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'No Forma account found for this Google account. Sign up first.' });
+      }
+      const session = await issueSession(ctx.res, { id: doc._id, role: doc.role, accountStatus: doc.accountStatus });
+      return { user: toPublicUser(doc), accessToken: session.accessToken };
     }),
 });

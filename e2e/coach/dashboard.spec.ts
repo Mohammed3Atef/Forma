@@ -14,7 +14,10 @@ test.describe('Coach Dashboard', () => {
     const heroText = await page.getByTestId('coach-dashboard-top').innerText();
     expect(heroText).toMatch(/\d/); // at least one numeric stat rendered
 
-    for (const tab of ['overview', 'analytics', 'clients', 'engagement', 'content', 'reports'] as const) {
+    // Analytics and Reports moved to their own destinations (/coach/revenue,
+    // /coach/reports — see revenue.spec.ts / reports.spec.ts) — the design
+    // treats Business/Revenue/Reports as top-level nav items, not dashboard tabs.
+    for (const tab of ['overview', 'clients', 'engagement', 'content'] as const) {
       await page.getByTestId(`coach-dash-${tab}`).click();
       await page.waitForTimeout(300);
       // Each panel should render some content, not an obviously blank pane.

@@ -7,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { logVolume, logSetCount, logExerciseCount } from '@/lib/calc';
 import { formatDuration, weekdayOffset } from '@/lib/utils';
+import { useBack } from '@/hooks/useBack';
 
 // Week starts on Saturday: Sat, Sun, Mon, Tue, Wed, Thu, Fri.
 const WEEKDAYS = ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
@@ -17,6 +18,7 @@ export function History() {
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
   const setDay = useDay((s) => s.setDay);
+  const goBack = useBack('/progress');
 
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
@@ -33,6 +35,11 @@ export function History() {
     });
     return m;
   }, [finished, monthPrefix]);
+
+  // Heatmap intensity (0–1) by that day's logged volume relative to the
+  // month's busiest day — a binary "did they train" highlight can't show
+  // whether a day was a light or heavy session.
+  const maxDayVolume = useMemo(() => Math.max(1, ...[...workoutDays.values()].map((l) => logVolume(l))), [workoutDays]);
 
   const monthSessions = useMemo(
     () => finished.filter((l) => l.date.startsWith(monthPrefix)).sort((a, b) => b.date.localeCompare(a.date)),
@@ -63,12 +70,12 @@ export function History() {
 
   return (
     <div className="anim-rise">
-      <TopBar title={t('gt.history')} eyebrow={t('gt.yourLog')} onBack={() => navigate('/progress')} />
+      <TopBar title={t('gt.history')} eyebrow={t('gt.yourLog')} onBack={goBack} />
 
       {/* Calendar */}
       <div className="card">
         <div className="mb-3 flex items-center justify-between">
-          <button type="button" onClick={() => shift(-1)} className="icon-btn h-9 w-9" aria-label="previous month">
+          <button type="button" onClick={() => shift(-1)} className="icon-btn h-9 w-9" aria-label={t('common.previousMonth')}>
             <Icon name="chevronLeft" size={18} />
           </button>
           <span className="font-display text-base font-semibold">{monthLabel}</span>
@@ -77,7 +84,7 @@ export function History() {
             onClick={() => !isCurrentMonth && shift(1)}
             disabled={isCurrentMonth}
             className="icon-btn h-9 w-9 disabled:opacity-30"
-            aria-label="next month"
+            aria-label={t('common.nextMonth')}
           >
             <Icon name="chevron" size={18} />
           </button>
@@ -91,21 +98,31 @@ export function History() {
           {cells.map((day, i) => {
             if (day == null) return <div key={i} />;
             const date = `${monthPrefix}-${String(day).padStart(2, '0')}`;
-            const hasWorkout = workoutDays.has(day);
+            const log = workoutDays.get(day);
             const isToday = date === todayKey;
+            // Floor at 0.22 so even a light day stays visibly distinct from
+            // a rest day, instead of fading to nearly invisible.
+            const intensity = log ? Math.max(0.22, logVolume(log) / maxDayVolume) : 0;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={!hasWorkout}
-                onClick={() => hasWorkout && openDay(date)}
+                disabled={!log}
+                onClick={() => log && openDay(date)}
+                title={log ? `${(logVolume(log) / 1000).toFixed(1)}t` : undefined}
+                aria-label={log ? `${day} · ${(logVolume(log) / 1000).toFixed(1)}t` : String(day)}
                 className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm ${
-                  hasWorkout ? 'bg-brand/15 font-medium text-white' : 'text-earth-muted'
+                  log ? 'font-medium text-white' : 'text-earth-muted'
                 } ${isToday ? 'ring-1.5 ring-brand' : ''}`}
-                style={isToday ? { boxShadow: 'inset 0 0 0 1.5px #E5520F' } : undefined}
+                style={{
+                  background: log ? `rgba(255,139,2,${intensity})` : undefined,
+                  boxShadow: isToday ? 'inset 0 0 0 1.5px #FF8B02' : undefined,
+                }}
               >
                 {day}
-                {hasWorkout && <span className="mt-0.5 h-1 w-1 rounded-full bg-brand" />}
+                {/* A visible marker independent of the intensity color, for
+                    anyone who can't reliably distinguish the copper shades. */}
+                {log && <span className="mt-0.5 h-1 w-1 rounded-full bg-white/80" />}
               </button>
             );
           })}
@@ -117,30 +134,33 @@ export function History() {
         <h2 className="h2">{t('gt.workoutsN', { n: monthSessions.length })}</h2>
         <span className="font-mono text-[12px] text-brand">{(monthVolume / 1000).toFixed(1)}t</span>
       </div>
-      <div>
-        {monthSessions.map((l) => {
-          const d = new Date(cursor.y, cursor.m, Number(l.date.slice(8, 10)));
-          const day = plan?.days.find((x) => x.id === l.dayId);
-          return (
-            <button key={l.id} type="button" onClick={() => openDay(l.date)} className="row w-full text-start">
-              <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
-                <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
-                <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
-                  {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
+      {monthSessions.length === 0 ? (
+        <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
+      ) : (
+        <div className="card divide-y divide-line-soft p-0">
+          {monthSessions.map((l) => {
+            const d = new Date(cursor.y, cursor.m, Number(l.date.slice(8, 10)));
+            const day = plan?.days.find((x) => x.id === l.dayId);
+            return (
+              <button key={l.id} type="button" onClick={() => openDay(l.date)} className="rowline w-full text-start">
+                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
+                  <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
+                  <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
+                    {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
+                  </span>
                 </span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
-                <p className="font-mono text-[11.5px] text-earth-muted">
-                  {logExerciseCount(l)} {t('gt.exercises').toLowerCase()} · {logSetCount(l)} {t('common.sets')} · {formatDuration(l.durationSec)}
-                </p>
-              </div>
-              <span className="font-mono text-[12px] text-brand">{(logVolume(l) / 1000).toFixed(1)}t</span>
-            </button>
-          );
-        })}
-        {monthSessions.length === 0 && <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>}
-      </div>
+                <div className="grow min-w-0">
+                  <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
+                  <p className="font-mono text-[11.5px] text-earth-muted">
+                    {logExerciseCount(l)} {t('gt.exercises').toLowerCase()} · {logSetCount(l)} {t('common.sets')} · {formatDuration(l.durationSec)}
+                  </p>
+                </div>
+                <span className="shrink-0 font-mono text-[12px] text-brand">{(logVolume(l) / 1000).toFixed(1)}t</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

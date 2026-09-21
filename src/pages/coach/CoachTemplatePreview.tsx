@@ -11,7 +11,9 @@ import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { deleteWorkoutTemplate, duplicateWorkoutTemplate, getWorkoutTemplate } from '@/services/platform/coachAssetsApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
+import { useBack } from '@/hooks/useBack';
 
 /**
  * Read-only template preview. Clicking a template card lands here (NOT the
@@ -25,21 +27,30 @@ export function CoachTemplatePreview() {
   const coachId = useSession((s) => s.account?.id ?? '');
   const { canWrite } = useCoachPlan(); // false when the coach's own plan has lapsed
   const [assigning, setAssigning] = useState(false);
+  const goBack = useBack('/coach/templates');
 
   const clientsQ = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId });
   const q = useQuery({ queryKey: ['workoutTemplate', coachId, templateId], queryFn: () => getWorkoutTemplate(coachId, templateId), enabled: !!coachId && !!templateId });
   const tpl = q.data;
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
-  const dup = useMutation({ mutationFn: () => duplicateWorkoutTemplate(tpl!), onSuccess: () => { invalidate(); navigate('/coach/templates'); } });
-  const del = useMutation({ mutationFn: () => deleteWorkoutTemplate(coachId, templateId), onSuccess: () => { invalidate(); navigate('/coach/templates'); } });
+  const dup = useMutation({
+    mutationFn: () => duplicateWorkoutTemplate(tpl!),
+    onSuccess: () => { invalidate(); showToast({ title: t('workoutTemplate.duplicate'), variant: 'success' }); navigate('/coach/templates'); },
+    onError: (e) => void alertDialog({ title: t('workoutTemplate.duplicate'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+  });
+  const del = useMutation({
+    mutationFn: () => deleteWorkoutTemplate(coachId, templateId),
+    onSuccess: () => { invalidate(); showToast({ title: t('common.removed'), variant: 'success' }); navigate('/coach/templates'); },
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+  });
   const remove = async () => {
     if (await confirmDialog({ title: t('common.delete'), message: tpl?.name ?? '', danger: true })) del.mutate();
   };
 
   return (
     <>
-      <TopBar testId="coach-template-preview" title={t('workoutTemplate.title')} eyebrow={t('platform.coachPortal')} onBack={() => navigate('/coach/templates')} />
+      <TopBar testId="coach-template-preview" title={t('workoutTemplate.title')} eyebrow={t('platform.coachPortal')} onBack={goBack} />
       {q.isLoading ? (
         <LoadingState variant="cards" count={3} />
       ) : !tpl ? (

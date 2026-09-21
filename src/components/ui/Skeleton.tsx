@@ -1,6 +1,6 @@
 /** Shimmer placeholder block. Honours prefers-reduced-motion. */
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div aria-hidden className={`animate-pulse rounded-md bg-surface-raised motion-reduce:animate-none ${className}`} />;
+  return <div aria-hidden className={`sk rounded-md motion-reduce:animate-none ${className}`} />;
 }
 
 /** A card-shaped skeleton mirroring a MetricCard for KPI grids. */

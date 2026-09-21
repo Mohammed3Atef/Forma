@@ -1,7 +1,9 @@
+import 'dotenv/config'; // loads .env into process.env for `vite dev` itself — the api/ handlers read it the same way they do under Vercel
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
+import { localApiPlugin } from './vite-plugins/localApi';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,9 +13,22 @@ export default defineConfig({
     },
   },
   plugins: [
+    // Registered first (and not returning a function from configureServer)
+    // so its middleware runs before Vite's own SPA history-fallback — otherwise
+    // an unmatched /api/trpc request would fall through to index.html instead.
+    localApiPlugin(),
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (not 'autoUpdate') is what actually makes `virtual:pwa-register`
+      // invoke `onNeedRefresh` in src/main.tsx at all — with 'autoUpdate' the
+      // generated client module takes a completely different branch that
+      // reloads on the SW's "activated" event with NO deferral, silently
+      // bypassing main.tsx's wait-until-backgrounded logic entirely (verified
+      // by reading vite-plugin-pwa's client/build/register.js: the `auto`
+      // branch never calls `onNeedRefresh`). See `workbox.skipWaiting` below —
+      // both settings have to change together for the deferred-reload flow to
+      // actually run instead of just existing as dead code.
+      registerType: 'prompt',
       injectRegister: false, // registered manually in src/main.tsx (with update polling)
       includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg'],
       manifest: {
@@ -52,12 +67,23 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Marketing landing images are web-only (the installed PWA opens straight
         // to /login) — keep them out of the install precache; they're runtime-cached below.
-        globIgnores: ['**/landing_page/**'],
+        // The three.js landing film is lazy-loaded only on the marketing route — never precache it for installs.
+        globIgnores: ['**/landing_page/**', '**/Experience-*.js'],
         navigateFallback: '/index.html',
-        // Take control of open pages immediately and drop old precaches so a new
-        // build replaces the old one without needing a reinstall.
+        // Take control of open pages immediately (once activated) and drop old
+        // precaches so a new build replaces the old one without needing a
+        // reinstall. `skipWaiting: false` is deliberate — it makes workbox
+        // generate the standard `message` listener for an explicit
+        // SKIP_WAITING postMessage instead of calling `self.skipWaiting()`
+        // unconditionally at install time. Without it, a new deployment's SW
+        // would activate (and, combined with clientsClaim, start intercepting
+        // fetches for every open tab) before the running page has reloaded —
+        // exactly the window in which a stale in-memory chunk reference 404s
+        // against the new precache manifest. main.tsx's `updateSW(true)` is
+        // what sends that SKIP_WAITING message, only once the app is actually
+        // ready to reload.
         clientsClaim: true,
-        skipWaiting: true,
+        skipWaiting: false,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {

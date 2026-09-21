@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useRole } from '@/services/auth/permissions';
 import { isBunnyConfigured, listAllImages, type CdnImage } from '@/services/platform/bunnyUploadApi';
 import { fetchByRole } from '@/services/platform/accountsApi';
@@ -44,6 +46,15 @@ export function AdminMedia() {
     return [...m.entries()];
   }, [images.data]);
 
+  // `listAllImages()` itself has no server-side cap (it walks the whole CDN
+  // folder), so the response can already be every progress/assessment photo
+  // ever uploaded platform-wide — rendering all of it in one grid would mount
+  // thousands of `<img>` nodes at once. "Load More" over CLIENT GROUPS (not
+  // individual images) keeps a client's whole photo set together.
+  const GROUP_PAGE = 12;
+  const [visibleGroups, setVisibleGroups] = useState(GROUP_PAGE);
+  const shownGroups = groups.slice(0, visibleGroups);
+
   if (role !== 'super_admin') return <Navigate to="/admin" replace />;
 
   const total = images.data?.length ?? 0;
@@ -53,27 +64,32 @@ export function AdminMedia() {
       <TopBar
         testId="admin-media"
         title={t('adminMedia.title')}
-        eyebrow={t('platform.superAdmin')}
+        eyebrow={t('nav.groupGovern')}
         right={
-          <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('adminMedia.refresh')} onClick={() => void images.refetch()}>
+          <button type="button" className="icon-btn h-11 w-11" aria-label={t('adminMedia.refresh')} onClick={() => void images.refetch()}>
             <Icon name="rotate" size={18} />
           </button>
         }
       />
 
       {!configured ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{t('upload.notConfigured')}</div>
+        <EmptyState icon="info" title={t('upload.notConfigured')} />
       ) : images.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="cards" count={6} />
       ) : images.isError ? (
-        <div className="card py-10 text-center text-sm text-danger">{t('adminMedia.loadFailed')}</div>
+        <EmptyState
+          icon="info"
+          title={t('adminMedia.loadFailed')}
+          message={t('adminMedia.loadFailedMessage')}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={() => void images.refetch()}>{t('common.retry')}</button>}
+        />
       ) : total === 0 ? (
-        <div className="card py-10 text-center text-sm text-earth-muted">{t('adminMedia.empty')}</div>
+        <EmptyState icon="image" title={t('adminMedia.empty')} message={t('adminMedia.emptyMessage')} />
       ) : (
         <>
           <p className="mb-3 text-[13px] text-earth-muted">{t('adminMedia.count', { n: total })}</p>
           <div className="space-y-5">
-            {groups.map(([clientId, imgs]) => (
+            {shownGroups.map(([clientId, imgs]) => (
               <section key={clientId}>
                 <h2 className="h2 mb-2 truncate">{nameOf(clientId)}</h2>
                 <div className="grid grid-cols-3 gap-2">
@@ -89,6 +105,11 @@ export function AdminMedia() {
               </section>
             ))}
           </div>
+          {visibleGroups < groups.length && (
+            <button type="button" className="btn-ghost mx-auto mt-4 block text-[13px]" onClick={() => setVisibleGroups((n) => n + GROUP_PAGE)}>
+              {t('common.loadMore')}
+            </button>
+          )}
         </>
       )}
     </>

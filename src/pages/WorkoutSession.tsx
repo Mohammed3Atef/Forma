@@ -20,10 +20,18 @@ import { formatDuration } from '@/lib/utils';
 import { logVolume, logSetCount, logExerciseCount } from '@/lib/calc';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { HAPTIC, vibrate } from '@/lib/haptics';
+import { confirmDialog } from '@/stores/dialogStore';
+import { useBack } from '@/hooks/useBack';
 
 export function WorkoutSession() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // All four exit paths (minimize, discard, save, and the read-only "Done")
+  // share one target so browser Back always agrees with whichever button was
+  // tapped: prefer wherever the session was actually opened from (Home,
+  // History, RoutineDetail, a notification), falling back to the routines
+  // list only for a direct deep link.
+  const goBack = useBack('/workout');
 
   const plan = useWorkout((s) => s.plan);
   const active = useWorkout((s) => s.active);
@@ -81,6 +89,19 @@ export function WorkoutSession() {
   useEffect(() => {
     setEditMode(false);
   }, [activeId]);
+
+  // Single-exercise stepper: one exercise at a time (matches the design's
+  // session() screen) with an "Up next" preview of what's coming. Resets to
+  // the first exercise on a new session, and clamps if the exercise list
+  // shrinks (e.g. the current one gets removed).
+  const [currentIndex, setCurrentIndex] = useState(0);
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [activeId]);
+  const exerciseCount = active?.exercises.length ?? 0;
+  useEffect(() => {
+    setCurrentIndex((i) => Math.min(i, Math.max(0, exerciseCount - 1)));
+  }, [exerciseCount]);
 
   const totalSets = active?.exercises.reduce((a, e) => a + e.sets.length, 0) ?? 0;
   const doneSets = active?.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0) ?? 0;
@@ -142,7 +163,7 @@ export function WorkoutSession() {
 
   const minimize = () => {
     discardDraft(); // no-op if already started/saved
-    navigate('/workout');
+    goBack();
   };
 
   const handleToggle = (exerciseId: string, setIndex: number) => {
@@ -178,9 +199,16 @@ export function WorkoutSession() {
   };
 
   const doDiscard = async () => {
+    const ok = await confirmDialog({
+      title: t('gt.finishWorkoutQ'),
+      message: t('gt.discardConfirm'),
+      confirmLabel: t('gt.discard'),
+      danger: true,
+    });
+    if (!ok) return;
     setConfirmOpen(false);
     await discardActive();
-    navigate('/');
+    goBack();
   };
 
   // Open the finish sheet, prefilling the duration with the tracked time so the
@@ -194,7 +222,7 @@ export function WorkoutSession() {
   if (summary) {
     return (
       <div className="anim-fade flex min-h-[80vh] flex-col items-center justify-center px-2 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_0_40px_rgba(46,93,60,0.6)]">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success text-white shadow-[0_0_40px_rgba(63,178,127,0.5)]">
           <Icon name="check" size={36} />
         </div>
         <p className="eyebrow mt-7">{t('gt.workoutComplete')}</p>
@@ -207,7 +235,7 @@ export function WorkoutSession() {
           <StatTile icon="bolt" value={summary.sets} label={t('gt.setsDone')} />
           <StatTile icon="list" value={summary.exercises} label={t('gt.exercises')} />
         </div>
-        <button type="button" onClick={() => navigate('/')} className="btn-primary mt-8 w-full max-w-sm">
+        <button type="button" onClick={goBack} className="btn-primary mt-8 w-full max-w-sm">
           {t('common.done')}
         </button>
       </div>
@@ -221,8 +249,8 @@ export function WorkoutSession() {
     let workingNo = 0;
     return (
       <div className="-mx-5 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-black px-5 py-3">
-          <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
+          <button type="button" onClick={minimize} className="icon-btn h-11 w-11" aria-label={t('common.minimize')}>
             <Icon name="chevronDown" size={20} />
           </button>
           <div className="flex flex-col items-center">
@@ -274,7 +302,7 @@ export function WorkoutSession() {
             );
           })}
 
-          <button type="button" onClick={() => navigate('/workout')} className="btn-primary w-full">
+          <button type="button" onClick={goBack} className="btn-primary w-full">
             {t('common.done')}
           </button>
         </div>
@@ -285,8 +313,8 @@ export function WorkoutSession() {
   return (
     <div className="-mx-5 flex min-h-screen flex-col">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-black px-5 py-3">
-        <button type="button" onClick={minimize} className="icon-btn h-[42px] w-[42px]" aria-label="minimize">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-surface px-5 py-3">
+        <button type="button" onClick={minimize} className="icon-btn h-11 w-11" aria-label={t('common.minimize')}>
           <Icon name="chevronDown" size={20} />
         </button>
         <div className="flex flex-col items-center">
@@ -298,19 +326,11 @@ export function WorkoutSession() {
           )}
         </div>
         {recording ? (
-          <button
-            type="button"
-            onClick={openFinish}
-            className="flex h-[42px] items-center rounded-full bg-brand px-5 font-mono text-[12px] font-medium uppercase tracking-[0.04em] text-white transition-transform active:scale-95"
-          >
+          <button type="button" onClick={openFinish} className="btn-primary h-[42px] px-5">
             {t('common.finish')}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={beginTimer}
-            className="flex h-[42px] items-center gap-1.5 rounded-full bg-brand px-5 font-mono text-[12px] font-medium uppercase tracking-[0.04em] text-white transition-transform active:scale-95"
-          >
+          <button type="button" onClick={beginTimer} className="btn-primary h-[42px] px-5">
             <Icon name="play" size={14} /> {t('common.start')}
           </button>
         )}
@@ -346,24 +366,89 @@ export function WorkoutSession() {
           </div>
         )}
 
-        {active.exercises.map((log) => {
+        {(() => {
+          const idx = Math.min(currentIndex, active.exercises.length - 1);
+          const log = active.exercises[idx];
+          if (!log) return null;
           const ex = plan.exercises[log.exerciseId];
           if (!ex) return null;
+          const upNext = active.exercises.slice(idx + 1, idx + 3);
           return (
-            <ExerciseCard
-              key={log.exerciseId}
-              exercise={ex}
-              log={log}
-              prev={previousFor(log.exerciseId)}
-              onUpdateSet={(setIndex, patch) => updateSet(log.exerciseId, setIndex, patch)}
-              onToggleDone={(setIndex) => handleToggle(log.exerciseId, setIndex)}
-              onAddSet={() => addSet(log.exerciseId)}
-              onRemoveSet={(setIndex) => removeSet(log.exerciseId, setIndex)}
-              onVideo={() => openVideo(log.exerciseId)}
-              onRemoveExercise={active.exercises.length > 1 ? () => removeExercise(log.exerciseId) : undefined}
-            />
+            <>
+              <div className="flex items-center justify-between">
+                <p className="ui-label">{t('workout.exerciseOf', { i: idx + 1, n: active.exercises.length })}</p>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => setCurrentIndex(idx - 1)}
+                    className="icon-btn h-8 w-8 disabled:opacity-30"
+                    aria-label={t('common.previous')}
+                  >
+                    <Icon name="chevronLeft" size={16} className="rtl:rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx >= active.exercises.length - 1}
+                    onClick={() => setCurrentIndex(idx + 1)}
+                    className="icon-btn h-8 w-8 disabled:opacity-30"
+                    aria-label={t('common.next')}
+                  >
+                    <Icon name="chevron" size={16} className="rtl:rotate-180" />
+                  </button>
+                </div>
+              </div>
+              <ExerciseCard
+                key={log.exerciseId}
+                exercise={ex}
+                log={log}
+                prev={previousFor(log.exerciseId)}
+                onUpdateSet={(setIndex, patch) => updateSet(log.exerciseId, setIndex, patch)}
+                onToggleDone={(setIndex) => handleToggle(log.exerciseId, setIndex)}
+                onAddSet={() => addSet(log.exerciseId)}
+                onRemoveSet={(setIndex) => removeSet(log.exerciseId, setIndex)}
+                onVideo={() => openVideo(log.exerciseId)}
+                onRemoveExercise={active.exercises.length > 1 ? () => removeExercise(log.exerciseId) : undefined}
+              />
+              {upNext.length > 0 && (
+                <>
+                  <p className="ui-label mb-2 mt-1">{t('workout.upNext')}</p>
+                  <div className="card divide-y divide-line-soft p-0">
+                    {upNext.map((nl, i) => {
+                      const nex = plan.exercises[nl.exerciseId];
+                      if (!nex) return null;
+                      const nPrev = previousFor(nl.exerciseId);
+                      const firstPrev = nPrev?.sets[0];
+                      const prevLabel =
+                        firstPrev && (firstPrev.weightKg != null || firstPrev.actualReps != null)
+                          ? t('workout.lastTime', { weight: firstPrev.weightKg ?? '–', reps: firstPrev.actualReps ?? '–' })
+                          : null;
+                      return (
+                        <button
+                          key={nl.exerciseId}
+                          type="button"
+                          onClick={() => setCurrentIndex(idx + 1 + i)}
+                          className="rowline w-full text-start"
+                        >
+                          <span className="tk-ic" style={{ color: muscleColor(nex.targetMuscle) }}>
+                            <Icon name="dumbbell" size={15} />
+                          </span>
+                          <div className="grow min-w-0">
+                            <p className="h3 truncate">{nex.name}</p>
+                            <p className="bd-s truncate">
+                              {nl.sets.length} × {nl.sets[0]?.targetReps || '–'}
+                              {prevLabel ? ` · ${prevLabel}` : ''}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
           );
-        })}
+        })()}
 
         <button type="button" onClick={() => setPickerOpen(true)} className="btn-ghost w-full">
           <Icon name="plus" size={15} /> {t('gt.addExercise')}

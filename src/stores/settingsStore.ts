@@ -29,7 +29,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
     ]);
     // Backfill fields added after a settings doc was first created.
     const settings = raw ? { ...raw, customMeasurements: raw.customMeasurements ?? [] } : null;
-    if (settings) applyLocale(settings.locale);
+    if (settings) await applyLocale(settings.locale);
     set({ profile, settings, loaded: true });
   },
 
@@ -56,7 +56,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
 
   async setLocale(locale) {
-    applyLocale(locale);
+    await applyLocale(locale);
     await get().updateSettings({ locale });
     await get().updateProfile({ locale });
   },

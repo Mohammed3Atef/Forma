@@ -113,7 +113,12 @@ export const useCloud = create<CloudState>((set, get) => ({
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') void get().syncNow();
     });
-    setInterval(() => void get().syncNow(), 120_000);
+    // Skip the periodic tick while backgrounded — a hidden tab already gets a
+    // sync the moment it regains visibility (above), so polling every 120s
+    // regardless would just burn battery/data for a tab nobody is looking at.
+    setInterval(() => {
+      if (document.visibilityState === 'visible') void get().syncNow();
+    }, 120_000);
   },
 
   async signIn() {

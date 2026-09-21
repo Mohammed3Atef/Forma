@@ -1,16 +1,16 @@
-import crypto from 'node:crypto';
-import jwt from 'jsonwebtoken';
-import type { VercelResponse } from '@vercel/node';
-import { refreshTokensCol } from './mongodb.js';
-import type { AccountStatus, Role } from './types.js';
+import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
+import type { VercelResponse } from "@vercel/node";
+import { refreshTokensCol } from "./mongodb.js";
+import type { AccountStatus, Role } from "./types.js";
 
-const ACCESS_TOKEN_TTL_SEC = 15 * 60; // 15 minutes — kept in memory on the client, never persisted
+const ACCESS_TOKEN_TTL_SEC = 15 * 60; // 15 minutes — kept in memory on the client, never persisted.
 const REFRESH_TOKEN_TTL_SEC = 30 * 24 * 60 * 60; // 30 days — httpOnly cookie, rotated on every use
-const REFRESH_COOKIE_NAME = 'forma_rt';
+const REFRESH_COOKIE_NAME = "forma_rt";
 
 function accessSecret(): string {
   const secret = process.env.JWT_ACCESS_SECRET;
-  if (!secret) throw new Error('JWT_ACCESS_SECRET is not set');
+  if (!secret) throw new Error("JWT_ACCESS_SECRET is not set");
   return secret;
 }
 
@@ -20,14 +20,22 @@ export interface AccessPayload {
   accountStatus: AccountStatus;
 }
 
-const JWT_ALG = 'HS256' as const;
+const JWT_ALG = "HS256" as const;
 
-export function signAccessToken(user: { id: string; role: Role; accountStatus: AccountStatus }): string {
-  return jwt.sign({ role: user.role, accountStatus: user.accountStatus }, accessSecret(), {
-    subject: user.id,
-    expiresIn: ACCESS_TOKEN_TTL_SEC,
-    algorithm: JWT_ALG,
-  });
+export function signAccessToken(user: {
+  id: string;
+  role: Role;
+  accountStatus: AccountStatus;
+}): string {
+  return jwt.sign(
+    { role: user.role, accountStatus: user.accountStatus },
+    accessSecret(),
+    {
+      subject: user.id,
+      expiresIn: ACCESS_TOKEN_TTL_SEC,
+      algorithm: JWT_ALG,
+    },
+  );
 }
 
 export function verifyAccessToken(token: string): AccessPayload {
@@ -35,12 +43,17 @@ export function verifyAccessToken(token: string): AccessPayload {
   // default inference from the secret's type — removes any doubt about alg
   // confusion regardless of library version.
   const decoded = jwt.verify(token, accessSecret(), { algorithms: [JWT_ALG] });
-  if (typeof decoded === 'string' || !decoded.sub) throw new Error('Malformed access token');
-  return { sub: decoded.sub, role: decoded.role as Role, accountStatus: decoded.accountStatus as AccountStatus };
+  if (typeof decoded === "string" || !decoded.sub)
+    throw new Error("Malformed access token");
+  return {
+    sub: decoded.sub,
+    role: decoded.role as Role,
+    accountStatus: decoded.accountStatus as AccountStatus,
+  };
 }
 
 function hashToken(raw: string): string {
-  return crypto.createHash('sha256').update(raw).digest('hex');
+  return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
 /**
@@ -50,10 +63,20 @@ function hashToken(raw: string): string {
  * random token, so this isn't a meaningful security regression (approved as
  * part of the tRPC migration plan).
  */
-function serializeCookie(name: string, value: string, maxAgeSec: number): string {
-  const parts = [`${name}=${value}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', `Max-Age=${maxAgeSec}`];
-  if (process.env.NODE_ENV === 'production') parts.push('Secure');
-  return parts.join('; ');
+function serializeCookie(
+  name: string,
+  value: string,
+  maxAgeSec: number,
+): string {
+  const parts = [
+    `${name}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    `Max-Age=${maxAgeSec}`,
+  ];
+  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  return parts.join("; ");
 }
 
 /** Issues a brand-new access + refresh token pair, storing the refresh token (hashed) in Mongo. */
@@ -62,7 +85,7 @@ export async function issueSession(
   user: { id: string; role: Role; accountStatus: AccountStatus },
 ): Promise<{ accessToken: string }> {
   const accessToken = signAccessToken(user);
-  const raw = crypto.randomBytes(48).toString('hex');
+  const raw = crypto.randomBytes(48).toString("hex");
   const col = await refreshTokensCol();
   await col.insertOne({
     _id: hashToken(raw),
@@ -71,7 +94,10 @@ export async function issueSession(
     expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SEC * 1000),
     revoked: false,
   });
-  res.setHeader('Set-Cookie', serializeCookie(REFRESH_COOKIE_NAME, raw, REFRESH_TOKEN_TTL_SEC));
+  res.setHeader(
+    "Set-Cookie",
+    serializeCookie(REFRESH_COOKIE_NAME, raw, REFRESH_TOKEN_TTL_SEC),
+  );
   return { accessToken };
 }
 
@@ -82,7 +108,10 @@ export async function rotateSession(
   user: { id: string; role: Role; accountStatus: AccountStatus },
 ): Promise<{ accessToken: string }> {
   const col = await refreshTokensCol();
-  await col.updateOne({ _id: hashToken(rawOldToken) }, { $set: { revoked: true } });
+  await col.updateOne(
+    { _id: hashToken(rawOldToken) },
+    { $set: { revoked: true } },
+  );
   return issueSession(res, user);
 }
 
@@ -95,7 +124,10 @@ export async function findValidRefreshToken(rawToken: string) {
 
 export async function revokeRefreshToken(rawToken: string): Promise<void> {
   const col = await refreshTokensCol();
-  await col.updateOne({ _id: hashToken(rawToken) }, { $set: { revoked: true } });
+  await col.updateOne(
+    { _id: hashToken(rawToken) },
+    { $set: { revoked: true } },
+  );
 }
 
 /** Revokes every session for a user — called on password change/reset. */
@@ -105,10 +137,12 @@ export async function revokeAllUserSessions(userId: string): Promise<void> {
 }
 
 export function clearRefreshCookie(res: VercelResponse): void {
-  res.setHeader('Set-Cookie', serializeCookie(REFRESH_COOKIE_NAME, '', 0));
+  res.setHeader("Set-Cookie", serializeCookie(REFRESH_COOKIE_NAME, "", 0));
 }
 
-export function readRefreshCookie(cookies: Partial<Record<string, string>> | undefined): string | null {
+export function readRefreshCookie(
+  cookies: Partial<Record<string, string>> | undefined,
+): string | null {
   return cookies?.[REFRESH_COOKIE_NAME] ?? null;
 }
 
@@ -117,5 +151,5 @@ export function hashRawToken(raw: string): string {
 }
 
 export function generateRawToken(bytes = 32): string {
-  return crypto.randomBytes(bytes).toString('hex');
+  return crypto.randomBytes(bytes).toString("hex");
 }

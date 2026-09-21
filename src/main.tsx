@@ -5,6 +5,7 @@ import { registerSW } from 'virtual:pwa-register';
 import './i18n';
 import './index.css';
 import { App } from './App';
+import { CHUNK_RELOAD_GUARD_KEY, ErrorBoundary } from './components/ErrorBoundary';
 
 /**
  * Service worker registration with automatic updates. Installed PWAs otherwise
@@ -45,8 +46,22 @@ const updateSW = registerSW({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );
+
+// The render above didn't throw synchronously — clear the stale-chunk reload
+// guard shortly after so a LATER deploy's stale-chunk error (same tab, still
+// open hours/days from now) also gets its one automatic recovery reload,
+// instead of being silently suppressed by a guard flag from a past incident.
+setTimeout(() => {
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_GUARD_KEY);
+  } catch {
+    /* ignore */
+  }
+}, 10_000);

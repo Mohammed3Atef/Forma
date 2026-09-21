@@ -49,6 +49,13 @@ export const mongoAuth = {
     return body.user as MongoUserRecord;
   },
 
+  /** Sign in with a verified Google ID token. Fails for a Google email with no matching Forma account. */
+  async signInWithGoogle(idToken: string): Promise<MongoUserRecord> {
+    const body = await trpc.auth.googleSignIn.mutate({ idToken });
+    setAccessToken(body.accessToken);
+    return body.user as MongoUserRecord;
+  },
+
   async signOutUser(): Promise<void> {
     await trpc.auth.logout.mutate().catch(() => undefined);
     setAccessToken(null);

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { VideoAsset, VideoStatus } from '@/types';
 import { useVideos } from '@/stores/videoStore';
@@ -8,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TopBar } from '@/components/TopBar';
 import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
+import { useBack } from '@/hooks/useBack';
 
 const STATUS_LABEL: Record<VideoStatus, string> = {
   'link-pending': 'video.linkPending',
@@ -35,7 +35,7 @@ export function VideoManager() {
   const remove = useVideos((s) => s.remove);
   const setUrl = useVideos((s) => s.setUrl);
   const plan = useWorkout((s) => s.plan);
-  const navigate = useNavigate();
+  const goBack = useBack('/settings?tab=preferences');
 
   const downloadable = assets.filter((a) => a.kind === 'file');
   const downloadedCount = assets.filter((a) => a.status === 'downloaded').length;
@@ -54,13 +54,13 @@ export function VideoManager() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('video.title')} eyebrow={t('settings.videos')} onBack={() => navigate('/settings')} />
+      <TopBar title={t('video.title')} eyebrow={t('settings.videos')} onBack={goBack} />
 
       {downloadable.length > 0 && (
         <div className="card flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">{t('video.offlineSaved', { done: downloadedCount, total: downloadable.length })}</p>
-            <p className="text-xs text-slate-400">{t('video.offlineHint')}</p>
+            <p className="text-xs text-earth-muted">{t('video.offlineHint')}</p>
           </div>
           <button
             type="button"
@@ -86,7 +86,7 @@ export function VideoManager() {
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <button type="button" onClick={() => setPlaying(a)} className="icon-btn h-9 w-9" aria-label="play">
+              <button type="button" onClick={() => setPlaying(a)} className="icon-btn h-9 w-9" aria-label={t('common.play')}>
                 <Icon name="play" size={16} />
               </button>
               <button
@@ -120,7 +120,7 @@ export function VideoManager() {
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('video.setUrl')}>
         <div className="space-y-3">
           <input className="input" placeholder="https://…/video.mp4" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} />
-          <p className="text-xs text-slate-500">{t('video.fallback')}</p>
+          <p className="text-xs text-earth-subtle">{t('video.fallback')}</p>
           <button type="button" onClick={() => void saveUrl()} className="btn-primary w-full">{t('common.save')}</button>
         </div>
       </Sheet>

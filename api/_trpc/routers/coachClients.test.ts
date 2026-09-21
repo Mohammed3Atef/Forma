@@ -6,6 +6,7 @@ import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachPlanDoc } from '../../coach-plans/_data.js';
+import type { ClientProfileDoc } from '../../client/_lib/types.js';
 
 let mongod: MongoMemoryServer;
 
@@ -110,6 +111,88 @@ describe('coachClients router', () => {
 
     // "my own" list, no filter
     expect(await asCoach.coachClients.list({})).toHaveLength(1);
+  });
+
+  it('listMyClientUsers joins user profiles onto the roster in one call, newest-assigned first, and enforces the same access as list', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
+    const unrelatedClient = await insertUser({ _id: 'client-unrelated', role: 'client' });
+    const clientA = await insertUser({ _id: 'client-a', role: 'client', displayName: 'Client A' });
+    const clientB = await insertUser({ _id: 'client-b', role: 'client', displayName: 'Client B' });
+    await givePlan(coachDoc._id);
+    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    await asCoach.coachClients.assign({ clientId: clientA._id, subscription: { status: 'trial', trialDays: 14 } });
+    await asCoach.coachClients.assign({ clientId: clientB._id, subscription: { status: 'trial', trialDays: 14 } });
+
+    const mine = await asCoach.coachClients.listMyClientUsers({});
+    expect(mine.map((u) => u.id)).toEqual([clientB._id, clientA._id]); // newest-assigned first
+    expect(mine.every((u) => !('passwordHash' in u))).toBe(true); // never leaks the hash
+
+    // Another coach with users.read can view via the explicit coachId param.
+    const asOtherCoach = appRouter.createCaller(ctxFor(authedUser(otherCoach)));
+    expect(await asOtherCoach.coachClients.listMyClientUsers({ coachId: coachDoc._id })).toHaveLength(2);
+
+    // A plain client has no users.read and isn't the coach — forbidden.
+    const asUnrelatedClient = appRouter.createCaller(ctxFor(authedUser(unrelatedClient)));
+    await expect(asUnrelatedClient.coachClients.listMyClientUsers({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    // Ending a relationship drops that client from the roster.
+    await asCoach.coachClients.end({ id: `${coachDoc._id}__${clientA._id}`, reason: 'released' });
+    expect((await asCoach.coachClients.listMyClientUsers({})).map((u) => u.id)).toEqual([clientB._id]);
+  });
+
+  it('dashboardSummaries computes workouts7d/lastActivity/assessment/toReview for every active client in a handful of bounded queries — the coach dashboard N+1 fix', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const clientA = await insertUser({ _id: 'client-a', role: 'client' });
+    const clientB = await insertUser({ _id: 'client-b', role: 'client' });
+    const unrelatedClient = await insertUser({ _id: 'client-unrelated', role: 'client' });
+    await givePlan(coachDoc._id, 10);
+    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    await asCoach.coachClients.assign({ clientId: clientA._id, subscription: { status: 'trial', trialDays: 14 } });
+    await asCoach.coachClients.assign({ clientId: clientB._id, subscription: { status: 'trial', trialDays: 14 } });
+
+    const asClientA = appRouter.createCaller(ctxFor(authedUser(clientA)));
+    const asClientB = appRouter.createCaller(ctxFor(authedUser(clientB)));
+    const today = new Date().toISOString().slice(0, 10);
+    const eightDaysAgo = new Date(Date.now() - 8 * 86_400_000).toISOString().slice(0, 10);
+
+    // client A: one finished workout today (within the 7d window), one
+    // finished 8 days ago (outside it — must not count), one UNFINISHED
+    // workout today (must not count as an activity either).
+    await asClientA.sync.push({
+      collection: 'workoutLogs',
+      records: [
+        { id: today, updatedAt: Date.now(), data: { date: today, finished: true } },
+        { id: eightDaysAgo, updatedAt: Date.now(), data: { date: eightDaysAgo, finished: true } },
+      ],
+    });
+    await asClientA.sync.push({
+      collection: 'workoutLogs',
+      records: [{ id: `${today}-b`, updatedAt: Date.now(), data: { date: today, finished: false } }],
+    });
+
+    const db = await getDb();
+    await db.collection<ClientProfileDoc>('clientProfiles').insertOne({
+      _id: clientA._id,
+      clientId: clientA._id,
+      assessment: { basic: { fullName: 'Alex Assessment' }, status: 'submitted', updatedAt: Date.now() },
+      updatedAt: Date.now(),
+    });
+
+    // client B: no workout logs, no assessment, one submitted check-in awaiting review.
+    await asCoach.checkIns.request({ clientId: clientB._id, weekStart: '2026-09-01', weekEnd: '2026-09-07' });
+    await asClientB.checkIns.submit({ clientId: clientB._id, weekStart: '2026-09-01', currentWeight: 70 });
+
+    const summaries = await asCoach.coachClients.dashboardSummaries({});
+    const byClient = new Map(summaries.map((s) => [s.clientId, s]));
+
+    expect(byClient.size).toBe(2); // never the unrelated client
+    expect(byClient.get(clientA._id)).toMatchObject({ workouts7d: 1, lastActivity: today, assessment: 'submitted', fullName: 'Alex Assessment', toReview: false });
+    expect(byClient.get(clientB._id)).toMatchObject({ workouts7d: 0, lastActivity: null, assessment: 'not_started', fullName: null, toReview: true });
+
+    // Same authorization as listMyClientUsers: a plain unrelated client is forbidden.
+    const asUnrelatedClient = appRouter.createCaller(ctxFor(authedUser(unrelatedClient)));
+    await expect(asUnrelatedClient.coachClients.dashboardSummaries({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('list/get work for a suspended coach, but assign still requires an active account — matches the old REST index.ts/detail.ts (bare requireUser on GET, requireActive right before any mutation)', async () => {
@@ -285,5 +368,36 @@ describe('transfers router', () => {
     });
     const cancelled = await asCoachB.transfers.resolve({ id: `${coachB._id}__${clientDoc._id}`, action: 'cancel' });
     expect(cancelled.status).toBe('cancelled');
+  });
+
+  it('accepting a fresh_start request requires clients.writeAll — the requesting/current coach cannot complete it themselves, only a super admin can', async () => {
+    const coachA = await insertUser({ _id: 'coach-a', role: 'coach' });
+    const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
+    const superAdmin = await insertUser({ _id: 'super-admin-1', role: 'super_admin' });
+    const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
+    await givePlan(coachA._id);
+    await givePlan(coachB._id);
+    const asCoachA = appRouter.createCaller(ctxFor(authedUser(coachA)));
+    await asCoachA.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
+
+    const asCoachB = appRouter.createCaller(ctxFor(authedUser(coachB)));
+    // The REQUESTING coach (coachB) sets `mode: 'fresh_start'` at request time —
+    // this alone must not be enough to let the current coach (coachA), who has
+    // no `clients.writeAll`, complete a fresh-start transfer just by accepting.
+    await asCoachB.transfers.create({ clientId: clientDoc._id, fromCoachId: coachA._id, reason: 'test', mode: 'fresh_start', subscriptionHandling: 'keep' });
+
+    await expect(asCoachA.transfers.resolve({ id: `${coachB._id}__${clientDoc._id}`, action: 'accept' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    // The request is still pending — rejection of the fresh-start gate must not
+    // silently mark it resolved.
+    const stillPending = await asCoachA.transfers.list({ type: 'incoming' });
+    expect(stillPending).toHaveLength(1);
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(authedUser(superAdmin)));
+    const resolved = await asSuperAdmin.transfers.resolve({ id: `${coachB._id}__${clientDoc._id}`, action: 'accept' });
+    expect(resolved.status).toBe('accepted');
+    const rel = await asCoachB.coachClients.get({ id: `${coachB._id}__${clientDoc._id}` });
+    expect(rel.coachId).toBe(coachB._id);
   });
 });

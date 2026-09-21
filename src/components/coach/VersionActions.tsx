@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Sheet } from "@/components/Sheet";
 import { Icon } from "@/components/Icon";
 import { TextInput } from "@/components/ui/Field";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { showToast } from "@/stores/toastStore";
 import { saveAsNewVersion } from "@/services/platform/planVersionsApi";
 import type {
   CardioPlan,
@@ -47,7 +49,10 @@ export function VersionActions({
       void qc.invalidateQueries({ queryKey: ["planVersions", clientId, kind] });
       void qc.invalidateQueries({ queryKey: [PLAN_QUERY_KEY[kind], clientId] });
       setOpen(false);
-      navigate(`/coach/client/${clientId}`);
+      setReason("");
+      showToast({ title: t("planVersions.versionSaved"), variant: "success" });
+      // Stays on the editor (this used to navigate away) — saving a version
+      // also updates the live plan, but the coach may still be mid-edit.
     },
   });
 
@@ -92,15 +97,15 @@ export function VersionActions({
               {(save.error as Error)?.message}
             </p>
           )}
-          <button
+          <SubmitButton
             type="button"
             data-testid="version-save-confirm"
-            className="btn-primary w-full disabled:opacity-40"
-            disabled={save.isPending}
+            fullWidth
+            pending={save.isPending}
             onClick={() => save.mutate()}
           >
             {t("planVersions.saveAsVersion")}
-          </button>
+          </SubmitButton>
         </div>
       </Sheet>
     </div>

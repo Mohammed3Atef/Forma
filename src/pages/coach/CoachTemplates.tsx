@@ -15,7 +15,7 @@ import { useSelection } from '@/hooks/useSelection';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSession } from '@/services/auth/sessionStore';
 import { bulkDeleteWorkoutTemplates, listWorkoutTemplates } from '@/services/platform/coachAssetsApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 
 /** Coach workout templates: a grid of cards; clicking one opens its read-only preview. */
 export function CoachTemplates() {
@@ -25,20 +25,22 @@ export function CoachTemplates() {
   const qc = useQueryClient();
   const coachId = useSession((s) => s.account?.id ?? '');
   const [goalFilter, setGoalFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   const templates = useQuery({ queryKey: ['workoutTemplates', coachId], queryFn: () => listWorkoutTemplates(coachId), enabled: !!coachId });
 
   const goals = useMemo(() => ['all', ...Array.from(new Set((templates.data ?? []).map((t2) => t2.goal)))], [templates.data]);
-  const filtered = useMemo(
-    () => (templates.data ?? []).filter((tpl) => goalFilter === 'all' || tpl.goal === goalFilter),
-    [templates.data, goalFilter],
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (templates.data ?? []).filter((tpl) => (goalFilter === 'all' || tpl.goal === goalFilter) && (!q || (tpl.name || '').toLowerCase().includes(q)));
+  }, [templates.data, goalFilter, search]);
 
   const sel = useSelection();
-  const pg = usePagination(filtered, 24, goalFilter);
+  const pg = usePagination(filtered, 24, `${goalFilter}:${search}`);
   const bulkDel = useMutation({
     mutationFn: (ids: string[]) => bulkDeleteWorkoutTemplates(coachId, ids),
     onSuccess: () => { sel.clear(); void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] }); },
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const runBulkDelete = async () => {
     if (sel.count === 0) return;
@@ -50,9 +52,9 @@ export function CoachTemplates() {
       <TopBar
         testId="coach-templates"
         title={t('workoutTemplate.title')}
-        eyebrow={t('platform.coachPortal')}
+        eyebrow={t('nav.groupContent')}
         right={
-          <button type="button" className="icon-btn h-[42px] w-[42px]" aria-label={t('workoutTemplate.new')} data-testid="template-new" onClick={() => navigate('/coach/templates/new')}>
+          <button type="button" className="icon-btn h-11 w-11" aria-label={t('workoutTemplate.new')} data-testid="template-new" onClick={() => navigate('/coach/templates/new')}>
             <Icon name="plus" size={20} />
           </button>
         }
@@ -64,6 +66,12 @@ export function CoachTemplates() {
         <EmptyState icon="list" tone="brand" title={t('starter.emptyTitle')} message={t('starter.emptyHint')} action={<LoadStarterLibraryButton />} />
       ) : (
         <>
+          <div className="relative mb-3">
+            <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
+              <Icon name="search" size={18} />
+            </span>
+            <input className="input ps-10" data-testid="template-search" placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <div className="mb-4 flex flex-wrap gap-2">
             {goals.map((g) => (
               <button key={g} type="button" onClick={() => setGoalFilter(g)} className={`chip text-[11px] ${goalFilter === g ? 'chip-on' : ''}`}>
@@ -72,6 +80,13 @@ export function CoachTemplates() {
             ))}
           </div>
 
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon="search"
+              title={t('coachLib.noResults')}
+              action={<button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setGoalFilter('all'); }}>{t('common.clearFilters')}</button>}
+            />
+          ) : (
           <div data-testid="coach-desktop-templates" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {pg.pageItems.map((tpl) => (
               <div key={tpl.id} className={`relative rounded-xl ${sel.has(tpl.id) ? 'ring-2 ring-brand' : ''}`} data-testid="template-card">
@@ -85,6 +100,7 @@ export function CoachTemplates() {
               </div>
             ))}
           </div>
+          )}
 
           <Pagination page={pg.page} totalPages={pg.totalPages} from={pg.from} to={pg.to} total={pg.total} canPrev={pg.canPrev} canNext={pg.canNext} onPrev={pg.prev} onNext={pg.next} />
           <BulkActionBar count={sel.count} onClear={sel.clear}>

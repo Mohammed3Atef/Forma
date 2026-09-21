@@ -1,10 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { Context } from '../context.js';
 import { getDb, usersCol } from '../../_lib/mongodb.js';
 import type { AuthedUser } from '../context.js';
+
+// verifyGoogleIdToken talks to Google's own servers — mocked here so the
+// googleSignIn tests below exercise this app's login/no-auto-create logic
+// without needing a real Google ID token.
+vi.mock('../../_lib/google.js', () => ({ verifyGoogleIdToken: vi.fn() }));
+import { verifyGoogleIdToken } from '../../_lib/google.js';
 
 let mongod: MongoMemoryServer;
 
@@ -171,5 +177,31 @@ describe('auth module', () => {
     await expect(
       appRouter.createCaller(ctxAnon().ctx).auth.confirmPasswordReset({ token: 'not-a-real-token', newPassword: 'brandnewpassword1' }),
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
+  it('Google sign-in: logs in an existing account by verified email, but never auto-creates one for an unknown email', async () => {
+    await appRouter.createCaller(ctxAnon().ctx).auth.signup({
+      email: 'googleuser@example.com',
+      password: 'password123',
+      displayName: 'Google User',
+      role: 'coach',
+    });
+
+    vi.mocked(verifyGoogleIdToken).mockResolvedValueOnce({ email: 'googleuser@example.com', emailVerified: true });
+    const loginCtx = ctxAnon();
+    const signedIn = await appRouter.createCaller(loginCtx.ctx).auth.googleSignIn({ idToken: 'fake-valid-token' });
+    expect(signedIn.user.email).toBe('googleuser@example.com');
+    expect(signedIn.accessToken).toBeTruthy();
+    expect(rawTokenFromCookie(loginCtx.lastSetCookie())).toBeTruthy();
+
+    vi.mocked(verifyGoogleIdToken).mockResolvedValueOnce({ email: 'nobody-yet@example.com', emailVerified: true });
+    await expect(
+      appRouter.createCaller(ctxAnon().ctx).auth.googleSignIn({ idToken: 'fake-valid-token-2' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    vi.mocked(verifyGoogleIdToken).mockRejectedValueOnce(new Error('invalid token'));
+    await expect(
+      appRouter.createCaller(ctxAnon().ctx).auth.googleSignIn({ idToken: 'garbage' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
   });
 });

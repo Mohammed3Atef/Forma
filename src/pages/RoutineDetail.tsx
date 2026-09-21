@@ -6,6 +6,8 @@ import { Icon } from "@/components/Icon";
 import { TopBar } from "@/components/TopBar";
 import { StatTile } from "@/components/StatTile";
 import { EntityNotes } from "@/components/EntityNotes";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useBack } from "@/hooks/useBack";
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import type { Exercise, WorkoutDay, WorkoutSection } from "@/types";
 
@@ -22,12 +24,19 @@ export function RoutineDetail() {
   const plan = useWorkout((s) => s.plan);
   const startSession = useWorkout((s) => s.startSession);
   const { readOnly, status } = useSubscription();
+  const goBack = useBack("/workout");
 
   const day = plan?.days.find((d) => d.id === dayId);
   if (!plan || !day) {
     return (
-      <div className="pt-10 text-center">
-        <p className="text-earth-muted">{t("progress.noData")}</p>
+      <div className="anim-rise">
+        <TopBar title={t("workout.session")} onBack={goBack} />
+        <EmptyState
+          icon="dumbbell"
+          title={t("routineDetail.notFoundTitle")}
+          message={t("routineDetail.notFoundMessage")}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={goBack}>{t("common.back")}</button>}
+        />
       </div>
     );
   }
@@ -56,18 +65,23 @@ export function RoutineDetail() {
         onClick={() => navigate(`/workout/exercise/${id}`)}
         className="row w-full text-start"
       >
-        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} />
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line"
+          style={{ background: `linear-gradient(150deg, ${muscleColor(ex.targetMuscle)}26, transparent)` }}
+        >
+          <Icon name="dumbbell" size={17} style={{ color: muscleColor(ex.targetMuscle) }} />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] text-earth-muted">
             <span>{muscleLabel(ex.targetMuscle, t)}</span>
             {warm > 0 && (
-              <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[10px] text-warn">
+              <span className="pill pill-warn">
                 {warm} {t("workout.warmup")}
               </span>
             )}
             {ex.workingSets > 0 && (
-              <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] text-brand">
+              <span className="pill pill-brand">
                 {ex.workingSets} {t("workout.working")} × {ex.repRange && ex.repRange !== "-" ? ex.repRange : "—"}
               </span>
             )}
@@ -87,7 +101,7 @@ export function RoutineDetail() {
 
   return (
     <div className="anim-rise pb-28">
-      <TopBar title={day.title} eyebrow={day.focus} onBack={() => navigate("/workout")} />
+      <TopBar title={day.title} eyebrow={day.focus} onBack={goBack} />
 
       <div className="grid grid-cols-2 gap-3">
         <StatTile icon="list" value={day.exerciseIds.length} label={t("gt.exercises")} />
@@ -103,20 +117,20 @@ export function RoutineDetail() {
                   {section.title || t(`coachEditor.sectionKinds.${section.kind}`)}
                 </h2>
                 {section.kind !== "normal" && (
-                  <span className="rounded-full border border-line bg-surface-raised px-2 py-0.5 font-mono text-[10px] uppercase text-earth-subtle">
+                  <span className="pill pill-mute">
                     {t(`coachEditor.sectionKinds.${section.kind}`)}
                   </span>
                 )}
               </div>
             )}
-            <div>{section.exerciseIds.map(renderExercise)}</div>
+            <div className="card py-1">{section.exerciseIds.map(renderExercise)}</div>
           </div>
         ))}
         <EntityNotes screen="workout" entityType="workout_day" entityId={day.id} />
       </div>
 
       {/* Fixed start button with gradient fade */}
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-black from-60% to-transparent px-5 pb-[75px] pt-8">
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-surface from-60% to-transparent px-5 pb-[75px] pt-8">
         <button type="button" onClick={() => void start()} disabled={readOnly} className="btn-primary w-full disabled:opacity-40">
           <Icon name="play" size={15} /> {readOnly ? t(`subscription.status.${status}`) : t("gt.startThisWorkout")}
         </button>

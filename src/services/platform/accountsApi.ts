@@ -1,6 +1,28 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
 import type { AccountStatus, Permission, Role, UserRecord } from '@/types';
 
+/**
+ * Admin "list users" query-key ownership (performance-closeout decision — see
+ * chat report): there are 4 distinct query-key families across the admin
+ * pages that all ultimately read account data, and they are legitimately
+ * DIFFERENT projections/consumers, not duplicate representations of the same
+ * fetch:
+ *  - `['users', filterKey]` (this file's `fetchUsersPage` → `adminUsers.list`,
+ *    `AdminAccounts.tsx`) — server-paginated account management, any role.
+ *  - `['usersByRole', role]` (this file's `fetchByRole` → `adminUsers.byRole`,
+ *    `AdminAssignments.tsx`/`AdminMedia.tsx`) — a full, un-paginated,
+ *    role-scoped list for local pickers/lookups.
+ *  - `['coachAdmin', search?]` (`fetchCoachAdmin`, `AdminCoaches.tsx` +
+ *    friends) — a coach-only projection joined with plan/capacity.
+ *  - `['adminMembers', search]` (`fetchMembers`, `AdminMembers.tsx`) — a
+ *    client-only projection joined with subscription/engagement.
+ * Because these are separate representations, an account-status/role change
+ * in one place must invalidate the OTHER families too if that account could
+ * be cached there (see `AdminAccounts.tsx`'s `refresh()` and
+ * `AdminCoachDetail.tsx`'s `acct` mutation) — do not add a 5th list just to
+ * avoid that cross-invalidation.
+ */
+
 /** Params for `createUser` — an admin/coach provisioning a new account server-side. */
 export interface CreateAccountParams {
   email: string;
@@ -20,12 +42,16 @@ export interface UserPage {
   cursor: string | null;
 }
 
-/**
- * One page of accounts, newest first. Role/status/text filtering is applied
- * client-side over the loaded pages, matching the pre-migration behavior.
- */
-export async function fetchUsersPage(pageSize = 25, after?: string | null): Promise<UserPage> {
-  return trpc.adminUsers.list.query({ pageSize, cursor: after ?? undefined }) as Promise<UserPage>;
+export interface UsersPageFilter {
+  role?: Role;
+  status?: AccountStatus;
+  /** Case-insensitive substring match on name/email/phone. */
+  search?: string;
+}
+
+/** One page of accounts, newest first. Role/status/search filtering is applied server-side across the whole collection, not just the pages already loaded. */
+export async function fetchUsersPage(pageSize = 25, after?: string | null, filter?: UsersPageFilter): Promise<UserPage> {
+  return trpc.adminUsers.list.query({ pageSize, cursor: after ?? undefined, ...filter }) as Promise<UserPage>;
 }
 
 export async function fetchUser(uid: string): Promise<UserRecord | null> {

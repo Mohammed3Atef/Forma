@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TagInput } from '@/components/TagInput';
 import { TextAreaField, TextInput } from '@/components/ui/Field';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { Icon } from '@/components/Icon';
 import { EXERCISE_PRESETS } from '@/lib/workoutPresets';
 import { parseDecimal } from '@/lib/utils';
+import { isBunnyConfigured, uploadFileToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
+import { alertDialog } from '@/stores/dialogStore';
 import type { Exercise } from '@/types';
 
 /**
@@ -16,13 +20,21 @@ export function ExerciseForm({
   onSave,
   saveLabel,
   extra,
+  pending = false,
+  coachId,
 }: {
   initial: Exercise;
   onSave: (ex: Exercise) => void;
   saveLabel?: string;
   extra?: React.ReactNode;
+  /** Mutation-in-flight state from the caller — this form has no mutation of its own. */
+  pending?: boolean;
+  /** When provided (and Bunny is configured), shows an "Upload video" button next to the URL field. */
+  coachId?: string;
 }) {
   const { t } = useTranslation();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [f, setF] = useState({
     name: initial.name,
     targetMuscle: initial.targetMuscle,
@@ -43,6 +55,21 @@ export function ExerciseForm({
   const dec = (s: string) => Math.max(0, parseDecimal(s));
   const applyPreset = (p: (typeof EXERCISE_PRESETS)[number]) =>
     setF((cur) => ({ ...cur, warmupSets: String(p.warmupSetCount), workingSets: String(p.workingSets), repRange: p.repRange, restSec: String(p.restSec) }));
+
+  const canUpload = !!coachId && isBunnyConfigured();
+  const onPickVideo = async (file: File | undefined) => {
+    if (!file || !coachId) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadFileToBunny(file, { folder: `Forma/${coachId}/exercises` });
+      setF((cur) => ({ ...cur, videoUrl: url }));
+    } catch (e) {
+      await alertDialog({ title: t('coachEditor.videoUrl'), message: t(`upload.${e instanceof UploadError ? e.code : 'failed'}`) });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   const save = () => {
     const warmupSetCount = int(f.warmupSets);
@@ -104,7 +131,18 @@ export function ExerciseForm({
       </div>
       <p className="text-[12px] text-earth-subtle">{t('coachEditor.setsHint')}</p>
 
-      <TextInput label={t('field.videoUrl')} data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
+      <div>
+        <TextInput label={t('field.videoUrl')} data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
+        {canUpload && (
+          <>
+            <button type="button" className="chip mt-1.5 flex items-center gap-1.5" data-testid="ex-video-upload" disabled={uploading} onClick={() => fileRef.current?.click()}>
+              {uploading ? <Icon name="rotate" size={14} className="animate-spin" /> : <Icon name="video" size={14} />}
+              {uploading ? t('upload.uploading') : t('coachEditor.uploadVideo')}
+            </button>
+            <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => void onPickVideo(e.target.files?.[0])} />
+          </>
+        )}
+      </div>
       <TextAreaField label={t('field.notes')} className="min-h-20" data-testid="ex-notes" placeholder={t('coachEditor.instructions')} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
       <TextAreaField label={t('coachEditor.progression')} className="min-h-16" value={f.progressionNotes} onChange={(e) => setF({ ...f, progressionNotes: e.target.value })} />
       <div>
@@ -114,9 +152,9 @@ export function ExerciseForm({
 
       {extra}
 
-      <button type="button" data-testid="ex-save" disabled={!f.name.trim()} onClick={save} className="btn-primary w-full disabled:opacity-40">
+      <SubmitButton type="button" data-testid="ex-save" disabled={!f.name.trim()} pending={pending} onClick={save} fullWidth>
         {saveLabel ?? t('common.save')}
-      </button>
+      </SubmitButton>
     </div>
   );
 }

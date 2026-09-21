@@ -14,7 +14,8 @@ import { setSubscriptionReadOnly } from '@/stores/subscriptionGate';
 export function useSubscription() {
   const uid = useSession((s) => s.uid);
   const coachId = useSession((s) => s.account?.assignedCoachId);
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user' && !!coachId;
+  const hasCoach = !!coachId;
+  const enabled = cloudAvailable() && !!uid && uid !== 'local-user' && hasCoach;
   const q = useQuery({
     queryKey: ['mySubscription', uid],
     queryFn: () => fetchMyRelationship(coachId!, uid!),
@@ -23,7 +24,10 @@ export function useSubscription() {
   const sub = q.data?.subscription ?? null;
   const history = q.data?.subscriptionHistory ?? [];
   const status = effectiveSubscriptionStatus(sub);
-  const access = subscriptionAccess(status);
+  // A client with no coach at all has nothing to gate against — the app's own
+  // per-page empty states (WaitingForCoach, etc.) already handle "no plan yet"
+  // gracefully. Only gate when there IS a coach but no subscription is set.
+  const access = hasCoach ? subscriptionAccess(status) : 'full';
   const readOnly = access === 'readonly';
 
   // Mirror into the synchronous gate so data stores can block plan logging.
@@ -36,6 +40,7 @@ export function useSubscription() {
     history,
     status,
     access,
+    hasCoach,
     limited: access === 'limited',
     loading: enabled && q.isLoading,
     /** expired/cancelled/frozen/ended -> coach plans are view-only. */

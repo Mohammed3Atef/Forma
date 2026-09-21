@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
 import { passwordError } from '@/lib/password';
 import { alertDialog } from '@/stores/dialogStore';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { TextInput } from '@/components/ui/Field';
 
 /**
  * Full-screen sign-in / sign-up for platform accounts. Sign-up requires a phone
@@ -18,6 +20,7 @@ const SIGNUP_ROLES: readonly ('client' | 'coach')[] = ['coach'];
 export function Login() {
   const { t } = useTranslation();
   const signIn = useSession((s) => s.signIn);
+  const signInWithGoogle = useSession((s) => s.signInWithGoogle);
   const resetPassword = useSession((s) => s.resetPassword);
   const error = useSession((s) => s.error);
   const [params] = useSearchParams();
@@ -50,6 +53,16 @@ export function Login() {
     }
   };
 
+  const onGoogleCredential = async (idToken: string) => {
+    setLocalError(null);
+    setBusy(true);
+    try {
+      await signInWithGoogle(idToken);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const forgot = async () => {
     const email = creds.email.trim();
     if (!email) { setLocalError(t('auth.enterEmailFirst')); return; }
@@ -68,7 +81,7 @@ export function Login() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-56 max-w-[64%] rounded-2xl" />
+        <img src="/Forma-logo.png" alt="Forma" width={1536} height={1024} className="mx-auto w-56 max-w-[64%] rounded-2xl" />
         <h1 className="h1">{t(mode === 'signup' ? 'auth.createAccount' : 'auth.welcomeBack')}</h1>
         <p className="text-sm text-earth-muted">{t('auth.intro')}</p>
 
@@ -90,18 +103,58 @@ export function Login() {
             </div>
           )}
           {mode === 'signup' && <p className="text-[12px] text-earth-subtle">{t(`auth.roleHint.${signupRole}`)}</p>}
-          <input className="input" type="email" autoComplete="email" data-testid="login-email" placeholder={t('settings.email')} value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} />
+          <TextInput
+            label={t('settings.email')}
+            srOnlyLabel
+            type="email"
+            autoComplete="email"
+            data-testid="login-email"
+            placeholder={t('settings.email')}
+            value={creds.email}
+            onChange={(e) => setCreds({ ...creds, email: e.target.value })}
+            aria-describedby={(localError || error) ? 'login-error' : undefined}
+          />
           {mode === 'signup' && (
-            <input className="input" type="tel" autoComplete="tel" inputMode="tel" dir="ltr" data-testid="login-phone" placeholder={t('settings.phone')} value={creds.phone} onChange={(e) => setCreds({ ...creds, phone: e.target.value })} />
+            <TextInput
+              label={t('settings.phone')}
+              srOnlyLabel
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              dir="ltr"
+              data-testid="login-phone"
+              placeholder={t('settings.phone')}
+              value={creds.phone}
+              onChange={(e) => setCreds({ ...creds, phone: e.target.value })}
+            />
           )}
-          <input className="input" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} data-testid="login-password" placeholder={t('settings.password')} value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} />
+          <TextInput
+            label={t('settings.password')}
+            srOnlyLabel
+            type="password"
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            data-testid="login-password"
+            placeholder={t('settings.password')}
+            value={creds.password}
+            onChange={(e) => setCreds({ ...creds, password: e.target.value })}
+            aria-describedby={(localError || error) ? 'login-error' : undefined}
+          />
           {mode === 'signup' && (
             <>
-              <input className="input" type="password" autoComplete="new-password" data-testid="login-confirm" placeholder={t('auth.confirmPassword')} value={creds.confirm} onChange={(e) => setCreds({ ...creds, confirm: e.target.value })} />
-              <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
+              <TextInput
+                label={t('auth.confirmPassword')}
+                srOnlyLabel
+                type="password"
+                autoComplete="new-password"
+                data-testid="login-confirm"
+                placeholder={t('auth.confirmPassword')}
+                value={creds.confirm}
+                onChange={(e) => setCreds({ ...creds, confirm: e.target.value })}
+                helper={t('auth.pwHint')}
+              />
             </>
           )}
-          {(localError || error) && <p className="text-sm text-danger" data-testid="login-error">{localError ?? error}</p>}
+          {(localError || error) && <p id="login-error" role="alert" className="text-sm text-danger" data-testid="login-error">{localError ?? error}</p>}
           {busy && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}
           <button type="submit" disabled={busy} data-testid="login-submit" className="btn-primary btn-lg w-full disabled:opacity-40">
             {t(mode === 'signup' ? 'settings.signUp' : 'onboard.signIn')}
@@ -109,9 +162,17 @@ export function Login() {
         </form>
 
         {mode === 'signin' && (
-          <button type="button" data-testid="login-forgot" onClick={() => void forgot()} disabled={busy} className="block w-full text-center text-sm text-brand-light">
-            {t('auth.forgotPassword')}
-          </button>
+          <>
+            <button type="button" data-testid="login-forgot" onClick={() => void forgot()} disabled={busy} className="block w-full text-center text-sm text-brand-light">
+              {t('auth.forgotPassword')}
+            </button>
+            <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.06em] text-earth-subtle">
+              <span className="h-px flex-1 bg-line" />
+              {t('auth.orContinueWith')}
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            <GoogleSignInButton onCredential={(idToken) => void onGoogleCredential(idToken)} disabled={busy} />
+          </>
         )}
 
         <button type="button" data-testid="login-toggle-mode" onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setLocalError(null); }} className="btn-ghost w-full">

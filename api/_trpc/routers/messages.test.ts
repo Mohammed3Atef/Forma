@@ -6,6 +6,7 @@ import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
+import type { MessageDoc } from '../../messages/_data.js';
 
 let mongod: MongoMemoryServer;
 
@@ -144,6 +145,229 @@ describe('messages router', () => {
     const page = await asCoach.messages.list({ clientId: client.id });
     expect(page.messages[0].seenAt).not.toBeNull();
     expect((await asCoach.notifications.list()).unreadCount).toBe(0);
+  });
+
+  it('coachThreadsSummary aggregates last message + unread-for-coach across every active client, one row per client, and rejects an unrelated coach', async () => {
+    const clientB = authedUser({ _id: 'client-2b', role: 'client' });
+    await assignCoach(assignedCoach.id, client.id);
+    await assignCoach(assignedCoach.id, clientB.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const asCoach = appRouter.createCaller(ctxFor(assignedCoach));
+
+    await asClient.messages.send({ clientId: client.id, text: 'first' });
+    await asClient.messages.send({ clientId: client.id, text: 'second (unread)' });
+    await asCoach.messages.send({ clientId: clientB.id, text: 'coach said hi' }); // no unread for the coach here
+
+    const rows = await asCoach.messages.coachThreadsSummary({});
+    expect(rows).toHaveLength(2);
+    const byClient = new Map(rows.map((r) => [r.clientId, r]));
+    expect(byClient.get(client.id)?.last?.body).toBe('second (unread)');
+    expect(byClient.get(client.id)?.unreadForCoach).toBe(2);
+    expect(byClient.get(clientB.id)?.last?.body).toBe('coach said hi');
+    expect(byClient.get(clientB.id)?.unreadForCoach).toBe(0);
+
+    // Marking one thread read drops only that thread's count.
+    await asCoach.messages.markRead({ clientId: client.id });
+    const after = await asCoach.messages.coachThreadsSummary({});
+    expect(after.find((r) => r.clientId === client.id)?.unreadForCoach).toBe(0);
+
+    // An unrelated coach may not read another coach's summary.
+    const asOtherCoach = appRouter.createCaller(ctxFor(otherCoach));
+    await expect(asOtherCoach.messages.coachThreadsSummary({ coachId: assignedCoach.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    // A super_admin (clients.writeAll) may read any coach's summary.
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    await expect(asSuperAdmin.messages.coachThreadsSummary({ coachId: assignedCoach.id })).resolves.toHaveLength(2);
+  });
+
+  it('send returns the created message with a stable id', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'Hello' });
+    expect(sent.id).toBeTruthy();
+    expect(sent.body).toBe('Hello');
+  });
+
+  it('retrying a send with the same clientMsgId is idempotent — no duplicate is created', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const first = await asClient.messages.send({ clientId: client.id, text: 'Retry me', clientMsgId: 'local-abc' });
+    const second = await asClient.messages.send({ clientId: client.id, text: 'Retry me', clientMsgId: 'local-abc' });
+    expect(second.id).toBe(first.id);
+
+    const page = await asClient.messages.list({ clientId: client.id });
+    expect(page.messages).toHaveLength(1);
+  });
+
+  it('two messages with identical text but different clientMsgId remain distinct', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    await asClient.messages.send({ clientId: client.id, text: 'same text', clientMsgId: 'local-1' });
+    await asClient.messages.send({ clientId: client.id, text: 'same text', clientMsgId: 'local-2' });
+
+    const page = await asClient.messages.list({ clientId: client.id });
+    expect(page.messages).toHaveLength(2);
+    expect(page.messages[0].id).not.toBe(page.messages[1].id);
+  });
+
+  it('the sender can edit their own message within the 2-minute window, and it is marked edited', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'Oops typo' });
+
+    const updated = await asClient.messages.edit({ clientId: client.id, id: sent.id, text: 'Fixed' });
+    expect(updated.body).toBe('Fixed');
+    expect(updated.editedAt).toBeTruthy();
+    expect(updated.createdAt).toBe(sent.createdAt); // timestamp of the original send is preserved
+  });
+
+  it('edit is rejected past the 2-minute window, even though the client UI would already hide the action', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'Old message' });
+
+    // Simulate age by rewinding the stored createdAt — the server checks its
+    // own DB timestamp, not anything the client could spoof.
+    const db = await getDb();
+    await db.collection<MessageDoc>('messages').updateOne({ _id: sent.id }, { $set: { createdAt: Date.now() - 3 * 60 * 1000 } });
+
+    await expect(asClient.messages.edit({ clientId: client.id, id: sent.id, text: 'Too late' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('only the sender can edit or delete their own message — the other party in the same thread cannot', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const asCoach = appRouter.createCaller(ctxFor(assignedCoach));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'Client said this' });
+
+    await expect(asCoach.messages.edit({ clientId: client.id, id: sent.id, text: 'Coach rewrites it' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asCoach.messages.delete({ clientId: client.id, id: sent.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('delete within the window soft-deletes: body/attachment are redacted but the row remains (for audit) and chronology is stable', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    await asClient.messages.send({ clientId: client.id, text: 'before' });
+    const toDelete = await asClient.messages.send({ clientId: client.id, text: 'delete me' });
+    await asClient.messages.send({ clientId: client.id, text: 'after' });
+
+    const deleted = await asClient.messages.delete({ clientId: client.id, id: toDelete.id });
+    expect(deleted.body).toBe('');
+    expect(deleted.deletedAt).toBeTruthy();
+
+    const page = await asClient.messages.list({ clientId: client.id });
+    expect(page.messages.map((m) => m.body)).toEqual(['before', '', 'after']); // order preserved, middle one redacted
+
+    // The row itself is still in Mongo (soft-delete, not a hard delete) — audit trail intact.
+    const db = await getDb();
+    const raw = await db.collection<MessageDoc>('messages').findOne({ _id: toDelete.id });
+    expect(raw).not.toBeNull();
+    expect(raw?.deletedAt).toBeTruthy();
+  });
+
+  it('delete is rejected past the 2-minute window', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'Old' });
+    const db = await getDb();
+    await db.collection<MessageDoc>('messages').updateOne({ _id: sent.id }, { $set: { createdAt: Date.now() - 3 * 60 * 1000 } });
+    await expect(asClient.messages.delete({ clientId: client.id, id: sent.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('reactions: add, replace, and remove — either party in the thread may react, one reaction per user', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const asCoach = appRouter.createCaller(ctxFor(assignedCoach));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'React to this' });
+
+    const liked = await asCoach.messages.react({ clientId: client.id, id: sent.id, value: '👍' });
+    expect(liked.reactions).toEqual({ [assignedCoach.id]: '👍' });
+
+    const replaced = await asCoach.messages.react({ clientId: client.id, id: sent.id, value: '❤️' });
+    expect(replaced.reactions).toEqual({ [assignedCoach.id]: '❤️' });
+
+    const both = await asClient.messages.react({ clientId: client.id, id: sent.id, value: '🙏' });
+    expect(both.reactions).toEqual({ [assignedCoach.id]: '❤️', [client.id]: '🙏' });
+
+    const removed = await asCoach.messages.react({ clientId: client.id, id: sent.id, value: null });
+    expect(removed.reactions).toEqual({ [client.id]: '🙏' });
+  });
+
+  it('rejects a reaction value outside the allowed set', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'React to this' });
+    await expect(asClient.messages.react({ clientId: client.id, id: sent.id, value: '🍕' as never })).rejects.toBeTruthy();
+  });
+
+  it('an unrelated coach cannot edit, delete, or react in a thread they do not belong to', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const asOtherCoach = appRouter.createCaller(ctxFor(otherCoach));
+    const sent = await asClient.messages.send({ clientId: client.id, text: 'private thread' });
+
+    await expect(asOtherCoach.messages.edit({ clientId: client.id, id: sent.id, text: 'x' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asOtherCoach.messages.delete({ clientId: client.id, id: sent.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asOtherCoach.messages.react({ clientId: client.id, id: sent.id, value: '👍' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('list with `before` pages backward without disturbing the forward `since` cursor behavior', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    for (let i = 0; i < 5; i++) await asClient.messages.send({ clientId: client.id, text: `msg ${i}` });
+
+    const all = await asClient.messages.list({ clientId: client.id });
+    const midpoint = all.messages[2].createdAt;
+    const older = await asClient.messages.list({ clientId: client.id, before: midpoint });
+    expect(older.messages.map((m) => m.body)).toEqual(['msg 0', 'msg 1']);
+  });
+
+  // Regression coverage: an attachment's `mimeType` must survive `send` -> `list`
+  // unmangled, for every kind the composer can produce, so the frontend's
+  // media-type classifier has real data to work with instead of falling back.
+  it.each([
+    ['image', 'image/png', 'photo.png'],
+    ['image', 'image/jpeg', 'photo.jpg'],
+    ['image', 'image/svg+xml', 'icon.svg'],
+    ['video', 'video/mp4', 'clip.mp4'],
+    ['audio', 'audio/webm', 'voice.webm'],
+    ['file', 'application/pdf', 'invoice.pdf'],
+  ] as const)('persists attachment metadata (kind=%s, mimeType=%s) through send -> list', async (kind, mimeType, name) => {
+    await assignCoach(assignedCoach.id, client.id);
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const sent = await asClient.messages.send({
+      clientId: client.id,
+      text: kind === 'image' ? 'check this out' : '',
+      attachment: { url: 'https://cdn.example/forma/x', kind, name, size: 4096, mimeType },
+    });
+    expect(sent.attachment).toEqual({ url: 'https://cdn.example/forma/x', kind, name, size: 4096, mimeType });
+
+    const page = await asClient.messages.list({ clientId: client.id });
+    expect(page.messages.at(-1)?.attachment).toEqual({ url: 'https://cdn.example/forma/x', kind, name, size: 4096, mimeType });
+  });
+
+  it('an older message with an attachment but no `mimeType` (pre-migration) still lists without error, with `mimeType` simply absent', async () => {
+    await assignCoach(assignedCoach.id, client.id);
+    const db = await getDb();
+    const now = Date.now();
+    const legacyDoc: MessageDoc = {
+      _id: 'msg_legacy_1',
+      clientId: client.id,
+      fromUserId: client.id,
+      fromRole: 'client',
+      body: '',
+      attachment: { url: 'https://cdn.example/forma/legacy.svg', kind: 'file', name: 'legacy.svg', size: 2048 },
+      seenAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.collection<MessageDoc>('messages').insertOne(legacyDoc);
+
+    const asClient = appRouter.createCaller(ctxFor(client));
+    const page = await asClient.messages.list({ clientId: client.id });
+    const legacy = page.messages.find((m) => m.id === 'msg_legacy_1');
+    expect(legacy?.attachment).toEqual({ url: 'https://cdn.example/forma/legacy.svg', kind: 'file', name: 'legacy.svg', size: 2048 });
+    expect(legacy?.attachment?.mimeType).toBeUndefined();
   });
 });
 

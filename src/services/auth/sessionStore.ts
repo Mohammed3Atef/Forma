@@ -29,6 +29,8 @@ interface SessionState {
    * only created via a coach's invite link (see AcceptInvite.tsx).
    */
   signIn: (email: string, password: string, create?: boolean, phone?: string, role?: 'client' | 'coach') => Promise<boolean>;
+  /** Sign in with a Google ID token. Resolves true on success; on failure sets `error` and resolves false. */
+  signInWithGoogle: (idToken: string) => Promise<boolean>;
   /**
    * Pushes an already-authenticated `MongoUserRecord` straight into the
    * session, exactly like the end of `signIn()` does — for flows that create
@@ -103,6 +105,19 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
 
+  async signInWithGoogle(idToken) {
+    set({ error: null });
+    try {
+      const user = await mongoAuth.signInWithGoogle(idToken);
+      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+      return true;
+    } catch (e) {
+      console.error('[session] Google sign-in failed:', e);
+      set({ error: e instanceof Error ? e.message : 'Sign-in failed' });
+      return false;
+    }
+  },
+
   hydrate(user) {
     set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
   },
@@ -119,6 +134,11 @@ export const useSession = create<SessionState>((set, get) => ({
       set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
     } catch (e) {
       console.error('[session] failed to load account:', e);
+      // A failed `auth.me` (e.g. the refresh-retry in trpc.ts also failed)
+      // means the in-memory access token is already useless server-side —
+      // clear it too, matching what `signOut()` does, instead of leaving a
+      // stale token sitting in memory alongside the now-anonymous phase.
+      setAccessToken(null);
       set({ phase: 'anonymous', uid: null, account: null, error: e instanceof Error ? e.message : 'Failed to load account' });
     }
   },

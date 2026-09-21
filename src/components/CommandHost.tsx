@@ -52,7 +52,7 @@ export function CommandHost() {
         { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods') },
         { id: 'c-broadcast', label: t('coachDash.sendBroadcast'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
         { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/assessments') },
-        { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/dashboard?tab=reports') },
+        { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/reports') },
       );
       qc.getQueryData<CoachDashboard>(['coachDashboard', coachId])?.clients.forEach((r) =>
         ents.push({ id: `cl-${r.client.id}`, label: r.client.displayName || r.client.email, icon: 'user', group: t('coach.clients'), keywords: r.client.email, run: go(`/coach/client/${r.client.id}`) }),
@@ -70,9 +70,9 @@ export function CommandHost() {
       cmds.push(
         { id: 'a-accounts', label: t('admin.accounts'), icon: 'user', group: cmd, always: true, run: go('/admin/accounts') },
         { id: 'a-assign', label: t('admin.assignments'), icon: 'target', group: cmd, always: true, run: go('/admin/assignments') },
-        { id: 'a-coaches', label: t('admin.tabs.coaches'), icon: 'trophy', group: cmd, always: true, run: go('/admin?tab=coaches') },
-        { id: 'a-revenue', label: t('admin.tabs.revenue'), icon: 'bolt', group: cmd, always: true, run: go('/admin?tab=revenue') },
-        { id: 'a-system', label: t('admin.tabs.system'), icon: 'settings', group: cmd, always: true, run: go('/admin?tab=system') },
+        { id: 'a-coaches', label: t('admin.coaches'), icon: 'trophy', group: cmd, always: true, run: go('/admin/coaches') },
+        { id: 'a-revenue', label: t('nav.adminSubscriptions'), icon: 'bolt', group: cmd, always: true, run: go('/admin/subscriptions') },
+        { id: 'a-system', label: t('admin.governance'), icon: 'settings', group: cmd, always: true, run: go('/admin/governance') },
       );
       qc.getQueryData<CoachAdminData>(['coachAdmin'])?.rows.forEach((r) =>
         ents.push({ id: `co-${r.coach.id}`, label: r.coach.displayName || r.coach.email, icon: 'trophy', group: t('admin.coaches'), keywords: r.coach.email, run: go(`/admin/coaches/${r.coach.id}`) }),

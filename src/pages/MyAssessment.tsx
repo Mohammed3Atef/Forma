@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "@/components/TopBar";
 import { Icon } from "@/components/Icon";
 import { AssessmentView } from "@/components/AssessmentView";
 import { CoachInfoCard } from "@/components/CoachInfoCard";
 import { AssessmentWizard } from "@/pages/onboarding/AssessmentWizard";
+import { useBack } from "@/hooks/useBack";
 import { cloudAvailable } from "@/data/dataSource";
 import { useSession } from "@/services/auth/sessionStore";
 import { fetchMyAssessment } from "@/services/platform/clientCoachApi";
 import { assessmentStatus } from "@/lib/assessment";
+import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus } from "@/types";
 
-const PILL: Record<AssessmentStatus, string> = {
-  not_started: "border-line text-earth-subtle",
-  in_progress: "border-warn/50 text-warn",
-  submitted: "border-brand/50 text-brand",
-  reviewed: "border-success/50 text-success",
-  updated_after_review: "border-warn/50 text-warn",
+const TONE: Record<AssessmentStatus, PillTone> = {
+  not_started: "mute",
+  in_progress: "warn",
+  submitted: "brand",
+  reviewed: "ok",
+  updated_after_review: "warn",
 };
 
 /**
@@ -28,7 +29,7 @@ const PILL: Record<AssessmentStatus, string> = {
  */
 export function MyAssessment() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const goBack = useBack("/settings?tab=account");
   const uid = useSession((s) => s.uid) ?? "";
   const displayName = useSession((s) => s.account?.displayName) ?? "";
   const enabled = cloudAvailable() && !!uid && uid !== "local-user";
@@ -61,11 +62,11 @@ export function MyAssessment() {
       <TopBar
         title={t("assessment.title")}
         eyebrow={t("gt.profile")}
-        onBack={() => navigate("/settings")}
+        onBack={goBack}
         right={
-          <span className={`chip ${PILL[status]}`}>
+          <Pill tone={TONE[status]}>
             {t(`assessment.status.${status}`)}
-          </span>
+          </Pill>
         }
       />
 

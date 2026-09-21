@@ -49,7 +49,7 @@ export interface MembersData {
 
 export const adminMembersRouter = router({
   get: permissionProcedure('users.read')
-    .input(z.object({ segment: z.enum(['all', 'week', 'month', 'older']).optional() }).optional())
+    .input(z.object({ segment: z.enum(['all', 'week', 'month', 'older']).optional(), search: z.string().trim().max(200).optional() }).optional())
     .query(async ({ input }): Promise<MembersData> => {
       const users = await usersCol();
       const coachClients = await coachClientsCol();
@@ -82,7 +82,24 @@ export const adminMembersRouter = router({
       expiringSoon.sort((a, b) => a.subscription!.endAt - b.subscription!.endAt);
 
       const segParam: MemberSegment = input?.segment ?? 'all';
-      const rows = segParam === 'all' ? rowsAll : rowsAll.filter((r) => inSegment(r.user.createdAt, segParam, now));
+      let rows = segParam === 'all' ? rowsAll : rowsAll.filter((r) => inSegment(r.user.createdAt, segParam, now));
+      // Search runs server-side over the row set (which is always the whole
+      // collection, fetched fresh every call — never a stale client-cached
+      // page), matching or missing a member the same way regardless of how
+      // many rows the client happens to have rendered so far. The KPI totals
+      // above are computed from `rowsAll` before this filter, so they stay
+      // stable while the admin types instead of fluctuating with the query.
+      const search = input?.search?.trim().toLowerCase();
+      if (search) {
+        rows = rows.filter((r) => {
+          const u = r.user;
+          return (
+            u.displayName?.toLowerCase().includes(search) ||
+            u.email?.toLowerCase().includes(search) ||
+            u.phone?.toLowerCase().includes(search)
+          );
+        });
+      }
 
       return {
         rows,

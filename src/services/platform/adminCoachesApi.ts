@@ -28,8 +28,10 @@ export interface CoachAdminData {
 /**
  * Super-admin aggregate over all coaches + their Layer-A plans, with REAL
  * per-coach client counts derived from ACTIVE `coachClients` relationships.
- * Computed server-side by `adminCoaches.list`.
+ * Computed server-side by `adminCoaches.list`. `search` (name/email) narrows
+ * `rows` server-side over every coach on the platform — the KPI totals and
+ * the Overview dashboard's `recent`/`top` stay based on the full set.
  */
-export async function fetchCoachAdmin(): Promise<CoachAdminData> {
-  return trpc.adminCoaches.list.query() as Promise<CoachAdminData>;
+export async function fetchCoachAdmin(search?: string): Promise<CoachAdminData> {
+  return trpc.adminCoaches.list.query(search?.trim() ? { search: search.trim() } : undefined) as Promise<CoachAdminData>;
 }

@@ -13,11 +13,9 @@ import { getCoachPlan } from '@/services/platform/coachPlanApi';
 import { checkTrialExpiry } from '@/services/platform/coachTrialApi';
 import { CoachTrialBanner } from '@/pages/coach/onboarding/CoachTrialBanner';
 import { OverviewPanel } from '@/pages/coach/dashboard/OverviewPanel';
-import { AnalyticsPanel } from '@/pages/coach/dashboard/AnalyticsPanel';
 import { ClientsPanel } from '@/pages/coach/dashboard/ClientsPanel';
 import { EngagementPanel } from '@/pages/coach/dashboard/EngagementPanel';
 import { ContentPanel } from '@/pages/coach/dashboard/ContentPanel';
-import { ReportsPanel } from '@/pages/coach/dashboard/ReportsPanel';
 import { firstName, greetingKey } from '@/pages/coach/dashboard/parts';
 
 /** Premium coach home: greeting hero + quick stats, then tabbed dashboard. */
@@ -40,13 +38,14 @@ export function CoachDashboard() {
   }, [coachId, planQ.data]);
 
   const d = q.data;
+  // Analytics and Reports moved to their own destinations (`/coach/revenue`,
+  // `/coach/reports`) — the design treats Business/Revenue/Reports as
+  // top-level nav items, not dashboard tabs.
   const tabs: TabDef[] = [
     { key: 'overview', label: t('coachDash.tabs.overview'), icon: 'home' },
-    { key: 'analytics', label: t('coachDash.tabs.analytics'), icon: 'chart' },
     { key: 'clients', label: t('coachDash.tabs.clients'), icon: 'user' },
     { key: 'engagement', label: t('coachDash.tabs.engagement'), icon: 'target' },
     { key: 'content', label: t('coachDash.tabs.content'), icon: 'dumbbell' },
-    { key: 'reports', label: t('coachDash.tabs.reports'), icon: 'list' },
   ];
   const [tabParam, setTab] = useTabParam('tab', 'overview');
   const active = tabs.some((x) => x.key === tabParam) ? tabParam : 'overview';
@@ -85,16 +84,12 @@ export function CoachDashboard() {
           <LoadingState variant="cards" count={6} />
         ) : active === 'overview' ? (
           <OverviewPanel d={d} />
-        ) : active === 'analytics' ? (
-          <AnalyticsPanel d={d} />
         ) : active === 'clients' ? (
           <ClientsPanel d={d} />
         ) : active === 'engagement' ? (
           <EngagementPanel d={d} />
-        ) : active === 'content' ? (
-          <ContentPanel d={d} />
         ) : (
-          <ReportsPanel d={d} />
+          <ContentPanel d={d} />
         )}
       </div>
     </div>

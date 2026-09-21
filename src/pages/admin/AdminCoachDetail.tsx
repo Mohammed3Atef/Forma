@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { TextInput } from '@/components/ui/Field';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { useBack } from '@/hooks/useBack';
+import { showToast } from '@/stores/toastStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchUser, setAccountStatus } from '@/services/platform/accountsApi';
@@ -30,8 +34,8 @@ const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
  *  account, and any pending plan-change request. */
 export function AdminCoachDetail() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const { coachId = '' } = useParams();
+  const goBack = useBack('/admin/coaches');
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const online = useOnlineStatus(); // management mutations require connectivity
@@ -58,18 +62,36 @@ export function AdminCoachDetail() {
   };
   const onMutationError = (title: string) => (e: unknown) =>
     void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const onMutationSuccess = (title: string) => () => {
+    invalidate();
+    showToast({ title, variant: 'success' });
+  };
 
-  const tier = useMutation({ mutationFn: (tk: CoachTierKey) => setCoachTier(coachId, tk), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.changeTier')) });
-  const extend = useMutation({ mutationFn: (days: number) => extendCoachTrial(coachId, days), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.extendTrial')) });
-  const renew = useMutation({ mutationFn: () => renewCoachPlan(coachId), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.renew')) });
-  const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); invalidate(); }, onError: onMutationError(t('adminCoaches.setLimit')) });
-  const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: invalidate, onError: onMutationError(t('admin.setEndDate')) });
-  const acct = useMutation({ mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s), onSuccess: invalidate, onError: onMutationError(t('adminCoaches.suspend')) });
-  const onResolved = () => {
+  const tier = useMutation({ mutationFn: (tk: CoachTierKey) => setCoachTier(coachId, tk), onSuccess: onMutationSuccess(t('adminCoaches.changeTier')), onError: onMutationError(t('adminCoaches.changeTier')) });
+  const extend = useMutation({ mutationFn: (days: number) => extendCoachTrial(coachId, days), onSuccess: onMutationSuccess(t('adminCoaches.extendTrial')), onError: onMutationError(t('adminCoaches.extendTrial')) });
+  const renew = useMutation({ mutationFn: () => renewCoachPlan(coachId), onSuccess: onMutationSuccess(t('adminCoaches.renew')), onError: onMutationError(t('adminCoaches.renew')) });
+  const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); onMutationSuccess(t('adminCoaches.setLimit'))(); }, onError: onMutationError(t('adminCoaches.setLimit')) });
+  const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: onMutationSuccess(t('admin.setEndDate')), onError: onMutationError(t('admin.setEndDate')) });
+  const acct = useMutation({
+    mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s),
+    onSuccess: (_v, s) => {
+      onMutationSuccess(t(s === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'))();
+      // This is the one AdminCoachDetail mutation that changes the coach's
+      // actual `accountStatus` (not just plan/capacity fields) — the other
+      // pages that cache that same user record (`AdminAccounts`'s paginated
+      // list, `AdminAssignments`'s role-scoped picker) would otherwise show a
+      // stale status until their own staleTime lapses.
+      void qc.invalidateQueries({ queryKey: ['users'] });
+      void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
+    },
+    onError: (e, s) => onMutationError(t(s === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'))(e),
+  });
+  const onResolved = (title: string) => () => {
     setNote('');
     void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] });
     void qc.invalidateQueries({ queryKey: ['planRequests', 'pending'] });
     invalidate();
+    showToast({ title, variant: 'success' });
   };
   // Approve APPLIES the requested change (tier and/or cap), then records the decision.
   const approve = useMutation({
@@ -81,12 +103,12 @@ export function AdminCoachDetail() {
       if (!cur?.requestedTier && !cur?.requestedMaxClients) await renewCoachPlan(coachId);
       await resolvePlanChangeRequest(coachId, meId, 'accepted', note);
     },
-    onSuccess: onResolved,
+    onSuccess: onResolved(t('admin.approveRequest')),
     onError: onMutationError(t('admin.approveRequest')),
   });
   const reject = useMutation({
     mutationFn: () => resolvePlanChangeRequest(coachId, meId, 'rejected', note),
-    onSuccess: onResolved,
+    onSuccess: onResolved(t('admin.rejectRequest')),
     onError: onMutationError(t('admin.rejectRequest')),
   });
 
@@ -97,12 +119,40 @@ export function AdminCoachDetail() {
   const r = reqQ.data;
   const pendingReq = r?.status === 'pending';
   const clientCount = clientsQ.data ? clientsQ.data.filter((c) => c.accountStatus !== 'disabled').length : p?.activeClientCount ?? 0;
+  const coachName = coach.data?.displayName || coach.data?.email || '';
+
+  const doRenew = async () => {
+    if (await confirmDialog({ title: t('adminCoaches.renew'), message: t('adminCoaches.confirmRenew', { name: coachName }) })) renew.mutate();
+  };
+  const doExtend = async () => {
+    if (await confirmDialog({ title: t('adminCoaches.extendTrial'), message: t('adminCoaches.confirmExtendTrial', { n: 15, name: coachName }) })) extend.mutate(15);
+  };
+  const doSetLimit = async () => {
+    const n = Number(limit);
+    if (await confirmDialog({ title: t('adminCoaches.setLimit'), message: t('adminCoaches.confirmSetLimit', { n, name: coachName }) })) cap.mutate(n);
+  };
+  const doSetEndDate = async () => {
+    if (await confirmDialog({ title: t('admin.setEndDate'), message: t('admin.confirmSetEndDate', { date: shortDate(endDate, i18n.language), name: coachName }) })) {
+      ends.mutate(new Date(`${endDate}T00:00:00`).getTime());
+    }
+  };
+  const doClearEndDate = async () => {
+    if (await confirmDialog({ title: t('admin.clearEndDate'), message: t('admin.confirmClearEndDate', { name: coachName }), danger: true })) ends.mutate(null);
+  };
+  const doApprove = async () => {
+    const changes = [
+      r?.requestedTier ? t('admin.requestedTier') + ': ' + tierLabel(tiers, r.requestedTier, t) : null,
+      r?.requestedMaxClients ? t('adminCoaches.clientLimit') + ': ' + r.requestedMaxClients : null,
+      !r?.requestedTier && !r?.requestedMaxClients ? t('admin.approveApplies') : null,
+    ].filter(Boolean).join(' · ');
+    if (await confirmDialog({ title: t('admin.approveRequest'), message: `${t('admin.confirmApproveRequest', { name: coachName })} ${changes}` })) approve.mutate();
+  };
 
   return (
     <div data-testid="admin-coach-detail">
-      <TopBar title={coach.data?.displayName || t('adminCoaches.coach')} eyebrow={t('platform.superAdmin')} onBack={() => navigate('/admin/coaches')} />
+      <TopBar title={coach.data?.displayName || t('adminCoaches.coach')} eyebrow={t('platform.superAdmin')} onBack={goBack} />
       {coach.isLoading ? (
-        <p className="py-10 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={4} />
       ) : (
         <div className="space-y-5">
           {pendingReq && r ? (
@@ -113,7 +163,7 @@ export function AdminCoachDetail() {
               {r.reason ? <p className="text-sm text-earth-muted">{r.reason}</p> : null}
               <textarea className="input min-h-16" placeholder={t('admin.requestReason')} value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="btn-primary" data-testid="coach-plan-approve" disabled={approve.isPending || reject.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => approve.mutate()}>{t('admin.approveRequest')}</button>
+                <button type="button" className="btn-primary" data-testid="coach-plan-approve" disabled={approve.isPending || reject.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doApprove()}>{t('admin.approveRequest')}</button>
                 <button type="button" className="btn-ghost" data-testid="coach-plan-reject" disabled={approve.isPending || reject.isPending || !online} onClick={() => reject.mutate()}>{t('admin.rejectRequest')}</button>
               </div>
               <p className="text-[12px] text-earth-subtle">{t('admin.approveApplies')}</p>
@@ -161,22 +211,40 @@ export function AdminCoachDetail() {
           <section className="space-y-2">
             <h2 className="h2">{t('adminCoaches.actions')}</h2>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => renew.mutate()}>{t('adminCoaches.renew')}</button>
-              <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending || !online} onClick={() => extend.mutate(15)}>{t('adminCoaches.extendTrial')}</button>
+              <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doRenew()}>{t('adminCoaches.renew')}</button>
+              <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending || !online} onClick={() => void doExtend()}>{t('adminCoaches.extendTrial')}</button>
               {coach.data?.accountStatus === 'suspended' ? (
                 <button type="button" className="chip" data-testid="coach-reactivate" disabled={acct.isPending || !online} onClick={() => acct.mutate('active')}>{t('adminCoaches.reactivate')}</button>
               ) : (
                 <button type="button" className="chip text-danger" data-testid="coach-suspend" disabled={acct.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('adminCoaches.suspend'), message: t('adminCoaches.confirmSuspend'), danger: true })) acct.mutate('suspended'); }}>{t('adminCoaches.suspend')}</button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <input className="input max-w-[140px]" inputMode="numeric" data-testid="coach-limit-input" placeholder={t('adminCoaches.clientLimit')} value={limit} onChange={(e) => setLimit(e.target.value)} />
-              <button type="button" className="chip" data-testid="coach-limit-save" disabled={cap.isPending || !(Number(limit) >= 0) || limit.trim() === ''} onClick={() => cap.mutate(Number(limit))}>{t('adminCoaches.setLimit')}</button>
+            <div className="flex flex-wrap items-end gap-2 pt-1">
+              <TextInput
+                label={t('adminCoaches.clientLimit')}
+                srOnlyLabel
+                fieldClassName="max-w-[140px]"
+                inputMode="numeric"
+                data-testid="coach-limit-input"
+                placeholder={t('adminCoaches.clientLimit')}
+                value={limit}
+                onChange={(e) => setLimit(e.target.value)}
+                error={limit.trim() !== '' && !(Number(limit) >= 0) ? t('adminCoaches.limitInvalid') : undefined}
+              />
+              <button type="button" className="chip" data-testid="coach-limit-save" disabled={cap.isPending || !(Number(limit) >= 0) || limit.trim() === ''} onClick={() => void doSetLimit()}>{t('adminCoaches.setLimit')}</button>
             </div>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <input className="input max-w-[180px]" type="date" data-testid="coach-enddate-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              <button type="button" className="chip" data-testid="coach-enddate-save" disabled={ends.isPending || !endDate} onClick={() => ends.mutate(new Date(`${endDate}T00:00:00`).getTime())}>{t('admin.setEndDate')}</button>
-              <button type="button" className="chip text-earth-subtle" data-testid="coach-enddate-clear" disabled={ends.isPending || !p?.endsAt} onClick={() => ends.mutate(null)}>{t('admin.clearEndDate')}</button>
+            <div className="flex flex-wrap items-end gap-2 pt-1">
+              <TextInput
+                label={t('admin.setEndDate')}
+                srOnlyLabel
+                fieldClassName="max-w-[180px]"
+                type="date"
+                data-testid="coach-enddate-input"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+              <button type="button" className="chip" data-testid="coach-enddate-save" disabled={ends.isPending || !endDate} onClick={() => void doSetEndDate()}>{t('admin.setEndDate')}</button>
+              <button type="button" className="chip text-earth-subtle" data-testid="coach-enddate-clear" disabled={ends.isPending || !p?.endsAt} onClick={() => void doClearEndDate()}>{t('admin.clearEndDate')}</button>
             </div>
           </section>
         </div>

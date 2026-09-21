@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { useCan } from '@/services/auth/permissions';
-import { ROLE_PERMISSIONS } from '@/services/auth/roles';
+import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from '@/services/auth/roles';
+import type { Permission } from '@/types';
 import { listFlags, saveFlag } from '@/services/platform/flagsApi';
-import { fetchAuditPage } from '@/services/platform/auditApi';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
+import { shortDate } from '@/lib/utils';
 import type { FeatureFlag, FeatureFlagScope, Role } from '@/types';
 
-const ROLES: Role[] = ['super_admin', 'admin', 'coach', 'client'];
+// Client-first column order, matching the design's role×capability matrix exactly.
+const ROLES: Role[] = ['client', 'coach', 'admin', 'super_admin'];
 
 export function AdminGovernance() {
   const { t } = useTranslation();
@@ -28,27 +33,36 @@ export function AdminGovernance() {
  * standalone /admin/governance route (above) and the dashboard hub's System tab.
  */
 export function GovernanceSections() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const canFlags = useCan('flags.manage');
-  const canAudit = useCan('audit.read');
   const [addingFlag, setAddingFlag] = useState(false);
 
   const flags = useQuery({ queryKey: ['featureFlags'], queryFn: listFlags });
   const toggle = useMutation({
     mutationFn: (flag: FeatureFlag) => saveFlag({ ...flag, enabled: !flag.enabled }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['featureFlags'] }),
+    onSuccess: (_v, flag) => {
+      void qc.invalidateQueries({ queryKey: ['featureFlags'] });
+      showToast({ title: t(flag.enabled ? 'admin.flagDisabled' : 'admin.flagEnabled', { id: flag.id }), variant: 'success' });
+    },
+    onError: (e) => void alertDialog({ title: t('admin.featureFlags'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
+  const doToggle = async (f: FeatureFlag) => {
+    const ok = await confirmDialog({
+      title: t('admin.featureFlags'),
+      message: t(f.enabled ? 'admin.confirmDisableFlag' : 'admin.confirmEnableFlag', { id: f.id, scope: t(`platform.scopes.${f.scope}`) }),
+      danger: f.enabled,
+    });
+    if (ok) toggle.mutate(f);
+  };
 
-  const audit = useInfiniteQuery({
-    queryKey: ['audit', 'all'],
-    queryFn: ({ pageParam }) => fetchAuditPage(25, pageParam as string | null),
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => p.cursor,
-    enabled: canAudit,
-  });
-  const logs = audit.data?.pages.flatMap((p) => p.logs) ?? [];
-  const sentinel = useInfiniteScroll(() => void audit.fetchNextPage(), !!audit.hasNextPage && !audit.isFetchingNextPage);
+  // Permission keys are dotted (e.g. "users.read"), which collides with
+  // i18next's own `.` key-path separator — fetched as one raw object via
+  // `returnObjects` and indexed in JS instead of via a dotted `t()` call.
+  const permissionInfo = t('admin.permissionInfo', { returnObjects: true }) as Record<
+    Permission,
+    { label: string; desc: string; dangerous?: boolean } | undefined
+  >;
 
   return (
     <>
@@ -70,12 +84,13 @@ export function GovernanceSections() {
                 <div className="text-[12px] text-earth-subtle">
                   {t(`platform.scopes.${f.scope}`)}
                   {f.targetId ? ` · ${f.targetId}` : ''}
+                  {f.updatedAt ? ` · ${t('admin.flagUpdated', { date: shortDate(new Date(f.updatedAt).toISOString().slice(0, 10), i18n.language) })}` : ''}
                 </div>
               </div>
               <button
                 type="button"
                 disabled={!canFlags || toggle.isPending}
-                onClick={() => toggle.mutate(f)}
+                onClick={() => void doToggle(f)}
                 className={`chip ${f.enabled ? 'chip-on' : ''} disabled:opacity-40`}
               >
                 {t(f.enabled ? 'admin.on' : 'admin.off')}
@@ -87,58 +102,52 @@ export function GovernanceSections() {
         )}
       </div>
 
-      {/* Roles & permissions reference */}
+      {/* Roles & permissions reference — human label + plain-English description
+          per capability, not a raw dotted permission key. Sensitive
+          capabilities (role/status changes, writing any client's data) get a
+          visual flag so they read as different in kind, not just another row. */}
       <h2 className="h2 mb-2 mt-6">{t('admin.rolePermissions')}</h2>
-      <div className="space-y-2">
-        {ROLES.map((r) => (
-          <div key={r} className="card">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="font-medium">{t(`roles.${r}`)}</span>
-              <span className="font-mono text-[10.5px] text-earth-subtle">
-                {r === 'super_admin' ? '★ all' : `${ROLE_PERMISSIONS[r].length}`}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {r === 'super_admin' ? (
-                <span className="chip chip-on">{t('admin.fullAccess')}</span>
-              ) : ROLE_PERMISSIONS[r].length ? (
-                ROLE_PERMISSIONS[r].map((p) => (
-                  <span key={p} className="chip text-[11px]">
-                    {p}
-                  </span>
-                ))
-              ) : (
-                <span className="text-[12px] text-earth-subtle">{t('admin.selfOnly')}</span>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="tbl-wrap overflow-x-auto rounded-xl2 border border-line">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-line bg-surface-card">
+              <th className="px-4 py-2.5 text-start font-mono text-[10px] uppercase tracking-[0.07em] text-earth-subtle">{t('admin.capability')}</th>
+              {ROLES.map((r) => (
+                <th key={r} className="px-3 py-2.5 text-end font-mono text-[10px] uppercase tracking-[0.07em] text-earth-subtle">{t(`roles.${r}`)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ALL_PERMISSIONS.map((perm) => {
+              const info = permissionInfo[perm];
+              return (
+                <tr key={perm} className={`border-b border-line-soft last:border-b-0 ${info?.dangerous ? 'bg-warn/5' : ''}`}>
+                  <td className={`px-4 py-2.5 ${info?.dangerous ? 'border-s-2 border-warn' : ''}`}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-medium text-earth">{info?.label ?? perm}</span>
+                      {info?.dangerous && (
+                        <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warn">
+                          {t('admin.dangerousPermission')}
+                        </span>
+                      )}
+                    </span>
+                    {info?.desc && <span className="mt-0.5 block text-[12px] text-earth-subtle">{info.desc}</span>}
+                  </td>
+                  {ROLES.map((r) => (
+                    <td key={r} className="px-3 py-2.5 text-end align-top">
+                      {ROLE_PERMISSIONS[r].includes(perm) ? (
+                        <Icon name="check" size={15} className={info?.dangerous ? 'text-warn' : 'text-success'} />
+                      ) : (
+                        <span className="font-mono text-earth-subtle">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-
-      {/* Audit logs */}
-      {canAudit && (
-        <>
-          <h2 className="h2 mb-2 mt-6">{t('admin.auditLogs')}</h2>
-          <div className="card divide-y divide-line-soft">
-            {logs.length ? (
-              logs.map((log) => (
-                <div key={log.id} className="py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <span className="truncate text-sm font-medium">{t(log.action, { defaultValue: log.action.replace(/\./g, ' ') })}</span>
-                    <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(log.createdAt).toLocaleString()}</span>
-                  </div>
-                  <div className="truncate text-[12px] text-earth-subtle">
-                    {t(`roles.${log.actorRole}`)} → {log.targetUserId}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="py-2 text-sm text-earth-muted">{t('admin.noLogs')}</p>
-            )}
-          </div>
-          <div ref={sentinel} />
-        </>
-      )}
 
       <Sheet open={addingFlag} onClose={() => setAddingFlag(false)} size="md" title={t('admin.addFlag')}>
         <FlagForm
@@ -169,7 +178,8 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         ...(form.scope !== 'global' && form.targetId.trim() ? { targetId: form.targetId.trim() } : {}),
         updatedAt: Date.now(),
       }),
-    onSuccess: onDone,
+    onSuccess: () => { showToast({ title: t('common.saved'), variant: 'success' }); onDone(); },
+    onError: (e) => void alertDialog({ title: t('admin.addFlag'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const scopes: FeatureFlagScope[] = ['global', 'coach', 'client'];
   return (
@@ -198,9 +208,9 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         <span className="label">{t('admin.enabled')}</span>
         <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} className="h-5 w-5 accent-brand" />
       </label>
-      <button type="submit" disabled={!form.id.trim() || mut.isPending} className="btn-primary w-full disabled:opacity-40">
+      <SubmitButton type="submit" pending={mut.isPending} disabled={!form.id.trim()} fullWidth>
         {t('common.save')}
-      </button>
+      </SubmitButton>
     </form>
   );
 }

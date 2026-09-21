@@ -5,16 +5,19 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Sheet } from '@/components/Sheet';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Icon } from '@/components/Icon';
 import { TextInput, TextAreaField, SelectField } from '@/components/ui/Field';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSession } from '@/services/auth/sessionStore';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { uid } from '@/lib/utils';
 import {
   listBanners, saveBanner, deleteBanner,
   type Banner, type BannerStyle, type BannerPlacement, type BannerSegment,
 } from '@/services/platform/bannersApi';
+import { Pill } from '@/components/ui/Pill';
 import type { Role } from '@/types';
 
 const STYLE_CLASS: Record<BannerStyle, string> = {
@@ -36,25 +39,48 @@ export function AdminBanners() {
   const actorId = useSession((s) => s.account?.id ?? 'self');
   useFullBleed();
   const [editing, setEditing] = useState<Banner | null>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const q = useQuery({ queryKey: ['banners', 'admin'], queryFn: listBanners, staleTime: 60_000 });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['banners'] });
-  const save = useMutation({ mutationFn: (b: Banner) => saveBanner({ ...b, updatedAt: Date.now() }), onSuccess: () => { setEditing(null); refresh(); } });
-  const del = useMutation({ mutationFn: (id: string) => deleteBanner(id), onSuccess: () => { setEditing(null); refresh(); } });
-  const toggle = useMutation({ mutationFn: (b: Banner) => saveBanner({ ...b, active: !b.active, updatedAt: Date.now() }), onSuccess: refresh });
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const save = useMutation({
+    mutationFn: (b: Banner) => saveBanner({ ...b, updatedAt: Date.now() }),
+    onSuccess: () => { setEditing(null); refresh(); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: onErr(t('adminBanners.title')),
+  });
+  const del = useMutation({
+    mutationFn: (id: string) => deleteBanner(id),
+    onSuccess: () => { setEditing(null); refresh(); showToast({ title: t('common.removed'), variant: 'success' }); },
+    onError: onErr(t('common.delete')),
+  });
+  const toggle = useMutation({
+    mutationFn: (b: Banner) => saveBanner({ ...b, active: !b.active, updatedAt: Date.now() }),
+    onSuccess: () => { refresh(); showToast({ title: t('common.saved'), variant: 'success' }); },
+    onError: onErr(t('adminBanners.title')),
+  });
 
-  const remove = async (b: Banner) => { if (await confirmDialog({ title: t('common.delete'), message: b.title || t('adminBanners.untitled'), danger: true })) del.mutate(b.id); };
+  const remove = async (b: Banner) => {
+    if (await confirmDialog({ title: t('common.delete'), message: t('adminBanners.confirmDelete', { title: b.title || t('adminBanners.untitled') }), danger: true })) del.mutate(b.id);
+  };
   const list = q.data ?? [];
 
   return (
     <div data-testid="admin-banners">
       <PageHeader
-        eyebrow={t('platform.superAdmin')}
+        eyebrow={t('nav.groupGovern')}
         title={t('adminBanners.title')}
-        actions={<button type="button" data-testid="banner-new" className="btn-primary h-[42px] gap-2 px-4" onClick={() => setEditing(blank(actorId))}><Icon name="plus" size={18} /> {t('adminBanners.new')}</button>}
+        actions={<button type="button" data-testid="banner-new" className="btn-primary h-[42px] gap-2 px-4" onClick={() => { setEditing(blank(actorId)); setSubmitAttempted(false); }}><Icon name="plus" size={18} /> {t('adminBanners.new')}</button>}
       />
       {q.isLoading ? (
         <LoadingState variant="list" count={3} />
+      ) : q.isError ? (
+        <EmptyState
+          icon="info"
+          title={t('adminBanners.loadFailed')}
+          message={t('adminBanners.loadFailedMessage')}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={() => void q.refetch()}>{t('common.retry')}</button>}
+        />
       ) : list.length === 0 ? (
         <EmptyState icon="info" title={t('adminBanners.empty')} message={t('adminBanners.emptyHint')} />
       ) : (
@@ -71,9 +97,9 @@ export function AdminBanners() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className={`chip text-[11px] ${b.active ? 'border-success/50 text-success' : 'border-line text-earth-subtle'}`}>{b.active ? t('adminBanners.on') : t('adminBanners.off')}</span>
-                  <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => toggle.mutate(b)}>{b.active ? t('adminBanners.disable') : t('adminBanners.enable')}</button>
-                  <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => setEditing(b)}>{t('common.edit')}</button>
+                  <Pill tone={b.active ? 'ok' : 'mute'}>{b.active ? t('adminBanners.on') : t('adminBanners.off')}</Pill>
+                  <button type="button" disabled={toggle.isPending} className="btn-ghost h-8 px-3 text-[11px] disabled:opacity-40" onClick={() => toggle.mutate(b)}>{b.active ? t('adminBanners.disable') : t('adminBanners.enable')}</button>
+                  <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => { setEditing(b); setSubmitAttempted(false); }}>{t('common.edit')}</button>
                 </div>
               </div>
             </div>
@@ -81,14 +107,42 @@ export function AdminBanners() {
         </div>
       )}
 
-      <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('adminBanners.title')}>
-        {editing ? <BannerForm value={editing} onChange={setEditing} onSave={() => save.mutate(editing)} onDelete={() => void remove(editing)} busy={save.isPending || del.isPending} /> : null}
+      <Sheet
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        size="lg"
+        title={t('adminBanners.title')}
+        footer={editing ? (
+          <div className="flex items-center gap-2">
+            <SubmitButton
+              type="submit"
+              form="banner-form"
+              pending={save.isPending}
+              disabled={save.isPending || del.isPending || (submitAttempted && !editing.title.trim())}
+              className="flex-1"
+              data-testid="banner-save"
+            >
+              {t('common.save')}
+            </SubmitButton>
+            <button type="button" disabled={save.isPending || del.isPending} className="btn-ghost px-4 text-danger" onClick={() => void remove(editing)}>{t('common.delete')}</button>
+          </div>
+        ) : undefined}
+      >
+        {editing ? (
+          <BannerForm
+            value={editing}
+            onChange={setEditing}
+            onSave={() => save.mutate(editing)}
+            submitAttempted={submitAttempted}
+            onSubmitAttempt={() => setSubmitAttempted(true)}
+          />
+        ) : null}
       </Sheet>
     </div>
   );
 }
 
-function BannerForm({ value, onChange, onSave, onDelete, busy }: { value: Banner; onChange: (b: Banner) => void; onSave: () => void; onDelete: () => void; busy: boolean }) {
+function BannerForm({ value, onChange, onSave, submitAttempted, onSubmitAttempt }: { value: Banner; onChange: (b: Banner) => void; onSave: () => void; submitAttempted: boolean; onSubmitAttempt: () => void }) {
   const { t } = useTranslation();
   const set = (patch: Partial<Banner>) => onChange({ ...value, ...patch });
   const toggleRole = (r: Role) => set({ roles: value.roles.includes(r) ? value.roles.filter((x) => x !== r) : [...value.roles, r] });
@@ -96,9 +150,10 @@ function BannerForm({ value, onChange, onSave, onDelete, busy }: { value: Banner
   const placements: BannerPlacement[] = ['all', 'client_home', 'coach_dashboard'];
   const segments: BannerSegment[] = ['all', 'new', 'existing'];
   const roleOpts: Role[] = ['client', 'coach'];
+  const dateOrderInvalid = !!(value.startAt && value.endAt && value.endAt < value.startAt);
 
   return (
-    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (value.title.trim()) onSave(); }}>
+    <form id="banner-form" className="space-y-4" onSubmit={(e) => { e.preventDefault(); onSubmitAttempt(); if (value.title.trim() && !dateOrderInvalid) onSave(); }}>
       {/* Live preview */}
       <div>
         <p className="label mb-1">{t('adminBanners.preview')}</p>
@@ -109,7 +164,14 @@ function BannerForm({ value, onChange, onSave, onDelete, busy }: { value: Banner
         </div>
       </div>
 
-      <TextInput label={t('adminBanners.headline')} required value={value.title} onChange={(e) => set({ title: e.target.value })} data-testid="banner-title" />
+      <TextInput
+        label={t('adminBanners.headline')}
+        required
+        value={value.title}
+        onChange={(e) => set({ title: e.target.value })}
+        data-testid="banner-title"
+        error={submitAttempted && !value.title.trim() ? t('adminBanners.headlineRequired') : undefined}
+      />
       <TextAreaField label={t('adminBanners.body')} value={value.body ?? ''} onChange={(e) => set({ body: e.target.value })} />
       <div className="grid grid-cols-2 gap-3">
         <TextInput label={t('adminBanners.ctaLabel')} value={value.ctaLabel ?? ''} onChange={(e) => set({ ctaLabel: e.target.value })} />
@@ -136,15 +198,16 @@ function BannerForm({ value, onChange, onSave, onDelete, busy }: { value: Banner
         {segments.map((s) => <option key={s} value={s}>{t(`adminBanners.segment.${s}`)}</option>)}
       </SelectField>
       <div className="grid grid-cols-2 gap-3">
-        <div><p className="label mb-1">{t('adminBanners.startAt')}</p><input type="date" className="input" value={toDate(value.startAt)} onChange={(e) => set({ startAt: toMs(e.target.value) })} /></div>
-        <div><p className="label mb-1">{t('adminBanners.endAt')}</p><input type="date" className="input" value={toDate(value.endAt)} onChange={(e) => set({ endAt: toMs(e.target.value) })} /></div>
+        <TextInput label={t('adminBanners.startAt')} type="date" value={toDate(value.startAt)} onChange={(e) => set({ startAt: toMs(e.target.value) })} />
+        <TextInput
+          label={t('adminBanners.endAt')}
+          type="date"
+          value={toDate(value.endAt)}
+          onChange={(e) => set({ endAt: toMs(e.target.value) })}
+          error={submitAttempted && dateOrderInvalid ? t('adminBanners.endBeforeStart') : undefined}
+        />
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.active} onChange={(e) => set({ active: e.target.checked })} /> {t('adminBanners.activeNow')}</label>
-
-      <div className="flex items-center gap-2 pt-1">
-        <button type="submit" disabled={busy || !value.title.trim()} className="btn-primary flex-1 disabled:opacity-40" data-testid="banner-save">{t('common.save')}</button>
-        <button type="button" disabled={busy} className="btn-ghost px-4 text-danger" onClick={onDelete}>{t('common.delete')}</button>
-      </div>
     </form>
   );
 }

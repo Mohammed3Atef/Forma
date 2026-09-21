@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { listVersions, restoreVersion } from '@/services/platform/planVersionsApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { confirmDialog } from '@/stores/dialogStore';
+import { Pill } from '@/components/ui/Pill';
+import { useBack } from '@/hooks/useBack';
 import type { CardioPlan, MealPlan, PlanVersion, PlanVersionKind, WorkoutPlan } from '@/types';
 
 type AnyPlan = WorkoutPlan | MealPlan | CardioPlan;
@@ -33,10 +35,10 @@ function summarize(kind: PlanVersionKind, plan: AnyPlan | null | undefined, t: (
 /** Coach view of a plan's version history: list, compare summary, and restore. */
 export function PlanVersionHistory() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = '', kind: kindParam = 'workout' } = useParams();
   const kind: PlanVersionKind = isKind(kindParam) ? kindParam : 'workout';
+  const goBack = useBack(`/coach/client/${clientId}`);
 
   const versions = useQuery({ queryKey: ['planVersions', clientId, kind], queryFn: () => listVersions(clientId, kind), enabled: !!clientId });
   const current = useQuery<AnyPlan | null>({
@@ -66,7 +68,7 @@ export function PlanVersionHistory() {
         testId="plan-version-history"
         title={t('planVersions.title')}
         eyebrow={t(`coach.kind.${kind === 'cardio' ? 'cardio' : kind === 'nutrition' ? 'nutrition' : 'workout'}`)}
-        onBack={() => navigate(`/coach/client/${clientId}`)}
+        onBack={goBack}
       />
 
       <div className="card mb-4">
@@ -84,7 +86,7 @@ export function PlanVersionHistory() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('planVersions.version')} {v.versionNumber}</span>
-                    {v.active && <span className="chip border-success/50 text-success" data-testid="version-active">{t('planVersions.active')}</span>}
+                    {v.active && <Pill testId="version-active" tone="ok">{t('planVersions.active')}</Pill>}
                   </div>
                   <div className="truncate text-[13px] text-earth-muted">{v.name}</div>
                   <div className="mt-0.5 font-mono text-[11px] text-earth-subtle">{summarize(kind, v.snapshot, t)}</div>

@@ -1,24 +1,43 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Locale } from '@/types';
 import { TopBar } from '@/components/TopBar';
+import { Avatar } from '@/components/Avatar';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { useSession } from '@/services/auth/sessionStore';
 import { useSettings } from '@/stores/settingsStore';
 import { confirmDialog } from '@/stores/dialogStore';
+import { listMyClients } from '@/services/platform/coachApi';
+import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { shortDate } from '@/lib/utils';
 
 /** Common billing currencies a coach can default to (ISO codes). */
 const CURRENCIES = ['EGP', 'USD', 'SAR', 'AED', 'EUR', 'GBP', 'KWD', 'QAR'] as const;
 
 /** Account / settings screen for the coach and admin shells: edit profile + sign out. */
 export function RoleAccount() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const account = useSession((s) => s.account);
   const updateSelf = useSession((s) => s.updateSelf);
   const signOut = useSession((s) => s.signOut);
   const locale = useSettings((s) => s.settings?.locale) ?? 'en';
   const setLocale = useSettings((s) => s.setLocale);
+
+  const isCoach = account?.role === 'coach';
+  const isAdmin = account?.role === 'admin' || account?.role === 'super_admin';
+  const coachId = account?.id ?? '';
+  const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: isCoach && !!coachId, staleTime: 300_000 });
+  const tiers = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: isCoach, staleTime: 300_000 });
+  const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: isCoach && !!coachId, staleTime: 60_000 });
+  const tierCfg = (tiers.data ?? []).find((cfg) => cfg.key === (plan.data?.plan ?? 'trial'));
+  const cap = plan.data?.maxClients ?? tierCfg?.maxClients ?? 0;
+  const used = clients.data?.length ?? 0;
+  const atCapacity = cap > 0 && used >= cap;
 
   const editable = !!account && account.id !== 'local-user';
   const [pwOpen, setPwOpen] = useState(false);
@@ -44,6 +63,47 @@ export function RoleAccount() {
   return (
     <>
       <TopBar title={t('platform.account')} eyebrow={t('app.name')} />
+
+      {isCoach && account && (
+        <div className="card-featured mb-4">
+          <div className="flex items-center gap-3.5">
+            <Avatar name={account.displayName} photoUrl={account.photoUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-lg font-semibold">{account.displayName || account.email}</h2>
+              {account.email && <p className="truncate text-[13px] text-earth-muted">{account.email}</p>}
+              {cap > 0 && (
+                <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-brand">
+                  {tierLabel(tiers.data ?? [], plan.data?.plan, t)} · {t('coachDash.planCapacity', { used, cap })}
+                </p>
+              )}
+            </div>
+          </div>
+          {cap > 0 && (
+            <>
+              <div className="prog mt-3.5"><span style={{ width: `${Math.min(100, (used / cap) * 100)}%` }} /></div>
+              {atCapacity && <p className="mt-2 text-[13px] text-earth-muted">{t('coachDash.atCapacity')}</p>}
+            </>
+          )}
+          <button type="button" className="btn-primary mt-3 w-full" onClick={() => navigate('/coach/plan')}>
+            {atCapacity ? t('coachDash.upgradePlan') : t('nav.coachPlan')}
+          </button>
+        </div>
+      )}
+
+      {isAdmin && account && (
+        <div className="card-featured mb-4">
+          <div className="flex items-center gap-3.5">
+            <Avatar name={account.displayName} photoUrl={account.photoUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-lg font-semibold">{account.displayName || account.email}</h2>
+              {account.email && <p className="truncate text-[13px] text-earth-muted">{account.email}</p>}
+              <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-brand">
+                {t(`roles.${account.role}`)} · {t('timeline.since', { date: shortDate(new Date(account.createdAt).toISOString().slice(0, 10), i18n.language) })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editable ? (
         <section className="card space-y-4">
@@ -90,7 +150,7 @@ export function RoleAccount() {
           <span>{t('settings.language')}</span>
           <div className="flex gap-1">
             {(['en', 'ar', 'ar-eg'] as Locale[]).map((l) => (
-              <button key={l} type="button" onClick={() => void setLocale(l)} className={`rounded-lg px-3 py-1.5 text-sm ${locale === l ? 'bg-brand text-slate-950' : 'bg-surface-raised'}`}>
+              <button key={l} type="button" onClick={() => void setLocale(l)} className={`chip ${locale === l ? 'chip-on' : ''}`}>
                 {l === 'en' ? 'English' : l === 'ar' ? 'العربية' : 'مصري'}
               </button>
             ))}

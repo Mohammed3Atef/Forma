@@ -626,7 +626,15 @@ export interface MessageAttachment {
   kind: 'image' | 'video' | 'audio' | 'file';
   name?: string;
   size?: number;
+  /** Original file MIME type, e.g. `image/svg+xml`. Additive — absent on messages sent before this field existed; renderers fall back to extension-based detection on `name` when it's missing. */
+  mimeType?: string;
 }
+
+/** The fixed set of reactions `messages.react` accepts — keep in sync with `api/messages/_data.ts`'s `REACTION_VALUES`. */
+export const MESSAGE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
+export type MessageReaction = (typeof MESSAGE_REACTIONS)[number];
+/** How long after sending a message its sender may still edit/delete it — mirrors `EDIT_WINDOW_MS` in `api/messages/_data.ts`; the server is the real enforcement, this is only for the client to know when to hide the action. */
+export const MESSAGE_EDIT_WINDOW_MS = 2 * 60 * 1000;
 
 export interface Message {
   id: string;
@@ -640,6 +648,14 @@ export interface Message {
   seenAt?: number | null;
   createdAt: number;
   updatedAt: number;
+  /** Client-generated idempotency key set on send — see `sendMessage` in `messagesApi.ts`. */
+  clientMsgId?: string;
+  /** Set once the sender edits the message within the edit window. */
+  editedAt?: number;
+  /** Soft-delete tombstone — once set, `body`/`attachment`/`reactions` arrive redacted from the server. */
+  deletedAt?: number;
+  /** One reaction per user: `userId -> emoji`. */
+  reactions?: Record<string, string>;
 }
 
 export type PlanKind = 'workout' | 'nutrition';

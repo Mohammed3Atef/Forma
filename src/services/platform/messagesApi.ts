@@ -1,5 +1,4 @@
 import { trpc } from '@/services/trpc';
-import { listRelationshipsForCoach } from './coachClientsApi';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
@@ -31,6 +30,11 @@ const BADGE_POLL_MS = 20_000;
  * giving up the bandwidth savings of `since` most of the time.
  */
 const FULL_REFRESH_EVERY = 4;
+
+/** True while the tab is hidden — every poll loop in this file skips its tick then, instead of burning battery/data on a screen nobody's looking at. */
+function isTabHidden(): boolean {
+  return typeof document !== 'undefined' && document.hidden;
+}
 
 /**
  * The backend's `POST /messages` (`SendBody`) has no `broadcast` field — only
@@ -70,6 +74,7 @@ export function subscribeMessages(
   const emit = () => cb(all.slice(Math.max(0, all.length - max)));
 
   const poll = async () => {
+    if (isTabHidden()) return;
     const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
     try {
       const page: MessagesPage = await trpc.messages.list.query(fullRefresh ? { clientId } : { clientId, since: cursor });
@@ -93,24 +98,55 @@ export function subscribeMessages(
 }
 
 /**
- * Send a message into a client's thread. The backend best-effort notifies the
- * recipient itself (see `POST /api/messages`) — no client-side follow-up needed.
+ * Send a message into a client's thread and return the SERVER-ASSIGNED
+ * message (with its real, stable `id`) — the caller reconciles its local
+ * optimistic/temp id against this, never against body-text matching. Pass
+ * `clientMsgId` (a client-generated id) to make retries idempotent: sending
+ * the same `clientMsgId` twice returns the already-inserted message instead
+ * of creating a duplicate. The backend best-effort notifies the recipient
+ * itself — no client-side follow-up needed.
  */
 export async function sendMessage(
   clientId: string,
   _from: { id: string; role: Role },
   body: string,
-  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment },
-): Promise<void> {
+  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment; clientMsgId?: string },
+): Promise<Message> {
   // `_from` is unused: the backend derives the sender's id + role from the
   // authenticated session, not the request body. Kept so this signature (and
   // every call site) doesn't need to change.
-  await trpc.messages.send.mutate({
+  const doc = await trpc.messages.send.mutate({
     clientId,
     text: body.trim(),
     ...(opts?.category ? { category: opts.category } : {}),
     ...(opts?.attachment ? { attachment: opts.attachment } : {}),
+    ...(opts?.clientMsgId ? { clientMsgId: opts.clientMsgId } : {}),
   });
+  return withBroadcastFlag(doc as Message);
+}
+
+/** Edit the sender's own message — server rejects past the 2-minute window or if the caller isn't the sender. */
+export async function editMessage(clientId: string, id: string, text: string): Promise<Message> {
+  const doc = await trpc.messages.edit.mutate({ clientId, id, text: text.trim() });
+  return withBroadcastFlag(doc as Message);
+}
+
+/** Soft-delete the sender's own message (tombstone) — same 2-minute/ownership enforcement as `editMessage`. */
+export async function deleteMessage(clientId: string, id: string): Promise<Message> {
+  const doc = await trpc.messages.delete.mutate({ clientId, id });
+  return withBroadcastFlag(doc as Message);
+}
+
+/** Set (or, with `value: null`, remove) the caller's own reaction on a message. Either thread member may react. */
+export async function reactToMessage(clientId: string, id: string, value: string | null): Promise<Message> {
+  const doc = await trpc.messages.react.mutate({ clientId, id, value: value as never });
+  return withBroadcastFlag(doc as Message);
+}
+
+/** One older page of a thread, strictly before `before` (epoch ms) — for "load older" above the live 200-message window. */
+export async function listOlderMessages(clientId: string, before: number): Promise<{ messages: Message[]; hasMore: boolean }> {
+  const page = await trpc.messages.list.query({ clientId, before });
+  return { messages: page.messages.map(withBroadcastFlag), hasMore: !!page.hasMore };
 }
 
 /** Mark messages from the OTHER party as seen (the reader just opened the thread). */
@@ -152,52 +188,79 @@ export function subscribeThreadMeta(clientId: string, cb: (meta: ThreadMeta) => 
   );
 }
 
-/** Active client ids for a coach (via `trpc.coachClients.list`, mirrors the old inlined Firestore query). */
-export async function coachClientIds(coachId: string): Promise<string[]> {
-  const rels = await listRelationshipsForCoach(coachId);
-  return rels.map((r) => r.clientId);
+export interface CoachThreadSummary {
+  clientId: string;
+  last: Message | null;
+  unreadForCoach: number;
+}
+
+/**
+ * Last message + unread-for-coach count across EVERY one of a coach's active
+ * threads, in a single request (`messages.coachThreadsSummary` computes it
+ * server-side with one aggregation). Backs both the inbox list's per-row
+ * previews and the coach's total-unread badge — previously each of those
+ * opened one polling subscription per client thread (fetching that thread's
+ * full 200-message history on every tick just to derive a count).
+ */
+export async function coachThreadsSummary(coachId: string): Promise<CoachThreadSummary[]> {
+  const rows = await trpc.messages.coachThreadsSummary.query({ coachId });
+  return rows.map((r) => ({ ...r, last: r.last ? withBroadcastFlag(r.last as Message) : null }));
+}
+
+// `subscribeCoachThreadsSummary` has 2+ independent subscribers per coach in
+// practice (the inbox list's own call + `useCoachMessageUnread`'s nav-badge
+// call, both wanting the same coachId) — without this, each opened its own
+// interval hitting the identical endpoint. Multiplexed by coachId so N
+// subscribers share ONE interval/request; the last fetch replays immediately
+// to a newly-added subscriber instead of it waiting a full tick.
+interface SummaryMuxEntry {
+  timer: ReturnType<typeof setInterval>;
+  listeners: Set<(rows: CoachThreadSummary[]) => void>;
+  lastRows: CoachThreadSummary[] | null;
+}
+const summaryMux = new Map<string, SummaryMuxEntry>();
+
+/** Polling version of `coachThreadsSummary` — one interval, one request per tick, shared across every subscriber for the same coach. */
+export function subscribeCoachThreadsSummary(coachId: string, cb: (rows: CoachThreadSummary[]) => void, intervalMs = BADGE_POLL_MS): () => void {
+  let entry = summaryMux.get(coachId);
+  if (!entry) {
+    const listeners = new Set<(rows: CoachThreadSummary[]) => void>();
+    const newEntry: SummaryMuxEntry = { listeners, lastRows: null, timer: null as unknown as ReturnType<typeof setInterval> };
+    const poll = async () => {
+      if (isTabHidden()) return;
+      try {
+        const rows = await coachThreadsSummary(coachId);
+        newEntry.lastRows = rows;
+        newEntry.listeners.forEach((l) => l(rows));
+      } catch {
+        // Transient network/API error — keep the last known state, retry next tick.
+      }
+    };
+    newEntry.timer = setInterval(() => void poll(), intervalMs);
+    entry = newEntry;
+    summaryMux.set(coachId, entry);
+    void poll();
+  }
+  entry.listeners.add(cb);
+  if (entry.lastRows) cb(entry.lastRows);
+  return () => {
+    entry!.listeners.delete(cb);
+    if (entry!.listeners.size === 0) {
+      clearInterval(entry!.timer);
+      summaryMux.delete(coachId);
+    }
+  };
 }
 
 /** Total unread messages addressed to the coach across all their client threads. */
 export async function coachUnreadCount(coachId: string): Promise<number> {
-  const ids = await coachClientIds(coachId);
-  const metas = await Promise.all(ids.map((id) => threadMeta(id)));
-  return metas.reduce((sum, m) => sum + m.unreadForCoach, 0);
+  const rows = await coachThreadsSummary(coachId);
+  return rows.reduce((sum, r) => sum + r.unreadForCoach, 0);
 }
 
-/**
- * Polling total of unread client→coach messages across all the coach's active
- * threads. Resolves the client set once, then keeps one poller per thread and
- * re-emits the live sum. Returns an unsubscribe that tears down every child.
- */
+/** Polling total of unread client→coach messages across all the coach's active threads. */
 export function subscribeCoachUnread(coachId: string, cb: (total: number) => void): () => void {
-  let cancelled = false;
-  const unsubs: Array<() => void> = [];
-  const byClient = new Map<string, number>();
-  const emit = () => cb(Array.from(byClient.values()).reduce((sum, n) => sum + n, 0));
-  coachClientIds(coachId)
-    .then((ids) => {
-      if (cancelled) return;
-      if (ids.length === 0) return emit();
-      for (const id of ids) {
-        unsubs.push(
-          subscribeMessages(
-            id,
-            (msgs) => {
-              byClient.set(id, msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length);
-              emit();
-            },
-            200,
-            BADGE_POLL_MS,
-          ),
-        );
-      }
-    })
-    .catch(() => undefined);
-  return () => {
-    cancelled = true;
-    unsubs.forEach((u) => u());
-  };
+  return subscribeCoachThreadsSummary(coachId, (rows) => cb(rows.reduce((sum, r) => sum + r.unreadForCoach, 0)));
 }
 
 /** Send a broadcast message to many clients' threads (announcement/offer/reminder/update). */

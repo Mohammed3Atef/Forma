@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useVideos } from '@/stores/videoStore';
 import { useWorkout } from '@/stores/workoutStore';
 import { TopBar } from '@/components/TopBar';
+import { useBack } from '@/hooks/useBack';
 import { parseVideoLinks, normaliseName, type VideoLinkRow } from '@/services/sheetParser';
 
 interface Match {
@@ -18,7 +18,7 @@ export function ImportData() {
   const setUrl = useVideos((s) => s.setUrl);
   const plan = useWorkout((s) => s.plan);
 
-  const navigate = useNavigate();
+  const goBack = useBack('/settings?tab=preferences');
   const [text, setText] = useState('');
   const [done, setDone] = useState(0);
 
@@ -64,7 +64,7 @@ export function ImportData() {
 
   return (
     <div className="anim-rise space-y-4">
-      <TopBar title={t('import.title')} eyebrow={t('settings.data')} onBack={() => navigate('/settings')} />
+      <TopBar title={t('import.title')} eyebrow={t('settings.data')} onBack={goBack} />
       <p className="text-sm text-earth-muted">{t('import.help')}</p>
 
       <textarea

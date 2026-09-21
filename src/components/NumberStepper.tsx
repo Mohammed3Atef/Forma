@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { HAPTIC, vibrate } from '@/lib/haptics';
 
@@ -26,6 +27,7 @@ export function NumberStepper({
   suffix,
   ariaLabel,
 }: NumberStepperProps) {
+  const { t } = useTranslation();
   const bump = (delta: number) => {
     vibrate(HAPTIC.tap);
     const base = value ?? 0;
@@ -39,7 +41,7 @@ export function NumberStepper({
         type="button"
         onClick={() => bump(-step)}
         className="flex h-11 w-10 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface-raised text-white transition-transform active:scale-90 active:bg-white/10"
-        aria-label="decrease"
+        aria-label={t('common.decrease')}
       >
         <Icon name="minus" size={18} />
       </button>
@@ -68,7 +70,7 @@ export function NumberStepper({
         type="button"
         onClick={() => bump(step)}
         className="flex h-11 w-10 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface-raised text-white transition-transform active:scale-90 active:bg-white/10"
-        aria-label="increase"
+        aria-label={t('common.increase')}
       >
         <Icon name="plus" size={18} />
       </button>

@@ -282,6 +282,41 @@ describe('client module — check-ins', () => {
     const list = await asClient.checkIns.list({ clientId: clientDoc._id });
     expect(list).toHaveLength(1);
   });
+
+  it('listForCoachClients returns latest+previous in one call for every active client, without a per-client fetch', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const clientA = await insertUser({ _id: 'client-a', role: 'client' });
+    const clientB = await insertUser({ _id: 'client-b', role: 'client' });
+    const unrelatedClient = await insertUser({ _id: 'client-unrelated', role: 'client' });
+    await assignCoach(coachDoc._id, clientA._id);
+    await assignCoach(coachDoc._id, clientB._id);
+    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    const asClientA = appRouter.createCaller(ctxFor(authedUser(clientA)));
+
+    // client A: an older reviewed week, then a newer submitted week (latest).
+    await asCoach.checkIns.request({ clientId: clientA._id, weekStart: '2026-08-25', weekEnd: '2026-08-31' });
+    await asClientA.checkIns.submit({ clientId: clientA._id, weekStart: '2026-08-25', currentWeight: 80 });
+    await asCoach.checkIns.review({ clientId: clientA._id, weekStart: '2026-08-25', feedback: 'Good week' });
+    await asCoach.checkIns.request({ clientId: clientA._id, weekStart: '2026-09-01', weekEnd: '2026-09-07' });
+    await asClientA.checkIns.submit({ clientId: clientA._id, weekStart: '2026-09-01', currentWeight: 79 });
+
+    // client B: only ever requested, never submitted.
+    await asCoach.checkIns.request({ clientId: clientB._id, weekStart: '2026-09-01', weekEnd: '2026-09-07' });
+
+    const summaries = await asCoach.checkIns.listForCoachClients({});
+    const byClient = new Map(summaries.map((s) => [s.clientId, s]));
+
+    expect(byClient.size).toBe(2); // never the unrelated client
+    expect(byClient.get(clientA._id)?.latest?.weekStart).toBe('2026-09-01');
+    expect(byClient.get(clientA._id)?.latest?.status).toBe('submitted');
+    expect(byClient.get(clientA._id)?.previous?.weekStart).toBe('2026-08-25'); // the reviewed week, not the requested-only one
+    expect(byClient.get(clientB._id)?.latest?.status).toBe('requested');
+    expect(byClient.get(clientB._id)?.previous).toBeNull(); // only one week exists at all
+
+    // a plain client (not this coach, no users.read) is forbidden
+    const asUnrelatedClient = appRouter.createCaller(ctxFor(authedUser(unrelatedClient)));
+    await expect(asUnrelatedClient.checkIns.listForCoachClients({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
 });
 
 describe('client module — measurements', () => {

@@ -65,6 +65,7 @@ function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalM
   const emit = () => cb(all.slice(0, max));
 
   const poll = async () => {
+    if (typeof document !== 'undefined' && document.hidden) return;
     const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
     try {
       const page: NotificationsPage = await trpc.notifications.list.query(fullRefresh ? undefined : { since: cursor });

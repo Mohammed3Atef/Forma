@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMeasurements } from '@/stores/measurementStore';
 import { useDay } from '@/stores/dayStore';
@@ -8,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { MeasurementForm, MEASUREMENT_KEYS as KEYS } from '@/components/MeasurementForm';
 import { EntityNotes } from '@/components/EntityNotes';
+import { useBack } from '@/hooks/useBack';
 import { shortDate } from '@/lib/utils';
 
 export function Measurements() {
@@ -45,11 +45,11 @@ export function Measurements() {
   const a = forDate(dateA);
   const b = forDate(dateB);
 
-  const navigate = useNavigate();
+  const goBack = useBack('/progress?tab=measure');
 
   return (
     <div className="anim-rise space-y-4">
-      <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
+      <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={goBack} />
 
       {/* Entry form for the selected day */}
       <MeasurementForm
@@ -72,7 +72,7 @@ export function Measurements() {
             </select>
           </div>
           <div className="overflow-hidden rounded-xl ring-1 ring-white/10" dir="ltr">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 bg-surface-raised px-3 py-2 text-[10px] uppercase text-slate-400">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 bg-surface-raised px-3 py-2 text-[10px] uppercase text-earth-muted">
               <span>{t('measure.part')}</span>
               <span className="w-12 text-right">A</span>
               <span className="w-12 text-right">B</span>
@@ -85,10 +85,10 @@ export function Measurements() {
               const delta = va != null && vb != null ? Math.round((vb - va) * 10) / 10 : null;
               return (
                 <div key={k} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 border-t border-white/5 px-3 py-2 text-sm">
-                  <span className="text-slate-300">{labelOf(k)}</span>
+                  <span className="text-earth-muted">{labelOf(k)}</span>
                   <span className="w-12 text-right tabular-nums">{va ?? '–'}</span>
                   <span className="w-12 text-right tabular-nums">{vb ?? '–'}</span>
-                  <span className={`w-14 text-right font-semibold tabular-nums ${delta == null ? 'text-slate-500' : delta > 0 ? 'text-brand-light' : delta < 0 ? 'text-warn' : 'text-slate-400'}`}>
+                  <span className={`w-14 text-right font-semibold tabular-nums ${delta == null ? 'text-earth-subtle' : delta > 0 ? 'text-brand-light' : delta < 0 ? 'text-warn' : 'text-earth-muted'}`}>
                     {delta == null ? '–' : `${delta > 0 ? '+' : ''}${delta}`}
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export function Measurements() {
             {logs.slice().reverse().map((l) => (
               <li key={l.id} className="flex items-start justify-between gap-2">
                 <span>{shortDate(l.date, i18n.language)}</span>
-                <span className="text-end text-slate-400" dir="ltr">
+                <span className="text-end text-earth-muted" dir="ltr">
                   {Object.keys(l.values).map((k) => `${labelOf(k)} ${l.values[k]}`).join(' · ') || '—'}
                 </span>
               </li>
@@ -116,7 +116,7 @@ export function Measurements() {
       )}
 
       {logs.length === 0 && (
-        <p className="flex items-center gap-2 text-sm text-slate-500">
+        <p className="flex items-center gap-2 text-sm text-earth-subtle">
           <Icon name="scale" size={16} /> {t('measure.empty')}
         </p>
       )}

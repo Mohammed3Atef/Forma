@@ -1,19 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { getClientCardioPlan, getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
 import { getClientAssessment } from '@/services/platform/coachApi';
 import { ClientActivityView } from '@/pages/coach/ClientActivityView';
 import { AssessmentView } from '@/components/AssessmentView';
 import { CoachTimeline } from '@/components/coach/CoachTimeline';
+import { useBack } from '@/hooks/useBack';
 
-/** Read-only client detail for admins/super-admins — plans + day-by-day logs. */
+/**
+ * Read-only client detail for admins/super-admins — plans + day-by-day logs.
+ * Entered from AdminAccounts, AdminMembers, or AdminSubscriptions (an
+ * expiring-client row); `useBack` prefers whichever of those the coach/admin
+ * actually came from, falling back to Accounts only for a direct deep link.
+ */
 export function AdminClientDetail() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { clientId = '' } = useParams();
+  const goBack = useBack('/admin/accounts');
 
   const user = useQuery({ queryKey: ['user', clientId], queryFn: () => fetchUser(clientId), enabled: !!clientId });
   const wPlan = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
@@ -31,20 +38,26 @@ export function AdminClientDetail() {
 
   return (
     <>
-      <TopBar title={name} eyebrow={t('admin.clientDetail')} onBack={() => navigate('/admin/accounts')} />
+      <TopBar title={user.isLoading ? t('common.loading') : name} eyebrow={t('admin.clientDetail')} onBack={goBack} />
 
       {/* Plan summary (read-only) */}
       <h2 className="h2 mb-2">{t('coach.plans')}</h2>
-      <div className="card mb-2 divide-y divide-line-soft">
-        {planRow(t('coach.kind.workout'), !!wPlan.data, wPlan.data?.name || t('coach.planEdit'))}
-        {planRow(t('coach.kind.nutrition'), !!mPlan.data, mPlan.data?.name || t('coach.planEdit'))}
-        {planRow(t('coach.kind.cardio'), !!cPlan.data, t('coach.sessionsCount', { n: cPlan.data?.sessions.length ?? 0 }))}
-      </div>
-      <div className="card mb-6 grid grid-cols-3 gap-3 text-center">
-        <Target label={t('nutrition.calories')} value={mPlan.data?.targets.calories} />
-        <Target label={t('nutrition.protein')} value={mPlan.data?.targets.protein} unit="g" />
-        <Target label={t('coach.water')} value={mPlan.data?.waterTargetMl} unit="ml" />
-      </div>
+      {wPlan.isLoading || mPlan.isLoading || cPlan.isLoading ? (
+        <LoadingState variant="list" count={3} className="mb-6" />
+      ) : (
+        <>
+          <div className="card mb-2 divide-y divide-line-soft">
+            {planRow(t('coach.kind.workout'), !!wPlan.data, wPlan.data?.name || t('coach.planEdit'))}
+            {planRow(t('coach.kind.nutrition'), !!mPlan.data, mPlan.data?.name || t('coach.planEdit'))}
+            {planRow(t('coach.kind.cardio'), !!cPlan.data, t('coach.sessionsCount', { n: cPlan.data?.sessions.length ?? 0 }))}
+          </div>
+          <div className="card mb-6 grid grid-cols-3 gap-3 text-center">
+            <Target label={t('nutrition.calories')} value={mPlan.data?.targets.calories} />
+            <Target label={t('nutrition.protein')} value={mPlan.data?.targets.protein} unit="g" />
+            <Target label={t('coach.water')} value={mPlan.data?.waterTargetMl} unit="ml" />
+          </div>
+        </>
+      )}
 
       <h2 className="h2 mb-2">{t('timeline.title')}</h2>
       <div className="mb-6">

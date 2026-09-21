@@ -95,6 +95,18 @@ export const transfersRouter = router({
       const outcome = input.action === 'accept' ? ('accepted' as const) : ('rejected' as const);
 
       if (outcome === 'accepted') {
+        // Mirror `coachClients.transfer`'s stricter fresh-start gate — the current
+        // coach accepting a request they didn't author must not be able to trigger
+        // a fresh-start (archive-everything) transfer merely because the REQUESTING
+        // coach set `mode: 'fresh_start'` at request-creation time. Only someone who
+        // actually holds `clients.writeAll` (super admin) may complete one, exactly
+        // as when an admin runs a transfer directly.
+        if (
+          reqDoc.mode === 'fresh_start' &&
+          !hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll')
+        ) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Only a super admin may complete a fresh-start transfer' });
+        }
         await transferClientWithMode(
           reqDoc.clientId,
           reqDoc.fromCoachId,

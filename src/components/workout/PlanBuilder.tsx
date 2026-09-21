@@ -3,15 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
+import { EmptyState as SharedEmptyState } from '@/components/ui/EmptyState';
 import { ExerciseForm } from './ExerciseForm';
 import { ExercisePickerSheet } from './ExercisePickerSheet';
 import { SECTION_KINDS, copyExercise } from '@/lib/workoutPresets';
 import { uid } from '@/lib/utils';
 import { warmupCountOf } from '@/stores/workoutStore';
-import { confirmDialog } from '@/stores/dialogStore';
+import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
 
 type View = { level: 'plan' } | { level: 'day'; dayId: string } | { level: 'section'; dayId: string; sectionId: string };
+type RowAction = { icon: 'plus' | 'close' | 'list'; label: string; onClick: () => void; danger?: boolean };
 
 function move<T>(arr: T[], idx: number, dir: -1 | 1): T[] {
   const j = idx + dir;
@@ -47,6 +50,10 @@ export function PlanBuilder({
   const [picker, setPicker] = useState<{ dayId: string; sectionId: string } | null>(null);
   const [editing, setEditing] = useState<{ exId: string } | null>(null);
   const [moving, setMoving] = useState<{ dayId: string; sectionId: string; exId: string } | null>(null);
+  // A single overflow sheet for secondary row actions (duplicate/delete/move) —
+  // keeps each row down to reorder arrows + one "more" trigger instead of a
+  // 4-5-icon cluster.
+  const [rowMenu, setRowMenu] = useState<{ title: string; actions: RowAction[] } | null>(null);
 
   // One-time migration: wrap legacy flat exerciseIds into a default section.
   const migrated = useRef(false);
@@ -104,9 +111,10 @@ export function PlanBuilder({
     mapDay(dayId, (d) => ({ ...d, sections: [...(d.sections ?? []), { id, title: '', kind: 'normal', exerciseIds: [] }] }));
     setView({ level: 'section', dayId, sectionId: id });
   };
-  const removeSection = (dayId: string, sectionId: string) => {
+  const removeSection = async (dayId: string, sectionId: string) => {
     const d = days.find((x) => x.id === dayId);
     const sec = d?.sections?.find((s) => s.id === sectionId);
+    if (!(await confirmDelete(sec?.title || t(`coachEditor.sectionKinds.${sec?.kind ?? 'normal'}`)))) return;
     const ex = { ...exercises };
     sec?.exerciseIds.forEach((id) => delete ex[id]);
     setDays(days.map((dd) => (dd.id === dayId ? syncDay({ ...dd, sections: (dd.sections ?? []).filter((s) => s.id !== sectionId) }) : dd)), ex);
@@ -126,10 +134,20 @@ export function PlanBuilder({
   };
 
   // ---- exercise ops ----
-  const addExercise = (dayId: string, sectionId: string, ex: Exercise) =>
-    setDays(days.map((d) => (d.id === dayId ? syncDay({ ...d, sections: (d.sections ?? []).map((s) => (s.id === sectionId ? { ...s, exerciseIds: [...s.exerciseIds, ex.id] } : s)) }) : d)), { ...exercises, [ex.id]: ex });
+  // Inserts N exercises into one section in a single onChange call (used by the
+  // multi-select picker) instead of N separate state updates.
+  const addExercises = (dayId: string, sectionId: string, exs: Exercise[]) => {
+    if (!exs.length) return;
+    const nextEx = { ...exercises };
+    exs.forEach((ex) => { nextEx[ex.id] = ex; });
+    setDays(
+      days.map((d) => (d.id === dayId ? syncDay({ ...d, sections: (d.sections ?? []).map((s) => (s.id === sectionId ? { ...s, exerciseIds: [...s.exerciseIds, ...exs.map((ex) => ex.id)] } : s)) }) : d)),
+      nextEx,
+    );
+  };
   const updateExercise = (ex: Exercise) => onChange(days, { ...exercises, [ex.id]: ex });
-  const removeExercise = (dayId: string, sectionId: string, exId: string) => {
+  const removeExercise = async (dayId: string, sectionId: string, exId: string) => {
+    if (!(await confirmDelete(exercises[exId]?.name))) return;
     const ex = { ...exercises };
     delete ex[exId];
     mapSectionEx(dayId, sectionId, (ids) => ids.filter((x) => x !== exId), ex);
@@ -156,12 +174,15 @@ export function PlanBuilder({
   }
 
   // ===================== RENDER =====================
+  const isDesktop = useIsDesktop();
   const day = view.level !== 'plan' ? days.find((d) => d.id === view.dayId) : undefined;
   const section = view.level === 'section' && day ? day.sections?.find((s) => s.id === view.sectionId) : undefined;
+  // On desktop the day list stays visible as a permanent left pane, so "back"
+  // from a day just clears the right-pane selection instead of leaving the list.
+  const backFromDay = () => setView({ level: 'plan' });
 
   // ---- Level 3: section ----
-  if (view.level === 'section' && day && section) {
-    return (
+  const sectionView = view.level === 'section' && day && section && (
       <div className="space-y-4" data-testid="builder-section">
         <button type="button" className="btn-ghost" onClick={() => setView({ level: 'day', dayId: day.id })}>
           <Icon name="chevronLeft" size={16} /> {day.title}
@@ -176,7 +197,7 @@ export function PlanBuilder({
         </div>
 
         {section.exerciseIds.length === 0 ? (
-          <EmptyState text={t('coachEditor.emptyExercises')} />
+          <EmptyState icon="dumbbell" text={t('coachEditor.emptyExercises')} />
         ) : (
           <div className="space-y-2">
             {section.exerciseIds.map((exId, i) => {
@@ -193,9 +214,18 @@ export function PlanBuilder({
                   <div className="flex shrink-0 items-center">
                     <IconBtn name="arrowUp" label={t('common.moveUp')} disabled={i === 0} onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, -1))} />
                     <IconBtn name="arrowUp" rotate label={t('common.moveDown')} onClick={() => mapSectionEx(day.id, section.id, (ids) => move(ids, i, 1))} disabled={i === section.exerciseIds.length - 1} />
-                    <IconBtn name="list" label={t('common.moveTo')} onClick={() => setMoving({ dayId: day.id, sectionId: section.id, exId })} />
-                    <IconBtn name="plus" label={t('common.duplicate')} onClick={() => duplicateExercise(day.id, section.id, exId)} />
-                    <IconBtn name="minus" danger label={t('common.delete')} onClick={() => removeExercise(day.id, section.id, exId)} />
+                    <IconBtn
+                      name="list"
+                      label={t('common.moreActions')}
+                      onClick={() => setRowMenu({
+                        title: ex.name || t('coachEditor.untitledExercise'),
+                        actions: [
+                          { icon: 'list', label: t('common.moveTo'), onClick: () => setMoving({ dayId: day.id, sectionId: section.id, exId }) },
+                          { icon: 'plus', label: t('common.duplicate'), onClick: () => duplicateExercise(day.id, section.id, exId) },
+                          { icon: 'close', label: t('common.delete'), danger: true, onClick: () => void removeExercise(day.id, section.id, exId) },
+                        ],
+                      })}
+                    />
                   </div>
                 </div>
               );
@@ -207,10 +237,10 @@ export function PlanBuilder({
           <Icon name="plus" size={16} /> {t('coachEditor.addExercise')}
         </button>
 
-        {picker && <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPick={(ex) => { addExercise(picker.dayId, picker.sectionId, ex); }} />}
+        {picker && <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPickMany={(exs) => addExercises(picker.dayId, picker.sectionId, exs)} />}
         <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachEditor.exercise')}>
           {editing && exercises[editing.exId] && (
-            <ExerciseForm initial={exercises[editing.exId]} onSave={(ex) => { updateExercise(ex); setEditing(null); }} />
+            <ExerciseForm initial={exercises[editing.exId]} onSave={(ex) => { updateExercise(ex); setEditing(null); }} coachId={coachId} />
           )}
         </Sheet>
         <Sheet open={!!moving} onClose={() => setMoving(null)} size="md" title={t('coachEditor.moveToSection')}>
@@ -227,27 +257,25 @@ export function PlanBuilder({
         </Sheet>
       </div>
     );
-  }
 
   // ---- Level 2: day ----
-  if (view.level === 'day' && day) {
-    const idx = days.findIndex((d) => d.id === day.id);
-    return (
+  const dayIdx = day ? days.findIndex((d) => d.id === day.id) : -1;
+  const dayView = view.level === 'day' && day && (
       <div className="space-y-4" data-testid="builder-day">
-        <button type="button" className="btn-ghost" onClick={() => setView({ level: 'plan' })}>
+        <button type="button" className="btn-ghost" onClick={backFromDay}>
           <Icon name="chevronLeft" size={16} /> {t('coachEditor.workoutTitle')}
         </button>
         <TextInput label={t('coachEditor.dayTitle')} data-testid="day-title" value={day.title} onChange={(e) => mapDay(day.id, (d) => ({ ...d, title: e.target.value }))} />
         <TextInput label={t('coachEditor.dayFocus')} data-testid="day-focus" value={day.focus} onChange={(e) => mapDay(day.id, (d) => ({ ...d, focus: e.target.value }))} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className="chip" onClick={() => duplicateDay(day.id)}>{t('coachEditor.duplicateDay')}</button>
-          <button type="button" className="chip" disabled={idx === 0} onClick={() => setDays(move(days, idx, -1))}>↑ {t('coachEditor.moveUp')}</button>
-          <button type="button" className="chip" disabled={idx === days.length - 1} onClick={() => setDays(move(days, idx, 1))}>↓ {t('coachEditor.moveDown')}</button>
+          <button type="button" className="chip" disabled={dayIdx === 0} onClick={() => setDays(move(days, dayIdx, -1))}>↑ {t('coachEditor.moveUp')}</button>
+          <button type="button" className="chip" disabled={dayIdx === days.length - 1} onClick={() => setDays(move(days, dayIdx, 1))}>↓ {t('coachEditor.moveDown')}</button>
           <button type="button" className="chip text-danger" onClick={() => void removeDay(day)}>{t('coachEditor.removeDay')}</button>
         </div>
 
         {(day.sections ?? []).length === 0 ? (
-          <EmptyState text={t('coachEditor.emptySections')} />
+          <EmptyState icon="list" text={t('coachEditor.emptySections')} />
         ) : (
           <div className="space-y-2">
             {(day.sections ?? []).map((s, i) => (
@@ -258,8 +286,17 @@ export function PlanBuilder({
                 </button>
                 <IconBtn name="arrowUp" label={t('common.moveUp')} disabled={i === 0} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, -1) }))} />
                 <IconBtn name="arrowUp" rotate label={t('common.moveDown')} disabled={i === (day.sections ?? []).length - 1} onClick={() => mapDay(day.id, (d) => ({ ...d, sections: move(d.sections ?? [], i, 1) }))} />
-                <IconBtn name="plus" label={t('common.duplicate')} onClick={() => duplicateSection(day.id, s.id)} />
-                <IconBtn name="minus" danger label={t('common.delete')} onClick={() => removeSection(day.id, s.id)} />
+                <IconBtn
+                  name="list"
+                  label={t('common.moreActions')}
+                  onClick={() => setRowMenu({
+                    title: s.title || t(`coachEditor.sectionKinds.${s.kind}`),
+                    actions: [
+                      { icon: 'plus', label: t('common.duplicate'), onClick: () => duplicateSection(day.id, s.id) },
+                      { icon: 'close', label: t('common.delete'), danger: true, onClick: () => void removeSection(day.id, s.id) },
+                    ],
+                  })}
+                />
                 <Icon name="chevron" size={16} className="text-earth-subtle" />
               </div>
             ))}
@@ -270,32 +307,83 @@ export function PlanBuilder({
         </button>
       </div>
     );
-  }
 
-  // ---- Level 1: plan overview ----
-  return (
+  // ---- Level 1: plan overview (day list) ----
+  const dayList = days.length === 0 ? (
+    <EmptyState icon="calendar" text={t('coachEditor.emptyDays')} />
+  ) : (
+    <div className="space-y-2">
+      {days.map((d) => (
+        <button
+          key={d.id}
+          type="button"
+          data-testid="builder-day-card"
+          className={`card-tap flex w-full items-center gap-3 text-start ${isDesktop && view.level !== 'plan' && day?.id === d.id ? 'border-brand/50 bg-brand/[0.06]' : ''}`}
+          onClick={() => setView({ level: 'day', dayId: d.id })}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{d.title}</span>
+            <span className="block truncate text-[12px] text-earth-subtle">
+              {d.focus ? `${d.focus} · ` : ''}{t('coachEditor.sectionCount', { n: (d.sections ?? []).length })} · {t('coachEditor.exerciseCount', { n: d.exerciseIds.length })}
+            </span>
+          </span>
+          <Icon name="chevron" size={18} className="text-earth-subtle" />
+        </button>
+      ))}
+    </div>
+  );
+  const planView = (
     <div className="space-y-4" data-testid="builder-plan">
       {header}
-      {days.length === 0 ? (
-        <EmptyState text={t('coachEditor.emptyDays')} />
-      ) : (
-        <div className="space-y-2">
-          {days.map((d) => (
-            <button key={d.id} type="button" data-testid="builder-day-card" className="card-tap flex w-full items-center gap-3 text-start" onClick={() => setView({ level: 'day', dayId: d.id })}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{d.title}</span>
-                <span className="block truncate text-[12px] text-earth-subtle">
-                  {d.focus ? `${d.focus} · ` : ''}{t('coachEditor.sectionCount', { n: (d.sections ?? []).length })} · {t('coachEditor.exerciseCount', { n: d.exerciseIds.length })}
-                </span>
-              </span>
-              <Icon name="chevron" size={18} className="text-earth-subtle" />
+      {dayList}
+      <button type="button" data-testid="builder-add-day" className="btn-ghost w-full" onClick={addDay}>
+        <Icon name="plus" size={16} /> {t('coachEditor.addDay')}
+      </button>
+    </div>
+  );
+
+  // Shared overflow-actions sheet — triggered from both the day-level section
+  // list and the section-level exercise list, so it's rendered once here
+  // rather than duplicated inside each view.
+  const rowMenuSheet = (
+    <Sheet open={!!rowMenu} onClose={() => setRowMenu(null)} size="sm" title={rowMenu?.title}>
+      {rowMenu && (
+        <div className="space-y-1">
+          {rowMenu.actions.map((a, i) => (
+            <button key={i} type="button" className={`row w-full text-start ${a.danger ? 'text-danger' : ''}`} onClick={() => { a.onClick(); setRowMenu(null); }}>
+              <Icon name={a.icon} size={18} />
+              <span className="min-w-0 flex-1">{a.label}</span>
             </button>
           ))}
         </div>
       )}
-      <button type="button" data-testid="builder-add-day" className="btn-ghost w-full" onClick={addDay}>
-        <Icon name="plus" size={16} /> {t('coachEditor.addDay')}
-      </button>
+    </Sheet>
+  );
+
+  // Mobile/tablet: exactly one level on screen at a time (unchanged drill-down).
+  if (!isDesktop) return <>{sectionView || dayView || planView}{rowMenuSheet}</>;
+
+  // Desktop: the day list stays visible as a permanent left pane (matches the
+  // design's builder split-view) while the right pane shows whichever day/
+  // section is selected — editing a plan no longer means losing the day list.
+  return (
+    <div className="flex flex-col gap-5 lg:flex-row" data-testid="builder-plan">
+      {rowMenuSheet}
+      <div className="w-full shrink-0 space-y-4 lg:w-72">
+        {header}
+        {dayList}
+        <button type="button" data-testid="builder-add-day" className="btn-ghost w-full" onClick={addDay}>
+          <Icon name="plus" size={16} /> {t('coachEditor.addDay')}
+        </button>
+      </div>
+      <div className="min-w-0 flex-1">
+        {sectionView || dayView || (
+          <div className="card flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-earth-subtle">
+            <Icon name="dumbbell" size={28} />
+            <p className="text-sm">{t('coachEditor.selectDayPrompt')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -308,6 +396,6 @@ function IconBtn({ name, label, onClick, disabled, danger, rotate }: { name: 'ar
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return <div className="card py-8 text-center text-sm text-earth-muted">{text}</div>;
+function EmptyState({ text, icon }: { text: string; icon: 'dumbbell' | 'list' | 'calendar' }) {
+  return <SharedEmptyState icon={icon} title={text} />;
 }

@@ -28,10 +28,11 @@ export interface MembersData {
  * Super-admin/admin member console aggregate: every user + (for clients) their
  * coach and Layer-B subscription, with join-date segments, a client-subscription
  * breakdown, and an "expiring within 7 days" list. Computed server-side by
- * `adminMembers.get`.
+ * `adminMembers.get`. `search` (name/email/phone) narrows `rows` server-side
+ * over the whole collection — the KPI totals stay based on the full set.
  */
-export async function fetchMembers(): Promise<MembersData> {
-  return trpc.adminMembers.get.query() as Promise<MembersData>;
+export async function fetchMembers(search?: string): Promise<MembersData> {
+  return trpc.adminMembers.get.query(search?.trim() ? { search: search.trim() } : undefined) as Promise<MembersData>;
 }
 
 export type MemberSegment = 'all' | 'week' | 'month' | 'older';

@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { Sheet } from '@/components/Sheet';
@@ -25,6 +27,7 @@ import {
   setRole,
 } from '@/services/platform/accountsApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { passwordError } from '@/lib/password';
 import type { AccountStatus, Role, UserRecord } from '@/types';
 
@@ -68,9 +71,51 @@ export function AdminAccounts() {
   const actorId = useSession((s) => s.account?.id ?? 'self');
   const canCreate = useCan('users.create');
 
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
+  // Filters live in the URL (replaced, not pushed) instead of component state,
+  // so a real browser/in-app back from an account's detail sheet — or from
+  // AdminClientDetail via the "view client" shortcut below — restores the
+  // exact search/role/status the admin had, instead of resetting to defaults
+  // (the previous local-`useState` version lost everything on remount).
+  const [params, setParams] = useSearchParams();
+  // react-router's `setSearchParams` memoizes its functional-updater support
+  // around the `searchParams` value from whichever render created THAT
+  // specific callback instance — it does NOT re-read the latest params at
+  // call time the way `useState`'s setter does. A ref kept fresh on every
+  // render is what a delayed write (the search debounce below) needs to
+  // merge against the CURRENT params instead of a stale snapshot — otherwise
+  // clicking a role/status chip during the debounce window gets silently
+  // overwritten the moment the debounced write lands (a real race, caught by
+  // an e2e test: type a search, immediately click a role chip, and the role
+  // param vanished a moment later).
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const debouncedSearch = params.get('q') ?? '';
+  const roleFilter = (params.get('role') as Role | null) ?? 'all';
+  const statusFilter = (params.get('status') as AccountStatus | null) ?? 'all';
+  const setRoleFilter = (r: Role | 'all') => {
+    const next = new URLSearchParams(paramsRef.current);
+    if (r === 'all') next.delete('role'); else next.set('role', r);
+    setParams(next, { replace: true });
+  };
+  const setStatusFilter = (s: AccountStatus | 'all') => {
+    const next = new URLSearchParams(paramsRef.current);
+    if (s === 'all') next.delete('status'); else next.set('status', s);
+    setParams(next, { replace: true });
+  };
+  // Typed instantly for a responsive input; only written to the URL (and thus
+  // to the actual server query) after a short pause, so keystrokes don't each
+  // trigger a fetch or a history replace.
+  const [search, setSearch] = useState(debouncedSearch);
+  useEffect(() => {
+    if (search.trim() === debouncedSearch) return;
+    const id = setTimeout(() => {
+      const next = new URLSearchParams(paramsRef.current);
+      if (search.trim()) next.set('q', search.trim()); else next.delete('q');
+      setParams(next, { replace: true });
+    }, 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
   useFullBleed();
   const online = useOnlineStatus();
   const [selected, setSelected] = useState<UserRecord | null>(null);
@@ -82,29 +127,38 @@ export function AdminAccounts() {
   // Clear any stale error from a previous account whenever the sheet's target changes.
   useEffect(() => setActionError(null), [selected?.id]);
 
+  // Role/status/search are all applied server-side — a different combination
+  // is a different query identity, so TanStack Query naturally resets
+  // pagination (fresh cursor, fresh pages) whenever a filter changes.
+  const filterKey = { role: roleFilter === 'all' ? undefined : roleFilter, status: statusFilter === 'all' ? undefined : statusFilter, search: debouncedSearch || undefined };
   const list = useInfiniteQuery({
-    queryKey: ['users'],
-    queryFn: ({ pageParam }) => fetchUsersPage(25, pageParam as string | null),
+    queryKey: ['users', filterKey],
+    queryFn: ({ pageParam }) => fetchUsersPage(25, pageParam as string | null, filterKey),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.cursor,
   });
 
-  const all = useMemo(() => list.data?.pages.flatMap((p) => p.users) ?? [], [list.data]);
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return all.filter((u) => {
-      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-      if (statusFilter !== 'all' && u.accountStatus !== statusFilter) return false;
-      if (!q) return true;
-      return u.email.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q) || (u.phone ?? '').includes(q);
-    });
-  }, [all, roleFilter, statusFilter, search]);
+  const filtered = useMemo(() => list.data?.pages.flatMap((p) => p.users) ?? [], [list.data]);
+
+  // A selection made under one filter view no longer maps cleanly onto a
+  // different one (the audit's "12 selected (4 in view)" bug) — clear it
+  // whenever the visible set's filter changes, matching a fresh view.
+  const clearSelection = sel.clear;
+  useEffect(() => { clearSelection(); }, [roleFilter, statusFilter, debouncedSearch, clearSelection]);
 
   const sentinel = useInfiniteScroll(() => void list.fetchNextPage(), !!list.hasNextPage && !list.isFetchingNextPage);
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['users'] });
     void qc.invalidateQueries({ queryKey: ['platformStats'] });
+    // This page edits accounts of ANY role, so a status/role change here can
+    // leave the other admin screens that cache their own projection of the
+    // SAME account showing a stale value: `usersByRole` (AdminAssignments'
+    // client/coach pickers), `coachAdmin` (AdminCoaches' status column),
+    // `adminMembers` (AdminMembers' subscription view).
+    void qc.invalidateQueries({ queryKey: ['usersByRole'] });
+    void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
+    void qc.invalidateQueries({ queryKey: ['adminMembers'] });
   };
 
   const statusMut = useMutation({
@@ -112,6 +166,7 @@ export function AdminAccounts() {
     onSuccess: () => {
       refresh();
       setSelected(null);
+      showToast({ title: t('common.saved'), variant: 'success' });
     },
     onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
@@ -120,6 +175,7 @@ export function AdminAccounts() {
     onSuccess: () => {
       refresh();
       setSelected(null);
+      showToast({ title: t('common.saved'), variant: 'success' });
     },
     onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
@@ -128,14 +184,16 @@ export function AdminAccounts() {
     onSuccess: () => {
       refresh();
       setSelected(null);
+      showToast({ title: t('common.removed'), variant: 'success' });
     },
     onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
   });
   const bulkStatusMut = useMutation({
     mutationFn: ({ targets, status }: { targets: UserRecord[]; status: AccountStatus }) => bulkSetAccountStatus(targets, status),
-    onSuccess: () => {
+    onSuccess: (result) => {
       refresh();
       sel.clear();
+      showToast({ title: t('common.bulk.done', { ok: result.ok }), variant: result.failed ? 'warning' : 'success' });
     },
     onError: (e, vars) =>
       void alertDialog({
@@ -238,13 +296,18 @@ export function AdminAccounts() {
       )}
 
       {list.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={6} />
       ) : filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('admin.noAccounts')}</p>
+        <EmptyState
+          icon="search"
+          title={t('admin.noAccounts')}
+          message={t('admin.noAccountsMessage')}
+          action={<button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}>{t('common.clearFilters')}</button>}
+        />
       ) : (
         <>
           <div className="hidden lg:block">
-            <DataTable testId="admin-accounts-table" columns={columns} rows={filtered} rowKey={(u) => u.id} onRowClick={setSelected} selectedKey={selected?.id ?? null} selection={tableSelection} empty={t('admin.noAccounts')} />
+            <DataTable testId="admin-accounts-table" columns={columns} rows={filtered} rowKey={(u) => u.id} onRowClick={setSelected} selectedKey={selected?.id ?? null} selection={tableSelection} empty={<span className="flex flex-col items-center gap-1 py-4"><span className="font-medium text-earth">{t('admin.noAccounts')}</span><span className="text-[13px] text-earth-subtle">{t('admin.noAccountsMessage')}</span></span>} />
           </div>
           <div className="card divide-y divide-line-soft lg:hidden">
           {filtered.map((u) => {
@@ -479,7 +542,10 @@ function CreateAccountForm({
         accountStatus: 'active',
         createdBy,
       }),
-    onSuccess: onDone,
+    onSuccess: () => {
+      showToast({ title: t('admin.createAccount'), variant: 'success' });
+      onDone();
+    },
     onError: (e) => setError(e instanceof Error ? e.message : 'Failed'),
   });
 

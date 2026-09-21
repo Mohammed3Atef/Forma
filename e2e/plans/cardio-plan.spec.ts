@@ -54,13 +54,18 @@ test.describe('Coach: build & assign cardio plan', () => {
     });
 
     // ---- 2. Edit session 1 in place (still the same mount, nothing saved yet) ----
+    // Desktop (this suite's default 1280px viewport): the editor is a
+    // persistent pane-b, not a dismissable sheet — it stays open showing the
+    // just-saved session (matches the Workout/Nutrition builders' split-pane
+    // behavior) instead of closing, so assert on its updated content rather
+    // than it disappearing.
     await page.getByText(/Treadmill · 40 min/).click();
     const editForm = page.getByTestId('cardio-session-form');
     await expect(editForm).toBeVisible();
     await editForm.getByTestId('sess-duration').fill('45');
     await editForm.getByTestId('sess-notes').fill('Incline 10%, pace 5.2 km/h. Keep heart rate in zone 2 (60-70% of max).');
     await editForm.getByTestId('sess-save').click();
-    await expect(editForm).not.toBeVisible();
+    await expect(page.getByText(/Treadmill · 45 min/)).toBeVisible();
 
     // ---- 3. Save as a new version (assigns to Mariam Adel + creates version 1) ----
     await saveAsNewVersion(page, 'Initial LISS + interval build — 45 min incline treadmill, 25 min intervals');

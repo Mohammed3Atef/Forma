@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
@@ -10,15 +10,10 @@ import { usePagination } from '@/hooks/usePagination';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchClientLogs, listMyClients } from '@/services/platform/coachApi';
-import type { UserRecord, WorkoutLog } from '@/types';
+import { listMyClients, listClientDashboardSummaries } from '@/services/platform/coachApi';
+import type { UserRecord } from '@/types';
 
 interface AdherenceRow { client: UserRecord; count: number }
-
-/** YYYY-MM-DD cutoff for "within the last N days". */
-function cutoff(days: number): string {
-  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
-}
 
 export function CoachAdherence() {
   useFullBleed();
@@ -29,26 +24,21 @@ export function CoachAdherence() {
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
   const list: UserRecord[] = clients.data ?? [];
 
-  const logs = useQueries({
-    queries: list.map((c) => ({
-      queryKey: ['clientLogs', c.id, 'workoutLogs'],
-      queryFn: () => fetchClientLogs<WorkoutLog>(c.id, 'workoutLogs', 30),
-      enabled: !!coachId,
-    })),
+  // One batched summary request for every client's workouts7d, instead of one
+  // `workoutLogs.list` request per client — see `dashboardSummaries`' doc
+  // comment (also shared by the coach dashboard and `CoachAssessments`).
+  const summaries = useQuery({
+    queryKey: ['coachDashboardSummaries', coachId],
+    queryFn: () => listClientDashboardSummaries(coachId!),
+    enabled: !!coachId,
   });
 
-  const since = cutoff(7);
-  const rows: AdherenceRow[] = useMemo(
-    () =>
-      list
-        .map((c, i) => {
-          const data = logs[i]?.data ?? [];
-          const count = data.filter((w) => w.finished && w.date >= since).length;
-          return { client: c, count };
-        })
-        .sort((a, b) => b.count - a.count),
-    [list, logs, since],
-  );
+  const rows: AdherenceRow[] = useMemo(() => {
+    const byClient = new Map((summaries.data ?? []).map((s) => [s.clientId, s]));
+    return list
+      .map((c) => ({ client: c, count: byClient.get(c.id)?.workouts7d ?? 0 }))
+      .sort((a, b) => b.count - a.count);
+  }, [list, summaries.data]);
   const max = Math.max(1, ...rows.map((r) => r.count));
   const pg = usePagination(rows, 25);
 

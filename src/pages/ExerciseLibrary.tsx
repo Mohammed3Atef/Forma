@@ -4,12 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { useWorkout } from '@/stores/workoutStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise } from '@/lib/calc';
+import { useBack } from '@/hooks/useBack';
 
 export function ExerciseLibrary() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useBack('/workout');
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
   const [search, setSearch] = useState('');
@@ -41,14 +45,21 @@ export function ExerciseLibrary() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [plan, search, cat, categoryOf]);
 
-  if (!plan) return <p className="pt-10 text-center text-earth-muted">{t('progress.noData')}</p>;
+  if (!plan) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('gt.exerciseLibrary')} onBack={goBack} />
+        <WaitingForCoach messageKey="clientCoach.waitingWorkout" />
+      </div>
+    );
+  }
 
   return (
     <div className="anim-rise">
       <TopBar
         title={t('gt.exerciseLibrary')}
         eyebrow={t('gt.movementsN', { n: Object.keys(plan.exercises).length })}
-        onBack={() => navigate('/settings')}
+        onBack={goBack}
       />
 
       <div className="relative mb-3">
@@ -66,22 +77,31 @@ export function ExerciseLibrary() {
         ))}
       </div>
 
-      <div>
-        {list.map((ex) => {
-          const pr = prs.get(ex.id);
-          return (
-            <button key={ex.id} type="button" onClick={() => navigate(`/workout/exercise/${ex.id}`)} className="row w-full text-start">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
-                <p className="font-mono text-[11.5px] text-earth-muted">{muscleLabel(ex.targetMuscle, t)}</p>
-              </div>
-              {pr && <span className="font-mono text-[12px] text-earth-muted">{pr.e1rm}{t('common.kg')}</span>}
-              <Icon name="chevron" size={16} className="text-earth-subtle" />
-            </button>
-          );
-        })}
-      </div>
+      {list.length === 0 ? (
+        <EmptyState
+          icon="search"
+          title={t('exerciseLibrary.noResultsTitle')}
+          message={t('exerciseLibrary.noResultsMessage')}
+          action={(search || cat !== 'All') ? <button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setCat('All'); }}>{t('common.clearFilters')}</button> : undefined}
+        />
+      ) : (
+        <div className="card divide-y divide-line-soft p-0">
+          {list.map((ex) => {
+            const pr = prs.get(ex.id);
+            return (
+              <button key={ex.id} type="button" onClick={() => navigate(`/workout/exercise/${ex.id}`)} className="rowline w-full text-start">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} />
+                <div className="grow min-w-0">
+                  <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
+                  <p className="font-mono text-[11.5px] text-earth-muted">{muscleLabel(ex.targetMuscle, t)}</p>
+                </div>
+                {pr && <span className="shrink-0 font-mono text-[12px] text-earth-muted">{pr.e1rm}{t('common.kg')}</span>}
+                <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

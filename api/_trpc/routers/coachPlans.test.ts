@@ -53,8 +53,13 @@ function ctxFor(user: AuthedUser | null): Context {
 
 const coach = authedUser({ _id: 'coach-1', role: 'coach' });
 const client = authedUser({ _id: 'client-1', role: 'client' });
-// super_admin carries users.manageStatus via ROLE_PERMISSIONS (plain admin also does — see rbac.ts).
+// Plain `admin` carries `users.manageStatus` (rbac.ts) but NOT the `super_admin`
+// role itself — `coachPlans.adminUpdate`/`coachPlanTiers.save`/the change-request
+// admin mutations are role-gated to `super_admin` specifically (tightened in the
+// Admin Ops Hardening pass to match the frontend, which already restricts these
+// screens to super_admin), so `admin` here is used to prove that gate holds.
 const admin = authedUser({ _id: 'admin-1', role: 'admin' });
+const superAdmin = authedUser({ _id: 'super-admin-1', role: 'super_admin' });
 
 describe('coachPlans router', () => {
   it('createTrial is idempotent and me reads it back', async () => {
@@ -89,29 +94,57 @@ describe('coachPlans router', () => {
     await expect(asCoach.coachPlans.me()).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('adminUpdate requires users.manageStatus and applies a tier change', async () => {
+  it('adminUpdate is super_admin-only (a plain admin is FORBIDDEN) and applies a tier change', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
 
     await expect(asCoach.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-
     const asAdmin = appRouter.createCaller(ctxFor(admin));
-    const updated = await asAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
+    await expect(asAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const updated = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
     expect(updated.plan).toBe('pro');
     expect(updated.maxClients).toBe(100); // derived from the built-in pro tier config
     expect(updated.history?.at(-1)).toMatchObject({ action: 'tier', detail: 'pro' });
   });
 
-  it('change-request lifecycle: submit, admin sees it pending, accept applies the tier', async () => {
+  it('re-sending the SAME tier (the renew/extend-trial mechanism) bumps endsAt but never clobbers a custom maxClients override', async () => {
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await asCoach.coachPlans.createTrial();
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+
+    // Move to 'pro' (100 clients by default), then give this coach a custom, non-default cap.
+    await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
+    const overridden = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, maxClients: 137 });
+    expect(overridden.maxClients).toBe(137);
+    const endsAtBefore = overridden.endsAt;
+
+    // Renew/Extend Trial re-send the coach's CURRENT tier purely to push endsAt
+    // forward — this must never reset maxClients back to the tier default.
+    const renewed = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
+    expect(renewed.maxClients).toBe(137); // preserved, not reset to pro's default of 100
+    expect(renewed.endsAt).toBeGreaterThan(endsAtBefore!);
+
+    // A genuine tier CHANGE still recomputes the cap from the new tier's default.
+    const changedTier = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'starter' });
+    expect(changedTier.maxClients).toBe(25); // starter's built-in default, not 137
+  });
+
+  it('change-request lifecycle is super_admin-only: submit, super admin sees it pending, accept applies the tier', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
     await asCoach.coachPlans.submitChangeRequest({ requestedTier: 'starter', reason: 'Need more clients' });
 
     const asAdmin = appRouter.createCaller(ctxFor(admin));
-    const pending = await asAdmin.coachPlans.listPendingChangeRequests();
+    await expect(asAdmin.coachPlans.listPendingChangeRequests()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asAdmin.coachPlans.resolveChangeRequest({ coachId: coach.id, decision: 'accepted' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const pending = await asSuperAdmin.coachPlans.listPendingChangeRequests();
     expect(pending.map((r) => r.coachId)).toEqual([coach.id]);
 
-    const resolved = await asAdmin.coachPlans.resolveChangeRequest({ coachId: coach.id, decision: 'accepted', adminNote: 'ok' });
+    const resolved = await asSuperAdmin.coachPlans.resolveChangeRequest({ coachId: coach.id, decision: 'accepted', adminNote: 'ok' });
     expect(resolved.status).toBe('accepted');
 
     const plan = await asCoach.coachPlans.me();
@@ -144,16 +177,18 @@ describe('coachPlanTiers router', () => {
     expect(tiers.length).toBeGreaterThan(0);
   });
 
-  it('save requires users.manageStatus, upserts a custom tier, and protects trial from archival', async () => {
+  it('save is super_admin-only (a plain admin is FORBIDDEN), upserts a custom tier, and protects trial from archival', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await expect(asCoach.coachPlanTiers.save({ key: 'custom', maxClients: 50, priceMonthly: 20 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-
     const asAdmin = appRouter.createCaller(ctxFor(admin));
-    const saved = await asAdmin.coachPlanTiers.save({ key: 'custom', label: 'Custom', maxClients: 50, priceMonthly: 20 });
+    await expect(asAdmin.coachPlanTiers.save({ key: 'custom', maxClients: 50, priceMonthly: 20 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const saved = await asSuperAdmin.coachPlanTiers.save({ key: 'custom', label: 'Custom', maxClients: 50, priceMonthly: 20 });
     expect(saved.key).toBe('custom');
     expect(saved.builtIn).toBe(false);
 
-    await expect(asAdmin.coachPlanTiers.save({ key: 'trial', maxClients: 0, priceMonthly: 0, archived: true })).rejects.toMatchObject({
+    await expect(asSuperAdmin.coachPlanTiers.save({ key: 'trial', maxClients: 0, priceMonthly: 0, archived: true })).rejects.toMatchObject({
       code: 'BAD_REQUEST',
     });
   });

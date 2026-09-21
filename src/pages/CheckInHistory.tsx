@@ -3,22 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Pill, type PillTone } from '@/components/ui/Pill';
+import { useBack } from '@/hooks/useBack';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns } from '@/services/platform/checkInApi';
 import { shortDate } from '@/lib/utils';
 import type { CheckInStatus } from '@/types';
 
-const PILL: Record<CheckInStatus, string> = {
-  requested: 'border-warn/50 text-warn',
-  submitted: 'border-brand/50 text-brand',
-  reviewed: 'border-success/50 text-success',
+const TONE: Record<CheckInStatus, PillTone> = {
+  requested: 'warn',
+  submitted: 'brand',
+  reviewed: 'ok',
 };
 
 /** Client's weekly check-in history (newest first); tap to open the full check-in. */
 export function CheckInHistory() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const goBack = useBack('/');
   const uid = useSession((s) => s.uid) ?? '';
   const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
   const q = useQuery({ queryKey: ['checkInsHistory', uid], queryFn: () => listCheckIns(uid), enabled });
@@ -26,12 +31,12 @@ export function CheckInHistory() {
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('checkin.history')} eyebrow={t('app.name')} onBack={() => navigate('/')} />
+      <TopBar title={t('checkin.history')} eyebrow={t('app.name')} onBack={goBack} />
 
       {q.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+        <LoadingState variant="list" count={3} />
       ) : items.length === 0 ? (
-        <p className="py-10 text-center text-sm text-earth-muted">{t('checkin.noCheckins')}</p>
+        <EmptyState icon="calendar" title={t('checkin.noCheckins')} />
       ) : (
         <div className="card divide-y divide-line-soft p-0">
           {items.map((c) => (
@@ -40,7 +45,7 @@ export function CheckInHistory() {
                 <span className="block font-medium">{shortDate(c.weekStart, i18n.language)} – {shortDate(c.weekEnd, i18n.language)}</span>
                 {c.currentWeight != null && <span className="block font-mono text-[12px] text-earth-subtle">{c.currentWeight} {t('common.kg')}</span>}
               </span>
-              <span className={`chip ${PILL[c.status]}`}>{t(`checkin.status.${c.status}`)}</span>
+              <Pill tone={TONE[c.status]}>{t(`checkin.status.${c.status}`)}</Pill>
               <Icon name="chevron" size={16} className="text-earth-subtle" />
             </button>
           ))}

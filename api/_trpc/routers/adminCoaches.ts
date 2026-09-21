@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, permissionProcedure } from '../trpc.js';
+import { router, roleProcedure } from '../trpc.js';
 import { usersCol } from '../../_lib/mongodb.js';
 import { toPublicUser, type PublicUser } from '../../_lib/types.js';
 import { coachClientsCol, coachPlansCol, coachPlanTiersCol } from '../../admin/_lib/db.js';
@@ -39,7 +39,16 @@ export interface CoachDetail {
 }
 
 export const adminCoachesRouter = router({
-  list: permissionProcedure('users.read').query(async (): Promise<CoachAdminData> => {
+  /**
+   * Super-admin-only: a full per-coach admin rollup (plan/tier/capacity/
+   * revenue for EVERY coach on the platform). Was gated on `users.read`,
+   * which even the `coach` role holds per `rbac.ts` — tightened to match the
+   * frontend, which already restricts the whole `AdminCoaches` page to
+   * super_admin.
+   */
+  list: roleProcedure('super_admin')
+    .input(z.object({ search: z.string().trim().max(200).optional() }).optional())
+    .query(async ({ input }): Promise<CoachAdminData> => {
     const users = await usersCol();
     const plansCol = await coachPlansCol();
     const relCol = await coachClientsCol();
@@ -92,9 +101,22 @@ export const adminCoachesRouter = router({
       }
     }
     const total = rows.length;
+    const recent = [...rows].sort((a, b) => b.coach.createdAt - a.coach.createdAt).slice(0, 6);
+    const top = [...rows].sort((a, b) => b.clientCount - a.clientCount).slice(0, 6);
+
+    // Search narrows only the `rows` the AdminCoaches list table renders — the
+    // KPI totals and the Overview dashboard's `recent`/`top` widgets above are
+    // already computed from the full, unfiltered set, so they never fluctuate
+    // as the admin types a search term. Runs server-side over every coach on
+    // the platform (not just whatever page/scroll position the client has
+    // loaded), same guarantee `adminUsers.list`'s search already gives.
+    const search = input?.search?.trim().toLowerCase();
+    const visibleRows = search
+      ? rows.filter((r) => r.coach.displayName?.toLowerCase().includes(search) || r.coach.email?.toLowerCase().includes(search))
+      : rows;
 
     return {
-      rows,
+      rows: visibleRows,
       totalCoaches: total,
       trialCoaches,
       activeCoaches,
@@ -103,13 +125,20 @@ export const adminCoachesRouter = router({
       totalClients,
       trackedRevenue,
       conversionRate: total ? Math.round((converted / total) * 100) : 0,
-      recent: [...rows].sort((a, b) => b.coach.createdAt - a.coach.createdAt).slice(0, 6),
-      top: [...rows].sort((a, b) => b.clientCount - a.clientCount).slice(0, 6),
+      recent,
+      top,
       tiers: allTiers.filter((t) => !t.archived),
     };
   }),
 
-  detail: permissionProcedure('users.read')
+  /**
+   * Super-admin-only single-coach detail. Also used as `getCoachPlan()`'s
+   * fallback when a super admin (not the coach themself) views another
+   * coach's plan — a coach reading their OWN plan always succeeds on
+   * `coachPlans.me` first and never reaches this fallback, so tightening
+   * this to super_admin doesn't affect a coach's own plan page.
+   */
+  detail: roleProcedure('super_admin')
     .input(z.object({ id: z.string().trim().min(1) }))
     .query(async ({ input }): Promise<CoachDetail> => {
       const users = await usersCol();

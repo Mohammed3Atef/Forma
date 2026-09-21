@@ -66,6 +66,9 @@ test.describe('Coach-to-coach transfer: pull request -> approve (releases) -> re
       const row = pageC.getByTestId('incoming-transfer-row').filter({ hasText: 'Rania Adel' });
       if (await row.count()) {
         await row.getByTestId('incoming-transfer-approve').click();
+        // Approving releases the client — it now asks for confirmation first.
+        await expect(pageC.getByTestId('confirm-dialog')).toBeVisible();
+        await pageC.getByTestId('confirm-accept').click();
         // The row clears once the approve mutation's onSuccess invalidates the
         // incoming-transfers query — a reload is a more robust wait than
         // trusting the exact refetch timing.
@@ -127,9 +130,12 @@ test.describe('Admin: Fresh Start transfer (archives + clears old coach content)
     await page.getByTestId('transfer-sub-keep').click();
     await page.getByTestId('transfer-next').click();
 
-    // Step 4: review + confirm.
+    // Step 4: review + confirm. Fresh Start now asks for an extra confirmation
+    // (it archives the client's plans/notes/messages/check-ins).
     await expect(page.getByTestId('transfer-review')).toBeVisible();
     await page.getByTestId('transfer-confirm').click();
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await page.getByTestId('confirm-accept').click();
     await expect(page.getByTestId('transfer-wizard')).not.toBeVisible({ timeout: 15_000 });
   });
 });

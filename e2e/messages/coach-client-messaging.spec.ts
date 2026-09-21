@@ -91,7 +91,7 @@ test.describe.serial('Coach A <-> client@forma.test (main QA thread)', () => {
       await coachPage.waitForLoadState('networkidle');
       const targetRow = coachPage.getByTestId('thread-row').filter({ hasText: 'grind' });
       await expect(targetRow).toBeVisible({ timeout: 15_000 });
-      const unreadBadge = targetRow.locator('span.bg-danger');
+      const unreadBadge = targetRow.getByTestId('thread-unread-badge');
       await expect(unreadBadge).toBeVisible({ timeout: 10_000 });
       console.log(`[coachA<->client] unread badge visible on inbox row before opening: "${await unreadBadge.innerText()}"`);
       await targetRow.click();
@@ -102,7 +102,7 @@ test.describe.serial('Coach A <-> client@forma.test (main QA thread)', () => {
       await coachPage.goto('/coach/messages');
       await coachPage.waitForLoadState('networkidle');
       const targetRow = coachPage.getByTestId('thread-row').filter({ hasText: 'grind' });
-      await expect(targetRow.locator('span.bg-danger')).not.toBeVisible({ timeout: 10_000 });
+      await expect(targetRow.getByTestId('thread-unread-badge')).not.toBeVisible({ timeout: 10_000 });
     });
 
     await test.step('coach continues the exchange; ordering is oldest -> newest', async () => {
@@ -141,6 +141,10 @@ test.describe.serial('Coach A <-> client@forma.test (main QA thread)', () => {
       if (await attachBtn.count()) {
         const fileInput = coachPage.locator('[data-testid="message-thread"] input[type="file"]');
         await fileInput.setInputFiles(TEST_PNG);
+        // Selecting a file now holds it in the composer preview instead of
+        // uploading immediately — confirm the preview, then Send.
+        await expect(coachPage.getByTestId('composer-attachment-preview')).toBeVisible({ timeout: 5_000 });
+        await coachPage.getByTestId('message-send').click();
         await expect(coachPage.locator('[data-testid="message-thread"] img').last()).toBeVisible({ timeout: 20_000 });
         console.log('[coachA<->client] image attachment sent and rendered.');
       } else {

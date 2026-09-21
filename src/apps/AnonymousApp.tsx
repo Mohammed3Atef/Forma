@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Login } from '@/pages/auth/Login';
 import { Landing } from '@/pages/marketing/Landing';
 import { AcceptInvite } from '@/pages/auth/AcceptInvite';
+import { ResetPassword } from '@/pages/auth/ResetPassword';
 
 // Code-split: the cinematic rebuild pulls in three.js, which no other route
 // needs — keep that weight out of everyone else's bundle.
@@ -36,6 +37,7 @@ export function AnonymousApp() {
       />
       <Route path="/login" element={<Login />} />
       <Route path="/invite/:code" element={<AcceptInvite />} />
+      <Route path="/reset/:token" element={<ResetPassword />} />
       <Route path="*" element={<Login />} />
     </Routes>
   );

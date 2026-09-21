@@ -37,8 +37,8 @@ export function PosePhotoPicker({ pose, folder, url, onChange }: { pose: 'front'
       <div className="flex items-center justify-between gap-3">
         <span className="font-medium">{t(`progress.${pose}`)}</span>
         <div className="flex items-center gap-2">
-          {url && <img src={url} alt={pose} className="h-12 w-9 rounded object-cover" />}
-          <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onFile(e)} />
+          {url && <img src={url} alt={pose} loading="lazy" className="h-12 w-9 rounded object-cover" />}
+          <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
           <button type="button" disabled={busy || !isBunnyConfigured()} className="chip disabled:opacity-40" onClick={() => ref.current?.click()}>
             {busy ? t('upload.uploading') : url ? t('upload.replace') : t('upload.addPhoto')}
           </button>

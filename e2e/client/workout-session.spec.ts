@@ -28,14 +28,16 @@ test('start, log, and finish a real workout session; verify it appears in Histor
   if (await resumeBtn.isVisible().catch(() => false)) {
     await resumeBtn.click();
   } else {
-    // Pick the first routine day and preview its Routine Detail view first.
-    const firstDay = page.locator('ul > li button').first();
-    await expect(firstDay).toBeVisible();
-    await firstDay.click();
-
-    // Routine Detail — preview before starting.
-    await expect(page.getByText(/exercises/i).first()).toBeVisible();
-    const startBtn = page.getByRole('button', { name: /start this workout/i });
+    // Train is an inline accordion now (not a separate Routine Detail page) —
+    // the "up next" day auto-expands. Fall back to opening the first day's
+    // header if nothing is expanded yet for some reason.
+    let startBtn = page.getByRole('button', { name: /start this workout/i });
+    if (!(await startBtn.isVisible().catch(() => false))) {
+      const firstDayHeader = page.locator('ul > li > button').first();
+      await expect(firstDayHeader).toBeVisible();
+      await firstDayHeader.click();
+      startBtn = page.getByRole('button', { name: /start this workout/i });
+    }
     await expect(startBtn).toBeVisible();
     await startBtn.click();
   }
@@ -49,6 +51,10 @@ test('start, log, and finish a real workout session; verify it appears in Histor
     console.log('[workout-session.spec] today\'s session was already finished — verified read-only view.');
     return;
   }
+
+  // Session is now a one-exercise-at-a-time stepper (matches the design) — the
+  // first exercise is shown by default, with an "Exercise 1 of N" label.
+  await expect(page.getByText(/^exercise 1 of \d+$/i)).toBeVisible();
 
   // Begin recording (starts the timer / marks the session as started).
   const startTimerBtn = page.getByRole('button', { name: /^start$/i });

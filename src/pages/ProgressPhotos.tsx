@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PhotoPose, ProgressPhoto } from '@/types';
-import { useNavigate } from 'react-router-dom';
 import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
-import { confirmDelete } from '@/stores/dialogStore';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { confirmDelete, alertDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { viewImages } from '@/stores/imageViewerStore';
+import { useBack } from '@/hooks/useBack';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -39,17 +41,23 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
   // Blob missing locally (e.g. record synced from another device) — neutral placeholder.
   if (missing) {
     return (
-      <div className={`flex flex-col items-center justify-center gap-1 bg-surface-raised text-slate-500 ${className}`}>
+      <div className={`flex flex-col items-center justify-center gap-1 bg-surface-raised text-earth-subtle ${className}`}>
         <Icon name="image" size={20} />
         <span className="text-[10px]">{t(`progress.${photo.pose}`)}</span>
       </div>
     );
   }
-  if (!src) return <div className={`animate-pulse bg-surface-raised ${className}`} />;
-  return <img src={src} alt={photo.pose} className={className} onClick={onView ? () => onView(src) : undefined} />;
+  if (!src) return <div className={`sk ${className}`} />;
+  return <img src={src} alt={photo.pose} loading="lazy" className={className} onClick={onView ? () => onView(src) : undefined} />;
 }
 
-export function ProgressPhotos() {
+/**
+ * The real content of the Progress Photos experience (capture, compare, dated
+ * gallery) — no header, so it can be embedded as the Progress screen's Photos
+ * tab (matching the prototype's 4-tab structure) as well as rendered as its
+ * own standalone page (`/progress/photos`, still a real deep-link target).
+ */
+export function ProgressPhotosBody() {
   const { t } = useTranslation();
   const photos = usePhotos((s) => s.photos);
   const load = usePhotos((s) => s.load);
@@ -57,7 +65,6 @@ export function ProgressPhotos() {
   const remove = usePhotos((s) => s.remove);
   const loaded = usePhotos((s) => s.loaded);
 
-  const navigate = useNavigate();
   const [pose, setPose] = useState<PhotoPose>('front');
   const [compare, setCompare] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -96,6 +103,9 @@ export function ProgressPhotos() {
     setBusy(true);
     try {
       await add(pose, file);
+      showToast({ title: t('common.saved'), variant: 'success' });
+    } catch {
+      await alertDialog({ title: t('progress.photos'), message: t('common.savedFailed') });
     } finally {
       setBusy(false);
     }
@@ -111,27 +121,25 @@ export function ProgressPhotos() {
   };
 
   return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={() => navigate('/progress')} />
-
+    <div className="space-y-4">
       {/* Capture */}
-      <div className="card">
+      <div className="card-featured">
         <div className="mb-3 flex gap-1.5">
           {POSES.map((p) => (
-            <button key={p} type="button" onClick={() => setPose(p)} className={`flex-1 py-2 ${pose === p ? 'chip chip-on' : 'chip'}`}>
+            <button key={p} type="button" onClick={() => setPose(p)} className={`chip flex-1 justify-center py-2 ${pose === p ? 'chip-on' : ''}`}>
               {t(`progress.${p}`)}
             </button>
           ))}
         </div>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
-        <p className="mb-2 text-xs text-slate-400">
+        <p className="mb-3 text-sm text-earth-muted">
           {t('progress.addPhoto')} — {t(`progress.${pose}`)}
         </p>
         <div className="flex gap-2">
-          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary btn-lg flex-1 disabled:opacity-40">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary flex-1 disabled:opacity-40">
             <Icon name="image" size={18} /> {t('progress.gallery')}
           </button>
-          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-ghost btn-lg flex-1 disabled:opacity-40">
+          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-secondary flex-1 disabled:opacity-40">
             <Icon name="camera" size={18} /> {t('progress.camera')}
           </button>
         </div>
@@ -139,7 +147,7 @@ export function ProgressPhotos() {
       </div>
 
       <button type="button" onClick={() => setCompare((v) => !v)} className="btn-ghost w-full" disabled={dates.length < 2}>
-        <Icon name="chart" size={18} /> {t('progress.compare')}
+        <Icon name="columns" size={18} /> {t('progress.compare')}
       </button>
 
       {/* Compare view */}
@@ -159,7 +167,7 @@ export function ProgressPhotos() {
             if (!a && !b) return null;
             return (
               <div key={p}>
-                <p className="mb-1 text-xs uppercase text-slate-400">{t(`progress.${p}`)}</p>
+                <p className="mb-1 text-xs uppercase text-earth-muted">{t(`progress.${p}`)}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
                   {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
@@ -173,13 +181,13 @@ export function ProgressPhotos() {
       {/* Gallery by date */}
       {byDate.map(([date, items]) => (
         <div key={date} className="card">
-          <h2 className="mb-2 font-bold">{date}</h2>
+          <p className="ui-label mb-2">{date}</p>
           <div className="grid grid-cols-3 gap-2">
             {items.map((ph) => (
               <div key={ph.id} className="relative">
                 <PhotoImg photo={ph} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} />
                 <span className="absolute bottom-1 start-1 rounded bg-black/60 px-1 text-[10px]">{t(`progress.${ph.pose}`)}</span>
-                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger">
+                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger" aria-label={t('common.delete')}>
                   <Icon name="close" size={14} />
                 </button>
               </div>
@@ -191,7 +199,19 @@ export function ProgressPhotos() {
         </div>
       ))}
 
-      {byDate.length === 0 && <p className="text-sm text-slate-500">{t('progress.noData')}</p>}
+      {byDate.length === 0 && <EmptyState icon="camera" title={t('progressPhotos.emptyTitle')} message={t('progressPhotos.emptyMessage')} />}
+    </div>
+  );
+}
+
+/** Standalone page wrapper (deep-linkable at `/progress/photos`). */
+export function ProgressPhotos() {
+  const { t } = useTranslation();
+  const goBack = useBack('/progress?tab=photos');
+  return (
+    <div className="anim-rise space-y-4">
+      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={goBack} />
+      <ProgressPhotosBody />
     </div>
   );
 }

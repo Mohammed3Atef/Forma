@@ -65,6 +65,9 @@ export function Hero() {
               width={1536}
               height={1024}
               decoding="async"
+              // This is the page's LCP element — hint the browser to fetch it
+              // ahead of lower-priority assets instead of at default priority.
+              fetchPriority="high"
               className="block w-full"
             />
           </div>

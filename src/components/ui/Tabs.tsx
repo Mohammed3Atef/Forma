@@ -29,25 +29,23 @@ export function useTabParam(param = 'tab', fallback = ''): [string, (key: string
 
 /**
  * Premium segmented tab bar. Scrolls horizontally on mobile, never overflows.
- * Accessible: role="tablist"/"tab" + aria-selected. Copper active by default;
- * pass accent="system" for the cooler admin tone.
+ * Accessible: role="tablist"/"tab" + aria-selected. One brand system everywhere
+ * (admin no longer gets a separate cool accent — see Forma design system v2).
  */
 export function Tabs({
   tabs,
   active,
   onChange,
   testIdPrefix,
-  accent = 'brand',
   className = '',
 }: {
   tabs: TabDef[];
   active: string;
   onChange: (key: string) => void;
   testIdPrefix?: string;
-  accent?: 'brand' | 'system';
   className?: string;
 }) {
-  const onColor = accent === 'system' ? 'bg-system text-white' : 'bg-brand text-white';
+  const onColor = 'bg-gradient-brand text-brand-ink';
   return (
     <div
       role="tablist"

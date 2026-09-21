@@ -16,7 +16,8 @@ export function OfflineBanner() {
     <div
       role="status"
       data-testid="offline-banner"
-      className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-2 bg-warn px-4 py-1.5 text-center text-[12px] font-medium text-black">
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-2 bg-warn px-4 py-1.5 text-center text-[12px] font-medium text-black"
+      style={{ paddingTop: 'calc(0.375rem + env(safe-area-inset-top))' }}>
       <Icon name="info" size={14} className="shrink-0" />
       <span>{t('offline.banner')}</span>
     </div>

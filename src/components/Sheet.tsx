@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 
 export type SheetSize = 'sm' | 'md' | 'lg' | 'xl' | 'wizard';
@@ -44,7 +45,10 @@ const SIZE_MD: Record<SheetSize, string> = {
  * ancestor establishes a containing block (e.g. a transformed page wrapper).
  */
 export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, footer, children }: SheetProps) {
+  const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   // Keep the latest onClose in a ref so the effect below depends ONLY on
   // `open`. Depending on `onClose` (usually an inline arrow, new identity on
@@ -53,12 +57,29 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Accessibility: Escape closes, body scroll is locked, and the sheet takes
-  // focus once, when it opens.
+  // Accessibility: Escape closes, Tab/Shift+Tab stay inside the sheet, body
+  // scroll is locked, the sheet takes focus once when it opens, and focus
+  // returns to whatever triggered it once it closes.
   useEffect(() => {
     if (!open) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
@@ -67,6 +88,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      restoreFocusRef.current?.focus();
     };
   }, [open]);
 
@@ -77,6 +99,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
       className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
       data-testid="sheet">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm anim-fade" onClick={onClose} />
       <div
@@ -84,18 +107,18 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
         tabIndex={-1}
         data-testid="sheet-panel"
         data-sheet-size={size}
-        className={`relative flex max-h-[88%] w-full max-w-md flex-col overflow-hidden rounded-t-sheet border-t border-line bg-[#0c0c0c] shadow-deep [animation:sheetRise_0.35s_var(--ease-card)] motion-reduce:animate-none focus:outline-none md:max-h-[85vh] md:rounded-2xl md:border ${SIZE_MD[size]}`}>
+        className={`relative flex max-h-[88%] w-full max-w-md flex-col overflow-hidden rounded-t-sheet border-t border-line bg-surface-card shadow-deep [animation:sheetRise_0.35s_var(--ease-card)] motion-reduce:animate-none focus:outline-none md:max-h-[85vh] md:rounded-2xl md:border ${SIZE_MD[size]}`}>
         {/* Grab handle — mobile bottom-sheet affordance only. */}
         <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-white/20 md:hidden" />
         {hasHeader && (
           <div className="flex shrink-0 items-center gap-2 px-5 pb-3 pt-3 md:px-6 md:pt-5">
             {onBack && (
-              <button type="button" onClick={onBack} className="icon-btn h-9 w-9" aria-label="back" data-testid={backTestId}>
+              <button type="button" onClick={onBack} className="icon-btn h-9 w-9" aria-label={t('common.back')} data-testid={backTestId}>
                 <Icon name="chevron" size={18} className="rotate-180 rtl:rotate-0" />
               </button>
             )}
-            {title && <h2 className="h2 min-w-0 flex-1 truncate">{title}</h2>}
-            <button type="button" onClick={onClose} data-testid="sheet-close" className="icon-btn ms-auto h-9 w-9" aria-label="close">
+            {title && <h2 id={titleId} className="h2 min-w-0 flex-1 truncate">{title}</h2>}
+            <button type="button" onClick={onClose} data-testid="sheet-close" className="icon-btn ms-auto h-9 w-9" aria-label={t('common.close')}>
               <Icon name="close" size={18} />
             </button>
           </div>
@@ -103,7 +126,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
         <div className={`min-h-0 flex-1 overflow-y-auto px-5 pb-8 md:px-6 md:pb-6 ${hasHeader ? '' : 'pt-2 md:pt-5'}`}>
           {children}
         </div>
-        {footer && <div className="shrink-0 border-t border-line bg-[#0c0c0c] px-5 py-4 md:px-6">{footer}</div>}
+        {footer && <div className="shrink-0 border-t border-line bg-surface-card px-5 py-4 md:px-6">{footer}</div>}
       </div>
     </div>,
     document.body,

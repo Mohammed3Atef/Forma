@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, roleProcedure, roleProcedureNoActive, permissionProcedure } from '../trpc.js';
+import { router, roleProcedure, roleProcedureNoActive } from '../trpc.js';
 import {
   DAY_MS,
   PAID_TERM_DAYS,
@@ -48,8 +48,15 @@ export const coachPlansRouter = router({
     return toPublicCoachPlan(doc);
   }),
 
-  /** Admin-only manual override of a coach's plan (tier and/or status and/or maxClients and/or endsAt). */
-  adminUpdate: permissionProcedure('users.manageStatus')
+  /**
+   * Super-admin-only manual override of a coach's plan (tier/status/maxClients/
+   * endsAt). Was gated on `users.manageStatus` (held by plain `admin` too) while
+   * the entire frontend UI for this — AdminCoachDetail, AdminPlans — is
+   * super_admin-only; tightened to match, since this can rewrite any coach's
+   * SaaS plan/limits and a plain admin calling it directly would otherwise
+   * bypass the UI's own intended boundary.
+   */
+  adminUpdate: roleProcedure('super_admin')
     .input(
       z
         .object({
@@ -78,13 +85,18 @@ export const coachPlansRouter = router({
         history.push({ at: now, action: 'tier', detail: input.tier, by: ctx.user.id });
       }
 
+      // Renew/Extend Trial (AdminCoachDetail) re-send the coach's CURRENT tier
+      // purely to push `endsAt` forward (see the tier block above) — that must
+      // never silently reset a coach's custom `maxClients` override back to
+      // the tier's default. Only a genuine tier CHANGE recomputes the cap.
+      const tierActuallyChanged = input.tier !== undefined && input.tier !== existing.plan;
       if (input.maxClients !== undefined) {
         const n = Math.max(0, Math.floor(input.maxClients));
         set.maxClients = n;
         history.push({ at: now, action: 'maxClients', detail: String(n), by: ctx.user.id });
-      } else if (input.tier !== undefined) {
-        const tierCfg = await getTier(input.tier);
-        set.maxClients = tierCfg?.maxClients ?? COACH_PLAN_TIERS[input.tier]?.maxClients ?? TRIAL_MAX_CLIENTS;
+      } else if (tierActuallyChanged) {
+        const tierCfg = await getTier(input.tier!);
+        set.maxClients = tierCfg?.maxClients ?? COACH_PLAN_TIERS[input.tier!]?.maxClients ?? TRIAL_MAX_CLIENTS;
       }
 
       if (input.status !== undefined) {
@@ -146,15 +158,15 @@ export const coachPlansRouter = router({
     return toPublicChangeRequest(updated!);
   }),
 
-  /** Admin: every pending plan-change request across all coaches. */
-  listPendingChangeRequests: permissionProcedure('users.manageStatus').query(async () => {
+  /** Super admin: every pending plan-change request across all coaches. */
+  listPendingChangeRequests: roleProcedure('super_admin').query(async () => {
     const reqs = await coachPlanChangeRequestsCol();
     const pending = await reqs.find({ status: 'pending' }).toArray();
     return pending.map(toPublicChangeRequest);
   }),
 
-  /** Admin: accept/reject a coach's plan-change request. Accepting applies the requested tier/cap. */
-  resolveChangeRequest: permissionProcedure('users.manageStatus')
+  /** Super admin: accept/reject a coach's plan-change request. Accepting applies the requested tier/cap. */
+  resolveChangeRequest: roleProcedure('super_admin')
     .input(z.object({ coachId: z.string().min(1), decision: z.enum(['accepted', 'rejected']), adminNote: z.string().trim().max(2000).optional() }))
     .mutation(async ({ ctx, input }) => {
       const reqsCol = await coachPlanChangeRequestsCol();
@@ -201,8 +213,8 @@ export const coachPlansRouter = router({
       return toPublicChangeRequest(updated!);
     }),
 
-  /** Admin: clear/dismiss a coach's plan-change request doc outright (not currently called by the frontend; kept for parity with the old REST route). */
-  dismissChangeRequest: permissionProcedure('users.manageStatus')
+  /** Super admin: clear/dismiss a coach's plan-change request doc outright (not currently called by the frontend; kept for parity with the old REST route). */
+  dismissChangeRequest: roleProcedure('super_admin')
     .input(z.object({ coachId: z.string().min(1) }))
     .mutation(async ({ input }) => {
       const reqsCol = await coachPlanChangeRequestsCol();

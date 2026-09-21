@@ -115,7 +115,7 @@ export function AcceptInvite() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12" data-testid="accept-invite">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <img src="/Forma-logo.png" alt="Forma" className="mx-auto w-48 max-w-[56%] rounded-2xl" />
+        <img src="/Forma-logo.png" alt="Forma" width={1536} height={1024} className="mx-auto w-48 max-w-[56%] rounded-2xl" />
 
         {phase === 'loading' && <p className="text-center text-sm text-earth-muted">{t('auth.working')}</p>}
 

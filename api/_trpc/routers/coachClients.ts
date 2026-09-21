@@ -5,6 +5,19 @@ import { hasPermission } from '../../_lib/rbac.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
 import { assignExistingClient, endRelationship, transferClientWithMode, updateSubscription, type SubscriptionAction } from '../../coach-clients/_service.js';
 import type { ClientSubscriptionInput } from '../../coach-clients/_types.js';
+import { usersCol } from '../../_lib/mongodb.js';
+import { toPublicUser } from '../../_lib/types.js';
+import { syncRecordsCol } from '../../sync/_data.js';
+import { clientProfilesCol, checkInsCol } from '../../client/_lib/db.js';
+import type { ClientAssessmentFields } from '../../client/_lib/types.js';
+
+/** Mirrors `assessmentStatus()` in `src/lib/assessment.ts` — keep in sync. */
+function assessmentStatusOf(a: ClientAssessmentFields | undefined): 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review' {
+  if (!a) return 'not_started';
+  return a.status ?? (a.completed ? 'submitted' : 'in_progress');
+}
+
+const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
@@ -89,6 +102,88 @@ export const coachClientsRouter = router({
         return col.find({ clientId: ctx.user.id }).sort({ createdAt: -1 }).toArray();
       }
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'coachId or clientId is required' });
+    }),
+
+  /**
+   * A coach's client roster with user profiles already joined — one round trip
+   * instead of the relationship list plus one `adminUsers.get` per client
+   * (`listMyClients` in `coachApi.ts` used to do exactly that N+1). Same
+   * authorization as `list`'s `coachId` branch: self, or an admin with
+   * `users.read`.
+   */
+  listMyClientUsers: authedProcedure
+    .input(z.object({ coachId: z.string().trim().min(1).optional() }))
+    .query(async ({ ctx, input }) => {
+      const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
+      const coachId = input.coachId ?? ctx.user.id;
+      if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
+      const col = await coachClientsCol();
+      const rels = await col.find({ coachId, status: 'active' }).sort({ createdAt: -1 }).toArray();
+      if (rels.length === 0) return [];
+      const clientIds = [...new Set(rels.map((r) => r.clientId))];
+      const users = await usersCol();
+      const docs = await users.find({ _id: { $in: clientIds } }).toArray();
+      const byId = new Map(docs.map((d) => [d._id, toPublicUser(d)]));
+      // Preserve relationship order (newest-assigned first) and drop any client
+      // whose user record has since been removed rather than erroring.
+      return rels.map((r) => byId.get(r.clientId)).filter((u): u is NonNullable<typeof u> => !!u);
+    }),
+
+  /**
+   * Per-client dashboard summary (workouts in the last 7 days, latest finished
+   * activity date, assessment status, submitted-check-in flag) for every one of
+   * a coach's active clients, in three bounded queries total — no matter how
+   * many clients. Replaces what used to be three per-client reads
+   * (`workoutLogs.list` + `assessment.get` + `checkIns.list`) fanned out over
+   * every client. Feeds the coach dashboard AND `CoachAdherence` (workouts7d)
+   * AND `CoachAssessments` (assessment) — one summary, three screens, per the
+   * performance closeout's "don't build three near-identical endpoints" ask.
+   * Same authorization as `listMyClientUsers`.
+   */
+  dashboardSummaries: authedProcedure
+    .input(z.object({ coachId: z.string().trim().min(1).optional() }))
+    .query(async ({ ctx, input }) => {
+      const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
+      const coachId = input.coachId ?? ctx.user.id;
+      if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
+      const relCol = await coachClientsCol();
+      const rels = await relCol.find({ coachId, status: 'active' }).toArray();
+      const clientIds = [...new Set(rels.map((r) => r.clientId))];
+      if (clientIds.length === 0) return [];
+
+      const since = cutoff(7);
+      const syncCol = await syncRecordsCol();
+      const profilesCol = await clientProfilesCol();
+      const checkinsCol = await checkInsCol();
+
+      const [workoutRows, profileDocs, submittedClientIds] = await Promise.all([
+        syncCol
+          .aggregate<{ _id: string; workouts7d: number; lastActivity: string | null }>([
+            { $match: { clientId: { $in: clientIds }, collection: 'workoutLogs', 'data.finished': true } },
+            { $group: { _id: '$clientId', workouts7d: { $sum: { $cond: [{ $gte: ['$data.date', since] }, 1, 0] } }, lastActivity: { $max: '$data.date' } } },
+          ])
+          .toArray(),
+        profilesCol.find({ _id: { $in: clientIds } }).toArray(),
+        checkinsCol.distinct('clientId', { clientId: { $in: clientIds }, status: 'submitted' }),
+      ]);
+
+      const workoutByClient = new Map(workoutRows.map((r) => [r._id, r]));
+      const profileByClient = new Map(profileDocs.map((d) => [d.clientId, d]));
+      const toReviewSet = new Set(submittedClientIds);
+
+      return clientIds.map((clientId) => {
+        const w = workoutByClient.get(clientId);
+        const profile = profileByClient.get(clientId);
+        const fullName = profile?.assessment?.basic?.fullName?.trim() || null;
+        return {
+          clientId,
+          workouts7d: w?.workouts7d ?? 0,
+          lastActivity: w?.lastActivity ?? null,
+          assessment: assessmentStatusOf(profile?.assessment),
+          fullName,
+          toReview: toReviewSet.has(clientId),
+        };
+      });
     }),
 
   get: authedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {

@@ -4,19 +4,15 @@ import { DashboardSection } from '@/components/ui/DashboardSection';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { MobileCardList } from '@/components/ui/MobileCardList';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { BarChart } from '@/components/charts';
+import { DonutChart } from '@/components/charts';
 import { shortDate } from '@/lib/utils';
+import { colors } from '@/theme/colors';
 import type { CoachDashboard, RenewalEntry } from '@/services/platform/coachDashboardApi';
 
 export function AnalyticsPanel({ d }: { d: CoachDashboard }) {
   const { t, i18n } = useTranslation();
   const cur = d.currency;
   const fmt = (ms: number) => shortDate(new Date(ms).toISOString().slice(0, 10), i18n.language);
-  const growth = [
-    { label: t('coachDash.today'), value: d.newToday },
-    { label: t('coachDash.thisWeek'), value: d.newWeek },
-    { label: t('coachDash.thisMonth'), value: d.newMonth },
-  ];
 
   const renewalCols: Column<RenewalEntry>[] = [
     { key: 'name', header: t('coach.clients'), cell: (r) => <span className="truncate font-medium">{r.name}</span> },
@@ -67,6 +63,24 @@ export function AnalyticsPanel({ d }: { d: CoachDashboard }) {
       </DashboardSection>
 
       <DashboardSection title={t('coachDash.subscriptions')} icon="user">
+        {/* Composition-at-a-glance alongside the exact counts below — a donut
+            fits a status breakdown better than 6 flat tiles (same real data,
+            `d.subs`, not a new metric); the tiles stay for exact per-status
+            numbers, which matter more here than the shape of the split. */}
+        <div className="mb-4 flex justify-center">
+          <DonutChart
+            data={[
+              { label: t('subscription.status.trial'), value: d.subs.trial, color: colors.info },
+              { label: t('subscription.status.active'), value: d.subs.active, color: colors.success },
+              { label: t('subscription.status.pending'), value: d.subs.pending, color: colors.warning },
+              { label: t('subscription.status.expired'), value: d.subs.expired, color: colors.danger },
+              { label: t('subscription.status.frozen'), value: d.subs.frozen, color: colors.violet },
+              { label: t('subscription.status.cancelled'), value: d.subs.cancelled, color: colors.textMuted },
+            ]}
+            centerLabel={t('coachDash.subscriptions')}
+            emptyLabel={t('progress.noData')}
+          />
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <MetricCard icon="timer" value={d.subs.trial} label={t('subscription.status.trial')} />
           <MetricCard icon="check" value={d.subs.active} label={t('subscription.status.active')} tone="brand" />
@@ -77,17 +91,16 @@ export function AnalyticsPanel({ d }: { d: CoachDashboard }) {
         </div>
       </DashboardSection>
 
+      {/* The Today/Week/Month bar chart that used to sit here plotted nested,
+          overlapping windows (every "today" signup is also inside "this week"
+          and "this month") as if they were independent comparable periods —
+          removed as misleading rather than fixed with fabricated data; these
+          3 cards are the real, correctly-scoped numbers. */}
       <DashboardSection title={t('coachDash.growth')} icon="activity">
-        <div className="grid gap-3 lg:grid-cols-[1fr_1.4fr]">
-          <div className="grid grid-cols-3 gap-3">
-            <MetricCard icon="plus" value={d.newMonth} label={t('coachDash.newClients')} hint={t('coachDash.newHint', { today: d.newToday, week: d.newWeek })} />
-            <MetricCard icon="target" value={`${d.retention.d30}%`} label={t('coachDash.retention')} hint={`7d ${d.retention.d7}% · 90d ${d.retention.d90}%`} tone="brand" />
-            <MetricCard icon="activity" value={`${d.churn.d30}%`} label={t('coachDash.churn')} hint={`7d ${d.churn.d7}% · 90d ${d.churn.d90}%`} tone={d.churn.d30 > 0 ? 'danger' : 'default'} />
-          </div>
-          <div className="card">
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.06em] text-earth-muted">{t('coachDash.clientGrowth')}</p>
-            <BarChart data={growth} />
-          </div>
+        <div className="grid grid-cols-3 gap-3">
+          <MetricCard icon="plus" value={d.newMonth} label={t('coachDash.newClients')} hint={t('coachDash.newHint', { today: d.newToday, week: d.newWeek })} />
+          <MetricCard icon="target" value={`${d.retention.d30}%`} label={t('coachDash.retention')} hint={`7d ${d.retention.d7}% · 90d ${d.retention.d90}%`} tone="brand" />
+          <MetricCard icon="activity" value={`${d.churn.d30}%`} label={t('coachDash.churn')} hint={`7d ${d.churn.d7}% · 90d ${d.churn.d90}%`} tone={d.churn.d30 > 0 ? 'danger' : 'default'} />
         </div>
       </DashboardSection>
     </div>

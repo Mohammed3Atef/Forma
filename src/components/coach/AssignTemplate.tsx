@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SearchField } from '@/components/ui/Field';
 import { assignWorkoutTemplate } from '@/services/platform/coachAssetsApi';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import type { UserRecord, WorkoutTemplate } from '@/types';
 
 /**
@@ -27,7 +28,16 @@ export function AssignTemplate({
   const mut = useMutation({
     mutationFn: (clientId: string) => assignWorkoutTemplate(template, clientId, assignedBy),
     onSuccess: (_v, clientId) => setDone(clientId),
+    onError: (e) => void alertDialog({ title: t('workoutTemplate.assign'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
+  const askAndAssign = async (c: UserRecord) => {
+    const ok = await confirmDialog({
+      title: t('workoutTemplate.assign'),
+      message: t('workoutTemplate.confirmAssign', { name: c.displayName || c.email, template: template.name }),
+      confirmLabel: t('workoutTemplate.assign'),
+    });
+    if (ok) mut.mutate(c.id);
+  };
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return clients;
@@ -49,7 +59,7 @@ export function AssignTemplate({
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((c) => (
-            <button key={c.id} type="button" disabled={mut.isPending} onClick={() => mut.mutate(c.id)} className="row w-full text-start" data-testid="assign-client">
+            <button key={c.id} type="button" disabled={mut.isPending} onClick={() => void askAndAssign(c)} className="row w-full text-start" data-testid="assign-client">
               <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1 truncate">{c.displayName || c.email}</span>
               {done === c.id && <Icon name="check" size={18} className="text-brand" />}
