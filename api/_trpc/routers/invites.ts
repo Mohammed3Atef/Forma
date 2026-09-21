@@ -11,6 +11,7 @@ import { bumpActiveClientCount, coachAtClientCap, coachClientsCol, relId } from 
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import { DEFAULT_TTL_MS, buildClaimSubscription, generateInviteCode, invitesCol, isClaimable, normalizeCode } from '../../coach-clients/_handlers/invites-data.js';
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
+import { sendClientInviteEmail, sendWelcomeEmail } from '../../_lib/email.js';
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
@@ -104,6 +105,17 @@ export const invitesRouter = router({
         }
       }
       if (!created) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Could not allocate a unique invite code' });
+      // Best-effort — the code/link is also shown in-app for manual copy/share
+      // regardless, so a delivery failure here must never fail invite creation.
+      if (created.email) {
+        const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+        sendClientInviteEmail(created.email, {
+          coachName: coach.displayName || 'Your coach',
+          inviteUrl: `${appUrl}/invite/${created._id}`,
+          inviteCode: created._id,
+          appUrl,
+        }).catch((e) => console.error('[invites] failed to send invite email:', e));
+      }
       return created;
     }),
 
@@ -220,6 +232,9 @@ export const invitesRouter = router({
 
       await bumpActiveClientCount(inv.coachId, 1);
       const session = await issueSession(ctx.res, { id: clientId, role: 'client', accountStatus: 'active' });
+      // Best-effort — a delivery failure must never fail the join itself.
+      const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+      sendWelcomeEmail(email, claimName, appUrl).catch((e) => console.error('[invites.claim] failed to send welcome email:', e));
       return { user: toPublicUser(userDoc), accessToken: session.accessToken, relationship: relDoc };
     }),
 });

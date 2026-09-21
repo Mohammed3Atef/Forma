@@ -6,10 +6,23 @@
  * `api/_lib/types.ts` duplicates the identity model — the `@/*` Vite alias
  * isn't available inside Vercel's per-function bundler.
  *
- * Every doc uses `_id` = the entity's own id (the same value Firestore used
- * as the sub-collection doc id), plus a `coachId` field (indexed) so a single
- * flat collection can hold every coach's rows.
+ * IDENTITY MODEL: `_id` is Mongo's own internal identity (an auto-assigned
+ * `ObjectId` — never exposed to the frontend). `id` is Forma's logical asset
+ * id (the value the frontend calls `Exercise.id`/`WorkoutTemplate.id`/etc,
+ * and what `libraryExerciseId` links against). The two are DELIBERATELY
+ * separate: a bare `id` is only unique PER COACH, not globally — two coaches
+ * legitimately have their own row with the same logical id (e.g. every coach
+ * who seeds the starter library gets a row with `id: "wger-12"`). Every
+ * lookup/write on these collections must therefore filter by `{ coachId, id }`
+ * together, never by a bare `_id`/`id`. Enforced with a unique compound index
+ * on `{ coachId: 1, id: 1 }` (see `./db.ts`'s `ensureCoachAssetIndexes` and
+ * `scripts/mongo-init-indexes.mjs`) — this used to be modeled as `_id = id`
+ * directly, which made `_id` (Mongo's globally-unique primary key) collide
+ * the moment two coaches shared a logical id; that bug is what this comment
+ * replaces.
  */
+
+import type { ObjectId } from 'mongodb';
 
 export type LocalizedText = { en: string; ar: string };
 
@@ -60,11 +73,22 @@ export interface ExerciseFields {
   equipmentAr?: string;
   categoryAr?: string;
   source?: string;
+  // ---- Import provenance (mirrors src/types/index.ts's `Exercise`) ----------
+  sourceId?: string;
+  sourceProvider?: 'wger';
+  sourceCategory?: string;
+  muscles?: string[];
+  secondaryMuscles?: string[];
+  equipmentList?: string[];
+  // ---- Library → template/plan link (embedded copies only) -----------------
+  libraryExerciseId?: string;
+  librarySyncEnabled?: boolean;
 }
 
 /** `coachExercises` — was `coachAssets/{coachId}/exercises/{id}`. */
 export interface CoachExerciseDoc extends ExerciseFields {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   createdAt: number;
   updatedAt: number;
@@ -77,7 +101,8 @@ export interface TemplateExercise extends ExerciseFields {
 
 /** `coachWorkoutTemplates` — was `coachAssets/{coachId}/workoutTemplates/{id}`. */
 export interface CoachWorkoutTemplateDoc {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   name: string;
   goal: WorkoutGoal;
@@ -133,7 +158,8 @@ export interface LibrarySupplementFields {
   tags?: string[];
 }
 export interface CoachSupplementDoc extends LibrarySupplementFields {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   createdAt: number;
   updatedAt: number;
@@ -141,7 +167,8 @@ export interface CoachSupplementDoc extends LibrarySupplementFields {
 
 /** `coachNutritionTemplates` — was `coachAssets/{coachId}/nutritionTemplates/{id}`. */
 export interface CoachNutritionTemplateDoc {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   name: string;
   meals: Meal[];
@@ -174,7 +201,8 @@ export interface StoredFood extends FoodFields {
 
 /** `coachFoods` — was `coachAssets/{coachId}/foods/{id}` (`LibraryFood`). */
 export interface CoachFoodDoc extends FoodFields {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   createdAt: number;
   updatedAt: number;
@@ -182,7 +210,8 @@ export interface CoachFoodDoc extends FoodFields {
 
 /** `coachFoodGroups` — was `coachAssets/{coachId}/foodGroups/{id}` (`FoodGroup`). */
 export interface CoachFoodGroupDoc {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   name: string;
   foods: StoredFood[];
@@ -197,7 +226,8 @@ export interface CoachFoodGroupDoc {
  * from the coach's own Layer-A `coachPlans`/`CoachPlan` Forma subscription).
  */
 export interface CoachBillingPlanDoc {
-  _id: string;
+  _id: ObjectId;
+  id: string;
   coachId: string;
   name: string;
   unit: 'days' | 'months';

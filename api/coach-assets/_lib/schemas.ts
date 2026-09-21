@@ -42,6 +42,14 @@ const ExerciseFieldsSchema = z.object({
   progressionNotes: z.string().optional(),
   imageUrl: z.string().nullable().optional(),
   images: z.array(z.string()).optional(),
+  sourceId: z.string().optional(),
+  sourceProvider: z.literal('wger').optional(),
+  sourceCategory: z.string().optional(),
+  muscles: z.array(z.string()).optional(),
+  secondaryMuscles: z.array(z.string()).optional(),
+  equipmentList: z.array(z.string()).optional(),
+  libraryExerciseId: z.string().optional(),
+  librarySyncEnabled: z.boolean().optional(),
 });
 
 /** Body for POST/PATCH `coachExercises` — `id` is client-supplied (mirrors the old `uid('ex')` doc-id scheme). */

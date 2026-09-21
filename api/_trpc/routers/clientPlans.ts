@@ -6,6 +6,9 @@ import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, resolveClientId } from '../../client/_lib/access.js';
 import { clientCardioPlansCol, clientNutritionPlansCol, clientWorkoutPlansCol, planCollectionForKind, planVersionsCol } from '../../client/_lib/db.js';
 import type { ClientPlanDoc, PlanVersionDoc, PlanVersionKind } from '../../client/_lib/types.js';
+import { coachExercisesCol } from '../../coach-assets/_lib/db.js';
+import { SYNCED_EXERCISE_FIELDS } from '../../coach-assets/_lib/exerciseSync.js';
+import type { TemplateExercise } from '../../coach-assets/_lib/types.js';
 
 /**
  * `workoutPlan`/`nutritionPlan`/`cardioPlan` are identical CRUD shapes (coach-
@@ -40,7 +43,42 @@ function makePlanRouter(colFn: () => Promise<Collection<ClientPlanDoc>>) {
   });
 }
 
-export const workoutPlanRouter = makePlanRouter(clientWorkoutPlansCol);
+const workoutPlanBase = makePlanRouter(clientWorkoutPlansCol);
+export const workoutPlanRouter = router({
+  get: workoutPlanBase.get,
+  save: workoutPlanBase.save,
+  /**
+   * Manual "update from library" / "reconnect" for ONE exercise inside an
+   * already-assigned client plan (assigned plans never auto-sync — see
+   * `propagateExerciseToTemplates` in `exerciseSync.ts`, which only touches
+   * templates). Re-pulls `SYNCED_EXERCISE_FIELDS` from the source library
+   * exercise, leaves every programming field untouched, and — unlike a
+   * manual `ExerciseForm` edit — always ends with `librarySyncEnabled: true`
+   * (this action is never itself an "override").
+   */
+  updateExerciseFromLibrary: authedProcedure
+    .input(z.object({ clientId: z.string().optional(), exerciseId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const clientId = resolveClientId(input.clientId, ctx.user);
+      if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
+      const col = await clientWorkoutPlansCol();
+      const plan = await col.findOne({ _id: clientId });
+      const exercises = (plan?.exercises ?? {}) as Record<string, TemplateExercise>;
+      const ex = exercises[input.exerciseId];
+      if (!plan || !ex?.libraryExerciseId) throw new TRPCError({ code: 'NOT_FOUND', message: 'Exercise is not linked to a library exercise' });
+      const libEx = await (await coachExercisesCol()).findOne({ coachId: ctx.user.id, id: ex.libraryExerciseId });
+      if (!libEx) throw new TRPCError({ code: 'NOT_FOUND', message: 'Source exercise is no longer available in your library' });
+      const set: Record<string, unknown> = { updatedAt: Date.now() };
+      const updated = { ...ex, librarySyncEnabled: true } as unknown as Record<string, unknown>;
+      for (const f of SYNCED_EXERCISE_FIELDS) {
+        set[`exercises.${input.exerciseId}.${f}`] = libEx[f];
+        updated[f] = libEx[f];
+      }
+      set[`exercises.${input.exerciseId}.librarySyncEnabled`] = true;
+      await col.updateOne({ _id: clientId }, { $set: set });
+      return updated;
+    }),
+});
 export const nutritionPlanRouter = makePlanRouter(clientNutritionPlansCol);
 export const cardioPlanRouter = makePlanRouter(clientCardioPlansCol);
 

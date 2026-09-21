@@ -6,11 +6,14 @@ import { TextInput } from '@/components/ui/Field';
 import { EmptyState as SharedEmptyState } from '@/components/ui/EmptyState';
 import { ExerciseForm } from './ExerciseForm';
 import { ExercisePickerSheet } from './ExercisePickerSheet';
-import { SECTION_KINDS, copyExercise } from '@/lib/workoutPresets';
+import { SECTION_KINDS, SYNCED_EXERCISE_FIELDS, copyExercise } from '@/lib/workoutPresets';
 import { uid } from '@/lib/utils';
 import { warmupCountOf } from '@/stores/workoutStore';
-import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDelete, confirmDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { getExercise } from '@/services/platform/coachAssetsApi';
+import { updatePlanExerciseFromLibrary } from '@/services/platform/planApi';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
 
 type View = { level: 'plan' } | { level: 'day'; dayId: string } | { level: 'section'; dayId: string; sectionId: string };
@@ -37,12 +40,15 @@ export function PlanBuilder({
   exercises,
   onChange,
   coachId,
+  clientId,
   header,
 }: {
   days: WorkoutDay[];
   exercises: Record<string, Exercise>;
   onChange: (days: WorkoutDay[], exercises: Record<string, Exercise>) => void;
   coachId: string;
+  /** Only set by `CoachWorkoutEditor.tsx` (a client's assigned plan) — never by the template editor. Switches "update from library" to the immediate-persist backend mutation instead of the local-state client-side refresh templates use. */
+  clientId?: string;
   header?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -50,6 +56,7 @@ export function PlanBuilder({
   const [picker, setPicker] = useState<{ dayId: string; sectionId: string } | null>(null);
   const [editing, setEditing] = useState<{ exId: string } | null>(null);
   const [moving, setMoving] = useState<{ dayId: string; sectionId: string; exId: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   // A single overflow sheet for secondary row actions (duplicate/delete/move) —
   // keeps each row down to reorder arrows + one "more" trigger instead of a
   // 4-5-icon cluster.
@@ -146,6 +153,55 @@ export function PlanBuilder({
     );
   };
   const updateExercise = (ex: Exercise) => onChange(days, { ...exercises, [ex.id]: ex });
+
+  /**
+   * Applies a manual `ExerciseForm` edit to an embedded exercise. If it's
+   * still linked to a library exercise and the edit touched one of
+   * `SYNCED_EXERCISE_FIELDS`, flip `librarySyncEnabled` off (never clear
+   * `libraryExerciseId` — that's the whole point of keeping it reconnectable)
+   * so a later library edit can't silently clobber this intentional
+   * override, and say so (non-blocking — the edit still saves either way).
+   * Editing only programming fields (sets/reps/rest/etc) never detaches.
+   */
+  const applyExerciseEdit = (ex: Exercise) => {
+    const prev = exercises[ex.id];
+    const wasLinked = !!prev?.libraryExerciseId && prev.librarySyncEnabled !== false;
+    const touchedSynced = wasLinked && SYNCED_EXERCISE_FIELDS.some((f) => JSON.stringify(prev[f]) !== JSON.stringify(ex[f]));
+    updateExercise(touchedSynced ? { ...ex, librarySyncEnabled: false } : ex);
+    if (touchedSynced) showToast({ title: t('coachLib.detachConfirmTitle'), body: t('coachLib.customOverride'), variant: 'warning' });
+  };
+
+  /**
+   * "Update from library" / "Reconnect" for one embedded exercise. Template
+   * context (no `clientId`): purely local — re-fetch the current library
+   * exercise and merge its synced fields into this builder's own in-memory
+   * state, same as any other template edit (persists on the template's own
+   * Save). Client-plan context (`clientId` set): the plan is already
+   * persisted per-exercise server-side, so this calls the dedicated backend
+   * mutation instead, which persists immediately and never triggers the
+   * detach logic above.
+   */
+  const refreshFromLibrary = async (exId: string) => {
+    const ex = exercises[exId];
+    if (!ex?.libraryExerciseId) return;
+    setRefreshing(true);
+    try {
+      if (clientId) {
+        const updated = await updatePlanExerciseFromLibrary(clientId, exId);
+        updateExercise(updated);
+      } else {
+        const libEx = await getExercise(coachId, ex.libraryExerciseId);
+        const patch: Partial<Exercise> = {};
+        for (const f of SYNCED_EXERCISE_FIELDS) (patch as Record<string, unknown>)[f] = libEx[f];
+        updateExercise({ ...ex, ...patch, librarySyncEnabled: true });
+      }
+      setEditing(null);
+    } catch (e) {
+      await alertDialog({ title: t('coachLib.updateFromLibrary'), message: e instanceof Error ? e.message : t('coachLib.sourceMissing') });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const removeExercise = async (dayId: string, sectionId: string, exId: string) => {
     if (!(await confirmDelete(exercises[exId]?.name))) return;
     const ex = { ...exercises };
@@ -240,7 +296,26 @@ export function PlanBuilder({
         {picker && <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPickMany={(exs) => addExercises(picker.dayId, picker.sectionId, exs)} />}
         <Sheet open={!!editing} onClose={() => setEditing(null)} size="lg" title={t('coachEditor.exercise')}>
           {editing && exercises[editing.exId] && (
-            <ExerciseForm initial={exercises[editing.exId]} onSave={(ex) => { updateExercise(ex); setEditing(null); }} coachId={coachId} />
+            <ExerciseForm
+              initial={exercises[editing.exId]}
+              onSave={(ex) => { applyExerciseEdit(ex); setEditing(null); }}
+              coachId={coachId}
+              extra={exercises[editing.exId].libraryExerciseId ? (
+                <div className="flex items-center justify-between rounded-xl border border-line-soft p-3">
+                  <span className="min-w-0 flex-1 text-[13px] text-earth-subtle">
+                    {exercises[editing.exId].librarySyncEnabled !== false ? t('coachLib.linkedToLibrary') : t('coachLib.customOverride')}
+                  </span>
+                  <button
+                    type="button"
+                    className="chip shrink-0"
+                    disabled={refreshing}
+                    onClick={() => void refreshFromLibrary(editing.exId)}
+                  >
+                    {refreshing ? t('auth.working') : exercises[editing.exId].librarySyncEnabled === false ? t('coachLib.reconnectToLibrary') : t('coachLib.updateFromLibrary')}
+                  </button>
+                </div>
+              ) : undefined}
+            />
           )}
         </Sheet>
         <Sheet open={!!moving} onClose={() => setMoving(null)} size="md" title={t('coachEditor.moveToSection')}>

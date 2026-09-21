@@ -1,5 +1,5 @@
 import { trpc } from '@/services/trpc';
-import type { CardioPlan, MealPlan, WorkoutPlan } from '@/types';
+import type { CardioPlan, Exercise, MealPlan, WorkoutPlan } from '@/types';
 
 /**
  * Coach-authored rich plans over the tRPC singleton procedures:
@@ -20,6 +20,16 @@ export async function getClientWorkoutPlan(clientId: string): Promise<WorkoutPla
 
 export async function saveClientWorkoutPlan(clientId: string, plan: WorkoutPlan): Promise<void> {
   await trpc.workoutPlan.save.mutate({ clientId, ...plan });
+}
+
+/**
+ * Manual "update from library" / "reconnect" for one exercise inside an
+ * already-assigned client plan (see `PlanBuilder.tsx`'s `refreshFromLibrary`
+ * — assigned plans never auto-sync, unlike templates). Persists immediately;
+ * the caller only needs to merge the returned exercise into its local state.
+ */
+export async function updatePlanExerciseFromLibrary(clientId: string, exerciseId: string): Promise<Exercise> {
+  return trpc.workoutPlan.updateExerciseFromLibrary.mutate({ clientId, exerciseId }) as unknown as Promise<Exercise>;
 }
 
 export async function getClientMealPlan(clientId: string): Promise<MealPlan | null> {

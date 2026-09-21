@@ -37,8 +37,27 @@ export async function listExercises(coachId: string): Promise<Exercise[]> {
   return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function saveExercise(_coachId: string, exercise: Exercise): Promise<void> {
-  await trpc.coachAssets.exercises.save.mutate(exercise);
+/** Fetch a single library exercise — used by the template-side "reconnect/update from library" action (client-plan uses its own backend mutation, see `updatePlanExerciseFromLibrary` in `planApi.ts`). A bare id is only unique per coach, so `coachId` is required. */
+export async function getExercise(coachId: string, id: string): Promise<Exercise> {
+  return trpc.coachAssets.exercises.get.query({ id, coachId }) as Promise<Exercise>;
+}
+
+export interface ExerciseSyncResult {
+  status: 'success' | 'failed';
+  affectedTemplates: number;
+  error?: string;
+}
+
+/**
+ * Saves an exercise and reports how the library→template propagation went
+ * (see `api/coach-assets/_lib/exerciseSync.ts`) SEPARATELY from the save
+ * itself — the exercise doc is saved regardless of whether propagating the
+ * change into linked templates succeeded, so a partial sync failure must
+ * never be surfaced to the coach as "your exercise didn't save".
+ */
+export async function saveExercise(_coachId: string, exercise: Exercise): Promise<ExerciseSyncResult> {
+  const { sync } = await trpc.coachAssets.exercises.save.mutate(exercise);
+  return sync;
 }
 
 export async function deleteExercise(_coachId: string, exerciseId: string): Promise<void> {
@@ -85,9 +104,9 @@ export async function listWorkoutTemplates(coachId: string): Promise<WorkoutTemp
   return trpc.coachAssets.workoutTemplates.list.query({ coachId });
 }
 
-export async function getWorkoutTemplate(_coachId: string, id: string): Promise<WorkoutTemplate | null> {
+export async function getWorkoutTemplate(coachId: string, id: string): Promise<WorkoutTemplate | null> {
   try {
-    return await trpc.coachAssets.workoutTemplates.get.query({ id });
+    return await trpc.coachAssets.workoutTemplates.get.query({ id, coachId });
   } catch (e) {
     if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;

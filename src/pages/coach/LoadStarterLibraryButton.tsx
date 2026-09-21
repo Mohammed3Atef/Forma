@@ -22,7 +22,9 @@ export function LoadStarterLibraryButton({ className = '', variant = 'primary' }
       for (const k of KEYS) void qc.invalidateQueries({ queryKey: [k, coachId] });
       void alertDialog({
         title: t('starter.loadedTitle'),
-        message: t('starter.loaded', { exercises: res.exercises, foods: res.foods, groups: res.groups, templates: res.templates }),
+        message: res.errors.length
+          ? t('starter.loadedWithErrors', { categories: res.errors.map((e) => e.category).join(', ') })
+          : t('starter.loaded', { exercises: res.exercises, foods: res.foods, groups: res.groups, supplements: res.supplements, templates: res.templates }),
       });
     },
     onError: () => void alertDialog({ title: t('starter.load'), message: t('common.errorGeneric') }),

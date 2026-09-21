@@ -43,7 +43,45 @@ export function blankExercise(): Exercise {
   };
 }
 
-/** Deep-copy an exercise with a fresh id (for library → plan, or duplicate). */
+/**
+ * Deep-copy an exercise with a fresh id (for library → plan, or duplicate).
+ * Deliberately does NOT stamp `libraryExerciseId` — this is also used to clone
+ * an already-embedded exercise (duplicate-in-place/day/section, template
+ * duplication, template assignment), where it must carry an EXISTING link
+ * through unchanged. Use `pickFromLibrary` when picking straight from the
+ * coach's library instead.
+ */
 export function copyExercise(ex: Exercise): Exercise {
   return { ...ex, id: uid('ex'), tags: [...(ex.tags ?? [])], notes: { ...ex.notes } };
+}
+
+/**
+ * Fields that auto-sync from a coach's library exercise into every template
+ * exercise linked to it (`libraryExerciseId` match, `librarySyncEnabled`
+ * true) — identity/media/metadata only. Programming fields (sets/reps/
+ * rest/tempo/RIR/warmups) are never synced: the same library exercise is
+ * legitimately programmed differently across different templates. Shared
+ * with the backend copy in `api/coach-assets/_lib/exerciseSync.ts` — keep
+ * both lists in sync by hand if this one changes (the `@/*` alias isn't
+ * resolvable from Vercel's per-function bundler, so it can't be imported
+ * directly there).
+ */
+export const SYNCED_EXERCISE_FIELDS = [
+  'name',
+  'notes',
+  'videoUrl',
+  'imageUrl',
+  'images',
+  'targetMuscle',
+  'category',
+  'equipment',
+  'muscles',
+  'secondaryMuscles',
+  'equipmentList',
+  'sourceCategory',
+] as const satisfies readonly (keyof Exercise)[];
+
+/** Pick a library exercise into a plan/template being built — the ONE place a `libraryExerciseId` link is created. */
+export function pickFromLibrary(libEx: Exercise): Exercise {
+  return { ...copyExercise(libEx), libraryExerciseId: libEx.id, librarySyncEnabled: true };
 }

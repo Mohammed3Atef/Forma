@@ -17,7 +17,7 @@ import {
 } from '../../_lib/tokens.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
 import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
-import { sendPasswordResetEmail } from '../../_lib/email.js';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { verifyGoogleIdToken } from '../../_lib/google.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
@@ -79,6 +79,9 @@ export const authRouter = router({
       };
       await users.insertOne(doc);
       const session = await issueSession(ctx.res, { id: doc._id, role: doc.role, accountStatus: doc.accountStatus });
+      // Best-effort — a delivery failure must never fail signup itself.
+      const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+      sendWelcomeEmail(doc.email, doc.displayName, appUrl).catch((e) => console.error('[auth] failed to send welcome email:', e));
       return { user: toPublicUser(doc), accessToken: session.accessToken };
     }),
 
@@ -194,7 +197,7 @@ export const authRouter = router({
           expiresAt: new Date(Date.now() + RESET_TTL_MS),
           used: false,
         });
-        const origin = ctx.req.headers.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+        const origin = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
         const resetUrl = `${origin}/reset/${raw}`;
         if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
           console.info(`[auth] password reset link for ${user.email}: ${resetUrl}`);

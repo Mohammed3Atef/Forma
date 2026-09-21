@@ -1,4 +1,4 @@
-import type { Collection } from 'mongodb';
+import type { Collection, ObjectId } from 'mongodb';
 import { z, type ZodTypeAny } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure, roleProcedure } from '../trpc.js';
@@ -29,9 +29,10 @@ import {
   WorkoutTemplateBodySchema,
 } from '../../coach-assets/_lib/schemas.js';
 import { loadStarterExercises } from '../../coach-assets/_lib/exerciseLibrary.js';
-import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_TEMPLATES, type StarterFood } from '../../coach-assets/_lib/starterLibraryData.js';
+import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_SUPPLEMENTS, STARTER_TEMPLATES, type StarterFood } from '../../coach-assets/_lib/starterLibraryData.js';
 import { buildTemplate, groupByMuscle } from '../../coach-assets/_lib/starterLibraryBuild.js';
-import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, StoredFood } from '../../coach-assets/_lib/types.js';
+import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, CoachSupplementDoc, StoredFood } from '../../coach-assets/_lib/types.js';
+import { propagateExerciseToTemplates } from '../../coach-assets/_lib/exerciseSync.js';
 
 /**
  * `coach-assets` covers 7 near-identical CRUD resources (see the module's old
@@ -41,7 +42,7 @@ import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, StoredFood } fr
  * factory captures the shared shape once; each resource below is just its
  * four points of difference.
  */
-type AssetDoc = { _id: string; coachId: string; createdAt: number; updatedAt: number };
+type AssetDoc = { _id: ObjectId; id: string; coachId: string; createdAt: number; updatedAt: number };
 
 interface AssetResourceConfig<TDoc extends AssetDoc, TPublic> {
   col: () => Promise<Collection<TDoc>>;
@@ -62,16 +63,22 @@ interface AssetResourceConfig<TDoc extends AssetDoc, TPublic> {
   toPublic: (doc: TDoc) => TPublic;
 }
 
-/** For resources whose frontend type has no coachId/createdAt/updatedAt (Exercise, LibraryFood, LibrarySupplement). */
+/**
+ * For resources whose frontend type has no coachId/createdAt/updatedAt
+ * (Exercise, LibraryFood, LibrarySupplement). `_id` (Mongo's internal
+ * ObjectId identity) is dropped here and NEVER sent to the frontend — the
+ * public identifier is the doc's own `id` field (see the identity-model
+ * comment in `../../coach-assets/_lib/types.ts`).
+ */
 function stripMeta<TDoc extends AssetDoc>(doc: TDoc) {
   const { _id, coachId: _coachId, createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = doc;
-  return { id: _id, ...fields };
+  return fields;
 }
 
-/** For resources whose frontend type keeps coachId/createdAt/updatedAt (WorkoutTemplate, FoodGroup, NutritionTemplate, CoachSubscriptionPlan). */
+/** For resources whose frontend type keeps coachId/createdAt/updatedAt (WorkoutTemplate, FoodGroup, NutritionTemplate, CoachSubscriptionPlan). `_id` is still dropped — same reason as `stripMeta`. */
 function keepMeta<TDoc extends AssetDoc>(doc: TDoc) {
   const { _id, ...fields } = doc;
-  return { id: _id, ...fields };
+  return fields;
 }
 
 function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfig<TDoc, TPublic>) {
@@ -93,26 +100,43 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
         return docs.map((d) => cfg.toPublic(d));
       }),
 
-    get: authedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    /**
+     * A bare logical `id` is only unique PER COACH (see the identity-model
+     * comment in `../../coach-assets/_lib/types.ts`), so a lookup-by-id-alone
+     * is ambiguous across coaches now — `coachId` (default: the caller
+     * themself) is required to resolve which coach's row to read. This is
+     * the same shape `list` already uses; `requireReadAccess` still gates a
+     * caller reading a DIFFERENT coach's row (e.g. an admin with
+     * `users.read`, who must now know which coach to ask for).
+     */
+    get: authedProcedure.input(z.object({ id: z.string().min(1), coachId: z.string().optional() })).query(async ({ ctx, input }) => {
+      const coachId = input.coachId || ctx.user.id;
+      requireReadAccess(ctx.user, coachId);
       const col = await cfg.col();
-      const doc = (await col.findOne({ _id: input.id } as Parameters<typeof col.findOne>[0])) as unknown as TDoc | null;
+      const doc = (await col.findOne({ coachId, id: input.id } as Parameters<typeof col.findOne>[0])) as unknown as TDoc | null;
       if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: cfg.notFound });
-      requireReadAccess(ctx.user, doc.coachId);
       return cfg.toPublic(doc);
     }),
 
-    /** POST create/replace — upsert by client-supplied id, always scoped to the caller's own coachId. */
+    /**
+     * POST create/replace — upsert by client-supplied id, always scoped to
+     * the caller's own coachId. Filters/writes by `{coachId, id}` (the
+     * unique-indexed compound key — see `../../coach-assets/_lib/db.ts`),
+     * never by `_id`: `_id` is Mongo's own internal ObjectId identity, opaque
+     * to this layer, and deliberately left unset here so Mongo assigns one on
+     * insert / keeps the existing one on replace.
+     */
     save: roleProcedure('coach')
       .input(cfg.bodySchema)
       .mutation(async ({ ctx, input }) => {
         const body = input as { id: string } & Record<string, unknown>;
         const col = await cfg.col();
         const now = Date.now();
-        const filter = { _id: body.id, coachId: ctx.user.id } as Parameters<typeof col.findOne>[0];
+        const filter = { coachId: ctx.user.id, id: body.id } as Parameters<typeof col.findOne>[0];
         const existing = await col.findOne(filter);
         const doc = {
           ...body,
-          _id: body.id,
+          id: body.id,
           coachId: ctx.user.id,
           createdAt: existing?.createdAt ?? now,
           updatedAt: now,
@@ -126,7 +150,7 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
       .mutation(async ({ ctx, input }) => {
         const { id, ...patch } = input as { id: string } & Record<string, unknown>;
         const col = await cfg.col();
-        const filter = { _id: id, coachId: ctx.user.id } as Parameters<typeof col.findOne>[0];
+        const filter = { coachId: ctx.user.id, id } as Parameters<typeof col.findOne>[0];
         const existing = await col.findOne(filter);
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: cfg.notFound });
         const updated = { ...existing, ...patch, updatedAt: Date.now() } as TDoc;
@@ -138,19 +162,66 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
       .input(z.object({ id: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
         const col = await cfg.col();
-        const result = await col.deleteOne({ _id: input.id, coachId: ctx.user.id } as Parameters<typeof col.findOne>[0]);
+        const result = await col.deleteOne({ coachId: ctx.user.id, id: input.id } as Parameters<typeof col.findOne>[0]);
         if (result.deletedCount === 0) throw new TRPCError({ code: 'NOT_FOUND', message: cfg.notFound });
       }),
   });
 }
 
-const exercisesRouter = makeAssetRouter({
+/**
+ * Exercises get bespoke `save`/`update` instead of the generic factory's:
+ * after every edit to an EXISTING exercise, propagate its media/identity
+ * fields into linked templates (`propagateExerciseToTemplates`) and report
+ * that outcome distinctly from "the exercise itself failed to save" (the
+ * generic factory's `save`/`update` return a bare `TPublic` for every OTHER
+ * resource — giving exercises a different response shape here, rather than
+ * threading an optional hook through the shared factory, keeps every other
+ * resource's inferred return type untouched).
+ */
+const exercisesBase = makeAssetRouter({
   col: coachExercisesCol,
   bodySchema: ExerciseBodySchema,
   patchSchema: ExerciseBodyPatchSchema,
   sort: (a, b) => a.name.localeCompare(b.name),
   notFound: 'Exercise not found',
   toPublic: stripMeta,
+});
+
+const exercisesRouter = router({
+  list: exercisesBase.list,
+  get: exercisesBase.get,
+  delete: exercisesBase.delete,
+  save: roleProcedure('coach')
+    .input(ExerciseBodySchema)
+    .mutation(async ({ ctx, input }) => {
+      const col = await coachExercisesCol();
+      const now = Date.now();
+      const filter = { coachId: ctx.user.id, id: input.id };
+      const existing = await col.findOne(filter);
+      const doc = {
+        ...input,
+        id: input.id,
+        coachId: ctx.user.id,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      } as unknown as CoachExerciseDoc;
+      await col.replaceOne(filter, doc, { upsert: true });
+      const sync = await propagateExerciseToTemplates(doc, existing);
+      return { exercise: stripMeta(doc), sync };
+    }),
+  update: roleProcedure('coach')
+    .input(z.object({ id: z.string().min(1) }).and(ExerciseBodyPatchSchema))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...patch } = input;
+      const col = await coachExercisesCol();
+      const filter = { coachId: ctx.user.id, id };
+      const existing = await col.findOne(filter);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Exercise not found' });
+      const updated: CoachExerciseDoc = { ...existing, ...patch, updatedAt: Date.now() };
+      await col.replaceOne(filter, updated);
+      const sync = await propagateExerciseToTemplates(updated, existing);
+      return { exercise: stripMeta(updated), sync };
+    }),
 });
 
 const workoutTemplatesRouter = makeAssetRouter({
@@ -207,63 +278,107 @@ const billingPlansRouter = makeAssetRouter({
   toPublic: keepMeta,
 });
 
-async function existingIds<T extends { _id: string }>(col: Collection<T>, coachId: string, ids: string[]): Promise<Set<string>> {
+async function existingIds<T extends { id: string }>(col: Collection<T>, coachId: string, ids: string[]): Promise<Set<string>> {
   if (ids.length === 0) return new Set();
   const rows = await col
-    .find({ coachId, _id: { $in: ids } } as unknown as Parameters<typeof col.find>[0], { projection: { _id: 1 } })
+    .find({ coachId, id: { $in: ids } } as unknown as Parameters<typeof col.find>[0], { projection: { id: 1 } })
     .toArray();
-  return new Set(rows.map((r) => r._id));
+  return new Set(rows.map((r) => r.id));
+}
+
+interface SeedStepResult {
+  inserted: number;
+  skipped: number;
+  error?: string;
 }
 
 /**
- * Seeds the shared exercise dataset, static starter foods/food-groups, and
- * the muscle-blueprint workout templates into the calling coach's own
- * collections. Non-destructive: only inserts rows the coach doesn't already
- * have (by id) — never touches existing docs, seeded or coach-authored.
+ * Runs one seed category in isolation: a failure here (a transient Mongo
+ * error, a bad-data edge case, etc.) is reported on ITS OWN key instead of
+ * throwing and aborting the whole mutation — otherwise a failure in, say,
+ * templates would silently prevent foods/groups/supplements from ever being
+ * inserted, with the coach seeing no exercises-succeeded feedback at all to
+ * explain why "load starter library" looked like it only did part of the
+ * job. Each step is independently safe to retry (idempotent via `existingIds`).
+ */
+async function runSeedStep(fn: () => Promise<{ inserted: number; skipped: number }>): Promise<SeedStepResult> {
+  try {
+    return await fn();
+  } catch (err) {
+    return { inserted: 0, skipped: 0, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Seeds the shared exercise dataset, static starter foods/food-groups/
+ * supplements, and the muscle-blueprint workout templates into the calling
+ * coach's own collections. Non-destructive: only inserts rows the coach
+ * doesn't already have (by id) — never touches existing docs, seeded or
+ * coach-authored. Each of the 5 categories runs independently (see
+ * `runSeedStep`) so a problem in one never hides/blocks the others.
  */
 const seedStarterLibrary = roleProcedure('coach').mutation(async ({ ctx }) => {
   const coachId = ctx.user.id;
   const now = Date.now();
 
   const exercises = loadStarterExercises();
-  const exCol = await coachExercisesCol();
-  const haveExIds = await existingIds(exCol, coachId, exercises.map((e) => e.id));
-  const newExercises: CoachExerciseDoc[] = exercises
-    .filter((e) => !haveExIds.has(e.id))
-    .map((e) => ({ ...e, _id: e.id, coachId, createdAt: now, updatedAt: now }));
-  if (newExercises.length) await exCol.insertMany(newExercises);
+  const exercisesResult = await runSeedStep(async () => {
+    const exCol = await coachExercisesCol();
+    const haveIds = await existingIds(exCol, coachId, exercises.map((e) => e.id));
+    const rows = exercises
+      .filter((e) => !haveIds.has(e.id))
+      .map((e) => ({ ...e, id: e.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachExerciseDoc);
+    if (rows.length) await exCol.insertMany(rows);
+    return { inserted: rows.length, skipped: exercises.length - rows.length };
+  });
 
   const foodById = new Map<string, StarterFood>(STARTER_FOODS.map((f) => [f.id, f]));
-  const foodsCol = await coachFoodsCol();
-  const haveFoodIds = await existingIds(foodsCol, coachId, STARTER_FOODS.map((f) => f.id));
-  const newFoods: CoachFoodDoc[] = STARTER_FOODS.filter((f) => !haveFoodIds.has(f.id)).map((f) => ({
-    ...f,
-    _id: f.id,
-    coachId,
-    createdAt: now,
-    updatedAt: now,
-  }));
-  if (newFoods.length) await foodsCol.insertMany(newFoods);
-
-  const fgCol = await coachFoodGroupsCol();
-  const haveFgIds = await existingIds(fgCol, coachId, STARTER_FOOD_GROUPS.map((g) => g.id));
-  const newGroups: CoachFoodGroupDoc[] = STARTER_FOOD_GROUPS.filter((g) => !haveFgIds.has(g.id)).map((g) => {
-    const foods: StoredFood[] = g.foodIds.map((id) => foodById.get(id)).filter((f): f is StarterFood => Boolean(f));
-    return { _id: g.id, coachId, name: g.name, foods, ...(g.notes ? { notes: g.notes } : {}), createdAt: now, updatedAt: now };
+  const foodsResult = await runSeedStep(async () => {
+    const foodsCol = await coachFoodsCol();
+    const haveIds = await existingIds(foodsCol, coachId, STARTER_FOODS.map((f) => f.id));
+    const rows = STARTER_FOODS.filter((f) => !haveIds.has(f.id)).map(
+      (f) => ({ ...f, id: f.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachFoodDoc,
+    );
+    if (rows.length) await foodsCol.insertMany(rows);
+    return { inserted: rows.length, skipped: STARTER_FOODS.length - rows.length };
   });
-  if (newGroups.length) await fgCol.insertMany(newGroups);
 
-  const byMuscle = groupByMuscle(exercises);
-  const wtCol = await coachWorkoutTemplatesCol();
-  const haveWtIds = await existingIds(wtCol, coachId, STARTER_TEMPLATES.map((t) => t.id));
-  const newTemplates = STARTER_TEMPLATES.filter((t) => !haveWtIds.has(t.id)).map((t) => buildTemplate(t, byMuscle, coachId, now));
-  if (newTemplates.length) await wtCol.insertMany(newTemplates);
+  const groupsResult = await runSeedStep(async () => {
+    const fgCol = await coachFoodGroupsCol();
+    const haveIds = await existingIds(fgCol, coachId, STARTER_FOOD_GROUPS.map((g) => g.id));
+    const rows = STARTER_FOOD_GROUPS.filter((g) => !haveIds.has(g.id)).map((g) => {
+      const foods: StoredFood[] = g.foodIds.map((id) => foodById.get(id)).filter((f): f is StarterFood => Boolean(f));
+      return { id: g.id, coachId, name: g.name, foods, ...(g.notes ? { notes: g.notes } : {}), createdAt: now, updatedAt: now } as unknown as CoachFoodGroupDoc;
+    });
+    if (rows.length) await fgCol.insertMany(rows);
+    return { inserted: rows.length, skipped: STARTER_FOOD_GROUPS.length - rows.length };
+  });
+
+  const supplementsResult = await runSeedStep(async () => {
+    const suppCol = await coachSupplementsCol();
+    const haveIds = await existingIds(suppCol, coachId, STARTER_SUPPLEMENTS.map((s) => s.id));
+    const rows = STARTER_SUPPLEMENTS.filter((s) => !haveIds.has(s.id)).map(
+      (s) => ({ ...s, id: s.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachSupplementDoc,
+    );
+    if (rows.length) await suppCol.insertMany(rows);
+    return { inserted: rows.length, skipped: STARTER_SUPPLEMENTS.length - rows.length };
+  });
+
+  const templatesResult = await runSeedStep(async () => {
+    const byMuscle = groupByMuscle(exercises);
+    const wtCol = await coachWorkoutTemplatesCol();
+    const haveIds = await existingIds(wtCol, coachId, STARTER_TEMPLATES.map((t) => t.id));
+    const rows = STARTER_TEMPLATES.filter((t) => !haveIds.has(t.id)).map((t) => buildTemplate(t, byMuscle, coachId, now));
+    if (rows.length) await wtCol.insertMany(rows);
+    return { inserted: rows.length, skipped: STARTER_TEMPLATES.length - rows.length };
+  });
 
   return {
-    exercises: { inserted: newExercises.length, skipped: exercises.length - newExercises.length },
-    foods: { inserted: newFoods.length, skipped: STARTER_FOODS.length - newFoods.length },
-    groups: { inserted: newGroups.length, skipped: STARTER_FOOD_GROUPS.length - newGroups.length },
-    templates: { inserted: newTemplates.length, skipped: STARTER_TEMPLATES.length - newTemplates.length },
+    exercises: exercisesResult,
+    foods: foodsResult,
+    groups: groupsResult,
+    supplements: supplementsResult,
+    templates: templatesResult,
   };
 });
 

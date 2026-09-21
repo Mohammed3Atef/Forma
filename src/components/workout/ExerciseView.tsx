@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { muscleLabel } from '@/lib/muscle';
+import { youtubeEmbed } from '@/services/video/VideoStore';
 import type { Exercise } from '@/types';
 
 /**
@@ -8,8 +10,10 @@ import type { Exercise } from '@/types';
  */
 export function ExerciseView({ ex }: { ex: Exercise }) {
   const { t } = useTranslation();
+  const [videoFailed, setVideoFailed] = useState(false);
   const meta = [ex.category, ex.equipment].filter(Boolean).join(' · ');
   const img = ex.imageUrl || ex.images?.[0];
+  const embed = ex.videoUrl ? youtubeEmbed(ex.videoUrl) : null;
   const row = (label: string, value: string | number | undefined | null) =>
     value === undefined || value === null || value === '' ? null : (
       <div className="flex items-center justify-between gap-3 border-b border-line-soft py-2 last:border-0">
@@ -20,7 +24,30 @@ export function ExerciseView({ ex }: { ex: Exercise }) {
 
   return (
     <div className="space-y-4" data-testid="exercise-view">
-      {img ? (
+      {embed ? (
+        <div className="aspect-video w-full overflow-hidden rounded-xl border border-line-soft">
+          <iframe
+            className="h-full w-full"
+            src={embed}
+            title={ex.name}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : ex.videoUrl && !videoFailed ? (
+        <div className="aspect-video w-full overflow-hidden rounded-xl border border-line-soft bg-black">
+          <video
+            key={ex.videoUrl}
+            src={ex.videoUrl}
+            controls
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-contain"
+            onError={() => setVideoFailed(true)}
+            data-testid="exercise-view-video"
+          />
+        </div>
+      ) : img ? (
         <img src={img} alt={ex.name} loading="lazy" className="h-44 w-full rounded-xl border border-line-soft object-cover" />
       ) : null}
 
@@ -59,7 +86,7 @@ export function ExerciseView({ ex }: { ex: Exercise }) {
         </div>
       ) : null}
 
-      {ex.videoUrl ? (
+      {ex.videoUrl && (videoFailed || embed) ? (
         <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full">
           {t('workout.watchVideo')}
         </a>

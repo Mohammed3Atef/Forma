@@ -19,6 +19,7 @@ import { TextInput } from "@/components/ui/Field";
 import { WaitingForCoach } from "@/components/WaitingForCoach";
 import { uid } from "@/lib/utils";
 import { foodLine } from "@/lib/foodFormat";
+import { FoodSearchPicker } from "@/components/workout/FoodSearchPicker";
 
 export function Nutrition() {
   const { t } = useTranslation();
@@ -694,6 +695,10 @@ export function Nutrition() {
         }
       >
         <div className="space-y-3">
+          <FoodSearchPicker
+            onPick={(f) => setForm({ ...form, name: f.name, quantity: f.quantity, protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) })}
+          />
+          <div className="h-px bg-line-soft" />
           <TextInput
             label={t("settings.name")}
             helper={t("nutrition.nameOptionalHint")}

@@ -5,7 +5,7 @@ import { Sheet } from '@/components/Sheet';
 import { Icon } from '@/components/Icon';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { ExerciseForm } from './ExerciseForm';
-import { blankExercise, copyExercise } from '@/lib/workoutPresets';
+import { blankExercise, pickFromLibrary } from '@/lib/workoutPresets';
 import { listExercises, saveExercise } from '@/services/platform/coachAssetsApi';
 import { parseDecimal } from '@/lib/utils';
 import type { Exercise } from '@/types';
@@ -89,7 +89,7 @@ export function ExercisePickerSheet({
       ? { workingSets: Math.max(0, Math.round(parseDecimal(defaults.workingSets))), repRange: defaults.repRange.trim(), restSec: Math.max(0, parseDecimal(defaults.restSec)) }
       : null;
     const exs = [...selected.values()].map((libEx) => {
-      const copy = copyExercise(libEx);
+      const copy = pickFromLibrary(libEx);
       if (override) {
         copy.workingSets = override.workingSets;
         copy.repRange = override.repRange || copy.repRange;
@@ -106,7 +106,7 @@ export function ExercisePickerSheet({
     mutationFn: (ex: Exercise) => saveExercise(coachId, ex),
     onSuccess: (_v, ex) => {
       void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] });
-      onPickMany([copyExercise(ex)]); // add an independent copy to the plan
+      onPickMany([pickFromLibrary(ex)]); // add a library-linked copy to the plan
       setMode('list');
     },
   });

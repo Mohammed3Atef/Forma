@@ -68,7 +68,7 @@ export function buildTemplate(
     return { id: `${tpl.id}-day-${i}`, dayIndex: i, title: d.title, focus: d.focus, exerciseIds: picks.map((e) => e.id) };
   });
   return {
-    _id: tpl.id,
+    id: tpl.id,
     coachId,
     name: tpl.name,
     goal: tpl.goal,
@@ -77,5 +77,5 @@ export function buildTemplate(
     exercises,
     createdAt: now,
     updatedAt: now,
-  };
+  } as unknown as CoachWorkoutTemplateDoc;
 }
