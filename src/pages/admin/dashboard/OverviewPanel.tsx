@@ -13,7 +13,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { fetchPlatformStats } from '@/services/platform/analyticsApi';
 import { fetchCoachAdmin } from '@/services/platform/adminCoachesApi';
 import { fetchGrowth } from '@/services/platform/adminGrowthApi';
-import { listPendingPlanChangeRequests } from '@/services/platform/coachPlanApi';
+import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import { listPendingTransferRequests } from '@/services/platform/transferApi';
 import { fetchAuditPage } from '@/services/platform/auditApi';
 import { CoachStateBadge } from './CoachStateBadge';
@@ -26,7 +26,7 @@ export function OverviewPanel() {
   const recent = useQuery({ queryKey: ['audit', 'recent'], queryFn: () => fetchAuditPage(6), staleTime: 60_000 });
   const coaches = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), enabled: isSuper, staleTime: 120_000 });
   const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, enabled: isSuper, staleTime: 120_000 });
-  const planReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
+  const planReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, enabled: isSuper, staleTime: 60_000 });
   const transferReqs = useQuery({ queryKey: ['pendingTransfers', 'count'], queryFn: listPendingTransferRequests, staleTime: 60_000 });
   const s = stats.data;
 

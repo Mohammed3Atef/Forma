@@ -16,6 +16,26 @@ import { sendClientInviteEmail, sendWelcomeEmail } from '../../_lib/email.js';
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
 
+/**
+ * Last-resort display name when nobody ever provided a real one (not the
+ * coach at invite-creation, not the client on the claim form) — turns
+ * `john.doe23` into `John Doe` instead of showing the raw handle verbatim
+ * (which is what a bare `email.split('@')[0]` used to do, e.g. a client
+ * named "muhammedatef57" in their welcome email). Still just a best-effort
+ * guess, not a real name — genuinely last resort.
+ */
+function humanizeEmailLocalPart(email: string): string {
+  const local = email.split('@')[0] || '';
+  const words = local
+    .replace(/[._-]+/g, ' ')
+    .replace(/\d+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+  return words.length ? words.join(' ') : local;
+}
+
 /** tRPC port of `api/coach-clients/_handlers/invites-{index,code,claim}.ts` (was `/api/invites/*`). */
 export const invitesRouter = router({
   /** The requesting coach's own invites, newest first (an admin with `coaches.assign` may pass `coachId` for oversight). */
@@ -187,7 +207,10 @@ export const invitesRouter = router({
       );
       if (!claimResult) throw new TRPCError({ code: 'CONFLICT', message: 'This invite was just claimed by someone else' });
 
-      const claimName = input.displayName?.trim() || email.split('@')[0];
+      // Priority: what the client typed on the claim form > what the coach
+      // already set when creating the invite > a humanized last resort — a
+      // real name should always win over anything derived from the email.
+      const claimName = input.displayName?.trim() || inv.displayName?.trim() || humanizeEmailLocalPart(email);
       const userDoc: UserDoc = {
         _id: clientId,
         email,

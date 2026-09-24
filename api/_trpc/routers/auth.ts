@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure, authedProcedure } from '../trpc.js';
-import { usersCol, passwordResetsCol } from '../../_lib/mongodb.js';
+import { usersCol, passwordResetsCol, withDbTransaction } from '../../_lib/mongodb.js';
 import { hashPassword, verifyPassword } from '../../_lib/password.js';
 import {
   issueSession,
@@ -19,6 +19,7 @@ import { toPublicUser, type UserDoc } from '../../_lib/types.js';
 import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { verifyGoogleIdToken } from '../../_lib/google.js';
+import { ensureTrialPlan } from '../../coach-plans/_data.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
 const SIGNUP_MAX_ATTEMPTS = 5;
@@ -43,6 +44,12 @@ export const authRouter = router({
    * active immediately, no manual admin approval. Client accounts are created
    * via the coach invite flow. Admin/super_admin accounts are never
    * self-service; use scripts/seed-mongo-admin.mjs.
+   *
+   * There is exactly one plan cycle: every coach starts on Trial (2 clients,
+   * 15 days) — no plan picker at signup. Once the trial ends, a system cron
+   * (`api/cron/enforce-trial-expiry.ts`) raises a Pro plan request for a
+   * Super Admin to confirm payment on; see that file for the grace-period /
+   * account-pending mechanics.
    */
   signup: publicProcedure
     .input(
@@ -60,9 +67,11 @@ export const authRouter = router({
       if (await users.findOne({ emailLower: input.email })) {
         throw new TRPCError({ code: 'CONFLICT', message: 'An account with this email already exists.' });
       }
+
       const now = Date.now();
+      const coachId = crypto.randomUUID();
       const doc: UserDoc = {
-        _id: crypto.randomUUID(),
+        _id: coachId,
         email: input.email,
         emailLower: input.email,
         passwordHash: await hashPassword(input.password),
@@ -77,7 +86,15 @@ export const authRouter = router({
         createdAt: now,
         updatedAt: now,
       };
-      await users.insertOne(doc);
+
+      // The coach's account + their ALWAYS-active Trial plan are one atomic
+      // unit — every write below threads the SAME transaction session or it
+      // would commit outside the transaction and silently break atomicity.
+      await withDbTransaction(async (session) => {
+        await users.insertOne(doc, { session });
+        await ensureTrialPlan(coachId, session);
+      });
+
       const session = await issueSession(ctx.res, { id: doc._id, role: doc.role, accountStatus: doc.accountStatus });
       // Best-effort — a delivery failure must never fail signup itself.
       const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';

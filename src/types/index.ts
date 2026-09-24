@@ -4,7 +4,11 @@
  * All timestamps (instants) use epoch milliseconds (number).
  */
 
+/** Coach-authored/admin-authored bilingual text. `ar` covers both `ar` and `ar-eg` (Egyptian visitors see the same Arabic text) — resolved via `useLocalized()`. */
 export type LocalizedText = { en: string; ar: string };
+
+/** Same idea as `LocalizedText` but for an ordered list (e.g. plan feature bullets) — both language lists kept in the same order/length by the editing UI. */
+export type LocalizedTextList = { en: string[]; ar: string[] };
 
 export type Locale = 'en' | 'ar' | 'ar-eg';
 export type Theme = 'dark' | 'light';
@@ -108,24 +112,54 @@ export interface CoachOnboarding {
 // `coachPlans/{coachId}`. Distinct from the per-client `Subscription` (Layer B).
 // ---------------------------------------------------------------------------
 
-/** Built-ins are 'trial' | 'starter' | 'pro' | 'enterprise'; admins may add custom tier keys. */
+/** 'trial' is the only built-in; admins add any other tier key (e.g. 'pro') entirely from the dashboard. */
 export type CoachPlanTier = string;
 export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
 
-/** Admin-editable coach plan tier (Firestore `coachPlanTiers/{key}`; falls back to the built-in seed). */
+/** Admin-editable coach plan tier (Mongo `coachPlanTiers/{key}`; falls back to the built-in seed). */
 export interface CoachPlanTierConfig {
   key: string;
-  /** Display name; UI falls back to i18n `adminCoaches.tier.<key>`, then the key. */
+  /** Internal admin/coach-facing display name (not shown on the public pricing page); UI falls back to i18n `adminCoaches.tier.<key>`, then the key. */
   label?: string;
   maxClients: number;
   priceMonthly: number;
   currency?: string;
+  /** Display order — the SAME field used for the admin tier list, the coach's upgrade picker, AND the public marketing list (no separate `sortOrder`). */
   order?: number;
   active?: boolean;
   archived?: boolean;
   builtIn?: boolean;
+  // ---- Marketing / signup ----------------------------------------------
+  publicVisible?: boolean;
+  signupEnabled?: boolean;
+  /** At most one tier may have this true. */
+  highlighted?: boolean;
+  /** Exactly one active/signup-enabled tier must have this true — the safe signup fallback. Always `requiresPaymentConfirmation: false`. */
+  isDefaultSignupPlan?: boolean;
+  marketingTitle?: LocalizedText;
+  marketingDescription?: LocalizedText;
+  marketingFeatures?: LocalizedTextList;
+  requiresPaymentConfirmation?: boolean;
+  trialDurationDays?: number;
   createdAt: number;
   updatedAt: number;
+}
+
+/** Public (signed-out) subset — Marketing pricing section + signup plan picker. */
+export interface PublicPlanTier {
+  key: string;
+  marketingTitle: LocalizedText;
+  marketingDescription: LocalizedText;
+  marketingFeatures: LocalizedTextList;
+  priceMonthly: number;
+  currency: string;
+  maxClients: number;
+  highlighted: boolean;
+  signupEnabled: boolean;
+  isDefaultSignupPlan: boolean;
+  trialDurationDays: number | null;
+  requiresPaymentConfirmation: boolean;
+  order: number;
 }
 
 export interface CoachPlan {
@@ -153,25 +187,43 @@ export interface PlanHistoryEntry {
   by?: string; // actor uid
 }
 
-export type PlanRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+export type PlanRequestType = 'new_signup' | 'trial_upgrade' | 'plan_change' | 'renewal' | 'trial_expired';
+export type PlanRequestStatus = 'awaiting' | 'processing' | 'confirmed' | 'rejected' | 'cancelled' | 'expired';
+
+export interface PlanSnapshot {
+  tierKey: string;
+  label: LocalizedText;
+  priceMonthly: number;
+  currency: string;
+  maxClients: number;
+  termDays: number;
+}
 
 /**
- * A coach's request to the super-admin to change their Forma plan / raise their
- * client cap. Singleton at `coachPlans/{coachId}/planChangeRequest/current`.
- * Mirrors the client→coach FreezeRequest.
+ * A coach's request for a paid plan — created at signup (if a paid tier was
+ * selected), on a trial→paid upgrade, on a plan change, or on renewal. One
+ * row per request (Mongo `coachPlanRequests`), NOT a singleton — a coach's
+ * real entitlements always come from `CoachPlan`, never from this; this only
+ * ever gates whether/when `CoachPlan` gets REPLACED with `planSnapshot` (on
+ * `confirmed`) — `rejected`/`cancelled`/`expired` never touch `CoachPlan`.
  */
-export interface CoachPlanChangeRequest {
-  id: string; // always 'current'
+export interface CoachPlanRequest {
+  id: string;
   coachId: string;
-  requestedTier?: CoachPlanTier;
-  requestedMaxClients?: number;
-  reason: string;
+  type: PlanRequestType;
+  requestedTierKey: string;
+  planSnapshot: PlanSnapshot;
   status: PlanRequestStatus;
   requestedAt: number;
-  reviewedAt?: number | null;
-  reviewedBy?: string | null;
+  confirmationDeadline: number;
+  confirmedAt?: number;
+  confirmedBy?: string;
+  rejectedAt?: number;
+  rejectedBy?: string;
+  cancelledAt?: number;
+  expiredAt?: number;
   adminNote?: string;
-  updatedAt: number;
+  reason?: string;
 }
 
 // ---------------------------------------------------------------------------

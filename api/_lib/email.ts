@@ -93,3 +93,36 @@ export async function sendClientInviteEmail(to: string, opts: { coachName: strin
   const html = render(loadClientInviteTemplate(), { ...opts, coachInitial });
   await send(to, `${opts.coachName} invited you to Forma`, html, `client invite email for ${to} was not delivered: ${opts.inviteUrl}`);
 }
+
+/**
+ * Plan-request lifecycle notices — plain inline HTML (no branded template
+ * file; these are short transactional notices, not the marketing-styled
+ * welcome/reset emails). Every call site treats these as best-effort — never
+ * blocks the underlying mutation.
+ */
+function simpleNotice(title: string, body: string): string {
+  return `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1a1a1a">
+    <h1 style="font-size:18px;margin:0 0 12px">${title}</h1>
+    <p style="font-size:14px;line-height:1.5;margin:0">${body}</p>
+  </div>`;
+}
+
+export async function sendPlanRequestAwaitingEmail(to: string, name: string, planLabel: string): Promise<void> {
+  const html = simpleNotice('Your plan request is in', `Hi ${name}, we've received your request to move to the ${planLabel} plan. It's awaiting payment confirmation from our team — your current plan stays active in the meantime.`);
+  await send(to, 'Forma: your plan request is awaiting confirmation', html, `plan-request-awaiting email for ${to} was not delivered`);
+}
+
+export async function sendPlanRequestConfirmedEmail(to: string, name: string, planLabel: string): Promise<void> {
+  const html = simpleNotice('Your plan is now active', `Hi ${name}, payment for your ${planLabel} plan has been confirmed and it's now active on your account.`);
+  await send(to, 'Forma: your plan is now active', html, `plan-request-confirmed email for ${to} was not delivered`);
+}
+
+export async function sendPlanRequestRejectedEmail(to: string, name: string, planLabel: string, note?: string): Promise<void> {
+  const html = simpleNotice('Your plan request was declined', `Hi ${name}, your request for the ${planLabel} plan was not approved.${note ? ` Note from our team: ${note}` : ''} Your current plan is unaffected.`);
+  await send(to, 'Forma: update on your plan request', html, `plan-request-rejected email for ${to} was not delivered`);
+}
+
+export async function sendPlanRequestExpiredEmail(to: string, name: string, planLabel: string): Promise<void> {
+  const html = simpleNotice('Your plan request expired', `Hi ${name}, your request for the ${planLabel} plan expired without a response in time. Your current plan is unaffected — you're welcome to request again any time.`);
+  await send(to, 'Forma: your plan request expired', html, `plan-request-expired email for ${to} was not delivered`);
+}

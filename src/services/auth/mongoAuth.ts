@@ -36,7 +36,7 @@ export interface MongoUserRecord {
 }
 
 export const mongoAuth = {
-  /** Coach self-registration only — client accounts come from the invite flow. */
+  /** Coach self-registration only — client accounts come from the invite flow. Every coach starts on the same Trial; there's no plan to pick at signup. */
   async signUpCoach(email: string, password: string, displayName: string, phone?: string): Promise<MongoUserRecord> {
     const body = await trpc.auth.signup.mutate({ email, password, displayName, phone, role: 'coach' });
     setAccessToken(body.accessToken);

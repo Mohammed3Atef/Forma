@@ -10,22 +10,23 @@ import { useBack } from '@/hooks/useBack';
 import { showToast } from '@/stores/toastStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchUser, setAccountStatus } from '@/services/platform/accountsApi';
+import { fetchUser } from '@/services/platform/accountsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import {
   coachPlanState,
   extendCoachTrial,
   getCoachPlan,
-  getCoachPlanChangeRequest,
   renewCoachPlan,
-  resolvePlanChangeRequest,
   setCoachMaxClients,
   setCoachPlanEndsAt,
+  setCoachSuspended,
   setCoachTier,
   trialDaysLeft,
   type CoachTierKey,
 } from '@/services/platform/coachPlanApi';
+import { confirmPlanRequest, listPendingPlanRequests, rejectPlanRequest } from '@/services/platform/coachPlanRequestsApi';
 import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { useLocalized } from '@/hooks/useLocalized';
 import { shortDate } from '@/lib/utils';
 
 const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -34,19 +35,24 @@ const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
  *  account, and any pending plan-change request. */
 export function AdminCoachDetail() {
   const { t, i18n } = useTranslation();
+  const loc = useLocalized();
   const { coachId = '' } = useParams();
   const goBack = useBack('/admin/coaches');
   const qc = useQueryClient();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const online = useOnlineStatus(); // management mutations require connectivity
-  const meId = useSession((s) => s.account?.id ?? '');
   const [limit, setLimit] = useState('');
   const [endDate, setEndDate] = useState('');
   const [note, setNote] = useState('');
 
   const coach = useQuery({ queryKey: ['coachUser', coachId], queryFn: () => fetchUser(coachId), enabled: isSuper && !!coachId });
   const plan = useQuery({ queryKey: ['coachPlanAdmin', coachId], queryFn: () => getCoachPlan(coachId), enabled: isSuper && !!coachId });
-  const reqQ = useQuery({ queryKey: ['coachPlanRequest', coachId], queryFn: () => getCoachPlanChangeRequest(coachId), enabled: isSuper && !!coachId });
+  // Shares the platform-wide pending-requests query (same cache key every other
+  // consumer uses) rather than a per-coach fetch — there's no dedicated
+  // "one coach's request" procedure, and the unique index guarantees at most
+  // one actionable row per coach anyway.
+  const pendingReqsQ = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, enabled: isSuper, staleTime: 60_000 });
+  const r = (pendingReqsQ.data ?? []).find((x) => x.coachId === coachId) ?? null;
   const clientsQ = useQuery({ queryKey: ['adminCoachClients', coachId], queryFn: () => listMyClients(coachId), enabled: isSuper && !!coachId });
   const tiersQ = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: isSuper });
   const tiers = tiersQ.data ?? [];
@@ -73,41 +79,40 @@ export function AdminCoachDetail() {
   const cap = useMutation({ mutationFn: (n: number) => setCoachMaxClients(coachId, n), onSuccess: () => { setLimit(''); onMutationSuccess(t('adminCoaches.setLimit'))(); }, onError: onMutationError(t('adminCoaches.setLimit')) });
   const ends = useMutation({ mutationFn: (ms: number | null) => setCoachPlanEndsAt(coachId, ms), onSuccess: onMutationSuccess(t('admin.setEndDate')), onError: onMutationError(t('admin.setEndDate')) });
   const acct = useMutation({
-    mutationFn: (s: 'active' | 'suspended') => setAccountStatus(coach.data!, s),
+    // Sets BOTH the plan status AND the real account status together (see
+    // `setCoachSuspended`) — this is the same action AdminCoaches.tsx's own
+    // row toggle calls, so suspending/reactivating from either screen always
+    // agrees with the other.
+    mutationFn: (s: 'active' | 'suspended') => setCoachSuspended(coachId, s === 'suspended'),
     onSuccess: (_v, s) => {
       onMutationSuccess(t(s === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'))();
-      // This is the one AdminCoachDetail mutation that changes the coach's
-      // actual `accountStatus` (not just plan/capacity fields) — the other
-      // pages that cache that same user record (`AdminAccounts`'s paginated
-      // list, `AdminAssignments`'s role-scoped picker) would otherwise show a
-      // stale status until their own staleTime lapses.
+      // Changes the coach's actual `accountStatus` too (not just plan/capacity
+      // fields) — the other pages that cache that same user record
+      // (`AdminAccounts`'s paginated list, `AdminAssignments`'s role-scoped
+      // picker) would otherwise show a stale status until their own staleTime
+      // lapses.
       void qc.invalidateQueries({ queryKey: ['users'] });
       void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
+      void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
     },
     onError: (e, s) => onMutationError(t(s === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'))(e),
   });
   const onResolved = (title: string) => () => {
     setNote('');
-    void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] });
     void qc.invalidateQueries({ queryKey: ['planRequests', 'pending'] });
     invalidate();
     showToast({ title, variant: 'success' });
   };
-  // Approve APPLIES the requested change (tier and/or cap), then records the decision.
+  // Confirm atomically activates the request's own immutable snapshot (never
+  // the live tier) — the backend transaction replaces CoachPlanDoc in one step,
+  // so this never separately calls setCoachTier/setCoachMaxClients/renewCoachPlan.
   const approve = useMutation({
-    mutationFn: async () => {
-      const cur = reqQ.data;
-      if (cur?.requestedTier) await setCoachTier(coachId, cur.requestedTier);
-      if (cur?.requestedMaxClients) await setCoachMaxClients(coachId, cur.requestedMaxClients);
-      // A reason-only request (no tier/cap change) is a RENEWAL request — extend the term.
-      if (!cur?.requestedTier && !cur?.requestedMaxClients) await renewCoachPlan(coachId);
-      await resolvePlanChangeRequest(coachId, meId, 'accepted', note);
-    },
+    mutationFn: () => confirmPlanRequest(r!.id),
     onSuccess: onResolved(t('admin.approveRequest')),
     onError: onMutationError(t('admin.approveRequest')),
   });
   const reject = useMutation({
-    mutationFn: () => resolvePlanChangeRequest(coachId, meId, 'rejected', note),
+    mutationFn: () => rejectPlanRequest(r!.id, note || undefined),
     onSuccess: onResolved(t('admin.rejectRequest')),
     onError: onMutationError(t('admin.rejectRequest')),
   });
@@ -116,8 +121,10 @@ export function AdminCoachDetail() {
   const p = plan.data;
   const state = coachPlanState(p ?? null);
   const daysLeft = p ? trialDaysLeft(p) : null;
-  const r = reqQ.data;
-  const pendingReq = r?.status === 'pending';
+  const pendingReq = r != null;
+  // The tier this request's snapshot was built from may since have been re-priced/relabeled by an admin — the snapshot itself is immutable and confirm always applies it, never the live tier.
+  const liveTier = r ? tiers.find((tr) => tr.key === r.requestedTierKey) : undefined;
+  const snapshotStale = !!r && !!liveTier && (liveTier.priceMonthly !== r.planSnapshot.priceMonthly || liveTier.maxClients !== r.planSnapshot.maxClients);
   const clientCount = clientsQ.data ? clientsQ.data.filter((c) => c.accountStatus !== 'disabled').length : p?.activeClientCount ?? 0;
   const coachName = coach.data?.displayName || coach.data?.email || '';
 
@@ -140,11 +147,7 @@ export function AdminCoachDetail() {
     if (await confirmDialog({ title: t('admin.clearEndDate'), message: t('admin.confirmClearEndDate', { name: coachName }), danger: true })) ends.mutate(null);
   };
   const doApprove = async () => {
-    const changes = [
-      r?.requestedTier ? t('admin.requestedTier') + ': ' + tierLabel(tiers, r.requestedTier, t) : null,
-      r?.requestedMaxClients ? t('adminCoaches.clientLimit') + ': ' + r.requestedMaxClients : null,
-      !r?.requestedTier && !r?.requestedMaxClients ? t('admin.approveApplies') : null,
-    ].filter(Boolean).join(' · ');
+    const changes = r ? `${t('admin.requestedTier')}: ${loc(r.planSnapshot.label)} · ${t('adminCoaches.clientLimit')}: ${r.planSnapshot.maxClients}` : '';
     if (await confirmDialog({ title: t('admin.approveRequest'), message: `${t('admin.confirmApproveRequest', { name: coachName })} ${changes}` })) approve.mutate();
   };
 
@@ -157,9 +160,11 @@ export function AdminCoachDetail() {
         <div className="space-y-5">
           {pendingReq && r ? (
             <section className="card space-y-3 border-brand/40" data-testid="coach-plan-request-card">
-              <h2 className="h2">{t('admin.requestFrom')}</h2>
-              {r.requestedTier ? <Row label={t('admin.requestedTier')} value={tierLabel(tiers, r.requestedTier, t)} /> : null}
-              {r.requestedMaxClients ? <Row label={t('adminCoaches.clientLimit')} value={String(r.requestedMaxClients)} /> : null}
+              <h2 className="h2">{r.type === 'trial_expired' ? t('admin.trialEndedTitle') : t('admin.requestFrom')}</h2>
+              <Row label={t('admin.requestedTier')} value={loc(r.planSnapshot.label)} />
+              <Row label={t('adminCoaches.clientLimit')} value={String(r.planSnapshot.maxClients)} />
+              <Row label={t('adminPlans.priceMonthly')} value={`${r.planSnapshot.priceMonthly} ${r.planSnapshot.currency}`} />
+              {snapshotStale ? <p className="text-[12px] text-warn">{t('admin.snapshotStale')}</p> : null}
               {r.reason ? <p className="text-sm text-earth-muted">{r.reason}</p> : null}
               <textarea className="input min-h-16" placeholder={t('admin.requestReason')} value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-2">
@@ -213,7 +218,7 @@ export function AdminCoachDetail() {
             <div className="flex flex-wrap gap-2">
               <button type="button" className="chip" data-testid="coach-renew" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doRenew()}>{t('adminCoaches.renew')}</button>
               <button type="button" className="chip" data-testid="coach-extend-trial" disabled={extend.isPending || !online} onClick={() => void doExtend()}>{t('adminCoaches.extendTrial')}</button>
-              {coach.data?.accountStatus === 'suspended' ? (
+              {coach.data?.accountStatus === 'suspended' || coach.data?.accountStatus === 'pending' ? (
                 <button type="button" className="chip" data-testid="coach-reactivate" disabled={acct.isPending || !online} onClick={() => acct.mutate('active')}>{t('adminCoaches.reactivate')}</button>
               ) : (
                 <button type="button" className="chip text-danger" data-testid="coach-suspend" disabled={acct.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('adminCoaches.suspend'), message: t('adminCoaches.confirmSuspend'), danger: true })) acct.mutate('suspended'); }}>{t('adminCoaches.suspend')}</button>

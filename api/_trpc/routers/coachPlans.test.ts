@@ -1,15 +1,18 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
-import { getDb } from '../../_lib/mongodb.js';
+import { getDb, usersCol } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 
-let mongod: MongoMemoryServer;
+let mongod: MongoMemoryReplSet;
 
+// A one-member replica set (not a plain MongoMemoryServer standalone) —
+// `coachPlanRequests.confirm` uses a real Mongo transaction, and transactions
+// are only allowed on a replica set/mongos, never a standalone instance.
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   process.env.MONGODB_URI = mongod.getUri();
   process.env.MONGODB_DB = 'forma_test';
 }, 60_000);
@@ -61,12 +64,18 @@ const client = authedUser({ _id: 'client-1', role: 'client' });
 const admin = authedUser({ _id: 'admin-1', role: 'admin' });
 const superAdmin = authedUser({ _id: 'super-admin-1', role: 'super_admin' });
 
+/** `trial` is the only code-seeded tier now — every other tier (e.g. 'pro'/'starter') must be created via `coachPlanTiers.save`, exactly like a real admin would from the dashboard. */
+async function createCustomTier(key: string, maxClients: number, priceMonthly = 499) {
+  const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+  await asSuperAdmin.coachPlanTiers.save({ key, label: key, maxClients, priceMonthly });
+}
+
 describe('coachPlans router', () => {
   it('createTrial is idempotent and me reads it back', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     const created = await asCoach.coachPlans.createTrial();
     expect(created.plan).toBe('trial');
-    expect(created.maxClients).toBe(10);
+    expect(created.maxClients).toBe(2);
 
     const again = await asCoach.coachPlans.createTrial();
     expect(again.createdAt).toBe(created.createdAt); // untouched, not re-created
@@ -95,6 +104,7 @@ describe('coachPlans router', () => {
   });
 
   it('adminUpdate is super_admin-only (a plain admin is FORBIDDEN) and applies a tier change', async () => {
+    await createCustomTier('pro', 100);
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
 
@@ -105,11 +115,13 @@ describe('coachPlans router', () => {
     const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
     const updated = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
     expect(updated.plan).toBe('pro');
-    expect(updated.maxClients).toBe(100); // derived from the built-in pro tier config
+    expect(updated.maxClients).toBe(100); // derived from the dashboard-created 'pro' tier config
     expect(updated.history?.at(-1)).toMatchObject({ action: 'tier', detail: 'pro' });
   });
 
   it('re-sending the SAME tier (the renew/extend-trial mechanism) bumps endsAt but never clobbers a custom maxClients override', async () => {
+    await createCustomTier('pro', 100);
+    await createCustomTier('starter', 25);
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
     const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
@@ -128,46 +140,129 @@ describe('coachPlans router', () => {
 
     // A genuine tier CHANGE still recomputes the cap from the new tier's default.
     const changedTier = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'starter' });
-    expect(changedTier.maxClients).toBe(25); // starter's built-in default, not 137
+    expect(changedTier.maxClients).toBe(25); // starter's dashboard-created default, not 137
   });
+});
 
-  it('change-request lifecycle is super_admin-only: submit, super admin sees it pending, accept applies the tier', async () => {
+describe('coachPlanRequests router', () => {
+  it('request lifecycle is super_admin-only for listPending/confirm/reject: submit, super admin sees it pending, confirm atomically activates the snapshot', async () => {
+    await createCustomTier('starter', 25);
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
-    await asCoach.coachPlans.submitChangeRequest({ requestedTier: 'starter', reason: 'Need more clients' });
+    await asCoach.coachPlanRequests.submit({ tierKey: 'starter', reason: 'Need more clients' });
 
     const asAdmin = appRouter.createCaller(ctxFor(admin));
-    await expect(asAdmin.coachPlans.listPendingChangeRequests()).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(asAdmin.coachPlans.resolveChangeRequest({ coachId: coach.id, decision: 'accepted' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asAdmin.coachPlanRequests.listPending()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asAdmin.coachPlanRequests.confirm({ requestId: 'whatever' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
 
     const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const pending = await asSuperAdmin.coachPlans.listPendingChangeRequests();
+    const pending = await asSuperAdmin.coachPlanRequests.listPending();
     expect(pending.map((r) => r.coachId)).toEqual([coach.id]);
+    expect(pending[0].status).toBe('awaiting');
 
-    const resolved = await asSuperAdmin.coachPlans.resolveChangeRequest({ coachId: coach.id, decision: 'accepted', adminNote: 'ok' });
-    expect(resolved.status).toBe('accepted');
+    // The coach's real plan is untouched (still Trial) while the request is awaiting.
+    const beforeConfirm = await asCoach.coachPlans.me();
+    expect(beforeConfirm.plan).toBe('trial');
 
+    const confirmed = await asSuperAdmin.coachPlanRequests.confirm({ requestId: pending[0].id });
+    expect(confirmed.status).toBe('confirmed');
+
+    // Applies the request's OWN immutable snapshot (built from 'starter' at submit time), not a re-read of the live tier.
     const plan = await asCoach.coachPlans.me();
     expect(plan.plan).toBe('starter');
     expect(plan.maxClients).toBe(25);
+    expect(plan.status).toBe('active');
+
+    // A resolved request can never be confirmed/rejected again (compare-and-swap).
+    await expect(asSuperAdmin.coachPlanRequests.confirm({ requestId: pending[0].id })).rejects.toMatchObject({ code: 'CONFLICT' });
+    await expect(asSuperAdmin.coachPlanRequests.reject({ requestId: pending[0].id })).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 
-  it('a coach can cancel their own pending request but not once resolved', async () => {
+  it('confirming payment reactivates an account the trial-expiry grace period had pended, atomically with the plan activation', async () => {
+    await createCustomTier('pro', 25);
+    const activeCoach = authedUser({ _id: 'pending-coach-1', role: 'coach', accountStatus: 'active' });
+    const users = await usersCol();
+    await users.insertOne(activeCoach.doc);
+    const asCoach = appRouter.createCaller(ctxFor(activeCoach));
+    await asCoach.coachPlans.createTrial();
+    const submitted = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
+
+    // Simulate the trial-expiry cron's grace-period pend (see api/cron/enforce-trial-expiry.ts).
+    await users.updateOne({ _id: 'pending-coach-1' }, { $set: { accountStatus: 'pending' } });
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    await asSuperAdmin.coachPlanRequests.confirm({ requestId: submitted.id });
+
+    const updatedUser = await users.findOne({ _id: 'pending-coach-1' });
+    expect(updatedUser?.accountStatus).toBe('active');
+  });
+
+  it('reject never touches CoachPlanDoc — the coach keeps whatever plan they had', async () => {
+    await createCustomTier('pro', 100);
     const asCoach = appRouter.createCaller(ctxFor(coach));
     await asCoach.coachPlans.createTrial();
-    await asCoach.coachPlans.submitChangeRequest({ reason: 'test' });
+    const submitted = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
 
-    const cancelled = await asCoach.coachPlans.cancelChangeRequest();
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const rejected = await asSuperAdmin.coachPlanRequests.reject({ requestId: submitted.id, adminNote: 'not now' });
+    expect(rejected.status).toBe('rejected');
+    expect(rejected.adminNote).toBe('not now');
+
+    const plan = await asCoach.coachPlans.me();
+    expect(plan.plan).toBe('trial'); // completely unaffected by the rejection
+  });
+
+  it('a coach can cancel their own awaiting request but not once resolved', async () => {
+    await createCustomTier('starter', 25);
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await asCoach.coachPlans.createTrial();
+    await asCoach.coachPlanRequests.submit({ tierKey: 'starter', reason: 'test' });
+
+    const cancelled = await asCoach.coachPlanRequests.cancel();
     expect(cancelled.status).toBe('cancelled');
-    await expect(asCoach.coachPlans.cancelChangeRequest()).rejects.toMatchObject({ code: 'CONFLICT' });
+    await expect(asCoach.coachPlanRequests.cancel()).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('submitting a new request auto-cancels a coach\'s prior awaiting request (no silent second live request)', async () => {
+    await createCustomTier('starter', 25);
+    await createCustomTier('pro', 100);
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await asCoach.coachPlans.createTrial();
+    const first = await asCoach.coachPlanRequests.submit({ tierKey: 'starter' });
+    const second = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
+    expect(second.status).toBe('awaiting');
+
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const pending = await asSuperAdmin.coachPlanRequests.listPending();
+    expect(pending.map((r) => r.id)).toEqual([second.id]); // the first was cancelled, not left dangling
+    expect(pending.map((r) => r.id)).not.toContain(first.id);
+  });
+
+  it('the one-awaiting-request-per-coach guarantee is enforced at the database level — a concurrent submit racing past the app-level cancel cannot create two awaiting rows', async () => {
+    await createCustomTier('starter', 25);
+    await createCustomTier('pro', 100);
+    const asCoach = appRouter.createCaller(ctxFor(coach));
+    await asCoach.coachPlans.createTrial();
+    // Simulates two concurrent submits: `submit`'s own cancel-then-insert step
+    // is not itself atomic, so the guarantee that matters is the partial
+    // unique index rejecting a second concurrent insert outright.
+    const results = await Promise.allSettled([
+      asCoach.coachPlanRequests.submit({ tierKey: 'starter' }),
+      asCoach.coachPlanRequests.submit({ tierKey: 'pro' }),
+    ]);
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+    const pending = await asSuperAdmin.coachPlanRequests.listPending();
+    // Whatever the outcome of the race, at most one row is ever left awaiting for this coach.
+    expect(pending.filter((r) => r.coachId === coach.id).length).toBeLessThanOrEqual(1);
+    expect(results.some((r) => r.status === 'fulfilled')).toBe(true);
   });
 });
 
 describe('coachPlanTiers router', () => {
-  it('list includes built-in seed tiers even with none in Mongo', async () => {
+  it('list includes the built-in Trial seed tier even with none in Mongo — every other tier is created entirely from the dashboard', async () => {
     const asCoach = appRouter.createCaller(ctxFor(coach));
     const tiers = await asCoach.coachPlanTiers.list({});
-    expect(tiers.map((t) => t.key)).toEqual(['trial', 'starter', 'pro', 'enterprise']);
+    expect(tiers.map((t) => t.key)).toEqual(['trial']);
   });
 
   it('list works for any signed-in user, active or not — matches the old REST tiers-index.ts (bare requireUser, no role/active check)', async () => {
@@ -191,5 +286,28 @@ describe('coachPlanTiers router', () => {
     await expect(asSuperAdmin.coachPlanTiers.save({ key: 'trial', maxClients: 0, priceMonthly: 0, archived: true })).rejects.toMatchObject({
       code: 'BAD_REQUEST',
     });
+  });
+
+  it('editing a tier\'s maxClients propagates to every coach currently on it, but never to a coach with an explicit per-coach override', async () => {
+    await createCustomTier('pro', 25);
+    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
+
+    // Two coaches on 'pro': one tier-derived, one with a manual admin override.
+    const asCoachA = appRouter.createCaller(ctxFor(authedUser({ _id: 'coach-pro-a', role: 'coach' })));
+    const asCoachB = appRouter.createCaller(ctxFor(authedUser({ _id: 'coach-pro-b', role: 'coach' })));
+    await asCoachA.coachPlans.createTrial();
+    await asCoachB.coachPlans.createTrial();
+    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-a', tier: 'pro' });
+    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-b', tier: 'pro' });
+    // Give coach B an explicit override.
+    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-b', maxClients: 999 });
+
+    // Now the admin lowers the platform-wide 'pro' cap from 25 to 20.
+    await asSuperAdmin.coachPlanTiers.save({ key: 'pro', label: 'pro', maxClients: 20, priceMonthly: 499 });
+
+    const planA = await asCoachA.coachPlans.me();
+    const planB = await asCoachB.coachPlans.me();
+    expect(planA.maxClients).toBe(20); // swept along with the tier-wide change
+    expect(planB.maxClients).toBe(999); // the manual override survives untouched
   });
 });

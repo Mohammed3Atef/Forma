@@ -7,6 +7,7 @@ import { messagesRouter } from './routers/messages.js';
 import { notificationsRouter } from './routers/notifications.js';
 import { coachAssetsRouter } from './routers/coachAssets.js';
 import { coachPlansRouter } from './routers/coachPlans.js';
+import { coachPlanRequestsRouter } from './routers/coachPlanRequests.js';
 import { coachPlanTiersRouter } from './routers/coachPlanTiers.js';
 import { coachClientsRouter } from './routers/coachClients.js';
 import { invitesRouter } from './routers/invites.js';
@@ -41,6 +42,7 @@ export const appRouter = router({
   notifications: notificationsRouter,
   coachAssets: coachAssetsRouter,
   coachPlans: coachPlansRouter,
+  coachPlanRequests: coachPlanRequestsRouter,
   coachPlanTiers: coachPlanTiersRouter,
   coachClients: coachClientsRouter,
   invites: invitesRouter,

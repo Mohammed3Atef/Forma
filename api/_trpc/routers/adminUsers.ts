@@ -7,6 +7,7 @@ import { hashPassword } from '../../_lib/password.js';
 import { ALL_PERMISSIONS } from '../../_lib/rbac.js';
 import { toPublicUser, type Permission, type Role, type UserDoc } from '../../_lib/types.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
+import { ensureTrialPlan } from '../../coach-plans/_data.js';
 
 const RoleEnum = z.enum(['super_admin', 'admin', 'coach', 'client']);
 const StatusEnum = z.enum(['active', 'suspended', 'pending', 'disabled']);
@@ -123,6 +124,10 @@ export const adminUsersRouter = router({
         updatedAt: now,
       };
       await users.insertOne(doc);
+      // Every coach, however created, always has a real (Trial-at-minimum)
+      // plan — no admin-created coach action here needs a paid CoachPlanRequest;
+      // an admin assigning a paid tier directly is the existing `setCoachTier`.
+      if (doc.role === 'coach') await ensureTrialPlan(doc._id);
       await writeAudit(ctx.user, 'user.create', doc._id, { role: doc.role });
       return toPublicUser(doc);
     }),
@@ -227,6 +232,8 @@ export const adminUsersRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot modify an admin account' });
       }
       await users.updateOne({ _id: input.id }, { $set: { role: input.role as Role, updatedAt: Date.now() } });
+      // Idempotent — a no-op if this user already has a valid plan (never resets one).
+      if (input.role === 'coach') await ensureTrialPlan(input.id);
       await writeAudit(ctx.user, 'user.updateRole', input.id, { from: target.role, to: input.role });
       const updated = await users.findOne({ _id: input.id });
       return toPublicUser(updated!);

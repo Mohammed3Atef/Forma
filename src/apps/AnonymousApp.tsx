@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/services/platform/queryClient';
 import { Login } from '@/pages/auth/Login';
 import { Landing } from '@/pages/marketing/Landing';
 import { AcceptInvite } from '@/pages/auth/AcceptInvite';
@@ -25,20 +27,22 @@ const isStandalone =
 
 export function AnonymousApp() {
   return (
-    <Routes>
-      <Route path="/" element={isStandalone ? <Navigate to="/login" replace /> : <Landing />} />
-      <Route
-        path="/experience"
-        element={
-          <Suspense fallback={null}>
-            <Experience />
-          </Suspense>
-        }
-      />
-      <Route path="/login" element={<Login />} />
-      <Route path="/invite/:code" element={<AcceptInvite />} />
-      <Route path="/reset/:token" element={<ResetPassword />} />
-      <Route path="*" element={<Login />} />
-    </Routes>
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route path="/" element={isStandalone ? <Navigate to="/login" replace /> : <Landing />} />
+        <Route
+          path="/experience"
+          element={
+            <Suspense fallback={null}>
+              <Experience />
+            </Suspense>
+          }
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/invite/:code" element={<AcceptInvite />} />
+        <Route path="/reset/:token" element={<ResetPassword />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    </QueryClientProvider>
   );
 }
