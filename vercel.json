@@ -1,10 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
-  "crons": [
-    { "path": "/api/cron/expire-plan-requests", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/enforce-trial-expiry", "schedule": "0 * * * *" }
-  ],
+  "crons": [{ "path": "/api/cron/daily-maintenance", "schedule": "0 3 * * *" }],
   "headers": [
     {
       "source": "/(.*)",
