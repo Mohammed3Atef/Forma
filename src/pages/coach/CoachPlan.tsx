@@ -11,22 +11,19 @@ import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { alertDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import {
-  coachPlanState,
-  trialDaysLeft,
-  getCoachPlan,
-  getCoachPlanChangeRequest,
-  submitPlanChangeRequest,
-  cancelPlanChangeRequest,
-  type CoachTierKey,
-} from '@/services/platform/coachPlanApi';
+import { coachPlanState, trialDaysLeft, getCoachPlan, type CoachTierKey } from '@/services/platform/coachPlanApi';
+import { getMyPlanRequest, submitPlanRequest, cancelPlanRequest } from '@/services/platform/coachPlanRequestsApi';
 import { TRPCClientError } from '@/services/trpc';
 import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { useLocalized } from '@/hooks/useLocalized';
 import { shortDate } from '@/lib/utils';
+
+const HOUR_MS = 3_600_000;
 
 /** Coach-facing "My Plan": tier/status/usage/end-date + request an upgrade. */
 export function CoachPlan() {
   const { t, i18n } = useTranslation();
+  const loc = useLocalized();
   const qc = useQueryClient();
   const coachId = useSession((s) => s.account?.id ?? '');
   const [open, setOpen] = useState(false);
@@ -35,27 +32,28 @@ export function CoachPlan() {
 
   const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: !!coachId, staleTime: 300_000 });
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId });
-  const req = useQuery({ queryKey: ['coachPlanRequest', coachId], queryFn: () => getCoachPlanChangeRequest(coachId), enabled: !!coachId });
+  const req = useQuery({ queryKey: ['coachPlanRequest', 'mine'], queryFn: getMyPlanRequest, enabled: !!coachId, refetchInterval: 60_000 });
   const tiersQ = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: !!coachId });
   const tiers = tiersQ.data ?? [];
 
   const submit = useMutation({
-    mutationFn: () => submitPlanChangeRequest(coachId, { requestedTier: tier || undefined, reason }),
+    mutationFn: () => submitPlanRequest(tier, reason || undefined),
     onSuccess: () => {
       setOpen(false);
       setReason('');
       setTier('');
-      void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] });
+      void qc.invalidateQueries({ queryKey: ['coachPlanRequest', 'mine'] });
     },
+    onError: (e) => void alertDialog({ title: t('coachPlan.requestUpgrade'), message: e instanceof TRPCClientError ? e.message : t('common.errorGeneric') }),
   });
   const cancel = useMutation({
-    mutationFn: () => cancelPlanChangeRequest(coachId),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] }),
+    mutationFn: () => cancelPlanRequest(),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['coachPlanRequest', 'mine'] }),
     onError: (e) =>
       void alertDialog({
         title: t('coachPlan.cancelRequest'),
         message: e instanceof TRPCClientError ? e.message : t('common.errorGeneric'),
-      }).then(() => qc.invalidateQueries({ queryKey: ['coachPlanRequest', coachId] })),
+      }).then(() => qc.invalidateQueries({ queryKey: ['coachPlanRequest', 'mine'] })),
   });
 
   const p = plan.data;
@@ -63,7 +61,9 @@ export function CoachPlan() {
   const state = coachPlanState(p ?? null);
   const used = clients.data ? clients.data.filter((c) => c.accountStatus !== 'disabled').length : p?.activeClientCount ?? 0;
   const daysLeft = p ? trialDaysLeft(p) : null;
-  const pending = req.data?.status === 'pending';
+  const r = req.data;
+  const pending = r?.status === 'awaiting' || r?.status === 'processing';
+  const hoursLeft = r && pending ? Math.max(0, Math.ceil((r.confirmationDeadline - Date.now()) / HOUR_MS)) : null;
   const statusTone = state === 'active' || state === 'trial' ? 'success' : state === 'none' ? 'default' : 'danger';
 
   return (
@@ -86,31 +86,33 @@ export function CoachPlan() {
           </div>
 
           <DashboardSection title={t('coachPlan.requestUpgrade')} icon="bolt">
-            {pending ? (
+            {pending && r ? (
+              // Requested Plan — clearly separate from Current Plan above; the
+              // request never implies the new plan is active until confirmed.
               <div className="card space-y-2" data-testid="coach-plan-request-card">
                 <div className="flex items-center justify-between gap-3">
                   <span className="chip border-warn/50 text-warn">{t('coachPlan.pending')}</span>
-                  <button type="button" className="text-sm text-earth-muted hover:text-white" disabled={cancel.isPending} onClick={() => cancel.mutate()} data-testid="coach-plan-cancel">
-                    {t('coachPlan.cancelRequest')}
-                  </button>
+                  {r.type !== 'trial_expired' && (
+                    <button type="button" className="text-sm text-earth-muted hover:text-white" disabled={cancel.isPending} onClick={() => cancel.mutate()} data-testid="coach-plan-cancel">
+                      {t('coachPlan.cancelRequest')}
+                    </button>
+                  )}
                 </div>
-                {req.data?.requestedTier ? <p className="text-sm">{t('coachPlan.desiredTier')}: {tierLabel(tiers, req.data.requestedTier, t)}</p> : null}
-                {req.data?.reason ? <p className="text-sm text-earth-muted">{req.data.reason}</p> : null}
+                <p className="text-sm">{t('coachPlan.desiredTier')}: {loc(r.planSnapshot.label)} · {r.planSnapshot.maxClients} {t('admin.clients').toLowerCase()}</p>
+                <p className="text-[12px] text-earth-subtle">
+                  {r.type === 'trial_expired' ? t('coachPlan.trialEndedAwaiting') : t('coachPlan.awaitingConfirmation', { n: hoursLeft ?? 0 })}
+                </p>
+                {r.reason ? <p className="text-sm text-earth-muted">{r.reason}</p> : null}
               </div>
             ) : (
               <>
-                {req.data?.status === 'accepted' ? (
-                  <div className="mb-3 flex items-start gap-2 rounded-xl border border-success-light/40 bg-success-light/10 px-3 py-2 text-sm text-success-light" data-testid="coach-plan-accepted">
-                    <Icon name="check" size={16} className="mt-0.5 shrink-0" />
-                    <span>{t('coachPlan.accepted')}{req.data.adminNote ? ` — ${req.data.adminNote}` : ''}</span>
-                  </div>
+                {r?.status === 'rejected' ? (
+                  <p className="mb-2 text-[12px] text-danger">{t('coachPlan.rejected')}{r.adminNote ? `: ${r.adminNote}` : ''}</p>
                 ) : null}
+                {r?.status === 'expired' ? <p className="mb-2 text-[12px] text-earth-subtle">{t('coachPlan.requestExpired')}</p> : null}
                 <button type="button" className="btn-primary" data-testid="coach-plan-request" onClick={() => setOpen(true)}>
                   <Icon name="bolt" size={16} /> {t('coachPlan.requestUpgrade')}
                 </button>
-                {req.data?.status === 'rejected' && req.data.adminNote ? (
-                  <p className="mt-2 text-[12px] text-danger">{t('coachPlan.rejected')}: {req.data.adminNote}</p>
-                ) : null}
               </>
             )}
           </DashboardSection>
@@ -154,7 +156,7 @@ export function CoachPlan() {
             </div>
           </div>
           <TextAreaField label={t('field.reason')} className="min-h-24" data-testid="coach-plan-reason" placeholder={t('coachPlan.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
-          <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="coach-plan-request-submit" disabled={submit.isPending || !reason.trim()} onClick={() => submit.mutate()}>
+          <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="coach-plan-request-submit" disabled={submit.isPending || !tier} onClick={() => submit.mutate()}>
             {t('coachPlan.submit')}
           </button>
         </div>

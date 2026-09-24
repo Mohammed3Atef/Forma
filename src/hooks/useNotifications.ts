@@ -3,15 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { subscribeCoachNotifications, subscribeNotifications } from '@/services/platform/notificationsApi';
-import { listPendingPlanChangeRequests } from '@/services/platform/coachPlanApi';
-import type { AppNotification, CoachPlanChangeRequest } from '@/types';
+import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
+import type { AppNotification, CoachPlanRequest } from '@/types';
 
-/** Map a pending coach plan-change request to the notification shape the bell +
- *  feed render. Admins have no clientData notifications doc, so their actionable
- *  signal IS the set of outstanding requests (cleared when they resolve one). */
-function planRequestToNotification(r: CoachPlanChangeRequest): AppNotification {
+/** Map a pending coach plan request to the notification shape the bell + feed
+ *  render. Admins have no clientData notifications doc, so their actionable
+ *  signal IS the set of outstanding requests (cleared when they resolve one).
+ *  Uses the request's own `id` (not `coachId`) for notification identity —
+ *  unlike the old singleton-per-coach model, a coach can have several
+ *  historical requests, so `route` (not `id`) is what still targets the coach. */
+function planRequestToNotification(r: CoachPlanRequest): AppNotification {
   return {
-    id: r.coachId,
+    id: r.id,
     clientId: r.coachId,
     forRole: 'coach',
     type: 'plan_change_requested',
@@ -20,7 +23,7 @@ function planRequestToNotification(r: CoachPlanChangeRequest): AppNotification {
     seenAt: null, // pending == unhandled — always shows on the badge until resolved
     createdAt: r.requestedAt,
     createdBy: r.coachId,
-    updatedAt: r.updatedAt,
+    updatedAt: r.requestedAt, // CoachPlanRequest has no updatedAt of its own — requestedAt is its only timestamp until resolved
   };
 }
 
@@ -43,7 +46,7 @@ export function useNotifications() {
   // Super-admin feed: outstanding plan requests (same key as the overview alert).
   const adminQ = useQuery({
     queryKey: ['planRequests', 'pending'],
-    queryFn: listPendingPlanChangeRequests,
+    queryFn: listPendingPlanRequests,
     enabled: enabled && isSuper,
     refetchOnWindowFocus: true,
     staleTime: 30_000,

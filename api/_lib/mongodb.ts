@@ -1,4 +1,4 @@
-import { Collection, Db, MongoClient } from 'mongodb';
+import { ClientSession, Collection, Db, MongoClient } from 'mongodb';
 import type { PasswordResetDoc, RefreshTokenDoc, UserDoc } from './types.js';
 
 /**
@@ -37,4 +37,31 @@ export async function refreshTokensCol(): Promise<Collection<RefreshTokenDoc>> {
 
 export async function passwordResetsCol(): Promise<Collection<PasswordResetDoc>> {
   return (await getDb()).collection<PasswordResetDoc>('passwordResets');
+}
+
+/**
+ * Runs `fn` inside a real Mongo multi-document transaction (Atlas runs every
+ * tier, including free/shared, as a replica set — confirmed working against
+ * this project's own cluster). Every collection write INSIDE `fn` must pass
+ * the given `session` in its options (`{ session }`) or it commits
+ * immediately, outside the transaction, silently breaking atomicity — see
+ * `auth.signup` / `coachPlanRequests.confirm` for the pattern. Used for
+ * signup (User + Trial CoachPlan + optional paid CoachPlanRequest) and for
+ * confirming a paid plan request (request resolution + CoachPlanDoc
+ * snapshot-apply) — both must reach an all-or-nothing final state.
+ */
+export async function withDbTransaction<T>(fn: (session: ClientSession) => Promise<T>): Promise<T> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not set');
+  if (!clientPromise) {
+    const client = new MongoClient(uri, { maxPoolSize: 10 });
+    clientPromise = client.connect();
+  }
+  const client = await clientPromise;
+  const session = client.startSession();
+  try {
+    return await session.withTransaction(() => fn(session));
+  } finally {
+    await session.endSession();
+  }
 }

@@ -12,7 +12,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
 import { fetchGrowth } from '@/services/platform/adminGrowthApi';
-import { listPendingPlanChangeRequests, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 
 /**
@@ -31,7 +32,7 @@ export function AdminSubscriptions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const q = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), staleTime: 120_000 });
-  const reqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, staleTime: 60_000 });
+  const reqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, staleTime: 60_000 });
   // Client-subscription money + client terms ending soon — real data that used to live on the old Growth tab.
   const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, staleTime: 120_000 });
   const d = q.data;
@@ -108,7 +109,7 @@ export function AdminSubscriptions() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{nameOf(r.coachId)}</span>
                       <span className="block truncate text-[12px] text-earth-subtle">
-                        {r.requestedTier ? t(`adminCoaches.tier.${r.requestedTier}`) : t('admin.planRequests')}
+                        {r.type === 'trial_expired' ? t('admin.trialEndedTitle') : r.requestedTierKey ? t(`adminCoaches.tier.${r.requestedTierKey}`) : t('admin.planRequests')}
                         {r.reason ? ` · ${r.reason}` : ''}
                       </span>
                     </span>

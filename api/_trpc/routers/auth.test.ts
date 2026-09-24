@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { Context } from '../context.js';
 import { getDb, usersCol } from '../../_lib/mongodb.js';
+import { coachPlansCol, coachPlanRequestsCol } from '../../coach-plans/_data.js';
 import type { AuthedUser } from '../context.js';
 
 // verifyGoogleIdToken talks to Google's own servers — mocked here so the
@@ -12,10 +13,13 @@ import type { AuthedUser } from '../context.js';
 vi.mock('../../_lib/google.js', () => ({ verifyGoogleIdToken: vi.fn() }));
 import { verifyGoogleIdToken } from '../../_lib/google.js';
 
-let mongod: MongoMemoryServer;
+let mongod: MongoMemoryReplSet;
 
+// A one-member replica set (not a plain MongoMemoryServer standalone) —
+// `auth.signup` wraps the User + Trial CoachPlan (+ optional CoachPlanRequest)
+// insert in a real Mongo transaction, and transactions require a replica set.
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   process.env.MONGODB_URI = mongod.getUri();
   process.env.MONGODB_DB = 'forma_test';
   process.env.JWT_ACCESS_SECRET = 'test-secret-not-for-prod';
@@ -52,6 +56,7 @@ function ctxAnon(cookies: Record<string, string> = {}): { ctx: Context; lastSetC
   const ctx: Context = { req: { cookies, headers: {} } as unknown as VercelRequest, res, user: null };
   return { ctx, lastSetCookie };
 }
+
 
 describe('auth module', () => {
   it('supports signup, login, refresh (rotating the cookie), logout, and rejects the used-up refresh token', async () => {
@@ -203,5 +208,21 @@ describe('auth module', () => {
     await expect(
       appRouter.createCaller(ctxAnon().ctx).auth.googleSignIn({ idToken: 'garbage' }),
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+});
+
+describe('auth.signup — single Trial-then-Pro plan cycle (atomic via a real Mongo transaction)', () => {
+  it('every signup gets an active Trial and no plan request — there is nothing to pick', async () => {
+    const signedUp = await appRouter.createCaller(ctxAnon().ctx).auth.signup({
+      email: 'trialcoach@example.com',
+      password: 'password123',
+      displayName: 'Trial Coach',
+      role: 'coach',
+    });
+    const plan = await (await coachPlansCol()).findOne({ _id: signedUp.user.id });
+    expect(plan?.plan).toBe('trial');
+    expect(plan?.status).toBe('active');
+    const requests = await (await coachPlanRequestsCol()).find({ coachId: signedUp.user.id }).toArray();
+    expect(requests).toHaveLength(0);
   });
 });

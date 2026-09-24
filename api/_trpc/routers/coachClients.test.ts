@@ -302,6 +302,28 @@ describe('invites router', () => {
     ).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
   });
 
+  it('claimed display name prefers what the client typed, then what the coach set at invite time, then a humanized (not raw) email fallback', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-2', role: 'coach', displayName: 'Coach Two' });
+    await givePlan(coachDoc._id);
+    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    const publicCaller = appRouter.createCaller(ctxFor(null));
+
+    // 1) Client types a name — it wins even though the coach also set one.
+    const inviteA = await asCoach.invites.create({ email: 'a@example.com', displayName: 'Coach-Given Name' });
+    const claimedA = await publicCaller.invites.claim({ code: inviteA._id, phone: '5551111', password: 'password123', displayName: 'Client Typed Name' });
+    expect(claimedA.user.displayName).toBe('Client Typed Name');
+
+    // 2) Client leaves the name blank — falls back to what the coach set.
+    const inviteB = await asCoach.invites.create({ email: 'b@example.com', displayName: 'Coach-Given Name' });
+    const claimedB = await publicCaller.invites.claim({ code: inviteB._id, phone: '5552222', password: 'password123' });
+    expect(claimedB.user.displayName).toBe('Coach-Given Name');
+
+    // 3) Neither ever provided a name — humanized email prefix, not the raw handle.
+    const inviteC = await asCoach.invites.create({});
+    const claimedC = await publicCaller.invites.claim({ code: inviteC._id, email: 'muhammedatef57@gmail.com', phone: '5553333', password: 'password123' });
+    expect(claimedC.user.displayName).toBe('Muhammedatef');
+  });
+
   it('list works for a suspended coach (no active-status requirement) — matches the old REST invites-index.ts', async () => {
     const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', accountStatus: 'suspended' });
     const asSuspendedCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));

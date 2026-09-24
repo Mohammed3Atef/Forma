@@ -20,7 +20,8 @@ import { useSelection } from '@/hooks/useSelection';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
-import { listPendingPlanChangeRequests, renewCoachPlan, setCoachPlanStatus, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { renewCoachPlan, setCoachSuspended, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -67,7 +68,7 @@ export function AdminCoaches() {
     queryFn: () => fetchCoachAdmin(debouncedSearch),
     enabled: isSuper,
   });
-  const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanChangeRequests, enabled: isSuper, staleTime: 60_000 });
+  const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, enabled: isSuper, staleTime: 60_000 });
   const pendingSet = new Set((pendingReqs.data ?? []).map((r) => r.coachId));
   const renew = useMutation({
     mutationFn: (coachId: string) => renewCoachPlan(coachId),
@@ -82,9 +83,14 @@ export function AdminCoaches() {
       }),
   });
   const setStatus = useMutation({
-    mutationFn: ({ coachId, status }: { coachId: string; status: 'active' | 'suspended' }) => setCoachPlanStatus(coachId, status),
+    mutationFn: ({ coachId, status }: { coachId: string; status: 'active' | 'suspended' }) => setCoachSuspended(coachId, status === 'suspended'),
     onSuccess: (_v, { status }) => {
       void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
+      // Suspending/reactivating now also flips the coach's actual account
+      // status (see `setCoachSuspended`) — keep every other cache of that
+      // same user record (AdminAccounts, AdminAssignments) from going stale.
+      void qc.invalidateQueries({ queryKey: ['users'] });
+      void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
       showToast({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), variant: 'success' });
     },
     onError: (e, { status }) =>

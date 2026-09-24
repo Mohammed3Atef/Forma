@@ -2,6 +2,7 @@ import { LandingHeader } from './sections/LandingHeader';
 import { Hero } from './sections/Hero';
 import { ChaosToClarity } from './sections/ChaosToClarity';
 import { Features } from './sections/Features';
+import { Pricing } from './sections/Pricing';
 import { HowItWorks } from './sections/HowItWorks';
 import { Showcase } from './sections/Showcase';
 import { Benefits } from './sections/Benefits';
@@ -23,6 +24,7 @@ export function Landing() {
         <Hero />
         <ChaosToClarity />
         <Features />
+        <Pricing />
         <HowItWorks />
         <Showcase />
         <Benefits />

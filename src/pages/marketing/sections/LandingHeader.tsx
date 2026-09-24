@@ -6,6 +6,7 @@ import type { Locale } from '@/types';
 
 const NAV = [
   { id: 'features', key: 'landing.nav.features' },
+  { id: 'pricing', key: 'landing.nav.pricing' },
   { id: 'how', key: 'landing.nav.how' },
   { id: 'showcase', key: 'landing.nav.showcase' },
 ] as const;

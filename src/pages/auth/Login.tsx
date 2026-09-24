@@ -11,6 +11,9 @@ import { TextInput } from '@/components/ui/Field';
  * Full-screen sign-in / sign-up for platform accounts. Sign-up requires a phone
  * number (used for coach offers / data later) and a policy-checked password
  * entered twice. Includes a "forgot password" reset flow.
+ *
+ * There's exactly one plan cycle (Trial → Pro) and no plan to pick — every
+ * coach just starts on the same Trial, so this form has no plan awareness.
  */
 
 // Self-signup is COACH-ONLY for now — client self-registration is temporarily

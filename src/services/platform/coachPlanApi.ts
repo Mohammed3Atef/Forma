@@ -1,21 +1,19 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
 import { writeAudit } from './auditApi';
-import { notify } from './notificationsApi';
-import type { CoachPlan, CoachPlanChangeRequest } from '@/types';
+import type { CoachPlan } from '@/types';
 
 /**
  * Layer A — the coach's own subscription to Forma, backed by the Mongo
- * `coachPlans` collection via `/api/coach-plans/*` (was Firestore
- * `coachPlans/{coachId}`). Distinct from the per-client `Subscription`
- * (Layer B) on `coachClients`.
+ * `coachPlans` collection via `coachPlans.*`. Distinct from the per-client
+ * `Subscription` (Layer B) on `coachClients`.
  *
- * A coach self-creates a trial on signup via `POST /coach-plans/trial`
- * (idempotent server-side — never downgrades an existing plan). Super-admin
- * overrides (tier/status/maxClients) go through `PATCH /coach-plans/:coachId`.
+ * Plan-REQUEST lifecycle (submit/cancel/list/confirm/reject a paid-plan
+ * request) lives in `coachPlanRequestsApi.ts` now — a coach's active plan
+ * ALWAYS comes from `CoachPlan` here, never from an unconfirmed request.
  */
 
-/** Trial defaults — mirrored server-side in `api/coach-plans/_data.ts`. Keep the two in sync. */
-export const TRIAL_MAX_CLIENTS = 10;
+/** Trial defaults — mirrored server-side in `api/coach-plans/_data.ts`. Keep the two in sync. Only the BOOTSTRAP fallback — the real source of truth is the `trial` tier's own `trialDurationDays`/`maxClients` (see `coachPlanTiersApi.ts`). */
+export const TRIAL_MAX_CLIENTS = 2;
 export const TRIAL_DURATION_DAYS = 15;
 /** Default renewal cycle for paid tiers (renewals are manual — no payment gateway). */
 export const PAID_TERM_DAYS = 30;
@@ -46,9 +44,11 @@ export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
 }
 
 /**
- * Creates the coach's auto trial plan. `POST /coach-plans/trial` is idempotent
- * server-side: if a plan already exists (of any tier, even upgraded/paid) it
- * is returned untouched. Called at coach signup from the session sign-in path.
+ * Creates the coach's auto trial plan. Idempotent server-side: if a plan
+ * already exists (of any tier, even upgraded/paid) it is returned untouched.
+ * Kept for any direct caller — `auth.signup` now assigns this itself
+ * server-side via `ensureTrialPlan`, so this is no longer on the critical
+ * signup path.
  */
 export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
   void coachId; // the backend resolves the coach from the auth token, not a client-supplied id
@@ -139,9 +139,21 @@ export async function setCoachMaxClients(coachId: string, maxClients: number): P
   await writeAudit({ action: 'coachPlan.setMaxClients', targetUserId: coachId, metadata: { maxClients: n } });
 }
 
-/** Super-admin: suspend/reactivate a coach PLAN (separate from the account). */
-export async function setCoachPlanStatus(coachId: string, status: 'active' | 'suspended'): Promise<void> {
-  await trpc.coachPlans.adminUpdate.mutate({ coachId, status });
+/**
+ * Super-admin: the ONE "suspend/reactivate this coach" action — sets BOTH
+ * the coach's plan status (`CoachPlanDoc.status`, what `coachPlanState()`/the
+ * admin list's Pill reads) AND their actual account status
+ * (`UserDoc.accountStatus`, what actually blocks login) together, so the two
+ * can never drift out of sync regardless of which admin screen triggered it —
+ * `AdminCoaches.tsx`'s row action and `AdminCoachDetail.tsx`'s own button
+ * both call this.
+ */
+export async function setCoachSuspended(coachId: string, suspended: boolean): Promise<void> {
+  const status = suspended ? 'suspended' : 'active';
+  await Promise.all([
+    trpc.coachPlans.adminUpdate.mutate({ coachId, status }),
+    trpc.adminUsers.setStatus.mutate({ id: coachId, status }),
+  ]);
   await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
 }
 
@@ -160,84 +172,4 @@ export function coachPlanState(plan: CoachPlan | null, now = Date.now()): 'trial
   if (plan.endsAt != null && now >= plan.endsAt) return 'expired';
   if (plan.status !== 'active') return 'expired';
   return plan.plan === 'trial' ? 'trial' : 'active';
-}
-
-// ---- Coach plan-change requests (coach → super-admin) ----------------------
-// Mirrors the client→coach FreezeRequest. Singleton per coach, now the
-// top-level Mongo collection `coachPlanChangeRequests` (`_id` == coachId).
-
-/** Coach: submit (or re-submit) a plan-change / more-clients request. */
-export async function submitPlanChangeRequest(
-  coachId: string,
-  data: { requestedTier?: CoachTierKey; requestedMaxClients?: number; reason: string },
-): Promise<void> {
-  void coachId; // the backend resolves the coach from the auth token
-  await trpc.coachPlans.submitChangeRequest.mutate({
-    reason: data.reason.trim(),
-    ...(data.requestedTier ? { requestedTier: data.requestedTier } : {}),
-    ...(data.requestedMaxClients ? { requestedMaxClients: Math.max(0, Math.floor(data.requestedMaxClients)) } : {}),
-  });
-}
-
-/**
- * Read a coach's plan-change request (coach reads own; admin reads any).
- *
- * NOTE: the only read route is `GET /coach-plans/admin-plan-change-requests`
- * (`users.manageStatus`-gated, and only ever returns PENDING requests). A
- * coach calling it 403s — there is no self-service "read my own request"
- * route yet — so this degrades to `null` for a coach rather than throwing
- * (the request UI still works for submitting/seeing a pending request; it
- * just can't show a resolved accepted/rejected banner until that route
- * exists).
- */
-export async function getCoachPlanChangeRequest(coachId: string): Promise<CoachPlanChangeRequest | null> {
-  try {
-    const pending = await trpc.coachPlans.listPendingChangeRequests.query();
-    return pending.find((r) => r.coachId === coachId) ?? null;
-  } catch (e) {
-    if (e instanceof TRPCClientError && e.data?.code === 'FORBIDDEN') return null;
-    throw e;
-  }
-}
-
-/**
- * Coach: withdraw their own still-pending request via
- * `DELETE /coach-plans/change-request` (scoped server-side to the calling
- * coach's own request — only allowed while it's still 'pending'). Throws
- * (surfaced by the caller's `onError`) if the request was already resolved
- * out from under the coach, e.g. an admin accepted/rejected it first.
- */
-export async function cancelPlanChangeRequest(coachId: string): Promise<void> {
-  void coachId; // the backend resolves the coach from the auth token
-  await trpc.coachPlans.cancelChangeRequest.mutate();
-}
-
-/** Super-admin: every pending plan-change request across all coaches. */
-export async function listPendingPlanChangeRequests(): Promise<CoachPlanChangeRequest[]> {
-  return trpc.coachPlans.listPendingChangeRequests.query();
-}
-
-/**
- * Super-admin: resolve a request (accept/reject) with a note. Applying the
- * actual tier/cap is a separate explicit action (setCoachTier/setCoachMaxClients)
- * so the admin keeps full control over what is granted.
- */
-export async function resolvePlanChangeRequest(
-  coachId: string,
-  decidedBy: string,
-  outcome: 'accepted' | 'rejected',
-  adminNote: string,
-): Promise<void> {
-  const note = adminNote.trim();
-  await trpc.coachPlans.resolveChangeRequest.mutate({ coachId, decision: outcome, adminNote: note });
-  // Notify the coach in their own bell that their request was reviewed. Best-effort.
-  await notify({
-    clientId: coachId,
-    forRole: 'coach',
-    type: 'plan_decided',
-    body: note || undefined,
-    route: '/coach/plan',
-    createdBy: decidedBy,
-  });
-  await writeAudit({ action: `coachPlan.request.${outcome}`, targetUserId: coachId, metadata: { adminNote: note.slice(0, 140) } });
 }
