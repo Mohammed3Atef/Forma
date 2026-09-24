@@ -1,6 +1,6 @@
-import { trpc, TRPCClientError } from '@/services/trpc';
-import { writeAudit } from './auditApi';
-import type { CoachPlan } from '@/types';
+import { trpc, TRPCClientError } from "@/services/trpc";
+import { writeAudit } from "./auditApi";
+import type { CoachPlan } from "@/types";
 
 /**
  * Layer A — the coach's own subscription to Forma, backed by the Mongo
@@ -21,7 +21,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * Reads the signed-in coach's own plan via `coachPlans.me`. For a non-coach
- * caller (a super-admin viewing another coach's plan from
+ * caller ( a super-admin viewing another coach's plan from
  * `AdminCoachDetail.tsx`), `coachPlans.me` 403s (there is no dedicated
  * "read any coach's plan" procedure under `coachPlans.*`), so this falls back
  * to the admin coach-detail procedure (`adminCoaches.detail`), which embeds
@@ -31,14 +31,20 @@ export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
   try {
     return await trpc.coachPlans.me.query();
   } catch (e) {
-    if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
-    if (!(e instanceof TRPCClientError) || e.data?.code !== 'FORBIDDEN') throw e;
+    if (e instanceof TRPCClientError && e.data?.code === "NOT_FOUND")
+      return null;
+    if (!(e instanceof TRPCClientError) || e.data?.code !== "FORBIDDEN")
+      throw e;
   }
   try {
     const detail = await trpc.adminCoaches.detail.query({ id: coachId });
     return (detail.plan as CoachPlan | null) ?? null;
   } catch (e) {
-    if (e instanceof TRPCClientError && (e.data?.code === 'NOT_FOUND' || e.data?.code === 'FORBIDDEN')) return null;
+    if (
+      e instanceof TRPCClientError &&
+      (e.data?.code === "NOT_FOUND" || e.data?.code === "FORBIDDEN")
+    )
+      return null;
     throw e;
   }
 }
@@ -62,7 +68,10 @@ export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
  * this is a deliberate no-op until a dedicated route exists. Every caller
  * (`checkTrialExpiry`) already treats this as best-effort/non-fatal.
  */
-export async function markTrialNotified(coachId: string, key: 'd7' | 'd5' | 'd3' | 'd1'): Promise<void> {
+export async function markTrialNotified(
+  coachId: string,
+  key: "d7" | "d5" | "d3" | "d1",
+): Promise<void> {
   void coachId;
   void key;
 }
@@ -74,13 +83,19 @@ export async function markTrialNotified(coachId: string, key: 'd7' | 'd5' | 'd3'
  * only so existing callers compile/behave unchanged — every call site already
  * treats this as best-effort/non-fatal bookkeeping.
  */
-export async function bumpActiveClientCount(coachId: string, delta: number): Promise<void> {
+export async function bumpActiveClientCount(
+  coachId: string,
+  delta: number,
+): Promise<void> {
   void coachId;
   void delta;
 }
 
 /** Days remaining on the trial (rounded up), or null when the plan has no end. */
-export function trialDaysLeft(plan: Pick<CoachPlan, 'endsAt'>, now = Date.now()): number | null {
+export function trialDaysLeft(
+  plan: Pick<CoachPlan, "endsAt">,
+  now = Date.now(),
+): number | null {
   if (plan.endsAt == null) return null;
   return Math.ceil((plan.endsAt - now) / DAY_MS);
 }
@@ -90,7 +105,10 @@ export function trialDaysLeft(plan: Pick<CoachPlan, 'endsAt'>, now = Date.now())
 export type CoachTierKey = string;
 /** Client cap + indicative monthly price per tier. priceMonthly is a tracking
  * placeholder (0) until tiers are priced — no gateway is involved. */
-export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceMonthly: number }> = {
+export const COACH_PLAN_TIERS: Record<
+  CoachTierKey,
+  { maxClients: number; priceMonthly: number }
+> = {
   trial: { maxClients: TRIAL_MAX_CLIENTS, priceMonthly: 0 },
   starter: { maxClients: 25, priceMonthly: 0 },
   pro: { maxClients: 100, priceMonthly: 0 },
@@ -100,13 +118,22 @@ export const COACH_PLAN_TIERS: Record<CoachTierKey, { maxClients: number; priceM
 /** Super-admin: list every coach plan, via the aggregate `adminCoaches.list` (embeds each coach's plan). */
 export async function listAllCoachPlans(): Promise<CoachPlan[]> {
   const data = await trpc.adminCoaches.list.query();
-  return data.rows.map((r) => r.plan).filter((p) => p !== null) as unknown as CoachPlan[];
+  return data.rows
+    .map((r) => r.plan)
+    .filter((p) => p !== null) as unknown as CoachPlan[];
 }
 
 /** Super-admin: upgrade/downgrade a coach to a tier (sets the cap + activates). */
-export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise<void> {
+export async function setCoachTier(
+  coachId: string,
+  tier: CoachTierKey,
+): Promise<void> {
   await trpc.coachPlans.adminUpdate.mutate({ coachId, tier });
-  await writeAudit({ action: 'coachPlan.setTier', targetUserId: coachId, metadata: { tier } });
+  await writeAudit({
+    action: "coachPlan.setTier",
+    targetUserId: coachId,
+    metadata: { tier },
+  });
 }
 
 /**
@@ -119,24 +146,51 @@ export async function setCoachTier(coachId: string, tier: CoachTierKey): Promise
  * `days` count on top of the existing `endsAt`; every caller today only ever
  * passes the standard term length anyway.
  */
-export async function extendCoachTrial(coachId: string, days: number): Promise<void> {
+export async function extendCoachTrial(
+  coachId: string,
+  days: number,
+): Promise<void> {
   const plan = await getCoachPlan(coachId);
-  await trpc.coachPlans.adminUpdate.mutate({ coachId, tier: plan?.plan ?? 'trial' });
-  await writeAudit({ action: 'coachPlan.extend', targetUserId: coachId, metadata: { days } });
+  await trpc.coachPlans.adminUpdate.mutate({
+    coachId,
+    tier: plan?.plan ?? "trial",
+  });
+  await writeAudit({
+    action: "coachPlan.extend",
+    targetUserId: coachId,
+    metadata: { days },
+  });
 }
 
 /** Super-admin: renew a coach's term (default a full paid cycle) and (re)activate. See `extendCoachTrial` for the same day-offset caveat. */
-export async function renewCoachPlan(coachId: string, days = PAID_TERM_DAYS): Promise<void> {
+export async function renewCoachPlan(
+  coachId: string,
+  days = PAID_TERM_DAYS,
+): Promise<void> {
   const plan = await getCoachPlan(coachId);
-  await trpc.coachPlans.adminUpdate.mutate({ coachId, tier: plan?.plan ?? 'trial' });
-  await writeAudit({ action: 'coachPlan.renew', targetUserId: coachId, metadata: { days } });
+  await trpc.coachPlans.adminUpdate.mutate({
+    coachId,
+    tier: plan?.plan ?? "trial",
+  });
+  await writeAudit({
+    action: "coachPlan.renew",
+    targetUserId: coachId,
+    metadata: { days },
+  });
 }
 
 /** Super-admin: adjust a coach's client cap directly. */
-export async function setCoachMaxClients(coachId: string, maxClients: number): Promise<void> {
+export async function setCoachMaxClients(
+  coachId: string,
+  maxClients: number,
+): Promise<void> {
   const n = Math.max(0, Math.floor(maxClients));
   await trpc.coachPlans.adminUpdate.mutate({ coachId, maxClients: n });
-  await writeAudit({ action: 'coachPlan.setMaxClients', targetUserId: coachId, metadata: { maxClients: n } });
+  await writeAudit({
+    action: "coachPlan.setMaxClients",
+    targetUserId: coachId,
+    metadata: { maxClients: n },
+  });
 }
 
 /**
@@ -148,28 +202,45 @@ export async function setCoachMaxClients(coachId: string, maxClients: number): P
  * `AdminCoaches.tsx`'s row action and `AdminCoachDetail.tsx`'s own button
  * both call this.
  */
-export async function setCoachSuspended(coachId: string, suspended: boolean): Promise<void> {
-  const status = suspended ? 'suspended' : 'active';
+export async function setCoachSuspended(
+  coachId: string,
+  suspended: boolean,
+): Promise<void> {
+  const status = suspended ? "suspended" : "active";
   await Promise.all([
     trpc.coachPlans.adminUpdate.mutate({ coachId, status }),
     trpc.adminUsers.setStatus.mutate({ id: coachId, status }),
   ]);
-  await writeAudit({ action: 'coachPlan.setStatus', targetUserId: coachId, metadata: { status } });
+  await writeAudit({
+    action: "coachPlan.setStatus",
+    targetUserId: coachId,
+    metadata: { status },
+  });
 }
 
 /** Super-admin: set (or clear, passing `null`) an explicit plan end date. */
-export async function setCoachPlanEndsAt(coachId: string, endsAt: number | null): Promise<void> {
+export async function setCoachPlanEndsAt(
+  coachId: string,
+  endsAt: number | null,
+): Promise<void> {
   await trpc.coachPlans.adminUpdate.mutate({ coachId, endsAt });
-  await writeAudit({ action: 'coachPlan.setEndsAt', targetUserId: coachId, metadata: { endsAt } });
+  await writeAudit({
+    action: "coachPlan.setEndsAt",
+    targetUserId: coachId,
+    metadata: { endsAt },
+  });
 }
 
 /** Effective coach-plan status, folding the trial end date in. */
-export function coachPlanState(plan: CoachPlan | null, now = Date.now()): 'trial' | 'active' | 'expired' | 'suspended' | 'none' {
-  if (!plan) return 'none';
-  if (plan.status === 'suspended') return 'suspended';
+export function coachPlanState(
+  plan: CoachPlan | null,
+  now = Date.now(),
+): "trial" | "active" | "expired" | "suspended" | "none" {
+  if (!plan) return "none";
+  if (plan.status === "suspended") return "suspended";
   // A lapsed end date expires ANY tier (trial OR paid) — previously only trials
   // were folded in, so paid coaches past their date stayed "active" forever.
-  if (plan.endsAt != null && now >= plan.endsAt) return 'expired';
-  if (plan.status !== 'active') return 'expired';
-  return plan.plan === 'trial' ? 'trial' : 'active';
+  if (plan.endsAt != null && now >= plan.endsAt) return "expired";
+  if (plan.status !== "active") return "expired";
+  return plan.plan === "trial" ? "trial" : "active";
 }
