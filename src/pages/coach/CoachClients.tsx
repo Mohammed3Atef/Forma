@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
@@ -19,6 +19,8 @@ import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
+import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { AddExistingClient } from '@/pages/coach/AddExistingClient';
@@ -113,7 +115,10 @@ export function CoachClients() {
   const usedClients = clients.data
     ? clients.data.filter((c) => c.accountStatus !== 'disabled').length
     : plan.data?.activeClientCount ?? 0;
-  const atLimit = Number.isFinite(maxClients) && usedClients >= maxClients;
+  const lapsed = plan.data?.state === 'expired' || plan.data?.state === 'suspended';
+  const overBy = Number.isFinite(maxClients) ? Math.max(0, usedClients - maxClients) : 0;
+  // Full capacity OR an ended subscription both block new clients (never existing ones).
+  const atLimit = lapsed || (Number.isFinite(maxClients) && usedClients >= maxClients);
 
   const matches = (name: string, email: string, phone: string | undefined, q: string) =>
     (name || email).toLowerCase().includes(q) || email.toLowerCase().includes(q) || (phone ?? '').includes(q);
@@ -235,7 +240,11 @@ export function CoachClients() {
       {Number.isFinite(maxClients) && (
         <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-line-soft px-3 py-2 text-[13px]" data-testid="coach-client-usage">
           <span className="text-earth-muted">{t('coachTrial.usage', { used: usedClients, max: maxClients })}</span>
-          {atLimit && <span className="text-warn" data-testid="coach-client-limit">{t('coachTrial.limitReached')}</span>}
+          {overBy > 0 ? (
+            <Link to="/coach/plan" className="text-warn underline-offset-2 hover:underline" data-testid="coach-client-limit">{t('forma.capacity.overBy', { n: overBy })} · {t('forma.addCapacity')}</Link>
+          ) : atLimit ? (
+            <Link to="/coach/plan" className="text-warn underline-offset-2 hover:underline" data-testid="coach-client-limit">{lapsed ? t('forma.renew') : `${t('coachTrial.limitReached')} · ${t('forma.addCapacity')}`}</Link>
+          ) : null}
         </div>
       )}
 
@@ -415,7 +424,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
       setPrefill({ name: '', email: '', phone: '' });
       void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
     },
-    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
   });
   const revoke = useMutation({
     mutationFn: (code: string) => revokeInvite(code),
@@ -456,7 +465,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
       <p className="text-sm text-earth-muted">{t('invite.panelHint')}</p>
 
       {atLimit ? (
-        <p className="text-sm text-warn" data-testid="coach-invite-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
+        <ClientCapBlocked maxClients={maxClients} testId="coach-invite-blocked" />
       ) : (
         <div className="space-y-2">
           <TextInput label={t('field.name')} data-testid="coach-invite-name" placeholder={t('invite.optional')} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />

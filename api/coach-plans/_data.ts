@@ -1,98 +1,179 @@
 import type { ClientSession, Collection } from 'mongodb';
 import { getDb } from '../_lib/mongodb.js';
-import { getTier, COACH_PLAN_TIERS, type LocalizedText } from './_handlers/tiers-data.js';
+import { getFormaConfig, trialEndsAt, trialLimitOf, type LocalizedText } from './_handlers/forma.js';
+
+export type { LocalizedText };
 
 /**
- * Backend-local mirror of `src/types/index.ts`'s `CoachPlan` /
- * `CoachPlanRequest`, ported to top-level Mongo collections:
- *  - `coachPlans` — `_id` = the coach's user id (was `coachPlans/{coachId}`).
- *  - `coachPlanRequests` — one row per request (replaces the old singleton
- *    `coachPlanChangeRequests/{coachId}` doc — a coach's paid-plan intent now
- *    has real history: new_signup, trial_upgrade, plan_change, renewal).
+ * Layer A — the coach's own Forma subscription (`coachPlans`, `_id` = coachId)
+ * and the unified request lifecycle (`coachPlanRequests`).
  *
- * Layer A only — the coach's own subscription to Forma. Distinct from the
- * per-client Subscription (Layer B) which lives elsewhere.
+ * SINGLE-PRODUCT MODEL: every coach is on Forma. `plan` is the PHASE of that
+ * one product — `'trial'` (Free Trial) or `'forma'` (paid monthly) — never a
+ * competing tier. (Pre-refactor test data may still say `'pro'`; it is read
+ * as `'forma'`.)
  *
- * PRODUCT MODEL (see the approved plan): a coach's real entitlements ALWAYS
- * come from `CoachPlanDoc` — `status` is deliberately still just
- * `active | expired | suspended`, with NO "provisional"/"payment_pending"
- * value. A pending paid-plan selection lives ENTIRELY in `CoachPlanRequestDoc`
- * and never gates capacity/access on its own; `CoachPlanDoc` is only ever
- * touched by `confirm` (replaces it with the request's snapshot) — `reject`/
- * `cancel`/`expire` never touch it at all.
+ * CAPACITY is MATERIALIZED on this doc so the atomic slot reservation
+ * (`reserveClientSlot`, coach-clients/_data.ts) keeps comparing two fields of
+ * ONE document:
+ *
+ *   maxClients = baseMaxClients + addonClientCapacity + manualCapacityAdjustment
+ *
+ * `baseMaxClients` comes from the Trial config or the confirmed subscription
+ * snapshot; `addonClientCapacity` is the sum of ACTIVE capacity entitlements;
+ * `manualCapacityAdjustment` is an explicit, audited Super-Admin bonus/penalty.
+ * Every write that changes any of the three recomputes `maxClients` in the
+ * same transaction (`recomputeCapacity`, ./_capacity.ts). `activeClientCount`
+ * is never touched by a recompute.
+ *
+ * A coach's real entitlements come ONLY from this doc + active entitlements —
+ * an unconfirmed request never changes them.
  */
 
-export type CoachPlanTierKey = string;
+export type CoachPlanPhase = 'trial' | 'forma';
 export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
 
-/** One entry in a plan's change history (newest pushed last). Mirrors `PlanHistoryEntry`. */
+/** One entry in a plan's change history (newest pushed last). */
 export interface PlanHistoryEntry {
   at: number;
-  action: string; // 'tier' | 'maxClients' | 'status' | 'endsAt' | 'request.confirmed' | 'request.rejected'
+  action: string;
   detail?: string;
-  by?: string; // actor id
+  by?: string;
+}
+
+/** What the coach is currently paying for (copied from the confirmed request — never from live config). */
+export interface SubscriptionTermSnapshot {
+  priceMonthly: number;
+  currency: string;
+  billingInterval: 'month';
+  termDays: number;
+  maxClients: number;
+  requestId: string;
 }
 
 export interface CoachPlanDoc {
   _id: string; // == coachId
-  plan: CoachPlanTierKey;
+  /** `'trial' | 'forma'` (legacy test rows may carry an old tier key; read via `phaseOf`). */
+  plan: string;
   status: CoachPlanStatus;
-  maxClients: number; // trial = TRIAL_MAX_CLIENTS
-  /**
-   * false/absent (the default): `maxClients` is DERIVED from `plan`'s tier
-   * config — every time a super-admin edits that tier's `maxClients` in
-   * `coachPlanTiers.save`, this coach's cap is swept along with it. true: an
-   * admin explicitly set this coach's own cap (`coachPlans.adminUpdate` with
-   * `maxClients` but no `tier`) — that override survives future tier-wide
-   * edits and is never silently overwritten by them.
-   */
+  /** EFFECTIVE limit — materialized; what the atomic slot reservation compares against. */
+  maxClients: number;
+  /** Included capacity of the Trial / confirmed subscription. */
+  baseMaxClients?: number;
+  /** Sum of active capacity entitlements. */
+  addonClientCapacity?: number;
+  /** Explicit Super-Admin adjustment (may be negative), with its reason. */
+  manualCapacityAdjustment?: number;
+  manualCapacityNote?: { reason: string; by: string; at: number };
+  /** @deprecated pre-refactor per-coach cap flag; migrated into `manualCapacityAdjustment`. */
   maxClientsOverride?: boolean;
   startedAt: number;
   endsAt: number | null;
-  /** Expiry-reminder bookkeeping (trial OR paid term) — each flag fires its reminder once. */
+  /** The confirmed paid term this coach is on (absent during Trial). */
+  subscription?: SubscriptionTermSnapshot;
   trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };
-  /** Maintained client-usage counter. */
   activeClientCount?: number;
   history?: PlanHistoryEntry[];
   createdAt: number;
   updatedAt: number;
 }
 
-/** The exact shape returned to the frontend — matches `CoachPlan` field-for-field. */
-export type PublicCoachPlan = Omit<CoachPlanDoc, '_id'> & { coachId: string };
+export function phaseOf(plan: Pick<CoachPlanDoc, 'plan'>): CoachPlanPhase {
+  return plan.plan === 'trial' ? 'trial' : 'forma';
+}
+
+/** Effective state with the end date folded in — the ONE server-side definition. */
+export function planStateOf(plan: Pick<CoachPlanDoc, 'plan' | 'status' | 'endsAt'> | null, now = Date.now()): 'trial' | 'active' | 'expired' | 'suspended' | 'none' {
+  if (!plan) return 'none';
+  if (plan.status === 'suspended') return 'suspended';
+  if (plan.endsAt != null && now >= plan.endsAt) return 'expired';
+  if (plan.status !== 'active') return 'expired';
+  return phaseOf(plan) === 'trial' ? 'trial' : 'active';
+}
+
+/** The exact shape returned to the frontend (`_id` → `coachId`, plus derived fields). */
+export type PublicCoachPlan = Omit<CoachPlanDoc, '_id'> & {
+  coachId: string;
+  phase: CoachPlanPhase;
+  state: ReturnType<typeof planStateOf>;
+  baseMaxClients: number;
+  addonClientCapacity: number;
+  manualCapacityAdjustment: number;
+};
 
 export function toPublicCoachPlan(doc: CoachPlanDoc): PublicCoachPlan {
   const { _id, ...rest } = doc;
-  return { coachId: _id, ...rest };
+  return {
+    coachId: _id,
+    ...rest,
+    phase: phaseOf(doc),
+    state: planStateOf(doc),
+    baseMaxClients: doc.baseMaxClients ?? doc.maxClients,
+    addonClientCapacity: doc.addonClientCapacity ?? 0,
+    manualCapacityAdjustment: doc.manualCapacityAdjustment ?? 0,
+  };
 }
 
 export async function coachPlansCol(): Promise<Collection<CoachPlanDoc>> {
   return (await getDb()).collection<CoachPlanDoc>('coachPlans');
 }
 
-// ---- Unified plan-request lifecycle (replaces coachPlanChangeRequests) -----
+// ---- Unified request lifecycle -------------------------------------------
 
-export type PlanRequestType = 'new_signup' | 'trial_upgrade' | 'plan_change' | 'renewal' | 'trial_expired';
+/**
+ * `subscription`    — Trial / expired coach asks to start the paid Forma term
+ * `renewal`         — an active paid coach asks to renew
+ * `trial_expired`   — raised automatically by the daily cron when a Trial ends
+ *                     (a subscription request the coach didn't have to file)
+ * `capacity_addon`  — a capacity package (snapshot in `capacitySnapshot`)
+ * Legacy (pre-refactor test rows, read-only): new_signup, trial_upgrade, plan_change.
+ */
+export type PlanRequestType = 'subscription' | 'renewal' | 'trial_expired' | 'capacity_addon';
+export type LegacyPlanRequestType = 'new_signup' | 'trial_upgrade' | 'plan_change';
 export type PlanRequestStatus = 'awaiting' | 'processing' | 'confirmed' | 'rejected' | 'cancelled' | 'expired';
 
 export interface PlanSnapshot {
-  tierKey: string;
+  tierKey: string; // always 'forma' for new requests
   label: LocalizedText;
   priceMonthly: number;
   currency: string;
+  billingInterval?: 'month';
+  /** Base client limit the subscription grants. */
   maxClients: number;
   termDays: number;
 }
 
+export interface CapacitySnapshot {
+  packageId: string;
+  name: LocalizedText;
+  additionalClients: number;
+  price: number;
+  currency: string;
+  billingInterval: 'month' | 'one_time';
+  /** For 'month': how many months one purchase covers. */
+  durationMonths: number | null;
+}
+
 export interface CoachPlanRequestDoc {
-  _id: string; // crypto.randomUUID()
+  _id: string;
   coachId: string;
-  type: PlanRequestType;
-  requestedTierKey: string;
-  planSnapshot: PlanSnapshot; // immutable once created — confirm always applies THIS, never the live tier
+  type: PlanRequestType | LegacyPlanRequestType;
+  /**
+   * What this request is FOR — the uniqueness scope for "one actionable
+   * request": `'subscription'` (subscription / renewal / trial_expired) or
+   * `'capacity:<packageId>'`. A coach may therefore have one open
+   * subscription request AND separate open add-on requests at the same time.
+   * Absent on legacy rows.
+   */
+  requestKey?: string;
+  requestedTierKey?: string;
+  /** Subscription/renewal snapshot (absent for capacity add-ons). */
+  planSnapshot?: PlanSnapshot;
+  /** Capacity add-on snapshot. */
+  capacitySnapshot?: CapacitySnapshot;
   status: PlanRequestStatus;
-  requestedAt: number; // server time only
-  confirmationDeadline: number; // requestedAt + 24h
+  requestedAt: number;
+  confirmationDeadline: number;
   confirmedAt?: number;
   confirmedBy?: string;
   rejectedAt?: number;
@@ -100,33 +181,46 @@ export interface CoachPlanRequestDoc {
   cancelledAt?: number;
   expiredAt?: number;
   adminNote?: string;
-  reason?: string; // carries the old plan_change free-text reason field
+  reason?: string;
 }
 
-/** The exact shape returned to the frontend — matches `CoachPlanRequest` field-for-field (`_id` -> `id`). */
 export type PublicCoachPlanRequest = Omit<CoachPlanRequestDoc, '_id'> & { id: string };
 export function toPublicPlanRequest(doc: CoachPlanRequestDoc): PublicCoachPlanRequest {
   const { _id, ...rest } = doc;
   return { id: _id, ...rest };
 }
 
+/** Human label for emails / audit (English). */
+export function requestLabelEn(r: Pick<CoachPlanRequestDoc, 'planSnapshot' | 'capacitySnapshot'>): string {
+  if (r.capacitySnapshot) return `${r.capacitySnapshot.name.en} (+${r.capacitySnapshot.additionalClients} clients)`;
+  return r.planSnapshot?.label.en ?? 'Forma';
+}
+
+const LEGACY_REQUEST_INDEX = 'uniq_coachId_actionable';
+let legacyIndexDropped = false;
+
 /**
- * One actionable ('awaiting'/'processing') request per coach, enforced at the
- * DATABASE level (not just application logic) — a partial unique index so
- * two concurrent submit/change-plan calls can never both land in an
- * actionable state for the same coach. Idempotent (`createIndex` is a no-op
- * if it already exists with the same spec) — self-ensured on every call to
- * `coachPlanRequestsCol()` below, same pattern as `api/coach-assets/_lib/db.ts`
- * (deliberately not memoized beyond Mongo's own idempotency, so a dropped/
- * recreated test database is never left with the guarantee unenforced).
+ * One actionable request per (coach, requestKey), enforced by the DATABASE —
+ * a partial unique index — so two concurrent submits for the same thing can
+ * never both land. Replaces the pre-refactor `uniq_coachId_actionable`
+ * ({coachId} only), which would wrongly forbid a coach from requesting an
+ * add-on while a subscription request is open; that index is dropped once
+ * per process if present (idempotent; production is handled by
+ * scripts/mongo-init-indexes.mjs). Self-ensured on every call so a dropped
+ * test database is never left unenforced.
  */
 export async function ensurePlanRequestIndexes(): Promise<void> {
   const col = (await getDb()).collection<CoachPlanRequestDoc>('coachPlanRequests');
+  if (!legacyIndexDropped) {
+    await col.dropIndex(LEGACY_REQUEST_INDEX).catch(() => undefined);
+    legacyIndexDropped = true;
+  }
   await col.createIndex(
-    { coachId: 1 },
-    { unique: true, partialFilterExpression: { status: { $in: ['awaiting', 'processing'] } }, name: 'uniq_coachId_actionable' },
+    { coachId: 1, requestKey: 1 },
+    { unique: true, partialFilterExpression: { status: { $in: ['awaiting', 'processing'] } }, name: 'uniq_coachId_requestKey_actionable' },
   );
   await col.createIndex({ status: 1, confirmationDeadline: 1 }, { name: 'status_confirmationDeadline' });
+  await col.createIndex({ coachId: 1, requestedAt: -1 }, { name: 'coachId_requestedAt' });
 }
 
 export async function coachPlanRequestsCol(): Promise<Collection<CoachPlanRequestDoc>> {
@@ -135,62 +229,46 @@ export async function coachPlanRequestsCol(): Promise<Collection<CoachPlanReques
   return db.collection<CoachPlanRequestDoc>('coachPlanRequests');
 }
 
-/** `req.status === 'awaiting'` past its own deadline is expired even if no write has caught up yet — the ONE shared expiry rule, used by both the defensive read-path and the cron job. Never touches `CoachPlanDoc`. */
+/** `awaiting` past its own deadline is expired even before a write catches up — the ONE shared rule (read paths + cron). */
 export function isRequestExpired(req: Pick<CoachPlanRequestDoc, 'status' | 'confirmationDeadline'>, now = Date.now()): boolean {
   return req.status === 'awaiting' && req.confirmationDeadline <= now;
 }
 
-// ---- Trial assignment — the one source of truth for every coach-creation path ----
-
-export const TRIAL_MAX_CLIENTS = 2;
-export const TRIAL_DURATION_DAYS = 15;
-/** Default renewal cycle for paid tiers (renewals are manual — no payment gateway). */
-export const PAID_TERM_DAYS = 30;
 export const DAY_MS = 86_400_000;
-/**
- * Grace window after a trial's `endsAt` passes before the account itself gets
- * hard-blocked (`accountStatus: 'pending'`) if payment still isn't confirmed
- * — see `api/cron/enforce-trial-expiry.ts`. The coach keeps working normally
- * during this window; only after it elapses unconfirmed does the WHOLE
- * account (not just plan-gated writes) get blocked.
- */
-export const TRIAL_GRACE_DAYS = 3;
 
 /**
- * Idempotent: never resets/downgrades an existing plan (any tier). Uses the
- * live default-signup tier's configured `trialDurationDays`/`maxClients` —
- * the `TRIAL_*` constants above are only the bootstrap/seed fallback, not a
- * second source of truth (see `tiers-data.ts`'s seeded `trial` tier).
- * Accepts an optional Mongo `session` so callers running inside a
- * transaction (e.g. `auth.signup`) thread it through — a write made without
- * the session would commit immediately, outside the transaction, breaking
- * atomicity silently.
+ * Idempotent: never resets an existing plan. A new coach starts the Forma
+ * Free Trial using the CURRENT Forma configuration (duration + trial client
+ * limit). Accepts a Mongo `session` so `auth.signup` keeps user + trial in
+ * one transaction.
  */
 export async function ensureTrialPlan(coachId: string, session?: ClientSession): Promise<CoachPlanDoc> {
   const plans = await coachPlansCol();
   const existing = await plans.findOne({ _id: coachId }, { session });
   if (existing) return existing;
 
-  const trialTier = await getTier('trial');
-  const maxClients = trialTier?.maxClients ?? COACH_PLAN_TIERS.trial?.maxClients ?? TRIAL_MAX_CLIENTS;
-  const trialDurationDays = trialTier?.trialDurationDays ?? TRIAL_DURATION_DAYS;
+  const cfg = await getFormaConfig(session);
   const now = Date.now();
+  const limit = trialLimitOf(cfg);
+  // Trial switched off by the Super Admin: the coach still gets an account and
+  // a plan doc (so they can sign in, open My Plan and request the
+  // subscription), but it starts already-ended — no free access.
   const doc: CoachPlanDoc = {
     _id: coachId,
     plan: 'trial',
-    status: 'active',
-    maxClients,
-    maxClientsOverride: false,
+    status: cfg.trialEnabled ? 'active' : 'expired',
+    maxClients: limit,
+    baseMaxClients: limit,
+    addonClientCapacity: 0,
+    manualCapacityAdjustment: 0,
     startedAt: now,
-    endsAt: now + trialDurationDays * DAY_MS,
+    endsAt: cfg.trialEnabled ? trialEndsAt(cfg, now) : now,
     trialNotified: {},
     activeClientCount: 0,
     history: [],
     createdAt: now,
     updatedAt: now,
   };
-  // Atomic upsert (not a plain insertOne) so a retry/race against another
-  // caller can never duplicate-key or clobber a plan created a moment ago.
   await plans.updateOne({ _id: coachId }, { $setOnInsert: doc }, { upsert: true, session });
   return (await plans.findOne({ _id: coachId }, { session }))!;
 }

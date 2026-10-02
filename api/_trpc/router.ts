@@ -9,6 +9,7 @@ import { coachAssetsRouter } from './routers/coachAssets.js';
 import { coachPlansRouter } from './routers/coachPlans.js';
 import { coachPlanRequestsRouter } from './routers/coachPlanRequests.js';
 import { coachPlanTiersRouter } from './routers/coachPlanTiers.js';
+import { coachCommercialRouter } from './routers/coachCommercial.js';
 import { coachClientsRouter } from './routers/coachClients.js';
 import { invitesRouter } from './routers/invites.js';
 import { transfersRouter } from './routers/transfers.js';
@@ -45,6 +46,7 @@ export const appRouter = router({
   coachPlans: coachPlansRouter,
   coachPlanRequests: coachPlanRequestsRouter,
   coachPlanTiers: coachPlanTiersRouter,
+  coachCommercial: coachCommercialRouter,
   coachClients: coachClientsRouter,
   invites: invitesRouter,
   transfers: transfersRouter,

@@ -12,8 +12,8 @@ import { TextInput } from '@/components/ui/Field';
  * number (used for coach offers / data later) and a policy-checked password
  * entered twice. Includes a "forgot password" reset flow.
  *
- * There's exactly one plan cycle (Trial → Pro) and no plan to pick — every
- * coach just starts on the same Trial, so this form has no plan awareness.
+ * One product, nothing to pick: every new coach starts the Forma Free Trial
+ * configured by the Super Admin (`auth.signup` → `ensureTrialPlan`).
  */
 
 // Self-signup is COACH-ONLY for now — client self-registration is temporarily
@@ -84,7 +84,7 @@ export function Login() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <img src="/Forma-logo.png" alt="Forma" width={1536} height={1024} className="mx-auto w-56 max-w-[64%] rounded-2xl" />
+        <img src="/forma-logo.webp" alt="Forma" width={960} height={640} className="mx-auto w-56 max-w-[64%] rounded-2xl" />
         <h1 className="h1">{t(mode === 'signup' ? 'auth.createAccount' : 'auth.welcomeBack')}</h1>
         <p className="text-sm text-earth-muted">{t('auth.intro')}</p>
 

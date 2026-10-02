@@ -2,70 +2,52 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
-import { getMyPlanRequest } from '@/services/platform/coachPlanRequestsApi';
-import { useLocalized } from '@/hooks/useLocalized';
+import { getMyPlanRequests, isActionable } from '@/services/platform/coachPlanRequestsApi';
+import { capacityOf } from '@/services/platform/coachPlanApi';
 import { useCoachPlan } from './CoachPlanProvider';
 
-const HOUR_MS = 3_600_000;
-
 /**
- * App-wide coach plan alert: a danger banner when the plan has lapsed
- * (expired/suspended) and a warn banner when a PAID term ends within 5 days.
- * Trials keep their own countdown banner on the dashboard (CoachTrialBanner),
- * so this skips the trial-countdown case to avoid a double banner.
- *
- * A separate, non-blocking notice renders alongside either of the above when
- * the coach has an awaiting paid-plan request — its own independent
- * countdown from the request's `confirmationDeadline`, never conflated with
- * the plan's own `endsAt` countdown. The coach's real plan stays exactly as
- * it was until a super-admin confirms payment.
+ * App-wide coach notices, all pointing to My Plan:
+ *  - danger: the Trial / subscription has ended, or the account is suspended
+ *  - warn:   a PAID term ends within 5 days (the Trial has its own dashboard countdown)
+ *  - warn:   over client capacity (e.g. an add-on expired) — existing clients stay
+ *  - info:   a request is awaiting payment confirmation
+ * None of these change what the coach is entitled to; they only explain it.
  */
 export function CoachPlanBanner() {
-  const { state, daysLeft } = useCoachPlan();
+  const { plan, state, daysLeft } = useCoachPlan();
   const { t } = useTranslation();
-  const loc = useLocalized();
   const navigate = useNavigate();
-  const reqQ = useQuery({ queryKey: ['coachPlanRequest', 'mine'], queryFn: getMyPlanRequest, refetchInterval: 60_000 });
-  const req = reqQ.data;
-  const awaiting = req?.status === 'awaiting' || req?.status === 'processing';
+  const reqQ = useQuery({ queryKey: ['coachPlanRequests', 'mine'], queryFn: getMyPlanRequests, refetchInterval: 60_000 });
+  const openReqs = (reqQ.data ?? []).filter(isActionable);
+  const cap = capacityOf(plan);
 
   const lapsed = state === 'expired' || state === 'suspended';
   const endingSoon = state === 'active' && daysLeft != null && daysLeft <= 5;
+  const overCap = !lapsed && cap.over > 0;
 
-  const planBanner = lapsed || endingSoon ? (
+  const go = () => navigate('/coach/plan');
+  const banner = (tone: 'danger' | 'warn' | 'brand', icon: 'info' | 'timer' | 'user' | 'bolt', text: string, cta: string, testId: string) => (
     <div
-      className={`mb-4 flex items-center gap-3 rounded-2xl border px-4 py-3 ${lapsed ? 'border-danger/50 bg-danger/10 text-danger' : 'border-warn/50 bg-warn/10 text-warn'}`}
-      data-testid="coach-plan-banner"
+      key={testId}
+      className={`mb-4 flex items-center gap-3 rounded-2xl border px-4 py-3 ${tone === 'danger' ? 'border-danger/50 bg-danger/10 text-danger' : tone === 'warn' ? 'border-warn/50 bg-warn/10 text-warn' : 'border-brand/40 bg-brand/10 text-brand'}`}
+      data-testid={testId}
     >
-      <Icon name={lapsed ? 'info' : 'timer'} size={20} className="shrink-0" />
-      <p className="min-w-0 flex-1 text-sm font-medium">
-        {lapsed ? t(state === 'suspended' ? 'coachPlan.banner.suspended' : 'coachPlan.banner.expired') : t('coachPlan.banner.endingSoon', { n: Math.max(0, daysLeft ?? 0) })}
-      </p>
-      <button type="button" className="btn-ghost h-9 shrink-0 px-3 text-[13px]" data-testid="coach-plan-renew" onClick={() => navigate('/coach/plan')}>
-        {t('coachPlan.banner.renew')}
+      <Icon name={icon} size={20} className="shrink-0" />
+      <p className="min-w-0 flex-1 text-sm font-medium">{text}</p>
+      <button type="button" className="btn-ghost h-9 shrink-0 px-3 text-[13px]" data-testid={`${testId}-cta`} onClick={go}>
+        {cta}
       </button>
     </div>
-  ) : null;
-
-  const requestBanner = awaiting && req ? (
-    <div className="mb-4 flex items-center gap-3 rounded-2xl border border-brand/40 bg-brand/10 px-4 py-3 text-brand" data-testid="coach-plan-request-banner">
-      <Icon name="bolt" size={20} className="shrink-0" />
-      <p className="min-w-0 flex-1 text-sm font-medium">
-        {req.type === 'trial_expired'
-          ? t('coachPlan.trialEndedAwaiting')
-          : t('coachPlan.banner.requestAwaiting', { plan: loc(req.planSnapshot.label), n: Math.max(0, Math.ceil((req.confirmationDeadline - Date.now()) / HOUR_MS)) })}
-      </p>
-      <button type="button" className="btn-ghost h-9 shrink-0 px-3 text-[13px]" onClick={() => navigate('/coach/plan')}>
-        {t('coachPlan.viewPlan')}
-      </button>
-    </div>
-  ) : null;
-
-  if (!planBanner && !requestBanner) return null;
-  return (
-    <>
-      {planBanner}
-      {requestBanner}
-    </>
   );
+
+  const items = [];
+  if (lapsed) {
+    items.push(banner('danger', 'info', t(state === 'suspended' ? 'forma.banner.suspended' : plan?.phase === 'trial' ? 'forma.banner.trialEnded' : 'forma.banner.expired'), t(state === 'suspended' ? 'forma.viewPlan' : 'forma.renew'), 'coach-plan-banner'));
+  } else if (endingSoon) {
+    items.push(banner('warn', 'timer', t('forma.banner.endingSoon', { n: Math.max(0, daysLeft ?? 0) }), t('forma.renew'), 'coach-plan-banner'));
+  }
+  if (overCap) items.push(banner('warn', 'user', t('forma.banner.overCapacity', { used: cap.used, limit: cap.limit, over: cap.over }), t('forma.addCapacity'), 'coach-capacity-banner'));
+  if (openReqs.length) items.push(banner('brand', 'bolt', t('forma.banner.requestAwaiting', { count: openReqs.length }), t('forma.viewPlan'), 'coach-plan-request-banner'));
+  return items.length ? <>{items}</> : null;
 }

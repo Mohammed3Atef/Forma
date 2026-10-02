@@ -1,137 +1,110 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure, roleProcedure, publicProcedure } from '../trpc.js';
-import {
-  COACH_PLAN_TIERS,
-  SEED_ORDER,
-  coachPlanTiersCol,
-  getCoreFeatures,
-  saveCoreFeatures,
-  listTiers,
-  normalizeTierKey,
-  toPublicTier,
-  toPublicPlanTier,
-  validateTierInvariants,
-  type CoachPlanTierConfigDoc,
-} from '../../coach-plans/_handlers/tiers-data.js';
+import { withDbTransaction } from '../../_lib/mongodb.js';
+import { writeAuditTx } from '../../admin/_lib/audit.js';
 import { coachPlansCol } from '../../coach-plans/_data.js';
+import {
+  FORMA_ID,
+  formaConfigCol,
+  getFormaConfig,
+  toFormaConfig,
+  toPublicForma,
+  trialLimitOf,
+  validateFormaConfig,
+  type FormaConfigDoc,
+} from '../../coach-plans/_handlers/forma.js';
 
-const LocalizedTextListInput = z.object({
-  en: z.array(z.string().trim().max(200)).min(1).max(20),
-  ar: z.array(z.string().trim().max(200)).min(1).max(20),
-});
+const LText = (max: number) => z.object({ en: z.string().trim().max(max), ar: z.string().trim().max(max) });
 
-/** tRPC port of `api/coach-plans/_handlers/{tiers-index,tiers-detail}.ts` (was `/api/plan-tiers/*`). */
+/**
+ * The ONE Forma product configuration (router name kept for wire
+ * compatibility). There are no tiers to list, choose or change — see
+ * `coach-plans/_handlers/forma.ts`.
+ */
 export const coachPlanTiersRouter = router({
   /**
-   * Any signed-in user may read (coaches need labels/caps for their own plan
-   * UI; admins need them for overrides) — deliberately `authedProcedure`, no
-   * active-status requirement, matching the old REST `tiers-index.ts`.
-   */
-  list: authedProcedure.input(z.object({ includeArchived: z.boolean().optional() }).optional()).query(async ({ input }) => {
-    const tiers = await listTiers(input?.includeArchived ?? false);
-    return tiers.map(toPublicTier);
-  }),
-
-  /**
-   * PUBLIC (pre-auth) — feeds the Marketing pricing section and the signup
-   * plan picker. Only `publicVisible && active && !archived` tiers, and only
-   * the safe marketing-facing fields (see `toPublicPlanTier`) — never admin
-   * notes/audit/internal overrides. Sorted by the existing `order` field
-   * (no separate `sortOrder` — see the tier config's own doc comment).
+   * PUBLIC (signed-out) — feeds the marketing pricing card and signup copy.
+   * Always an array of at most ONE plan (empty when the Super Admin hides
+   * Forma from the public site). Capacity add-ons are never included.
    */
   public: publicProcedure.query(async () => {
-    const tiers = await listTiers(false);
-    return tiers.filter((t) => t.publicVisible && t.active !== false).map(toPublicPlanTier);
+    const cfg = await getFormaConfig();
+    return cfg.publicVisible ? [toPublicForma(cfg)] : [];
   }),
 
+  /** Full config for any signed-in user (coach My Plan shows price/term/base limit; admins edit it). */
+  get: authedProcedure.query(async () => toFormaConfig(await getFormaConfig())),
+
   /**
-   * Create/update a tier (deterministic doc id = key); `archived: true` folds
-   * in the old soft-delete route (trial protected). Super-admin-only — this
-   * edits GLOBAL pricing/caps that every coach on the tier inherits; the
-   * frontend (`AdminPlans.tsx`) already restricts the whole page to super
-   * admin, so this tightens the backend to match rather than leaving it
-   * reachable by a plain `admin` calling the mutation directly.
+   * Super Admin edits the Forma configuration. Validated before the write.
+   * Existing coaches are protected: a change NEVER reduces anyone's capacity —
+   * a HIGHER base limit is applied to every coach whose current base is
+   * lower (same transaction, effective limit recomputed in the same update);
+   * a LOWER base limit applies only to future Trials / new subscription
+   * requests. Price/term changes never touch existing requests (they carry
+   * their own snapshot) or running terms.
    */
   save: roleProcedure('super_admin')
     .input(
       z.object({
-        key: z.string().min(1),
-        label: z.string().trim().max(120).optional(),
-        maxClients: z.number().min(0),
-        priceMonthly: z.number().min(0),
-        currency: z.string().trim().max(10).optional(),
-        order: z.number().optional(),
-        active: z.boolean().optional(),
-        archived: z.boolean().optional(),
-        publicVisible: z.boolean().optional(),
-        signupEnabled: z.boolean().optional(),
-        highlighted: z.boolean().optional(),
-        isDefaultSignupPlan: z.boolean().optional(),
-        marketingTitle: z.object({ en: z.string().trim().max(120), ar: z.string().trim().max(120) }).optional(),
-        marketingDescription: z.object({ en: z.string().trim().max(500), ar: z.string().trim().max(500) }).optional(),
-        marketingFeatures: z
-          .object({ en: z.array(z.string().trim().max(200)).max(20), ar: z.array(z.string().trim().max(200)).max(20) })
-          .optional(),
-        requiresPaymentConfirmation: z.boolean().optional(),
-        trialDurationDays: z.number().int().positive().optional(),
+        label: z.string().trim().min(1).max(60).optional(),
+        trialEnabled: z.boolean(),
+        trialDurationDays: z.number().int().min(1).max(365),
+        trialClientLimit: z.number().int().min(1).max(100_000).nullable(),
+        maxClients: z.number().int().min(1).max(100_000),
+        priceMonthly: z.number().min(0).max(10_000_000),
+        currency: z.string().trim().min(1).max(10),
+        termDays: z.number().int().min(1).max(366),
+        publicVisible: z.boolean(),
+        signupEnabled: z.boolean(),
+        marketingTitle: LText(120),
+        marketingDescription: LText(500),
+        marketingFeatures: z.object({ en: z.array(z.string().trim().min(1).max(200)).max(30), ar: z.array(z.string().trim().min(1).max(200)).max(30) }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const key = normalizeTierKey(input.key);
-      if (!key) throw new TRPCError({ code: 'BAD_REQUEST', message: 'A tier key is required.' });
-      if (input.archived && key === 'trial') throw new TRPCError({ code: 'BAD_REQUEST', message: 'The trial tier cannot be removed.' });
-
-      const col = await coachPlanTiersCol();
       const now = Date.now();
-      const prev = await col.findOne({ _id: key });
-      const doc: CoachPlanTierConfigDoc = {
-        _id: key,
-        label: (input.label ?? '').trim(),
-        maxClients: Math.max(0, Math.floor(input.maxClients)),
-        priceMonthly: Math.max(0, Math.round(input.priceMonthly)),
-        currency: input.currency?.trim() || 'EGP',
-        order: input.order ?? SEED_ORDER[key] ?? 99,
-        active: input.archived ? false : (input.active ?? true),
-        archived: input.archived ?? false,
-        builtIn: key in COACH_PLAN_TIERS,
-        publicVisible: input.publicVisible ?? prev?.publicVisible ?? false,
-        signupEnabled: input.signupEnabled ?? prev?.signupEnabled ?? false,
-        highlighted: input.highlighted ?? prev?.highlighted ?? false,
-        isDefaultSignupPlan: input.isDefaultSignupPlan ?? prev?.isDefaultSignupPlan ?? false,
-        marketingTitle: input.marketingTitle ?? prev?.marketingTitle,
-        marketingDescription: input.marketingDescription ?? prev?.marketingDescription,
-        marketingFeatures: input.marketingFeatures ?? prev?.marketingFeatures,
-        requiresPaymentConfirmation: input.requiresPaymentConfirmation ?? prev?.requiresPaymentConfirmation ?? false,
-        trialDurationDays: input.trialDurationDays ?? prev?.trialDurationDays,
-        createdAt: prev?.createdAt ?? now,
-        updatedAt: now,
-      };
+      const result = await withDbTransaction(async (session) => {
+        const prev = await getFormaConfig(session);
+        const doc: FormaConfigDoc = {
+          ...prev,
+          ...input,
+          _id: FORMA_ID,
+          label: input.label ?? prev.label,
+          billingInterval: 'month',
+          priceMonthly: Math.round(input.priceMonthly * 100) / 100,
+          currency: input.currency.toUpperCase(),
+          createdAt: prev.createdAt || now,
+          updatedAt: now,
+        };
+        const err = validateFormaConfig(doc);
+        if (err) throw new TRPCError({ code: 'BAD_REQUEST', message: err });
+        await (await formaConfigCol()).replaceOne({ _id: FORMA_ID }, doc, { upsert: true, session });
 
-      // Atomic invariant check against the FULL resulting tier list (this
-      // proposed doc merged in) — never leaves zero/multiple default signup
-      // tiers or multiple highlighted tiers, checked BEFORE the write.
-      const allOthers = (await listTiers(true)).filter((t) => t._id !== key);
-      const invariantError = validateTierInvariants([...allOthers, doc]);
-      if (invariantError) throw new TRPCError({ code: 'BAD_REQUEST', message: invariantError });
-
-      await col.replaceOne({ _id: key }, doc, { upsert: true });
-
-      // Propagate this tier's (possibly new) `maxClients` to every coach
-      // currently on it — EXCEPT coaches an admin has explicitly given a
-      // custom per-coach cap (`maxClientsOverride: true`), whose override
-      // must survive a platform-wide tier edit untouched.
-      const plans = await coachPlansCol();
-      await plans.updateMany(
-        { plan: key, maxClientsOverride: { $ne: true } },
-        { $set: { maxClients: doc.maxClients, updatedAt: now }, $push: { history: { at: now, action: 'maxClients', detail: `${doc.maxClients} (plan updated)`, by: ctx.user.id } } },
-      );
-
-      return toPublicTier(doc);
+        // Increase-only propagation of the included client limit.
+        const plans = await coachPlansCol();
+        const raise = async (filter: Record<string, unknown>, target: number) => {
+          const r = await plans.updateMany(
+            { ...filter, $expr: { $lt: [{ $ifNull: ['$baseMaxClients', '$maxClients'] }, target] } },
+            [
+              { $set: { baseMaxClients: target, addonClientCapacity: { $ifNull: ['$addonClientCapacity', 0] }, manualCapacityAdjustment: { $ifNull: ['$manualCapacityAdjustment', 0] } } },
+              { $set: { maxClients: { $max: [0, { $add: ['$baseMaxClients', '$addonClientCapacity', '$manualCapacityAdjustment'] }] }, updatedAt: now } },
+            ],
+            { session },
+          );
+          return r.modifiedCount;
+        };
+        const raisedTrial = trialLimitOf(doc) > trialLimitOf(prev) ? await raise({ plan: 'trial' }, trialLimitOf(doc)) : 0;
+        const raisedPaid = doc.maxClients > prev.maxClients ? await raise({ plan: { $ne: 'trial' } }, doc.maxClients) : 0;
+        await writeAuditTx(ctx.user, 'forma.config_updated', ctx.user.id, {
+          before: { maxClients: prev.maxClients, trialClientLimit: prev.trialClientLimit, priceMonthly: prev.priceMonthly, currency: prev.currency, termDays: prev.termDays, trialEnabled: prev.trialEnabled, trialDurationDays: prev.trialDurationDays },
+          after: { maxClients: doc.maxClients, trialClientLimit: doc.trialClientLimit, priceMonthly: doc.priceMonthly, currency: doc.currency, termDays: doc.termDays, trialEnabled: doc.trialEnabled, trialDurationDays: doc.trialDurationDays },
+          raisedTrialCoaches: raisedTrial,
+          raisedPaidCoaches: raisedPaid,
+        }, session);
+        return { config: toFormaConfig(doc), raisedTrialCoaches: raisedTrial, raisedPaidCoaches: raisedPaid };
+      });
+      return result;
     }),
-
-  /** Shared "Core features" shown on every plan card — see `getCoreFeatures`'s doc comment. Signed-out readable (feeds the public pricing page); only a super-admin edits it. */
-  coreFeatures: publicProcedure.query(() => getCoreFeatures()),
-
-  saveCoreFeatures: roleProcedure('super_admin').input(LocalizedTextListInput).mutation(({ input }) => saveCoreFeatures(input)),
 });

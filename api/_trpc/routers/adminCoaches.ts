@@ -3,8 +3,10 @@ import { TRPCError } from '@trpc/server';
 import { router, roleProcedure } from '../trpc.js';
 import { usersCol } from '../../_lib/mongodb.js';
 import { toPublicUser, type PublicUser } from '../../_lib/types.js';
-import { coachClientsCol, coachPlansCol, coachPlanTiersCol } from '../../admin/_lib/db.js';
-import type { CoachPlanDoc, CoachPlanTierDoc } from '../../admin/_lib/types.js';
+import { coachClientsCol, coachPlansCol } from '../../admin/_lib/db.js';
+import type { CoachPlanDoc } from '../../admin/_lib/types.js';
+import { capacityEntitlementsCol } from '../../coach-plans/_capacity.js';
+import { getFormaConfig } from '../../coach-plans/_handlers/forma.js';
 import { coachPlanState } from '../../admin/_lib/subscription.js';
 
 /** Port of `src/services/platform/adminCoachesApi.ts`'s `fetchCoachAdmin()`. */
@@ -27,7 +29,11 @@ export interface CoachAdminData {
   conversionRate: number;
   recent: CoachAdminRow[];
   top: CoachAdminRow[];
-  tiers: CoachPlanTierDoc[];
+  /** Monthly recurring add-on revenue (active monthly capacity entitlements, per-month). */
+  capacityRevenue: number;
+  /** Coaches whose active clients exceed their effective limit (e.g. after an add-on expired). */
+  overCapacityCoaches: number;
+  forma: { priceMonthly: number; currency: string; maxClients: number; termDays: number };
 }
 
 /** Complements `list`'s aggregate — single-coach detail (also used as a super-admin fallback read of a coach's plan; see coachPlanApi.ts's getCoachPlan). */
@@ -52,13 +58,14 @@ export const adminCoachesRouter = router({
     const users = await usersCol();
     const plansCol = await coachPlansCol();
     const relCol = await coachClientsCol();
-    const tiersCol = await coachPlanTiersCol();
+    const entsCol = await capacityEntitlementsCol();
 
-    const [coachDocs, plans, relDocs, allTiers] = await Promise.all([
+    const [coachDocs, plans, relDocs, activeEnts, forma] = await Promise.all([
       users.find({ role: 'coach' }).toArray(),
       plansCol.find({}).toArray(),
       relCol.find({ status: 'active' }).toArray(),
-      tiersCol.find({}).toArray(),
+      entsCol.find({ status: 'active' }, { projection: { coachId: 1, snapshot: 1 } }).toArray(),
+      getFormaConfig(),
     ]);
 
     const now = Date.now();
@@ -69,7 +76,6 @@ export const adminCoachesRouter = router({
     // migration) meant `p.coachId` was always `undefined`, so every coach's
     // plan/tier/state/maxClients silently rendered as null/"none" here.
     const planMap = new Map(plans.map((p) => [p._id, p]));
-    const priceByKey = new Map(allTiers.map((t) => [t.key, t.priceMonthly]));
 
     const clientsByCoach = new Map<string, number>();
     let totalClients = 0;
@@ -90,16 +96,25 @@ export const adminCoachesRouter = router({
     let suspendedCoaches = 0;
     let trackedRevenue = 0;
     let converted = 0;
+    let overCapacityCoaches = 0;
     for (const r of rows) {
       if (r.state === 'trial') trialCoaches += 1;
       else if (r.state === 'active') activeCoaches += 1;
       else if (r.state === 'expired') expiredCoaches += 1;
       else if (r.state === 'suspended') suspendedCoaches += 1;
       if (r.plan && r.plan.plan !== 'trial') converted += 1;
+      // Tracked (confirmed) revenue = the price the coach was confirmed at (their
+      // subscription snapshot), never the live config price.
       if (r.state === 'active' && r.plan && r.plan.plan !== 'trial') {
-        trackedRevenue += priceByKey.get(r.plan.plan) ?? 0;
+        trackedRevenue += r.plan.subscription?.priceMonthly ?? 0;
       }
+      if (r.plan && typeof r.plan.activeClientCount === 'number' && r.plan.activeClientCount > r.plan.maxClients) overCapacityCoaches += 1;
     }
+    let capacityRevenue = 0;
+    for (const e of activeEnts) {
+      if (e.snapshot.billingInterval === 'month') capacityRevenue += e.snapshot.price / Math.max(1, e.snapshot.durationMonths ?? 1);
+    }
+    capacityRevenue = Math.round(capacityRevenue * 100) / 100;
     const total = rows.length;
     const recent = [...rows].sort((a, b) => b.coach.createdAt - a.coach.createdAt).slice(0, 6);
     const top = [...rows].sort((a, b) => b.clientCount - a.clientCount).slice(0, 6);
@@ -127,7 +142,9 @@ export const adminCoachesRouter = router({
       conversionRate: total ? Math.round((converted / total) * 100) : 0,
       recent,
       top,
-      tiers: allTiers.filter((t) => !t.archived),
+      capacityRevenue,
+      overCapacityCoaches,
+      forma: { priceMonthly: forma.priceMonthly, currency: forma.currency, maxClients: forma.maxClients, termDays: forma.termDays },
     };
   }),
 

@@ -52,6 +52,10 @@ export interface CoachPlanDoc {
   plan: CoachPlanTier;
   status: CoachPlanStatus;
   maxClients: number;
+  baseMaxClients?: number;
+  addonClientCapacity?: number;
+  manualCapacityAdjustment?: number;
+  subscription?: { priceMonthly: number; currency: string; billingInterval: 'month'; termDays: number; maxClients: number; requestId: string };
   startedAt: number;
   endsAt: number | null;
   trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };

@@ -35,7 +35,7 @@ export function OverviewPanel() {
   // cap — three things that already have working review flows elsewhere.
   const overCapacity = useMemo(() => (coaches.data?.rows ?? []).filter((r) => r.plan && r.clientCount > r.plan.maxClients), [coaches.data]);
   const needsReview = [
-    ...(planReqs.data ?? []).map((r) => ({ kind: 'plan' as const, id: r.coachId, requestedAt: r.requestedAt })),
+    ...(planReqs.data ?? []).map((r) => ({ kind: 'plan' as const, id: r.coachId, key: r.id, requestedAt: r.requestedAt })),
     ...(transferReqs.data ?? []).map((r) => ({ kind: 'transfer' as const, id: r.clientId, requestedAt: r.requestedAt })),
     ...overCapacity.map((r) => ({ kind: 'capacity' as const, id: r.coach.id, requestedAt: 0 })),
   ].sort((a, b) => b.requestedAt - a.requestedAt);
@@ -82,13 +82,13 @@ export function OverviewPanel() {
             {needsReview.slice(0, 6).map((item) => {
               if (item.kind === 'plan') {
                 return (
-                  <div key={`plan-${item.id}`} className="rowline">
+                  <div key={`plan-${item.key}`} className="rowline">
                     <span className="tk-ic"><Icon name="bolt" size={15} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{nameOfCoach(item.id)}</span>
-                      <span className="block truncate text-[12px] text-earth-subtle">{t('admin.planRequests')}</span>
+                      <span className="block truncate text-[12px] text-earth-subtle">{t('forma.admin.paymentRequest')}</span>
                     </span>
-                    <button type="button" className="btn-tonal btn-sm shrink-0" onClick={() => navigate(`/admin/coaches/${item.id}`)}>{t('admin.review')}</button>
+                    <button type="button" className="btn-tonal btn-sm shrink-0" onClick={() => navigate('/admin/plans?tab=requests')}>{t('admin.review')}</button>
                   </div>
                 );
               }

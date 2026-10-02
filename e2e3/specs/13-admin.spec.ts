@@ -161,7 +161,7 @@ test.describe('super admin', () => {
 test.describe('plain admin', () => {
   const FORBIDDEN = ['/admin/coaches', '/admin/plans', '/admin/subscriptions', '/admin/media'];
   const FORBIDDEN_KEYS = ['adminCoaches', 'adminPlans', 'adminSubscriptions', 'adminImages'];
-  const FORBIDDEN_LABELS = /^(Coaches|Plans|Subscriptions|Images|Media)$/;
+  const FORBIDDEN_LABELS = /^(Coaches|Plans|Forma Plan|Subscriptions|Images|Media)$/;
 
   test('sidebar has no super-only destinations; deep links redirect to /admin', async ({ as }, testInfo) => {
     const { context: _c9398, page } = await as('admin'); await noHmr(_c9398);

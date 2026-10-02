@@ -1,4 +1,6 @@
 import type { ClientSession, Collection } from 'mongodb';
+import { TRPCError } from '@trpc/server';
+import { CommercialReason } from '../_lib/commercialReason.js';
 import { getDb } from '../_lib/mongodb.js';
 import type { ClientSubscriptionInput, CoachClientDoc, CoachPlanDoc, SubscriptionDoc } from './_types.js';
 
@@ -74,11 +76,15 @@ export async function coachAtClientCap(coachId: string): Promise<boolean> {
  * and telling an admin "at their client limit" for the former sends them to
  * raise a limit that isn't the issue.
  */
-export type CoachCapStatus = 'ok' | 'no_plan' | 'at_cap';
+export type CoachCapStatus = 'ok' | 'no_plan' | 'at_cap' | 'expired' | 'suspended';
 export async function coachCapStatus(coachId: string, session?: ClientSession): Promise<CoachCapStatus> {
   const col = await coachPlansCol();
   const plan = await col.findOne({ _id: coachId }, { session });
   if (!plan) return 'no_plan';
+  if (plan.status === 'suspended') return 'suspended';
+  // Subscription first: an expired Trial/term is SUBSCRIPTION_EXPIRED, never
+  // reported as a capacity problem.
+  if (plan.status !== 'active' || (typeof plan.endsAt === 'number' && plan.endsAt <= Date.now())) return 'expired';
   const max = plan.maxClients;
   const count = plan.activeClientCount;
   if (typeof max !== 'number' || !Number.isFinite(max) || max <= 0) return 'no_plan';
@@ -86,10 +92,31 @@ export async function coachCapStatus(coachId: string, session?: ClientSession): 
   return count >= max ? 'at_cap' : 'ok';
 }
 
-export const CAP_MESSAGES: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
-  no_plan: 'This coach has no active plan yet',
-  at_cap: 'Coach is at their client limit',
+/** Stable machine reasons (sent to the client in `error.data.reason`) + human messages. */
+export const CAP_REASONS: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
+  no_plan: 'NO_SUBSCRIPTION',
+  at_cap: 'CLIENT_CAPACITY_REACHED',
+  expired: 'SUBSCRIPTION_EXPIRED',
+  suspended: 'SUBSCRIPTION_SUSPENDED',
 };
+export const CAP_MESSAGES: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
+  no_plan: 'This coach has no active Forma subscription yet',
+  at_cap: 'Client capacity reached — add client capacity to take on more clients',
+  expired: 'The Forma subscription has expired — renew it to add clients',
+  suspended: 'This coach account is suspended',
+};
+
+/** The TRPCError every join path throws when the cap gate refuses. */
+export function capError(status: Exclude<CoachCapStatus, 'ok'>, prefix = ''): TRPCError {
+  const msg = CAP_MESSAGES[status];
+  return new TRPCError({
+    // Capacity / no-plan refusals stay CONFLICT (pre-refactor contract); a
+    // lapsed or suspended subscription is a precondition the coach must fix.
+    code: status === 'at_cap' || status === 'no_plan' ? 'CONFLICT' : 'PRECONDITION_FAILED',
+    message: prefix ? `${prefix}${msg.charAt(0).toLowerCase()}${msg.slice(1)}` : msg,
+    cause: new CommercialReason(CAP_REASONS[status]),
+  });
+}
 
 /**
  * ATOMIC slot reservation — the ONE cap gate every path that opens a new
@@ -117,6 +144,9 @@ export async function reserveClientSlot(coachId: string, session?: ClientSession
   const reserved = await col.findOneAndUpdate(
     {
       _id: coachId,
+      status: 'active',
+      // A live Trial/term only — an expired subscription can't take new clients.
+      $or: [{ endsAt: null }, { endsAt: { $gt: Date.now() } }],
       maxClients: { $gt: 0 },
       activeClientCount: { $gte: 0 },
       $expr: { $lt: ['$activeClientCount', '$maxClients'] },

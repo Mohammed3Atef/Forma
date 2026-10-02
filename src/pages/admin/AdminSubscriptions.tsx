@@ -16,7 +16,6 @@ import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCo
 import { fetchGrowth } from '@/services/platform/adminGrowthApi';
 import { trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
-import { tierLabel } from '@/services/platform/coachPlanTiersApi';
 
 /**
  * Platform subscriptions/MRR — matches the design's `subs()` real-data parts:
@@ -49,18 +48,17 @@ export function AdminSubscriptions() {
     return row ? row.coach.displayName || row.coach.email : cid;
   };
 
+  // Confirmed recurring revenue, split by source: the Forma subscription
+  // (each coach's confirmed snapshot price) and monthly capacity add-ons.
   const byTier = useMemo(() => {
     if (!d) return [];
-    return d.tiers
-      .filter((tr) => tr.key !== 'trial')
-      .map((tier) => {
-        const coaches = d.rows.filter((r) => r.state === 'active' && r.plan?.plan === tier.key).length;
-        return { key: tier.key, label: tierLabel(d.tiers, tier.key, t), coaches, price: tier.priceMonthly, total: coaches * tier.priceMonthly };
-      })
-      .filter((x) => x.coaches > 0 || x.total > 0);
+    const paid = d.rows.filter((r) => r.state === 'active' && r.plan && r.plan.plan !== 'trial').length;
+    return [
+      { key: 'subscription', label: t('forma.admin.revenueSubscription'), coaches: paid, total: d.trackedRevenue },
+      { key: 'capacity', label: t('forma.admin.revenueCapacity'), coaches: null as number | null, total: d.capacityRevenue },
+    ].filter((x) => x.total > 0 || (x.coaches ?? 0) > 0);
   }, [d, t]);
   const maxTierTotal = Math.max(1, ...byTier.map((x) => x.total));
-
   const expiringTrials = useMemo(() => {
     if (!d) return [];
     return d.rows
@@ -91,13 +89,13 @@ export function AdminSubscriptions() {
         <div className="space-y-6">
           <div className="card-featured">
             <p className="eyebrow mb-2">{t('admin.trackedRevenue')}</p>
-            <p className="font-display text-[34px] font-bold leading-none">{d.trackedRevenue}<span className="ms-1 text-base font-normal text-earth-muted">{t('admin.perMonth')}</span></p>
+            <p className="font-display text-[34px] font-bold leading-none">{d.trackedRevenue + d.capacityRevenue} {d.forma.currency}<span className="ms-1 text-base font-normal text-earth-muted">{t('forma.perMonth')}</span></p>
             <p className="mt-2 text-sm text-earth-muted">{t('admin.pricingNote')}</p>
             {g && (
               <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[12px] text-earth-muted">
-                <span>{t('adminGrowth.coachMrr')} · <span className="text-earth">{d.trackedRevenue}</span></span>
+                <span>{t('adminGrowth.coachMrr')} · <span className="text-earth">{d.trackedRevenue + d.capacityRevenue}</span></span>
                 <span>{t('adminGrowth.clientMrr')} · <span className="text-earth">{g.clientMrr} {g.currency}</span></span>
-                <span>{t('adminGrowth.totalMrr')} · <span className="text-earth">{d.trackedRevenue + g.clientMrr}</span></span>
+                <span>{t('adminGrowth.totalMrr')} · <span className="text-earth">{d.trackedRevenue + d.capacityRevenue + g.clientMrr}</span></span>
               </div>
             )}
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -114,12 +112,12 @@ export function AdminSubscriptions() {
             ) : (
               <div className="card divide-y divide-line-soft p-0">
                 {pending.map((r) => (
-                  <button key={`req-${r.coachId}`} type="button" onClick={() => navigate(`/admin/coaches/${r.coachId}`)} className="rowline w-full text-start">
+                  <button key={`req-${r.id}`} type="button" onClick={() => navigate('/admin/plans?tab=requests')} className="rowline w-full text-start" data-testid="admin-pending-request">
                     <span className="tk-ic"><Icon name="bolt" size={15} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{nameOf(r.coachId)}</span>
                       <span className="block truncate text-[12px] text-earth-subtle">
-                        {r.type === 'trial_expired' ? t('admin.trialEndedTitle') : r.requestedTierKey ? t(`adminCoaches.tier.${r.requestedTierKey}`) : t('admin.planRequests')}
+                        {r.capacitySnapshot ? `+${r.capacitySnapshot.additionalClients} · ${r.capacitySnapshot.price} ${r.capacitySnapshot.currency}` : t(`forma.requestType.${r.type}`, { defaultValue: t('forma.requestType.subscription') })}
                         {r.reason ? ` · ${r.reason}` : ''}
                       </span>
                     </span>
@@ -151,16 +149,16 @@ export function AdminSubscriptions() {
           </DashboardSection>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <DashboardSection title={t('admin.revenueByTier')} icon="chart">
+            <DashboardSection title={t('forma.admin.revenueBySource')} icon="chart">
               {byTier.length === 0 ? (
-                <EmptyState icon="chart" title={t('adminPlans.none')} />
+                <EmptyState icon="chart" title={t('forma.admin.noRevenue')} />
               ) : (
                 <div className="card space-y-3.5">
                   {byTier.map((x) => (
                     <div key={x.key}>
                       <div className="mb-1.5 flex items-center justify-between gap-2">
                         <span className="text-sm font-medium">{x.label}</span>
-                        <span className="font-mono text-[12px] text-earth">{x.coaches} × {x.price} = {x.total}</span>
+                        <span className="font-mono text-[12px] text-earth">{x.coaches != null ? `${x.coaches} · ` : ''}{x.total} {d.forma.currency}</span>
                       </div>
                       <div className="prog thin"><span style={{ width: `${(x.total / maxTierTotal) * 100}%` }} /></div>
                     </div>

@@ -36,7 +36,7 @@ export default defineConfig({
       // actually run instead of just existing as dead code.
       registerType: 'prompt',
       injectRegister: false, // registered manually in src/main.tsx (with update polling)
-      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg'],
+      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg', 'forma-logo.webp', 'forma-mark-128.webp'],
       manifest: {
         name: 'Forma',
         short_name: 'Forma',
@@ -74,7 +74,8 @@ export default defineConfig({
         // Marketing landing images are web-only (the installed PWA opens straight
         // to /login) — keep them out of the install precache; they're runtime-cached below.
         // The three.js landing film is lazy-loaded only on the marketing route — never precache it for installs.
-        globIgnores: ['**/landing_page/**', '**/Experience-*.js'],
+        // Forma.png (1.7 MB) is an unreferenced source asset — never precache it.
+        globIgnores: ['**/landing_page/**', '**/Experience-*.js', 'Forma.png'],
         navigateFallback: '/index.html',
         // A top-level navigation to an API URL (e.g. a media/export link opened
         // in a new tab) must reach the function, not be answered with the SPA shell.

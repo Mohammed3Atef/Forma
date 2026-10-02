@@ -108,21 +108,21 @@ function simpleNotice(title: string, body: string): string {
 }
 
 export async function sendPlanRequestAwaitingEmail(to: string, name: string, planLabel: string): Promise<void> {
-  const html = simpleNotice('Your plan request is in', `Hi ${name}, we've received your request to move to the ${planLabel} plan. It's awaiting payment confirmation from our team — your current plan stays active in the meantime.`);
-  await send(to, 'Forma: your plan request is awaiting confirmation', html, `plan-request-awaiting email for ${to} was not delivered`);
+  const html = simpleNotice('Your request is in', `Hi ${name}, we've received your request for ${planLabel}. It's awaiting payment confirmation from our team — your current Forma access stays as it is in the meantime.`);
+  await send(to, 'Forma: your request is awaiting confirmation', html, `plan-request-awaiting email for ${to} was not delivered`);
 }
 
 export async function sendPlanRequestConfirmedEmail(to: string, name: string, planLabel: string): Promise<void> {
-  const html = simpleNotice('Your plan is now active', `Hi ${name}, payment for your ${planLabel} plan has been confirmed and it's now active on your account.`);
-  await send(to, 'Forma: your plan is now active', html, `plan-request-confirmed email for ${to} was not delivered`);
+  const html = simpleNotice('Payment confirmed', `Hi ${name}, payment for ${planLabel} has been confirmed and it's now active on your account.`);
+  await send(to, 'Forma: payment confirmed', html, `plan-request-confirmed email for ${to} was not delivered`);
 }
 
 export async function sendPlanRequestRejectedEmail(to: string, name: string, planLabel: string, note?: string): Promise<void> {
-  const html = simpleNotice('Your plan request was declined', `Hi ${name}, your request for the ${planLabel} plan was not approved.${note ? ` Note from our team: ${note}` : ''} Your current plan is unaffected.`);
-  await send(to, 'Forma: update on your plan request', html, `plan-request-rejected email for ${to} was not delivered`);
+  const html = simpleNotice('Your request was declined', `Hi ${name}, your request for ${planLabel} was not approved.${note ? ` Note from our team: ${note}` : ''} Your current Forma access is unaffected.`);
+  await send(to, 'Forma: update on your request', html, `plan-request-rejected email for ${to} was not delivered`);
 }
 
 export async function sendPlanRequestExpiredEmail(to: string, name: string, planLabel: string): Promise<void> {
-  const html = simpleNotice('Your plan request expired', `Hi ${name}, your request for the ${planLabel} plan expired without a response in time. Your current plan is unaffected — you're welcome to request again any time.`);
-  await send(to, 'Forma: your plan request expired', html, `plan-request-expired email for ${to} was not delivered`);
+  const html = simpleNotice('Your request expired', `Hi ${name}, your request for ${planLabel} expired without a response in time. Your current Forma access is unaffected — you're welcome to request again any time.`);
+  await send(to, 'Forma: your request expired', html, `plan-request-expired email for ${to} was not delivered`);
 }

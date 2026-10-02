@@ -10,7 +10,7 @@
  * For every coachPlans doc this prints: coach id / email, stored count, real
  * count, difference, and whether the coach is over their cap. Coaches that
  * have active clients but NO plan doc are listed separately (fix those with
- * scripts/backfillCoachTrialPlans.mjs first — nothing here creates a plan).
+ * scripts/migrate-forma-single-plan.mjs first — nothing here creates a plan).
  *
  *   node scripts/reconcile-active-client-counts.mjs                 # dry run (default)
  *   node scripts/reconcile-active-client-counts.mjs --write --db=<MONGODB_DB>
@@ -85,7 +85,7 @@ async function main() {
 
   const orphaned = [...realCounts.entries()].filter(([coachId]) => !planDocs.some((p) => p._id === coachId));
   if (orphaned.length) {
-    console.log('\nCoaches with ACTIVE clients but NO coachPlans doc (run scripts/backfillCoachTrialPlans.mjs first, then re-run this):');
+    console.log('\nCoaches with ACTIVE clients but NO coachPlans doc (run scripts/migrate-forma-single-plan.mjs first, then re-run this):');
     for (const [coachId, n] of orphaned) console.log(`  - ${coachId}  ${emails.get(coachId) ?? '(no coach user!)'}  active clients: ${n}`);
   }
 

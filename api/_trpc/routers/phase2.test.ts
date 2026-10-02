@@ -81,33 +81,19 @@ describe('auth.updateProfile — photo removal (AvatarPicker "Remove")', () => {
   });
 });
 
-describe('coachPlanRequests.submit — renewal is possible, trial/archived are not', () => {
-  beforeEach(async () => {
-    const tiers = (await getDb()).collection('coachPlanTiers');
-    await tiers.insertMany([
-      { _id: 'pro', label: 'Pro', maxClients: 25, priceMonthly: 499, currency: 'EGP', active: true, createdAt: 0, updatedAt: 0 } as never,
-      { _id: 'old', label: 'Old', maxClients: 10, priceMonthly: 99, currency: 'EGP', active: true, archived: true, createdAt: 0, updatedAt: 0 } as never,
-    ]);
-  });
-
-  it('a Pro coach re-requesting Pro records a `renewal`; a trial coach requesting Pro is a `trial_upgrade`', async () => {
-    const pro = await insertUser({ _id: 'coach-pro', role: 'coach' });
-    await givePlan(pro._id, 'pro', 25);
-    const r = await caller(pro).coachPlanRequests.submit({ tierKey: 'pro' });
+describe('coachPlanRequests.submitSubscription — renewal vs subscription', () => {
+  it('an active paid coach files a `renewal`; a trial coach files a `subscription`; a second open request is refused', async () => {
+    const paid = await insertUser({ _id: 'coach-paid', role: 'coach' });
+    await givePlan(paid._id, 'forma', 25);
+    const r = await caller(paid).coachPlanRequests.submitSubscription();
     expect(r.type).toBe('renewal');
     expect(r.status).toBe('awaiting');
+    await expect(caller(paid).coachPlanRequests.submitSubscription()).rejects.toMatchObject({ code: 'CONFLICT', cause: { reason: 'SUBSCRIPTION_REQUEST_PENDING' } });
 
     const trial = await insertUser({ _id: 'coach-trial', role: 'coach' });
     await givePlan(trial._id, 'trial', 2);
-    expect((await caller(trial).coachPlanRequests.submit({ tierKey: 'pro' })).type).toBe('trial_upgrade');
-  });
-
-  it('the Trial and archived tiers cannot be requested', async () => {
-    const c = await insertUser({ _id: 'coach-1', role: 'coach' });
-    await givePlan(c._id, 'trial', 2);
-    await expect(caller(c).coachPlanRequests.submit({ tierKey: 'trial' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
-    await expect(caller(c).coachPlanRequests.submit({ tierKey: 'old' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
-    expect(await (await getDb()).collection<CoachPlanRequestDoc>('coachPlanRequests').countDocuments({})).toBe(0);
+    expect((await caller(trial).coachPlanRequests.submitSubscription()).type).toBe('subscription');
+    expect(await (await getDb()).collection<CoachPlanRequestDoc>('coachPlanRequests').countDocuments({})).toBe(2);
   });
 });
 

@@ -244,6 +244,7 @@ async function seed(d) {
     });
   }
   await d.collection('coachPlanTiers').insertMany(SEED.tiers.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
+  await d.collection('coachCapacityPackages').insertMany(SEED.capacityPackages.map((p) => ({ ...p, createdAt: now, updatedAt: now })));
   for (const p of SEED.plans(now)) await d.collection('coachPlans').insertOne(p);
   for (const r of SEED.relationships(now)) await d.collection('coachClients').insertOne(r);
   for (const p of SEED.clientProfiles(now)) await d.collection('clientProfiles').insertOne(p);

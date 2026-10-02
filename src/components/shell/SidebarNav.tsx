@@ -49,8 +49,8 @@ export function SidebarNav({ items }: { items: NavItem[] | NavGroup[] }) {
       className={`sticky top-0 hidden h-dvh w-[4.5rem] shrink-0 flex-col border-e border-line bg-surface-card/40 px-2 py-4 transition-[width] duration-200 md:flex ${expandedAtDesktop ? 'lg:w-60 lg:px-3' : ''}`}
     >
       <div className={`mb-5 flex items-center gap-2 px-2 ${expandedAtDesktop ? 'justify-center lg:justify-start' : 'justify-center'}`}>
-        <img src="/forma-mark.png" alt="" aria-hidden="true" className={`h-8 w-8 shrink-0 object-contain ${expandedAtDesktop ? 'lg:hidden' : ''}`} />
-        {expandedAtDesktop && <img src="/Forma-logo.png" alt="Forma" className="hidden h-8 w-auto max-w-[70%] rounded-[6px] object-contain lg:block" />}
+        <img src="/forma-mark-128.webp" alt="" aria-hidden="true" className={`h-8 w-8 shrink-0 object-contain ${expandedAtDesktop ? 'lg:hidden' : ''}`} />
+        {expandedAtDesktop && <img src="/forma-logo.webp" alt="Forma" className="hidden h-8 w-auto max-w-[70%] rounded-[6px] object-contain lg:block" />}
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {groups.map((g, gi) => (

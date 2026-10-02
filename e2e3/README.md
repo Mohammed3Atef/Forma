@@ -27,7 +27,7 @@ E2E_RUN_ID=<name> E2E_PORT=5199 E2E_STUB_PORT=5299 \
 
 - `as(role, contextOptions?)` → `{ context, page }`: a FRESH context with a real session for a seeded
   account. Roles: `super`, `admin` (plain admin), `coachA` (trial, 1/2 clients, has clientA),
-  `coachB` (trial, 1/2, has clientB), `coachPro` (Pro 25, 0 clients), `clientA`, `clientB`,
+  `coachB` (trial, 1/2, has clientB), `coachPro` (paid Forma, base 25, 0 clients), `clientA`, `clientB`,
   `clientFree` (no coach). Password for UI logins: `env.password` (`E2e-Pass-2026!`). Emails in `env.accounts`.
 - `anon()` → anonymous context. Use separate contexts per user; never reuse one across users.
 - `db` → scoped DB ops on the run's DB (`findOne/find/count/updateOne/updateMany/insertOne/deleteMany`,

@@ -20,6 +20,7 @@ import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { verifyGoogleIdToken } from '../../_lib/google.js';
 import { ensureTrialPlan } from '../../coach-plans/_data.js';
+import { getFormaConfig } from '../../coach-plans/_handlers/forma.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
 const SIGNUP_MAX_ATTEMPTS = 5;
@@ -45,11 +46,11 @@ export const authRouter = router({
    * via the coach invite flow. Admin/super_admin accounts are never
    * self-service; use scripts/seed-mongo-admin.mjs.
    *
-   * There is exactly one plan cycle: every coach starts on Trial (2 clients,
-   * 15 days) — no plan picker at signup. Once the trial ends, a system cron
-   * (`api/cron/enforce-trial-expiry.ts`) raises a Pro plan request for a
-   * Super Admin to confirm payment on; see that file for the grace-period /
-   * account-pending mechanics.
+   * One product, no plan picker: every coach starts the Forma Free Trial
+   * using the CURRENT Forma configuration (duration + client limit, see
+   * `ensureTrialPlan`). When it ends the daily cron raises a subscription
+   * request; the account is never pended or deleted. A Super Admin can close
+   * self-signup with the Forma config's `signupEnabled`.
    */
   signup: publicProcedure
     .input(
@@ -63,6 +64,9 @@ export const authRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await enforceRateLimit('auth.signup', getClientIp(ctx.req), SIGNUP_MAX_ATTEMPTS, SIGNUP_WINDOW_MS);
+      if (!(await getFormaConfig()).signupEnabled) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'New coach sign-ups are currently closed.' });
+      }
       const users = await usersCol();
       if (await users.findOne({ emailLower: input.email })) {
         throw new TRPCError({ code: 'CONFLICT', message: 'An account with this email already exists.' });

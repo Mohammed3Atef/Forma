@@ -55,15 +55,32 @@ async function main() {
     { unique: true, partialFilterExpression: { clientMsgId: { $exists: true } }, name: 'uniq_clientMsgId' },
   );
 
-  // Coach plans — the daily cron sweeps expired trials by these two fields;
-  // one actionable plan request per coach (also self-ensured in
-  // api/coach-plans/_data.ts).
+  // Forma subscription (coachPlans) — the daily cron sweeps lapsed terms by
+  // status + endsAt. One actionable request per (coach, requestKey) — so a
+  // coach can have an open subscription request AND open add-on requests at
+  // once; replaces the old per-coach 'uniq_coachId_actionable', dropped
+  // here (also self-ensured in api/coach-plans/_data.ts).
   await db.collection('coachPlans').createIndex({ plan: 1, endsAt: 1 }, { name: 'plan_endsAt' });
+  await db.collection('coachPlans').createIndex({ status: 1, endsAt: 1 }, { name: 'status_endsAt' });
+  await db.collection('coachPlanRequests').dropIndex('uniq_coachId_actionable').catch(() => undefined);
   await db.collection('coachPlanRequests').createIndex(
-    { coachId: 1 },
-    { unique: true, partialFilterExpression: { status: { $in: ['awaiting', 'processing'] } }, name: 'uniq_coachId_actionable' },
+    { coachId: 1, requestKey: 1 },
+    { unique: true, partialFilterExpression: { status: { $in: ['awaiting', 'processing'] } }, name: 'uniq_coachId_requestKey_actionable' },
   );
   await db.collection('coachPlanRequests').createIndex({ status: 1, confirmationDeadline: 1 }, { name: 'status_confirmationDeadline' });
+  await db.collection('coachPlanRequests').createIndex({ coachId: 1, requestedAt: -1 }, { name: 'coachId_requestedAt' });
+
+  // Client-capacity add-ons (api/coach-plans/_capacity.ts, also self-ensured
+  // there): catalogue ordering; one ACTIVE entitlement per (coach, package);
+  // one entitlement per confirmed request; expiry sweep.
+  await db.collection('coachCapacityPackages').createIndex({ active: 1, coachVisible: 1, sortOrder: 1 }, { name: 'active_visible_order' });
+  await db.collection('coachCapacityEntitlements').createIndex({ coachId: 1, status: 1 }, { name: 'coachId_status' });
+  await db.collection('coachCapacityEntitlements').createIndex(
+    { coachId: 1, sourcePackageId: 1 },
+    { unique: true, partialFilterExpression: { status: 'active', sourcePackageId: { $type: 'string' } }, name: 'uniq_active_coach_package' },
+  );
+  await db.collection('coachCapacityEntitlements').createIndex({ requestId: 1 }, { unique: true, partialFilterExpression: { requestId: { $type: 'string' } }, name: 'uniq_requestId' });
+  await db.collection('coachCapacityEntitlements').createIndex({ status: 1, endsAt: 1 }, { name: 'status_endsAt' });
 
   // Chunked media uploads (api/media/[action].ts) — staging rows for files
   // over one request's worth; TTL-reaped after an hour so an abandoned

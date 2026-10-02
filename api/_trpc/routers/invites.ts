@@ -7,7 +7,7 @@ import { usersCol } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
 import { issueSession } from '../../_lib/tokens.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
-import { CAP_MESSAGES, coachCapStatus, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from '../../coach-clients/_data.js';
+import { capError, coachCapStatus, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from '../../coach-clients/_data.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import { DEFAULT_TTL_MS, buildClaimSubscription, generateInviteCode, invitesCol, isClaimable, normalizeCode } from '../../coach-clients/_handlers/invites-data.js';
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
@@ -198,7 +198,7 @@ export const invitesRouter = router({
       // BEFORE the invite is flipped; the binding gate is the atomic slot
       // reservation below.
       const precheck = await coachCapStatus(inv.coachId);
-      if (precheck !== 'ok') throw new TRPCError({ code: 'CONFLICT', message: CAP_MESSAGES[precheck] });
+      if (precheck !== 'ok') throw capError(precheck);
 
       const now = Date.now();
       const clientId = crypto.randomUUID();
@@ -221,7 +221,7 @@ export const invitesRouter = router({
       const cap = await reserveClientSlot(inv.coachId);
       if (cap !== 'ok') {
         await unclaim();
-        throw new TRPCError({ code: 'CONFLICT', message: CAP_MESSAGES[cap] });
+        throw capError(cap);
       }
 
       // Priority: what the client typed on the claim form > what the coach

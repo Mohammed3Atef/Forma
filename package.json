@@ -17,7 +17,7 @@
     "import:sheet": "node --experimental-strip-types scripts/importSheet.ts",
     "test:smoke": "node scripts/smoke.mjs",
     "mongo:init-indexes": "node scripts/mongo-init-indexes.mjs",
-    "mongo:report-plans": "node scripts/report-plan-data.mjs",
+    "mongo:migrate-forma": "node scripts/migrate-forma-single-plan.mjs",
     "mongo:reconcile-counts": "node scripts/reconcile-active-client-counts.mjs",
     "mongo:seed-admin": "node scripts/seed-mongo-admin.mjs",
     "mongo:seed-demo": "node scripts/seed-mongo-demo.mjs"

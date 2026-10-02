@@ -12,10 +12,10 @@ import { useSession } from './sessionStore';
  */
 describe('session end clears server-state cache', () => {
   it('signOut() empties the query cache', async () => {
-    queryClient.setQueryData(['coachPlanRequest', 'mine'], { id: 'coach-A-request' });
+    queryClient.setQueryData(['coachPlanRequests', 'mine'], { id: 'coach-A-request' });
     queryClient.setQueryData(['myClients', 'coach-A'], [{ id: 'client-1' }]);
     await useSession.getState().signOut();
-    expect(queryClient.getQueryData(['coachPlanRequest', 'mine'])).toBeUndefined();
+    expect(queryClient.getQueryData(['coachPlanRequests', 'mine'])).toBeUndefined();
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(useSession.getState().phase).toBe('anonymous');
   });

@@ -32,7 +32,7 @@ export function BrandBar() {
     >
       {/* Logo sits on the logical start (right in RTL, left in LTR). */}
       <img
-        src="/Forma-logo.png"
+        src="/forma-logo.webp"
         alt="Forma"
         className="h-9 w-auto max-w-[55%] shrink-0 rounded-[8px] object-contain"
       />

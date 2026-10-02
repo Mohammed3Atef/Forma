@@ -21,16 +21,17 @@ import { useSelection } from '@/hooks/useSelection';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
-import { renewCoachPlan, setCoachSuspended, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { capacityOf, setCoachSuspended, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { renewCoachSubscription } from '@/services/platform/coachCommercialApi';
+import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
-import { tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { planPhaseLabel } from '@/lib/formaFormat';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { CoachPlanTierConfig } from '@/types';
 
 const STATE_TONE: Record<string, PillTone> = {
   trial: 'brand',
@@ -71,7 +72,7 @@ export function AdminCoaches() {
   const pendingReqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, enabled: isSuper, staleTime: 60_000 });
   const pendingSet = new Set((pendingReqs.data ?? []).map((r) => r.coachId));
   const renew = useMutation({
-    mutationFn: (coachId: string) => renewCoachPlan(coachId),
+    mutationFn: (coachId: string) => renewCoachSubscription(coachId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
       showToast({ title: t('adminCoaches.renew'), variant: 'success' });
@@ -79,7 +80,7 @@ export function AdminCoaches() {
     onError: (e) =>
       void alertDialog({
         title: t('adminCoaches.renew'),
-        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+        message: commercialErrorMessage(e, t),
       }),
   });
   const setStatus = useMutation({
@@ -136,7 +137,13 @@ export function AdminCoaches() {
   if (!isSuper) return <Navigate to="/admin" replace />;
   const d = q.data;
 
-  const tiers = d?.tiers ?? [];
+  // Renewing records a confirmed payment — always ask first.
+  const askRenew = async (r: CoachAdminRow) => {
+    const name = r.coach.displayName || r.coach.email;
+    const f = d?.forma;
+    if (await confirmDialog({ title: t('forma.admin.renewForma'), message: t('forma.admin.renewBody', { name, price: f?.priceMonthly ?? '', currency: f?.currency ?? '', days: f?.termDays ?? '', n: f?.maxClients ?? '' }) })) renew.mutate(r.coach.id);
+  };
+
   const renewsCell = (r: CoachAdminRow) => {
     if (!r.plan?.endsAt) return <span className="text-[12px] text-earth-subtle">—</span>;
     if (r.state === 'expired' || r.state === 'suspended') return <span className="text-[12px] font-medium text-danger">{t('adminCoaches.expired')}</span>;
@@ -152,9 +159,13 @@ export function AdminCoaches() {
         <span className="block truncate text-[12px] text-earth-subtle">{r.coach.email}</span>
       </span>
     ) },
-    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{tierLabel(tiers, r.plan?.plan ?? 'none', t)}</span> },
+    { key: 'plan', header: t('adminCoaches.plan'), cell: (r) => <span className="text-[13px]">{planPhaseLabel(r.plan, t)}</span> },
     { key: 'state', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={STATE_TONE[r.state]}>{t(`adminCoaches.state.${r.state}`)}</Pill> },
-    { key: 'used', header: t('adminCoaches.clientsUsed'), cell: (r) => <span className="font-mono text-sm">{r.plan ? `${r.clientCount}/${r.plan.maxClients}` : '—'}</span>, className: 'text-end' },
+    { key: 'used', header: t('adminCoaches.clientsUsed'), cell: (r) => {
+      if (!r.plan) return <span className="font-mono text-sm">—</span>;
+      const over = capacityOf({ maxClients: r.plan.maxClients, activeClientCount: r.clientCount }).over;
+      return <span className={`font-mono text-sm ${over ? 'text-warn' : ''}`} title={over ? t('forma.capacity.overBy', { n: over }) : undefined}>{r.clientCount}/{r.plan.maxClients}</span>;
+    }, className: 'text-end' },
     { key: 'renews', header: t('adminCoaches.renews'), cell: renewsCell },
     { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
     { key: 'attn', header: '', className: 'text-end', cell: (r) => {
@@ -164,7 +175,7 @@ export function AdminCoaches() {
       return (
         <span className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
-          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => renew.mutate(r.coach.id)}>{t('adminCoaches.renew')}</button>}
+          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void askRenew(r)}>{t('adminCoaches.renew')}</button>}
         </span>
       );
     } },
@@ -216,7 +227,7 @@ export function AdminCoaches() {
               <span className="block truncate text-[12px] text-earth-subtle">{r.coach.email}</span>
               <span className="mt-1 flex flex-wrap items-center gap-2">
                 <Pill tone={STATE_TONE[r.state]}>{t(`adminCoaches.state.${r.state}`)}</Pill>
-                <span className="font-mono text-[11px] text-earth-subtle">{tierLabel(tiers, r.plan?.plan ?? 'none', t)}</span>
+                <span className="font-mono text-[11px] text-earth-subtle">{planPhaseLabel(r.plan, t)}</span>
                 {r.plan && <span className="font-mono text-[11px] text-earth-subtle">{r.clientCount}/{r.plan.maxClients}</span>}
                 {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
                 {needsRenew && <span className="chip border-warn/50 text-[10.5px] text-warn">{t('adminCoaches.renew')}</span>}
@@ -259,12 +270,11 @@ export function AdminCoaches() {
                   {selected && (
                     <CoachPreview
                       row={selected}
-                      tiers={tiers}
                       pendingSet={pendingSet}
                       online={online}
                       renewPending={renew.isPending}
                       statusPending={setStatus.isPending}
-                      onRenew={() => renew.mutate(selected.coach.id)}
+                      onRenew={() => void askRenew(selected)}
                       onSetStatus={(status) => setStatus.mutate({ coachId: selected.coach.id, status })}
                       onOpenProfile={() => navigate(`/admin/coaches/${selected.coach.id}`)}
                       onViewAudit={() => navigate('/admin/audit')}
@@ -291,7 +301,6 @@ export function AdminCoaches() {
 
 function CoachPreview({
   row,
-  tiers,
   pendingSet,
   online,
   renewPending,
@@ -302,7 +311,6 @@ function CoachPreview({
   onViewAudit,
 }: {
   row: CoachAdminRow;
-  tiers: CoachPlanTierConfig[];
   pendingSet: Set<string>;
   online: boolean;
   renewPending: boolean;
@@ -327,7 +335,7 @@ function CoachPreview({
         </div>
         <div className="flex items-center gap-2">
           <Pill tone={STATE_TONE[row.state]}>{t(`adminCoaches.state.${row.state}`)}</Pill>
-          <span className="chip text-[11px]">{tierLabel(tiers, row.plan?.plan ?? 'none', t)}</span>
+          <span className="chip text-[11px]">{planPhaseLabel(row.plan, t)}</span>
           {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
         </div>
       </div>

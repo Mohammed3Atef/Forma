@@ -20,6 +20,8 @@ import { useSession } from '@/services/auth/sessionStore';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { CoachClientRelationship, UserRecord } from '@/types';
+import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
+import { commercialErrorMessage } from '@/lib/commercialErrors';
 
 /** Format a millisecond timestamp as a short localized date (joined date). */
 const fmtJoined = (ms: number, lang: string) =>
@@ -266,13 +268,13 @@ function ClientResultDetail({
       showToast({ title: t('coach.addClient'), variant: 'success' });
       onDone();
     },
-    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
   });
 
   const request = useMutation({
     mutationFn: () => submitTransferRequest({ toCoachId: meId, clientId: c.id, fromCoachId: row.coachId!, reason }),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }); showToast({ title: t('transferReq.pending'), variant: 'success' }); },
-    onError: (e) => void alertDialog({ title: t('transferReq.request'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('transferReq.request'), message: commercialErrorMessage(e, t) }),
   });
   const cancelReq = useMutation({
     mutationFn: () => cancelTransferRequest(meId, c.id),
@@ -337,7 +339,7 @@ function ClientResultDetail({
       {unassigned && (
         <div className="space-y-2" data-testid="existing-assign-panel">
           {atLimit ? (
-            <p className="text-sm text-warn" data-testid="existing-assign-blocked">{t('coachTrial.limitBody', { max: maxClients })}</p>
+            <ClientCapBlocked maxClients={maxClients} testId="existing-assign-blocked" />
           ) : (
             <>
               <SubscriptionPlanPicker coachId={meId} currency={currency} onChange={setSub} testId="existing-assign-sub" />

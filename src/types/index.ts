@@ -112,68 +112,85 @@ export interface CoachOnboarding {
 // `coachPlans/{coachId}`. Distinct from the per-client `Subscription` (Layer B).
 // ---------------------------------------------------------------------------
 
-/** 'trial' is the only built-in; admins add any other tier key (e.g. 'pro') entirely from the dashboard. */
+/**
+ * FORMA is ONE product: Free Trial → monthly subscription, every feature
+ * included. `plan` is the PHASE ('trial' | 'forma'; pre-refactor test rows
+ * may carry an old key — read `phase` instead). Extra client capacity is
+ * sold as internal capacity add-ons, never as another plan.
+ */
 export type CoachPlanTier = string;
+export type CoachPlanPhase = 'trial' | 'forma';
 export type CoachPlanStatus = 'active' | 'expired' | 'suspended';
+export type CoachPlanState = 'trial' | 'active' | 'expired' | 'suspended' | 'none';
 
-/** Admin-editable coach plan tier (Mongo `coachPlanTiers/{key}`; falls back to the built-in seed). */
-export interface CoachPlanTierConfig {
-  key: string;
-  /** Internal admin/coach-facing display name (not shown on the public pricing page); UI falls back to i18n `adminCoaches.tier.<key>`, then the key. */
-  label?: string;
+/** Super-Admin-editable Forma configuration (Mongo `coachPlanTiers/forma`). */
+export interface FormaConfig {
+  key: 'forma';
+  label: string;
+  trialEnabled: boolean;
+  trialDurationDays: number;
+  /** null = the Trial gets the full base limit. */
+  trialClientLimit: number | null;
+  /** Base active-client limit included in Forma (before add-ons). */
   maxClients: number;
   priceMonthly: number;
-  currency?: string;
-  /** Display order — the SAME field used for the admin tier list, the coach's upgrade picker, AND the public marketing list (no separate `sortOrder`). */
-  order?: number;
-  active?: boolean;
-  archived?: boolean;
-  builtIn?: boolean;
-  // ---- Marketing / signup ----------------------------------------------
-  publicVisible?: boolean;
-  signupEnabled?: boolean;
-  /** At most one tier may have this true. */
-  highlighted?: boolean;
-  /** Exactly one active/signup-enabled tier must have this true — the safe signup fallback. Always `requiresPaymentConfirmation: false`. */
-  isDefaultSignupPlan?: boolean;
-  marketingTitle?: LocalizedText;
-  marketingDescription?: LocalizedText;
-  marketingFeatures?: LocalizedTextList;
-  requiresPaymentConfirmation?: boolean;
-  trialDurationDays?: number;
+  currency: string;
+  billingInterval: 'month';
+  termDays: number;
+  publicVisible: boolean;
+  signupEnabled: boolean;
+  marketingTitle: LocalizedText;
+  marketingDescription: LocalizedText;
+  marketingFeatures: LocalizedTextList;
   createdAt: number;
   updatedAt: number;
 }
 
-/** Public (signed-out) subset — Marketing pricing section + signup plan picker. */
-export interface PublicPlanTier {
-  key: string;
+/** Signed-out pricing card — the safe public subset. */
+export interface PublicFormaPlan {
+  key: 'forma';
   marketingTitle: LocalizedText;
   marketingDescription: LocalizedText;
   marketingFeatures: LocalizedTextList;
   priceMonthly: number;
   currency: string;
+  billingInterval: 'month';
   maxClients: number;
-  highlighted: boolean;
-  signupEnabled: boolean;
-  isDefaultSignupPlan: boolean;
+  trialEnabled: boolean;
   trialDurationDays: number | null;
-  requiresPaymentConfirmation: boolean;
-  order: number;
+  trialClientLimit: number;
+  signupEnabled: boolean;
+}
+
+export interface SubscriptionTermSnapshot {
+  priceMonthly: number;
+  currency: string;
+  billingInterval: 'month';
+  termDays: number;
+  maxClients: number;
+  requestId: string;
 }
 
 export interface CoachPlan {
   coachId: string; // == doc id
   plan: CoachPlanTier;
+  phase: CoachPlanPhase;
+  /** Effective state with the end date folded in (server-computed at read time). */
+  state: CoachPlanState;
   status: CoachPlanStatus;
-  maxClients: number; // trial = 10
+  /** EFFECTIVE client limit = base + add-ons + manual adjustment. */
+  maxClients: number;
+  baseMaxClients: number;
+  addonClientCapacity: number;
+  manualCapacityAdjustment: number;
+  manualCapacityNote?: { reason: string; by: string; at: number };
   startedAt: number;
-  endsAt: number | null; // trial = startedAt + 15d; paid tiers null until later
-  /** Expiry-reminder bookkeeping (trial OR paid term) — each flag fires its reminder once. */
+  endsAt: number | null;
+  /** The confirmed paid term (absent during the Trial). */
+  subscription?: SubscriptionTermSnapshot;
   trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };
-  /** Maintained client-usage counter; rules reject a new relationship at the cap. */
+  /** Maintained client-usage counter (server-side). */
   activeClientCount?: number;
-  /** Append-only log of plan changes (tier/limit/status/end-date + request decisions). */
   history?: PlanHistoryEntry[];
   createdAt: number;
   updatedAt: number;
@@ -182,12 +199,13 @@ export interface CoachPlan {
 /** One entry in the coach plan's change history (newest pushed last). */
 export interface PlanHistoryEntry {
   at: number;
-  action: string; // 'tier' | 'maxClients' | 'status' | 'endsAt' | 'requested' | 'request.accepted' | 'request.rejected'
-  detail?: string; // human-readable summary
-  by?: string; // actor uid
+  action: string;
+  detail?: string;
+  by?: string;
 }
 
-export type PlanRequestType = 'new_signup' | 'trial_upgrade' | 'plan_change' | 'renewal' | 'trial_expired';
+/** subscription / renewal / trial_expired = the Forma subscription; capacity_addon = a capacity package. Legacy test rows may carry new_signup / trial_upgrade / plan_change. */
+export type PlanRequestType = 'subscription' | 'renewal' | 'trial_expired' | 'capacity_addon' | 'new_signup' | 'trial_upgrade' | 'plan_change';
 export type PlanRequestStatus = 'awaiting' | 'processing' | 'confirmed' | 'rejected' | 'cancelled' | 'expired';
 
 export interface PlanSnapshot {
@@ -195,24 +213,34 @@ export interface PlanSnapshot {
   label: LocalizedText;
   priceMonthly: number;
   currency: string;
+  billingInterval?: 'month';
   maxClients: number;
   termDays: number;
 }
 
+export interface CapacitySnapshot {
+  packageId: string;
+  name: LocalizedText;
+  additionalClients: number;
+  price: number;
+  currency: string;
+  billingInterval: 'month' | 'one_time';
+  durationMonths: number | null;
+}
+
 /**
- * A coach's request for a paid plan — created at signup (if a paid tier was
- * selected), on a trial→paid upgrade, on a plan change, or on renewal. One
- * row per request (Mongo `coachPlanRequests`), NOT a singleton — a coach's
- * real entitlements always come from `CoachPlan`, never from this; this only
- * ever gates whether/when `CoachPlan` gets REPLACED with `planSnapshot` (on
- * `confirmed`) — `rejected`/`cancelled`/`expired` never touch `CoachPlan`.
+ * A coach's request (Mongo `coachPlanRequests`) with an IMMUTABLE snapshot.
+ * Entitlements never come from a request — only a Super Admin confirmation
+ * applies the snapshot.
  */
 export interface CoachPlanRequest {
   id: string;
   coachId: string;
   type: PlanRequestType;
-  requestedTierKey: string;
-  planSnapshot: PlanSnapshot;
+  requestKey?: string;
+  requestedTierKey?: string;
+  planSnapshot?: PlanSnapshot;
+  capacitySnapshot?: CapacitySnapshot;
   status: PlanRequestStatus;
   requestedAt: number;
   confirmationDeadline: number;
@@ -224,6 +252,93 @@ export interface CoachPlanRequest {
   expiredAt?: number;
   adminNote?: string;
   reason?: string;
+}
+
+/** Super Admin queue row — request + coach identity + their CURRENT plan. */
+export interface AdminPlanRequestRow extends CoachPlanRequest {
+  coachName: string | null;
+  coachEmail: string | null;
+  currentPlan: CoachPlan | null;
+}
+
+/** Super-Admin capacity package (internal; never public). */
+export interface CapacityPackage {
+  id: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  badge?: LocalizedText;
+  additionalClients: number;
+  price: number;
+  currency: string;
+  billingInterval: 'month' | 'one_time';
+  durationMonths?: number;
+  active: boolean;
+  coachVisible: boolean;
+  promotional?: boolean;
+  sortOrder: number;
+  validFrom?: number | null;
+  validUntil?: number | null;
+  targetCoachIds?: string[];
+  archived?: boolean;
+  createdAt: number;
+  updatedAt: number;
+  /** Admin list only. */
+  activeHolders?: number;
+}
+
+/** What a coach sees of a package they can request. */
+export interface CoachCapacityOffer {
+  id: string;
+  name: LocalizedText;
+  description: LocalizedText | null;
+  badge: LocalizedText | null;
+  additionalClients: number;
+  price: number;
+  currency: string;
+  billingInterval: 'month' | 'one_time';
+  durationMonths: number | null;
+  promotional: boolean;
+  validUntil: number | null;
+}
+
+export interface CapacityEntitlement {
+  id: string;
+  coachId: string;
+  sourcePackageId: string | null;
+  source: 'request' | 'admin_package' | 'admin_custom';
+  snapshot: CapacitySnapshot;
+  status: 'active' | 'expired' | 'cancelled';
+  startsAt: number;
+  endsAt: number | null;
+  requestId: string | null;
+  confirmedBy: string;
+  note?: string;
+  renewals?: { at: number; requestId: string | null; by: string; snapshot: CapacitySnapshot; endsAt: number | null }[];
+  cancelledAt?: number;
+  cancelReason?: string;
+  expiredAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Coach My Plan — one bounded read. */
+export interface CoachCommercialOverview {
+  config: FormaConfig;
+  plan: CoachPlan | null;
+  activeEntitlements: CapacityEntitlement[];
+  pastEntitlements: CapacityEntitlement[];
+  requests: CoachPlanRequest[];
+  availablePackages: CoachCapacityOffer[];
+}
+
+/** Super Admin coach detail — same as the coach view plus the full catalogue. */
+export interface AdminCoachCommercial {
+  config: FormaConfig;
+  plan: CoachPlan | null;
+  activeEntitlements: CapacityEntitlement[];
+  pastEntitlements: CapacityEntitlement[];
+  requests: CoachPlanRequest[];
+  packages: CapacityPackage[];
 }
 
 // ---------------------------------------------------------------------------

@@ -139,17 +139,15 @@ describe('coachAssets — the factory-generated kinds not covered elsewhere', ()
   });
 });
 
-describe('coachPlanTiers core features', () => {
-  it('coreFeatures is public and seeded; saveCoreFeatures is super_admin-only and rejects an empty list', async () => {
-    const admin = await insertUser({ _id: 'admin', role: 'admin' });
-    const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
-    const seeded = await caller(null).coachPlanTiers.coreFeatures();
-    expect(seeded.en.length).toBeGreaterThan(0);
-    expect(seeded.ar.length).toBe(seeded.en.length);
-    expect(await code(caller(admin).coachPlanTiers.saveCoreFeatures({ en: ['A'], ar: ['أ'] }))).toBe('FORBIDDEN');
-    expect(await code(caller(sup).coachPlanTiers.saveCoreFeatures({ en: [], ar: [] }))).toBe('BAD_REQUEST');
-    await caller(sup).coachPlanTiers.saveCoreFeatures({ en: ['A', 'B'], ar: ['أ', 'ب'] });
-    expect(await caller(null).coachPlanTiers.coreFeatures()).toEqual({ en: ['A', 'B'], ar: ['أ', 'ب'] });
+describe('coachPlanTiers — the one Forma config', () => {
+  it('public returns exactly one Forma plan (seeded) and get is signed-in only', async () => {
+    const coach = await insertUser({ _id: 'coach', role: 'coach' });
+    const pub = await caller(null).coachPlanTiers.public();
+    expect(pub).toHaveLength(1);
+    expect(pub[0].key).toBe('forma');
+    expect(pub[0].marketingFeatures.en.length).toBe(pub[0].marketingFeatures.ar.length);
+    expect(await code(caller(null).coachPlanTiers.get())).toBe('UNAUTHORIZED');
+    expect((await caller(coach).coachPlanTiers.get()).maxClients).toBe(25);
   });
 });
 

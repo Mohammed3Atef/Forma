@@ -168,7 +168,7 @@ describe('one remaining slot + simultaneous joins = exactly one succeeds', () =>
     ]);
     expect(fulfilled(rs)).toHaveLength(1);
     expect(rejected(rs)).toHaveLength(1);
-    expect(rejected(rs)[0].reason).toMatchObject({ code: 'CONFLICT', message: 'Coach is at their client limit' });
+    expect(rejected(rs)[0].reason).toMatchObject({ code: 'CONFLICT', message: 'Client capacity reached — add client capacity to take on more clients' });
     expect(await activeRels(coach._id)).toHaveLength(1);
     expect(await planCount(coach._id)).toBe(1);
 
@@ -190,7 +190,7 @@ describe('one remaining slot + simultaneous joins = exactly one succeeds', () =>
       anon.invites.claim({ code: 'BBBB3333', email: 'y@example.com', phone: '2', password: 'password123' }),
     ]);
     expect(fulfilled(rs)).toHaveLength(1);
-    expect(rejected(rs)[0].reason).toMatchObject({ code: 'CONFLICT', message: 'Coach is at their client limit' });
+    expect(rejected(rs)[0].reason).toMatchObject({ code: 'CONFLICT', message: 'Client capacity reached — add client capacity to take on more clients' });
 
     const db = await getDb();
     expect(await db.collection<UserDoc>('users').countDocuments({ role: 'client' })).toBe(1);
@@ -308,7 +308,7 @@ describe('failure after the reservation', () => {
 
     await expect(transferClientWithMode('client-a', from._id, to._id, 'keep_plans', 'keep', 'sa')).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: 'Destination coach: coach is at their client limit',
+      message: 'Destination coach: client capacity reached — add client capacity to take on more clients',
     });
     expect((await db.collection<CoachClientDoc>('coachClients').findOne({ _id: `${from._id}__client-a` }))?.status).toBe('active');
     expect(await planCount(from._id)).toBe(1);

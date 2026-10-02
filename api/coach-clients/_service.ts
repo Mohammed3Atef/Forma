@@ -3,7 +3,7 @@ import type { ClientSession } from 'mongodb';
 import { getDb, withDbTransaction } from '../_lib/mongodb.js';
 import { TRPCError } from '@trpc/server';
 import type { UserDoc } from '../_lib/types.js';
-import { CAP_MESSAGES, addMonths, buildSubscription, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
+import { addMonths, capError, buildSubscription, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
 import type {
   ClientSubscriptionInput,
   CoachClientDoc,
@@ -134,7 +134,7 @@ export async function assignExistingClient(
   // Atomic cap gate — reserve the slot BEFORE the relationship exists, give it
   // back if anything after this point fails (see `reserveClientSlot`).
   const cap = await reserveClientSlot(coachId);
-  if (cap !== 'ok') throw new TRPCError({ code: 'CONFLICT', message: CAP_MESSAGES[cap] });
+  if (cap !== 'ok') throw capError(cap);
 
   const now = Date.now();
   const subscription = buildSubscription(sub, now);
@@ -291,7 +291,7 @@ export async function transferClientWithMode(
     if (movingCoaches || !fromCoachId) {
       const cap = await reserveClientSlot(toCoachId, session);
       if (cap !== 'ok') {
-        throw new TRPCError({ code: 'CONFLICT', message: `Destination coach: ${CAP_MESSAGES[cap].charAt(0).toLowerCase()}${CAP_MESSAGES[cap].slice(1)}` });
+        throw capError(cap, 'Destination coach: ');
       }
     }
 

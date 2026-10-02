@@ -18,8 +18,8 @@ function planRequestToNotification(r: CoachPlanRequest): AppNotification {
     clientId: r.coachId,
     forRole: 'coach',
     type: 'plan_change_requested',
-    body: r.reason,
-    route: `/admin/coaches/${r.coachId}`,
+    body: r.capacitySnapshot ? `+${r.capacitySnapshot.additionalClients} · ${r.capacitySnapshot.price} ${r.capacitySnapshot.currency}` : r.planSnapshot ? `${r.planSnapshot.priceMonthly} ${r.planSnapshot.currency}` : r.reason,
+    route: '/admin/plans?tab=requests',
     seenAt: null, // pending == unhandled — always shows on the badge until resolved
     createdAt: r.requestedAt,
     createdBy: r.coachId,

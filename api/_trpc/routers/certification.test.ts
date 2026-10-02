@@ -22,7 +22,7 @@ import type { AuthedUser, Context } from '../context.js';
 import { getDb, usersCol } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientRelDoc } from '../../client/_lib/db.js';
-import { DAY_MS, TRIAL_GRACE_DAYS, coachPlanRequestsCol, coachPlansCol, type CoachPlanDoc } from '../../coach-plans/_data.js';
+import { DAY_MS, coachPlanRequestsCol, coachPlansCol, type CoachPlanDoc } from '../../coach-plans/_data.js';
 import { messagesCol } from '../../messages/_data.js';
 import { coachExercisesCol } from '../../coach-assets/_lib/db.js';
 import cronHandler from '../../cron/daily-maintenance.js';
@@ -110,6 +110,13 @@ async function assign(coachId: string, clientId: string, status: CoachClientRelD
   if (status === 'active') await (await usersCol()).updateOne({ _id: clientId }, { $set: { assignedCoachId: coachId } });
 }
 
+/** A complete, valid Forma config for coachPlanTiers.save. */
+const formaInput = (o: Partial<Parameters<ReturnType<typeof caller>['coachPlanTiers']['save']>[0]> = {}) => ({
+  trialEnabled: true, trialDurationDays: 15, trialClientLimit: null, maxClients: 25, priceMonthly: 499, currency: 'EGP', termDays: 30,
+  publicVisible: true, signupEnabled: true, marketingTitle: { en: 'Forma', ar: 'فورما' }, marketingDescription: { en: 'd', ar: 'd' },
+  marketingFeatures: { en: ['a'], ar: ['a'] }, ...o,
+});
+
 const code = (p: Promise<unknown>) => p.then(() => 'OK', (e: { code?: string }) => e.code ?? 'ERR');
 
 // ---- 1. authorization matrix ------------------------------------------------
@@ -140,10 +147,10 @@ describe('authorization matrix — one representative per guard class', () => {
     const admin = await insertUser({ _id: 'a', role: 'admin' });
     const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
     const coach = await insertUser({ _id: 'co', role: 'coach' });
-    expect(await code(caller(client).coachPlanRequests.get())).toBe('FORBIDDEN');
-    expect(await code(caller(admin).coachPlanRequests.get())).toBe('FORBIDDEN');
-    expect(await code(caller(sup).coachPlanRequests.get())).toBe('FORBIDDEN');
-    expect(await code(caller(coach).coachPlanRequests.get())).toBe('OK');
+    expect(await code(caller(client).coachPlanRequests.mine())).toBe('FORBIDDEN');
+    expect(await code(caller(admin).coachPlanRequests.mine())).toBe('FORBIDDEN');
+    expect(await code(caller(sup).coachPlanRequests.mine())).toBe('FORBIDDEN');
+    expect(await code(caller(coach).coachPlanRequests.mine())).toBe('OK');
   });
 
   it('roleProcedureNoActive(coach): a suspended coach still reaches coachPlans.me (NOT_FOUND, not FORBIDDEN)', async () => {
@@ -154,7 +161,7 @@ describe('authorization matrix — one representative per guard class', () => {
   it('roleProcedure(super_admin): plain admin is FORBIDDEN', async () => {
     const admin = await insertUser({ _id: 'a', role: 'admin' });
     const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
-    expect(await code(caller(admin).coachPlanTiers.save({ key: 'x', maxClients: 1, priceMonthly: 1 }))).toBe('FORBIDDEN');
+    expect(await code(caller(admin).coachPlanTiers.save(formaInput()))).toBe('FORBIDDEN');
     expect(await code(caller(admin).coachPlanRequests.listPending())).toBe('FORBIDDEN');
     expect(await code(caller(sup).coachPlanRequests.listPending())).toBe('OK');
   });
@@ -408,9 +415,8 @@ describe('idempotency and races', () => {
   it('coachPlanRequests.confirm: two concurrent confirms → one confirmed, one CONFLICT, the plan applied once', async () => {
     const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
     const coach = await insertUser({ _id: 'coach', role: 'coach' });
-    await caller(sup).coachPlanTiers.save({ key: 'pro', label: 'Pro', maxClients: 25, priceMonthly: 499 });
     await caller(coach).coachPlans.createTrial();
-    const req = await caller(coach).coachPlanRequests.submit({ tierKey: 'pro' });
+    const req = await caller(coach).coachPlanRequests.submitSubscription();
     const results = await Promise.allSettled([
       caller(sup).coachPlanRequests.confirm({ requestId: req.id }),
       caller(sup).coachPlanRequests.confirm({ requestId: req.id }),
@@ -418,16 +424,14 @@ describe('idempotency and races', () => {
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected' && (r.reason as { code: string }).code === 'CONFLICT')).toHaveLength(1);
     const plan = await (await coachPlansCol()).findOne({ _id: coach._id });
-    expect(plan?.plan).toBe('pro');
-    expect(plan?.history?.filter((h) => h.action === 'request.confirmed')).toHaveLength(1);
+    expect(plan?.plan).toBe('forma');
+    expect(plan?.history?.filter((h) => h.action === 'subscription.confirmed')).toHaveLength(1);
   });
 
   it('an unconfirmed paid request never changes the coach entitlements the cap check reads', async () => {
-    const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
     const coach = await insertUser({ _id: 'coach', role: 'coach' });
-    await caller(sup).coachPlanTiers.save({ key: 'pro', label: 'Pro', maxClients: 25, priceMonthly: 499 });
     const trial = await caller(coach).coachPlans.createTrial();
-    await caller(coach).coachPlanRequests.submit({ tierKey: 'pro' });
+    await caller(coach).coachPlanRequests.submitSubscription();
     const plan = await (await coachPlansCol()).findOne({ _id: coach._id });
     expect(plan?.maxClients).toBe(trial.maxClients);
     expect(plan?.plan).toBe('trial');
@@ -480,14 +484,13 @@ describe('cron /api/cron/daily-maintenance', () => {
     }
   });
 
-  it('with the right secret: raises ONE trial_expired request, pends the account only after the grace period, and is idempotent', async () => {
+  it('with the right secret: expires ended trials, raises ONE trial_expired request each, never pends the account, and is idempotent', async () => {
     const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
-    await caller(sup).coachPlanTiers.save({ key: 'pro', label: 'Pro', maxClients: 25, priceMonthly: 499, signupEnabled: true, publicVisible: true });
     const justExpired = await insertUser({ _id: 'c1', role: 'coach' });
     const longExpired = await insertUser({ _id: 'c2', role: 'coach' });
     const stillOnTrial = await insertUser({ _id: 'c3', role: 'coach' });
     await givePlan(justExpired._id, 2, { endsAt: Date.now() - 1 });
-    await givePlan(longExpired._id, 2, { endsAt: Date.now() - (TRIAL_GRACE_DAYS + 1) * DAY_MS });
+    await givePlan(longExpired._id, 2, { endsAt: Date.now() - 30 * DAY_MS });
     await givePlan(stillOnTrial._id, 2, { endsAt: Date.now() + DAY_MS });
 
     const saved = process.env.CRON_SECRET;
@@ -497,31 +500,32 @@ describe('cron /api/cron/daily-maintenance', () => {
         const h = mockHttp({ authorization: 'Bearer top-secret' });
         await cronHandler(h.req, h.res);
         expect(h.status()).toBe(200);
-        return h.body() as { trialExpiry: { requestsCreated: number; accountsPended: number } };
+        return h.body() as { subscriptions: { expired: number; requestsCreated: number } };
       };
       const first = await run();
-      expect(first.trialExpiry.requestsCreated).toBe(2);
-      expect(first.trialExpiry.accountsPended).toBe(1);
+      expect(first.subscriptions.requestsCreated).toBe(2);
+      expect(first.subscriptions.expired).toBe(2);
 
       const reqs = await (await coachPlanRequestsCol()).find({}).toArray();
       expect(reqs.map((r) => r.coachId).sort()).toEqual(['c1', 'c2']);
-      expect(reqs.every((r) => r.type === 'trial_expired' && r.status === 'awaiting')).toBe(true);
+      expect(reqs.every((r) => r.type === 'trial_expired' && r.status === 'awaiting' && r.requestKey === 'subscription')).toBe(true);
       const users = await usersCol();
-      expect((await users.findOne({ _id: 'c1' }))?.accountStatus).toBe('active'); // inside grace
-      expect((await users.findOne({ _id: 'c2' }))?.accountStatus).toBe('pending'); // past grace
-      expect((await users.findOne({ _id: 'c3' }))?.accountStatus).toBe('active');
+      // The account is NEVER pended — the coach keeps login / My Plan / request access.
+      for (const id of ['c1', 'c2', 'c3']) expect((await users.findOne({ _id: id }))?.accountStatus).toBe('active');
+      expect((await (await coachPlansCol()).findOne({ _id: 'c2' }))?.status).toBe('expired');
+      expect((await (await coachPlansCol()).findOne({ _id: 'c3' }))?.status).toBe('active');
       expect(await (await coachPlanRequestsCol()).countDocuments({ coachId: 'c3' })).toBe(0);
 
       const second = await run(); // idempotent
-      expect(second.trialExpiry.requestsCreated).toBe(0);
-      expect(second.trialExpiry.accountsPended).toBe(0);
+      expect(second.subscriptions.requestsCreated).toBe(0);
       expect(await (await coachPlanRequestsCol()).countDocuments({})).toBe(2);
 
-      // Confirming payment un-pends the long-expired coach in the same transaction that activates Pro.
+      // Confirming payment activates the paid Forma subscription.
       const c2Req = reqs.find((r) => r.coachId === 'c2')!;
       await caller(sup).coachPlanRequests.confirm({ requestId: c2Req._id });
-      expect((await users.findOne({ _id: 'c2' }))?.accountStatus).toBe('active');
-      expect((await (await coachPlansCol()).findOne({ _id: 'c2' }))?.plan).toBe('pro');
+      const plan = await (await coachPlansCol()).findOne({ _id: 'c2' });
+      expect(plan?.plan).toBe('forma');
+      expect(plan?.status).toBe('active');
     } finally {
       if (saved === undefined) delete process.env.CRON_SECRET;
       else process.env.CRON_SECRET = saved;
@@ -568,19 +572,18 @@ describe('rate limits, validation, error semantics', () => {
     const client = await insertUser({ _id: 'client', role: 'client' });
     await expect(caller(coachNoPlan).coachClients.assign({ clientId: client._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: 'This coach has no active plan yet',
+      message: 'This coach has no active Forma subscription yet',
     });
     await givePlan(coachNoPlan._id, 1, { activeClientCount: 1 });
     await expect(caller(coachNoPlan).coachClients.assign({ clientId: client._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: 'Coach is at their client limit',
+      message: 'Client capacity reached — add client capacity to take on more clients',
     });
 
     const sup = await insertUser({ _id: 'sa', role: 'super_admin' });
-    await caller(sup).coachPlanTiers.save({ key: 'pro', label: 'Pro', maxClients: 25, priceMonthly: 499 });
     const coach2 = await insertUser({ _id: 'coach2', role: 'coach' });
     await caller(coach2).coachPlans.createTrial();
-    const req = await caller(coach2).coachPlanRequests.submit({ tierKey: 'pro' });
+    const req = await caller(coach2).coachPlanRequests.submitSubscription();
     await caller(sup).coachPlanRequests.reject({ requestId: req.id });
     await expect(caller(sup).coachPlanRequests.confirm({ requestId: req.id })).rejects.toMatchObject({ code: 'CONFLICT' });
     await expect(caller(sup).coachPlanRequests.confirm({ requestId: 'does-not-exist' })).rejects.toMatchObject({ code: 'CONFLICT' });

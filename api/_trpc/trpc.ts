@@ -2,8 +2,19 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import type { Context } from './context.js';
 import { hasPermission } from '../_lib/rbac.js';
 import type { Permission, Role } from '../_lib/types.js';
+import { CommercialReason } from '../_lib/commercialReason.js';
 
-const t = initTRPC.context<Context>().create();
+/**
+ * Error shape: the default tRPC shape plus `data.reason` — a stable machine
+ * code for commercial refusals (SUBSCRIPTION_EXPIRED, CLIENT_CAPACITY_REACHED,
+ * …; see _lib/commercialReason.ts) so clients never parse message text.
+ */
+const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, error }) {
+    const reason = error.cause instanceof CommercialReason ? error.cause.reason : undefined;
+    return reason ? { ...shape, data: { ...shape.data, reason } } : shape;
+  },
+});
 
 export const router = t.router;
 export const middleware = t.middleware;

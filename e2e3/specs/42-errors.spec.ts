@@ -57,7 +57,8 @@ async function run(
   expect(f.hits.length, 'the primary procedure was actually requested').toBeGreaterThan(0);
   expect(c.verdict, `${o.name}: ${c.detail}`).toBe('PASS');
   await f.off();
-  await page.getByRole('button', { name: 'Retry' }).first().click();
+  // Scoped to <main>: a batch that also carried sync.pull makes the header sync badge show its own "Retry".
+  await page.locator('main').first().getByRole('button', { name: 'Retry' }).first().click();
   await o.recovered(page);
   await shot(page, testInfo, `${o.name}-recovered`);
 }
@@ -107,15 +108,15 @@ const screens: { name: string; role: Role; path: string; procs: string[]; empty:
     name: 'admin-plans',
     role: 'super',
     path: '/admin/plans',
-    procs: ['coachPlanTiers.list'],
-    empty: [/No plans yet/],
-    recovered: async (p) => expect(p.getByTestId('plan-row').first()).toBeVisible(),
+    procs: ['coachPlanTiers.get'],
+    empty: [/No capacity packages yet/],
+    recovered: async (p) => expect(p.getByTestId('forma-config')).toBeVisible(),
   },
   {
     name: 'coach-my-plan',
     role: 'coachA',
     path: '/coach/plan',
-    procs: ['coachPlans.me'],
+    procs: ['coachCommercial.myOverview'],
     empty: [/—/],
     recovered: async (p) => expect(p.getByTestId('coach-plan')).toContainText(/Trial|trial/),
   },

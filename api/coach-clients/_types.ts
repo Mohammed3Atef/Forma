@@ -104,6 +104,7 @@ export interface CoachPlanDoc {
   plan?: string;
   status?: string;
   maxClients?: number;
+  endsAt?: number | null;
   activeClientCount?: number;
   createdAt?: number;
   updatedAt?: number;

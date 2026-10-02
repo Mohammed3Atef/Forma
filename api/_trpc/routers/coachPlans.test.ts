@@ -1,39 +1,48 @@
+/**
+ * Forma single-plan + client-capacity add-ons — the commercial model's
+ * contract (spec §50–52, tests 1–37, plus config propagation / signup gates).
+ * Real Mongo transactions on a one-member replica set; no production data.
+ */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
-import { getDb, usersCol } from '../../_lib/mongodb.js';
+import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
+import { DAY_MS, coachPlanRequestsCol, coachPlansCol, type CoachPlanDoc } from '../../coach-plans/_data.js';
+import { capacityEntitlementsCol, recomputeCapacity } from '../../coach-plans/_capacity.js';
+import { expireCapacity, expireSubscriptions, expireStalePlanRequests } from '../../cron/daily-maintenance.js';
+import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
 
 let mongod: MongoMemoryReplSet;
 
-// A one-member replica set (not a plain MongoMemoryServer standalone) —
-// `coachPlanRequests.confirm` uses a real Mongo transaction, and transactions
-// are only allowed on a replica set/mongos, never a standalone instance.
 beforeAll(async () => {
   mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   process.env.MONGODB_URI = mongod.getUri();
   process.env.MONGODB_DB = 'forma_test';
-}, 60_000);
+  process.env.JWT_ACCESS_SECRET = 'test-secret-not-for-prod';
+}, 90_000);
 
 afterAll(async () => {
   await mongod.stop();
 });
 
 beforeEach(async () => {
-  const db = await getDb();
-  await db.dropDatabase();
+  await (await getDb()).dropDatabase();
 });
+
+// ---- fixtures ---------------------------------------------------------------
 
 function userDoc(overrides: Partial<UserDoc>): UserDoc {
   const now = Date.now();
+  const id = overrides._id ?? 'user-1';
   return {
-    _id: 'user-1',
-    email: 'a@example.com',
-    emailLower: 'a@example.com',
-    passwordHash: 'irrelevant-for-these-tests',
-    displayName: 'Test User',
+    _id: id,
+    email: `${id}@example.com`,
+    emailLower: `${id}@example.com`,
+    passwordHash: 'irrelevant',
+    displayName: `Name ${id}`,
     role: 'coach',
     accountStatus: 'active',
     permissions: [],
@@ -44,270 +53,467 @@ function userDoc(overrides: Partial<UserDoc>): UserDoc {
     ...overrides,
   };
 }
-
-function authedUser(overrides: Partial<UserDoc>): AuthedUser {
+async function insertUser(overrides: Partial<UserDoc>): Promise<UserDoc> {
   const doc = userDoc(overrides);
-  return { id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc };
+  await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  return doc;
 }
+const authed = (doc: UserDoc): AuthedUser => ({ id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc });
+const ctxFor = (user: AuthedUser | null): Context => ({
+  req: { headers: {} } as unknown as VercelRequest,
+  res: { setHeader: () => undefined } as unknown as VercelResponse,
+  user,
+});
+const caller = (doc: UserDoc | null) => appRouter.createCaller(ctxFor(doc ? authed(doc) : null));
+const code = (p: Promise<unknown>) => p.then(() => 'OK', (e: { code?: string }) => e.code ?? 'ERR');
+/** The machine reason carried on a refusal (surfaced to HTTP clients as `error.data.reason`). */
+const reason = (p: Promise<unknown>) => p.then(() => 'OK', (e: { cause?: { reason?: string } }) => e.cause?.reason ?? 'NONE');
+const settle = <T,>(ps: Promise<T>[]) => Promise.allSettled(ps);
 
-function ctxFor(user: AuthedUser | null): Context {
-  return { req: {} as VercelRequest, res: { setHeader: () => undefined } as unknown as VercelResponse, user };
-}
-
-const coach = authedUser({ _id: 'coach-1', role: 'coach' });
-const client = authedUser({ _id: 'client-1', role: 'client' });
-// Plain `admin` carries `users.manageStatus` (rbac.ts) but NOT the `super_admin`
-// role itself — `coachPlans.adminUpdate`/`coachPlanTiers.save`/the change-request
-// admin mutations are role-gated to `super_admin` specifically (tightened in the
-// Admin Ops Hardening pass to match the frontend, which already restricts these
-// screens to super_admin), so `admin` here is used to prove that gate holds.
-const admin = authedUser({ _id: 'admin-1', role: 'admin' });
-const superAdmin = authedUser({ _id: 'super-admin-1', role: 'super_admin' });
-
-/** `trial` is the only code-seeded tier now — every other tier (e.g. 'pro'/'starter') must be created via `coachPlanTiers.save`, exactly like a real admin would from the dashboard. */
-async function createCustomTier(key: string, maxClients: number, priceMonthly = 499) {
-  const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-  await asSuperAdmin.coachPlanTiers.save({ key, label: key, maxClients, priceMonthly });
-}
-
-describe('coachPlans router', () => {
-  it('createTrial is idempotent and me reads it back', async () => {
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    const created = await asCoach.coachPlans.createTrial();
-    expect(created.plan).toBe('trial');
-    expect(created.maxClients).toBe(2);
-
-    const again = await asCoach.coachPlans.createTrial();
-    expect(again.createdAt).toBe(created.createdAt); // untouched, not re-created
-
-    const me = await asCoach.coachPlans.me();
-    expect(me.coachId).toBe('coach-1');
-  });
-
-  it('me is role-gated to coaches', async () => {
-    const asClient = appRouter.createCaller(ctxFor(client));
-    await expect(asClient.coachPlans.me()).rejects.toMatchObject({ code: 'FORBIDDEN' });
-  });
-
-  it('me and createTrial work for a suspended coach — matches the old REST me.ts/trial.ts, which had no active check', async () => {
-    const suspendedCoach = authedUser({ _id: 'coach-2', role: 'coach', accountStatus: 'suspended' });
-    const asSuspendedCoach = appRouter.createCaller(ctxFor(suspendedCoach));
-    const created = await asSuspendedCoach.coachPlans.createTrial();
-    expect(created.plan).toBe('trial');
-    const me = await asSuspendedCoach.coachPlans.me();
-    expect(me.coachId).toBe('coach-2');
-  });
-
-  it('me 404s before a trial/plan exists', async () => {
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await expect(asCoach.coachPlans.me()).rejects.toMatchObject({ code: 'NOT_FOUND' });
-  });
-
-  it('adminUpdate is super_admin-only (a plain admin is FORBIDDEN) and applies a tier change', async () => {
-    await createCustomTier('pro', 100);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-
-    await expect(asCoach.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    const asAdmin = appRouter.createCaller(ctxFor(admin));
-    await expect(asAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const updated = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
-    expect(updated.plan).toBe('pro');
-    expect(updated.maxClients).toBe(100); // derived from the dashboard-created 'pro' tier config
-    expect(updated.history?.at(-1)).toMatchObject({ action: 'tier', detail: 'pro' });
-  });
-
-  it('re-sending the SAME tier (the renew/extend-trial mechanism) bumps endsAt but never clobbers a custom maxClients override', async () => {
-    await createCustomTier('pro', 100);
-    await createCustomTier('starter', 25);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-
-    // Move to 'pro' (100 clients by default), then give this coach a custom, non-default cap.
-    await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
-    const overridden = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, maxClients: 137 });
-    expect(overridden.maxClients).toBe(137);
-    const endsAtBefore = overridden.endsAt;
-
-    // Renew/Extend Trial re-send the coach's CURRENT tier purely to push endsAt
-    // forward — this must never reset maxClients back to the tier default.
-    const renewed = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'pro' });
-    expect(renewed.maxClients).toBe(137); // preserved, not reset to pro's default of 100
-    expect(renewed.endsAt).toBeGreaterThan(endsAtBefore!);
-
-    // A genuine tier CHANGE still recomputes the cap from the new tier's default.
-    const changedTier = await asSuperAdmin.coachPlans.adminUpdate({ coachId: coach.id, tier: 'starter' });
-    expect(changedTier.maxClients).toBe(25); // starter's dashboard-created default, not 137
-  });
+type FormaSave = Parameters<ReturnType<typeof caller>['coachPlanTiers']['save']>[0];
+const formaInput = (o: Partial<FormaSave> = {}): FormaSave => ({
+  trialEnabled: true,
+  trialDurationDays: 15,
+  trialClientLimit: null,
+  maxClients: 25,
+  priceMonthly: 499,
+  currency: 'EGP',
+  termDays: 30,
+  publicVisible: true,
+  signupEnabled: true,
+  marketingTitle: { en: 'Forma', ar: 'فورما' },
+  marketingDescription: { en: 'One plan. Everything included.', ar: 'خطة واحدة.' },
+  marketingFeatures: { en: ['Everything'], ar: ['كل شيء'] },
+  ...o,
 });
 
-describe('coachPlanRequests router', () => {
-  it('request lifecycle is super_admin-only for listPending/confirm/reject: submit, super admin sees it pending, confirm atomically activates the snapshot', async () => {
-    await createCustomTier('starter', 25);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    await asCoach.coachPlanRequests.submit({ tierKey: 'starter', reason: 'Need more clients' });
+type PackageSave = Parameters<ReturnType<typeof caller>['coachCommercial']['savePackage']>[0];
+const pkgInput = (o: Partial<PackageSave> = {}): PackageSave => ({
+  name: { en: '+20 clients', ar: '+٢٠ عميل' },
+  additionalClients: 20,
+  price: 199,
+  currency: 'EGP',
+  billingInterval: 'month',
+  durationMonths: 1,
+  active: true,
+  coachVisible: true,
+  ...o,
+});
 
-    const asAdmin = appRouter.createCaller(ctxFor(admin));
-    await expect(asAdmin.coachPlanRequests.listPending()).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(asAdmin.coachPlanRequests.confirm({ requestId: 'whatever' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+/** A coach on the PAID Forma subscription with an explicit base capacity. */
+async function givePaidPlan(coachId: string, base = 25, overrides: Partial<CoachPlanDoc> = {}) {
+  const now = Date.now();
+  await (await coachPlansCol()).insertOne({
+    _id: coachId,
+    plan: 'forma',
+    status: 'active',
+    maxClients: base,
+    baseMaxClients: base,
+    addonClientCapacity: 0,
+    manualCapacityAdjustment: 0,
+    startedAt: now,
+    endsAt: now + 30 * DAY_MS,
+    activeClientCount: 0,
+    history: [],
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  });
+}
+const planOf = async (id: string) => (await coachPlansCol()).findOne({ _id: id });
 
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const pending = await asSuperAdmin.coachPlanRequests.listPending();
-    expect(pending.map((r) => r.coachId)).toEqual([coach.id]);
-    expect(pending[0].status).toBe('awaiting');
+let sup: UserDoc;
+let admin: UserDoc;
+beforeEach(async () => {
+  sup = await insertUser({ _id: 'sa', role: 'super_admin' });
+  admin = await insertUser({ _id: 'admin', role: 'admin' });
+});
 
-    // The coach's real plan is untouched (still Trial) while the request is awaiting.
-    const beforeConfirm = await asCoach.coachPlans.me();
-    expect(beforeConfirm.plan).toBe('trial');
+async function signupCoach(email: string) {
+  await caller(null).auth.signup({ email, password: 'password123', displayName: email.split('@')[0], role: 'coach' });
+  const u = await (await getDb()).collection<UserDoc>('users').findOne({ emailLower: email });
+  return u!;
+}
 
-    const confirmed = await asSuperAdmin.coachPlanRequests.confirm({ requestId: pending[0].id });
-    expect(confirmed.status).toBe('confirmed');
+async function requestAndConfirmPackage(coach: UserDoc, packageId: string) {
+  const r = await caller(coach).coachPlanRequests.submitCapacity({ packageId });
+  await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+  return r;
+}
 
-    // Applies the request's OWN immutable snapshot (built from 'starter' at submit time), not a re-read of the live tier.
-    const plan = await asCoach.coachPlans.me();
-    expect(plan.plan).toBe('starter');
-    expect(plan.maxClients).toBe(25);
+async function assignClients(coach: UserDoc, n: number, prefix = 'cl') {
+  for (let i = 0; i < n; i += 1) {
+    const c = await insertUser({ _id: `${prefix}-${coach._id}-${i}`, role: 'client' });
+    await caller(coach).coachClients.assign({ clientId: c._id, subscription: { status: 'trial', trialDays: 14 } });
+  }
+}
+const activeRelCount = async (coachId: string) => (await getDb()).collection('coachClients').countDocuments({ coachId, status: 'active' });
+
+// ---- §50 base subscription --------------------------------------------------
+
+describe('Forma — one public product, Trial-first', () => {
+  it('1. exactly one public Forma product; hidden when the Super Admin turns public visibility off; no capacity packages leak', async () => {
+    await caller(sup).coachCommercial.savePackage(pkgInput());
+    const pub = await caller(null).coachPlanTiers.public();
+    expect(pub).toHaveLength(1);
+    expect(pub[0]).toMatchObject({ key: 'forma', maxClients: 25, priceMonthly: 499, currency: 'EGP', trialEnabled: true, trialDurationDays: 15 });
+    expect(JSON.stringify(pub)).not.toContain('+20 clients');
+    await caller(sup).coachPlanTiers.save(formaInput({ publicVisible: false }));
+    expect(await caller(null).coachPlanTiers.public()).toEqual([]);
+  });
+
+  it('2–4. signup always starts the Trial, with duration and client limit taken from the Admin config', async () => {
+    await caller(sup).coachPlanTiers.save(formaInput({ trialDurationDays: 10, trialClientLimit: 5 }));
+    const before = Date.now();
+    const coach = await signupCoach('new@example.com');
+    const plan = (await planOf(coach._id))!;
+    expect(plan.plan).toBe('trial');
     expect(plan.status).toBe('active');
-
-    // A resolved request can never be confirmed/rejected again (compare-and-swap).
-    await expect(asSuperAdmin.coachPlanRequests.confirm({ requestId: pending[0].id })).rejects.toMatchObject({ code: 'CONFLICT' });
-    await expect(asSuperAdmin.coachPlanRequests.reject({ requestId: pending[0].id })).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(plan.maxClients).toBe(5);
+    expect(plan.baseMaxClients).toBe(5);
+    expect(plan.endsAt! - plan.startedAt).toBe(10 * DAY_MS);
+    expect(plan.startedAt).toBeGreaterThanOrEqual(before);
+    expect(await (await coachPlanRequestsCol()).countDocuments({ coachId: coach._id })).toBe(0); // no payment request at signup
   });
 
-  it('confirming payment reactivates an account the trial-expiry grace period had pended, atomically with the plan activation', async () => {
-    await createCustomTier('pro', 25);
-    const activeCoach = authedUser({ _id: 'pending-coach-1', role: 'coach', accountStatus: 'active' });
-    const users = await usersCol();
-    await users.insertOne(activeCoach.doc);
-    const asCoach = appRouter.createCaller(ctxFor(activeCoach));
-    await asCoach.coachPlans.createTrial();
-    const submitted = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
-
-    // Simulate the trial-expiry cron's grace-period pend (see api/cron/enforce-trial-expiry.ts).
-    await users.updateOne({ _id: 'pending-coach-1' }, { $set: { accountStatus: 'pending' } });
-
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    await asSuperAdmin.coachPlanRequests.confirm({ requestId: submitted.id });
-
-    const updatedUser = await users.findOne({ _id: 'pending-coach-1' });
-    expect(updatedUser?.accountStatus).toBe('active');
+  it('signup is refused when the Super Admin closes it; with the Trial disabled the coach gets an already-ended plan (no free access)', async () => {
+    await caller(sup).coachPlanTiers.save(formaInput({ signupEnabled: false }));
+    expect(await code(caller(null).auth.signup({ email: 'x@example.com', password: 'password123', displayName: 'x', role: 'coach' }))).toBe('FORBIDDEN');
+    await caller(sup).coachPlanTiers.save(formaInput({ trialEnabled: false }));
+    const coach = await signupCoach('nt@example.com');
+    const plan = (await planOf(coach._id))!;
+    expect(plan.status).toBe('expired');
+    expect((await caller(coach).coachPlans.me()).state).toBe('expired');
   });
 
-  it('reject never touches CoachPlanDoc — the coach keeps whatever plan they had', async () => {
-    await createCustomTier('pro', 100);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    const submitted = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
-
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const rejected = await asSuperAdmin.coachPlanRequests.reject({ requestId: submitted.id, adminNote: 'not now' });
-    expect(rejected.status).toBe('rejected');
-    expect(rejected.adminNote).toBe('not now');
-
-    const plan = await asCoach.coachPlans.me();
-    expect(plan.plan).toBe('trial'); // completely unaffected by the rejection
+  it('5. the Trial uses all Forma features — the same feature list, and paid-level actions work during the Trial', async () => {
+    const coach = await signupCoach('t@example.com');
+    const pub = (await caller(null).coachPlanTiers.public())[0];
+    const ov = await caller(coach).coachCommercial.myOverview();
+    expect(ov.config.marketingFeatures).toEqual(pub.marketingFeatures);
+    expect(ov.plan?.phase).toBe('trial');
+    // Inviting and adding clients are available on the Trial.
+    expect(await code(caller(coach).invites.create({}))).toBe('OK');
+    await assignClients(coach, 2);
+    expect(await activeRelCount(coach._id)).toBe(2);
   });
 
-  it('a coach can cancel their own awaiting request but not once resolved', async () => {
-    await createCustomTier('starter', 25);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    await asCoach.coachPlanRequests.submit({ tierKey: 'starter', reason: 'test' });
-
-    const cancelled = await asCoach.coachPlanRequests.cancel();
-    expect(cancelled.status).toBe('cancelled');
-    await expect(asCoach.coachPlanRequests.cancel()).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  it('6. an expired Trial keeps the account usable (login, My Plan, request) but blocks adding clients with SUBSCRIPTION_EXPIRED', async () => {
+    const coach = await signupCoach('e@example.com');
+    await (await coachPlansCol()).updateOne({ _id: coach._id }, { $set: { endsAt: Date.now() - 1 } });
+    await expireSubscriptions();
+    expect((await (await getDb()).collection<UserDoc>('users').findOne({ _id: coach._id }))?.accountStatus).toBe('active');
+    expect((await caller(coach).coachPlans.me()).state).toBe('expired');
+    expect((await caller(coach).coachCommercial.myOverview()).plan?.state).toBe('expired');
+    const c = await insertUser({ _id: 'cl-x', role: 'client' });
+    const attempt = caller(coach).coachClients.assign({ clientId: c._id, subscription: { status: 'trial' } });
+    expect(await reason(attempt)).toBe('SUBSCRIPTION_EXPIRED');
+    // The cron already raised a subscription request; a manual submit is "pending", not a duplicate.
+    expect(await reason(caller(coach).coachPlanRequests.submitSubscription())).toBe('SUBSCRIPTION_REQUEST_PENDING');
+    expect((await caller(coach).coachPlanRequests.mine())[0]).toMatchObject({ type: 'trial_expired', status: 'awaiting' });
   });
 
-  it('submitting a new request auto-cancels a coach\'s prior awaiting request (no silent second live request)', async () => {
-    await createCustomTier('starter', 25);
-    await createCustomTier('pro', 100);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    const first = await asCoach.coachPlanRequests.submit({ tierKey: 'starter' });
-    const second = await asCoach.coachPlanRequests.submit({ tierKey: 'pro' });
-    expect(second.status).toBe('awaiting');
+  it('7–10. the request snapshots the CURRENT price; later edits never change it; confirm activates Forma with the term starting at confirmation', async () => {
+    const coach = await signupCoach('p@example.com');
+    const req = await caller(coach).coachPlanRequests.submitSubscription();
+    expect(req.planSnapshot).toMatchObject({ priceMonthly: 499, currency: 'EGP', maxClients: 25, termDays: 30 });
+    await caller(sup).coachPlanTiers.save(formaInput({ priceMonthly: 799, termDays: 60 }));
+    const stored = await (await coachPlanRequestsCol()).findOne({ _id: req.id });
+    expect(stored?.planSnapshot?.priceMonthly).toBe(499);
 
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const pending = await asSuperAdmin.coachPlanRequests.listPending();
-    expect(pending.map((r) => r.id)).toEqual([second.id]); // the first was cancelled, not left dangling
-    expect(pending.map((r) => r.id)).not.toContain(first.id);
+    const before = Date.now();
+    await caller(sup).coachPlanRequests.confirm({ requestId: req.id });
+    const plan = (await planOf(coach._id))!;
+    expect(plan.plan).toBe('forma');
+    expect(plan.status).toBe('active');
+    expect(plan.subscription).toMatchObject({ priceMonthly: 499, termDays: 30, requestId: req.id });
+    expect(plan.startedAt).toBeGreaterThanOrEqual(before);
+    expect(plan.endsAt! - plan.startedAt).toBe(30 * DAY_MS);
+    expect(plan.maxClients).toBe(25);
+    const audit = await (await getDb()).collection('adminAuditLogs').findOne({ action: 'subscription.confirmed', targetUserId: coach._id });
+    expect(audit).toBeTruthy();
   });
 
-  it('the one-awaiting-request-per-coach guarantee is enforced at the database level — a concurrent submit racing past the app-level cancel cannot create two awaiting rows', async () => {
-    await createCustomTier('starter', 25);
-    await createCustomTier('pro', 100);
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await asCoach.coachPlans.createTrial();
-    // Simulates two concurrent submits: `submit`'s own cancel-then-insert step
-    // is not itself atomic, so the guarantee that matters is the partial
-    // unique index rejecting a second concurrent insert outright.
-    const results = await Promise.allSettled([
-      asCoach.coachPlanRequests.submit({ tierKey: 'starter' }),
-      asCoach.coachPlanRequests.submit({ tierKey: 'pro' }),
-    ]);
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const pending = await asSuperAdmin.coachPlanRequests.listPending();
-    // Whatever the outcome of the race, at most one row is ever left awaiting for this coach.
-    expect(pending.filter((r) => r.coachId === coach.id).length).toBeLessThanOrEqual(1);
-    expect(results.some((r) => r.status === 'fulfilled')).toBe(true);
+  it('11–12. renewal: one open renewal at a time, concurrent confirms apply exactly once', async () => {
+    const coach = await insertUser({ _id: 'paid', role: 'coach' });
+    await givePaidPlan(coach._id);
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    expect(r.type).toBe('renewal');
+    expect(await reason(caller(coach).coachPlanRequests.submitSubscription())).toBe('SUBSCRIPTION_REQUEST_PENDING');
+    const rs = await settle([caller(sup).coachPlanRequests.confirm({ requestId: r.id }), caller(sup).coachPlanRequests.confirm({ requestId: r.id })]);
+    expect(rs.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
+    const plan = (await planOf(coach._id))!;
+    expect(plan.history?.filter((h) => h.action === 'subscription.confirmed')).toHaveLength(1);
+    expect(await (await getDb()).collection('adminAuditLogs').countDocuments({ action: 'subscription.renewed' })).toBe(1);
+  });
+
+  it('a past-deadline request cannot be confirmed and expires without touching the plan', async () => {
+    const coach = await signupCoach('d@example.com');
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    await (await coachPlanRequestsCol()).updateOne({ _id: r.id }, { $set: { confirmationDeadline: Date.now() - 1 } });
+    expect(await reason(caller(sup).coachPlanRequests.confirm({ requestId: r.id }))).toBe('REQUEST_ALREADY_RESOLVED');
+    expect((await expireStalePlanRequests()).expired).toBe(1);
+    expect((await planOf(coach._id))?.plan).toBe('trial');
+  });
+
+  it('config: a HIGHER base limit lifts existing coaches (keeping add-ons); a LOWER one never reduces anyone', async () => {
+    const coach = await insertUser({ _id: 'paid', role: 'coach' });
+    await givePaidPlan(coach._id, 25, { addonClientCapacity: 20, maxClients: 45 });
+    const up = await caller(sup).coachPlanTiers.save(formaInput({ maxClients: 30 }));
+    expect(up.raisedPaidCoaches).toBe(1);
+    expect(await planOf(coach._id)).toMatchObject({ baseMaxClients: 30, maxClients: 50 });
+    await caller(sup).coachPlanTiers.save(formaInput({ maxClients: 10 }));
+    expect(await planOf(coach._id)).toMatchObject({ baseMaxClients: 30, maxClients: 50 });
   });
 });
 
-describe('coachPlanTiers router', () => {
-  it('list includes the built-in Trial seed tier even with none in Mongo — every other tier is created entirely from the dashboard', async () => {
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    const tiers = await asCoach.coachPlanTiers.list({});
-    expect(tiers.map((t) => t.key)).toEqual(['trial']);
+// ---- §51 capacity -----------------------------------------------------------
+
+describe('Client-capacity add-ons', () => {
+  let coach: UserDoc;
+  let p20: string;
+  let p30: string;
+  beforeEach(async () => {
+    coach = await insertUser({ _id: 'coach', role: 'coach' });
+    await givePaidPlan(coach._id, 25);
+    p20 = (await caller(sup).coachCommercial.savePackage(pkgInput())).id;
+    p30 = (await caller(sup).coachCommercial.savePackage(pkgInput({ name: { en: '+30 clients', ar: '+٣٠' }, additionalClients: 30, price: 279 }))).id;
   });
 
-  it('list works for any signed-in user, active or not — matches the old REST tiers-index.ts (bare requireUser, no role/active check)', async () => {
-    const suspendedCoach = authedUser({ _id: 'coach-3', role: 'coach', accountStatus: 'suspended' });
-    const asSuspendedCoach = appRouter.createCaller(ctxFor(suspendedCoach));
-    const tiers = await asSuspendedCoach.coachPlanTiers.list({});
-    expect(tiers.length).toBeGreaterThan(0);
+  it('13–17. base 25 → 25; unconfirmed +20 changes nothing; confirmed +20 → 45; +20 and +30 → 75', async () => {
+    expect((await caller(coach).coachCommercial.myOverview()).plan?.maxClients).toBe(25);
+    const r = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    expect((await planOf(coach._id))?.maxClients).toBe(25);
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    expect(await planOf(coach._id)).toMatchObject({ maxClients: 45, baseMaxClients: 25, addonClientCapacity: 20 });
+    await requestAndConfirmPackage(coach, p30);
+    expect((await planOf(coach._id))?.maxClients).toBe(75);
+    const ov = await caller(coach).coachCommercial.myOverview();
+    expect(ov.activeEntitlements.map((e) => e.snapshot.additionalClients).sort()).toEqual([20, 30]);
   });
 
-  it('save is super_admin-only (a plain admin is FORBIDDEN), upserts a custom tier, and protects trial from archival', async () => {
-    const asCoach = appRouter.createCaller(ctxFor(coach));
-    await expect(asCoach.coachPlanTiers.save({ key: 'custom', maxClients: 50, priceMonthly: 20 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    const asAdmin = appRouter.createCaller(ctxFor(admin));
-    await expect(asAdmin.coachPlanTiers.save({ key: 'custom', maxClients: 50, priceMonthly: 20 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  it('18–20. rejected, expired and cancelled requests change nothing', async () => {
+    const a = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    await caller(sup).coachPlanRequests.reject({ requestId: a.id, adminNote: 'no payment' });
+    const b = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    await (await coachPlanRequestsCol()).updateOne({ _id: b.id }, { $set: { confirmationDeadline: Date.now() - 1 } });
+    await expireStalePlanRequests();
+    const c = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    await caller(coach).coachPlanRequests.cancel({ id: c.id });
+    expect((await planOf(coach._id))?.maxClients).toBe(25);
+    expect(await (await capacityEntitlementsCol()).countDocuments({})).toBe(0);
+    const statuses = (await caller(coach).coachPlanRequests.mine()).map((r) => r.status).sort();
+    expect(statuses).toEqual(['cancelled', 'expired', 'rejected']);
+  });
 
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-    const saved = await asSuperAdmin.coachPlanTiers.save({ key: 'custom', label: 'Custom', maxClients: 50, priceMonthly: 20 });
-    expect(saved.key).toBe('custom');
-    expect(saved.builtIn).toBe(false);
+  it('21–22. the snapshot survives later package price and additionalClients edits', async () => {
+    const r = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    await caller(sup).coachCommercial.savePackage(pkgInput({ id: p20, price: 999, additionalClients: 5 }));
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    const ent = await (await capacityEntitlementsCol()).findOne({ coachId: coach._id });
+    expect(ent?.snapshot).toMatchObject({ price: 199, additionalClients: 20 });
+    expect((await planOf(coach._id))?.maxClients).toBe(45);
+  });
 
-    await expect(asSuperAdmin.coachPlanTiers.save({ key: 'trial', maxClients: 0, priceMonthly: 0, archived: true })).rejects.toMatchObject({
-      code: 'BAD_REQUEST',
+  it('23–26. expiry drops capacity; the over-cap coach keeps every client but cannot add, invite-join or transfer in', async () => {
+    await caller(sup).coachPlanTiers.save(formaInput({ maxClients: 2 }));
+    const small = await insertUser({ _id: 'small', role: 'coach' });
+    await givePaidPlan(small._id, 2);
+    await requestAndConfirmPackage(small, p20);
+    await assignClients(small, 5);
+    expect(await planOf(small._id)).toMatchObject({ maxClients: 22, activeClientCount: 5 });
+
+    await (await capacityEntitlementsCol()).updateMany({ coachId: small._id }, { $set: { endsAt: Date.now() - 1 } });
+    const res = await expireCapacity();
+    expect(res.expired).toBe(1);
+    expect(await planOf(small._id)).toMatchObject({ maxClients: 2, activeClientCount: 5 });
+    expect(await activeRelCount(small._id)).toBe(5); // nobody removed
+
+    const extra = await insertUser({ _id: 'extra', role: 'client' });
+    expect(await reason(caller(small).coachClients.assign({ clientId: extra._id, subscription: { status: 'trial' } }))).toBe('CLIENT_CAPACITY_REACHED');
+    const invite: SignupInviteDoc = { _id: 'INVT2222', coachId: small._id, status: 'pending', claimedByUid: null, createdAt: Date.now(), claimedAt: null, expiresAt: null, subStatus: 'trial' };
+    await (await getDb()).collection<SignupInviteDoc>('signupInvites').insertOne(invite);
+    expect(await reason(caller(null).invites.claim({ code: 'INVT2222', email: 'z@example.com', phone: '1', password: 'password123' }))).toBe('CLIENT_CAPACITY_REACHED');
+    expect(await activeRelCount(small._id)).toBe(5);
+  });
+
+  it('removing an add-on (admin) never deletes clients and reports before/after', async () => {
+    await requestAndConfirmPackage(coach, p20);
+    await assignClients(coach, 3);
+    const ent = (await (await capacityEntitlementsCol()).findOne({ coachId: coach._id }))!;
+    const out = await caller(sup).coachCommercial.cancelEntitlement({ entitlementId: ent._id, reason: 'refund' });
+    expect(out).toMatchObject({ before: 45, after: 25, activeClients: 3 });
+    expect(await activeRelCount(coach._id)).toBe(3);
+    expect(await code(caller(sup).coachCommercial.cancelEntitlement({ entitlementId: ent._id }))).toBe('CONFLICT');
+  });
+
+  it('27. manual adjustment (positive and negative) with a mandatory reason; floored at zero', async () => {
+    await caller(sup).coachCommercial.setManualAdjustment({ coachId: coach._id, value: 5, reason: 'goodwill' });
+    expect((await planOf(coach._id))?.maxClients).toBe(30);
+    await caller(sup).coachCommercial.setManualAdjustment({ coachId: coach._id, value: -100, reason: 'clamp test' });
+    expect((await planOf(coach._id))?.maxClients).toBe(0);
+    expect(await code(caller(sup).coachCommercial.setManualAdjustment({ coachId: coach._id, value: 1, reason: '' }))).toBe('BAD_REQUEST');
+    expect((await planOf(coach._id))?.manualCapacityNote).toMatchObject({ reason: 'clamp test', by: sup._id });
+  });
+
+  it('28. a direct custom grant creates a real entitlement, history and an audit row', async () => {
+    const out = await caller(sup).coachCommercial.grantCustom({ coachId: coach._id, additionalClients: 7, billingInterval: 'one_time', note: 'event partner', price: 0, currency: 'EGP' });
+    expect(out).toMatchObject({ before: 25, after: 32 });
+    expect(out.entitlement).toMatchObject({ source: 'admin_custom', sourcePackageId: null, endsAt: null });
+    const audit = await (await getDb()).collection('adminAuditLogs').findOne({ action: 'capacity.granted_custom', targetUserId: coach._id });
+    expect(audit?.metadata).toMatchObject({ before: 25, after: 32, note: 'event partner' });
+    expect((await planOf(coach._id))?.history?.some((h) => h.action === 'capacity.granted')).toBe(true);
+  });
+
+  it('29. one active entitlement per package: a second purchase RENEWS (extends) instead of stacking; duplicate open requests are refused', async () => {
+    await requestAndConfirmPackage(coach, p20);
+    const first = (await (await capacityEntitlementsCol()).findOne({ coachId: coach._id }))!;
+    const r = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    expect(await reason(caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 }))).toBe('CAPACITY_REQUEST_PENDING');
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    const ents = await (await capacityEntitlementsCol()).find({ coachId: coach._id, status: 'active' }).toArray();
+    expect(ents).toHaveLength(1);
+    expect(ents[0].endsAt!).toBeGreaterThan(first.endsAt!);
+    expect(ents[0].renewals).toHaveLength(1);
+    expect((await planOf(coach._id))?.maxClients).toBe(45);
+  });
+
+  it('30. concurrent confirmations of one capacity request apply once', async () => {
+    const r = await caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 });
+    const rs = await settle([0, 1, 2].map(() => caller(sup).coachPlanRequests.confirm({ requestId: r.id })));
+    expect(rs.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
+    expect(await (await capacityEntitlementsCol()).countDocuments({ coachId: coach._id })).toBe(1);
+    expect((await planOf(coach._id))?.maxClients).toBe(45);
+  });
+
+  it('31. one free slot (base + add-on) and concurrent joins → exactly one succeeds', async () => {
+    await caller(sup).coachCommercial.grantCustom({ coachId: coach._id, additionalClients: 1, billingInterval: 'one_time', note: 'slot' });
+    await (await coachPlansCol()).updateOne({ _id: coach._id }, { $set: { activeClientCount: 25 } });
+    const a = await insertUser({ _id: 'ja', role: 'client' });
+    const b = await insertUser({ _id: 'jb', role: 'client' });
+    const rs = await settle([
+      caller(coach).coachClients.assign({ clientId: a._id, subscription: { status: 'trial' } }),
+      caller(coach).coachClients.assign({ clientId: b._id, subscription: { status: 'trial' } }),
+    ]);
+    expect(rs.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
+    expect((await planOf(coach._id))?.activeClientCount).toBe(26);
+  });
+
+  it('32. recomputing the effective limit never touches activeClientCount', async () => {
+    await (await coachPlansCol()).updateOne({ _id: coach._id }, { $set: { activeClientCount: 7 } });
+    await requestAndConfirmPackage(coach, p20);
+    await caller(sup).coachCommercial.setManualAdjustment({ coachId: coach._id, value: 3, reason: 'x3x' });
+    await recomputeCapacity(coach._id);
+    expect(await planOf(coach._id)).toMatchObject({ activeClientCount: 7, maxClients: 48 });
+  });
+
+  it('an expired subscription cannot buy capacity (SUBSCRIPTION_EXPIRED)', async () => {
+    await (await coachPlansCol()).updateOne({ _id: coach._id }, { $set: { endsAt: Date.now() - 1 } });
+    expect(await reason(caller(coach).coachPlanRequests.submitCapacity({ packageId: p20 }))).toBe('SUBSCRIPTION_EXPIRED');
+  });
+
+  it('admin "Renew Forma" confirms the open subscription request if any, else records one with the live snapshot', async () => {
+    const out = await caller(sup).coachCommercial.renewSubscription({ coachId: coach._id, note: 'cash' });
+    expect(out.request).toMatchObject({ status: 'confirmed', type: 'renewal' });
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    const out2 = await caller(sup).coachCommercial.renewSubscription({ coachId: coach._id });
+    expect(out2.request.id).toBe(r.id);
+    expect(await (await coachPlanRequestsCol()).countDocuments({ coachId: coach._id, status: 'confirmed' })).toBe(2);
+  });
+});
+
+// ---- §52 security -----------------------------------------------------------
+
+describe('Commercial access control', () => {
+  it('33–34. a coach only ever sees / requests for themself', async () => {
+    const a = await insertUser({ _id: 'ca', role: 'coach' });
+    const b = await insertUser({ _id: 'cb', role: 'coach' });
+    await givePaidPlan(a._id);
+    await givePaidPlan(b._id);
+    const pkg = (await caller(sup).coachCommercial.savePackage(pkgInput())).id;
+    await requestAndConfirmPackage(a, pkg);
+    const ovB = await caller(b).coachCommercial.myOverview();
+    expect(ovB.activeEntitlements).toHaveLength(0);
+    expect(ovB.requests).toHaveLength(0);
+    expect(await code(caller(b).coachCommercial.adminCoachOverview({ coachId: a._id }))).toBe('FORBIDDEN');
+    // An injected coachId is ignored (not part of the input schema) — the request is the caller's own.
+    const r = await caller(b).coachPlanRequests.submitCapacity({ packageId: pkg, coachId: a._id } as never);
+    expect(r.coachId).toBe(b._id);
+    // B cannot cancel A's request.
+    const ra = await caller(a).coachPlanRequests.submitSubscription();
+    expect(await code(caller(b).coachPlanRequests.cancel({ id: ra.id }))).toBe('NOT_FOUND');
+  });
+
+  it('35. a plain Admin cannot use any Super Admin commercial mutation or read', async () => {
+    const coach = await insertUser({ _id: 'c', role: 'coach' });
+    await givePaidPlan(coach._id);
+    const a = caller(admin);
+    expect(await code(a.coachCommercial.savePackage(pkgInput()))).toBe('FORBIDDEN');
+    expect(await code(a.coachCommercial.listPackages())).toBe('FORBIDDEN');
+    expect(await code(a.coachCommercial.setPackageState({ id: 'x', active: false }))).toBe('FORBIDDEN');
+    expect(await code(a.coachCommercial.grantCustom({ coachId: coach._id, additionalClients: 1, billingInterval: 'one_time', note: 'n' }))).toBe('FORBIDDEN');
+    expect(await code(a.coachCommercial.setManualAdjustment({ coachId: coach._id, value: 1, reason: 'abc' }))).toBe('FORBIDDEN');
+    expect(await code(a.coachCommercial.renewSubscription({ coachId: coach._id }))).toBe('FORBIDDEN');
+    expect(await code(a.coachPlanRequests.list())).toBe('FORBIDDEN');
+    expect(await code(a.coachPlanTiers.save(formaInput()))).toBe('FORBIDDEN');
+    expect(await code(a.coachPlans.adminUpdate({ coachId: coach._id, status: 'suspended' }))).toBe('FORBIDDEN');
+  });
+
+  it('36. anonymous users cannot query capacity packages or overviews', async () => {
+    await caller(sup).coachCommercial.savePackage(pkgInput());
+    const anon = caller(null);
+    expect(await code(anon.coachCommercial.listPackages())).toBe('UNAUTHORIZED');
+    expect(await code(anon.coachCommercial.myOverview())).toBe('UNAUTHORIZED');
+    expect(await code(anon.coachPlanRequests.mine())).toBe('UNAUTHORIZED');
+  });
+
+  it('37. package and coach ids are validated server-side: unknown / inactive / hidden / out-of-window / targeted-elsewhere packages are unavailable', async () => {
+    const coach = await insertUser({ _id: 'c', role: 'coach' });
+    await givePaidPlan(coach._id);
+    const s = caller(sup);
+    const inactive = (await s.coachCommercial.savePackage(pkgInput({ active: false }))).id;
+    const hidden = (await s.coachCommercial.savePackage(pkgInput({ coachVisible: false }))).id;
+    const future = (await s.coachCommercial.savePackage(pkgInput({ validFrom: Date.now() + DAY_MS }))).id;
+    const targeted = (await s.coachCommercial.savePackage(pkgInput({ targetCoachIds: ['someone-else'] }))).id;
+    const archived = (await s.coachCommercial.savePackage(pkgInput())).id;
+    await s.coachCommercial.setPackageState({ id: archived, archived: true });
+    for (const id of ['nope', inactive, hidden, future, targeted, archived]) {
+      expect(await reason(caller(coach).coachPlanRequests.submitCapacity({ packageId: id }))).toBe('CAPACITY_PACKAGE_UNAVAILABLE');
+    }
+    expect((await caller(coach).coachCommercial.myOverview()).availablePackages).toHaveLength(0);
+    expect(await code(s.coachCommercial.grantCustom({ coachId: 'ghost', additionalClients: 1, billingInterval: 'one_time', note: 'n' }))).toBe('NOT_FOUND');
+    expect(await code(s.coachCommercial.grantPackage({ coachId: coach._id, packageId: 'nope' }))).toBe('BAD_REQUEST');
+    // Hidden (admin-only) packages can still be granted directly by the Super Admin.
+    expect((await s.coachCommercial.grantPackage({ coachId: coach._id, packageId: hidden })).after).toBe(45);
+  });
+
+  it('coachPlans.me / createTrial stay reachable for non-active coaches; adminUpdate can suspend and re-open a lapsed term', async () => {
+    const suspended = await insertUser({ _id: 'cs', role: 'coach', accountStatus: 'suspended' });
+    expect((await caller(suspended).coachPlans.createTrial()).plan).toBe('trial');
+    const coach = await insertUser({ _id: 'c', role: 'coach' });
+    await givePaidPlan(coach._id, 25, { status: 'expired', endsAt: Date.now() - 1 });
+    const reopened = await caller(sup).coachPlans.adminUpdate({ coachId: coach._id, endsAt: Date.now() + 5 * DAY_MS });
+    expect(reopened.status).toBe('active');
+    const s = await caller(sup).coachPlans.adminUpdate({ coachId: coach._id, status: 'suspended', reason: 'abuse' });
+    expect(s.state).toBe('suspended');
+    const c = await insertUser({ _id: 'cl', role: 'client' });
+    expect(await reason(caller(coach).coachClients.assign({ clientId: c._id, subscription: { status: 'trial' } }))).toBe('SUBSCRIPTION_SUSPENDED');
+  });
+});
+
+describe('error formatter', () => {
+  it('surfaces the machine reason as error.data.reason over HTTP', async () => {
+    const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
+    const coach = await insertUser({ _id: 'full', role: 'coach' });
+    await givePaidPlan(coach._id, 1, { activeClientCount: 1 });
+    await (await getDb()).collection<SignupInviteDoc>('signupInvites').insertOne({ _id: 'FULL2222', coachId: coach._id, status: 'pending', claimedByUid: null, createdAt: Date.now(), claimedAt: null, expiresAt: null, subStatus: 'trial' });
+    const res = await fetchRequestHandler({
+      endpoint: '/api/trpc',
+      router: appRouter,
+      req: new Request('http://x/api/trpc/invites.claim', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'FULL2222', email: 'q@example.com', phone: '1', password: 'password123' }) }),
+      createContext: () => ctxFor(null),
     });
-  });
-
-  it('editing a tier\'s maxClients propagates to every coach currently on it, but never to a coach with an explicit per-coach override', async () => {
-    await createCustomTier('pro', 25);
-    const asSuperAdmin = appRouter.createCaller(ctxFor(superAdmin));
-
-    // Two coaches on 'pro': one tier-derived, one with a manual admin override.
-    const asCoachA = appRouter.createCaller(ctxFor(authedUser({ _id: 'coach-pro-a', role: 'coach' })));
-    const asCoachB = appRouter.createCaller(ctxFor(authedUser({ _id: 'coach-pro-b', role: 'coach' })));
-    await asCoachA.coachPlans.createTrial();
-    await asCoachB.coachPlans.createTrial();
-    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-a', tier: 'pro' });
-    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-b', tier: 'pro' });
-    // Give coach B an explicit override.
-    await asSuperAdmin.coachPlans.adminUpdate({ coachId: 'coach-pro-b', maxClients: 999 });
-
-    // Now the admin lowers the platform-wide 'pro' cap from 25 to 20.
-    await asSuperAdmin.coachPlanTiers.save({ key: 'pro', label: 'pro', maxClients: 20, priceMonthly: 499 });
-
-    const planA = await asCoachA.coachPlans.me();
-    const planB = await asCoachB.coachPlans.me();
-    expect(planA.maxClients).toBe(20); // swept along with the tier-wide change
-    expect(planB.maxClients).toBe(999); // the manual override survives untouched
+    const body = (await res.json()) as { error: { data: { reason?: string; code: string } } };
+    expect(body.error.data).toMatchObject({ code: 'CONFLICT', reason: 'CLIENT_CAPACITY_REACHED' });
   });
 });

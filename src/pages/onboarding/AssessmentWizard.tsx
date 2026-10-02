@@ -258,7 +258,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       >
         {/* Top nav — logo + language switcher (no auth chrome on the wizard) */}
         <nav className="mb-3 flex shrink-0 items-center justify-between px-1">
-          <img src="/Forma-logo.png" alt={t('app.name')} className="h-7 w-auto rounded-[6px] object-contain" />
+          <img src="/forma-logo.webp" alt={t('app.name')} className="h-7 w-auto rounded-[6px] object-contain" />
           <LanguageToggle />
         </nav>
 

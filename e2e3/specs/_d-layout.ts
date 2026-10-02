@@ -23,9 +23,10 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
       { path: '/coach/clients', name: 'coach-clients' },
       { path: '/coach/client/e2e-client-a', name: 'coach-client-workspace' },
       { path: '/coach/messages/e2e-client-a', name: 'coach-thread' },
+      { path: '/coach/plan', name: 'coach-my-plan' },
     ],
   },
-  super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }] },
+  super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }, { path: '/admin/plans', name: 'admin-forma-plan' }, { path: '/admin/plans?tab=packages', name: 'admin-capacity-packages' }, { path: '/admin/plans?tab=requests', name: 'admin-payment-requests' }, { path: '/admin/coaches/e2e-coach-pro', name: 'admin-coach-capacity' }] },
 };
 const NAV_KEYS = {
   client: ['today', 'fuel', 'train', 'progress', 'inbox'],
