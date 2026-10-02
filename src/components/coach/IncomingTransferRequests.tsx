@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { fetchUser } from '@/services/platform/accountsApi';
-import { releaseClient } from '@/services/platform/coachClientsApi';
 import { listIncomingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
@@ -59,10 +58,11 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
   };
 
   const approve = useMutation({
-    mutationFn: async (r: ClientTransferRequest) => {
-      await resolveTransferRequest(r.toCoachId, r.clientId, coachId, 'accepted');
-      await releaseClient(coachId, r.clientId, coachId); // free the client so the requester can assign
-    },
+    // `transfers.resolve('accept')` performs the whole move server-side (ends
+    // this coach's relationship, opens the requester's). A follow-up
+    // `releaseClient` used to run here and always threw CONFLICT ("not
+    // active") AFTER a successful transfer — every approval looked failed.
+    mutationFn: (r: ClientTransferRequest) => resolveTransferRequest(r.toCoachId, r.clientId, coachId, 'accepted'),
     onSuccess: () => { refresh(); showToast({ title: t('transferReq.approveDone'), variant: 'success' }); },
     onError: (e) => void alertDialog({ title: t('transferReq.approve'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });

@@ -11,6 +11,7 @@ import { Sheet } from '@/components/Sheet';
 import { SearchField, TextAreaField } from '@/components/ui/Field';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { MessageThread } from '@/components/MessageThread';
 import { SplitPane } from '@/components/ui/SplitPane';
 import { useFullBleed } from '@/hooks/useFullBleed';
@@ -101,7 +102,9 @@ export function CoachMessages() {
         }
       />
 
-      {clients.isLoading ? (
+      {clients.isError && !clients.data ? (
+        <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void clients.refetch()} testId="coach-messages-error" />
+      ) : clients.isLoading ? (
         <LoadingState variant="list" count={4} />
       ) : isDesktop ? (
         /* Desktop split: inbox list + selected conversation */

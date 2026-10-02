@@ -81,15 +81,27 @@ export function AddExistingClient({
     enabled: term.trim().length > 0,
     queryFn: async (): Promise<ResultRow[]> => {
       const users = await searchClients(term.trim());
+      // Who coaches each result comes from the search row itself
+      // (`assignedCoachId`, maintained by assign/end/transfer). Reading the
+      // relationship (`coachClients.list({clientId})`) is FORBIDDEN for a coach
+      // with no relationship to that client — the old code swallowed that
+      // error as "unassigned", which offered "Assign to me" for every other
+      // coach's client (server CONFLICT) and made the request-transfer panel
+      // unreachable. Only OUR OWN relationship is fetched (allowed).
       const assignments = await Promise.all(
-        users.map((u) =>
-          getClientAssignment(u.id).catch((e) => {
-            console.warn('[AddExistingClient] getClientAssignment failed, treating as unassigned:', e);
+        users.map(async (u) => {
+          const owner = u.assignedCoachId ?? null;
+          if (!owner) return null;
+          if (owner !== coachId) return { coachId: owner, rel: null };
+          const mine = await getClientAssignment(u.id).catch((e) => {
+            console.warn('[AddExistingClient] own relationship read failed:', e);
             return null;
-          }),
-        ),
+          });
+          return { coachId: owner, rel: mine?.rel ?? null };
+        }),
       );
-      // Resolve coach display names once (dedupe).
+      // Resolve coach display names once (dedupe). `adminUsers.get` is redacted
+      // for unrelated users but still returns the display name.
       const coachIds = Array.from(new Set(assignments.map((a) => a?.coachId).filter(Boolean) as string[]));
       const coachMap = new Map<string, string>();
       await Promise.all(

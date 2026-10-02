@@ -47,6 +47,30 @@ async function main() {
   // Messaging / notifications — polled on an interval by every active session.
   await db.collection('notifications').createIndex({ clientId: 1, forRole: 1, createdAt: -1 }, { name: 'clientId_forRole_createdAt' });
   await db.collection('messages').createIndex({ clientId: 1, createdAt: 1 }, { name: 'clientId_createdAt' });
+  // `messages.send` retry idempotency — a client-generated key must never
+  // yield two rows even under concurrent retries (also self-ensured at
+  // runtime in api/messages/_data.ts). Partial: legacy rows have no key.
+  await db.collection('messages').createIndex(
+    { clientId: 1, fromUserId: 1, clientMsgId: 1 },
+    { unique: true, partialFilterExpression: { clientMsgId: { $exists: true } }, name: 'uniq_clientMsgId' },
+  );
+
+  // Coach plans — the daily cron sweeps expired trials by these two fields;
+  // one actionable plan request per coach (also self-ensured in
+  // api/coach-plans/_data.ts).
+  await db.collection('coachPlans').createIndex({ plan: 1, endsAt: 1 }, { name: 'plan_endsAt' });
+  await db.collection('coachPlanRequests').createIndex(
+    { coachId: 1 },
+    { unique: true, partialFilterExpression: { status: { $in: ['awaiting', 'processing'] } }, name: 'uniq_coachId_actionable' },
+  );
+  await db.collection('coachPlanRequests').createIndex({ status: 1, confirmationDeadline: 1 }, { name: 'status_confirmationDeadline' });
+
+  // Chunked media uploads (api/media/[action].ts) — staging rows for files
+  // over one request's worth; TTL-reaped after an hour so an abandoned
+  // upload never accumulates (also self-ensured in api/media/_lib/staging.ts).
+  await db.collection('mediaUploads').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'ttl_expiresAt' });
+  await db.collection('mediaUploadChunks').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'ttl_expiresAt' });
+  await db.collection('mediaUploadChunks').createIndex({ uploadId: 1, index: 1 }, { name: 'uploadId_index' });
 
   // Coach <-> client relationships.
   await db.collection('coachClients').createIndex({ coachId: 1, status: 1 }, { name: 'coachId_status' });

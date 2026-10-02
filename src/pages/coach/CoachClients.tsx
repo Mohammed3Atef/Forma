@@ -10,6 +10,7 @@ import { TextInput } from '@/components/ui/Field';
 import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { DetailPanel } from '@/components/ui/DetailPanel';
 import { SplitPane } from '@/components/ui/SplitPane';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -243,7 +244,11 @@ export function CoachClients() {
       {searchBar}
       {filterBar}
 
-      {isDesktop ? (
+      {/* A failed roster read is NOT an empty roster — never tell a coach with clients they have none. */}
+      {(clients.isError && !clients.data) || (isDesktop && dash.isError && !dash.data) ? (
+        // Desktop rows come from the dashboard query, mobile from the roster — retry both.
+        <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => { void clients.refetch(); void dash.refetch(); }} testId="coach-clients-error" />
+      ) : isDesktop ? (
         <SplitPane
           main={
             <DataTable
@@ -366,6 +371,8 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   // Invites generated in THIS session; on close, revoke any that weren't copied
   // (abandoned links) so stale links don't pile up. Copying a link = keep it.
+  // An invite created WITH an email is kept too: the server has already
+  // emailed that link, so revoking it here would dead-link the email.
   const generated = useRef<Set<string>>(new Set());
   const kept = useRef<Set<string>>(new Set());
   useEffect(() => () => {
@@ -386,8 +393,9 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   });
 
   const gen = useMutation({
-    mutationFn: () =>
-      createInvite(coachId, {
+    mutationFn: async () => {
+      const emailed = !!prefill.email.trim();
+      const inv = await createInvite(coachId, {
         coachName,
         displayName: prefill.name.trim() || undefined,
         email: prefill.email.trim() || undefined,
@@ -398,9 +406,12 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
         ...(sub.trialDays != null ? { subTrialDays: sub.trialDays } : {}),
         ...(sub.price != null ? { subPrice: sub.price, subCurrency: currency } : {}),
         ...(sub.planName ? { subPlanName: sub.planName } : {}),
-      }),
-    onSuccess: (inv) => {
+      });
+      return { inv, emailed };
+    },
+    onSuccess: ({ inv, emailed }) => {
       generated.current.add(inv.code);
+      if (emailed) kept.current.add(inv.code);
       setPrefill({ name: '', email: '', phone: '' });
       void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
     },

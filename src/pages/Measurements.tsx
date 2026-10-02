@@ -55,7 +55,7 @@ export function Measurements() {
       <MeasurementForm
         date={selected}
         existing={existing}
-        onSave={(d, v) => save(d, v)}
+        onSave={(d, v, clear) => save(d, v, clear)}
         extras={(k) => <EntityNotes screen="measurements" date={selected} entityType="measurement" entityId={k} />}
       />
 

@@ -78,12 +78,22 @@ export const coachPlanRequestsRouter = router({
   submit: roleProcedure('coach')
     .input(z.object({ tierKey: z.string().trim().min(1).max(60), reason: z.string().trim().max(2000).optional() }))
     .mutation(async ({ ctx, input }) => {
+      // Only a live, paid, signup-able tier can be requested — never the Trial
+      // (it's the automatic starting point, not a purchase) and never an
+      // archived/inactive tier that a stale picker might still offer.
+      if (input.tierKey === 'trial') throw new TRPCError({ code: 'BAD_REQUEST', message: 'The Trial cannot be requested.' });
+      const tierCfg = await getTier(input.tierKey);
+      if (!tierCfg || tierCfg.archived || tierCfg.active === false) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Unknown plan.' });
       const snapshot = await buildPlanSnapshot(input.tierKey);
       if (!snapshot) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Unknown plan.' });
 
       const plans = await coachPlansCol();
       const currentPlan = await plans.findOne({ _id: ctx.user.id });
-      const type: PlanRequestType = !currentPlan || currentPlan.plan === 'trial' ? 'trial_upgrade' : 'plan_change';
+      // (see type below) Requesting the tier you're already on (active or lapsed) is a RENEWAL —
+      // the manual-payment cycle for a paid coach. Excluding the current tier
+      // used to make renewal impossible from the UI.
+      const type: PlanRequestType =
+        currentPlan && currentPlan.plan === input.tierKey ? 'renewal' : !currentPlan || currentPlan.plan === 'trial' ? 'trial_upgrade' : 'plan_change';
 
       const col = await coachPlanRequestsCol();
       const now = Date.now();

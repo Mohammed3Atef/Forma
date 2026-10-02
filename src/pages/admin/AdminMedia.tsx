@@ -7,17 +7,18 @@ import { Icon } from '@/components/Icon';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useRole } from '@/services/auth/permissions';
-import { isBunnyConfigured, listAllImages, type CdnImage } from '@/services/platform/bunnyUploadApi';
+import { listAllImages, useUploadConfigured, type CdnImage } from '@/services/platform/mediaApi';
 import { fetchByRole } from '@/services/platform/accountsApi';
 
 /**
  * Super-admin media gallery — every image uploaded to the Bunny `Forma/` folder
  * (client progress + assessment photos), grouped by client. Read-only oversight.
+ * The zone walk happens server-side (`media.listImages`, super_admin only).
  */
 export function AdminMedia() {
   const { t } = useTranslation();
   const role = useRole();
-  const configured = isBunnyConfigured();
+  const configured = useUploadConfigured();
 
   const images = useQuery({
     queryKey: ['cdnImages'],

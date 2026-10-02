@@ -38,9 +38,10 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'flags.manage',
     'audit.read',
   ],
-  // Coaches can look people up; access to their own clients' data is granted by
-  // the coach⇄client relationship (rules), not a blanket permission.
-  coach: ['users.read'],
+  // Coaches hold no platform-wide permission; access to their own clients'
+  // data is granted by the coach⇄client relationship server-side, not a
+  // blanket permission (mirrors api/_lib/rbac.ts — keep the two in sync).
+  coach: [],
   client: [],
 };
 

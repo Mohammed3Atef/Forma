@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+/**
+ * Optional field that also tolerates a stored `null` (legacy library-sync
+ * copies wrote missing fields as null) by treating it as absent — so those
+ * templates/plans can be saved again without widening the output type.
+ */
+const nullAsAbsent = <T extends z.ZodTypeAny>(schema: T) => z.preprocess((v) => (v === null ? undefined : v), schema.optional());
+
 /** zod mirrors of the shapes in `./types.ts` — request-body validation only (`_id`/`coachId`/timestamps are server-set). */
 
 export const LocalizedTextSchema = z.object({ en: z.string(), ar: z.string() });
@@ -36,18 +43,18 @@ const ExerciseFieldsSchema = z.object({
   restSec: z.number(),
   videoId: z.string().nullable(),
   videoUrl: z.string().nullable().optional(),
-  category: z.string().max(100).optional(),
-  equipment: z.string().max(100).optional(),
+  category: nullAsAbsent(z.string().max(100)),
+  equipment: nullAsAbsent(z.string().max(100)),
   tags: z.array(z.string()).optional(),
   progressionNotes: z.string().optional(),
   imageUrl: z.string().nullable().optional(),
-  images: z.array(z.string()).optional(),
+  images: nullAsAbsent(z.array(z.string())),
   sourceId: z.string().optional(),
   sourceProvider: z.literal('wger').optional(),
-  sourceCategory: z.string().optional(),
-  muscles: z.array(z.string()).optional(),
-  secondaryMuscles: z.array(z.string()).optional(),
-  equipmentList: z.array(z.string()).optional(),
+  sourceCategory: nullAsAbsent(z.string()),
+  muscles: nullAsAbsent(z.array(z.string())),
+  secondaryMuscles: nullAsAbsent(z.array(z.string())),
+  equipmentList: nullAsAbsent(z.array(z.string())),
   libraryExerciseId: z.string().optional(),
   librarySyncEnabled: z.boolean().optional(),
 });

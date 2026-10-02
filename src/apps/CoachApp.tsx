@@ -14,6 +14,7 @@ import { queryClient } from '@/services/platform/queryClient';
 import { CoachClients } from '@/pages/coach/CoachClients';
 import { RoleAccount } from '@/pages/RoleAccount';
 import { Notifications } from '@/pages/Notifications';
+import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 
 // Heavy coach route pages are lazy so the coach bundle stays small — the
 // PlanBuilder editors in particular only load when an editor is opened.
@@ -44,10 +45,14 @@ const CoachClientHistory = lazy(() => import('@/pages/coach/CoachClientHistory')
 const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) => ({ default: m.CoachRevenue })));
 const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOverview').then((m) => ({ default: m.CoachCheckInsOverview })));
 
-/** `/coach` landing: dashboard on tablet/desktop, clients list on mobile. */
+/**
+ * `/coach` landing: dashboard on tablet/desktop, clients list on mobile. Always
+ * a redirect (never rendered inline at `/coach`) so the bottom-nav tab for the
+ * screen actually showing is highlighted and back-fallbacks land on a real tab.
+ */
 function CoachIndex() {
   const tabletUp = useIsTabletUp();
-  return tabletUp ? <Navigate to="/coach/dashboard" replace /> : <CoachClients />;
+  return <Navigate to={tabletUp ? '/coach/dashboard' : '/coach/clients'} replace />;
 }
 
 /**
@@ -112,6 +117,9 @@ export function CoachApp() {
         <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
         <Route path="/coach/notifications" element={shell(<Notifications />)} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
+        {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
+        <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />
+        <Route path="/reset/:token" element={<SignedInInterstitial kind="reset" />} />
         <Route path="*" element={<Navigate to="/coach" replace />} />
       </Routes>
       </Suspense>

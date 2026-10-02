@@ -4,11 +4,12 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
 import { CommandHost } from '@/components/CommandHost';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { ADMIN_NAV, ADMIN_SIDEBAR, SUPER_ADMIN_SIDEBAR } from '@/config/nav';
+import { ADMIN_NAV, ADMIN_SIDEBAR, SUPER_ADMIN_NAV, SUPER_ADMIN_SIDEBAR } from '@/config/nav';
 import { useRole } from '@/services/auth/permissions';
 import { queryClient } from '@/services/platform/queryClient';
 import { RoleAccount } from '@/pages/RoleAccount';
 import { Notifications } from '@/pages/Notifications';
+import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 
 // Heavy admin route pages are lazy so the admin bundle stays small.
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
@@ -27,15 +28,17 @@ const AdminSubscriptions = lazy(() => import('@/pages/admin/AdminSubscriptions')
 const AdminAudit = lazy(() => import('@/pages/admin/AdminAudit').then((m) => ({ default: m.AdminAudit })));
 
 /**
- * Admin / super-admin shell. Both roles share the `/admin/*` prefix and nav;
- * super-admin-only screens (governance, media) are gated by role/permission
- * inside each screen. Online platform reads run through React Query.
+ * Admin / super-admin shell. Both roles share the `/admin/*` prefix; the nav
+ * (bottom bar AND sidebar) is role-specific so a plain admin is never offered
+ * a destination whose procedures are super_admin-only (coaches, plans,
+ * subscriptions, media — each of those screens also redirects to `/admin`
+ * for a non-super visitor). Governance is admin-reachable (`flags.manage`).
+ * Online platform reads run through React Query.
  */
 export function AdminApp() {
   const isSuper = useRole() === 'super_admin';
-  const sidebar = isSuper ? SUPER_ADMIN_SIDEBAR : ADMIN_SIDEBAR;
   const shell = (node: ReactNode) => (
-    <ResponsiveShell navItems={ADMIN_NAV} sidebarItems={sidebar}>
+    <ResponsiveShell navItems={isSuper ? SUPER_ADMIN_NAV : ADMIN_NAV} sidebarItems={isSuper ? SUPER_ADMIN_SIDEBAR : ADMIN_SIDEBAR}>
       {node}
     </ResponsiveShell>
   );
@@ -59,6 +62,9 @@ export function AdminApp() {
         <Route path="/admin/media" element={shell(<AdminMedia />)} />
         <Route path="/admin/notifications" element={shell(<Notifications />)} />
         <Route path="/admin/settings" element={shell(<RoleAccount />)} />
+        {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
+        <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />
+        <Route path="/reset/:token" element={<SignedInInterstitial kind="reset" />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
       </Suspense>

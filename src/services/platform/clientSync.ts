@@ -1,3 +1,4 @@
+import { useCoachContentSync } from '@/stores/coachContentStore';
 import localforage from 'localforage';
 import { getDataSource } from '@/data/dataSource';
 import { SEED_PROFILE, SEED_SETTINGS } from '@/data/seed/defaults';
@@ -69,8 +70,10 @@ export async function loadCoachAssignedContent(uid: string): Promise<void> {
       fetchMyProfile(uid),
     ]);
   } catch {
+    useCoachContentSync.getState().setStatus('failed');
     return; // keep whatever is already mirrored locally
   }
+  useCoachContentSync.getState().setStatus('ok');
 
   // Apply the client's own profile deterministically (last-write-wins) so the
   // profile-completion gate reflects real values right after scopeLocalToUser

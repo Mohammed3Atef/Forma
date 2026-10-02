@@ -109,16 +109,19 @@ describe('coachAssets router — exercises (stripMeta resource: no coachId/creat
     expect(list[0].name).toBe('Renamed');
   });
 
-  it("a coach cannot write to another coach's library, but can read it if they hold users.read", async () => {
+  it("a coach can neither read nor write another coach's library — libraries are per-tenant", async () => {
     const asCoachA = appRouter.createCaller(ctxFor(coachA));
     await asCoachA.coachAssets.exercises.save(exerciseInput);
 
     const asCoachB = appRouter.createCaller(ctxFor(coachB));
-    // coachB has 'users.read' too (coach ROLE_PERMISSIONS includes it) — can read coachA's list...
-    expect(await asCoachB.coachAssets.exercises.list({ coachId: coachA.id })).toHaveLength(1);
-    // ...but cannot update/delete it (writes are always scoped to the caller's own id server-side).
+    // Coaches hold no platform-wide permission (rbac.ts), so coachB cannot even LIST coachA's library...
+    await expect(asCoachB.coachAssets.exercises.list({ coachId: coachA.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asCoachB.coachAssets.exercises.get({ id: 'ex-1', coachId: coachA.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    // ...and writes are always scoped to the caller's own id server-side, so these are NOT_FOUND, never a cross-tenant edit.
     await expect(asCoachB.coachAssets.exercises.update({ id: 'ex-1', name: 'Hijacked' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(asCoachB.coachAssets.exercises.delete({ id: 'ex-1' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    // coachA's own row is untouched.
+    expect(await asCoachA.coachAssets.exercises.list({})).toHaveLength(1);
   });
 
   it('a client (no users.read) cannot list another user\'s library at all', async () => {
@@ -259,6 +262,31 @@ describe('coachAssets router — library → template sync', () => {
     const tplB = await asCoachB.coachAssets.workoutTemplates.get({ id: 'tpl-b-1' });
     const exB = (tplB as { exercises: Record<string, { videoUrl: string }> }).exercises['tpl-ex-1'];
     expect(exB.videoUrl).toBe('https://example.com/original.mp4');
+
+    // Phase-3 E-B-2: fields the library exercise doesn't have must be ABSENT on
+    // the synced copy (not null), and the template must still save afterwards.
+    const synced = (tplA as unknown as { exercises: Record<string, Record<string, unknown>> }).exercises['tpl-ex-1'];
+    for (const f of ['category', 'equipment', 'images', 'muscles', 'secondaryMuscles', 'equipmentList', 'sourceCategory']) {
+      expect(synced[f], `${f} must not be stored as null`).not.toBeNull();
+    }
+    const { id: _id, ...tplRest } = tplA as Record<string, unknown> & { id: string };
+    void _id;
+    await expect(asCoachA.coachAssets.workoutTemplates.save({ ...(tplRest as typeof templateBody), id: 'tpl-1', name: 'Leg Day v2' })).resolves.toBeTruthy();
+  });
+
+  it('a template carrying legacy nulls from an older sync can still be saved', async () => {
+    const asCoachA = appRouter.createCaller(ctxFor(coachA));
+    const legacyEx = { ...exerciseInput, id: 'tpl-ex-legacy', category: null, equipment: null, images: null, muscles: null, secondaryMuscles: null, equipmentList: null, sourceCategory: null };
+    await expect(
+      asCoachA.coachAssets.workoutTemplates.save({
+        id: 'tpl-legacy',
+        name: 'Legacy',
+        goal: 'hypertrophy',
+        splitType: 'full_body',
+        days: [],
+        exercises: { 'tpl-ex-legacy': legacyEx as unknown as typeof exerciseInput },
+      }),
+    ).resolves.toBeTruthy();
   });
 
   it('a detached (librarySyncEnabled: false) template exercise does not receive the propagated update', async () => {

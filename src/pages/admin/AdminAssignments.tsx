@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +11,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
-import { useCan } from '@/services/auth/permissions';
-import { fetchByRole } from '@/services/platform/accountsApi';
+import { useCan, useRole } from '@/services/auth/permissions';
+import { fetchByRole, fetchUser, fetchUsersPage } from '@/services/platform/accountsApi';
 import { assignClientToCoach, unassignClient } from '@/services/platform/coachClientsApi';
 import { listPendingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
 import { fetchCoachAdmin } from '@/services/platform/adminCoachesApi';
@@ -31,10 +31,13 @@ export function AdminAssignments() {
   const actorId = useSession((s) => s.account?.id ?? 'self');
   const canAssign = useCan('coaches.assign');
   const canFreshStart = useCan('clients.writeAll');
+  // The "coach capacity" panel reads `adminCoaches.list`, a super_admin-only
+  // procedure — don't fire it (and silently fail) for a plain admin.
+  const isSuper = useRole() === 'super_admin';
 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<UserRecord | null>(null);
-  const [wizard, setWizard] = useState<{ client: UserRecord; presetCoachId?: string } | null>(null);
+  const [wizard, setWizard] = useState<{ client: UserRecord; presetCoachId?: string; request?: ClientTransferRequest } | null>(null);
   const [wizardFooter, setWizardFooter] = useState<ReactNode>(null);
 
   const clients = useQuery({ queryKey: ['usersByRole', 'client'], queryFn: () => fetchByRole('client') });
@@ -46,12 +49,26 @@ export function AdminAssignments() {
     return m;
   }, [coaches.data]);
 
+  // `byRole` returns at most 200 accounts, so a client-side filter over it
+  // could never find client #201+. A typed query searches the WHOLE
+  // collection server-side (`adminUsers.list` search), debounced.
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
+  const serverSearch = useQuery({
+    queryKey: ['usersSearch', 'client', debounced],
+    queryFn: () => fetchUsersPage(100, null, { role: 'client', search: debounced }),
+    enabled: debounced.length > 0,
+  });
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = clients.data ?? [];
     if (!q) return list;
+    if (serverSearch.data && debounced === search.trim()) return serverSearch.data.users;
     return list.filter((c) => (c.displayName || c.email).toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
-  }, [clients.data, search]);
+  }, [clients.data, search, debounced, serverSearch.data]);
   const pg = usePagination(filtered, 25, search);
 
   const refresh = () => {
@@ -67,6 +84,11 @@ export function AdminAssignments() {
     // than what actually changed, without even covering the data this page
     // itself depends on.
     void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
+    // Coach detail roster, members' coach column, the client's own record
+    // (assignedCoachId) and their coaching timeline all change too.
+    for (const key of [['adminCoachClients'], ['adminMembers'], ['user'], ['coachHistory'], ['usersById']]) {
+      void qc.invalidateQueries({ queryKey: key });
+    }
   };
 
   // Pending takeover requests across all coaches (admin oversight). This used
@@ -79,7 +101,21 @@ export function AdminAssignments() {
     queryFn: () => listPendingTransferRequests(),
     enabled: canAssign,
   });
-  const clientById = useMemo(() => new Map((clients.data ?? []).map((c) => [c.id, c])), [clients.data]);
+  // A pending request's client may be outside the 200-row `byRole` slice —
+  // fetch those by id so "Review" is never disabled for a real client.
+  const missingIds = useMemo(() => {
+    const known = new Set((clients.data ?? []).map((c) => c.id));
+    return [...new Set((pendingReqsQuery.data ?? []).map((r) => r.clientId).filter((id) => !known.has(id)))];
+  }, [clients.data, pendingReqsQuery.data]);
+  const missingClients = useQuery({
+    queryKey: ['usersById', missingIds],
+    queryFn: async () => (await Promise.all(missingIds.map((id) => fetchUser(id).catch(() => null)))).filter((u): u is UserRecord => !!u),
+    enabled: missingIds.length > 0,
+  });
+  const clientById = useMemo(
+    () => new Map([...(clients.data ?? []), ...(missingClients.data ?? [])].map((c) => [c.id, c])),
+    [clients.data, missingClients.data],
+  );
   const pendingReqs = useMemo(
     () =>
       (pendingReqsQuery.data ?? []).map((req) => {
@@ -125,7 +161,7 @@ export function AdminAssignments() {
   };
 
   // Real per-coach capacity — matches the design's `assign()` second section.
-  const coachAdmin = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), enabled: canAssign, staleTime: 120_000 });
+  const coachAdmin = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), enabled: canAssign && isSuper, staleTime: 120_000 });
   const capacityRows = useMemo(() => {
     const rows = coachAdmin.data?.rows ?? [];
     return rows
@@ -198,7 +234,7 @@ export function AdminAssignments() {
                       data-testid="admin-transfer-review"
                       className="btn-primary h-9 flex-1 text-[13px] disabled:opacity-40"
                       disabled={!client}
-                      onClick={() => client && setWizard({ client, presetCoachId: req.toCoachId })}
+                      onClick={() => client && setWizard({ client, presetCoachId: req.toCoachId, request: req })}
                     >
                       {t('transfer.action')}
                     </button>
@@ -324,6 +360,7 @@ export function AdminAssignments() {
             canFreshStart={canFreshStart}
             actorId={actorId}
             presetCoachId={wizard.presetCoachId}
+            fromRequest={wizard.request ? { toCoachId: wizard.request.toCoachId, mode: wizard.request.mode, subscriptionHandling: wizard.request.subscriptionHandling } : undefined}
             onCancel={() => setWizard(null)}
             onDone={() => { setWizard(null); refresh(); }}
             onFooterChange={setWizardFooter}

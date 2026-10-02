@@ -7,7 +7,7 @@ import { usersCol } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
 import { issueSession } from '../../_lib/tokens.js';
 import { toPublicUser, type UserDoc } from '../../_lib/types.js';
-import { bumpActiveClientCount, coachAtClientCap, coachClientsCol, relId } from '../../coach-clients/_data.js';
+import { CAP_MESSAGES, coachCapStatus, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from '../../coach-clients/_data.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import { DEFAULT_TTL_MS, buildClaimSubscription, generateInviteCode, invitesCol, isClaimable, normalizeCode } from '../../coach-clients/_handlers/invites-data.js';
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
@@ -194,9 +194,11 @@ export const invitesRouter = router({
       if (await users.findOne({ emailLower: email })) {
         throw new TRPCError({ code: 'CONFLICT', message: 'An account with this email already exists.' });
       }
-      if (await coachAtClientCap(inv.coachId)) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'This coach has reached their client limit' });
-      }
+      // Advisory early check so a full coach fails fast with the right message
+      // BEFORE the invite is flipped; the binding gate is the atomic slot
+      // reservation below.
+      const precheck = await coachCapStatus(inv.coachId);
+      if (precheck !== 'ok') throw new TRPCError({ code: 'CONFLICT', message: CAP_MESSAGES[precheck] });
 
       const now = Date.now();
       const clientId = crypto.randomUUID();
@@ -206,6 +208,21 @@ export const invitesRouter = router({
         { $set: { status: 'claimed', claimedByUid: clientId, claimedAt: now } },
       );
       if (!claimResult) throw new TRPCError({ code: 'CONFLICT', message: 'This invite was just claimed by someone else' });
+
+      const unclaim = () =>
+        invites
+          .updateOne({ _id: code }, { $set: { status: 'pending' }, $unset: { claimedByUid: '', claimedAt: '' } })
+          .catch((e) => console.warn('[invites.claim] unclaim rollback failed (non-fatal):', e));
+
+      // Atomic cap gate: of N simultaneous claims for a coach's last slot
+      // exactly one gets past this line (see `reserveClientSlot`). Reserved
+      // BEFORE any account exists so a loser leaves nothing behind but a
+      // still-usable invite.
+      const cap = await reserveClientSlot(inv.coachId);
+      if (cap !== 'ok') {
+        await unclaim();
+        throw new TRPCError({ code: 'CONFLICT', message: CAP_MESSAGES[cap] });
+      }
 
       // Priority: what the client typed on the claim form > what the coach
       // already set when creating the invite > a humanized last resort — a
@@ -247,13 +264,11 @@ export const invitesRouter = router({
         await coachClients.insertOne(relDoc);
       } catch (joinErr) {
         await users.deleteOne({ _id: clientId }).catch(() => undefined);
-        await invites
-          .updateOne({ _id: code }, { $set: { status: 'pending' }, $unset: { claimedByUid: '', claimedAt: '' } })
-          .catch((e) => console.warn('[invites.claim] unclaim rollback failed (non-fatal):', e));
+        await releaseClientSlot(inv.coachId).catch((e) => console.warn('[invites.claim] slot release rollback failed (non-fatal):', e));
+        await unclaim();
         throw joinErr;
       }
 
-      await bumpActiveClientCount(inv.coachId, 1);
       const session = await issueSession(ctx.res, { id: clientId, role: 'client', accountStatus: 'active' });
       // Best-effort — a delivery failure must never fail the join itself.
       const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';

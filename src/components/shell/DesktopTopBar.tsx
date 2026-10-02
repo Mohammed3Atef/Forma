@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useSession } from '@/services/auth/sessionStore';
 import { Avatar } from '@/components/Avatar';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -13,7 +13,7 @@ import { useCommandStore } from '@/stores/commandStore';
  * these — they live only here.
  */
 export function DesktopTopBar() {
-  const navigate = useNavigate();
+  const navigate = useGuardedNav(); // honours a dirty editor's unsaved-changes guard
   const account = useSession((s) => s.account);
   const role = account?.role;
   const openSearch = useCommandStore((s) => s.show);

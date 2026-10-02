@@ -105,13 +105,19 @@ async function enforceTrialExpiry() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Fail CLOSED: this endpoint mutates plan requests and account status, so a
+  // deployment that forgot to set CRON_SECRET must refuse every caller rather
+  // than silently becoming a public, unauthenticated mutation endpoint.
+  // Vercel sends `Authorization: Bearer <CRON_SECRET>` on scheduled runs.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const header = req.headers.authorization;
-    if (header !== `Bearer ${secret}`) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
+  if (!secret) {
+    console.error('[cron/daily-maintenance] CRON_SECRET is not set — refusing to run');
+    res.status(503).json({ error: 'Cron is not configured' });
+    return;
+  }
+  if (req.headers.authorization !== `Bearer ${secret}`) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   const expirePlanRequests = await expireStalePlanRequests();

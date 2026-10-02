@@ -79,7 +79,10 @@ export function AdminMembers() {
   const status = useMutation({
     mutationFn: ({ row, next }: { row: MemberRow; next: AccountStatus }) => setAccountStatus(row.user, next),
     onSuccess: (_v, { next }) => {
-      void qc.invalidateQueries({ queryKey: ['adminMembers'] });
+      // Same cross-family refresh as AdminAccounts: every list/stat that shows account status.
+      for (const key of [['adminMembers'], ['users'], ['usersByRole'], ['coachAdmin'], ['platformStats'], ['user'], ['coachUser']]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
       showToast({ title: t(`platform.status.${next}`), variant: 'success' });
     },
     onError: (e) => void alertDialog({ title: t('adminMembers.suspend'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
@@ -102,7 +105,16 @@ export function AdminMembers() {
   // table/card row per account. Resets to page 1 whenever any filter changes.
   const pg = usePagination(rows, 25, `${debouncedSearch}|${roleFilter}|${statusFilter}|${segment}|${sort}`);
 
-  const openMember = (r: MemberRow) => navigate(r.user.role === 'coach' ? `/admin/coaches/${r.user.id}` : `/admin/clients/${r.user.id}`);
+  // `/admin/coaches/:id` is super_admin-only (it bounces everyone else back to
+  // /admin) — a plain admin opens a coach in the accounts list instead.
+  const openMember = (r: MemberRow) =>
+    navigate(
+      r.user.role === 'coach'
+        ? isSuper
+          ? `/admin/coaches/${r.user.id}`
+          : `/admin/accounts?q=${encodeURIComponent(r.user.email)}`
+        : `/admin/clients/${r.user.id}`,
+    );
   const quickAction = async (r: MemberRow) => {
     const suspend = r.user.accountStatus === 'active' || r.user.accountStatus === 'pending';
     const next: AccountStatus = suspend ? 'suspended' : 'active';

@@ -19,6 +19,8 @@ import { BarChart } from '@/components/charts';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { CoachCard } from '@/components/CoachCard';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { useCoachContentSync } from '@/stores/coachContentStore';
 import { WeekStrip } from '@/components/WeekStrip';
 import { TaskRow } from '@/components/TaskRow';
 import { logVolume, logSetCount, weeklyVolumeTrend } from '@/lib/calc';
@@ -32,6 +34,7 @@ function parseDay(key: string): Date {
 
 export function Home() {
   const { t, i18n } = useTranslation();
+  const contentSync = useCoachContentSync();
   const navigate = useNavigate();
   const profile = useSettings((s) => s.profile);
   const settings = useSettings((s) => s.settings);
@@ -195,7 +198,11 @@ export function Home() {
       )}
 
       {/* No plan yet — make it clear the client is waiting on their coach. */}
-      {!plan && <WaitingForCoach />}
+      {!plan && (contentSync.status === 'failed' ? (
+        <ErrorState message={t('clientCoach.loadFailed')} onRetry={contentSync.retry ?? undefined} testId="client-home-load-error" />
+      ) : (
+        <WaitingForCoach />
+      ))}
 
       {/* FEATURED: today's single most important action */}
       {plan && (

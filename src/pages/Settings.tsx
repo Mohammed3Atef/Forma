@@ -184,7 +184,18 @@ export function Settings() {
   // Saving…/Saved/Couldn't-save state instead of saving silently.
   const profileStatus = useSaveStatus();
   const prefsStatus = useSaveStatus();
-  const [nameLocal, onNameChange] = useDebouncedField(profile?.name ?? '', (v) => updateProfile({ name: v }), profileStatus);
+  // The name is ALSO the account display name everyone else sees (coach
+  // roster, messages, admin) — commit it there too, not just to the local
+  // profile singleton. Signed-in accounts only; local-only mode has none.
+  const [nameLocal, onNameChange] = useDebouncedField(
+    profile?.name ?? '',
+    async (v) => {
+      await updateProfile({ name: v });
+      const trimmed = v.trim();
+      if (cloud && trimmed && trimmed !== account?.displayName) await updateSelf({ displayName: trimmed });
+    },
+    profileStatus,
+  );
   const [ageLocal, onAgeChange] = useDebouncedField(profile?.age ?? 0, (v) => updateProfile({ age: v }), profileStatus);
   const [weightLocal, onWeightChange] = useDebouncedField(profile?.weightKg ?? 0, (v) => updateProfile({ weightKg: v }), profileStatus);
   const [heightLocal, onHeightChange] = useDebouncedField(profile?.heightCm ?? 0, (v) => updateProfile({ heightCm: v }), profileStatus);
@@ -274,7 +285,7 @@ export function Settings() {
       {/* Featured identity card — stays visible above the tabs, like the design's settings() screen */}
       <div className="card-featured space-y-3">
         {cloud ? (
-          <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} folder={`Forma/${uid}/avatar`} onChange={(url) => void updateSelf({ photoUrl: url })} />
+          <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} onChange={(url) => updateSelf({ photoUrl: url })} />
         ) : null}
         <div>
           <h2 className="truncate font-display text-lg font-semibold">{profile.name}</h2>
@@ -482,7 +493,21 @@ export function Settings() {
                 {cloudState.lastSync && <p className="text-xs text-earth-subtle">{t('settings.lastSync')}: {new Date(cloudState.lastSync).toLocaleTimeString()}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => void cloudState.syncNow(true)} disabled={cloudState.syncing} className="btn-primary flex-1">{cloudState.syncing ? '…' : t('settings.syncNow')}</button>
-                  <button type="button" onClick={() => void cloudState.signOut()} className="btn-ghost flex-1">{t('settings.signOut')}</button>
+                  <button
+                    type="button"
+                    data-testid="client-sign-out"
+                    onClick={() =>
+                      void (async () => {
+                        // The real session sign-out (cloudStore.signOut is a deprecated no-op).
+                        if (await confirmDialog({ title: t('settings.signOut'), message: t('platform.signOutConfirm'), danger: true })) {
+                          await useSession.getState().signOut();
+                        }
+                      })()
+                    }
+                    className="btn-ghost flex-1"
+                  >
+                    {t('settings.signOut')}
+                  </button>
                 </div>
               </div>
             ) : null}

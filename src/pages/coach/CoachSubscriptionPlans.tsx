@@ -34,7 +34,10 @@ export function CoachSubscriptionPlans() {
   const online = useOnlineStatus();
   const [form, setForm] = useState<FormState | null>(null);
 
-  const q = useQuery({ queryKey: ['coachPlans', coachId], queryFn: () => listCoachPlans(coachId, true), enabled: !!coachId });
+  // Distinct key: this list includes archived plans; the pickers' `['coachPlans', coachId]`
+  // does not. Sharing one key made each overwrite the other's cache. The
+  // prefix invalidation below still refreshes both.
+  const q = useQuery({ queryKey: ['coachPlans', coachId, 'withArchived'], queryFn: () => listCoachPlans(coachId, true), enabled: !!coachId });
   const plans = q.data ?? [];
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['coachPlans', coachId] });
 

@@ -113,6 +113,9 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       setEditing(null);
       void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] });
       void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
+      // The save synced this exercise INTO templates server-side — an open
+      // template editor/preview must not keep (and later re-save) the old copy.
+      void qc.invalidateQueries({ queryKey: ['workoutTemplate', coachId] });
       if (sync.status === 'failed') {
         showToast({ title: t('common.saved'), body: t('coachLib.templateSyncFailed'), variant: 'warning', onClick: () => saveMut.mutate(savedEx) });
       } else if (sync.affectedTemplates > 0) {

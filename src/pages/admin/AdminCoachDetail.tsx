@@ -29,7 +29,13 @@ import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTier
 import { useLocalized } from '@/hooks/useLocalized';
 import { shortDate } from '@/lib/utils';
 
-const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+// LOCAL y-m-d: the value is saved as local midnight (`${d}T00:00:00`), so it
+// must be read back in local time too — `toISOString()` (UTC) showed the
+// previous day for every timezone east of UTC (e.g. Africa/Cairo).
+const toIso = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 /** Super-admin: manage one coach's plan tier, client limit, end date, trial,
  *  account, and any pending plan-change request. */
@@ -169,7 +175,7 @@ export function AdminCoachDetail() {
               <textarea className="input min-h-16" placeholder={t('admin.requestReason')} value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="btn-primary" data-testid="coach-plan-approve" disabled={approve.isPending || reject.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doApprove()}>{t('admin.approveRequest')}</button>
-                <button type="button" className="btn-ghost" data-testid="coach-plan-reject" disabled={approve.isPending || reject.isPending || !online} onClick={() => reject.mutate()}>{t('admin.rejectRequest')}</button>
+                <button type="button" className="btn-ghost" data-testid="coach-plan-reject" disabled={approve.isPending || reject.isPending || !online} onClick={() => void (async () => { if (await confirmDialog({ title: t('admin.rejectRequest'), message: t('admin.rejectRequestConfirm'), danger: true })) reject.mutate(); })()}>{t('admin.rejectRequest')}</button>
               </div>
               <p className="text-[12px] text-earth-subtle">{t('admin.approveApplies')}</p>
             </section>

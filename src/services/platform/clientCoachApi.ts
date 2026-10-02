@@ -1,3 +1,4 @@
+import { normalizeAssessment } from '@/lib/assessment';
 import { trpc } from '@/services/trpc';
 import { fetchUser } from './accountsApi';
 import { getRelationship } from './coachClientsApi';
@@ -36,7 +37,7 @@ export async function fetchMyProfile(clientId: string): Promise<UserProfile | nu
 }
 
 export async function fetchMyAssessment(clientId: string): Promise<ClientAssessment | null> {
-  return trpc.assessment.get.query({ clientId }) as Promise<ClientAssessment | null>;
+  return normalizeAssessment((await trpc.assessment.get.query({ clientId })) as ClientAssessment | null);
 }
 
 /**

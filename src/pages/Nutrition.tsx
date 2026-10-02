@@ -55,6 +55,11 @@ export function Nutrition() {
   });
   // The planned item being swapped (approved alternatives sheet).
   const [swapItem, setSwapItem] = useState<FoodItem | null>(null);
+  // Declared BEFORE the early returns below: hooks after a conditional return
+  // change the hook order when plan/log/targets flip null→set while mounted
+  // (fresh device, plan assigned on a focus refresh) and crash the page.
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [editorError, setEditorError] = useState(false);
 
   if (!plan) {
     return (
@@ -125,8 +130,6 @@ export function Nutrition() {
     },
   ] as const;
 
-  const [editorSaving, setEditorSaving] = useState(false);
-  const [editorError, setEditorError] = useState(false);
   const submitEditor = async () => {
     if (!editor) return;
     const protein = Number(form.protein) || 0;

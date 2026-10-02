@@ -20,9 +20,11 @@ import { useMeasurements } from '@/stores/measurementStore';
 import { useHabits } from '@/stores/habitStore';
 import { useReminders } from '@/services/reminders/reminderStore';
 import { useDay } from '@/stores/dayStore';
+import { useCoachContentSync } from '@/stores/coachContentStore';
 // Eager: the landing route (`/`, the single most common first paint) + the
 // gate/overlay components `ClientGate` itself renders outside `<Routes>`.
 import { Home } from '@/pages/Home';
+import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 
 // Every other client route is lazy — this used to import all ~20 pages
 // eagerly into one `ClientApp` chunk (183KB) while Coach/Admin already
@@ -99,6 +101,8 @@ function ClientGate() {
       await useHabits.getState().refresh(day);
     };
     void refresh();
+    // Lets screens offer a real Retry when the coach-content read failed (see coachContentStore).
+    useCoachContentSync.getState().setRetry(() => void refresh());
     // Both listeners exist because neither alone covers every "came back to
     // this app" case: `visibilitychange` fires when this tab is un-hidden
     // (switching tabs, restoring from the taskbar) but NOT when the browser
@@ -119,6 +123,7 @@ function ClientGate() {
     window.addEventListener('focus', onReturn);
     return () => {
       cancelled = true;
+      useCoachContentSync.getState().setRetry(null);
       document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('focus', onReturn);
     };
@@ -166,6 +171,9 @@ function ClientGate() {
           <Route path="/settings/subscription" element={<AppShell><ClientSubscriptionPage /></AppShell>} />
           <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
           <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
+          {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
+          <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />
+          <Route path="/reset/:token" element={<SignedInInterstitial kind="reset" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

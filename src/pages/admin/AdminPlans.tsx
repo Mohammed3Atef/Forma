@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Navigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -56,11 +57,13 @@ export function AdminPlans() {
   const coreQ = useQuery({ queryKey: ['coachPlanTiers', 'coreFeatures'], queryFn: getCoreFeatures, enabled: isSuper });
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['coachPlanTiers'] });
   const saveCore = useMutation({
-    mutationFn: (f: CoreFeaturesForm) =>
-      saveCoreFeatures({
-        en: f.en.split('\n').map((s) => s.trim()).filter(Boolean),
-        ar: f.ar.split('\n').map((s) => s.trim()).filter(Boolean),
-      }),
+    mutationFn: (f: CoreFeaturesForm) => {
+      const en = f.en.split('\n').map((s) => s.trim()).filter(Boolean);
+      const ar = f.ar.split('\n').map((s) => s.trim()).filter(Boolean);
+      // Blank Arabic falls back to English (same rule as the tier form) instead
+      // of sending `ar: []`, which the server rejects with a raw zod error.
+      return saveCoreFeatures({ en, ar: ar.length ? ar : en });
+    },
     onSuccess: () => { invalidate(); showToast({ title: t('common.saved'), variant: 'success' }); },
     onError: (e) => void alertDialog({ title: t('adminPlans.coreFeaturesTitle'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
@@ -170,7 +173,10 @@ export function AdminPlans() {
         )}
       </section>
 
-      {q.isLoading ? (
+      {q.isError && !q.data ? (
+        // Never show 'No plans yet' for a failed read — it invites recreating tiers that exist.
+        <ErrorState onRetry={() => void q.refetch()} testId="admin-plans-error" />
+      ) : q.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : tiers.length === 0 ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('adminPlans.none')}</p>

@@ -3,8 +3,25 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { transferClientWithMode } from '../../coach-clients/_service.js';
+import { coachClientsCol, relId } from '../../coach-clients/_data.js';
 import { transferReqId, transfersCol } from '../../coach-clients/_handlers/transfers-data.js';
 import type { ClientTransferRequestDoc } from '../../coach-clients/_handlers/transfers-types.js';
+
+/**
+ * A transfer request is only meaningful if `fromCoachId` is the client's
+ * CURRENT active coach. Checked on `create` (so a coach can't file a request
+ * naming an arbitrary/colluding "from" coach for a client they have nothing
+ * to do with) AND again on `accept` (the relationship may have ended or moved
+ * between request and approval) — `transferClientWithMode` then re-checks a
+ * third time as the last line of defence.
+ */
+async function assertCurrentCoach(fromCoachId: string, clientId: string): Promise<void> {
+  const rels = await coachClientsCol();
+  const rel = await rels.findOne({ _id: relId(fromCoachId, clientId) }, { projection: { status: 1 } });
+  if (!rel || rel.status !== 'active') {
+    throw new TRPCError({ code: 'CONFLICT', message: 'That coach does not currently coach this client' });
+  }
+}
 
 /** tRPC port of `api/coach-clients/_handlers/transfers-{index,detail}.ts` (was `/api/transfers/*`). */
 export const transfersRouter = router({
@@ -41,6 +58,7 @@ export const transfersRouter = router({
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== 'coach') throw new TRPCError({ code: 'FORBIDDEN' });
       if (input.fromCoachId === ctx.user.id) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You already coach this client' });
+      await assertCurrentCoach(input.fromCoachId, input.clientId);
 
       const col = await transfersCol();
       const id = transferReqId(ctx.user.id, input.clientId);
@@ -75,7 +93,30 @@ export const transfersRouter = router({
    * `reject` : same permission as accept, but only records the decision.
    */
   resolve: protectedProcedure
-    .input(z.object({ id: z.string().min(1), action: z.enum(['cancel', 'accept', 'reject']), adminNote: z.string().trim().max(2000).optional() }))
+    .input(
+      z.object({
+        id: z.string().min(1),
+        action: z.enum(['cancel', 'accept', 'reject']),
+        adminNote: z.string().trim().max(2000).optional(),
+        // Optional overrides for `accept` (the admin review wizard): when
+        // absent, the request's own mode / subscription handling apply.
+        mode: z.enum(['fresh_start', 'keep_plans']).optional(),
+        subscriptionHandling: z.enum(['keep', 'new', 'expire']).optional(),
+        newSubscription: z
+          .object({
+            status: z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']),
+            months: z.number().int().positive().optional(),
+            days: z.number().int().positive().optional(),
+            trialDays: z.number().int().positive().optional(),
+            price: z.number().nonnegative().optional(),
+            currency: z.string().trim().max(10).optional(),
+            planName: z.string().trim().max(120).optional(),
+            billingCycle: z.enum(['weekly', 'monthly', 'quarterly', 'custom']).optional(),
+            startAt: z.number().optional(),
+          })
+          .optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const col = await transfersCol();
       const reqDoc = await col.findOne({ _id: input.id });
@@ -85,42 +126,65 @@ export const transfersRouter = router({
       const now = Date.now();
       const canAssign = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'coaches.assign');
 
+      // Every resolution is a compare-and-swap on `status: 'pending'` so two
+      // concurrent resolutions (double-click, two admins) can never both apply
+      // — the loser gets CONFLICT instead of a second, duplicate transfer.
       if (input.action === 'cancel') {
         if (ctx.user.id !== reqDoc.toCoachId) throw new TRPCError({ code: 'FORBIDDEN' });
-        await col.updateOne({ _id: input.id }, { $set: { status: 'cancelled', updatedAt: now } });
+        const r = await col.updateOne({ _id: input.id, status: 'pending' }, { $set: { status: 'cancelled', updatedAt: now } });
+        if (r.matchedCount === 0) throw new TRPCError({ code: 'CONFLICT', message: 'This request has already been resolved' });
         return { ...reqDoc, status: 'cancelled' as const, updatedAt: now };
       }
 
       if (ctx.user.id !== reqDoc.fromCoachId && !canAssign) throw new TRPCError({ code: 'FORBIDDEN' });
       const outcome = input.action === 'accept' ? ('accepted' as const) : ('rejected' as const);
+      const effectiveMode = input.mode ?? reqDoc.mode ?? 'keep_plans';
+      const effectiveSub = input.subscriptionHandling ?? reqDoc.subscriptionHandling ?? 'keep';
 
-      if (outcome === 'accepted') {
+      if (
+        outcome === 'accepted' &&
         // Mirror `coachClients.transfer`'s stricter fresh-start gate — the current
         // coach accepting a request they didn't author must not be able to trigger
         // a fresh-start (archive-everything) transfer merely because the REQUESTING
         // coach set `mode: 'fresh_start'` at request-creation time. Only someone who
         // actually holds `clients.writeAll` (super admin) may complete one, exactly
         // as when an admin runs a transfer directly.
-        if (
-          reqDoc.mode === 'fresh_start' &&
-          !hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll')
-        ) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'Only a super admin may complete a fresh-start transfer' });
-        }
-        await transferClientWithMode(
-          reqDoc.clientId,
-          reqDoc.fromCoachId,
-          reqDoc.toCoachId,
-          reqDoc.mode ?? 'keep_plans',
-          reqDoc.subscriptionHandling ?? 'keep',
-          ctx.user.id,
-        );
+        effectiveMode === 'fresh_start' &&
+        !hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll')
+      ) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only a super admin may complete a fresh-start transfer' });
       }
 
-      await col.updateOne(
-        { _id: input.id },
+      const claimed = await col.findOneAndUpdate(
+        { _id: input.id, status: 'pending' },
         { $set: { status: outcome, reviewedAt: now, reviewedBy: ctx.user.id, updatedAt: now, ...(input.adminNote ? { adminNote: input.adminNote } : {}) } },
+        { returnDocument: 'after' },
       );
-      return { ...reqDoc, status: outcome, reviewedAt: now, reviewedBy: ctx.user.id, updatedAt: now };
+      if (!claimed) throw new TRPCError({ code: 'CONFLICT', message: 'This request has already been resolved' });
+
+      if (outcome === 'accepted') {
+        try {
+          await assertCurrentCoach(reqDoc.fromCoachId, reqDoc.clientId);
+          await transferClientWithMode(
+            reqDoc.clientId,
+            reqDoc.fromCoachId,
+            reqDoc.toCoachId,
+            effectiveMode,
+            effectiveSub,
+            ctx.user.id,
+            input.newSubscription,
+          );
+        } catch (e) {
+          // The move didn't happen (cap, relationship changed, …) — put the
+          // request back so it can be retried once the cause is fixed, rather
+          // than leaving it marked 'accepted' with no transfer behind it.
+          await col
+            .updateOne({ _id: input.id, status: 'accepted' }, { $set: { status: 'pending', reviewedAt: null, reviewedBy: null, updatedAt: Date.now() } })
+            .catch(() => undefined);
+          throw e;
+        }
+      }
+
+      return claimed;
     }),
 });

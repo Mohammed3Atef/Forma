@@ -303,6 +303,7 @@
     "callCoach": "اتصل"
   },
   "messages": {
+    "loadFailed": "مقدرناش نحمّل الرسايل. بنحاول تاني…",
     "title": "الرسائل",
     "noResultsMessage": "جرّب كلمة بحث أو فلتر مختلف.",
     "send": "إرسال",
@@ -713,7 +714,7 @@
     "log": "سجّل",
     "athlete": "رياضي",
     "profile": "الملف الشخصي",
-    "memberSince": "عضو من {{date}} · {{unit}}",
+    "memberSince": "عضو من {{date}}",
     "totalWorkouts": "إجمالي التمارين",
     "dayStreak": "أيام ورا بعض",
     "lifetimeVolume": "الحجم الكلي",
@@ -864,6 +865,7 @@
     "searchClients": "دوّر على عميل",
     "noClients": "لسه معندكش أي عميل.",
     "noClientsTitle": "لسه مفيش عملاء",
+    "clientsLoadFailed": "مقدرناش نحمّل العملاء بتوعك. اتأكد من النت وجرّب تاني.",
     "noClientsMessage": "ضيف أول عميل عشان تبدأ تسند خطط وتتابع تقدمه.",
     "noClientsFilteredTitle": "مفيش عملاء مطابقين",
     "noClientsFilteredMessage": "جرّب كلمة بحث تانية أو شيل فلتر الحالة.",
@@ -1325,6 +1327,13 @@
     "mealCount": "{{n}} وجبات",
     "sessionCount": "{{n}} جلسات"
   },
+  "signedIn": {
+    "inviteTitle": "الدعوة دي لحساب جديد",
+    "resetTitle": "تغيير الباسورد",
+    "body": "إنت داخل باسم {{name}}. اعمل خروج عشان تكمّل باللينك ده، أو خليك داخل.",
+    "signOutAndContinue": "خروج وكمّل",
+    "stay": "خليني داخل"
+  },
   "upload": {
     "uploading": "بنرفع…",
     "addPhoto": "ضيف صورة",
@@ -1544,6 +1553,7 @@
     "continue": "كمّل"
   },
   "clientCoach": {
+    "loadFailed": "مقدرناش نحمّل خطتك من الكوتش. اتأكد من النت وجرّب تاني.",
     "title": "مدرّبك",
     "fromCoach": "من مدرّبك",
     "viewAll": "شوف تحديثات المدرّب",
@@ -1842,6 +1852,7 @@
     "approveRequest": "قبول",
     "confirmApproveRequest": "تقبل طلب تغيير الخطة بتاع {{name}}؟",
     "rejectRequest": "رفض",
+    "rejectRequestConfirm": "ترفض طلب الدفع ده؟ المدرب هيفضل على خطته الحالية وهيوصله إشعار.",
     "approveApplies": "القبول بيطبّق الخطة المطلوبة تلقائياً.",
     "snapshotStale": "إعدادات الفئة اتغيّرت من وقت ما اتقدّم الطلب — الموافقة هتطبّق السعر/الحدود الظاهرة فوق.",
     "requestsPending": "{{n}} طلب خطة مستني مراجعتك",

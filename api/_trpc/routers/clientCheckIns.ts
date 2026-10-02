@@ -76,7 +76,10 @@ export const checkInsRouter = router({
       const existing = await col.findOne({ _id });
       if (existing) return existing;
       const now = Date.now();
-      const coachId = input.coachId ?? (ctx.user.role === 'coach' ? ctx.user.id : '');
+      // A coach's own id is never taken from input (it's already proven by
+      // `canWriteCoachOwned` above); only an admin acting on a client's behalf
+      // may name the coach the check-in belongs to.
+      const coachId = ctx.user.role === 'coach' ? ctx.user.id : (input.coachId ?? '');
       const checkIn: WeeklyCheckInDoc = {
         _id,
         clientId,
@@ -174,7 +177,16 @@ export const measurementsRouter = router({
 
   /** Read-merges the existing day so partial entries don't wipe other body parts. */
   save: authedProcedure
-    .input(z.object({ clientId: z.string().optional(), date: z.string(), values: z.record(z.string(), z.number()) }))
+    .input(
+      z.object({
+        clientId: z.string().optional(),
+        date: z.string(),
+        values: z.record(z.string(), z.number()),
+        // Keys the user explicitly emptied — the merge below would otherwise
+        // keep the old value forever (a cleared field could never be saved).
+        clear: z.array(z.string().max(60)).max(100).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
       if (!(await canWriteClientOrCoach(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
@@ -186,7 +198,9 @@ export const measurementsRouter = router({
         if (typeof v === 'number' && !Number.isNaN(v) && v > 0) clean[k] = v;
       }
       const now = Date.now();
-      const log: MeasurementLogDoc = { _id, clientId, date: input.date, values: { ...existing?.values, ...clean }, updatedAt: now };
+      const merged: Record<string, number> = { ...existing?.values, ...clean };
+      for (const k of input.clear ?? []) if (!(k in clean)) delete merged[k];
+      const log: MeasurementLogDoc = { _id, clientId, date: input.date, values: merged, updatedAt: now };
       await col.replaceOne({ _id }, log, { upsert: true });
       if (ctx.user.id !== clientId) {
         await notify({ clientId, forRole: 'client', type: 'measurement_added', screen: 'measurements', date: input.date, createdBy: ctx.user.id });

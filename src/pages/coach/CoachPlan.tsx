@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -56,8 +57,22 @@ export function CoachPlan() {
       }).then(() => qc.invalidateQueries({ queryKey: ['coachPlanRequest', 'mine'] })),
   });
 
+  // When the (60 s-polled) request flips to `confirmed`, the plan it applied
+  // is new server state — refetch it now instead of showing the old Trial for
+  // up to the plan query's 5-minute staleTime.
+  const reqStatus = req.data?.status;
+  const reqId = req.data?.id;
+  useEffect(() => {
+    if (reqStatus === 'confirmed') {
+      // Same key as CoachPlanProvider → the gate/banner refresh too.
+      void qc.invalidateQueries({ queryKey: ['coachPlan', coachId] });
+    }
+  }, [reqStatus, reqId, coachId, qc]);
+
   const p = plan.data;
-  const upgradeTiers = tiers.filter((tr) => tr.key !== 'trial' && tr.key !== p?.plan);
+  // Every paid tier — INCLUDING the one the coach is already on: re-requesting
+  // it is how a paid coach renews (server records `type: 'renewal'`).
+  const upgradeTiers = tiers.filter((tr) => tr.key !== 'trial' && tr.active !== false && !tr.archived);
   const state = coachPlanState(p ?? null);
   const used = clients.data ? clients.data.filter((c) => c.accountStatus !== 'disabled').length : p?.activeClientCount ?? 0;
   const daysLeft = p ? trialDaysLeft(p) : null;
@@ -69,7 +84,9 @@ export function CoachPlan() {
   return (
     <div data-testid="coach-plan">
       <PageHeader eyebrow={t('platform.coachPortal')} title={t('coachPlan.title')} />
-      {plan.isLoading ? (
+      {plan.isError && !plan.data ? (
+        <ErrorState onRetry={() => void plan.refetch()} testId="coach-plan-error" />
+      ) : plan.isLoading ? (
         <LoadingState variant="cards" count={4} />
       ) : (
         <div className="space-y-6">
@@ -98,7 +115,11 @@ export function CoachPlan() {
                     </button>
                   )}
                 </div>
-                <p className="text-sm">{t('coachPlan.desiredTier')}: {loc(r.planSnapshot.label)} · {r.planSnapshot.maxClients} {t('admin.clients').toLowerCase()}</p>
+                {/* The snapshot price is what the coach will be asked to pay — show it (same values the admin confirms). */}
+                <p className="text-sm">
+                  {t('coachPlan.desiredTier')}: {loc(r.planSnapshot.label)} · {r.planSnapshot.maxClients} {t('admin.clients').toLowerCase()} ·{' '}
+                  <span dir="ltr" data-testid="coach-plan-request-price">{r.planSnapshot.priceMonthly} {r.planSnapshot.currency}</span>
+                </p>
                 <p className="text-[12px] text-earth-subtle">
                   {r.type === 'trial_expired' ? t('coachPlan.trialEndedAwaiting') : t('coachPlan.awaitingConfirmation', { n: hoursLeft ?? 0 })}
                 </p>

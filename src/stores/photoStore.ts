@@ -5,7 +5,7 @@ import { blobStore } from '@/data/blobStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { today, uid } from '@/lib/utils';
 import { downscaleImage } from '@/lib/image';
-import { isBunnyConfigured, uploadImageToBunny } from '@/services/platform/bunnyUploadApi';
+import { ensureUploadConfig, uploadImage } from '@/services/platform/mediaApi';
 import { useSession } from '@/services/auth/sessionStore';
 
 interface PhotoState {
@@ -27,9 +27,11 @@ interface PhotoState {
  */
 async function tryUploadToCdn(photo: ProgressPhoto, file: Blob): Promise<ProgressPhoto> {
   const owner = useSession.getState().uid;
-  if (!isBunnyConfigured() || !owner || owner === 'local-user') return photo;
+  if (!owner || owner === 'local-user') return photo;
+  if (!(await ensureUploadConfig())) return photo;
   const blob = await downscaleImage(file);
-  const { url } = await uploadImageToBunny(blob, { folder: `Forma/${owner}` });
+  // Lands under the signed-in user's own `Forma/{uid}/` folder — the server derives that from the session.
+  const { url } = await uploadImage(blob, { category: 'progress' });
   const updated: ProgressPhoto = { ...photo, cdnUrl: url, updatedAt: Date.now(), dirty: true };
   await getDataSource().progressPhotos.put(updated);
   return updated;

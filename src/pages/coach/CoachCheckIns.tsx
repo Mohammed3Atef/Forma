@@ -34,6 +34,9 @@ export function CoachCheckIns() {
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['checkIns', clientId] });
     void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
+    // Dashboard "to review" / needs-attention counters read these.
+    void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
+    void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
   };
   const thisWeek = weekRange(today());
   const weekExists = checkIns.some((c) => c.weekStart === thisWeek.weekStart);

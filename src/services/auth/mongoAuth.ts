@@ -35,6 +35,14 @@ export interface MongoUserRecord {
   updatedAt: number;
 }
 
+export interface ProfilePatch {
+  displayName?: string;
+  phone?: string;
+  photoUrl?: string | null;
+  timezone?: string;
+  currency?: string;
+}
+
 export const mongoAuth = {
   /** Coach self-registration only — client accounts come from the invite flow. Every coach starts on the same Trial; there's no plan to pick at signup. */
   async signUpCoach(email: string, password: string, displayName: string, phone?: string): Promise<MongoUserRecord> {
@@ -70,9 +78,8 @@ export const mongoAuth = {
     return refreshSession();
   },
 
-  async updateProfile(
-    patch: Partial<Pick<MongoUserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>,
-  ): Promise<MongoUserRecord> {
+  /** `photoUrl: null` removes the photo (an `undefined` field is dropped by JSON and would silently do nothing). */
+  async updateProfile(patch: ProfilePatch): Promise<MongoUserRecord> {
     return trpc.auth.updateProfile.mutate(patch) as Promise<MongoUserRecord>;
   },
 

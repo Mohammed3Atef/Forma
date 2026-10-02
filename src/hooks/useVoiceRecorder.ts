@@ -54,6 +54,10 @@ export function useVoiceRecorder(opts?: { onAutoStop?: (file: File | null) => vo
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number | null>(null);
   const resolveRef = useRef<((f: File | null) => void) | null>(null);
+  // Set by `cancel()`: the recording that `onstop` is about to assemble must be
+  // thrown away — NOT handed to `onAutoStop` (which is what a null `resolveRef`
+  // alone used to mean, so "Cancel recording" produced a draft anyway).
+  const discardRef = useRef(false);
   const onAutoStopRef = useRef(opts?.onAutoStop);
   onAutoStopRef.current = opts?.onAutoStop;
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -87,6 +91,7 @@ export function useVoiceRecorder(opts?: { onAutoStop?: (file: File | null) => vo
 
   const start = useCallback(async (): Promise<boolean> => {
     setLastError(null);
+    discardRef.current = false;
     if (insecure) {
       setLastError('insecure');
       return false;
@@ -110,6 +115,12 @@ export function useVoiceRecorder(opts?: { onAutoStop?: (file: File | null) => vo
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     rec.onstop = () => {
+      if (discardRef.current) {
+        // `cancel()` — discard everything, never produce a file.
+        discardRef.current = false;
+        cleanup();
+        return;
+      }
       const file = chunksRef.current.length
         ? new File([new Blob(chunksRef.current, { type: mime })], `voice-${Date.now()}.${extForMime(mime)}`, { type: mime })
         : null;
@@ -185,10 +196,14 @@ export function useVoiceRecorder(opts?: { onAutoStop?: (file: File | null) => vo
 
   /** Discard the in-progress recording without producing a file. */
   const cancel = useCallback(() => {
-    resolveRef.current = null; // onstop's resolve becomes a no-op → discarded
+    resolveRef.current = null;
     const rec = recorderRef.current;
-    if (rec && rec.state !== 'inactive') rec.stop();
-    else cleanup();
+    if (rec && rec.state !== 'inactive') {
+      discardRef.current = true; // onstop → cleanup only, no file, no onAutoStop
+      rec.stop();
+    } else {
+      cleanup();
+    }
   }, [cleanup]);
 
   useEffect(() => () => cleanup(), [cleanup]);

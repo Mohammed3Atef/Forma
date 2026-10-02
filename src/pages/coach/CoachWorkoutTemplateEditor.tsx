@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { pickFreshDraft } from '@/lib/draft';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +50,7 @@ export function CoachWorkoutTemplateEditor() {
     if (tpl !== null || (!isNew && query.isLoading)) return;
     void draftStore.getItem<WorkoutTemplate>(draftKey).then((draft) => {
       const base = isNew ? blankTemplate(coachId) : query.data ?? blankTemplate(coachId);
-      const initial = draft ?? base;
+      const initial = (isNew ? draft : pickFreshDraft(draft, query.data)) ?? base; // stale drafts (server changed since) are discarded — see lib/draft.ts
       // Baseline = the state we actually open with (draft OR saved) — so opening
       // is NEVER dirty; the prompt fires only after a real edit.
       baselineRef.current = JSON.stringify(initial);

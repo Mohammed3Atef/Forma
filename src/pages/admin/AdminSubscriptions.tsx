@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
@@ -8,8 +8,10 @@ import { Icon } from '@/components/Icon';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { DashboardSection } from '@/components/ui/DashboardSection';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useFullBleed } from '@/hooks/useFullBleed';
+import { useRole } from '@/services/auth/permissions';
 import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCoachesApi';
 import { fetchGrowth } from '@/services/platform/adminGrowthApi';
 import { trialDaysLeft } from '@/services/platform/coachPlanApi';
@@ -31,10 +33,14 @@ export function AdminSubscriptions() {
   useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const q = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), staleTime: 120_000 });
-  const reqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, staleTime: 60_000 });
+  // `adminCoaches.list` and `coachPlanRequests.listPending` are super_admin-only
+  // procedures — this whole screen is, so a plain admin is redirected below
+  // (and isn't offered the destination in the first place — see config/nav.ts).
+  const isSuper = useRole() === 'super_admin';
+  const q = useQuery({ queryKey: ['coachAdmin'], queryFn: () => fetchCoachAdmin(), staleTime: 120_000, enabled: isSuper });
+  const reqs = useQuery({ queryKey: ['planRequests', 'pending'], queryFn: listPendingPlanRequests, staleTime: 60_000, enabled: isSuper });
   // Client-subscription money + client terms ending soon — real data that used to live on the old Growth tab.
-  const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, staleTime: 120_000 });
+  const growth = useQuery({ queryKey: ['adminGrowth'], queryFn: fetchGrowth, staleTime: 120_000, enabled: isSuper });
   const d = q.data;
   const g = growth.data;
 
@@ -72,10 +78,14 @@ export function AdminSubscriptions() {
   const expiringClients = g?.expiringClients ?? [];
   const needsAction = pending.length + expiringTrials.filter((x) => x.days <= 3).length + expiringClients.filter((x) => x.days <= 3).length;
 
+  if (!isSuper) return <Navigate to="/admin" replace />;
+
   return (
     <div data-testid="admin-subscriptions">
       <TopBar title={t('nav.adminSubscriptions')} eyebrow={t('nav.groupMonetise')} />
-      {q.isLoading || !d ? (
+      {q.isError ? (
+        <ErrorState message={q.error instanceof Error ? q.error.message : undefined} onRetry={() => void q.refetch()} testId="admin-subscriptions-error" />
+      ) : q.isLoading || !d ? (
         <LoadingState variant="cards" count={4} />
       ) : (
         <div className="space-y-6">

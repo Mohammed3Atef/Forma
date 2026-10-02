@@ -15,3 +15,7 @@ e2e-report*
 test-results*
 playwright-report
 demo-media
+
+# Phase-3 isolated E2E output (per run) and per-port vite caches
+e2e-out
+node_modules/.vite-e2e-*

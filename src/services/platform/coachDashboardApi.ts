@@ -106,9 +106,14 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     const assess = s?.assessment ?? 'not_started';
     const toReview = s?.toReview ?? false;
     const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || workouts7d === 0 || toReview;
-    // Prefer the client's assessment name over a sign-up email-prefix fallback.
+    // Prefer the client's assessment name ONLY over a missing / email-prefix
+    // fallback display name — a name the client set themselves (Settings →
+    // account) must win, or the roster keeps showing the old name forever.
     const fullName = s?.fullName;
-    const displayClient = fullName ? { ...client, displayName: fullName } : client;
+    const local = (client.email ?? '').split('@')[0]?.toLowerCase() ?? '';
+    const current = (client.displayName ?? '').trim();
+    const isFallbackName = !current || current.toLowerCase() === local;
+    const displayClient = fullName && isFallbackName ? { ...client, displayName: fullName } : client;
     return {
       client: displayClient,
       workouts7d,

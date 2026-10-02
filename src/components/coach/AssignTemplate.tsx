@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SearchField } from '@/components/ui/Field';
@@ -23,11 +23,17 @@ export function AssignTemplate({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const mut = useMutation({
     mutationFn: (clientId: string) => assignWorkoutTemplate(template, clientId, assignedBy),
-    onSuccess: (_v, clientId) => setDone(clientId),
+    onSuccess: (_v, clientId) => {
+      setDone(clientId);
+      // The assigned plan replaces the client's plan and auto-versions the old one.
+      void qc.invalidateQueries({ queryKey: ['clientWorkoutPlan', clientId] });
+      void qc.invalidateQueries({ queryKey: ['planVersions', clientId] });
+    },
     onError: (e) => void alertDialog({ title: t('workoutTemplate.assign'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   const askAndAssign = async (c: UserRecord) => {

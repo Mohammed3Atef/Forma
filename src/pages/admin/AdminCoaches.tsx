@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -23,14 +24,13 @@ import { fetchCoachAdmin, type CoachAdminRow } from '@/services/platform/adminCo
 import { renewCoachPlan, setCoachSuspended, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import { tierLabel } from '@/services/platform/coachPlanTiersApi';
-import { bulkSetAccountStatus } from '@/services/platform/accountsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { AccountStatus, CoachPlanTierConfig } from '@/types';
+import type { CoachPlanTierConfig } from '@/types';
 
 const STATE_TONE: Record<string, PillTone> = {
   trial: 'brand',
@@ -106,12 +106,19 @@ export function AdminCoaches() {
   const clearSelection = sel.clear;
   useEffect(() => { clearSelection(); }, [debouncedSearch, pg.page, clearSelection]);
   const bulkStatus = useMutation({
-    mutationFn: ({ ids, status }: { ids: string[]; status: AccountStatus }) =>
-      bulkSetAccountStatus(rows.filter((r) => ids.includes(r.coach.id)).map((r) => r.coach), status),
+    // Same single action as the row/detail buttons (`setCoachSuspended`: plan
+    // status AND account status together). The old account-only bulk left the
+    // plan `active` → list Pill/preview/detail disagreed about the coach.
+    mutationFn: async ({ ids, status }: { ids: string[]; status: 'active' | 'suspended' }) => {
+      const results = await Promise.allSettled(ids.map((id) => setCoachSuspended(id, status === 'suspended')));
+      return { ok: results.filter((r) => r.status === 'fulfilled').length, failed: results.filter((r) => r.status === 'rejected').length };
+    },
     onSuccess: (result) => {
       void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
       void qc.invalidateQueries({ queryKey: ['users'] });
       void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
+      void qc.invalidateQueries({ queryKey: ['coachPlanAdmin'] });
+      void qc.invalidateQueries({ queryKey: ['coachUser'] });
       sel.clear();
       showToast({ title: t('common.bulk.done', { ok: result.ok }), variant: result.failed ? 'warning' : 'success' });
     },
@@ -121,7 +128,7 @@ export function AdminCoaches() {
         message: e instanceof Error ? e.message : t('common.errorGeneric'),
       }),
   });
-  const runBulk = async (status: AccountStatus) => {
+  const runBulk = async (status: 'active' | 'suspended') => {
     if (sel.count === 0) return;
     const ok = await confirmDialog({ title: t(`platform.status.${status}`), message: t('common.bulk.confirmStatus', { n: sel.count }), danger: status !== 'active' });
     if (ok) bulkStatus.mutate({ ids: sel.ids, status });
@@ -224,7 +231,9 @@ export function AdminCoaches() {
   return (
     <div data-testid="admin-coaches">
       <TopBar title={t('adminCoaches.title')} eyebrow={t('platform.superAdmin')} />
-      {q.isLoading || !d ? (
+      {q.isError && !d ? (
+        <ErrorState onRetry={() => void q.refetch()} testId="admin-coaches-error" />
+      ) : q.isLoading || !d ? (
         <LoadingState variant="cards" count={6} />
       ) : (
         <div className="space-y-6">

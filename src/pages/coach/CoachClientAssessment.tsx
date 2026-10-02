@@ -12,7 +12,7 @@ import {
   resetAssessment,
   setAssessmentCoachNotes,
 } from '@/services/platform/coachApi';
-import { confirmDialog } from '@/stores/dialogStore';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { assessmentStatus } from '@/lib/assessment';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
@@ -41,10 +41,16 @@ export function CoachClientAssessment() {
     if (q.data) setNotes(q.data.coachNotes ?? '');
   }, [q.data]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['clientAssessment', clientId] });
-  const saveNotes = useMutation({ mutationFn: () => setAssessmentCoachNotes(clientId, notes.trim()), onSuccess: invalidate });
-  const review = useMutation({ mutationFn: () => markAssessmentReviewed(clientId, reviewerId), onSuccess: invalidate });
-  const reopen = useMutation({ mutationFn: () => resetAssessment(clientId), onSuccess: invalidate });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['clientAssessment', clientId] });
+    // The Assessments list + dashboard "pending assessments" read the summaries.
+    void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
+    void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
+  };
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const saveNotes = useMutation({ mutationFn: () => setAssessmentCoachNotes(clientId, notes.trim()), onSuccess: invalidate, onError: onErr(t('assessment.title')) });
+  const review = useMutation({ mutationFn: () => markAssessmentReviewed(clientId, reviewerId), onSuccess: invalidate, onError: onErr(t('assessment.title')) });
+  const reopen = useMutation({ mutationFn: () => resetAssessment(clientId), onSuccess: invalidate, onError: onErr(t('assessment.reset')) });
 
   const doReset = async () => {
     if (await confirmDialog({ title: t('assessment.reset'), message: t('assessment.confirmReset'), danger: true })) reopen.mutate();

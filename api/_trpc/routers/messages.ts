@@ -78,14 +78,18 @@ export const messagesRouter = router({
   /** Sends a message into the thread as the caller, then best-effort notifies the other party. */
   send: authedProcedure
     .input(
-      z.object({
-        clientId: z.string().trim().min(1),
-        text: z.string().trim().max(4000),
-        category: z.enum(['message', 'announcement', 'offer', 'reminder', 'update']).optional(),
-        attachment: AttachmentSchema.optional(),
-        /** Client-generated idempotency key — a retried send with the same key returns the already-inserted message instead of duplicating it. */
-        clientMsgId: z.string().trim().min(1).max(100).optional(),
-      }),
+      z
+        .object({
+          clientId: z.string().trim().min(1),
+          text: z.string().trim().max(4000),
+          category: z.enum(['message', 'announcement', 'offer', 'reminder', 'update']).optional(),
+          attachment: AttachmentSchema.optional(),
+          /** Client-generated idempotency key — a retried send with the same key returns the already-inserted message instead of duplicating it. */
+          clientMsgId: z.string().trim().min(1).max(100).optional(),
+        })
+        // A message must carry SOMETHING — the UI already disables "send" on an
+        // empty composer, but the server is the real guard.
+        .refine((v) => v.text.length > 0 || !!v.attachment, { message: 'A message needs text or an attachment', path: ['text'] }),
     )
     .mutation(async ({ ctx, input }) => {
       await authorizeThreadAccess(ctx.user, input.clientId);
@@ -112,7 +116,18 @@ export const messagesRouter = router({
       if (input.category) doc.category = input.category as MessageCategory;
       if (input.attachment) doc.attachment = input.attachment as MessageAttachment;
       if (input.clientMsgId) doc.clientMsgId = input.clientMsgId;
-      await col.insertOne(doc);
+      try {
+        await col.insertOne(doc);
+      } catch (e) {
+        // Two concurrent retries of the same send both passed the read above —
+        // the partial unique index (`messagesCol`) let exactly one insert win;
+        // hand the loser that same message instead of a 500.
+        if (input.clientMsgId && e instanceof Error && 'code' in e && (e as { code?: number }).code === 11000) {
+          const winner = await col.findOne({ clientId: input.clientId, fromUserId: ctx.user.id, clientMsgId: input.clientMsgId });
+          if (winner) return toPublicMessage(winner);
+        }
+        throw e;
+      }
 
       const toCoach = ctx.user.role !== 'coach';
       const preview = input.text || (input.attachment ? `📎 ${input.attachment.name ?? input.attachment.kind}` : '');

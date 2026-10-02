@@ -253,6 +253,7 @@
   "imageViewer": { "close": "Close" },
   "coachInfo": { "yourCoach": "Your coach", "message": "Message", "callCoach": "Call" },
   "messages": {
+    "loadFailed": "Couldn’t load messages. Retrying…",
     "title": "Messages",
     "noResultsMessage": "Try a different search term or filter.",
     "send": "Send",
@@ -658,7 +659,7 @@
     "log": "Log",
     "athlete": "Athlete",
     "profile": "Profile",
-    "memberSince": "Member since {{date}} · {{unit}}",
+    "memberSince": "Member since {{date}}",
     "totalWorkouts": "Total workouts",
     "dayStreak": "Day streak",
     "lifetimeVolume": "Lifetime volume",
@@ -809,6 +810,7 @@
     "searchClients": "Search clients",
     "noClients": "No clients assigned yet",
     "noClientsTitle": "No clients yet",
+    "clientsLoadFailed": "Couldn’t load your clients. Check your connection and try again.",
     "noClientsMessage": "Add your first client to start assigning plans and tracking progress.",
     "noClientsFilteredTitle": "No clients match",
     "noClientsFilteredMessage": "Try a different search term or clear the status filter.",
@@ -1326,6 +1328,13 @@
     "mealCount": "{{n}} meals",
     "sessionCount": "{{n}} sessions"
   },
+  "signedIn": {
+    "inviteTitle": "This invite is for a new account",
+    "resetTitle": "Reset a password",
+    "body": "You're signed in as {{name}}. Sign out to continue with this link, or stay signed in.",
+    "signOutAndContinue": "Sign out and continue",
+    "stay": "Stay signed in"
+  },
   "upload": {
     "uploading": "Uploading…",
     "addPhoto": "Add photo",
@@ -1518,6 +1527,7 @@
     "continue": "Continue"
   },
   "clientCoach": {
+    "loadFailed": "Couldn’t load your plan from your coach. Check your connection and try again.",
     "title": "Your coach",
     "fromCoach": "From your coach",
     "viewAll": "View coach updates",
@@ -1686,6 +1696,7 @@
     "approveRequest": "Approve",
     "confirmApproveRequest": "Approve {{name}}'s plan-change request?",
     "rejectRequest": "Reject",
+    "rejectRequestConfirm": "Reject this payment request? The coach keeps their current plan and is notified.",
     "approveApplies": "Approving applies the requested plan automatically.",
     "snapshotStale": "Tier configuration has changed since this request was made — approving still applies the price/limits shown above.",
     "requestsPending": "{{n}} plan request(s) awaiting your review",

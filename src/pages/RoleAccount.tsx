@@ -107,7 +107,7 @@ export function RoleAccount() {
 
       {editable ? (
         <section className="card space-y-4">
-          <AvatarPicker name={account.displayName} photoUrl={account.photoUrl} folder={`Forma/${account.id}/avatar`} onChange={(url) => void updateSelf({ photoUrl: url })} />
+          <AvatarPicker name={account.displayName} photoUrl={account.photoUrl} onChange={(url) => updateSelf({ photoUrl: url })} />
           <div>
             <label className="label">{t('settings.name')}</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => saveIfChanged('displayName', name, account.displayName ?? '')} />

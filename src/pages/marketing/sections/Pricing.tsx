@@ -52,7 +52,6 @@ export function Pricing() {
               <Link to="/login?signup=1" className="btn-primary mt-8 w-full">
                 {t('landing.pricingStartTrial')}
               </Link>
-              <p className="mt-3 text-[12px] text-earth-subtle">{t('admin.pricingNote')}</p>
             </div>
           </Reveal>
         )}

@@ -253,6 +253,7 @@
   "imageViewer": { "close": "إغلاق" },
   "coachInfo": { "yourCoach": "مدرّبك", "message": "مراسلة", "callCoach": "اتصال" },
   "messages": {
+    "loadFailed": "تعذّر تحميل الرسائل. جارٍ إعادة المحاولة…",
     "title": "الرسائل",
     "noResultsMessage": "جرّب كلمة بحث أو فلتر مختلف.",
     "send": "إرسال",
@@ -658,7 +659,7 @@
     "log": "سجّل",
     "athlete": "رياضي",
     "profile": "الملف الشخصي",
-    "memberSince": "عضو منذ {{date}} · {{unit}}",
+    "memberSince": "عضو منذ {{date}}",
     "totalWorkouts": "إجمالي التمارين",
     "dayStreak": "أيام متتالية",
     "lifetimeVolume": "الحجم الكلي",
@@ -809,6 +810,7 @@
     "searchClients": "ابحث عن متدربين",
     "noClients": "لا يوجد متدربون مُسندون بعد",
     "noClientsTitle": "لا يوجد متدربون بعد",
+    "clientsLoadFailed": "تعذّر تحميل عملائك. تحقّق من الاتصال وحاول مرة أخرى.",
     "noClientsMessage": "أضف أول متدرب لك للبدء في إسناد الخطط وتتبع التقدم.",
     "noClientsFilteredTitle": "لا يوجد متدربون مطابقون",
     "noClientsFilteredMessage": "جرّب كلمة بحث مختلفة أو ألغِ فلتر الحالة.",
@@ -1326,6 +1328,13 @@
     "mealCount": "{{n}} وجبات",
     "sessionCount": "{{n}} جلسات"
   },
+  "signedIn": {
+    "inviteTitle": "هذه الدعوة لإنشاء حساب جديد",
+    "resetTitle": "إعادة تعيين كلمة المرور",
+    "body": "أنت مسجّل الدخول باسم {{name}}. سجّل الخروج للمتابعة بهذا الرابط، أو ابقَ مسجّل الدخول.",
+    "signOutAndContinue": "تسجيل الخروج والمتابعة",
+    "stay": "البقاء مسجّل الدخول"
+  },
   "upload": {
     "uploading": "جارٍ الرفع…",
     "addPhoto": "إضافة صورة",
@@ -1518,6 +1527,7 @@
     "continue": "متابعة"
   },
   "clientCoach": {
+    "loadFailed": "تعذّر تحميل خطتك من المدرب. تحقّق من الاتصال وحاول مرة أخرى.",
     "title": "مدرّبك",
     "fromCoach": "من مدرّبك",
     "viewAll": "عرض تحديثات المدرّب",
@@ -1686,6 +1696,7 @@
     "approveRequest": "قبول",
     "confirmApproveRequest": "قبول طلب تغيير الخطة الخاص بـ {{name}}؟",
     "rejectRequest": "رفض",
+    "rejectRequestConfirm": "رفض طلب الدفع هذا؟ يحتفظ المدرب بخطته الحالية وسيتم إشعاره.",
     "approveApplies": "القبول يطبّق الخطة المطلوبة تلقائيًا.",
     "snapshotStale": "إعدادات هذه الفئة تغيّرت منذ تقديم هذا الطلب — الموافقة ستطبّق السعر/الحدود الظاهرة أعلاه.",
     "requestsPending": "{{n}} طلب خطة بانتظار مراجعتك",

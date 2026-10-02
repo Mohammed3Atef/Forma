@@ -8,6 +8,7 @@ import { useSettings } from '@/stores/settingsStore';
 import { useDay } from '@/stores/dayStore';
 import { useTimer } from '@/stores/timerStore';
 import { useVideos } from '@/stores/videoStore';
+import { playVideo } from '@/stores/videoPopupStore';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useElapsed } from '@/hooks/useElapsed';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -188,6 +189,13 @@ export function WorkoutSession() {
   };
 
   const openVideo = (exerciseId: string) => {
+    // Coach-assigned video URL first (same rule as ExerciseDetail) — without
+    // this the in-session button did nothing for every coach-supplied video.
+    const url = plan.exercises[exerciseId]?.videoUrl;
+    if (url) {
+      playVideo(url);
+      return;
+    }
     setVideoAsset(byExercise(exerciseId));
     setVideoTitle(plan.exercises[exerciseId]?.name ?? '');
   };

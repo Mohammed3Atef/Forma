@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
@@ -9,9 +9,10 @@ import { Slider } from '@/components/Slider';
 import { NumberStepper } from '@/components/NumberStepper';
 import { PosePhotoPicker } from '@/components/PosePhotoPicker';
 import { CheckInSummary } from '@/components/CheckInSummary';
-import { isBunnyConfigured } from '@/services/platform/bunnyUploadApi';
+import { useUploadConfigured } from '@/services/platform/mediaApi';
 import { getCheckIn, submitCheckIn, type CheckInSubmission } from '@/services/platform/checkInApi';
 import { useSession } from '@/services/auth/sessionStore';
+import { useBack } from '@/hooks/useBack';
 import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
@@ -33,10 +34,14 @@ type Step = (typeof STEPS)[number];
  */
 export function CheckIn() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  // Real back when there is in-app history; `/check-ins` when this was opened
+  // from a notification deep link / fresh tab (where `navigate(-1)` would
+  // either do nothing or leave the site).
+  const leave = useBack('/check-ins');
   const qc = useQueryClient();
   const { id = '' } = useParams();
   const uid = useSession((s) => s.uid) ?? '';
+  const uploadsEnabled = useUploadConfigured();
 
   const q = useQuery({ queryKey: ['checkIn', uid, id], queryFn: () => getCheckIn(uid, id), enabled: !!uid && !!id });
   const checkIn = q.data;
@@ -67,7 +72,7 @@ export function CheckIn() {
   };
   const goBack = () => {
     if (step === 0) {
-      navigate(-1);
+      leave();
       return;
     }
     setStep((s) => s - 1);
@@ -76,7 +81,7 @@ export function CheckIn() {
   if (q.isLoading) {
     return (
       <div className="anim-rise">
-        <TopBar title={t('checkin.title')} onBack={() => navigate(-1)} />
+        <TopBar title={t('checkin.title')} onBack={leave} />
         <LoadingState variant="list" count={3} />
       </div>
     );
@@ -84,7 +89,7 @@ export function CheckIn() {
   if (!checkIn) {
     return (
       <div className="anim-rise">
-        <TopBar title={t('checkin.title')} onBack={() => navigate(-1)} />
+        <TopBar title={t('checkin.title')} onBack={leave} />
         <p className="py-8 text-center text-sm text-earth-muted">{t('checkin.notFound')}</p>
       </div>
     );
@@ -94,7 +99,7 @@ export function CheckIn() {
   if (checkIn.status !== 'requested') {
     return (
       <div className="anim-rise space-y-4">
-        <TopBar title={t('checkin.title')} eyebrow={`${shortDate(checkIn.weekStart, i18n.language)} – ${shortDate(checkIn.weekEnd, i18n.language)}`} onBack={() => navigate(-1)} />
+        <TopBar title={t('checkin.title')} eyebrow={`${shortDate(checkIn.weekStart, i18n.language)} – ${shortDate(checkIn.weekEnd, i18n.language)}`} onBack={leave} />
         <Pill tone={TONE[checkIn.status]}>{t(`checkin.status.${checkIn.status}`)}</Pill>
         {checkIn.status === 'reviewed' && checkIn.coachFeedback && (
           <div className="card border border-brand/30">
@@ -118,7 +123,7 @@ export function CheckIn() {
             <Icon name="chevronLeft" size={18} className="rtl:rotate-180" />
           </button>
           <p className="ui-label">{t('checkin.title')}</p>
-          <button type="button" onClick={() => navigate(-1)} className="icon-btn h-9 w-9" aria-label={t('common.close')}>
+          <button type="button" onClick={leave} className="icon-btn h-9 w-9" aria-label={t('common.close')}>
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -189,11 +194,11 @@ export function CheckIn() {
               <label className="label">{t('checkin.notes')}</label>
               <textarea className="input min-h-20" data-testid="checkin-notes" value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
-            {isBunnyConfigured() && (
+            {uploadsEnabled && (
               <div className="space-y-2">
                 <p className="label">{t('checkin.photos')}</p>
                 {(['front', 'side', 'back'] as const).map((pose) => (
-                  <PosePhotoPicker key={pose} pose={pose} folder={`Forma/${uid}/checkin/${id}`} url={form.progressPhotos?.[pose]} onChange={(url) => setPhoto(pose, url)} />
+                  <PosePhotoPicker key={pose} pose={pose} target={{ category: 'checkin', checkInId: id }} url={form.progressPhotos?.[pose]} onChange={(url) => setPhoto(pose, url)} />
                 ))}
               </div>
             )}

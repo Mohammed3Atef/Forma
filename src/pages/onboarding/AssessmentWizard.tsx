@@ -12,7 +12,7 @@ import { useSettings } from '@/stores/settingsStore';
 import { showToast } from '@/stores/toastStore';
 import { downscaleImage } from '@/lib/image';
 import { parseDecimal } from '@/lib/utils';
-import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
+import { uploadImage, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
 import type {
   ActivityLevel,
   AssessmentChallenge,
@@ -288,7 +288,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
 
           {/* Body — scrolls inside the card */}
           <main className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            {step === 7 ? <PhotosStep a={a} uid={uid} setPhoto={setPhoto} /> : renderStep(step, a, patch, t)}
+            {step === 7 ? <PhotosStep a={a} setPhoto={setPhoto} /> : renderStep(step, a, patch, t)}
           </main>
 
           {/* Footer — Back / Next-or-Submit, never covers inputs */}
@@ -564,29 +564,31 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
       );
     case 7:
     default:
-      return null; // Step 7 (photos) is rendered by <PhotosStep> (needs hooks + uid).
+      return null; // Step 7 (photos) is rendered by <PhotosStep> (needs hooks).
   }
 }
 
-/** Optional progress-photo upload step (front/side/back → Bunny CDN). */
-function PhotosStep({ a, uid, setPhoto }: { a: ClientAssessment; uid: string; setPhoto: (pose: 'front' | 'side' | 'back', url?: string) => void }) {
+/** Optional progress-photo upload step (front/side/back → CDN via the media API; the server files them under the signed-in client's own `assessment/` folder). */
+function PhotosStep({ a, setPhoto }: { a: ClientAssessment; setPhoto: (pose: 'front' | 'side' | 'back', url?: string) => void }) {
   const { t } = useTranslation();
+  const configured = useUploadConfigured();
   return (
     <div className="space-y-3">
       <p className="text-sm text-earth-muted">{t('assessment.photosHint')}</p>
-      {!isBunnyConfigured() && <p className="text-[12px] text-earth-subtle">{t('upload.notConfigured')}</p>}
+      {!configured && <p className="text-[12px] text-earth-subtle">{t('upload.notConfigured')}</p>}
       {(['front', 'side', 'back'] as const).map((pose) => (
-        <PhotoPicker key={pose} pose={pose} uid={uid} url={a.progressPhotos[pose]} onChange={(url) => setPhoto(pose, url)} />
+        <PhotoPicker key={pose} pose={pose} url={a.progressPhotos[pose]} onChange={(url) => setPhoto(pose, url)} />
       ))}
     </div>
   );
 }
 
-function PhotoPicker({ pose, uid, url, onChange }: { pose: 'front' | 'side' | 'back'; uid: string; url?: string; onChange: (url?: string) => void }) {
+function PhotoPicker({ pose, url, onChange }: { pose: 'front' | 'side' | 'back'; url?: string; onChange: (url?: string) => void }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const configured = useUploadConfigured();
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -596,7 +598,7 @@ function PhotoPicker({ pose, uid, url, onChange }: { pose: 'front' | 'side' | 'b
     setError(null);
     try {
       const blob = await downscaleImage(file);
-      const { url: uploaded } = await uploadImageToBunny(blob, { folder: `Forma/${uid}/assessment` });
+      const { url: uploaded } = await uploadImage(blob, { category: 'assessment' });
       onChange(uploaded);
     } catch (err) {
       setError(t(`upload.${err instanceof UploadError ? err.code : 'failed'}`));
@@ -612,7 +614,7 @@ function PhotoPicker({ pose, uid, url, onChange }: { pose: 'front' | 'side' | 'b
         <div className="flex items-center gap-2">
           {url && <img src={url} alt={pose} className="h-12 w-9 rounded object-cover" />}
           <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
-          <button type="button" disabled={busy || !isBunnyConfigured()} className="chip disabled:opacity-40" onClick={() => ref.current?.click()}>
+          <button type="button" disabled={busy || !configured} className="chip disabled:opacity-40" onClick={() => ref.current?.click()}>
             {busy ? t('upload.uploading') : url ? t('upload.replace') : t('upload.addPhoto')}
           </button>
           {url && (

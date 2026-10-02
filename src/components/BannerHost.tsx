@@ -88,7 +88,8 @@ export function BannerHost() {
           </button>
           <p className="pe-6 font-semibold">{b.title}</p>
           {b.body ? <p className="pe-6 mt-0.5 text-sm text-earth-muted">{b.body}</p> : null}
-          {b.ctaLabel && b.ctaHref ? <a href={b.ctaHref} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand">{b.ctaLabel}</a> : null}
+          {/* http(s) only at render too — covers banners stored before the server-side check. */}
+          {b.ctaLabel && b.ctaHref && /^https?:\/\//i.test(b.ctaHref) ? <a href={b.ctaHref} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand">{b.ctaLabel}</a> : null}
         </div>
       ))}
     </div>

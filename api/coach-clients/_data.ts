@@ -1,4 +1,4 @@
-import type { Collection } from 'mongodb';
+import type { ClientSession, Collection } from 'mongodb';
 import { getDb } from '../_lib/mongodb.js';
 import type { ClientSubscriptionInput, CoachClientDoc, CoachPlanDoc, SubscriptionDoc } from './_types.js';
 
@@ -64,22 +64,86 @@ export function buildSubscription(input: ClientSubscriptionInput, now: number): 
  * never silently allowing unlimited clients.
  */
 export async function coachAtClientCap(coachId: string): Promise<boolean> {
-  const col = await coachPlansCol();
-  const plan = await col.findOne({ _id: coachId });
-  if (!plan) return true;
-  const max = plan.maxClients;
-  const count = plan.activeClientCount;
-  if (typeof max !== 'number' || !Number.isFinite(max) || max <= 0) return true;
-  if (typeof count !== 'number' || !Number.isFinite(count)) return true;
-  return count >= max;
+  return (await coachCapStatus(coachId)) !== 'ok';
 }
 
-/** Best-effort maintained counter — never fails the caller's request. */
-export async function bumpActiveClientCount(coachId: string, delta: number): Promise<void> {
-  try {
-    const col = await coachPlansCol();
-    await col.updateOne({ _id: coachId }, { $inc: { activeClientCount: delta }, $set: { updatedAt: Date.now() } });
-  } catch (e) {
-    console.warn('[coach-clients] bumpActiveClientCount failed (non-fatal):', e);
-  }
+/**
+ * Same decision as `coachAtClientCap`, but says WHY a new client link is
+ * refused so callers can return the right error: a coach with NO plan doc (or
+ * a malformed one) is a different problem from a coach who is genuinely full,
+ * and telling an admin "at their client limit" for the former sends them to
+ * raise a limit that isn't the issue.
+ */
+export type CoachCapStatus = 'ok' | 'no_plan' | 'at_cap';
+export async function coachCapStatus(coachId: string, session?: ClientSession): Promise<CoachCapStatus> {
+  const col = await coachPlansCol();
+  const plan = await col.findOne({ _id: coachId }, { session });
+  if (!plan) return 'no_plan';
+  const max = plan.maxClients;
+  const count = plan.activeClientCount;
+  if (typeof max !== 'number' || !Number.isFinite(max) || max <= 0) return 'no_plan';
+  if (typeof count !== 'number' || !Number.isFinite(count)) return 'no_plan';
+  return count >= max ? 'at_cap' : 'ok';
+}
+
+export const CAP_MESSAGES: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
+  no_plan: 'This coach has no active plan yet',
+  at_cap: 'Coach is at their client limit',
+};
+
+/**
+ * ATOMIC slot reservation — the ONE cap gate every path that opens a new
+ * active relationship goes through (`assignExistingClient`, `invites.claim`,
+ * `transferClientWithMode`). `coachCapStatus` above is a read and therefore
+ * only ever advisory: two concurrent joins that both read "one slot left"
+ * would both pass it and push the coach over `maxClients`. This instead makes
+ * the check and the increment ONE conditional `findOneAndUpdate`, so of N
+ * simultaneous joins for the last slot exactly one wins — the rest see
+ * `at_cap`.
+ *
+ * The filter pins both fields to real numbers on purpose (`$gt`/`$gte` only
+ * match values of the same BSON type bracket, so null/missing/strings never
+ * match): in aggregation comparison order `null < 25` is TRUE, so a bare
+ * `$expr: {$lt: [...]}` on a legacy plan doc with no `activeClientCount`
+ * would grant unlimited slots. A missing/malformed doc is refused as
+ * `no_plan` (never silently allowed), matching `coachCapStatus`.
+ *
+ * Callers MUST release the slot (`releaseClientSlot`) if the relationship
+ * write that follows fails — or run the whole thing inside a transaction with
+ * `session`, in which case an abort rolls the reservation back for free.
+ */
+export async function reserveClientSlot(coachId: string, session?: ClientSession): Promise<CoachCapStatus> {
+  const col = await coachPlansCol();
+  const reserved = await col.findOneAndUpdate(
+    {
+      _id: coachId,
+      maxClients: { $gt: 0 },
+      activeClientCount: { $gte: 0 },
+      $expr: { $lt: ['$activeClientCount', '$maxClients'] },
+    },
+    { $inc: { activeClientCount: 1 }, $set: { updatedAt: Date.now() } },
+    { session, returnDocument: 'after' },
+  );
+  if (reserved) return 'ok';
+  // Lost — say why. If a slot freed up between the CAS and this read, still
+  // report `at_cap` (the caller may retry); never claim a reservation we
+  // didn't make.
+  const why = await coachCapStatus(coachId, session);
+  return why === 'ok' ? 'at_cap' : why;
+}
+
+/**
+ * Returns a slot taken by `reserveClientSlot` (relationship ended, or the
+ * write after the reservation failed). Floored at zero so a release can
+ * never drive the counter negative; a plan doc with no numeric counter is
+ * left alone (it is `no_plan` for reservation purposes anyway — see the
+ * reconciliation script for repairing such docs).
+ */
+export async function releaseClientSlot(coachId: string, session?: ClientSession): Promise<void> {
+  const col = await coachPlansCol();
+  await col.updateOne(
+    { _id: coachId, activeClientCount: { $gt: 0 } },
+    { $inc: { activeClientCount: -1 }, $set: { updatedAt: Date.now() } },
+    { session },
+  );
 }

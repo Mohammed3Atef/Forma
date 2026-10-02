@@ -163,19 +163,24 @@ export const authRouter = router({
       z.object({
         displayName: z.string().trim().min(1).max(120).optional(),
         phone: z.string().trim().max(40).optional(),
-        photoUrl: z.string().trim().max(2000).optional(),
+        // `null` = remove the photo. (`undefined` is dropped by JSON, so it can
+        // never reach the server — the old "Remove photo" control sent exactly
+        // that and was a no-op.)
+        photoUrl: z.string().trim().max(2000).nullable().optional(),
         timezone: z.string().trim().max(80).optional(),
         currency: z.string().trim().max(10).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const set: Partial<UserDoc> = { updatedAt: Date.now() };
+      const unset: Record<string, ''> = {};
       for (const [k, v] of Object.entries(input)) {
-        if (v !== undefined) (set as Record<string, unknown>)[k] = v;
+        if (v === null) unset[k] = '';
+        else if (v !== undefined) (set as Record<string, unknown>)[k] = v;
       }
       if (input.displayName) set.displayNameLower = input.displayName.toLowerCase();
       const users = await usersCol();
-      await users.updateOne({ _id: ctx.user.id }, { $set: set });
+      await users.updateOne({ _id: ctx.user.id }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
       const updated = await users.findOne({ _id: ctx.user.id });
       return toPublicUser(updated!);
     }),

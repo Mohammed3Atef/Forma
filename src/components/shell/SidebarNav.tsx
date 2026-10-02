@@ -1,9 +1,11 @@
-import { NavLink } from 'react-router-dom';
+import type { MouseEvent } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { NavItem, NavGroup } from '@/config/nav';
 import { Icon } from '@/components/Icon';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
 import { useSidebarStore } from '@/stores/sidebarStore';
+import { confirmLeave, hasNavGuard } from '@/stores/navGuardStore';
 
 function isGrouped(items: NavItem[] | NavGroup[]): items is NavGroup[] {
   return items.length > 0 && 'items' in items[0];
@@ -23,10 +25,21 @@ function isGrouped(items: NavItem[] | NavGroup[]): items is NavGroup[] {
  */
 export function SidebarNav({ items }: { items: NavItem[] | NavGroup[] }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const unread = useCoachMessageUnread(); // 0 unless a coach is signed in
   const collapsed = useSidebarStore((s) => s.collapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const groups: NavGroup[] = isGrouped(items) ? items : [{ group: '', items }];
+  // Same unsaved-changes interception as BottomNav: a dirty editor must be
+  // able to stop a sidebar navigation too (desktop is the coach's primary
+  // surface). No guard armed → NavLink navigates on its own as usual.
+  const guardedClick = (to: string) => (e: MouseEvent) => {
+    if (!hasNavGuard()) return;
+    e.preventDefault();
+    void confirmLeave().then((ok) => {
+      if (ok) navigate(to);
+    });
+  };
   // Only the `lg:` (desktop) tier ever changes with `collapsed` — the base
   // (mobile-hidden, tablet icon-only) classes always apply first.
   const expandedAtDesktop = !collapsed;
@@ -57,6 +70,7 @@ export function SidebarNav({ items }: { items: NavItem[] | NavGroup[] }) {
                 key={item.key}
                 to={item.to}
                 end={item.end ?? false}
+                onClick={guardedClick(item.to)}
                 data-testid={`sidebar-${item.key}`}
                 title={t(`nav.${item.key}`)}
                 className={({ isActive }) =>

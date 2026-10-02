@@ -67,16 +67,25 @@ export function CommandHost() {
         ents.push({ id: `tp-${tp.id}`, label: tp.name, icon: 'list', group: t('coachDash.templates'), run: go(`/coach/templates/${tp.id}`) }),
       );
     } else if (role === 'admin' || role === 'super_admin') {
+      const isSuper = role === 'super_admin';
       cmds.push(
         { id: 'a-accounts', label: t('admin.accounts'), icon: 'user', group: cmd, always: true, run: go('/admin/accounts') },
         { id: 'a-assign', label: t('admin.assignments'), icon: 'target', group: cmd, always: true, run: go('/admin/assignments') },
-        { id: 'a-coaches', label: t('admin.coaches'), icon: 'trophy', group: cmd, always: true, run: go('/admin/coaches') },
-        { id: 'a-revenue', label: t('nav.adminSubscriptions'), icon: 'bolt', group: cmd, always: true, run: go('/admin/subscriptions') },
+        // Coaches / Subscriptions are super_admin-only screens (they redirect a
+        // plain admin back to /admin) — never offer a command that dead-ends.
+        ...(isSuper
+          ? [
+              { id: 'a-coaches', label: t('admin.coaches'), icon: 'trophy' as const, group: cmd, always: true, run: go('/admin/coaches') },
+              { id: 'a-revenue', label: t('nav.adminSubscriptions'), icon: 'bolt' as const, group: cmd, always: true, run: go('/admin/subscriptions') },
+            ]
+          : []),
         { id: 'a-system', label: t('admin.governance'), icon: 'settings', group: cmd, always: true, run: go('/admin/governance') },
       );
-      qc.getQueryData<CoachAdminData>(['coachAdmin'])?.rows.forEach((r) =>
-        ents.push({ id: `co-${r.coach.id}`, label: r.coach.displayName || r.coach.email, icon: 'trophy', group: t('admin.coaches'), keywords: r.coach.email, run: go(`/admin/coaches/${r.coach.id}`) }),
-      );
+      if (isSuper) {
+        qc.getQueryData<CoachAdminData>(['coachAdmin'])?.rows.forEach((r) =>
+          ents.push({ id: `co-${r.coach.id}`, label: r.coach.displayName || r.coach.email, icon: 'trophy', group: t('admin.coaches'), keywords: r.coach.email, run: go(`/admin/coaches/${r.coach.id}`) }),
+        );
+      }
     }
     return [...cmds, ...ents];
   }, [open, role, coachId, qc, navigate, t]);
