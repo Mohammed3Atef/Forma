@@ -1,7 +1,8 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from './Sheet';
 import { Icon } from './Icon';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useSession } from '@/services/auth/sessionStore';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
@@ -16,7 +17,8 @@ import { ADMIN_SIDEBAR, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_SIDEBAR, type Na
  */
 export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // Routed through the unsaved-changes guard, like every other navigation trigger.
+  const navigate = useGuardedNav();
   const { pathname } = useLocation();
   const role = useSession((s) => s.account?.role);
   const clientUnread = useClientMessageUnread();

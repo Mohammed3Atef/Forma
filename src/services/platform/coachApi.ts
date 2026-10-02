@@ -1,3 +1,4 @@
+import { normalizeAssessment } from '@/lib/assessment';
 import { trpc } from '@/services/trpc';
 import { writeAudit } from './auditApi';
 import type {
@@ -75,7 +76,7 @@ export async function fetchClientProfile(clientId: string): Promise<UserProfile 
 
 /** Read a client's onboarding assessment (coach/admin oversight, read-only). */
 export async function getClientAssessment(clientId: string): Promise<ClientAssessment | null> {
-  return trpc.assessment.get.query({ clientId }) as Promise<ClientAssessment | null>;
+  return normalizeAssessment((await trpc.assessment.get.query({ clientId })) as ClientAssessment | null);
 }
 
 /** Coach records review notes on a client's assessment (merge, doesn't reset status). */
@@ -216,8 +217,9 @@ export async function saveClientMeasurement(
   date: string,
   values: Record<string, number>,
   updatedBy: string,
+  clear: string[] = [],
 ): Promise<void> {
-  await trpc.measurements.save.mutate({ clientId, date, values });
+  await trpc.measurements.save.mutate({ clientId, date, values, ...(clear.length ? { clear } : {}) });
   await writeAudit({ action: 'client.measurement', targetUserId: clientId, metadata: { date, by: updatedBy } });
 }
 

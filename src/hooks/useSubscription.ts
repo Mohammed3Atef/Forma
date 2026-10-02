@@ -27,7 +27,13 @@ export function useSubscription() {
   // A client with no coach at all has nothing to gate against — the app's own
   // per-page empty states (WaitingForCoach, etc.) already handle "no plan yet"
   // gracefully. Only gate when there IS a coach but no subscription is set.
-  const access = hasCoach ? subscriptionAccess(status) : 'full';
+  //
+  // A FAILED read (offline PWA, 5xx) is not "no subscription": gating on it
+  // would replace Today/Train/Fuel with the "subscription pending" screen for
+  // a paying client the moment the network blips. The gate only ever acts on
+  // a successful read; the backend enforces the real boundary regardless.
+  const unknown = enabled && q.isError && !q.data;
+  const access = !hasCoach || unknown ? 'full' : subscriptionAccess(status);
   const readOnly = access === 'readonly';
 
   // Mirror into the synchronous gate so data stores can block plan logging.

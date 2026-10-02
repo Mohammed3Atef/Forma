@@ -24,7 +24,13 @@ const STYLE_CLASS: Record<BannerStyle, string> = {
   info: 'border-brand/40 bg-brand/5', success: 'border-success/40 bg-success/5',
   warning: 'border-warn/40 bg-warn/5', promo: 'border-brand/50 bg-brand/10',
 };
-const toDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
+// Local y-m-d, symmetric with `toMs` (local midnight) — a UTC read-back
+// shifted the date by a day east of UTC.
+const toDate = (ms?: number | null) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : null);
 
 function blank(createdBy: string): Banner {
@@ -43,7 +49,18 @@ export function AdminBanners() {
 
   const q = useQuery({ queryKey: ['banners', 'admin'], queryFn: listBanners, staleTime: 60_000 });
   const refresh = () => void qc.invalidateQueries({ queryKey: ['banners'] });
-  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  // tRPC validation errors arrive as a JSON array of zod issues — show the human messages, not the JSON.
+  const errText = (e: unknown) => {
+    const raw = e instanceof Error ? e.message : '';
+    try {
+      const issues = JSON.parse(raw) as { message?: string }[];
+      if (Array.isArray(issues)) return issues.map((i) => i.message).filter(Boolean).join(' · ') || t('common.errorGeneric');
+    } catch {
+      /* not JSON — a plain server message */
+    }
+    return raw || t('common.errorGeneric');
+  };
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: errText(e) });
   const save = useMutation({
     mutationFn: (b: Banner) => saveBanner({ ...b, updatedAt: Date.now() }),
     onSuccess: () => { setEditing(null); refresh(); showToast({ title: t('common.saved'), variant: 'success' }); },

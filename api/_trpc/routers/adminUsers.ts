@@ -4,10 +4,11 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, permissionProcedure, roleProcedure } from '../trpc.js';
 import { usersCol } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
-import { ALL_PERMISSIONS } from '../../_lib/rbac.js';
-import { toPublicUser, type Permission, type Role, type UserDoc } from '../../_lib/types.js';
+import { ALL_PERMISSIONS, hasPermission } from '../../_lib/rbac.js';
+import { toPublicUser, type Permission, type PublicUser, type Role, type UserDoc } from '../../_lib/types.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
 import { ensureTrialPlan } from '../../coach-plans/_data.js';
+import { coachClientsCol } from '../../coach-clients/_data.js';
 
 const RoleEnum = z.enum(['super_admin', 'admin', 'coach', 'client']);
 const StatusEnum = z.enum(['active', 'suspended', 'pending', 'disabled']);
@@ -141,9 +142,19 @@ export const adminUsersRouter = router({
       return docs.map(toPublicUser);
     }),
 
-  searchClients: permissionProcedure('users.read')
+  /**
+   * "Add Existing Client" lookup. Open to active coaches explicitly (they hold
+   * no platform-wide permission any more — see rbac.ts) and to `users.read`
+   * holders; clients are refused. Deliberately narrower than `list`/`byRole`:
+   * CLIENT accounts only, matched by exact email/phone or a name prefix.
+   */
+  searchClients: protectedProcedure
     .input(z.object({ value: z.string(), max: z.number().optional() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const u = ctx.user;
+      if (u.role !== 'coach' && !hasPermission(u.role, u.accountStatus, u.permissions, 'users.read')) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
       const raw = input.value.trim();
       const max = Math.min(Math.max(input.max || 20, 1), 100);
       if (!raw) return [];
@@ -187,12 +198,46 @@ export const adminUsersRouter = router({
       return { ok: results.length - failed, failed };
     }),
 
-  /** See the module doc comment above — deliberately NOT permission-gated. */
-  get: protectedProcedure.input(z.object({ id: z.string().trim().min(1) })).query(async ({ input }) => {
+  /**
+   * See the module doc comment above — deliberately NOT permission-gated, so a
+   * client can load their coach's card and a coach can load a client's.
+   *
+   * The FULL profile (email/phone/socials/flags) is returned only to the user
+   * themself, a `users.read` holder, or someone who has (or had) a coaching
+   * relationship with the target — either direction, any status, so a
+   * client's timeline still resolves a previous coach. Anyone else (e.g. a
+   * coach looking at the other coach named on a transfer request) gets the
+   * same shape with every contact/control field blanked: a name card, not a
+   * directory entry.
+   */
+  get: protectedProcedure.input(z.object({ id: z.string().trim().min(1) })).query(async ({ ctx, input }) => {
     const users = await usersCol();
     const target = await users.findOne({ _id: input.id });
     if (!target) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
-    return toPublicUser(target);
+    const u = ctx.user;
+    let full = u.id === target._id || hasPermission(u.role, u.accountStatus, u.permissions, 'users.read');
+    if (!full) {
+      const rels = await coachClientsCol();
+      const related = await rels.findOne({ $or: [{ _id: `${u.id}__${target._id}` }, { _id: `${target._id}__${u.id}` }] }, { projection: { _id: 1 } });
+      full = !!related;
+    }
+    const pub = toPublicUser(target);
+    if (full) return pub;
+    const redacted: PublicUser = {
+      ...pub,
+      email: '',
+      phone: undefined,
+      whatsapp: undefined,
+      instagram: undefined,
+      permissions: [],
+      featureFlags: {},
+      onboarding: undefined,
+      inviteCode: undefined,
+      assignedCoachId: undefined,
+      mustChangePassword: undefined,
+      createdBy: '',
+    };
+    return redacted;
   }),
 
   /** Hard delete — super_admin only, per firestore.rules' `allow delete: if isSuperAdmin()`. Prefer `setStatus('disabled')` for reversible deactivation. */

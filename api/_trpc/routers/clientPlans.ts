@@ -70,12 +70,19 @@ export const workoutPlanRouter = router({
       if (!libEx) throw new TRPCError({ code: 'NOT_FOUND', message: 'Source exercise is no longer available in your library' });
       const set: Record<string, unknown> = { updatedAt: Date.now() };
       const updated = { ...ex, librarySyncEnabled: true } as unknown as Record<string, unknown>;
+      const unset: Record<string, ''> = {};
       for (const f of SYNCED_EXERCISE_FIELDS) {
-        set[`exercises.${input.exerciseId}.${f}`] = libEx[f];
-        updated[f] = libEx[f];
+        // Missing on the library copy → removed here too (never stored as null).
+        if (libEx[f] === undefined) {
+          unset[`exercises.${input.exerciseId}.${f}`] = '';
+          delete updated[f];
+        } else {
+          set[`exercises.${input.exerciseId}.${f}`] = libEx[f];
+          updated[f] = libEx[f];
+        }
       }
       set[`exercises.${input.exerciseId}.librarySyncEnabled`] = true;
-      await col.updateOne({ _id: clientId }, { $set: set });
+      await col.updateOne({ _id: clientId }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
       return updated;
     }),
 });

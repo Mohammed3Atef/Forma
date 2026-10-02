@@ -27,7 +27,7 @@ function makeDayKeyedLogRouter(collection: string, defaultLimit: number, maxLimi
       const rec = await syncCol.findOne({ clientId, collection, recordId: input.date });
       return rec?.data ?? null;
     }),
-    list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+    list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
       const clientId = await requireReadAccess(ctx.user, input?.clientId);
       const syncCol = await syncRecordsCol();
       const limit = Math.min(input?.limit || defaultLimit, maxLimit);
@@ -51,7 +51,7 @@ export const logsCardioRouter = router({
     return rec?.data ?? null;
   }),
   list: authedProcedure
-    .input(z.object({ clientId: z.string().optional(), date: z.string().optional(), limit: z.number().optional() }).optional())
+    .input(z.object({ clientId: z.string().optional(), date: z.string().optional(), limit: z.number().int().positive().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const clientId = await requireReadAccess(ctx.user, input?.clientId);
       const syncCol = await syncRecordsCol();
@@ -65,7 +65,7 @@ export const logsCardioRouter = router({
 
 /** Coach-oversight read of a client's progress photos (the `progressPhotos` generic-sync collection). */
 export const photosRouter = router({
-  list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ ctx, input }) => {
+  list: authedProcedure.input(z.object({ clientId: z.string().optional(), limit: z.number().int().positive().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = await requireReadAccess(ctx.user, input?.clientId);
     const syncCol = await syncRecordsCol();
     const limit = Math.min(input?.limit || 200, 500);

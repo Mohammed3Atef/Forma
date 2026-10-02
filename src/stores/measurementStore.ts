@@ -7,7 +7,7 @@ interface MeasurementState {
   loaded: boolean;
   load: () => Promise<void>;
   /** Upsert the measurements for a given day (id == date). */
-  save: (date: string, values: Record<string, number>) => Promise<void>;
+  save: (date: string, values: Record<string, number>, clear?: string[]) => Promise<void>;
   forDate: (date: string) => MeasurementLog | null;
 }
 
@@ -20,7 +20,7 @@ export const useMeasurements = create<MeasurementState>((set, get) => ({
     set({ logs: logs.sort((a, b) => a.date.localeCompare(b.date)), loaded: true });
   },
 
-  async save(date, values) {
+  async save(date, values, clear = []) {
     // Drop empty fields so a measurement isn't stored as 0.
     const clean: Record<string, number> = {};
     for (const [k, v] of Object.entries(values)) {
@@ -28,10 +28,12 @@ export const useMeasurements = create<MeasurementState>((set, get) => ({
     }
     // Merge over the existing entry so keys not in `values` (e.g. custom parts) survive.
     const existing = get().logs.find((l) => l.id === date);
+    const merged: Record<string, number> = { ...existing?.values, ...clean };
+    for (const k of clear) if (!(k in clean)) delete merged[k]; // explicitly emptied fields
     const log: MeasurementLog = {
       id: date,
       date,
-      values: { ...existing?.values, ...clean },
+      values: merged,
       updatedAt: Date.now(),
       dirty: true,
     };

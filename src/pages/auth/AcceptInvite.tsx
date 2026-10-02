@@ -6,6 +6,7 @@ import { setAccessToken } from '@/services/platformApi';
 import { trpc } from '@/services/trpc';
 import { getInvite, isClaimable } from '@/services/platform/inviteApi';
 import { passwordError } from '@/lib/password';
+import { commercialReason } from '@/services/platform/coachPlanRequestsApi';
 import type { SignupInvite } from '@/types';
 
 type Phase = 'loading' | 'invalid' | 'ready' | 'joining' | 'done';
@@ -107,7 +108,10 @@ export function AcceptInvite() {
       setPhase('done');
       navigate('/', { replace: true });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed');
+      // The coach can't take clients right now (capacity / subscription) — tell the
+      // client that in plain words instead of the coach-facing "add capacity" copy.
+      const reason = commercialReason(e);
+      setError(reason ? t('forma.inviteUnavailable') : e instanceof Error ? e.message : 'Failed');
       setPhase('ready');
     }
   };
@@ -115,7 +119,7 @@ export function AcceptInvite() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12" data-testid="accept-invite">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <img src="/Forma-logo.png" alt="Forma" width={1536} height={1024} className="mx-auto w-48 max-w-[56%] rounded-2xl" />
+        <img src="/forma-logo.webp" alt="Forma" width={960} height={640} className="mx-auto w-48 max-w-[56%] rounded-2xl" />
 
         {phase === 'loading' && <p className="text-center text-sm text-earth-muted">{t('auth.working')}</p>}
 

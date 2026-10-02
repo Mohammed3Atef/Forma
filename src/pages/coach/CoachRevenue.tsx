@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -27,7 +28,9 @@ export function CoachRevenue() {
   return (
     <div data-testid="coach-revenue">
       <TopBar title={t('nav.coachRevenue')} eyebrow={t('nav.groupBusiness')} />
-      {!d ? (
+      {q.isError && !d ? (
+        <ErrorState onRetry={() => void q.refetch()} testId="coach-revenue-error" />
+      ) : !d ? (
         <LoadingState variant="cards" count={4} />
       ) : (
         <div className="mt-2">

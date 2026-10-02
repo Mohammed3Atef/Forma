@@ -16,10 +16,11 @@ export const queryClient = new QueryClient({
       retry: 1,
       // There's no WebSocket/push layer (Vercel serverless can't hold one) —
       // this is how a coach/admin tab picks up another role's changes without
-      // a manual reload: refetch stale queries when the tab/window regains
-      // focus (covers alt-tabbing back AND switching between side-by-side
-      // windows, since React Query's focus manager listens for both
-      // `visibilitychange` and `focus`).
+      // a manual reload: refetch stale queries when the TAB becomes visible
+      // again. NOTE: React Query v5's focus manager listens to
+      // `visibilitychange` only — plain window `focus` (two side-by-side
+      // windows, both visible) does NOT refetch; those rely on each screen's
+      // own polling. Verified in the Phase-3 browser E2E.
       refetchOnWindowFocus: true,
     },
   },

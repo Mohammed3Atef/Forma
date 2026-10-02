@@ -31,6 +31,30 @@ export function localApiPlugin(): Plugin {
     name: 'forma-local-api',
     apply: 'serve', // dev-server only — never runs during `vite build`
     configureServer(server) {
+      // The other two Vercel functions, mounted the same way so uploads and
+      // the cron can be exercised locally too. Connect strips the mount prefix
+      // from `req.url`; the handlers parse the FULL path, so restore it.
+      for (const [prefix, file] of [
+        ['/api/media', '/api/media/[action].ts'],
+        ['/api/cron/daily-maintenance', '/api/cron/daily-maintenance.ts'],
+      ] as const) {
+        server.middlewares.use(prefix, async (req: IncomingMessage, res: ServerResponse) => {
+          try {
+            req.url = `${prefix}${req.url === '/' ? '' : req.url ?? ''}`;
+            const mod = await server.ssrLoadModule(file);
+            (req as IncomingMessage & { cookies: Record<string, string> }).cookies = parseCookies(req.headers.cookie);
+            const shimRes = withJsonHelpers(res);
+            await (mod.default as (req: unknown, res: unknown) => Promise<void>)(req, shimRes);
+          } catch (e) {
+            server.config.logger.error(`[local-api] ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
+            if (!res.headersSent) {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Local API handler crashed' }));
+            }
+          }
+        });
+      }
       server.middlewares.use('/api/trpc', async (req: IncomingMessage, res: ServerResponse, next) => {
         try {
           const mod = await server.ssrLoadModule('/api/trpc/[trpc].ts');
@@ -68,4 +92,19 @@ function parseCookies(header: string | undefined): Record<string, string> {
     }
   }
   return out;
+}
+
+/** The `res.status(n).json(body)` helpers Vercel adds to `VercelResponse` (used by the media + cron handlers). */
+function withJsonHelpers(res: ServerResponse): ServerResponse & { status: (n: number) => unknown; json: (b: unknown) => unknown } {
+  const r = res as ServerResponse & { status: (n: number) => typeof r; json: (b: unknown) => typeof r };
+  r.status = (n: number) => {
+    res.statusCode = n;
+    return r;
+  };
+  r.json = (b: unknown) => {
+    if (!res.headersSent) res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(b));
+    return r;
+  };
+  return r;
 }

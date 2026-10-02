@@ -87,6 +87,8 @@ export function CoachCheckInsOverview() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['checkIns', current!.client.id] });
       void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
+      void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
+      void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
       showToast({ title: t('checkin.reviewed'), variant: 'success' });
       setReviewedIds((prev) => new Set(prev).add(current!.client.id));
       setFeedback('');

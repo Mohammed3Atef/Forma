@@ -6,7 +6,7 @@ import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { useCan } from '@/services/auth/permissions';
+import { useCan, useRole } from '@/services/auth/permissions';
 import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from '@/services/auth/roles';
 import type { Permission } from '@/types';
 import { listFlags, saveFlag } from '@/services/platform/flagsApi';
@@ -20,9 +20,11 @@ const ROLES: Role[] = ['client', 'coach', 'admin', 'super_admin'];
 
 export function AdminGovernance() {
   const { t } = useTranslation();
+  const role = useRole();
   return (
     <>
-      <TopBar testId="admin-governance" title={t('admin.governance')} eyebrow={t('platform.superAdmin')} />
+      {/* Reachable by plain admins too (`flags.manage`) — the eyebrow names the viewer's actual role. */}
+      <TopBar testId="admin-governance" title={t('admin.governance')} eyebrow={t(role === 'super_admin' ? 'platform.superAdmin' : 'platform.admin')} />
       <GovernanceSections />
     </>
   );

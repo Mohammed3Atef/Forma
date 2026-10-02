@@ -1,5 +1,6 @@
 import { trpc } from '@/services/trpc';
 import type { ClientTransferRequest, TransferMode, TransferSubHandling } from '@/types';
+import type { ClientSubscriptionInput } from './coachClientsApi';
 
 /**
  * Client-takeover REQUESTS — now backed by `/api/transfers/*` (Mongo
@@ -106,16 +107,27 @@ export async function listOutgoingTransferRequests(_coachId: string): Promise<Cl
  * request. ACCEPT triggers the actual reassignment server-side (the shared
  * `transferClientWithMode`, same function an admin direct transfer uses).
  */
+/** Admin-review overrides for `accepted` — when omitted the request's own mode / subscription handling apply server-side. */
+export interface ResolveTransferOverrides {
+  mode?: TransferMode;
+  subscriptionHandling?: TransferSubHandling;
+  newSubscription?: ClientSubscriptionInput;
+}
+
 export async function resolveTransferRequest(
   toCoachId: string,
   clientId: string,
   _decidedBy: string,
   outcome: 'accepted' | 'rejected',
   adminNote?: string,
+  overrides?: ResolveTransferOverrides,
 ): Promise<void> {
   await trpc.transfers.resolve.mutate({
     id: transferReqId(toCoachId, clientId),
     action: outcome === 'accepted' ? 'accept' : 'reject',
     ...(adminNote?.trim() ? { adminNote: adminNote.trim() } : {}),
+    ...(overrides?.mode ? { mode: overrides.mode } : {}),
+    ...(overrides?.subscriptionHandling ? { subscriptionHandling: overrides.subscriptionHandling } : {}),
+    ...(overrides?.newSubscription ? { newSubscription: overrides.newSubscription } : {}),
   });
 }

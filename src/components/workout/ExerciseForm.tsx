@@ -6,7 +6,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Icon } from '@/components/Icon';
 import { EXERCISE_PRESETS } from '@/lib/workoutPresets';
 import { parseDecimal } from '@/lib/utils';
-import { isBunnyConfigured, uploadFileToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
+import { uploadFile, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
 import { alertDialog } from '@/stores/dialogStore';
 import type { Exercise } from '@/types';
 
@@ -29,7 +29,7 @@ export function ExerciseForm({
   extra?: React.ReactNode;
   /** Mutation-in-flight state from the caller — this form has no mutation of its own. */
   pending?: boolean;
-  /** When provided (and Bunny is configured), shows an "Upload video" button next to the URL field. */
+  /** When provided (and media uploads are configured), shows an "Upload video" button next to the URL field. */
   coachId?: string;
 }) {
   const { t } = useTranslation();
@@ -56,12 +56,14 @@ export function ExerciseForm({
   const applyPreset = (p: (typeof EXERCISE_PRESETS)[number]) =>
     setF((cur) => ({ ...cur, warmupSets: String(p.warmupSetCount), workingSets: String(p.workingSets), repRange: p.repRange, restSec: String(p.restSec) }));
 
-  const canUpload = !!coachId && isBunnyConfigured();
+  const uploadsConfigured = useUploadConfigured();
+  const canUpload = !!coachId && uploadsConfigured;
   const onPickVideo = async (file: File | undefined) => {
     if (!file || !coachId) return;
     setUploading(true);
     try {
-      const { url } = await uploadFileToBunny(file, { folder: `Forma/${coachId}/exercises` });
+      // Stored under the signed-in coach's own `exercises/` folder (server-derived).
+      const { url } = await uploadFile(file, { category: 'exercise' });
       setF((cur) => ({ ...cur, videoUrl: url }));
     } catch (e) {
       await alertDialog({ title: t('coachEditor.videoUrl'), message: t(`upload.${e instanceof UploadError ? e.code : 'failed'}`) });

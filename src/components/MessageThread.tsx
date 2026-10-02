@@ -14,7 +14,7 @@ import {
   type MessageSubscription,
 } from "@/services/platform/messagesApi";
 import { markMessageNotificationsSeen } from "@/services/platform/notificationsApi";
-import { isBunnyConfigured, uploadFileToBunny, UploadError } from "@/services/platform/bunnyUploadApi";
+import { uploadFile, useUploadConfigured, UploadError } from "@/services/platform/mediaApi";
 import { getAttachmentKind, type AttachmentKind } from "@/lib/attachmentKind";
 import { messagesEqual } from "@/lib/messagesEqual";
 import { downscaleImage } from "@/lib/image";
@@ -56,6 +56,29 @@ interface DraftAttachment {
 
 /** Coarse-pointer devices (touch) get Enter-inserts-newline; only a device with a real keyboard sends on Enter. */
 const isCoarsePointer = () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+/** Touch long-press that opens a message's actions. iOS Safari never fires `contextmenu` for a long-press, so this is the only mobile opener there. */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_MOVE_PX = 10;
+/**
+ * After a long-press opens the action sheet the finger is still down; lifting it
+ * makes the browser fire a click on whatever is now under it — the sheet's
+ * backdrop (closing it instantly) or an action row (e.g. Edit/Delete). Swallow
+ * exactly that one synthetic click, in the capture phase, before React sees it.
+ */
+function swallowNextClick(at: { x: number; y: number }): void {
+  // Only the browser's synthetic release click: it arrives right after lift-off
+  // at the lift-off point. iOS often fires none at all — so never arm for long,
+  // or the user's next deliberate tap in the sheet would be eaten.
+  const until = Date.now() + 350;
+  const swallow = (e: MouseEvent) => {
+    window.removeEventListener('click', swallow, true);
+    if (Date.now() > until || Math.hypot(e.clientX - at.x, e.clientY - at.y) > 24) return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  window.addEventListener('click', swallow, true);
+  window.setTimeout(() => window.removeEventListener('click', swallow, true), 350);
+}
 
 /** Format an elapsed-seconds count as m:ss for the recording indicator. */
 function fmtElapsed(total: number): string {
@@ -103,13 +126,22 @@ export function MessageThread({
   peer?: { name?: string; photoUrl?: string };
 }) {
   const { t } = useTranslation();
+  const uploadsEnabled = useUploadConfigured();
   const [messages, setMessages] = useState<Message[]>([]);
   // Server-confirmed sends whose real `id` we already have (from the `send`
   // response) but which the poll hasn't fetched into `messages` yet — kept
   // separate from `messages` (which the poll wholesale-replaces every tick)
   // so this never fights with or duplicates what the poll eventually returns.
   const [justSent, setJustSent] = useState<Message[]>([]);
+  // Pages fetched by "Load older" — kept OUT of `messages` for the same
+  // reason as `justSent`: the poll wholesale-replaces `messages` with its own
+  // (newest-200) window every tick, so anything merged into it was wiped ≤5 s
+  // after loading and the next "Load older" skipped the lost range.
+  const [olderPages, setOlderPages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  // Bumped by the error state's Retry to restart the thread subscription immediately.
+  const [reloadKey, setReloadKey] = useState(0);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasOlder, setHasOlder] = useState(false);
   const [body, setBody] = useState("");
@@ -158,10 +190,19 @@ export function MessageThread({
   const subRef = useRef<MessageSubscription | null>(null);
 
   const combined = useMemo(() => {
-    if (justSent.length === 0) return messages;
+    if (justSent.length === 0 && olderPages.length === 0) return messages;
     const ids = new Set(messages.map((m) => m.id));
-    return [...messages, ...justSent.filter((m) => !ids.has(m.id))];
-  }, [messages, justSent]);
+    return [...olderPages.filter((m) => !ids.has(m.id)), ...messages, ...justSent.filter((m) => !ids.has(m.id))];
+  }, [messages, olderPages, justSent]);
+
+  /** Apply a server-confirmed edit/delete/reaction to every local copy of that message (live window, older pages, just-sent) and the poller's cache. */
+  const applyLocalUpdate = useCallback((updated: Message) => {
+    const swap = (cur: Message[]) => cur.map((mm) => (mm.id === updated.id ? updated : mm));
+    setMessages(swap);
+    setOlderPages(swap);
+    setJustSent(swap);
+    subRef.current?.patch(updated.id, updated);
+  }, []);
 
   // Drop a `justSent` entry once the poll's own fetch has caught up to it —
   // this is the ONLY pruning `justSent` needs; nothing here is matched by
@@ -182,24 +223,30 @@ export function MessageThread({
     stick.current = true;
     setNewBelow(0);
     setJustSent([]);
+    setOlderPages([]);
     setHasOlder(false);
     oldestCursorRef.current = null;
     prevNewestAtRef.current = 0;
+    setLoadError(false);
     const unsub = subscribeMessages(clientId, (msgs) => {
       setMessages(msgs);
       setLoading(false);
+      setLoadError(false);
       if (oldestCursorRef.current == null && msgs.length > 0) oldestCursorRef.current = msgs[0].createdAt;
       // A full 200-message window with no older-page state yet — there MAY be
       // more; the exact answer comes from `list`'s own `hasMore`, but until
       // the user asks to load older we only need a reasonable default.
       if (msgs.length >= 200) setHasOlder(true);
+    }, undefined, undefined, () => {
+      setLoading(false);
+      setLoadError(true);
     });
     subRef.current = unsub;
     return () => {
       subRef.current = null;
       unsub();
     };
-  }, [clientId]);
+  }, [clientId, reloadKey]);
 
   const loadOlder = async () => {
     if (loadingOlder || oldestCursorRef.current == null) return;
@@ -210,7 +257,7 @@ export function MessageThread({
       const { messages: older, hasMore } = await listOlderMessages(clientId, oldestCursorRef.current);
       if (older.length > 0) oldestCursorRef.current = older[0].createdAt;
       setHasOlder(hasMore);
-      setMessages((cur) => {
+      setOlderPages((cur) => {
         const ids = new Set(cur.map((m) => m.id));
         return [...older.filter((m) => !ids.has(m.id)), ...cur];
       });
@@ -379,11 +426,14 @@ export function MessageThread({
         const controller = new AbortController();
         uploadAborts.current.set(localId, controller);
         try {
-          const { url, kind, name, size, mimeType } = await uploadFileToBunny(blob, {
-            folder: `Forma/${clientId}/messages`,
-            onProgress: (pct) => setPending((cur) => cur.map((pm) => (pm.localId === localId ? { ...pm, progress: pct } : pm))),
-            signal: controller.signal,
-          });
+          const { url, kind, name, size, mimeType } = await uploadFile(
+            blob,
+            { category: "message", clientId },
+            {
+              onProgress: (pct) => setPending((cur) => cur.map((pm) => (pm.localId === localId ? { ...pm, progress: pct } : pm))),
+              signal: controller.signal,
+            },
+          );
           attachmentPayload = { url, kind, name, size, mimeType };
         } finally {
           uploadAborts.current.delete(localId);
@@ -532,22 +582,18 @@ export function MessageThread({
     if (!text) return;
     try {
       const updated = await editMessage(clientId, editingId, text);
-      setMessages((cur) => cur.map((m) => (m.id === updated.id ? updated : m)));
-      setJustSent((cur) => cur.map((m) => (m.id === updated.id ? updated : m)));
-      subRef.current?.patch(updated.id, updated);
+      applyLocalUpdate(updated);
       cancelEdit();
     } catch {
       await alertDialog({ title: t("messages.editUnavailable"), message: t("common.errorGeneric") });
     }
-  }, [editingId, editText, clientId, t, cancelEdit]);
+  }, [editingId, editText, clientId, t, cancelEdit, applyLocalUpdate]);
   const doDelete = async (m: Message) => {
     setActionsFor(null);
     if (!(await confirmDelete(m.body || t("messages.attach")))) return;
     try {
       const updated = await deleteMessage(clientId, m.id);
-      setMessages((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
-      setJustSent((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
-      subRef.current?.patch(updated.id, updated);
+      applyLocalUpdate(updated);
     } catch {
       await alertDialog({ title: t("messages.deleteUnavailable"), message: t("common.errorGeneric") });
     }
@@ -557,9 +603,7 @@ export function MessageThread({
     const next = mine === value ? null : value; // tap the same one again removes it
     try {
       const updated = await reactToMessage(clientId, m.id, next);
-      setMessages((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
-      setJustSent((cur) => cur.map((mm) => (mm.id === updated.id ? updated : mm)));
-      subRef.current?.patch(updated.id, updated);
+      applyLocalUpdate(updated);
     } catch {
       // Non-fatal — the next poll tick will show the real state either way.
     }
@@ -660,6 +704,12 @@ export function MessageThread({
         )}
         {loading ? (
           <p className="m-auto py-8 text-center text-sm text-earth-muted">{t("auth.working")}</p>
+        ) : loadError && combined.length === 0 ? (
+          // A failed first load is not an empty thread. Polling keeps retrying and clears this on success.
+          <div role="alert" className="m-auto flex flex-col items-center gap-3 py-8 text-center" data-testid="thread-load-error">
+            <p className="text-sm text-danger">{t("messages.loadFailed")}</p>
+            <button type="button" className="btn-ghost" onClick={() => { setLoading(true); setReloadKey((k) => k + 1); }}>{t("common.retry")}</button>
+          </div>
         ) : combined.length === 0 && pending.length === 0 ? (
           <p className="m-auto py-10 text-center text-sm text-earth-muted">{t("messages.noMessages")}</p>
         ) : (
@@ -810,7 +860,7 @@ export function MessageThread({
             )}
             <div className="flex items-end gap-2.5">
               <input ref={fileRef} type="file" accept="image/*,video/*,application/pdf" className="hidden" onChange={onAttach} />
-              {isBunnyConfigured() && (
+              {uploadsEnabled && (
                 <button
                   type="button"
                   data-testid="message-attach"
@@ -822,7 +872,7 @@ export function MessageThread({
                   <Icon name="image" size={20} />
                 </button>
               )}
-              {isBunnyConfigured() && voice.supported && !draft && (
+              {uploadsEnabled && voice.supported && !draft && (
                 <button
                   type="button"
                   data-testid="voice-record"
@@ -936,6 +986,18 @@ const MessageRow = memo(function MessageRow({
   onMediaLoad,
 }: MessageRowProps) {
   const { t, i18n } = useTranslation();
+  // Pointer-based long-press (touch only). Android also fires `contextmenu`
+  // on a long-press — opening the same actions twice is a no-op.
+  const longPressTimer = useRef<number | null>(null);
+  const longPressStart = useRef<{ x: number; y: number } | null>(null);
+  const longPressFired = useRef(false);
+  const clearLongPress = () => {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressStart.current = null;
+  };
   const curDay = new Date(m.createdAt).toDateString();
   const dateLabel = curDay === new Date().toDateString() ? t("common.today") : new Date(m.createdAt).toLocaleDateString(i18n.language, { weekday: "short", month: "short", day: "numeric" });
   const daySeparator = isNewDay && (
@@ -1017,7 +1079,31 @@ const MessageRow = memo(function MessageRow({
               e.preventDefault();
               onOpenActions(m);
             }}
-            className="relative"
+            onPointerDown={(e) => {
+              if (e.pointerType !== "touch") return;
+              clearLongPress();
+              longPressFired.current = false;
+              longPressStart.current = { x: e.clientX, y: e.clientY };
+              longPressTimer.current = window.setTimeout(() => {
+                longPressTimer.current = null;
+                longPressFired.current = true;
+                onOpenActions(m);
+              }, LONG_PRESS_MS);
+            }}
+            onPointerMove={(e) => {
+              const s = longPressStart.current;
+              if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > LONG_PRESS_MOVE_PX) clearLongPress();
+            }}
+            onPointerUp={(e) => {
+              if (longPressFired.current) {
+                longPressFired.current = false;
+                swallowNextClick({ x: e.clientX, y: e.clientY });
+              }
+              clearLongPress();
+            }}
+            onPointerCancel={clearLongPress}
+            onPointerLeave={clearLongPress}
+            className="relative [-webkit-touch-callout:none]"
           >
             {!isEditing && (
               <button

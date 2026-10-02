@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { pickFreshDraft } from '@/lib/draft';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -101,7 +102,7 @@ export function CoachNutritionEditor() {
     void draftStore.getItem<MealPlan>(draftKey).then((draft) => {
       const base = query.data ?? emptyPlan();
       baselineRef.current = JSON.stringify(base);
-      setPlan(draft ?? base);
+      setPlan(pickFreshDraft(draft, query.data) ?? base); // stale drafts (server changed since) are discarded — see lib/draft.ts
     });
   }, [query.isLoading, query.data, plan, draftKey]);
 

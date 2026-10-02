@@ -40,7 +40,8 @@ export function MeasurementForm({
 }: {
   date: string;
   existing?: MeasurementLog | null;
-  onSave: (date: string, values: Record<string, number>) => Promise<void> | void;
+  /** `clear` = keys the user emptied (previously set) — the save must remove them. */
+  onSave: (date: string, values: Record<string, number>, clear: string[]) => Promise<void> | void;
   saving?: boolean;
   extras?: (key: MeasurementKey) => React.ReactNode;
 }) {
@@ -72,14 +73,18 @@ export function MeasurementForm({
   const [error, setError] = useState(false);
   const submit = async () => {
     const values: Record<string, number> = {};
+    // Fields that HAD a value and are now empty — must be sent explicitly or
+    // the save merges them back in and the "cleared" value reappears.
+    const clear: string[] = [];
     for (const k of MEASUREMENT_KEYS) {
       const n = Number(form[k]);
       if (form[k] && !Number.isNaN(n)) values[k] = n;
+      else if (!form[k] && existing?.values?.[k] != null) clear.push(k);
     }
     setBusy(true);
     setError(false);
     try {
-      await onSave(date, values);
+      await onSave(date, values, clear);
       showToast({ title: t('common.saved'), variant: 'success' });
     } catch {
       setError(true);

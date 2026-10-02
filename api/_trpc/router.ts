@@ -9,6 +9,7 @@ import { coachAssetsRouter } from './routers/coachAssets.js';
 import { coachPlansRouter } from './routers/coachPlans.js';
 import { coachPlanRequestsRouter } from './routers/coachPlanRequests.js';
 import { coachPlanTiersRouter } from './routers/coachPlanTiers.js';
+import { coachCommercialRouter } from './routers/coachCommercial.js';
 import { coachClientsRouter } from './routers/coachClients.js';
 import { invitesRouter } from './routers/invites.js';
 import { transfersRouter } from './routers/transfers.js';
@@ -24,6 +25,7 @@ import { adminUsersRouter } from './routers/adminUsers.js';
 import { authRouter } from './routers/auth.js';
 import { syncRouter } from './routers/sync.js';
 import { foodSearchRouter } from './routers/foodSearch.js';
+import { mediaRouter } from './routers/media.js';
 
 /**
  * The merged app router, deployed as the single `api/trpc/[trpc].ts`
@@ -44,6 +46,7 @@ export const appRouter = router({
   coachPlans: coachPlansRouter,
   coachPlanRequests: coachPlanRequestsRouter,
   coachPlanTiers: coachPlanTiersRouter,
+  coachCommercial: coachCommercialRouter,
   coachClients: coachClientsRouter,
   invites: invitesRouter,
   transfers: transfersRouter,
@@ -73,6 +76,7 @@ export const appRouter = router({
   auth: authRouter,
   sync: syncRouter,
   foodSearch: foodSearchRouter,
+  media: mediaRouter,
 });
 
 export type AppRouter = typeof appRouter;

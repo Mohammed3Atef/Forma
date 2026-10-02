@@ -4,21 +4,24 @@ import { Avatar } from '@/components/Avatar';
 import { AvatarCropper } from '@/components/AvatarCropper';
 import { Icon } from '@/components/Icon';
 import { downscaleImage } from '@/lib/image';
-import { isBunnyConfigured, uploadImageToBunny, UploadError } from '@/services/platform/bunnyUploadApi';
+import { uploadImage, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
 
 /**
  * Modern avatar editor: a circular photo with a hover/focus camera overlay (no
  * text buttons) and a corner remove badge. Picking a photo opens a square cropper
- * so the user controls exactly what shows, then uploads to the CDN and reports the
- * URL via `onChange`. Degrades to initials when Bunny isn't configured.
+ * so the user controls exactly what shows, then uploads it (always into the
+ * signed-in user's own avatar folder — the server derives that from the
+ * session) and reports the URL via `onChange`. Degrades to initials when
+ * uploads aren't configured.
  */
-export function AvatarPicker({ name, photoUrl, folder, onChange }: { name?: string; photoUrl?: string; folder: string; onChange: (url?: string) => void }) {
+/** `onChange(null)` = remove the photo (must reach the server as `null` — `undefined` is dropped by JSON). Returning the save promise lets this component show its failure. */
+export function AvatarPicker({ name, photoUrl, onChange }: { name?: string; photoUrl?: string; onChange: (url: string | null) => void | Promise<void> }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
-  const configured = isBunnyConfigured();
+  const configured = useUploadConfigured();
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,10 +35,22 @@ export function AvatarPicker({ name, photoUrl, folder, onChange }: { name?: stri
     setError(null);
     try {
       const small = await downscaleImage(blob, 512, 0.85);
-      const { url } = await uploadImageToBunny(small, { folder });
-      onChange(url);
+      const { url } = await uploadImage(small, { category: 'avatar' });
+      await onChange(url);
     } catch (err) {
       setError(t(`upload.${err instanceof UploadError ? err.code : 'failed'}`));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRemove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onChange(null);
+    } catch {
+      setError(t('upload.failed'));
     } finally {
       setBusy(false);
     }
@@ -64,7 +79,7 @@ export function AvatarPicker({ name, photoUrl, folder, onChange }: { name?: stri
             type="button"
             data-testid="avatar-remove"
             aria-label={t('upload.remove')}
-            onClick={() => onChange(undefined)}
+            onClick={() => void onRemove()}
             className="absolute -bottom-0.5 -end-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-danger text-white transition-transform hover:scale-105 active:scale-95"
           >
             <Icon name="close" size={13} />

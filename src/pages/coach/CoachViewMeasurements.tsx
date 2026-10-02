@@ -25,7 +25,7 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
     t(`measure.parts.${key}`, { defaultValue: customMeasurements?.find((m) => m.key === key)?.label ?? key });
 
   const save = useMutation({
-    mutationFn: (vals: Record<string, number>) => saveClientMeasurement(clientId, date, vals, coachId),
+    mutationFn: ({ vals, clear }: { vals: Record<string, number>; clear: string[] }) => saveClientMeasurement(clientId, date, vals, coachId, clear),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['clientMeasurements', clientId] }),
   });
 
@@ -42,7 +42,9 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
       <MeasurementForm
         date={date}
         existing={existing}
-        onSave={(_d, vals) => save.mutateAsync(vals)}
+        onSave={async (_d, vals, clear) => {
+          await save.mutateAsync({ vals, clear });
+        }}
         extras={(k) => <EntityNotes screen="measurements" date={date} entityType="measurement" entityId={k} label={labelOf(k)} />}
       />
 

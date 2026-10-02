@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
@@ -8,10 +8,11 @@ import type { UserDoc } from '../../_lib/types.js';
 import type { CoachPlanDoc } from '../../coach-plans/_data.js';
 import type { ClientProfileDoc } from '../../client/_lib/types.js';
 
-let mongod: MongoMemoryServer;
+// Replica set (not a standalone): `transferClientWithMode` runs in a Mongo transaction.
+let mongod: MongoMemoryReplSet;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   process.env.MONGODB_URI = mongod.getUri();
   process.env.MONGODB_DB = 'forma_test';
   process.env.JWT_ACCESS_SECRET = 'test-secret-not-for-prod'; // invites.claim signs a real session
@@ -92,11 +93,12 @@ describe('coachClients router', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' }); // at cap (max 1)
   });
 
-  it('list scopes to the caller unless they hold users.read', async () => {
+  it('list scopes to the caller unless they hold users.read — another coach is a tenant, not an overseer', async () => {
     const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
-    // Another coach CAN read this list — every 'coach' carries users.read per rbac.ts
-    // (oversight-style read access), unlike a plain 'client', which cannot.
+    // Another coach must NOT be able to read this roster: coaches hold no
+    // platform-wide permission (rbac.ts) — only an admin (users.read) may.
     const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
+    const admin = await insertUser({ _id: 'admin-1', role: 'admin' });
     const unrelatedClient = await insertUser({ _id: 'client-2', role: 'client' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await givePlan(coachDoc._id);
@@ -104,7 +106,11 @@ describe('coachClients router', () => {
     await asCoach.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
 
     const asOtherCoach = appRouter.createCaller(ctxFor(authedUser(otherCoach)));
-    expect(await asOtherCoach.coachClients.list({ coachId: coachDoc._id })).toHaveLength(1);
+    await expect(asOtherCoach.coachClients.list({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asOtherCoach.coachClients.list({ clientId: clientDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const asAdmin = appRouter.createCaller(ctxFor(authedUser(admin)));
+    expect(await asAdmin.coachClients.list({ coachId: coachDoc._id })).toHaveLength(1);
 
     const asUnrelatedClient = appRouter.createCaller(ctxFor(authedUser(unrelatedClient)));
     await expect(asUnrelatedClient.coachClients.list({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
@@ -128,9 +134,11 @@ describe('coachClients router', () => {
     expect(mine.map((u) => u.id)).toEqual([clientB._id, clientA._id]); // newest-assigned first
     expect(mine.every((u) => !('passwordHash' in u))).toBe(true); // never leaks the hash
 
-    // Another coach with users.read can view via the explicit coachId param.
+    // Another coach is a separate tenant — the explicit coachId param does NOT
+    // let them read this roster (no coach holds users.read).
     const asOtherCoach = appRouter.createCaller(ctxFor(authedUser(otherCoach)));
-    expect(await asOtherCoach.coachClients.listMyClientUsers({ coachId: coachDoc._id })).toHaveLength(2);
+    await expect(asOtherCoach.coachClients.listMyClientUsers({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asOtherCoach.coachClients.dashboardSummaries({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
 
     // A plain client has no users.read and isn't the coach — forbidden.
     const asUnrelatedClient = appRouter.createCaller(ctxFor(authedUser(unrelatedClient)));
@@ -303,7 +311,10 @@ describe('invites router', () => {
   });
 
   it('claimed display name prefers what the client typed, then what the coach set at invite time, then a humanized (not raw) email fallback', async () => {
-    const coachDoc = await insertUser({ _id: 'coach-2', role: 'coach', displayName: 'Coach Two' });
+    // The fixture helper's default email is 'a@example.com' — give this coach
+    // their own address so the invite below can't collide with the coach's own
+    // account (claim correctly refuses an email that already has an account).
+    const coachDoc = await insertUser({ _id: 'coach-2', role: 'coach', displayName: 'Coach Two', email: 'coach2@example.com', emailLower: 'coach2@example.com' });
     await givePlan(coachDoc._id);
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
     const publicCaller = appRouter.createCaller(ctxFor(null));

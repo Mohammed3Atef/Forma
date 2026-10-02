@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { mongoAuth, type MongoUserRecord } from './mongoAuth';
+import { mongoAuth, type MongoUserRecord, type ProfilePatch } from './mongoAuth';
+import { queryClient } from '@/services/platform/queryClient';
 import { setAccessToken } from '@/services/platformApi';
 import type { AccountStatus, UserRecord } from '@/types';
 
@@ -53,7 +54,8 @@ interface SessionState {
    */
   refreshAccount: (opts?: { silent?: boolean }) => Promise<void>;
   updateContact: (phone: string) => Promise<void>;
-  updateSelf: (patch: Partial<Pick<UserRecord, 'displayName' | 'phone' | 'photoUrl' | 'timezone' | 'currency'>>) => Promise<void>;
+  /** Own non-control profile fields. `photoUrl: null` removes the photo. */
+  updateSelf: (patch: ProfilePatch) => Promise<void>;
   /** Sends a password-reset email (works while signed out). */
   resetPassword: (email: string) => Promise<void>;
   /** Change the signed-in user's password + clear the must-change flag. */
@@ -134,6 +136,11 @@ export const useSession = create<SessionState>((set, get) => ({
   async signOut() {
     await mongoAuth.signOutUser();
     setAccessToken(null);
+    // Drop every cached server read BEFORE the next account can mount: the
+    // shared QueryClient outlives the session, so without this the next user
+    // on this device saw the previous user's lists/plan/requests until each
+    // query happened to refetch.
+    queryClient.clear();
     set({ phase: 'anonymous', uid: null, account: null });
   },
 
@@ -148,6 +155,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // clear it too, matching what `signOut()` does, instead of leaving a
       // stale token sitting in memory alongside the now-anonymous phase.
       setAccessToken(null);
+      queryClient.clear(); // same reason as signOut — never carry one account's cache into the next
       set({
         phase: 'anonymous',
         uid: null,

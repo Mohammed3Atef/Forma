@@ -16,6 +16,9 @@ export function useActiveCheckIn() {
     queryFn: () => getActiveCheckIn(uid),
     enabled,
     refetchInterval: 60_000,
+    // A coach-requested check-in must show as soon as the client returns to the
+    // app — the global 60 s staleTime otherwise skips the refocus refetch.
+    staleTime: 0,
   });
   return { checkIn: q.data ?? null, loading: enabled && q.isLoading };
 }

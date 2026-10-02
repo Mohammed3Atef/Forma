@@ -1,5 +1,5 @@
 import { trpc } from '@/services/trpc';
-import type { CoachPlan, CoachPlanTierConfig, UserRecord } from '@/types';
+import type { CoachPlan, UserRecord } from '@/types';
 
 export interface CoachAdminRow {
   coach: UserRecord;
@@ -19,10 +19,15 @@ export interface CoachAdminData {
   suspendedCoaches: number;
   totalClients: number;
   trackedRevenue: number;
-  conversionRate: number; // % of coaches who moved off trial to a paid tier
+  conversionRate: number; // % of coaches who moved from the Trial to the paid subscription
+  /** Confirmed subscription revenue per month (each coach's confirmed snapshot price). */
   recent: CoachAdminRow[];
   top: CoachAdminRow[];
-  tiers: CoachPlanTierConfig[]; // active (non-archived) tier configs for labels/pricing
+  /** Monthly recurring revenue from active monthly capacity add-ons. */
+  capacityRevenue: number;
+  /** Coaches above their effective client limit. */
+  overCapacityCoaches: number;
+  forma: { priceMonthly: number; currency: string; maxClients: number; termDays: number };
 }
 
 /**

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SelectField, TextInput } from '@/components/ui/Field';
 import { transferClientWithMode, type ClientSubscriptionInput } from '@/services/platform/coachClientsApi';
+import { resolveTransferRequest } from '@/services/platform/transferApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
@@ -24,6 +25,7 @@ export function TransferWizard({
   canFreshStart,
   actorId,
   presetCoachId,
+  fromRequest,
   onDone,
   onCancel,
   onFooterChange,
@@ -34,6 +36,14 @@ export function TransferWizard({
   canFreshStart: boolean;
   actorId: string;
   presetCoachId?: string;
+  /**
+   * Set when the wizard is reviewing a coach's pending takeover REQUEST: the
+   * move is then completed via `transfers.resolve('accept')` so the request is
+   * closed in the same server action (a direct `coachClients.transfer` left it
+   * pending forever), and the requester's mode / subscription handling are the
+   * starting values.
+   */
+  fromRequest?: { toCoachId: string; mode?: TransferMode; subscriptionHandling?: TransferSubHandling };
   onDone: () => void;
   onCancel: () => void;
   /** Reports the step-nav footer up to the caller's Sheet `footer` prop, so it stays pinned below the scrolling body. */
@@ -46,8 +56,9 @@ export function TransferWizard({
   // Default to the non-destructive option — Fresh Start (which archives the
   // client's plans/notes/messages/check-ins) requires an explicit pick, never
   // a pre-selected default.
-  const [mode, setMode] = useState<TransferMode>('keep_plans');
-  const [subHandling, setSubHandling] = useState<TransferSubHandling>('keep');
+  // A request's fresh-start is only honoured for someone allowed to run one.
+  const [mode, setMode] = useState<TransferMode>(fromRequest?.mode === 'fresh_start' && canFreshStart ? 'fresh_start' : 'keep_plans');
+  const [subHandling, setSubHandling] = useState<TransferSubHandling>(fromRequest?.subscriptionHandling ?? 'keep');
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>('pending');
   const [months, setMonths] = useState('1');
   const [price, setPrice] = useState('');
@@ -70,7 +81,10 @@ export function TransferWizard({
 
   const [runError, setRunError] = useState<string | null>(null);
   const run = useMutation({
-    mutationFn: () => transferClientWithMode(client.id, fromCoachId, toCoachId!, mode, subHandling, actorId, buildSub()),
+    mutationFn: () =>
+      fromRequest && toCoachId === fromRequest.toCoachId
+        ? resolveTransferRequest(fromRequest.toCoachId, client.id, actorId, 'accepted', undefined, { mode, subscriptionHandling: subHandling, newSubscription: buildSub() })
+        : transferClientWithMode(client.id, fromCoachId, toCoachId!, mode, subHandling, actorId, buildSub()),
     onSuccess: () => {
       showToast({ title: t('transfer.confirm'), variant: 'success' });
       onDone();

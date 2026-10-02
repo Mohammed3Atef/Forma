@@ -83,11 +83,17 @@ export async function propagateExerciseToTemplates(doc: CoachExerciseDoc, existi
 
     const ops = candidates.map((tpl: CoachWorkoutTemplateDoc) => {
       const set: Record<string, unknown> = { updatedAt: Date.now() };
+      const unset: Record<string, ''> = {};
       for (const [exId, ex] of Object.entries(tpl.exercises)) {
         if (ex.libraryExerciseId !== doc.id || ex.librarySyncEnabled === false) continue;
-        for (const f of SYNCED_EXERCISE_FIELDS) set[`exercises.${exId}.${f}`] = doc[f];
+        // A field the library exercise doesn't have is REMOVED from the copy —
+        // writing undefined stores null, which the template save schema rejects.
+        for (const f of SYNCED_EXERCISE_FIELDS) {
+          if (doc[f] === undefined) unset[`exercises.${exId}.${f}`] = '';
+          else set[`exercises.${exId}.${f}`] = doc[f];
+        }
       }
-      return { updateOne: { filter: { _id: tpl._id }, update: { $set: set } } };
+      return { updateOne: { filter: { _id: tpl._id }, update: { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) } } };
     });
     await col.bulkWrite(ops);
     return { status: 'success', affectedTemplates: candidates.length };

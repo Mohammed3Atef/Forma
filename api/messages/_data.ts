@@ -82,8 +82,23 @@ export function toPublicMessage(doc: MessageDoc): PublicMessage {
   return { id: _id, ...rest };
 }
 
+/**
+ * `send`'s retry guard (`clientMsgId`) is only truly idempotent if the
+ * database itself refuses a second row for the same key — a find-then-insert
+ * check alone lets two concurrent retries both pass the "not yet inserted"
+ * read. Partial unique index so rows without a `clientMsgId` (every message
+ * sent before the key existed, plus sends that omit it) are never affected.
+ * Self-ensured here (idempotent createIndex, same pattern as
+ * `api/coach-assets/_lib/db.ts`) and also declared in
+ * `scripts/mongo-init-indexes.mjs`.
+ */
 export async function messagesCol(): Promise<Collection<MessageDoc>> {
-  return (await getDb()).collection<MessageDoc>('messages');
+  const col = (await getDb()).collection<MessageDoc>('messages');
+  await col.createIndex(
+    { clientId: 1, fromUserId: 1, clientMsgId: 1 },
+    { unique: true, partialFilterExpression: { clientMsgId: { $exists: true } }, name: 'uniq_clientMsgId' },
+  );
+  return col;
 }
 
 /**

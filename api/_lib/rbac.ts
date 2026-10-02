@@ -32,7 +32,14 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'flags.manage',
     'audit.read',
   ],
-  coach: ['users.read'],
+  // Coaches hold NO platform-wide permission. Every coach read of other
+  // people's data is granted by the coach⇄client relationship at the call
+  // site (see api/client/_lib/access.ts), never by a blanket grant — the
+  // previous `['users.read']` here let ANY coach list every account, read every
+  // other coach's roster/check-ins and the admin MRR/member dashboards.
+  // The one legitimate coach need that used to ride on it ("Add Existing
+  // Client" lookup) is granted explicitly in `adminUsers.searchClients`.
+  coach: [],
   client: [],
 };
 

@@ -15,7 +15,14 @@ const BannerFields = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().max(2000).optional(),
   ctaLabel: z.string().trim().max(60).optional(),
-  ctaHref: z.string().trim().max(2000).optional(),
+  // http(s) only — rendered as a link on every viewer's screen, so a
+  // `javascript:`/`data:` URL must never be storable.
+  ctaHref: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v === '' || /^https?:\/\//i.test(v), { message: 'Link must start with http:// or https://' })
+    .optional(),
   style: z.enum(['info', 'success', 'warning', 'promo']),
   placement: z.enum(['all', 'client_home', 'coach_dashboard']),
   roles: z.array(z.enum(['super_admin', 'admin', 'coach', 'client'])).default([]),

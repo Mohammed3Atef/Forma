@@ -20,6 +20,7 @@ import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { verifyGoogleIdToken } from '../../_lib/google.js';
 import { ensureTrialPlan } from '../../coach-plans/_data.js';
+import { getFormaConfig } from '../../coach-plans/_handlers/forma.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
 const SIGNUP_MAX_ATTEMPTS = 5;
@@ -45,11 +46,11 @@ export const authRouter = router({
    * via the coach invite flow. Admin/super_admin accounts are never
    * self-service; use scripts/seed-mongo-admin.mjs.
    *
-   * There is exactly one plan cycle: every coach starts on Trial (2 clients,
-   * 15 days) — no plan picker at signup. Once the trial ends, a system cron
-   * (`api/cron/enforce-trial-expiry.ts`) raises a Pro plan request for a
-   * Super Admin to confirm payment on; see that file for the grace-period /
-   * account-pending mechanics.
+   * One product, no plan picker: every coach starts the Forma Free Trial
+   * using the CURRENT Forma configuration (duration + client limit, see
+   * `ensureTrialPlan`). When it ends the daily cron raises a subscription
+   * request; the account is never pended or deleted. A Super Admin can close
+   * self-signup with the Forma config's `signupEnabled`.
    */
   signup: publicProcedure
     .input(
@@ -63,6 +64,9 @@ export const authRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await enforceRateLimit('auth.signup', getClientIp(ctx.req), SIGNUP_MAX_ATTEMPTS, SIGNUP_WINDOW_MS);
+      if (!(await getFormaConfig()).signupEnabled) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'New coach sign-ups are currently closed.' });
+      }
       const users = await usersCol();
       if (await users.findOne({ emailLower: input.email })) {
         throw new TRPCError({ code: 'CONFLICT', message: 'An account with this email already exists.' });
@@ -163,19 +167,24 @@ export const authRouter = router({
       z.object({
         displayName: z.string().trim().min(1).max(120).optional(),
         phone: z.string().trim().max(40).optional(),
-        photoUrl: z.string().trim().max(2000).optional(),
+        // `null` = remove the photo. (`undefined` is dropped by JSON, so it can
+        // never reach the server — the old "Remove photo" control sent exactly
+        // that and was a no-op.)
+        photoUrl: z.string().trim().max(2000).nullable().optional(),
         timezone: z.string().trim().max(80).optional(),
         currency: z.string().trim().max(10).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const set: Partial<UserDoc> = { updatedAt: Date.now() };
+      const unset: Record<string, ''> = {};
       for (const [k, v] of Object.entries(input)) {
-        if (v !== undefined) (set as Record<string, unknown>)[k] = v;
+        if (v === null) unset[k] = '';
+        else if (v !== undefined) (set as Record<string, unknown>)[k] = v;
       }
       if (input.displayName) set.displayNameLower = input.displayName.toLowerCase();
       const users = await usersCol();
-      await users.updateOne({ _id: ctx.user.id }, { $set: set });
+      await users.updateOne({ _id: ctx.user.id }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
       const updated = await users.findOne({ _id: ctx.user.id });
       return toPublicUser(updated!);
     }),

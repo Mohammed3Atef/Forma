@@ -78,9 +78,12 @@ function activeTabKey(pathname: string, clientId: string): string {
 export function CoachClientWorkspaceLayout() {
   const { t } = useTranslation();
   const navigate = useGuardedNav();
-  const goBack = useBack('/coach/clients');
   const { pathname } = useLocation();
   const { clientId = '' } = useParams();
+  // With no in-app history (deep link / refresh): a sub-tab falls back to this
+  // client's overview, the overview itself to the clients list.
+  const overviewPath = `/coach/client/${clientId}`;
+  const goBack = useBack(pathname.replace(/\/$/, '') === overviewPath ? '/coach/clients' : overviewPath);
   const { name, photoUrl, goal, subStatus, daysLeft } = useCoachClientHeader(clientId);
   const isDesktop = useIsDesktop();
   const [moreOpen, setMoreOpen] = useState(false);

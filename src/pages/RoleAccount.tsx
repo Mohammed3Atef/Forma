@@ -12,7 +12,7 @@ import { useSettings } from '@/stores/settingsStore';
 import { confirmDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { getCoachPlan } from '@/services/platform/coachPlanApi';
-import { listCoachPlanTiers, tierLabel } from '@/services/platform/coachPlanTiersApi';
+import { planPhaseLabel } from '@/lib/formaFormat';
 import { shortDate } from '@/lib/utils';
 
 /** Common billing currencies a coach can default to (ISO codes). */
@@ -32,10 +32,8 @@ export function RoleAccount() {
   const isAdmin = account?.role === 'admin' || account?.role === 'super_admin';
   const coachId = account?.id ?? '';
   const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: isCoach && !!coachId, staleTime: 300_000 });
-  const tiers = useQuery({ queryKey: ['coachPlanTiers'], queryFn: () => listCoachPlanTiers(), enabled: isCoach, staleTime: 300_000 });
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: isCoach && !!coachId, staleTime: 60_000 });
-  const tierCfg = (tiers.data ?? []).find((cfg) => cfg.key === (plan.data?.plan ?? 'trial'));
-  const cap = plan.data?.maxClients ?? tierCfg?.maxClients ?? 0;
+  const cap = plan.data?.maxClients ?? 0;
   const used = clients.data?.length ?? 0;
   const atCapacity = cap > 0 && used >= cap;
 
@@ -73,7 +71,7 @@ export function RoleAccount() {
               {account.email && <p className="truncate text-[13px] text-earth-muted">{account.email}</p>}
               {cap > 0 && (
                 <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-brand">
-                  {tierLabel(tiers.data ?? [], plan.data?.plan, t)} · {t('coachDash.planCapacity', { used, cap })}
+                  {planPhaseLabel(plan.data, t)} · {t('coachDash.planCapacity', { used, cap })}
                 </p>
               )}
             </div>
@@ -107,7 +105,7 @@ export function RoleAccount() {
 
       {editable ? (
         <section className="card space-y-4">
-          <AvatarPicker name={account.displayName} photoUrl={account.photoUrl} folder={`Forma/${account.id}/avatar`} onChange={(url) => void updateSelf({ photoUrl: url })} />
+          <AvatarPicker name={account.displayName} photoUrl={account.photoUrl} onChange={(url) => updateSelf({ photoUrl: url })} />
           <div>
             <label className="label">{t('settings.name')}</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => saveIfChanged('displayName', name, account.displayName ?? '')} />

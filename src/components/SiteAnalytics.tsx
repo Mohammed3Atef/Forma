@@ -14,8 +14,11 @@ import { Analytics } from '@vercel/analytics/react';
  */
 export function SiteAnalytics() {
   useEffect(() => {
-    const env = import.meta.env as unknown as Record<string, string | undefined>;
-    const src = env.VITE_ANALYTICS_SRC;
+    // Each key is read by its full static name on purpose. A bare
+    // `import.meta.env` reference makes Vite inline the WHOLE env object —
+    // i.e. every `VITE_*` variable defined in the build environment, used or
+    // not — into the public bundle (that is how the old storage key leaked).
+    const src = import.meta.env.VITE_ANALYTICS_SRC;
     if (!src || import.meta.env.DEV) return;
     if (document.querySelector('script[data-forma-analytics]')) return;
     const el = document.createElement('script');
@@ -23,7 +26,7 @@ export function SiteAnalytics() {
     el.defer = true;
     el.setAttribute('data-forma-analytics', '1');
     try {
-      const data = env.VITE_ANALYTICS_DATA;
+      const data = import.meta.env.VITE_ANALYTICS_DATA;
       if (data) for (const [k, v] of Object.entries(JSON.parse(data) as Record<string, string>)) el.setAttribute(k, v);
     } catch { /* ignore malformed env */ }
     document.head.appendChild(el);

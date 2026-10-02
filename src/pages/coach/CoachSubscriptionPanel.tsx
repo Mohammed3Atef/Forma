@@ -23,6 +23,7 @@ import { listCoachPlans } from '@/services/platform/coachPlansApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
 import { parseDecimal } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
+import { useCan } from '@/services/auth/permissions';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, UserRecord } from '@/types';
@@ -58,6 +59,12 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
 
   const rel = useQuery({ queryKey: ['relationship', coachId, clientId], queryFn: () => getRelationship(coachId, clientId), enabled: !!coachId && !!clientId });
   const request = useQuery({ queryKey: ['freezeRequest', clientId], queryFn: () => getClientFreezeRequest(clientId), enabled: !!clientId });
+  // Account Freeze/Trash calls `adminUsers.setStatus` (`users.manageStatus`);
+  // coaches hold no platform permission, so for them every click was a
+  // guaranteed FORBIDDEN. Only render the section for a caller who can use it
+  // (admins reviewing this panel); the coach's own tools are the
+  // subscription actions below, which are relationship-gated.
+  const canManageStatus = useCan('users.manageStatus');
 
   const sub = rel.data?.subscription;
   const status = effectiveSubscriptionStatus(sub);
@@ -69,6 +76,9 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     void qc.invalidateQueries({ queryKey: ['relationship', coachId, clientId] });
     void qc.invalidateQueries({ queryKey: ['freezeRequest', clientId] });
     void qc.invalidateQueries({ queryKey: ['user', clientId] });
+    // Dashboard sub pills / renewals / revenue are derived from the same relationship.
+    void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
+    void qc.invalidateQueries({ queryKey: ['mySubscription'] });
   };
   const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
   const succeed = (title: string) => () => {
@@ -220,7 +230,8 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         </div>
       </section>
 
-      {/* Account status */}
+      {/* Account status — admin-only (see `canManageStatus`) */}
+      {canManageStatus && (
       <section>
         <h2 className="h2 mb-2">{t('subscription.accountTitle')}</h2>
         <div className="card space-y-3">
@@ -252,6 +263,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
           <p className="text-[12px] text-earth-subtle">{t('subscription.deleteHint')}</p>
         </div>
       </section>
+      )}
 
       {/* Set-term sheet */}
       <SetTermSheet

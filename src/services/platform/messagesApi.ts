@@ -81,6 +81,8 @@ export function subscribeMessages(
   cb: (msgs: Message[]) => void,
   max = 200,
   intervalMs = THREAD_POLL_MS,
+  /** Called when a poll fails before any successful load (so the thread can show an error instead of loading forever). Polling keeps retrying. */
+  onError?: () => void,
 ): MessageSubscription {
   let cancelled = false;
   let cursor: number | undefined;
@@ -102,6 +104,7 @@ export function subscribeMessages(
       emit();
     } catch {
       // Transient network/API error — keep the last known state, retry next tick.
+      if (!cancelled && tick === 0) onError?.();
     }
   };
 

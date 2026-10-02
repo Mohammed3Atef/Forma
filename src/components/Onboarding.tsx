@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
 import { useCloud } from '@/services/auth/cloudStore';
 import { parseDecimal } from '@/lib/utils';
+import { cloudAvailable } from '@/data/dataSource';
+import { useSession } from '@/services/auth/sessionStore';
+import { useCoachContentSync } from '@/stores/coachContentStore';
 
 /**
  * First-launch setup overlay. Shown while the local profile has no name:
@@ -16,6 +19,8 @@ export function Onboarding() {
   const loaded = useSettings((s) => s.loaded);
   const updateProfile = useSettings((s) => s.updateProfile);
   const cloud = useCloud();
+  const uid = useSession((st) => st.uid);
+  const contentSync = useCoachContentSync((st) => st.status);
 
   const [mode, setMode] = useState<'profile' | 'signin'>('profile');
   const [form, setForm] = useState({ name: '', weight: '', height: '', age: '' });
@@ -37,7 +42,13 @@ export function Onboarding() {
   // pre-filled these at account creation; otherwise the client must complete it.
   const incomplete =
     profile != null && (profile.name.trim() === '' || profile.weightKg <= 0 || profile.heightCm <= 0);
-  const needed = loaded && incomplete;
+  // A signed-in client's real profile lives on the server and is pulled in by
+  // ClientGate's coach-content sync. Until that read has SUCCEEDED, an empty
+  // local profile only means 'not loaded yet' (fresh device) or 'load failed' —
+  // never ask an existing client to re-onboard over a network blip (that also
+  // hid the Retry behind this full-screen overlay).
+  const signedInClient = cloudAvailable() && !!uid && uid !== 'local-user';
+  const needed = loaded && incomplete && (!signedInClient || contentSync === 'ok');
   if (!needed) return null;
 
   const saveProfile = async () => {
@@ -62,7 +73,7 @@ export function Onboarding() {
   return (
     <div data-testid="onboarding-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-surface px-5 py-12">
       <div className="anim-rise mx-auto max-w-md space-y-5">
-        <img src="/Forma-logo.png" alt="Forma" width={1536} height={1024} className="mx-auto w-48 max-w-[58%] rounded-2xl" />
+        <img src="/forma-logo.webp" alt="Forma" width={960} height={640} className="mx-auto w-48 max-w-[58%] rounded-2xl" />
         <h1 className="h1">{t('onboard.welcome')}</h1>
         <p className="text-sm text-earth-muted">{t('onboard.intro')}</p>
 

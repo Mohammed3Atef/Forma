@@ -7,6 +7,12 @@ import { localApiPlugin } from './vite-plugins/localApi';
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Separate dep-optimizer cache per isolated E2E server so concurrent runs
+  // (different ports) never rewrite each other's node_modules/.vite.
+  ...(process.env.E2E_VITE_CACHE_DIR ? { cacheDir: process.env.E2E_VITE_CACHE_DIR } : {}),
+  // Test output (traces, reports, stub uploads, DB files) must never trigger
+  // HMR/full reloads in a running dev server — concurrent E2E runs write there.
+  server: { watch: { ignored: ['**/e2e-out/**', '**/test-results/**', '**/e2e-report/**', '**/playwright-report/**'] } },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -30,7 +36,7 @@ export default defineConfig({
       // actually run instead of just existing as dead code.
       registerType: 'prompt',
       injectRegister: false, // registered manually in src/main.tsx (with update polling)
-      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg'],
+      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg', 'forma-logo.webp', 'forma-mark-128.webp'],
       manifest: {
         name: 'Forma',
         short_name: 'Forma',
@@ -68,8 +74,12 @@ export default defineConfig({
         // Marketing landing images are web-only (the installed PWA opens straight
         // to /login) — keep them out of the install precache; they're runtime-cached below.
         // The three.js landing film is lazy-loaded only on the marketing route — never precache it for installs.
-        globIgnores: ['**/landing_page/**', '**/Experience-*.js'],
+        // Forma.png (1.7 MB) is an unreferenced source asset — never precache it.
+        globIgnores: ['**/landing_page/**', '**/Experience-*.js', 'Forma.png'],
         navigateFallback: '/index.html',
+        // A top-level navigation to an API URL (e.g. a media/export link opened
+        // in a new tab) must reach the function, not be answered with the SPA shell.
+        navigateFallbackDenylist: [/^\/api\//],
         // Take control of open pages immediately (once activated) and drop old
         // precaches so a new build replaces the old one without needing a
         // reinstall. `skipWaiting: false` is deliberate — it makes workbox

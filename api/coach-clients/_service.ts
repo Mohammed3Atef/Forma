@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
-import { getDb } from '../_lib/mongodb.js';
+import type { ClientSession } from 'mongodb';
+import { getDb, withDbTransaction } from '../_lib/mongodb.js';
 import { TRPCError } from '@trpc/server';
 import type { UserDoc } from '../_lib/types.js';
-import { addMonths, bumpActiveClientCount, buildSubscription, coachAtClientCap, coachClientsCol, relId } from './_data.js';
+import { addMonths, capError, buildSubscription, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
 import type {
   ClientSubscriptionInput,
   CoachClientDoc,
@@ -124,12 +125,16 @@ export async function assignExistingClient(
   if (!client) throw new TRPCError({ code: 'NOT_FOUND', message: 'Client not found' });
   if (client.role !== 'client') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Target user is not a client' });
   if (client.assignedCoachId) throw new TRPCError({ code: 'CONFLICT', message: 'Client already has an assigned coach' });
-  if (await coachAtClientCap(coachId)) throw new TRPCError({ code: 'CONFLICT', message: 'Coach is at their client limit' });
 
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
   if (existing && existing.status === 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship already exists' });
+
+  // Atomic cap gate — reserve the slot BEFORE the relationship exists, give it
+  // back if anything after this point fails (see `reserveClientSlot`).
+  const cap = await reserveClientSlot(coachId);
+  if (cap !== 'ok') throw capError(cap);
 
   const now = Date.now();
   const subscription = buildSubscription(sub, now);
@@ -143,9 +148,13 @@ export async function assignExistingClient(
     createdAt: now,
     updatedAt: now,
   };
-  await col.updateOne({ _id: id }, { $set: rel }, { upsert: true });
-  await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: coachId, updatedAt: now } });
-  await bumpActiveClientCount(coachId, 1);
+  try {
+    await col.updateOne({ _id: id }, { $set: rel }, { upsert: true });
+    await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: coachId, updatedAt: now } });
+  } catch (e) {
+    await releaseClientSlot(coachId).catch((err) => console.warn('[coach-clients] slot release after failed assign failed:', err));
+    throw e;
+  }
   return rel;
 }
 
@@ -172,7 +181,9 @@ export async function endRelationship(
   const db = await getDb();
   const users = db.collection<UserDoc>('users');
   await users.updateOne({ _id: clientId }, { $set: { updatedAt: now }, $unset: { assignedCoachId: '' } });
-  await bumpActiveClientCount(coachId, -1);
+  // Best-effort, same as before: the relationship IS ended at this point; a
+  // counter miss is repairable (scripts/reconcile-active-client-counts.mjs).
+  await releaseClientSlot(coachId).catch((e) => console.warn('[coach-clients] slot release failed (non-fatal):', e));
 
   return { ...existing, status: 'ended', endedAt: now, endedBy, endReason, updatedAt: now };
 }
@@ -185,21 +196,20 @@ export async function endRelationship(
  * the live docs so the new coach genuinely starts the client fresh (a GET on
  * any of those routes behaves exactly like a brand-new client: `null`/empty).
  *
- * Called from `transferClientWithMode` BEFORE the client is reassigned, so a
- * `fresh_start` transfer archives+clears and reassigns as one server-side
- * operation — never a second client-triggered call (this codebase doesn't use
- * Mongo multi-document transactions anywhere, so "atomic" here means "one
- * request, sequential awaited writes," consistent with every other multi-step
- * mutation in this file).
+ * Called from `transferClientWithMode` BEFORE the client is reassigned, inside
+ * the SAME Mongo transaction (`session` is threaded through every read and
+ * write here — a write made without it would commit immediately, outside the
+ * transaction, and survive an abort). So a `fresh_start` transfer archives,
+ * clears and reassigns all-or-nothing: a failure anywhere leaves the
+ * previous coach's plans/notes/targets exactly as they were.
  */
-async function archiveAndClearCoachOwnedData(clientId: string, previousCoachId: string, now: number): Promise<void> {
-  const [workoutPlan, nutritionPlan, cardioPlan, targets, notes] = await Promise.all([
-    (await clientWorkoutPlansCol()).findOne({ _id: clientId }),
-    (await clientNutritionPlansCol()).findOne({ _id: clientId }),
-    (await clientCardioPlansCol()).findOne({ _id: clientId }),
-    (await coachTargetsCol()).findOne({ _id: clientId }),
-    (await coachNotesCol()).find({ clientId }).toArray(),
-  ]);
+async function archiveAndClearCoachOwnedData(clientId: string, previousCoachId: string, now: number, session: ClientSession): Promise<void> {
+  // Sequential on purpose: one ClientSession must not run operations concurrently.
+  const workoutPlan = await (await clientWorkoutPlansCol()).findOne({ _id: clientId }, { session });
+  const nutritionPlan = await (await clientNutritionPlansCol()).findOne({ _id: clientId }, { session });
+  const cardioPlan = await (await clientCardioPlansCol()).findOne({ _id: clientId }, { session });
+  const targets = await (await coachTargetsCol()).findOne({ _id: clientId }, { session });
+  const notes = await (await coachNotesCol()).find({ clientId }, { session }).toArray();
 
   const entries: ArchivedClientDataDoc[] = [];
   // Generic over `T` (rather than typing `doc` as `Record<string, unknown>`
@@ -226,16 +236,16 @@ async function archiveAndClearCoachOwnedData(clientId: string, previousCoachId: 
   for (const note of notes) archiveOne('coachNote', note);
 
   if (entries.length) {
-    await (await archivedClientDataCol()).insertMany(entries);
+    await (await archivedClientDataCol()).insertMany(entries, { session });
   }
 
-  await Promise.all([
-    (await clientWorkoutPlansCol()).deleteOne({ _id: clientId }),
-    (await clientNutritionPlansCol()).deleteOne({ _id: clientId }),
-    (await clientCardioPlansCol()).deleteOne({ _id: clientId }),
-    (await coachTargetsCol()).deleteOne({ _id: clientId }),
-    (await coachNotesCol()).deleteMany({ clientId }),
-  ]);
+  // Sequential (not Promise.all): a ClientSession must not be used by
+  // several operations concurrently.
+  await (await clientWorkoutPlansCol()).deleteOne({ _id: clientId }, { session });
+  await (await clientNutritionPlansCol()).deleteOne({ _id: clientId }, { session });
+  await (await clientCardioPlansCol()).deleteOne({ _id: clientId }, { session });
+  await (await coachTargetsCol()).deleteOne({ _id: clientId }, { session });
+  await (await coachNotesCol()).deleteMany({ clientId }, { session });
 }
 
 /**
@@ -245,6 +255,14 @@ async function archiveAndClearCoachOwnedData(clientId: string, previousCoachId: 
  * when `mode === 'fresh_start'` (see `archiveAndClearCoachOwnedData` above),
  * resolves the new subscription per `subscriptionHandling`, and opens the new
  * relationship.
+ *
+ * ATOMIC: every write below — destination slot reservation, ending the old
+ * relationship, the fresh-start archive+clear, the new relationship, the
+ * client's `assignedCoachId`, the source coach's slot release — runs in ONE
+ * Mongo transaction. A failure at any step (including the cap gate) aborts
+ * the whole thing: the old relationship stays active, no archive rows exist,
+ * both counters are untouched, and the client is still assigned to the
+ * previous coach. Nothing here is "best-effort" any more.
  */
 export async function transferClientWithMode(
   clientId: string,
@@ -258,61 +276,70 @@ export async function transferClientWithMode(
   const now = Date.now();
   const movingCoaches = !!fromCoachId && fromCoachId !== toCoachId;
 
-  // Cap gate BEFORE any mutation — mirrors the enforcement `firestore.rules`
-  // applied at the `coachClients` doc-create layer (via `coachAtClientCap`).
-  if ((movingCoaches || !fromCoachId) && (await coachAtClientCap(toCoachId))) {
-    throw new TRPCError({ code: 'CONFLICT', message: 'Destination coach is at their client limit' });
-  }
+  return withDbTransaction(async (session) => {
+    const col = await coachClientsCol();
+    const fromRel = fromCoachId ? await col.findOne({ _id: relId(fromCoachId, clientId) }, { session }) : null;
+    // A named "from" coach must really be this client's current coach — never
+    // end a phantom relationship and hand the client to `toCoachId` on the say-so
+    // of the request alone (the routers check this too; this is the last line).
+    if (fromCoachId && (!fromRel || fromRel.status !== 'active')) {
+      throw new TRPCError({ code: 'CONFLICT', message: 'That coach does not currently coach this client' });
+    }
 
-  const col = await coachClientsCol();
-  const fromRel = fromCoachId ? await col.findOne({ _id: relId(fromCoachId, clientId) }) : null;
+    // Atomic cap gate on the destination (see `reserveClientSlot`). Inside the
+    // transaction, so an abort further down hands the slot back automatically.
+    if (movingCoaches || !fromCoachId) {
+      const cap = await reserveClientSlot(toCoachId, session);
+      if (cap !== 'ok') {
+        throw capError(cap, 'Destination coach: ');
+      }
+    }
 
-  if (movingCoaches) {
-    await col
-      .updateOne(
+    if (movingCoaches) {
+      await col.updateOne(
         { _id: relId(fromCoachId!, clientId) },
         { $set: { status: 'ended', endedAt: now, endedBy: by, endReason: 'transferred', mode, updatedAt: now } },
-      )
-      .catch(() => undefined);
-  }
+        { session },
+      );
+    }
 
-  // Fresh start: archive + clear the PREVIOUS coach's plan/notes/targets
-  // content before the reassignment below, so the new coach starts clean.
-  // Only meaningful when there actually was a previous coach.
-  if (mode === 'fresh_start' && fromCoachId) {
-    await archiveAndClearCoachOwnedData(clientId, fromCoachId, now);
-  }
+    // Fresh start: archive + clear the PREVIOUS coach's plan/notes/targets
+    // content before the reassignment below, so the new coach starts clean.
+    // Only meaningful when there actually was a previous coach.
+    if (mode === 'fresh_start' && fromCoachId) {
+      await archiveAndClearCoachOwnedData(clientId, fromCoachId, now, session);
+    }
 
-  let subscription: SubscriptionDoc | undefined;
-  if (subscriptionHandling === 'keep') {
-    subscription = fromRel?.subscription;
-  } else if (subscriptionHandling === 'new') {
-    subscription = buildSubscription(newSub ?? { status: mode === 'fresh_start' ? 'pending' : 'trial' }, now);
-  } else {
-    // 'expire' — same verbatim behavior as the Firestore-era function: a fresh
-    // pending term, not an 'expired' one. Preserved as-is, not "fixed".
-    subscription = { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
-  }
+    let subscription: SubscriptionDoc | undefined;
+    if (subscriptionHandling === 'keep') {
+      subscription = fromRel?.subscription;
+    } else if (subscriptionHandling === 'new') {
+      subscription = buildSubscription(newSub ?? { status: mode === 'fresh_start' ? 'pending' : 'trial' }, now);
+    } else {
+      // 'expire' — same verbatim behavior as the Firestore-era function: a fresh
+      // pending term, not an 'expired' one. Preserved as-is, not "fixed".
+      subscription = { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
+    }
 
-  const id = relId(toCoachId, clientId);
-  const rel: CoachClientDoc = {
-    _id: id,
-    coachId: toCoachId,
-    clientId,
-    status: 'active',
-    createdBy: by,
-    createdAt: now,
-    updatedAt: now,
-    ...(subscription ? { subscription } : {}),
-  };
-  await col.updateOne({ _id: id }, { $set: rel }, { upsert: true });
+    const id = relId(toCoachId, clientId);
+    const rel: CoachClientDoc = {
+      _id: id,
+      coachId: toCoachId,
+      clientId,
+      status: 'active',
+      createdBy: by,
+      createdAt: now,
+      updatedAt: now,
+      ...(subscription ? { subscription } : {}),
+    };
+    await col.updateOne({ _id: id }, { $set: rel }, { upsert: true, session });
 
-  const db = await getDb();
-  const users = db.collection<UserDoc>('users');
-  await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: toCoachId, updatedAt: now } });
+    const db = await getDb();
+    const users = db.collection<UserDoc>('users');
+    await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: toCoachId, updatedAt: now } }, { session });
 
-  if (movingCoaches) await bumpActiveClientCount(fromCoachId!, -1);
-  if (fromCoachId !== toCoachId) await bumpActiveClientCount(toCoachId, 1);
+    if (movingCoaches) await releaseClientSlot(fromCoachId!, session);
 
-  return rel;
+    return rel;
+  });
 }

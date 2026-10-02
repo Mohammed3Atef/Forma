@@ -43,7 +43,7 @@ npm run build        # type-check + production build + PWA service worker
 npm run preview      # serve the production build
 ```
 
-Configure the backend by copying [`.env.example`](.env.example) to `.env` and filling in `MONGODB_URI`, `MONGODB_DB`, and `JWT_ACCESS_SECRET` (all read server-side only, inside `api/**/*.ts` — never exposed to the client). The same `.env` holds the optional `VITE_BUNNY_*` keys for image uploads — without them, photo upload is disabled and the UI degrades gracefully.
+Configure the backend by copying [`.env.example`](.env.example) to `.env` and filling in `MONGODB_URI`, `MONGODB_DB`, and `JWT_ACCESS_SECRET` (all read server-side only, inside `api/**/*.ts` — never exposed to the client). The same `.env` holds the optional, **server-only** `BUNNY_*` keys for media uploads (photos, exercise videos, message attachments) — the browser never holds a storage credential; it uploads through `/api/media/*` ([`api/media/[action].ts`](api/media/[action].ts)), which derives the storage path from the session. Without those keys, upload is disabled and the UI degrades gracefully.
 
 ---
 
@@ -76,7 +76,7 @@ The client's **logs** (sets performed, food eaten, water, weight, measurements, 
 - **Role-based routing** — after auth, [`src/App.tsx`](src/App.tsx) mounts one of `ClientApp` / `CoachApp` / `AdminApp` ([`src/apps/`](src/apps/)) by role + account status; [`useSession`](src/services/auth/sessionStore.ts) is the identity source of truth.
 - **Permission-gated UI** — `can()` / `useCan()` ([`src/services/auth/permissions.ts`](src/services/auth/permissions.ts)) hide controls; the real boundary is server-side in [`api/_lib/rbac.ts`](api/_lib/rbac.ts) + [`api/_lib/withAuth.ts`](api/_lib/withAuth.ts), which re-checks the live user doc in Mongo on every request.
 - **Client data = local-first** — Zustand stores + `getDataSource()` (IndexedDB) + a last-write-wins [`SyncEngine`](src/data/sync/SyncEngine.ts) that pushes/pulls against the generic `syncRecords`/`syncDeletions`/`syncSingletons` sync layer via [`api/sync/*`](api/sync/).
-- **Platform reads = online** — admin/coach read other users via React Query over [`src/services/platformApi.ts`](src/services/platformApi.ts) (a shared client holding the in-memory access token, with fetch + automatic refresh-on-401 retry) and thin services in [`src/services/platform/`](src/services/platform/) (`accountsApi`, `coachApi`, `clientCoachApi`, `planApi`, `coachClientsApi`, `checkInApi`, `notificationsApi`, `bunnyUploadApi`, `auditApi`, `flagsApi`, `analyticsApi`).
+- **Platform reads = online** — admin/coach read other users via React Query over [`src/services/platformApi.ts`](src/services/platformApi.ts) (a shared client holding the in-memory access token, with fetch + automatic refresh-on-401 retry) and thin services in [`src/services/platform/`](src/services/platform/) (`accountsApi`, `coachApi`, `clientCoachApi`, `planApi`, `coachClientsApi`, `checkInApi`, `notificationsApi`, `mediaApi`, `auditApi`, `flagsApi`, `analyticsApi`).
 - **Per-account isolation** — switching accounts on one device wipes the previous user's local data (`scopeLocalToUser`) so nothing leaks between accounts.
 - **Account creation** — admins/coaches create accounts directly through [`api/invites/*`](api/invites/) (`POST /api/invites` to create, `POST /api/invites/claim` — public, no auth required — to claim), which atomically creates the Mongo user doc and the `coachClients` relationship; no client-side workaround is needed since the backend can issue its own session token.
 
@@ -153,7 +153,7 @@ node scripts/seed-mongo-admin.mjs
 It reads `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` env vars (or pass `--dry-run`) — see the header comment in [`scripts/seed-mongo-admin.mjs`](scripts/seed-mongo-admin.mjs) for details. This creates (or promotes) the user directly in Mongo with `role: super_admin` and `accountStatus: active`; no manual document editing required.
 
 ### Web hosting (Vercel)
-Vite build → `dist`. On Vercel, add `MONGODB_URI`, `MONGODB_DB`, `JWT_ACCESS_SECRET` and the `VITE_BUNNY_*` vars (Production + Preview) — see [`.env.example`](.env.example); [`vercel.json`](vercel.json) handles SPA fallback + service-worker cache headers, and Vercel's file-based routing serves everything under `api/` automatically as serverless functions. There is no separate rules/indexes deploy step — RBAC is enforced in the API code itself.
+Vite build → `dist`. On Vercel, add `MONGODB_URI`, `MONGODB_DB`, `JWT_ACCESS_SECRET`, `CRON_SECRET` and the server-only `BUNNY_*` vars (Production + Preview; never `VITE_BUNNY_*`) — see [`.env.example`](.env.example); [`vercel.json`](vercel.json) handles SPA fallback + service-worker cache headers, and Vercel's file-based routing serves everything under `api/` automatically as serverless functions. There is no separate rules/indexes deploy step — RBAC is enforced in the API code itself.
 
 ### Android (Capacitor)
 The native project is scaffolded under `android/`.

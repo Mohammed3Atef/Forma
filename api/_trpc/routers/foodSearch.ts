@@ -59,19 +59,25 @@ const CACHE_TTL_MS = 10 * 60_000;
 const CACHE_MAX = 200;
 const cache = new Map<string, { at: number; results: FoodSearchResult[] }>();
 
+/** Upstream rows occasionally carry null/blank macro strings — never let a NaN reach the nutrition editor (it would poison every downstream total). */
 function mapResult(ing: WgerIngredient): FoodSearchResult {
-  const num = (s: string) => Math.round(parseFloat(s) * 10) / 10;
+  const safe = (n: number) => (Number.isFinite(n) ? n : 0);
+  const num = (s: string | null | undefined) => safe(Math.round(parseFloat(String(s ?? '')) * 10) / 10);
+  const calories = safe(Math.round(Number(ing.energy)));
+  const protein = num(ing.protein);
+  const carbs = num(ing.carbohydrates);
+  const fats = num(ing.fat);
   return {
     id: `wger-food-${ing.id}`,
     name: ing.name,
     quantity: '100 g',
-    calories: Math.round(ing.energy),
-    protein: num(ing.protein),
-    carbs: num(ing.carbohydrates),
-    fats: num(ing.fat),
+    calories,
+    protein,
+    carbs,
+    fats,
     sourceId: String(ing.id),
     sourceProvider: 'wger',
-    sourceNutrition: { baseGrams: 100, calories: Math.round(ing.energy), protein: num(ing.protein), carbs: num(ing.carbohydrates), fats: num(ing.fat) },
+    sourceNutrition: { baseGrams: 100, calories, protein, carbs, fats },
   };
 }
 
