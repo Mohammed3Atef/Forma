@@ -137,3 +137,68 @@ test('B3: awaiting request past its deadline → cron expires it; Trial untouche
   await expect(page.getByTestId('plan-request-subscription')).toBeVisible();
   await snap(page, testInfo, 'expired-request');
 });
+
+test('B4: early renewal confirmed → term appended after the current end; same date on My Plan + Admin; audit/history show old → new', async ({ as, db, env }, testInfo) => {
+  test.setTimeout(150_000);
+  const coachId = env.accounts.coachPro.id;
+  const before = (await db.findOne<PlanDoc & { history?: unknown[] }>('coachPlans', { _id: coachId }))!;
+  expect(before.endsAt).toBeGreaterThan(Date.now() + 5 * 86_400_000); // seeded: ends in ~20 days
+  const newEnd = before.endsAt + 30 * 86_400_000;
+  try {
+    const { context: c, page } = await as('coachPro'); await noHmr(c);
+    await page.goto('/coach/plan');
+    await ready(page);
+    // Formatting is done in the page (its locale + timezone) so the assertions match exactly.
+    const fmt = (t: number) => page.evaluate((x) => new Date(x).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), t);
+    const oldLabel = await fmt(before.endsAt);
+    const newLabel = await fmt(newEnd);
+    await expect(page.getByTestId('plan-ends')).toContainText(oldLabel);
+    await page.getByTestId('plan-request-subscription').click();
+    const dlg = page.getByTestId('confirm-dialog');
+    await expect(dlg).toContainText(`ends ${oldLabel}`);
+    await expect(dlg).toContainText(`through ${newLabel}`);
+    await expect(dlg).not.toContainText(/starting now|starts today/i);
+    await snap(page, testInfo, 'coach-renewal-dialog');
+    await page.getByTestId('confirm-accept').click();
+    await expect(page.getByTestId('plan-renewal-preview')).toContainText(newLabel);
+    await expect(page.getByTestId('plan-state')).toContainText('Active'); // access unchanged while awaiting
+    await expect(page.getByTestId('plan-ends')).toContainText(oldLabel);
+
+    const { context: sc, page: sp } = await as('super'); await noHmr(sc);
+    await sp.goto('/admin/plans?tab=requests');
+    await ready(sp);
+    const row = sp.getByTestId('request-row').filter({ hasText: 'Coach Pro' });
+    await row.getByTestId('request-open').click();
+    await expect(sp.getByTestId('request-detail-term')).toContainText(`extended through ${newLabel}`);
+    await snap(sp, testInfo, 'admin-renewal-detail');
+    const confirmedAt = Date.now();
+    await sp.getByTestId('request-detail').getByTestId('request-confirm').click();
+    await expect(sp.getByTestId('request-detail')).toHaveCount(0);
+
+    const after = (await db.findOne<PlanDoc & { subscription?: { termStartsAt?: number } }>('coachPlans', { _id: coachId }))!;
+    expect(after).toMatchObject({ status: 'active', startedAt: before.startedAt, endsAt: newEnd });
+    expect(after.subscription?.termStartsAt).toBe(before.endsAt);
+    const audit = await db.findOne<{ metadata: Record<string, unknown> }>('adminAuditLogs', { action: 'subscription.renewed', targetUserId: coachId });
+    expect(audit?.metadata).toMatchObject({ previousEndsAt: before.endsAt, termStartsAt: before.endsAt, newEndsAt: newEnd, extended: true });
+    expect(Math.abs((audit!.metadata.confirmedAt as number) - confirmedAt)).toBeLessThan(15_000);
+
+    // Admin Coach Detail shows the same extended date + the history entry old → new.
+    await sp.goto(`/admin/coaches/${coachId}`);
+    await ready(sp);
+    const adminLabel = await sp.evaluate((x) => new Date(x).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), newEnd);
+    await expect(sp.getByTestId('coach-subscription')).toContainText(adminLabel);
+    const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+    await expect(sp.getByText(`${iso(before.endsAt)} → ${iso(newEnd)}`)).toBeVisible();
+    await snap(sp, testInfo, 'admin-coach-extended', true);
+
+    // Coach My Plan shows the extended date without losing access.
+    await page.reload();
+    await ready(page);
+    await expect(page.getByTestId('plan-ends')).toContainText(newLabel);
+    await expect(page.getByTestId('plan-state')).toContainText('Active');
+    await snap(page, testInfo, 'coach-extended', true);
+  } finally {
+    await db.deleteMany('coachPlanRequests', { coachId });
+    await db.updateOne('coachPlans', { _id: coachId }, { $set: { endsAt: before.endsAt, startedAt: before.startedAt, history: before.history ?? [] } });
+  }
+});

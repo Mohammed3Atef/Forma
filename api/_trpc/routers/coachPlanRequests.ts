@@ -105,13 +105,25 @@ export async function confirmRequestTx(requestId: string, actor: { id: string; r
     { session, returnDocument: 'after' },
   );
   if (!req) throw reasonError('CONFLICT', 'REQUEST_ALREADY_RESOLVED', 'This request was already resolved or has expired.');
-  await applyConfirmedRequest(req, actor.id, now, session);
+  const applied = await applyConfirmedRequest(req, actor.id, now, session);
   const plan = await (await coachPlansCol()).findOne({ _id: req.coachId }, { session });
   await writeAuditTx(
     actor as never,
     req.type === 'capacity_addon' ? 'capacity.request_confirmed' : req.type === 'renewal' ? 'subscription.renewed' : 'subscription.confirmed',
     req.coachId,
-    { requestId: req._id, type: req.type, planSnapshot: req.planSnapshot, capacitySnapshot: req.capacitySnapshot, effectiveMaxClients: plan?.maxClients, endsAt: plan?.endsAt },
+    {
+      requestId: req._id,
+      type: req.type,
+      confirmedAt: now,
+      planSnapshot: req.planSnapshot,
+      capacitySnapshot: req.capacitySnapshot,
+      // Term effect — makes early renewals obvious: previous end → effective start → new end.
+      previousEndsAt: applied.term?.previousEndsAt ?? applied.capacity?.previousEndsAt ?? null,
+      termStartsAt: applied.term?.termStartsAt ?? null,
+      newEndsAt: applied.term?.endsAt ?? applied.capacity?.endsAt ?? null,
+      extended: applied.term?.extended ?? applied.capacity?.renewed ?? false,
+      effectiveMaxClients: plan?.maxClients,
+    },
     session,
   );
   return req;

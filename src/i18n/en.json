@@ -2059,6 +2059,8 @@
   },
   "forma": {
     "inviteUnavailable": "This coach can't take on new clients right now. Please contact your coach — your invite stays valid.",
+    "renewalBody": "Request a renewal at {{price}} {{currency}} / month (up to {{n}} clients). Your current subscription ends {{ends}}; once payment is confirmed it is extended through {{through}} — you keep every remaining day.",
+    "renewalPreview": "Current subscription ends {{ends}} · renewal will extend through {{through}}",
     "myPlan": "My Plan",
     "product": "Forma",
     "status": "Status",
@@ -2101,7 +2103,7 @@
     },
     "explain": {
       "trial": "You're on the Forma Free Trial with every feature included. When it ends, Forma is {{price}} {{currency}} / month.",
-      "active": "Your Forma subscription is active — every feature included.",
+      "active": "Your Forma subscription is active — every feature included. Renewing early never costs you days: the new month is added after your current end date.",
       "trialEnded": "Your Free Trial has ended. Your account and clients are safe — subscribe to keep adding clients and editing plans.",
       "expired": "Your Forma subscription has ended. Your account and clients are safe — renew to keep adding clients and editing plans.",
       "suspended": "Your account is suspended. Contact the Forma team."
@@ -2167,6 +2169,7 @@
     },
     "hist": {
       "subscription_confirmed": "Subscription confirmed",
+      "subscription_renewed": "Subscription renewed",
       "subscription_expired": "Subscription ended",
       "trial_expired": "Trial ended",
       "capacity_granted": "Capacity added",
@@ -2289,6 +2292,7 @@
       "overdue": "Overdue",
       "grants": "Grants",
       "grantsSubscription": "Forma · up to {{n}} clients · {{days}}-day term from confirmation",
+      "grantsRenewal": "Forma · up to {{n}} clients · current end {{ends}} → extended through {{through}}",
       "grantsCapacity": "+{{n}} clients",
       "coachNote": "Coach note",
       "adminNote": "Admin note",
@@ -2302,7 +2306,8 @@
       "rejectBody": "Decline this request from {{name}}? Their current subscription and capacity stay as they are.",
       "openRequests": "Awaiting payment",
       "renewForma": "Renew Forma",
-      "renewBody": "Record a payment from {{name}} and renew Forma: {{price}} {{currency}}, {{days}}-day term starting now, up to {{n}} clients included.",
+      "renewBody": "Record a payment from {{name}} and activate Forma: {{price}} {{currency}}, {{days}}-day term starting now (through {{through}}), up to {{n}} clients included.",
+      "renewBodyExtend": "Record a payment from {{name}} and renew Forma ({{price}} {{currency}}, up to {{n}} clients). Current subscription ends {{ends}}; the renewal extends it through {{through}}. Access is uninterrupted.",
       "extend": "Extend term",
       "extendDays": "+{{n}} days",
       "extendBody": "Extend {{name}}'s current Trial / term by {{n}} days?",

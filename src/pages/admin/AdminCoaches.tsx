@@ -25,7 +25,7 @@ import { capacityOf, setCoachSuspended, trialDaysLeft } from '@/services/platfor
 import { renewCoachSubscription } from '@/services/platform/coachCommercialApi';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
-import { planPhaseLabel } from '@/lib/formaFormat';
+import { planPhaseLabel, renewConfirmMessage } from '@/lib/formaFormat';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
@@ -141,7 +141,7 @@ export function AdminCoaches() {
   const askRenew = async (r: CoachAdminRow) => {
     const name = r.coach.displayName || r.coach.email;
     const f = d?.forma;
-    if (await confirmDialog({ title: t('forma.admin.renewForma'), message: t('forma.admin.renewBody', { name, price: f?.priceMonthly ?? '', currency: f?.currency ?? '', days: f?.termDays ?? '', n: f?.maxClients ?? '' }) })) renew.mutate(r.coach.id);
+    if (await confirmDialog({ title: t('forma.admin.renewForma'), message: renewConfirmMessage(t, i18n.language, { name, plan: r.plan ? { ...r.plan, state: r.state } : null, price: f?.priceMonthly ?? '', currency: f?.currency ?? '', termDays: f?.termDays ?? 30, maxClients: f?.maxClients ?? '' }) })) renew.mutate(r.coach.id);
   };
 
   const renewsCell = (r: CoachAdminRow) => {

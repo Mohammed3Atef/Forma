@@ -169,6 +169,8 @@ export interface SubscriptionTermSnapshot {
   termDays: number;
   maxClients: number;
   requestId: string;
+  termStartsAt?: number;
+  confirmedAt?: number;
 }
 
 export interface CoachPlan {

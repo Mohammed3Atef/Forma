@@ -41,10 +41,14 @@ Stored as the single doc `coachPlanTiers/forma` (`api/coach-plans/_handlers/form
 
 There is no payment gateway, and the UI never claims automatic billing.
 
-## 6. Renewal flow — IMPLEMENTED, AUTO-TESTED, BROWSER-TESTED (B2 decline path)
-- An active paid coach files a `renewal`. The Super Admin can also click **Renew Forma**, which confirms the coach's open subscription request or records one with the current snapshot.
-- **Semantics (kept from the existing code, not invented):** the new term starts at confirmation. Remaining days are not carried over and nothing is prorated. This is documented in `api/coach-plans/_subscription.ts`.
-- One open subscription request at a time (`SUBSCRIPTION_REQUEST_PENDING`). Concurrent confirmations apply exactly once.
+## 6. Renewal flow — IMPLEMENTED, AUTO-TESTED, BROWSER-TESTED (B2 decline, B4 early renewal)
+- An active paid coach files a `renewal`; the Super Admin can also click **Renew Forma** (confirms the coach's open subscription request or records one with the live snapshot).
+- **Final rule (renewal semantics fix):** `termStart = max(current endsAt, confirmedAt)`, `endsAt = termStart + snapshot.termDays`, server time only. An early renewal is appended after the current end (no paid day lost, current `startedAt`/status/access untouched); a late renewal starts at confirmation (no backdating); a second early renewal stacks after the already-extended end. First paid activation (`subscription` / `trial_expired`) still starts at confirmation. Single formula: `computeTermStart` in `api/coach-plans/_subscription.ts`.
+- On an early renewal the base client limit is never lowered during already-paid time (`max(current, snapshot)`).
+- Capacity add-ons: renewing the same recurring package extends from `max(entitlement endsAt, confirmation)`; an expired add-on starts at confirmation; one-time add-ons are unaffected.
+- Audit (`subscription.renewed` / `capacity.request_confirmed`) records `previousEndsAt`, `termStartsAt`, `newEndsAt`, `confirmedAt`, `extended`, `requestId` and the price snapshot; plan history shows `old end → new end`.
+- Copy: coach renewal dialog, awaiting-renewal note, admin Renew dialog and payment-request detail all show "current subscription ends X · extended through Y" — never "starts today" for an early renewal.
+- One open subscription request at a time (`SUBSCRIPTION_REQUEST_PENDING`); concurrent confirmations apply once.
 
 ## 7. Final request model — IMPLEMENTED, AUTO-TESTED
 `coachPlanRequests` holds one collection of request types: `subscription | renewal | trial_expired | capacity_addon`. Legacy types are kept read-only.
@@ -210,7 +214,7 @@ Not run this round: specs 22, 23, 30–32, 40, 41, 43 (unaffected areas), webkit
 - The unreferenced 1.7 MB `public/Forma.png` is now excluded from the precache (left on disk for you to decide). PWA precache: **5,116 KiB → 2,290 KiB**.
 
 ## 28. Known limitations
-- Renewal does not carry over remaining days (existing semantics; product decision pending).
+- Early renewal applies the new snapshot's price/limit to the plan record at confirmation (base never lowered during paid time); there is no deferred "price change on term boundary" scheduler.
 - Pended-account behaviour changed (see §4). Coaches already pended by the old rule are **reported, not auto-un-pended**. Confirming payment still un-pends them.
 - Legacy paid coaches without a subscription snapshot count as 0 in tracked revenue until migrated (the migration adds a legacy snapshot).
 - The AR-EG copy for the new `forma.*` strings reuses Modern Standard Arabic (except the invite message).

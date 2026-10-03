@@ -49,6 +49,9 @@ export interface SubscriptionTermSnapshot {
   termDays: number;
   maxClients: number;
   requestId: string;
+  /** When this paid term starts (= previous end for an early renewal). */
+  termStartsAt?: number;
+  confirmedAt?: number;
 }
 
 export interface CoachPlanDoc {

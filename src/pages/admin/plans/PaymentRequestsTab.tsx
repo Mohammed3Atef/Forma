@@ -16,7 +16,7 @@ import { useLocalized } from '@/hooks/useLocalized';
 import { confirmPlanRequest, hasDeadline, isActionable, listPlanRequests, rejectPlanRequest } from '@/services/platform/coachPlanRequestsApi';
 import { getFormaConfig } from '@/services/platform/coachPlanTiersApi';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
-import { fmtDate, useCapacityPrice } from '@/lib/formaFormat';
+import { fmtDate, termPreview, useCapacityPrice } from '@/lib/formaFormat';
 import { capacityOf } from '@/services/platform/coachPlanApi';
 import type { AdminPlanRequestRow, PlanRequestStatus } from '@/types';
 
@@ -159,7 +159,12 @@ export function PaymentRequestsTab() {
               <dt className="text-earth-muted">{t('forma.admin.col.coach')}</dt><dd>{sel.coachName ?? sel.coachId} <span className="text-[12px] text-earth-subtle">{sel.coachEmail}</span></dd>
               <dt className="text-earth-muted">{t('forma.admin.col.current')}</dt><dd>{current(sel)}</dd>
               <dt className="text-earth-muted">{t('forma.admin.col.amount')}</dt><dd dir="auto" data-testid="request-detail-amount">{amount(sel)}</dd>
-              {sel.planSnapshot && (<><dt className="text-earth-muted">{t('forma.admin.grants')}</dt><dd>{t('forma.admin.grantsSubscription', { n: sel.planSnapshot.maxClients, days: sel.planSnapshot.termDays })}</dd></>)}
+              {sel.planSnapshot && (<><dt className="text-earth-muted">{t('forma.admin.grants')}</dt><dd data-testid="request-detail-term">{(() => {
+                const pv = termPreview(sel.currentPlan, sel.type, sel.planSnapshot.termDays);
+                return pv.extended
+                  ? t('forma.admin.grantsRenewal', { n: sel.planSnapshot.maxClients, ends: fmtDate(pv.currentEndsAt!, i18n.language), through: fmtDate(pv.end, i18n.language) })
+                  : t('forma.admin.grantsSubscription', { n: sel.planSnapshot.maxClients, days: sel.planSnapshot.termDays });
+              })()}</dd></>)}
               {sel.capacitySnapshot && (<><dt className="text-earth-muted">{t('forma.admin.grants')}</dt><dd>{t('forma.admin.grantsCapacity', { n: sel.capacitySnapshot.additionalClients })}</dd></>)}
               <dt className="text-earth-muted">{t('forma.admin.col.requested')}</dt><dd>{fmtDate(sel.requestedAt, i18n.language)}</dd>
               {deadline(sel) && (<><dt className="text-earth-muted">{t('forma.admin.col.deadline')}</dt><dd>{deadline(sel)}</dd></>)}

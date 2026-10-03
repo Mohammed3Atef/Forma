@@ -173,7 +173,7 @@ export async function getEffectiveCoachClientLimit(coachId: string, session?: Cl
 export async function grantOrRenewEntitlement(
   args: { coachId: string; snapshot: CapacitySnapshot; source: CapacityEntitlementDoc['source']; requestId: string | null; by: string; note?: string; now: number },
   session: ClientSession,
-): Promise<{ entitlement: CapacityEntitlementDoc; renewed: boolean }> {
+): Promise<{ entitlement: CapacityEntitlementDoc; renewed: boolean; previousEndsAt: number | null }> {
   const { coachId, snapshot, source, requestId, by, note, now } = args;
   const plans = await coachPlansCol();
   if (!(await plans.findOne({ _id: coachId }, { session, projection: { _id: 1 } }))) {
@@ -184,6 +184,7 @@ export async function grantOrRenewEntitlement(
   if (packageId) {
     const current = await ents.findOne({ coachId, sourcePackageId: packageId, status: 'active' }, { session });
     if (current) {
+      // Same rule as subscription renewal: start = max(current end, confirmation) — an early renewal keeps its remaining days.
       const from = Math.max(now, current.endsAt ?? now);
       const endsAt = current.endsAt === null ? null : entitlementEnd(snapshot, from);
       await ents.updateOne(
@@ -192,7 +193,7 @@ export async function grantOrRenewEntitlement(
         { session },
       );
       await pushHistory(coachId, { at: now, action: 'capacity.renewed', detail: `${snapshot.name.en} +${snapshot.additionalClients}`, by }, session);
-      return { entitlement: { ...current, endsAt }, renewed: true };
+      return { entitlement: { ...current, endsAt }, renewed: true, previousEndsAt: current.endsAt };
     }
   }
   const doc: CapacityEntitlementDoc = {
@@ -213,7 +214,7 @@ export async function grantOrRenewEntitlement(
   await ents.insertOne(doc, { session });
   await recomputeCapacity(coachId, session);
   await pushHistory(coachId, { at: now, action: 'capacity.granted', detail: `${snapshot.name.en} +${snapshot.additionalClients}`, by }, session);
-  return { entitlement: doc, renewed: false };
+  return { entitlement: doc, renewed: false, previousEndsAt: null };
 }
 
 /** Cancel one active entitlement (admin), recomputing capacity in the same transaction. Clients are never touched. */

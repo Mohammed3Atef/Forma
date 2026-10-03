@@ -14,7 +14,8 @@ vi.mock('@/services/platform/coachPlanRequestsApi', async (orig) => ({
   submitSubscriptionRequest: () => submitSubscriptionRequest(),
   cancelPlanRequest: vi.fn(),
 }));
-vi.mock('@/stores/dialogStore', () => ({ confirmDialog: vi.fn(async () => true), alertDialog: vi.fn(async () => undefined) }));
+const confirmDialog = vi.fn(async (_o: { message?: string }) => true);
+vi.mock('@/stores/dialogStore', () => ({ confirmDialog: (o: { message?: string }) => confirmDialog(o), alertDialog: vi.fn(async () => undefined) }));
 
 import { CoachPlan } from './CoachPlan';
 
@@ -117,6 +118,38 @@ describe('Coach My Plan', () => {
     expect(screen.queryByTestId('plan-offer')).toBeNull();
     fireEvent.click(btn);
     await waitFor(() => expect(submitSubscriptionRequest).toHaveBeenCalled());
+  });
+
+  it('early renewal copy: shows the current end and the extended-through date, never "starts today"', async () => {
+    const end = now + 10 * DAY;
+    const through = new Date(end + 30 * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const ends = new Date(end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    getMyCommercialOverview.mockResolvedValue(overview({ plan: plan({ endsAt: end }) as never }));
+    submitSubscriptionRequest.mockResolvedValue({ id: 'r3' });
+    renderPage();
+    const btn = await screen.findByTestId('plan-request-subscription');
+    expect(btn).toHaveTextContent('Renew subscription');
+    fireEvent.click(btn);
+    await waitFor(() => expect(confirmDialog).toHaveBeenCalled());
+    const msg = confirmDialog.mock.calls.at(-1)![0].message!;
+    expect(msg).toContain(`ends ${ends}`);
+    expect(msg).toContain(`through ${through}`);
+    expect(msg).not.toMatch(/starting now|starts today/i);
+  });
+
+  it('an awaiting renewal shows "Current subscription ends … · renewal will extend through …"', async () => {
+    const end = now + 10 * DAY;
+    getMyCommercialOverview.mockResolvedValue(
+      overview({
+        plan: plan({ endsAt: end }) as never,
+        requests: [{ id: 'r4', coachId: 'c1', type: 'renewal', status: 'awaiting', requestKey: 'subscription', requestedAt: now, confirmationDeadline: now + 3_600_000, planSnapshot: { tierKey: 'forma', label: { en: 'Forma', ar: '' }, priceMonthly: 499, currency: 'EGP', maxClients: 25, termDays: 30 } }],
+      }),
+    );
+    renderPage();
+    const pv = await screen.findByTestId('plan-renewal-preview');
+    expect(pv).toHaveTextContent(new Date(end + 30 * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
+    // Current access/end date unchanged while the renewal awaits payment.
+    expect(screen.getByTestId('plan-ends')).toHaveTextContent(new Date(end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }));
   });
 
   it('a failed load shows a retry state', async () => {

@@ -27,7 +27,7 @@ import {
   setManualCapacityAdjustment,
 } from '@/services/platform/coachCommercialApi';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
-import { fmtDate, useCapacityPrice } from '@/lib/formaFormat';
+import { fmtDate, renewConfirmMessage, termPreview, useCapacityPrice } from '@/lib/formaFormat';
 import { shortDate } from '@/lib/utils';
 import type { CapacityEntitlement, CoachPlanRequest } from '@/types';
 import { statusTone } from './plans/PaymentRequestsTab';
@@ -131,7 +131,9 @@ export function AdminCoachDetail() {
 
   const doRenew = async () => {
     if (!d) return;
-    const msg = t('forma.admin.renewBody', { name: coachName, price: d.config.priceMonthly, currency: d.config.currency, days: d.config.termDays, n: d.config.maxClients });
+    // An open subscription request is what Renew confirms — preview with ITS snapshot, else the live config.
+    const snap = openReqs.find((x) => x.planSnapshot)?.planSnapshot;
+    const msg = renewConfirmMessage(t, i18n.language, { name: coachName, plan: p, price: snap?.priceMonthly ?? d.config.priceMonthly, currency: snap?.currency ?? d.config.currency, termDays: snap?.termDays ?? d.config.termDays, maxClients: snap?.maxClients ?? d.config.maxClients });
     if (await confirmDialog({ title: t('forma.admin.renewForma'), message: msg })) renew.mutate();
   };
   const doExtend = async (days: number) => {
@@ -173,7 +175,7 @@ export function AdminCoachDetail() {
                 <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft pb-3 last:border-0 last:pb-0" data-testid="coach-open-request">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{reqLabel(r)}</p>
-                    <p className="text-[12px] text-earth-subtle"><span dir="ltr">{reqAmount(r)}</span>{hasDeadline(r) ? ` · ${t('forma.hoursLeft', { count: Math.max(0, Math.ceil((r.confirmationDeadline - Date.now()) / HOUR_MS)) })}` : ''}</p>
+                    <p className="text-[12px] text-earth-subtle"><span dir="ltr">{reqAmount(r)}</span>{r.type === 'renewal' && r.planSnapshot && termPreview(p, 'renewal', r.planSnapshot.termDays).extended ? ` · ${t('forma.renewalPreview', { ends: fmtDate(p!.endsAt!, i18n.language), through: fmtDate(termPreview(p, 'renewal', r.planSnapshot.termDays).end, i18n.language) })}` : ''}{hasDeadline(r) ? ` · ${t('forma.hoursLeft', { count: Math.max(0, Math.ceil((r.confirmationDeadline - Date.now()) / HOUR_MS)) })}` : ''}</p>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className="btn-ghost btn-sm" data-testid="coach-request-reject" disabled={rejectReq.isPending || confirmReq.isPending || !online} title={off} onClick={() => void doReject(r)}>{t('forma.admin.reject')}</button>
