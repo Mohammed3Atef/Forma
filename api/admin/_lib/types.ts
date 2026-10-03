@@ -55,7 +55,7 @@ export interface CoachPlanDoc {
   baseMaxClients?: number;
   addonClientCapacity?: number;
   manualCapacityAdjustment?: number;
-  subscription?: { priceMonthly: number; currency: string; billingInterval: 'month'; termDays: number; maxClients: number; requestId: string };
+  subscription?: { priceMonthly: number; currency: string; billingInterval: 'month'; termDays: number; maxClients: number; requestId: string; termStartsAt?: number; confirmedAt?: number };
   startedAt: number;
   endsAt: number | null;
   trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };

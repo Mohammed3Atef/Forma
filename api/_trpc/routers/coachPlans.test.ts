@@ -11,7 +11,8 @@ import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import { DAY_MS, coachPlanRequestsCol, coachPlansCol, type CoachPlanDoc } from '../../coach-plans/_data.js';
-import { capacityEntitlementsCol, recomputeCapacity } from '../../coach-plans/_capacity.js';
+import { addMonths, capacityEntitlementsCol, recomputeCapacity } from '../../coach-plans/_capacity.js';
+import { computeTermStart } from '../../coach-plans/_subscription.js';
 import { expireCapacity, expireSubscriptions, expireStalePlanRequests } from '../../cron/daily-maintenance.js';
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
 
@@ -243,7 +244,7 @@ describe('Forma — one public product, Trial-first', () => {
     const rs = await settle([caller(sup).coachPlanRequests.confirm({ requestId: r.id }), caller(sup).coachPlanRequests.confirm({ requestId: r.id })]);
     expect(rs.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
     const plan = (await planOf(coach._id))!;
-    expect(plan.history?.filter((h) => h.action === 'subscription.confirmed')).toHaveLength(1);
+    expect(plan.history?.filter((h) => h.action === 'subscription.renewed')).toHaveLength(1);
     expect(await (await getDb()).collection('adminAuditLogs').countDocuments({ action: 'subscription.renewed' })).toBe(1);
   });
 
@@ -419,6 +420,140 @@ describe('Client-capacity add-ons', () => {
     const out2 = await caller(sup).coachCommercial.renewSubscription({ coachId: coach._id });
     expect(out2.request.id).toBe(r.id);
     expect(await (await coachPlanRequestsCol()).countDocuments({ coachId: coach._id, status: 'confirmed' })).toBe(2);
+  });
+});
+
+// ---- Renewal semantics: new term starts at max(current endsAt, confirmedAt) ----
+
+describe('Renewal semantics', () => {
+  let coach: UserDoc;
+  beforeEach(async () => {
+    coach = await insertUser({ _id: 'renew', role: 'coach' });
+  });
+  const renewAndConfirm = async () => {
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    return r;
+  };
+
+  it('1 + 4. early renewal starts at the old endsAt — no remaining days are lost; access/startedAt untouched', async () => {
+    const oldEnd = Date.now() + 10 * DAY_MS;
+    await givePaidPlan(coach._id, 25, { endsAt: oldEnd, startedAt: Date.now() - 20 * DAY_MS });
+    const before = (await planOf(coach._id))!;
+    const r = await renewAndConfirm();
+    const after = (await planOf(coach._id))!;
+    expect(r.type).toBe('renewal');
+    expect(after.endsAt).toBe(oldEnd + 30 * DAY_MS);
+    expect(after.subscription?.termStartsAt).toBe(oldEnd);
+    expect(after.startedAt).toBe(before.startedAt);
+    expect(after.status).toBe('active');
+    // Remaining days preserved: new end − now = (old remaining) + full term.
+    expect(after.endsAt! - Date.now()).toBeGreaterThan(39 * DAY_MS);
+    const audit = await (await getDb()).collection('adminAuditLogs').findOne({ action: 'subscription.renewed', targetUserId: coach._id });
+    expect(audit?.metadata).toMatchObject({ requestId: r.id, previousEndsAt: oldEnd, termStartsAt: oldEnd, newEndsAt: oldEnd + 30 * DAY_MS, extended: true, planSnapshot: { priceMonthly: 499 } });
+    expect(typeof audit?.metadata.confirmedAt).toBe('number');
+    expect(after.history?.at(-1)).toMatchObject({ action: 'subscription.renewed' });
+  });
+
+  it('2. late renewal (term ended before confirmation) starts at confirmation — no backdating', async () => {
+    await givePaidPlan(coach._id, 25, { endsAt: Date.now() + DAY_MS });
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    expect(r.type).toBe('renewal');
+    await (await coachPlansCol()).updateOne({ _id: coach._id }, { $set: { endsAt: Date.now() - 5 * DAY_MS } }); // lapsed while awaiting
+    const t0 = Date.now();
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    const after = (await planOf(coach._id))!;
+    expect(after.subscription!.termStartsAt!).toBeGreaterThanOrEqual(t0);
+    expect(after.startedAt).toBe(after.subscription!.termStartsAt);
+    expect(after.endsAt).toBe(after.subscription!.termStartsAt! + 30 * DAY_MS);
+  });
+
+  it('3. exact-day renewal: endsAt == confirmedAt → starts exactly then (no gap, no overlap)', () => {
+    const T = 1_800_000_000_000;
+    expect(computeTermStart('renewal', { plan: 'forma', endsAt: T }, T)).toEqual({ termStartsAt: T, extended: false });
+    expect(computeTermStart('renewal', { plan: 'forma', endsAt: T + 1 }, T)).toEqual({ termStartsAt: T + 1, extended: true });
+    expect(computeTermStart('renewal', { plan: 'forma', endsAt: T - 1 }, T)).toEqual({ termStartsAt: T, extended: false });
+    // First activation never waits for the old Trial end.
+    expect(computeTermStart('subscription', { plan: 'trial', endsAt: T + 5 * DAY_MS }, T)).toEqual({ termStartsAt: T, extended: false });
+    expect(computeTermStart('trial_expired', { plan: 'trial', endsAt: T - DAY_MS }, T)).toEqual({ termStartsAt: T, extended: false });
+  });
+
+  it('5. a second early renewal stacks after the already-extended end', async () => {
+    const oldEnd = Date.now() + 10 * DAY_MS;
+    await givePaidPlan(coach._id, 25, { endsAt: oldEnd });
+    await renewAndConfirm();
+    await renewAndConfirm();
+    expect((await planOf(coach._id))?.endsAt).toBe(oldEnd + 60 * DAY_MS);
+  });
+
+  it('6. the request snapshot term controls the extension even if the Forma config changes later', async () => {
+    const oldEnd = Date.now() + 10 * DAY_MS;
+    await givePaidPlan(coach._id, 25, { endsAt: oldEnd });
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    await caller(sup).coachPlanTiers.save(formaInput({ termDays: 60, priceMonthly: 999 }));
+    await caller(sup).coachPlanRequests.confirm({ requestId: r.id });
+    const after = (await planOf(coach._id))!;
+    expect(after.endsAt).toBe(oldEnd + 30 * DAY_MS);
+    expect(after.subscription).toMatchObject({ termDays: 30, priceMonthly: 499 });
+  });
+
+  it('7. concurrent confirmations extend the term exactly once', async () => {
+    const oldEnd = Date.now() + 10 * DAY_MS;
+    await givePaidPlan(coach._id, 25, { endsAt: oldEnd });
+    const r = await caller(coach).coachPlanRequests.submitSubscription();
+    const rs = await settle([0, 1, 2].map(() => caller(sup).coachPlanRequests.confirm({ requestId: r.id })));
+    expect(rs.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
+    expect((await planOf(coach._id))?.endsAt).toBe(oldEnd + 30 * DAY_MS);
+  });
+
+  it('8. rejected and cancelled renewals never alter endsAt', async () => {
+    const oldEnd = Date.now() + 10 * DAY_MS;
+    await givePaidPlan(coach._id, 25, { endsAt: oldEnd });
+    const a = await caller(coach).coachPlanRequests.submitSubscription();
+    await caller(sup).coachPlanRequests.reject({ requestId: a.id });
+    const b = await caller(coach).coachPlanRequests.submitSubscription();
+    await caller(coach).coachPlanRequests.cancel({ id: b.id });
+    expect((await planOf(coach._id))?.endsAt).toBe(oldEnd);
+  });
+
+  it('9. recurring add-on renewed early extends from its existing endsAt', async () => {
+    await givePaidPlan(coach._id);
+    const pkg = (await caller(sup).coachCommercial.savePackage(pkgInput())).id;
+    await requestAndConfirmPackage(coach, pkg);
+    const ents = await capacityEntitlementsCol();
+    const early = Date.now() + 10 * DAY_MS;
+    await ents.updateOne({ coachId: coach._id }, { $set: { endsAt: early } });
+    await requestAndConfirmPackage(coach, pkg);
+    const e = (await ents.findOne({ coachId: coach._id, status: 'active' }))!;
+    expect(e.endsAt).toBe(addMonths(early, 1));
+    expect(await ents.countDocuments({ coachId: coach._id })).toBe(1);
+    expect((await planOf(coach._id))?.maxClients).toBe(45);
+    const audit = await (await getDb()).collection('adminAuditLogs').find({ action: 'capacity.request_confirmed', targetUserId: coach._id }).sort({ createdAt: -1 }).limit(1).next();
+    expect(audit?.metadata).toMatchObject({ previousEndsAt: early, newEndsAt: addMonths(early, 1), extended: true });
+  });
+
+  it('10. an expired add-on renewed later starts from confirmation time', async () => {
+    await givePaidPlan(coach._id);
+    const pkg = (await caller(sup).coachCommercial.savePackage(pkgInput())).id;
+    await requestAndConfirmPackage(coach, pkg);
+    await (await capacityEntitlementsCol()).updateOne({ coachId: coach._id }, { $set: { endsAt: Date.now() - DAY_MS } });
+    await expireCapacity();
+    const t0 = Date.now();
+    await requestAndConfirmPackage(coach, pkg);
+    const e = (await (await capacityEntitlementsCol()).findOne({ coachId: coach._id, status: 'active' }))!;
+    expect(e.startsAt).toBeGreaterThanOrEqual(t0);
+    expect(e.endsAt).toBe(addMonths(e.startsAt, 1));
+  });
+
+  it('11. one-time / permanent add-ons are unaffected by renewal (no end date, no stacking)', async () => {
+    await givePaidPlan(coach._id);
+    const pkg = (await caller(sup).coachCommercial.savePackage(pkgInput({ billingInterval: 'one_time', additionalClients: 10 }))).id;
+    await requestAndConfirmPackage(coach, pkg);
+    await requestAndConfirmPackage(coach, pkg);
+    const ents = await (await capacityEntitlementsCol()).find({ coachId: coach._id }).toArray();
+    expect(ents).toHaveLength(1);
+    expect(ents[0].endsAt).toBeNull();
+    expect((await planOf(coach._id))?.maxClients).toBe(35);
   });
 });
 

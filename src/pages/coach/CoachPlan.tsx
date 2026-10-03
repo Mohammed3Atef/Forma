@@ -13,7 +13,7 @@ import { cancelPlanRequest, hasDeadline, isActionable, isSubscriptionRequest, su
 import { getMyCommercialOverview } from '@/services/platform/coachCommercialApi';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { useLocalized } from '@/hooks/useLocalized';
-import { fmtDate, useCapacityPrice } from '@/lib/formaFormat';
+import { fmtDate, termPreview, useCapacityPrice } from '@/lib/formaFormat';
 import type { CoachCapacityOffer, CoachPlanRequest } from '@/types';
 
 const HOUR_MS = 3_600_000;
@@ -83,10 +83,15 @@ export function CoachPlan() {
   const statusTone = state === 'active' || state === 'trial' ? 'success' : state === 'none' ? 'default' : 'danger';
   const heldPackageIds = new Set(d.activeEntitlements.map((e) => e.sourcePackageId).filter(Boolean));
 
+  const isRenewal = !isTrial && !lapsed;
+  // What a renewal will do once confirmed (server rule: appended after the current end, never starts "today" early).
+  const preview = termPreview(p, isRenewal ? 'renewal' : 'subscription', openSub?.planSnapshot?.termDays ?? d.config.termDays);
   const askSubscription = async () => {
     const ok = await confirmDialog({
-      title: isTrial || lapsed ? t('forma.requestSubscription') : t('forma.requestRenewal'),
-      message: t('forma.requestSubscriptionBody', { price: d.config.priceMonthly, currency: d.config.currency, n: d.config.maxClients, days: d.config.termDays }),
+      title: isRenewal ? t('forma.requestRenewal') : t('forma.requestSubscription'),
+      message: preview.extended
+        ? t('forma.renewalBody', { price: d.config.priceMonthly, currency: d.config.currency, n: d.config.maxClients, ends: fmtDate(preview.currentEndsAt!, i18n.language), through: fmtDate(preview.end, i18n.language) })
+        : t('forma.requestSubscriptionBody', { price: d.config.priceMonthly, currency: d.config.currency, n: d.config.maxClients, days: d.config.termDays }),
       confirmLabel: t('forma.sendRequest'),
     });
     if (ok) subscribe.mutate();
@@ -144,10 +149,17 @@ export function CoachPlan() {
             <p className="text-[12px] text-earth-subtle">{t('forma.manualPaymentNote')}</p>
             {state !== 'suspended' &&
               (openSub ? (
-                <p className="chip border-warn/50 text-warn" data-testid="plan-subscription-pending">{t('forma.awaitingPayment')}</p>
+                <div className="space-y-1">
+                  <p className="chip border-warn/50 text-warn" data-testid="plan-subscription-pending">{t('forma.awaitingPayment')}</p>
+                  {openSub.type === 'renewal' && preview.extended && (
+                    <p className="text-[13px] text-earth-muted" data-testid="plan-renewal-preview">
+                      {t('forma.renewalPreview', { ends: fmtDate(preview.currentEndsAt!, i18n.language), through: fmtDate(preview.end, i18n.language) })}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <button type="button" className="btn-primary" data-testid="plan-request-subscription" disabled={subscribe.isPending} onClick={() => void askSubscription()}>
-                  <Icon name="bolt" size={16} /> {isTrial || lapsed ? t('forma.requestSubscription') : t('forma.requestRenewal')}
+                  <Icon name="bolt" size={16} /> {isRenewal ? t('forma.requestRenewal') : t('forma.requestSubscription')}
                 </button>
               ))}
           </div>

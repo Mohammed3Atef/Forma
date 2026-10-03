@@ -225,7 +225,7 @@ export const coachCommercialRouter = router({
         const before = (await (await coachPlansCol()).findOne({ _id: input.coachId }, { session }))?.maxClients ?? 0;
         const res = await grantOrRenewEntitlement({ coachId: input.coachId, snapshot: snapshotOfPackage(pkg), source: 'admin_package', requestId: null, by: ctx.user.id, note: input.note, now }, session);
         const after = (await (await coachPlansCol()).findOne({ _id: input.coachId }, { session }))?.maxClients ?? 0;
-        await writeAuditTx(ctx.user, res.renewed ? 'capacity.renewed' : 'capacity.granted', input.coachId, { entitlementId: res.entitlement._id, packageId: pkg._id, snapshot: res.entitlement.snapshot, note: input.note ?? null, before, after }, session);
+        await writeAuditTx(ctx.user, res.renewed ? 'capacity.renewed' : 'capacity.granted', input.coachId, { entitlementId: res.entitlement._id, packageId: pkg._id, snapshot: res.entitlement.snapshot, note: input.note ?? null, before, after, confirmedAt: now, previousEndsAt: res.previousEndsAt, newEndsAt: res.entitlement.endsAt }, session);
         return { entitlement: toPublicEntitlement(res.entitlement), renewed: res.renewed, before, after };
       });
     }),
