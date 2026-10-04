@@ -1,0 +1,29 @@
+/* Programming flow: the marching dashed arrow between columns + the tab panel entrance. */
+.arrow path {
+  stroke-dasharray: 4 5;
+  animation: dash 1.4s linear infinite;
+}
+.arrow path.head {
+  animation: none;
+  stroke-dasharray: none;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+.panel {
+  animation: panelIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrow path,
+  .panel {
+    animation: none;
+  }
+}

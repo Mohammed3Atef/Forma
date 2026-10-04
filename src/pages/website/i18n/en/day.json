@@ -1,0 +1,11 @@
+{
+  "eyebrow": "A day with Forma",
+  "title": "Your whole day, <piv>from one place.</piv>",
+  "steps": {
+    "s1": "See who needs attention",
+    "s2": "Review a check-in",
+    "s3": "Update a workout",
+    "s4": "Reply to a voice message",
+    "s5": "See today's client activity"
+  }
+}

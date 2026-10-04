@@ -74,8 +74,8 @@ export default defineConfig({
         // Marketing landing images are web-only (the installed PWA opens straight
         // to /login) — keep them out of the install precache; they're runtime-cached below.
         // The three.js landing film is lazy-loaded only on the marketing route — never precache it for installs.
-        // Forma.png (1.7 MB) is an unreferenced source asset — never precache it.
-        globIgnores: ['**/landing_page/**', '**/Experience-*.js', 'Forma.png'],
+        // Same for the public website (design port): its chunk + images are for web visitors only.
+        globIgnores: ['**/landing_page/**', '**/Experience-*.js', '**/website/**', '**/SitePages-*.{js,css}'],
         navigateFallback: '/index.html',
         // A top-level navigation to an API URL (e.g. a media/export link opened
         // in a new tab) must reach the function, not be answered with the SPA shell.
@@ -103,6 +103,16 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'landing-images',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Public website images (/website/*.webp) — same treatment as the landing images.
+            urlPattern: ({ url }) => url.pathname.startsWith('/website/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'website-images',
               expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },

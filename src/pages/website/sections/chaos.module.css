@@ -1,0 +1,299 @@
+/*
+ * "Coaching shouldn't live in six places" — scroll scene. Everything is driven
+ * by one number, --p (0 → 1), written by useScrollScene: scrubbed by scroll on
+ * desktop, or animated 0 → 1 once on entry (phones, reduced motion) via the
+ * registered property's transition. Six off-brand "tool" fragments fly into
+ * place and turn into the Forma workspace.
+ */
+@property --p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.chaos {
+  position: relative;
+}
+.chaos:not(.scrub) {
+  transition: --p 2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+.resolved {
+  --p: 1;
+}
+.scrub {
+  height: 290vh;
+}
+.pin {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(24px, 3.5vw, 40px);
+  padding-block: clamp(88px, 10vw, 120px);
+}
+.scrub .pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding-block: 88px 40px;
+}
+
+.heads {
+  display: grid;
+  text-align: center;
+}
+.heads > div {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.headA {
+  opacity: clamp(0, calc(1 - (var(--p) - 0.3) * 3.2), 1);
+  transform: translateY(calc(var(--p) * -14px));
+}
+.headB {
+  opacity: clamp(0, calc((var(--p) - 0.62) * 3.4), 1);
+  transform: translateY(calc((1 - var(--p)) * 14px));
+}
+.chaos:not(.scrub) .headA,
+.chaos:not(.scrub) .headB {
+  transition: opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+  aspect-ratio: 16 / 8.4;
+  container-type: inline-size;
+}
+.scrub .stage {
+  max-height: calc(100vh - 300px);
+  width: auto;
+  height: calc(100vh - 300px);
+  max-width: min(1080px, 100%);
+}
+
+/* the workspace that fades in behind the fragments */
+.frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 2cqw;
+  background: #141110;
+  border: 1px solid rgba(255, 238, 228, 0.14);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+  opacity: clamp(0, calc((var(--p) - 0.5) * 3), 1);
+  transform: scale(calc(0.94 + var(--p) * 0.06));
+}
+.frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(60% 70% at 78% 8%, rgba(255, 139, 2, 0.16), transparent 70%);
+  opacity: 0.8;
+}
+.head {
+  position: absolute;
+  inset-inline: 2.2%;
+  top: 3.5%;
+  height: 12%;
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+  border-bottom: 1px solid rgba(255, 238, 228, 0.09);
+  opacity: clamp(0, calc((var(--p) - 0.62) * 4), 1);
+}
+
+/* a fragment: messy tool skin (fa) cross-fading into its Forma card (fb) */
+.frag {
+  position: absolute;
+  left: var(--l);
+  top: var(--t);
+  width: 31.4%;
+  height: 36.5%;
+  transform: translate(calc(var(--dx) * (1 - var(--p)) * 1cqw), calc(var(--dy) * (1 - var(--p)) * 1cqw)) rotate(calc(var(--r) * (1 - var(--p)) * 1deg))
+    scale(calc(var(--s0, 0.86) + (1 - var(--s0, 0.86)) * var(--p)));
+}
+:global(html[dir='rtl']) .frag {
+  left: auto;
+  right: var(--l);
+  transform: translate(calc(var(--dx) * (var(--p) - 1) * 1cqw), calc(var(--dy) * (1 - var(--p)) * 1cqw)) rotate(calc(var(--r) * (var(--p) - 1) * 1deg))
+    scale(calc(var(--s0, 0.86) + (1 - var(--s0, 0.86)) * var(--p)));
+}
+.fa,
+.fb {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.1em;
+  overflow: hidden;
+}
+.fa {
+  opacity: clamp(0, calc(1 - (var(--p) - 0.48) * 4.2), 1);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.44);
+}
+.fb {
+  opacity: clamp(0, calc((var(--p) - 0.52) * 4.2), 1);
+  background: #1b1714;
+  border: 1px solid rgba(255, 238, 228, 0.09);
+  padding: 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+}
+.tag {
+  position: absolute;
+  top: -0.9em;
+  inset-inline-start: 0.9em;
+  z-index: 2;
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #0c0a09;
+  color: #aba19b;
+  border: 1px solid rgba(255, 238, 228, 0.14);
+  padding: 0.3em 0.7em;
+  border-radius: 99px;
+  opacity: clamp(0, calc(1 - var(--p) * 2.4), 1);
+}
+
+/* fragment skins — deliberately "other tools": flat, off-brand, a little messy */
+.skNote {
+  background: #e9dfb5;
+  color: #3a3420;
+  padding: 1.2em;
+  font-family: 'Comic Sans MS', 'Segoe Print', cursive;
+  font-size: 1.05em;
+  line-height: 1.5;
+}
+.skSheet {
+  background: #f4f5f2;
+  color: #2c3a2c;
+  display: grid;
+  grid-template-columns: 2.2em repeat(3, 1fr);
+  font-family: Arial, sans-serif;
+  font-size: 0.86em;
+}
+.skSheet span {
+  border-right: 1px solid #d5d9d2;
+  border-bottom: 1px solid #d5d9d2;
+  padding: 0.35em 0.45em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.skSheet span.h {
+  background: #e3e8df;
+  font-weight: 700;
+  color: #556;
+}
+.skChat {
+  background: #0f1f1a;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+  font-family: Arial, sans-serif;
+  font-size: 0.95em;
+}
+.skChat p {
+  margin: 0;
+  max-width: 85%;
+  padding: 0.55em 0.8em;
+  border-radius: 0.6em;
+  background: #1f3a31;
+  color: #e6f2ec;
+}
+.skChat p.r {
+  align-self: flex-end;
+  background: #2c5a49;
+}
+.skChat small {
+  display: block;
+  text-align: end;
+  font-size: 0.72em;
+  opacity: 0.6;
+  margin-top: 0.15em;
+}
+.skPdf {
+  background: #ededed;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+}
+.skPdf .top {
+  background: #c63c33;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.6em 0.9em;
+  font-size: 0.85em;
+  display: flex;
+  justify-content: space-between;
+}
+.skPdf .ln {
+  height: 0.55em;
+  margin: 0.55em 0.9em 0;
+  background: #cfcfcf;
+  border-radius: 2px;
+}
+.skPhotos {
+  background: #202022;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+}
+.skPhotos span {
+  background: linear-gradient(160deg, #5a4c42, #2b2420);
+  display: grid;
+  place-items: end start;
+  padding: 0.3em;
+  font: 0.7em Arial, sans-serif;
+  color: #ddd;
+}
+.skForm {
+  background: #fff;
+  color: #222;
+  padding: 1em;
+  font-family: Arial, sans-serif;
+  font-size: 0.88em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  border-top: 0.5em solid #673ab7;
+}
+.skForm .q {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.4em;
+}
+.skForm .q b {
+  display: block;
+  font-size: 0.85em;
+  color: #555;
+  font-weight: 400;
+}
+
+/* phones: taller stage, fragments in a 2-column grid */
+@media (max-width: 899px) {
+  .stage {
+    aspect-ratio: 3 / 4.4;
+  }
+  .frag {
+    left: var(--lm);
+    top: var(--tm);
+    width: 47.6%;
+    height: 25.5%;
+  }
+  :global(html[dir='rtl']) .frag {
+    right: var(--lm);
+  }
+  .head {
+    height: 10%;
+    top: 2.5%;
+  }
+}

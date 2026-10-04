@@ -2,24 +2,26 @@ import { test, expect, ready } from '../fixtures';
 import { uiSignupCoach, uniq, snap, noHmr } from './_a-helpers';
 
 /**
- * FLOW A — Landing (ONE Forma card) → Start Free Trial → coach signup →
+ * FLOW A — Public website (ONE Forma card) → Start Free Trial → coach signup →
  * active Forma Trial with the configured base capacity, no payment request.
  * Seeded config: 15-day Trial, Trial limit 2, base 25, 499 EGP / month.
  */
 test('A: one Forma card → Start Free Trial → signup → Trial with configured capacity, no request', async ({ anon, db, env }, testInfo) => {
   const { context: c, page } = await anon(); await noHmr(c);
   await page.goto('/');
-  await page.getByTestId('landing-pricing').scrollIntoViewIfNeeded();
-  const cards = page.getByTestId('landing-pricing-card');
+  // The public website (design port) renders the ONE Forma card from getPublicForma().
+  const cards = page.getByTestId('website-pricing-card');
   await expect(cards).toHaveCount(1, { timeout: 20_000 });
+  await page.locator('#pricing').scrollIntoViewIfNeeded();
   const card = cards.first();
-  await expect(card.getByTestId('pricing-title')).toHaveText(/forma/i);
-  await expect(card.getByTestId('pricing-trial')).toHaveText('15-day Free Trial');
-  await expect(card.getByTestId('pricing-clients')).toHaveText('Up to 25 clients');
-  await expect(card.getByTestId('pricing-price')).toContainText('499 EGP');
-  await expect(card).toContainText('All features included');
-  await expect(page.getByTestId('landing-pricing')).toContainText('One plan. Everything included.');
-  await expect(page.getByTestId('landing-pricing')).toContainText('100% Coach-Led — No AI replacing you');
+  await expect(card.locator('img').first()).toHaveAttribute('alt', /forma/i);
+  await expect(card.getByTestId('website-pricing-trial')).toHaveText('15-day free trial');
+  await expect(card.getByTestId('website-pricing-after')).toHaveText('after your 15-day free trial · up to 25 clients');
+  await expect(card.getByTestId('website-pricing-price')).toContainText('EGP');
+  await expect(card.getByTestId('website-pricing-price')).toContainText('499');
+  await expect(card).toContainText('One plan. Everything included.');
+  await expect(card).toContainText('100% Coach-Led — No AI replacing you');
+  await expect(page.locator('[data-plan=trial]')).toHaveText('15-day free trial');
   // Capacity add-ons are internal — never on the public site.
   await expect(page.locator('body')).not.toContainText('+20 clients');
   await expect(page.getByText(/choose plan|change plan|upgrade/i)).toHaveCount(0);
@@ -27,8 +29,7 @@ test('A: one Forma card → Start Free Trial → signup → Trial with configure
   await snap(page, testInfo, 'landing-forma-card');
   const ctas = card.getByRole('link');
   await expect(ctas).toHaveCount(1);
-  await expect(ctas.first()).toHaveText('Start Free Trial');
-  await expect(ctas.first()).toHaveAttribute('href', '/login?signup=1');
+  await expect(ctas.first()).toHaveText('Start free trial');
   await ctas.first().click();
   await expect(page).toHaveURL(/\/login\?signup=1$/);
 

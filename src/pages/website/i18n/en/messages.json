@@ -1,0 +1,14 @@
+{
+  "eyebrow": "Messaging",
+  "title": "Client conversations <piv>belong with their coaching.</piv>",
+  "lead": "Direct coach–client messaging, right beside the client's plan, progress and check-ins — instead of in a separate app.",
+  "caps": {
+    "text": "Text",
+    "images": "Images",
+    "video": "Video",
+    "files": "Files",
+    "voice": "Voice messages",
+    "reactions": "Reactions",
+    "seen": "Sent & seen"
+  }
+}

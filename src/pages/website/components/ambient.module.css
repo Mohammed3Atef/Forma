@@ -1,0 +1,70 @@
+/* Ambient brand motifs behind sections (design site.css "ambient" + site.js trails). */
+.amb {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.trail {
+  position: absolute;
+  inset: 6% 0 auto;
+  height: 78%;
+  opacity: 0.7;
+}
+.trail svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tr {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw 3.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.t2 {
+  animation-delay: 0.5s;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.mark {
+  position: absolute;
+  top: 50%;
+  width: min(520px, 60vw);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  opacity: 0.06;
+  background: url(/website/forma-mark.webp) center / contain no-repeat;
+}
+.markL {
+  inset-inline-start: -8%;
+}
+.markR {
+  inset-inline-end: -8%;
+}
+.dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(255, 178, 8, 0.18) 1px, transparent 1.4px);
+  background-size: 28px 28px;
+  -webkit-mask: radial-gradient(60% 55% at 50% 50%, #000, transparent 75%);
+  mask: radial-gradient(60% 55% at 50% 50%, #000, transparent 75%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tr {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+@media (max-width: 700px) {
+  .mark {
+    opacity: 0.035;
+  }
+  .trail {
+    opacity: 0.5;
+  }
+}

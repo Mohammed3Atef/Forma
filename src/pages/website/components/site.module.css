@@ -1,0 +1,51 @@
+/*
+ * The few website styles Tailwind can't express cleanly: descendant-wide
+ * base rules, the film-grain texture and masked backgrounds. Everything else
+ * is Tailwind on the components. (CSS Modules scope these class names, so
+ * nothing here can reach the signed-in app.)
+ */
+.root {
+  -webkit-font-smoothing: antialiased;
+}
+.root ::selection {
+  background: rgba(255, 139, 2, 0.35);
+  color: #fff;
+}
+.root :focus-visible {
+  outline: 2px solid #ffb208;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* .grain::after — subtle film grain over hero / final CTA / footer */
+.grain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* .gridbg — faint 64px grid fading out from the top centre */
+.gridbg {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 238, 228, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 238, 228, 0.09) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(60% 55% at 50% 40%, #000, transparent 75%);
+  mask-image: radial-gradient(60% 55% at 50% 40%, #000, transparent 75%);
+  opacity: 0.5;
+}
+
+/* Reduced motion: the design's global rule — nothing animates, everything is in its final state. */
+@media (prefers-reduced-motion: reduce) {
+  .root *,
+  .root *::before,
+  .root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

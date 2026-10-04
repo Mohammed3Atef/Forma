@@ -114,13 +114,13 @@ async function chevronFlipped(page: Page) {
 export function defineLayoutTests() {
   // Pages that poll keep networkidle busy and the shared machine runs 4 suites at once — give each journey room.
   test.describe.configure({ timeout: 180_000 });
-  test('anon landing + login: no horizontal overflow', async ({ anon }, testInfo) => {
+  test('anon website + login: no horizontal overflow', async ({ anon }, testInfo) => {
     const { page } = await anon();
     const res: Record<string, unknown> = {};
-    for (const p of ['/', '/login']) {
+    for (const p of ['/', '/contact', '/terms', '/login']) {
       await page.goto(p);
       await page.waitForLoadState('networkidle');
-      await shot(page, testInfo, `anon${p === '/' ? '-landing' : '-login'}`, true);
+      await shot(page, testInfo, `anon${p === '/' ? '-landing' : p.replace('/', '-')}`, true);
       res[p] = await overflow(page);
     }
     await testInfo.attach('overflow.json', { body: JSON.stringify(res, null, 2), contentType: 'application/json' });

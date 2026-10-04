@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Client app",
+  "title": "Your coaching. <piv>In their pocket.</piv>",
+  "lead": "You build the experience. They follow it — in a focused mobile app with five tabs and nothing they don't need.",
+  "steps": {
+    "today": { "n": "01 · Today", "title": "What to do today, at a glance.", "body": "Workout, meals, cardio and check-in — one ring, one list, one tap to start." },
+    "train": {
+      "n": "02 · Train",
+      "title": "You program it. They perform it.",
+      "body": "Video and cues for every exercise, last session's numbers, and set-by-set weight and rep logging. Forma keeps the history together.",
+      "flow": ["Coach programs it", "Client performs it", "History kept together"]
+    },
+    "fuel": { "n": "03 · Fuel", "title": "Macros without the guesswork.", "body": "The meals you planned, macros remaining, and only the swaps you approved." },
+    "progress": { "n": "04 · Progress", "title": "Proof they're moving.", "body": "Weight trend, measurements, photos and personal records — the reasons they stay." },
+    "inbox": { "n": "05 · Inbox", "title": "Their coach, one tap away.", "body": "Messages, your notes and check-ins in one inbox — with you, not a bot, on the other side." }
+  }
+}

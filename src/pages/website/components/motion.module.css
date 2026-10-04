@@ -1,0 +1,18 @@
+/* Hero floating cards (design .float / .float.b) — a slow vertical bob. */
+.float {
+  animation: bob 7s ease-in-out infinite;
+}
+.floatB {
+  animation-duration: 8.5s;
+  animation-delay: -3s;
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float {
+    animation: none;
+  }
+}

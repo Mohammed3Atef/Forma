@@ -1,0 +1,27 @@
+{
+  "eyebrow": "Client workspace",
+  "title": "One client. <piv>The whole picture.</piv>",
+  "lead": "You shouldn't have to remember where client information lives. Open a client and it's all there — in context.",
+  "steps": {
+    "train": {
+      "title": "The plan, and what actually happened.",
+      "body": "See the programme you wrote next to every logged set, rep and weight — and how their strength is moving.",
+      "tags": ["Workout plan", "Session history", "Estimated 1RM"]
+    },
+    "fuel": {
+      "title": "Macros, meals and the swaps you approved.",
+      "body": "Their targets, meals and the alternatives you allowed — so food questions stop living in chat.",
+      "tags": ["Nutrition plan", "Macros", "Supplements"]
+    },
+    "body": {
+      "title": "Measurements and photos, on one timeline.",
+      "body": "Weight, 14 body measurements and progress photos — dated, comparable, and always with the client.",
+      "tags": ["Weight", "Measurements", "Progress photos"]
+    },
+    "talk": {
+      "title": "Check-ins, notes and messages — in context.",
+      "body": "Read the check-in with their numbers beside it, reply in the same place, and keep private coach notes nobody else sees.",
+      "tags": ["Check-ins", "Assessments", "Coach notes"]
+    }
+  }
+}

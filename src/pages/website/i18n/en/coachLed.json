@@ -1,0 +1,21 @@
+{
+  "eyebrow": "Coach-led",
+  "title": "Tools that help. <piv>Decisions that stay yours.</piv>",
+  "lead": "Forma organises the work — but every program, reply and adjustment is written by a real coach.",
+  "toolCap": "What Forma does",
+  "tool": [
+    "Collects workouts, meals and check-ins into one file",
+    "Calculates volume, macros and adherence",
+    "Flags who needs your attention",
+    "Reminds clients what's due"
+  ],
+  "coachCap": "What the coach does",
+  "coach": [
+    "Writes every program and meal plan",
+    "Reads each check-in and replies",
+    "Adjusts the plan to your body and life",
+    "Reviews form videos and corrects"
+  ],
+  "badge": "Every plan written by a real coach",
+  "alt": "Forma connecting workouts, nutrition, progress photos and messages around one coach-led plan"
+}

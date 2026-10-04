@@ -1,0 +1,33 @@
+/* Train screen: set 3 "ticks" itself off on a loop while the panel is showing (design .on .tick / .tick-c). */
+.tick {
+  animation: tick 3.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+.tickC {
+  animation: tickc 3.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes tick {
+  0%,
+  40% {
+    background: transparent;
+    border-color: rgba(255, 238, 228, 0.14);
+    color: #564e49;
+  }
+  55%,
+  100% {
+    background: #3fb27f;
+    border-color: #3fb27f;
+    color: #06210f;
+  }
+}
+@keyframes tickc {
+  0%,
+  40% {
+    background: #1b1714;
+    border-color: rgba(255, 238, 228, 0.14);
+  }
+  55%,
+  100% {
+    background: rgba(63, 178, 127, 0.14);
+    border-color: rgba(63, 178, 127, 0.32);
+  }
+}

@@ -72,6 +72,23 @@ const config: Config = {
         violet: '#8B7CF0',
         teal: '#2FB8B0',
         rose: '#EF5D8F',
+        // Public website (src/pages/website) — the design's translucent tiers, kept
+        // translucent (not flattened like `line.*`) because the site layers them over
+        // gradients and glows. Everything else on the site uses the app tokens above.
+        site: {
+          line: 'rgba(255,238,228,0.09)', // --line
+          line2: 'rgba(255,238,228,0.14)', // --line-2
+          line3: 'rgba(255,238,228,0.22)', // --line-3
+          tint: 'rgba(255,238,228,0.06)', // quiet fills (mute pills, secondary mock buttons)
+          tx3: '#7C726C', // tertiary text
+          tx4: '#564E49', // faintest text (footer legal line, placeholders)
+          'brand-tint': 'rgba(255,139,2,0.13)',
+          'ok-tint': 'rgba(63,178,127,0.14)',
+          'warn-tint': 'rgba(245,166,35,0.14)',
+          'bad-tint': 'rgba(240,72,62,0.14)',
+          'info-tint': 'rgba(91,141,239,0.14)',
+          'violet-tint': 'rgba(139,124,240,0.14)',
+        },
         // Cool slate scale (overrides Tailwind default; dark anchors match the new warm surfaces)
         slate: {
           50: '#faf8f7',
@@ -102,6 +119,8 @@ const config: Config = {
         mono: ['DM Mono', 'ui-monospace', 'SF Mono', 'Menlo', 'monospace'],
         serif: ['Lora', 'Georgia', 'Times New Roman', 'serif'],
         arabic: ['Cairo', 'Tajawal', 'system-ui', 'sans-serif'],
+        // Public website's Arabic face (the design's --f-ar).
+        'site-ar': ['IBM Plex Sans Arabic', 'Poppins', 'sans-serif'],
       },
       spacing: {
         touch: '3.5rem', // 56px — gym-friendly large touch target
@@ -117,6 +136,11 @@ const config: Config = {
         featured: '0 12px 34px rgba(0,0,0,0.44), inset 0 1px 0 rgba(255,238,228,0.06)',
         glow: '0 10px 30px rgba(255,110,2,0.24)',
         deep: '0 28px 70px rgba(0,0,0,0.55)',
+        // Public website elevation tiers (design --e-2 / --e-3 / --e-inset) — the
+        // app's `card`/`elevated` combine tiers, the site uses them singly.
+        'site-2': '0 4px 14px rgba(0,0,0,0.34)',
+        'site-3': '0 12px 34px rgba(0,0,0,0.44)',
+        'site-inset': 'inset 0 1px 0 rgba(255,238,228,0.06)',
       },
       transitionTimingFunction: {
         card: 'cubic-bezier(0.16, 1, 0.3, 1)',

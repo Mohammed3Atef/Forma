@@ -1,0 +1,16 @@
+{
+  "eyebrow": "Everything connects",
+  "title": "One client. <piv>Every piece connected.</piv>",
+  "lead": "Each part of Forma feeds the others — and you oversee all of it.",
+  "nodes": {
+    "coach": "You, the coach",
+    "client": "Client",
+    "workout": "Workout",
+    "messages": "Messages",
+    "nutrition": "Nutrition",
+    "checkins": "Check-ins",
+    "cardio": "Cardio",
+    "progress": "Progress",
+    "assessment": "Assessment"
+  }
+}
