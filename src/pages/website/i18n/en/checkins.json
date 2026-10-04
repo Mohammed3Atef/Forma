@@ -1,0 +1,13 @@
+{
+  "eyebrow": "Check-ins",
+  "title": "The weekly check-in, <piv>finally in one place.</piv>",
+  "without": "Without Forma",
+  "withoutBody": "A photo in chat, weight in a form, notes in your head, feedback in a voice note.",
+  "with": "With Forma",
+  "steps": {
+    "submit": { "h": "Client submits", "p": "Weight, energy, sleep, photos and notes — in a guided two-minute form." },
+    "context": { "h": "The context is already there", "p": "Their weight trend, adherence and last check-in sit right beside it." },
+    "review": { "h": "You review", "p": "Read it once, with the full picture — not across four apps." },
+    "respond": { "h": "You respond", "p": "Reply and adjust the plan from the same screen." }
+  }
+}

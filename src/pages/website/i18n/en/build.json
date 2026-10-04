@@ -1,0 +1,22 @@
+{
+  "eyebrow": "Programming",
+  "title": "Build the plan once. <piv>Adapt it for every client.</piv>",
+  "lead": "Your exercises, foods and templates become your own coaching system — so you never start from zero again.",
+  "tabs": { "w": "Workout", "n": "Nutrition", "c": "Cardio" },
+  "planType": "Plan type",
+  "cols": { "library": "Library", "plan": "Plan", "client": "Client" },
+  "steps": {
+    "s1": { "h": "Start from a template", "p": "Your best programmes, saved and reusable." },
+    "s2": { "h": "Adapt it to the client", "p": "Adjust sets, loads, meals and cardio for their goal and schedule." },
+    "s3": { "h": "Assign — and it's live", "p": "It appears in the client's app straight away." }
+  },
+  "libs": {
+    "exercises": "Exercise library",
+    "custom": "Custom exercises",
+    "foods": "Food library",
+    "groups": "Food groups",
+    "customFoods": "Custom foods",
+    "supplements": "Supplements",
+    "templates": "Workout & nutrition templates"
+  }
+}

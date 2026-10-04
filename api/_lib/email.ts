@@ -126,3 +126,42 @@ export async function sendPlanRequestExpiredEmail(to: string, name: string, plan
   const html = simpleNotice('Your request expired', `Hi ${name}, your request for ${planLabel} expired without a response in time. Your current Forma access is unaffected — you're welcome to request again any time.`);
   await send(to, 'Forma: your request expired', html, `plan-request-expired email for ${to} was not delivered`);
 }
+
+export interface ContactMessage {
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  reason: string;
+  message: string;
+}
+
+/**
+ * Public-website contact form → the team inbox (`CONTACT_EMAIL`), with
+ * Reply-To set to the visitor so a reply goes straight back to them. Unlike
+ * the transactional sends above, a missing `RESEND_API_KEY` THROWS: the
+ * visitor's message would otherwise be silently dropped, and the website
+ * falls back to opening their mail app instead.
+ */
+export async function sendContactEmail(msg: ContactMessage): Promise<void> {
+  const r = resend();
+  if (!r) throw new Error('Contact email is not configured (RESEND_API_KEY missing)');
+  const e = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const row = (k: string, v: string) => `<tr><td style="padding:4px 12px 4px 0;color:#888;vertical-align:top">${k}</td><td style="padding:4px 0">${e(v)}</td></tr>`;
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.5">
+<h2 style="margin:0 0 12px">New message from the Forma website</h2>
+<table style="border-collapse:collapse">${row('Name', msg.name)}${row('Email', msg.email)}${msg.phone ? row('Phone', msg.phone) : ''}${row('Role', msg.role)}${row('Reason', msg.reason)}</table>
+<p style="white-space:pre-wrap;margin:16px 0 0;padding:12px;background:#f5f5f5;border-radius:8px">${e(msg.message)}</p></div>`;
+  const subject = `Website contact — ${msg.reason} — ${msg.name}`;
+  const { error } = await r.emails.send({
+    from: fromAddress(),
+    to: process.env.CONTACT_EMAIL || 'useformafitness@gmail.com',
+    replyTo: msg.email,
+    subject,
+    html,
+  });
+  if (error) {
+    console.error('[email] Resend failed to send the contact message:', error);
+    throw new Error('Failed to send contact message');
+  }
+}

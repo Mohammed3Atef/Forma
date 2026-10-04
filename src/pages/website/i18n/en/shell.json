@@ -1,0 +1,31 @@
+{
+  "nav": {
+    "product": "Product",
+    "how": "How it works",
+    "coaches": "For coaches",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "primary": "Primary",
+    "homeLabel": "Forma — home"
+  },
+  "login": "Log in",
+  "start": "Start free trial",
+  "menu": "Menu",
+  "close": "Close",
+  "features": "Features",
+  "terms": "Terms of Service",
+  "privacy": "Privacy Policy",
+  "cookies": "Cookie Policy",
+  "foot": {
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "account": "Account",
+    "tagline": "The operating system for independent coaches. 100% coach-led — you do the coaching, Forma keeps it together.",
+    "rights": "All rights reserved."
+  },
+  "lang": {
+    "label": "العربية",
+    "aria": "التبديل إلى العربية"
+  }
+}

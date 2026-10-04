@@ -1,0 +1,26 @@
+{
+  "eyebrow": "Progress",
+  "title": "Progress you can <piv>actually see.</piv>",
+  "lead": "Every number comes from what was logged — weight, measurements, photos and performance, charted over any date range.",
+  "weight": "Bodyweight",
+  "range": "Date range",
+  "from": {
+    "4w": "4 weeks ago",
+    "12w": "12 weeks ago",
+    "6m": "6 months ago"
+  },
+  "measurements": "Measurements",
+  "measurementsSub": "vs. last entry",
+  "parts": {
+    "waist": "Waist",
+    "hips": "Hips",
+    "chest": "Chest",
+    "arm": "Arm",
+    "thigh": "Thigh"
+  },
+  "photos": "Progress photos",
+  "photosSub": "Dated, side by side",
+  "performance": "Performance · est. 1RM",
+  "performanceSub": "From logged sessions",
+  "photosAlt": "Progress photos from week 1 to week 9: the start, the first change, clear progress, real results"
+}

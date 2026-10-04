@@ -1,0 +1,11 @@
+{
+  "eyebrow": "Your business",
+  "title": "Coach the client. <piv>Understand the business.</piv>",
+  "lead": "See client progress and business health side by side — without turning your week into accounting.",
+  "points": {
+    "revenue": { "b": "Revenue & subscriptions", "s": "What came in, who's active, who's on trial." },
+    "renewals": { "b": "Renewals", "s": "Who renews soon — before it's a surprise." },
+    "adherence": { "b": "Adherence & activity", "s": "Who's training, who's slipping, who needs a message." },
+    "reports": { "b": "Reports", "s": "Clear summaries you can act on." }
+  }
+}

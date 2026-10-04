@@ -1,0 +1,75 @@
+/*
+ * System map geometry + draw-in motion. Nodes are placed by --x/--y (desktop,
+ * 16:9.4 canvas) and --mx/--my (phones, 4:5 canvas); connector lines are
+ * measured from the live node boxes (SystemMap.tsx) and drawn in on reveal.
+ */
+.map {
+  position: relative;
+  max-width: 1000px;
+  margin-inline: auto;
+  aspect-ratio: 16 / 9.4;
+}
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.lines path {
+  fill: none;
+  stroke: url(#mapg);
+  stroke-width: 1.5;
+  stroke-opacity: 0.75;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--k) * 90ms + 0.3s);
+}
+.lines path.soft {
+  stroke-opacity: 0.4;
+}
+.lines circle {
+  fill: #ff8b02;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--k) * 90ms + 1.2s);
+}
+.in .lines path {
+  stroke-dashoffset: 0;
+}
+.in .lines circle {
+  opacity: 1;
+}
+
+.node {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--k, 0) * 90ms + 0.5s);
+}
+.in .node {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lines path,
+  .lines circle,
+  .node {
+    transition: none;
+  }
+}
+
+/* Phones: the same radial layout on a portrait canvas, compact pills. */
+@media (max-width: 759px) {
+  .map {
+    aspect-ratio: 4 / 5;
+    font-size: clamp(10px, 2.7vw, 13px);
+  }
+  .node {
+    left: var(--mx);
+    top: var(--my);
+  }
+}

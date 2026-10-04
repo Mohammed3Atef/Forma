@@ -22,6 +22,7 @@ async function scan(page: Page, testInfo: TestInfo, name: string) {
 
 const targets: { name: string; role: Role | null; path: string }[] = [
   { name: 'landing', role: null, path: '/' },
+  { name: 'contact', role: null, path: '/contact' },
   { name: 'login', role: null, path: '/login' },
   { name: 'client-home', role: 'clientA', path: '/' },
   { name: 'coach-dashboard', role: 'coachA', path: '/coach/dashboard' },

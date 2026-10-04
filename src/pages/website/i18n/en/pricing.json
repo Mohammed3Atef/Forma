@@ -1,0 +1,14 @@
+{
+  "eyebrow": "Pricing",
+  "title": "One plan. <piv>Everything included.</piv>",
+  "lead": "No tiers to compare. Start with a free trial, then one monthly price.",
+  "card": {
+    "trial": "{{days}}-day free trial",
+    "desc": "Everything you need to coach professionally.",
+    "perMonth": "/ month",
+    "after": "after your {{days}}-day free trial · up to {{clients}} clients",
+    "upTo": "Up to {{clients}} clients",
+    "getStarted": "Get started",
+    "closed": "Sign-ups are paused right now. Contact us and we’ll let you know when they reopen."
+  }
+}
