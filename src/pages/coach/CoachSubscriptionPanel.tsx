@@ -22,7 +22,7 @@ import {
 import { getClientFreezeRequest, resolveFreezeRequest } from '@/services/platform/coachApi';
 import { listCoachPlans } from '@/services/platform/coachPlansApi';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
-import { parseDecimal } from '@/lib/utils';
+import { parseDecimal, parseNumber } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -378,7 +378,7 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, pending, err
           </div>
         </div>
         {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
-        <SubmitButton type="button" fullWidth data-testid="price-save" disabled={!(Number(price) >= 0) || price.trim() === ''} pending={pending} onClick={() => onSave(Number(price), currency.trim())}>
+        <SubmitButton type="button" fullWidth data-testid="price-save" disabled={!(parseNumber(price) >= 0) || price.trim() === ''} pending={pending} onClick={() => onSave(parseNumber(price), currency.trim())}>
           {t('common.save')}
         </SubmitButton>
       </div>
@@ -437,7 +437,7 @@ function SetTermSheet({
     setPlanName(p.name);
   };
 
-  const dur = Math.max(1, Number(duration) || 1);
+  const dur = Math.max(1, parseNumber(duration) || 1);
   return (
     <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setTerm')}>
       <div className="space-y-3">

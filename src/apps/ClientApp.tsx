@@ -55,6 +55,15 @@ const Messages = lazy(() => import('@/pages/Messages').then((m) => ({ default: m
  * default client bottom-nav tabs.
  */
 export function ClientApp() {
+  // When the focused day changes, reload all day-scoped data for that date.
+  // (Lives here, not in the root App, so other roles never bundle the client stores — B1.13 / AR-02.)
+  const selectedDay = useDay((s) => s.selected);
+  useEffect(() => {
+    void useNutrition.getState().load(selectedDay);
+    void useWorkout.getState().loadDay(selectedDay);
+    void useHabits.getState().refresh(selectedDay);
+  }, [selectedDay]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ClientGate />

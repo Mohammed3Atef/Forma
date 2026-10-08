@@ -18,7 +18,21 @@ export interface NotifyInput {
   createdBy: string;
 }
 
+/**
+ * Best-effort (B1.6): a notification is a side effect of a domain write that
+ * has ALREADY committed. If it fails, the write must still report success —
+ * otherwise the client retries a write that already happened (a check-in
+ * resubmit then fails as "already submitted"). Failures are logged.
+ */
 export async function notify(input: NotifyInput): Promise<void> {
+  try {
+    await insertNotification(input);
+  } catch (e) {
+    console.error(`[notify] ${input.type} for ${input.clientId} failed (the domain write already committed):`, e);
+  }
+}
+
+async function insertNotification(input: NotifyInput): Promise<void> {
   const col = await notificationsCol();
   const now = Date.now();
   const doc: AppNotificationDoc = {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { currentLocalOwner } from '@/data/localScope';
+import { refreshPendingSync } from '@/data/sync/syncTruth';
 
 /** Opportunistic syncs (tab refocus, reconnect) within this window are skipped. */
 const MIN_SYNC_INTERVAL_MS = 60_000;
@@ -143,6 +144,7 @@ export const useCloud = create<CloudState>((set, get) => ({
       set({ error: e instanceof Error ? e.message : 'Sync failed' });
     } finally {
       set({ syncing: false });
+      refreshPendingSync(0); // what this device still owes the server, after the pass
     }
   },
 

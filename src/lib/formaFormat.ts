@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { CapacitySnapshot } from '@/types';
+import { formatDate } from '@/lib/format';
 
-/** "3 Oct 2026" / Arabic equivalent. */
-export const fmtDate = (at: number, lang: string) =>
-  new Date(at).toLocaleDateString(lang.startsWith('ar') ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+/** "3 Oct 2026" / Arabic equivalent (via the formatting service — B1.8). */
+export const fmtDate = (at: number, lang: string) => formatDate(at, lang, 'medium');
 
 /** "199 EGP / month", "199 EGP / 3 months" or "199 EGP one-time". */
 export function useCapacityPrice() {

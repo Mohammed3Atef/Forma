@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { NumericField } from "@/components/ui/NumericField";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTabParam } from "@/components/ui/Tabs";
@@ -26,6 +27,7 @@ import {
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import {
   parseDecimal,
+  parseDecimalOrNull,
   shortDate,
   today,
   weekStartOf,
@@ -570,12 +572,11 @@ export function Progress() {
             <label className="label">
               {t("settings.weight")} ({t("common.kg")})
             </label>
-            <input
-              className="input"
-              type="text"
-              inputMode="decimal"
-              value={weightVal}
-              onChange={(e) => setWeightVal(e.target.value)}
+            <NumericField
+              ariaLabel={`${t("settings.weight")} (${t("common.kg")})`}
+              suffix={t("common.kg")}
+              value={parseDecimalOrNull(weightVal)}
+              onChange={(n) => setWeightVal(n == null ? "" : String(n))}
             />
           </div>
           {weightError && (

@@ -44,7 +44,9 @@ import { seedStarterLibrary } from '@/services/platform/starterLibraryApi';
 import { LoadStarterLibraryButton } from '@/pages/coach/LoadStarterLibraryButton';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement } from '@/types';
+import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement, LocalizedText } from '@/types';
+import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
+import { applyLocalizedEdit, secondLanguageStale, setLocalized } from '@/lib/localizedText';
 
 /** Shared onError for the library's many CRUD mutations — a generic alert naming the action, instead of leaving a failed save/delete completely silent. */
 function libError(title: string, fallback: string) {
@@ -182,7 +184,7 @@ function ExercisesTab({ coachId }: { coachId: string }) {
       <div className="mb-3 flex items-center gap-2">
         <div className="relative flex-1">
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
-          <input className="input ps-10" data-testid="lib-search" placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="input ps-10" data-testid="lib-search" aria-label={t('coachLib.search')} placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button type="button" className="btn-ghost h-[42px] whitespace-nowrap px-3 text-[13px] disabled:opacity-40" data-testid="lib-load-starter" disabled={loadStarter.isPending} onClick={async () => { if (await confirmDialog({ title: t('coachLib.loadStarter'), message: t('starter.confirm') })) loadStarter.mutate(); }}>
           {loadStarter.isPending ? t('auth.working') : t('coachLib.loadStarter')}
@@ -261,8 +263,8 @@ function ExercisesTab({ coachId }: { coachId: string }) {
 
 // ---- Foods -----------------------------------------------------------------
 
-interface FoodFormState { id: string | null; name: string; quantity: string; calories: string; protein: string; carbs: string; fats: string; category: string; tags: string[] }
-const blankFoodForm = (): FoodFormState => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '', category: '', tags: [] });
+interface FoodFormState { id: string | null; name: string; /** B1.8 / FD-01 */ nameOrig: LocalizedText | null; nameAr: string; nameArTouched: boolean; quantity: string; calories: string; protein: string; carbs: string; fats: string; category: string; tags: string[] }
+const blankFoodForm = (): FoodFormState => ({ id: null, name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', calories: '', protein: '', carbs: '', fats: '', category: '', tags: [] });
 const numv = (s: string) => Math.max(0, parseDecimal(s)); // decimals allowed (food macros)
 
 function FoodsTab({ coachId }: { coachId: string }) {
@@ -272,7 +274,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<FoodFormState | null>(null);
   const foods = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
-  const editFood = (f: LibraryFood) => setForm({ id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), category: f.category ?? '', tags: f.tags ?? [] });
+  const editFood = (f: LibraryFood) => setForm({ id: f.id, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), category: f.category ?? '', tags: f.tags ?? [] });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -323,7 +325,8 @@ function FoodsTab({ coachId }: { coachId: string }) {
     if (!form) return;
     const food: LibraryFood = {
       id: form.id ?? uid('food'),
-      name: { en: form.name.trim(), ar: form.name.trim() },
+      // FD-01: never copy the English name over a real Arabic one.
+      name: form.nameArTouched ? setLocalized(form.name, form.nameAr) : applyLocalizedEdit(form.nameOrig, form.name, 'en'),
       quantity: form.quantity.trim(),
       calories: numv(form.calories),
       protein: numv(form.protein),
@@ -340,7 +343,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
       <div className="mb-4 flex items-center gap-2">
         <div className="relative flex-1">
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
-          <input className="input ps-10" data-testid="food-search" placeholder={t('coachFoods.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="input ps-10" data-testid="food-search" aria-label={t('coachFoods.search')} placeholder={t('coachFoods.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachFoods.newFood')} data-testid="food-new" onClick={() => setForm(blankFoodForm())}>
           <Icon name="plus" size={20} />
@@ -392,6 +395,7 @@ function FoodsTab({ coachId }: { coachId: string }) {
         {form && (
           <div className="space-y-3" data-testid="food-lib-form">
             <TextInput label={t('field.name')} data-testid="lf-name" placeholder={t('coachEditor.foodName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <SecondLanguageField lang="ar" testId="lf-name-ar" value={form.nameAr} onChange={(v) => setForm({ ...form, nameAr: v, nameArTouched: true })} stale={!form.nameArTouched && secondLanguageStale(form.nameOrig, form.name, 'en')} />
             <TextInput label={t('field.quantity')} data-testid="lf-quantity" placeholder={t('coachFoods.serving')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
             <div className="grid grid-cols-2 gap-2">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
@@ -528,7 +532,7 @@ function GroupsTab({ coachId }: { coachId: string }) {
 
 // ---- Supplements -----------------------------------------------------------
 
-interface SuppFormState { id: string | null; name: string; dose: string; timing: string }
+interface SuppFormState { id: string | null; name: string; dose: string; timing: string; doseOrig?: LocalizedText; timingOrig?: LocalizedText }
 const blankSuppForm = (): SuppFormState => ({ id: null, name: '', dose: '', timing: '' });
 
 function SupplementsTab({ coachId }: { coachId: string }) {
@@ -574,8 +578,8 @@ function SupplementsTab({ coachId }: { coachId: string }) {
     const s: LibrarySupplement = {
       id: form.id ?? uid('supp'),
       name: form.name.trim(),
-      dose: { en: form.dose.trim(), ar: form.dose.trim() },
-      ...(form.timing.trim() ? { timing: { en: form.timing.trim(), ar: form.timing.trim() } } : {}),
+      dose: applyLocalizedEdit(form.doseOrig, form.dose, 'en'),
+      ...(form.timing.trim() ? { timing: applyLocalizedEdit(form.timingOrig, form.timing, 'en') } : {}),
     };
     saveMut.mutate(s);
   };
@@ -585,7 +589,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
       <div className="mb-4 flex items-center gap-2">
         <div className="relative flex-1">
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle"><Icon name="search" size={18} /></span>
-          <input className="input ps-10" data-testid="supp-search" placeholder={t('coachSupps.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="input ps-10" data-testid="supp-search" aria-label={t('coachSupps.search')} placeholder={t('coachSupps.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button type="button" className="icon-btn h-11 w-11" aria-label={t('coachSupps.newSupp')} data-testid="supp-new" onClick={() => setForm(blankSuppForm())}>
           <Icon name="plus" size={20} />
@@ -605,7 +609,7 @@ function SupplementsTab({ coachId }: { coachId: string }) {
             <div key={s.id} className={`flex items-center gap-3 py-2.5 ${sel.has(s.id) ? 'bg-brand/10' : ''}`} data-testid="supp-item">
               <span className="ps-1"><RowCheckbox checked={sel.has(s.id)} onToggle={() => sel.toggle(s.id)} label={t('common.bulk.selectRow')} testId="row-select" /></span>
               <Icon name="pill" size={18} className="shrink-0 text-earth-subtle" />
-              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
+              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setForm({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '', doseOrig: s.dose, timingOrig: s.timing })}>
                 <span className="block truncate font-medium">{s.name}</span>
                 <span className="block truncate text-[12px] text-earth-subtle">{[s.dose.en, s.timing?.en].filter(Boolean).join(' · ') || t('coachLib.noMeta')}</span>
               </button>

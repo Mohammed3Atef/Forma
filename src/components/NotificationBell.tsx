@@ -8,7 +8,7 @@ import { markNotificationSeen } from '@/services/platform/notificationsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import { fetchMyCoach } from '@/services/platform/clientCoachApi';
 import { showToast, type ToastAvatar } from '@/stores/toastStore';
-import { openClientNote } from '@/lib/noteTarget';
+import { openNotification } from '@/lib/notificationTarget';
 import { pickToastable } from '@/lib/notificationBaseline';
 import type { AppNotification } from '@/types';
 import { Icon } from './Icon';
@@ -86,7 +86,7 @@ export function NotificationBell({ className = '' }: { className?: string }) {
         onClick: () => {
           if (!isAdmin && !n.seenAt) void markNotificationSeen(n.clientId, n.id).catch(() => undefined);
           // Only a TAP may move the client's day / focus (B0 / NT-02).
-          navigate(isCoach ? n.route ?? '/coach' : isAdmin ? n.route ?? '/admin' : openClientNote(n));
+          navigate(openNotification(n, isCoach ? 'coach' : isAdmin ? 'admin' : 'client'));
         },
       });
     });

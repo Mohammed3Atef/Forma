@@ -84,23 +84,31 @@ export function subscribeMessages(
   intervalMs = THREAD_POLL_MS,
   /** Called when a poll fails before any successful load (so the thread can show an error instead of loading forever). Polling keeps retrying. */
   onError?: () => void,
+  /** Skip this tick (someone else is already fetching the same data). The tick after a skip refetches the whole window. */
+  skipTick?: () => boolean,
 ): MessageSubscription {
   let cancelled = false;
   let cursor: number | undefined;
   let all: Message[] = [];
   let tick = 0;
+  let resync = false;
 
   const emit = () => cb(all.slice(Math.max(0, all.length - max)));
 
   const poll = async () => {
     if (isTabHidden()) return;
-    const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
+    if (skipTick?.()) {
+      resync = true; // read receipts may have changed meanwhile — a `since` poll wouldn't see them
+      return;
+    }
+    const fullRefresh = cursor == null || resync || tick % FULL_REFRESH_EVERY === 0;
     try {
       const page: MessagesPage = await trpc.messages.list.query(fullRefresh ? { clientId } : { clientId, since: cursor });
       if (cancelled) return;
       const incoming = page.messages.map(withBroadcastFlag);
       all = fullRefresh ? incoming : [...all, ...incoming];
       cursor = page.cursor;
+      if (fullRefresh) resync = false;
       tick += 1;
       emit();
     } catch {
@@ -174,6 +182,42 @@ export async function listOlderMessages(clientId: string, before: number): Promi
   return { messages: page.messages.map(withBroadcastFlag), hasMore: !!page.hasMore };
 }
 
+/*
+ * Open threads (B1.13): while `MessageThread` polls a thread every 5 s, the
+ * passive badge poll for that same thread skips its own 200-message fetch and
+ * takes the open thread's data instead.
+ */
+const openThreads = new Map<string, number>();
+const openThreadLast = new Map<string, Message[]>();
+const openThreadWatchers = new Map<string, Set<(msgs: Message[]) => void>>();
+
+/** The actively-open thread's poll (5 s). Its data also feeds that thread's unread badge. */
+export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => void, onError?: () => void): MessageSubscription {
+  openThreads.set(clientId, (openThreads.get(clientId) ?? 0) + 1);
+  const sub = subscribeMessages(
+    clientId,
+    (msgs) => {
+      openThreadLast.set(clientId, msgs);
+      cb(msgs);
+      openThreadWatchers.get(clientId)?.forEach((w) => w(msgs));
+    },
+    200,
+    THREAD_POLL_MS,
+    onError,
+  );
+  const unsubscribe = (() => {
+    sub();
+    const n = (openThreads.get(clientId) ?? 1) - 1;
+    if (n > 0) openThreads.set(clientId, n);
+    else {
+      openThreads.delete(clientId);
+      openThreadLast.delete(clientId);
+    }
+  }) as MessageSubscription;
+  unsubscribe.patch = sub.patch;
+  return unsubscribe;
+}
+
 /** Mark messages from the OTHER party as seen (the reader just opened the thread). */
 export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<void> {
   // `_readerRole` is unused: the backend infers the reader's role from the
@@ -194,18 +238,23 @@ export function subscribeThreadMeta(clientId: string, cb: (meta: ThreadMeta) => 
 }
 
 function threadMetaPoll(clientId: string, cb: (meta: ThreadMeta) => void): () => void {
-  return subscribeMessages(
-    clientId,
-    (msgs) => {
-      cb({
-        last: msgs[msgs.length - 1] ?? null,
-        unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
-        unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
-      });
-    },
-    200,
-    BADGE_POLL_MS,
-  );
+  const toMeta = (msgs: Message[]) =>
+    cb({
+      last: msgs[msgs.length - 1] ?? null,
+      unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
+      unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
+    });
+  let watchers = openThreadWatchers.get(clientId);
+  if (!watchers) openThreadWatchers.set(clientId, (watchers = new Set()));
+  watchers.add(toMeta);
+  const last = openThreadLast.get(clientId);
+  if (last) toMeta(last);
+  const stop = subscribeMessages(clientId, toMeta, 200, BADGE_POLL_MS, undefined, () => openThreads.has(clientId));
+  return () => {
+    watchers.delete(toMeta);
+    if (watchers.size === 0) openThreadWatchers.delete(clientId);
+    stop();
+  };
 }
 
 export interface CoachThreadSummary {

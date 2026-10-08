@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
+import { applyLocalizedEdit, secondLanguageStale, setLocalized } from '@/lib/localizedText';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +22,7 @@ import { FoodSearchPicker } from '@/components/workout/FoodSearchPicker';
 import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
-import type { FoodItem, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
+import type { FoodItem, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
 
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack', 'postWorkout'];
 
@@ -41,6 +43,10 @@ function emptyPlan(): MealPlan {
 interface FoodForm {
   id: string | null;
   name: string;
+  /** The item's bilingual name before this edit (B1.8 / FD-01) — its Arabic is kept unless the coach changes it. */
+  nameOrig: LocalizedText | null;
+  nameAr: string;
+  nameArTouched: boolean;
   quantity: string;
   calories: string;
   protein: string;
@@ -49,7 +55,7 @@ interface FoodForm {
   groupId: string | null;
   allowCustom: boolean;
 }
-const blankFood = (): FoodForm => ({ id: null, name: '', quantity: '', calories: '', protein: '', carbs: '', fats: '', groupId: null, allowCustom: false });
+const blankFood = (): FoodForm => ({ id: null, name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', calories: '', protein: '', carbs: '', fats: '', groupId: null, allowCustom: false });
 const num = (s: string) => Math.max(0, parseDecimal(s)); // decimals allowed (macros, water, targets)
 /** Strip a library food down to a plain plan FoodItem (no undefined keys). */
 const cleanFood = (f: FoodItem): FoodItem => ({
@@ -82,7 +88,7 @@ export function CoachNutritionEditor() {
   const suppLib = useQuery({ queryKey: ['supplements', coachId], queryFn: () => listSupplements(coachId), enabled: !!coachId });
   const [editing, setEditing] = useState<{ mealId: string; form: FoodForm } | null>(null);
   const [pick, setPick] = useState('');
-  const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string; timing: string } | null>(null);
+  const [supp, setSupp] = useState<{ id: string | null; name: string; dose: string; timing: string; doseOrig?: LocalizedText; timingOrig?: LocalizedText } | null>(null);
   const isDesktop = useIsDesktop();
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
 
@@ -144,7 +150,8 @@ export function CoachNutritionEditor() {
     const grp = form.groupId ? (groups.data ?? []).find((g) => g.id === form.groupId) : undefined;
     const food: FoodItem = {
       id,
-      name: { en: form.name.trim(), ar: form.name.trim() },
+      // FD-01: never copy the English name over a real Arabic one.
+      name: form.nameArTouched ? setLocalized(form.name, form.nameAr) : applyLocalizedEdit(form.nameOrig, form.name, 'en'),
       quantity: form.quantity.trim(),
       calories: num(form.calories),
       protein: num(form.protein),
@@ -174,8 +181,8 @@ export function CoachNutritionEditor() {
     const s: Supplement = {
       id,
       name: supp.name.trim(),
-      dose: { en: supp.dose.trim(), ar: supp.dose.trim() },
-      ...(supp.timing.trim() ? { timing: { en: supp.timing.trim(), ar: supp.timing.trim() } } : {}),
+      dose: applyLocalizedEdit(supp.doseOrig, supp.dose, 'en'),
+      ...(supp.timing.trim() ? { timing: applyLocalizedEdit(supp.timingOrig, supp.timing, 'en') } : {}),
     };
     setPlan({
       ...plan,
@@ -188,7 +195,7 @@ export function CoachNutritionEditor() {
   const mealCard = (meal: Meal) => (
     <div key={meal.id} className="card">
       <div className="mb-3 flex items-end gap-2">
-        <TextInput label={t('coachEditor.mealLabel')} fieldClassName="flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: { ...meal.label, en: e.target.value } })} />
+        <TextInput label={t('coachEditor.mealLabel')} fieldClassName="flex-1" value={meal.label.en} onChange={(e) => patchMeal(meal.id, { label: applyLocalizedEdit(meal.label, e.target.value, 'en') })} />
         <button type="button" className="icon-btn h-11 w-11 shrink-0 text-danger" aria-label={t('coachEditor.removeMeal')} onClick={() => void removeMeal(meal)}>
           <Icon name="close" size={18} />
         </button>
@@ -206,7 +213,7 @@ export function CoachNutritionEditor() {
             <button
               type="button"
               className="min-w-0 flex-1 text-start"
-              onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), groupId: f.allowedAlternativeGroupId ?? null, allowCustom: !!f.allowCustomSubstitution } })}
+              onClick={() => setEditing({ mealId: meal.id, form: { id: f.id, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), groupId: f.allowedAlternativeGroupId ?? null, allowCustom: !!f.allowCustomSubstitution } })}
             >
               <span className="block truncate font-medium">{f.name.en || t('coachEditor.untitledFood')}</span>
               <span className="block truncate text-[12px] text-earth-subtle">{f.quantity} · {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}</span>
@@ -384,7 +391,7 @@ export function CoachNutritionEditor() {
         {plan.supplements.length ? (
           plan.supplements.map((s) => (
             <div key={s.id} className="flex items-center gap-3 py-2.5">
-              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setSupp({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
+              <button type="button" className="min-w-0 flex-1 text-start" onClick={() => setSupp({ id: s.id, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '', doseOrig: s.dose, timingOrig: s.timing })}>
                 <span className="block truncate font-medium">{s.name || t('coachEditor.untitledSupp')}</span>
                 {(s.dose.en || s.timing?.en) && <span className="block truncate text-[12px] text-earth-subtle">{[s.dose.en, s.timing?.en].filter(Boolean).join(' · ')}</span>}
               </button>
@@ -410,7 +417,7 @@ export function CoachNutritionEditor() {
                 <label className="label mb-1.5 block">{t('coachEditor.chooseSupp')}</label>
                 <div className="flex flex-wrap gap-2" data-testid="supp-picker">
                   {(suppLib.data ?? []).map((s) => (
-                    <button key={s.id} type="button" className="chip" onClick={() => setSupp({ ...supp, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '' })}>
+                    <button key={s.id} type="button" className="chip" onClick={() => setSupp({ ...supp, name: s.name, dose: s.dose.en, timing: s.timing?.en ?? '', doseOrig: s.dose, timingOrig: s.timing })}>
                       {s.name}
                     </button>
                   ))}
@@ -447,7 +454,7 @@ export function CoachNutritionEditor() {
                         type="button"
                         data-testid="food-lib-option"
                         className="row w-full text-start"
-                        onClick={() => setEditing({ ...editing, form: { ...editing.form, name: f.name.en, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) } })}
+                        onClick={() => setEditing({ ...editing, form: { ...editing.form, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) } })}
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{f.name.en || f.name.ar}</span>
@@ -466,6 +473,13 @@ export function CoachNutritionEditor() {
               <div className="my-3 h-px bg-line-soft" />
             </div>
             <TextInput label={t('field.name')} data-testid="food-name" placeholder={t('coachEditor.foodName')} value={editing.form.name} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, name: e.target.value } })} />
+            <SecondLanguageField
+              lang="ar"
+              testId="food-name-ar"
+              value={editing.form.nameAr}
+              onChange={(v) => setEditing({ ...editing, form: { ...editing.form, nameAr: v, nameArTouched: true } })}
+              stale={!editing.form.nameArTouched && secondLanguageStale(editing.form.nameOrig, editing.form.name, 'en')}
+            />
             <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={editing.form.quantity} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, quantity: e.target.value } })} />
             <div className="grid grid-cols-2 gap-2">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (

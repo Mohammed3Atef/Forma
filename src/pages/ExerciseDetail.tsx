@@ -6,7 +6,7 @@ import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { LineChart } from '@/components/charts';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { playVideo } from '@/stores/videoPopupStore';
+import { playVideo } from '@/stores/mediaViewerStore';
 import { useLocalized } from '@/hooks/useLocalized';
 import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise, exerciseTrend } from '@/lib/calc';

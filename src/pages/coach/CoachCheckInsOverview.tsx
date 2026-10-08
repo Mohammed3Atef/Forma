@@ -185,7 +185,7 @@ export function CoachCheckInsOverview() {
                         </span>
                         {overdue && <Pill tone="bad">{t('checkin.overdue')}</Pill>}
                         <Pill tone={TONE[status]}>{t(`checkin.status.${status}`, { defaultValue: t('checkin.none') })}</Pill>
-                        <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
+                        <Icon name="chevron" size={16} className="text-earth-subtle" />
                       </button>
                     );
                   })}

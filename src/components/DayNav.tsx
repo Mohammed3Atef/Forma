@@ -16,13 +16,12 @@ export function DayNav() {
   const reset = useDay((s) => s.reset);
 
   const isToday = selected === today();
-  // In RTL the visual arrows are flipped, so swap which arrow moves back/forward.
-  const rtl = i18n.dir() === 'rtl';
+  // Previous/next arrows mirror themselves in RTL (Icon, B1.8).
 
   return (
     <div className="mb-3 mt-1 flex items-center justify-between gap-2 rounded-full border border-line bg-surface-card px-2 py-1.5">
       <button type="button" onClick={() => shift(-1)} className="icon-btn h-9 w-9" aria-label="previous day">
-        <Icon name="chevron" size={18} className={rtl ? '' : 'rotate-180'} />
+        <Icon name="chevronLeft" size={18} />
       </button>
 
       <label className="relative flex flex-1 cursor-pointer flex-col items-center">
@@ -51,7 +50,7 @@ export function DayNav() {
         className="icon-btn h-9 w-9 disabled:opacity-30"
         aria-label="next day"
       >
-        <Icon name="chevron" size={18} className={rtl ? 'rotate-180' : ''} />
+        <Icon name="chevron" size={18} />
       </button>
     </div>
   );

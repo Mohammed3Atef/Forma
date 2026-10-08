@@ -9,16 +9,16 @@ import {
   listOlderMessages,
   markThreadSeen,
   reactToMessage,
-  sendMessage,
-  subscribeMessages,
+  subscribeOpenThread,
   type MessageSubscription,
 } from "@/services/platform/messagesApi";
-import { markMessageNotificationsSeen } from "@/services/platform/notificationsApi";
-import { uploadFile, useUploadConfigured, UploadError } from "@/services/platform/mediaApi";
+import { useUploadConfigured } from "@/services/platform/mediaApi";
+import { discardOutbox, onOutboxAck, retryOutbox, useOutbox, waitForFirstAttempt, type OutboxOp } from "@/data/outbox/outbox";
+import { queueMessage, type MessageSendPayload } from "@/data/outbox/handlers";
+import { blobStore } from "@/data/blobStore";
 import { getAttachmentKind, type AttachmentKind } from "@/lib/attachmentKind";
 import { messagesEqual } from "@/lib/messagesEqual";
-import { downscaleImage } from "@/lib/image";
-import { viewImages } from "@/stores/imageViewerStore";
+import { viewImages } from "@/stores/mediaViewerStore";
 import { alertDialog, confirmDelete, confirmDialog } from "@/stores/dialogStore";
 import { useVoiceRecorder, type VoiceRecorderError } from "@/hooks/useVoiceRecorder";
 import { useIsTabletUp } from "@/hooks/useMediaQuery";
@@ -26,25 +26,17 @@ import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
 import { Sheet } from "@/components/Sheet";
 import { colors } from "@/theme/colors";
-import { uid } from "@/lib/utils";
+import { formatBytes, formatDate, formatDuration, formatTime } from '@/lib/format';
 
 /**
- * A message this device just sent but the poll hasn't echoed back yet.
- * Identity is by `localId` (a client-generated temp id, also sent to the
- * server as `clientMsgId` for idempotent retries) — never by matching body
- * text, so two identical messages sent back-to-back stay distinct and a
- * retry can never silently create a duplicate.
+ * Messages this device sent that the server hasn't acknowledged yet live in the
+ * durable OUTBOX (B1.6 / PWA-12) — not in component state — so they survive
+ * leaving the thread, a reload or an OS kill, and retry by themselves. Each
+ * op's id doubles as the server's idempotency key (`clientMsgId`): a retry
+ * can never create a second message, and a server message carrying that id
+ * replaces the pending bubble even when the send's own answer was lost.
  */
-interface PendingMessage {
-  localId: string;
-  body: string;
-  attachment?: { kind: AttachmentKind; previewUrl?: string; name?: string };
-  file?: File;
-  downscale?: boolean;
-  createdAt: number;
-  status: "uploading" | "sending" | "failed";
-  progress?: number;
-}
+const pendingPayload = (op: OutboxOp) => op.payload as MessageSendPayload;
 
 /** An attachment picked (or recorded) but not yet uploaded — held in the composer until Send. */
 interface DraftAttachment {
@@ -81,18 +73,7 @@ function swallowNextClick(at: { x: number; y: number }): void {
 }
 
 /** Format an elapsed-seconds count as m:ss for the recording indicator. */
-function fmtElapsed(total: number): string {
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function fmtBytes(n?: number): string {
-  if (!n) return "";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
+const fmtElapsed = (total: number): string => formatDuration(total);
 
 /** Per-category bubble styling + attention-flash colour for coach broadcasts. */
 const CATEGORY: Record<MessageCategory, { bubble: string; flash: string }> = {
@@ -125,7 +106,7 @@ export function MessageThread({
   /** The other party, for theirs-message avatars + accessibility. */
   peer?: { name?: string; photoUrl?: string };
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const uploadsEnabled = useUploadConfigured();
   const [messages, setMessages] = useState<Message[]>([]);
   // Server-confirmed sends whose real `id` we already have (from the `send`
@@ -147,7 +128,12 @@ export function MessageThread({
   const [body, setBody] = useState("");
   const [draft, setDraft] = useState<DraftAttachment | null>(null);
   const [sending, setSending] = useState(false);
-  const [pending, setPending] = useState<PendingMessage[]>([]);
+  const outboxOps = useOutbox((s) => s.ops);
+  const outboxProgress = useOutbox((s) => s.progress);
+  // Preview object URLs for pending attachments (from the draft, or re-made from the device copy after a reload).
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const previewsRef = useRef(previews);
+  previewsRef.current = previews;
   const [newBelow, setNewBelow] = useState(0);
   const [actionsFor, setActionsFor] = useState<ActionTarget | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -195,6 +181,47 @@ export function MessageThread({
     return [...olderPages.filter((m) => !ids.has(m.id)), ...messages, ...justSent.filter((m) => !ids.has(m.id))];
   }, [messages, olderPages, justSent]);
 
+  const pending = useMemo(() => {
+    const delivered = new Set(combined.map((m) => m.clientMsgId).filter(Boolean));
+    return outboxOps.filter((o) => o.type === "message.send" && pendingPayload(o).clientId === clientId && o.status !== "acknowledged" && !delivered.has(o.operationId));
+  }, [outboxOps, combined, clientId]);
+
+  // The server's copy of a message the outbox just delivered shows at once (the poll catches up later).
+  useEffect(
+    () =>
+      onOutboxAck((op) => {
+        if (op.type !== "message.send" || pendingPayload(op).clientId !== clientId) return;
+        const msg = op.result as Message | undefined;
+        if (msg?.id) setJustSent((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
+      }),
+    [clientId],
+  );
+
+  // Re-create previews for pending attachments (e.g. after a reload) from the bytes kept on the device.
+  useEffect(() => {
+    let cancelled = false;
+    for (const op of pending) {
+      const a = pendingPayload(op).attachment;
+      if (!a || previewsRef.current[op.operationId] || !(a.kind === "image" || a.kind === "audio" || a.kind === "video")) continue;
+      void blobStore.objectUrl(a.blobKey).then((url) => {
+        if (!url) return;
+        if (cancelled || previewsRef.current[op.operationId]) return URL.revokeObjectURL(url);
+        setPreviews((p) => ({ ...p, [op.operationId]: url }));
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [pending]);
+  useEffect(() => () => Object.values(previewsRef.current).forEach((u) => URL.revokeObjectURL(u)), []);
+  const dropPreview = (id: string) =>
+    setPreviews((p) => {
+      if (!p[id]) return p;
+      URL.revokeObjectURL(p[id]);
+      const { [id]: _gone, ...rest } = p;
+      return rest;
+    });
+
   /** Apply a server-confirmed edit/delete/reaction to every local copy of that message (live window, older pages, just-sent) and the poller's cache. */
   const applyLocalUpdate = useCallback((updated: Message) => {
     const swap = (cur: Message[]) => cur.map((mm) => (mm.id === updated.id ? updated : mm));
@@ -228,7 +255,7 @@ export function MessageThread({
     oldestCursorRef.current = null;
     prevNewestAtRef.current = 0;
     setLoadError(false);
-    const unsub = subscribeMessages(clientId, (msgs) => {
+    const unsub = subscribeOpenThread(clientId, (msgs) => {
       setMessages(msgs);
       setLoading(false);
       setLoadError(false);
@@ -237,7 +264,7 @@ export function MessageThread({
       // more; the exact answer comes from `list`'s own `hasMore`, but until
       // the user asks to load older we only need a reasonable default.
       if (msgs.length >= 200) setHasOlder(true);
-    }, undefined, undefined, () => {
+    }, () => {
       setLoading(false);
       setLoadError(true);
     });
@@ -348,9 +375,8 @@ export function MessageThread({
   useEffect(() => {
     if (!clientId || combined.length === 0) return;
     if (combined.some((m) => m.fromRole !== meRole && !m.seenAt)) {
+      // One call: the server also clears this thread's message notifications (bell/feed), B1.13.
       void markThreadSeen(clientId, meRole);
-      // Clear the matching in-app notifications so the bell/feed stay in sync.
-      void markMessageNotificationsSeen(clientId, meRole === "coach" ? "coach" : "client");
     }
     // `combined` is always chronological, so its last element is the newest —
     // count how many messages are newer than the last one we accounted for.
@@ -372,10 +398,6 @@ export function MessageThread({
     if (d?.previewUrl) URL.revokeObjectURL(d.previewUrl);
   };
 
-  // In-flight upload AbortControllers, keyed by the pending message's localId — lets
-  // Cancel stop the XHR mid-upload instead of only hiding it client-side.
-  const uploadAborts = useRef<Map<string, AbortController>>(new Map());
-
   const setDraftFromFile = (file: File, kindOverride?: AttachmentKind) => {
     const kind = kindOverride ?? getAttachmentKind({ mimeType: file.type, name: file.name });
     const previewUrl = kind === "image" || kind === "audio" || kind === "video" ? URL.createObjectURL(file) : undefined;
@@ -389,126 +411,80 @@ export function MessageThread({
     });
   };
 
-  // Sends ONE message: either a bare attachment or bare text, never both —
-  // an attachment + a caption are deliberately two independent messages (see
-  // `doSend`), each with its own id/reactions/edit/delete eligibility.
-  // `localId` doubles as the server's idempotency key (`clientMsgId`) — a
-  // retry of the SAME pending entry can never create a second message.
-  // Returns whether the send actually succeeded, so `doSend` can decide
-  // whether it's safe to move on to the next message in the sequence.
-  const sendPending = async (text: string, attachment: DraftAttachment | null, localId: string, existingProgress?: number): Promise<boolean> => {
-    setPending((cur) => {
-      const entry: PendingMessage = {
-        localId,
-        body: text,
-        attachment: attachment ? { kind: attachment.kind, previewUrl: attachment.previewUrl, name: attachment.file.name } : undefined,
-        file: attachment?.file,
-        downscale: attachment?.downscale,
-        createdAt: cur.find((pm) => pm.localId === localId)?.createdAt ?? Date.now(),
-        status: attachment ? "uploading" : "sending",
-        progress: existingProgress,
-      };
-      const idx = cur.findIndex((pm) => pm.localId === localId);
-      if (idx === -1) return [...cur, entry];
-      const next = [...cur];
-      next[idx] = entry;
-      return next;
-    });
-    stick.current = true;
-    requestAnimationFrame(scrollToBottom);
-
-    try {
-      let attachmentPayload: Message["attachment"];
-      if (attachment) {
-        const blob = attachment.downscale
-          ? new File([await downscaleImage(attachment.file)], attachment.file.name, { type: "image/webp" })
-          : attachment.file;
-        const controller = new AbortController();
-        uploadAborts.current.set(localId, controller);
-        try {
-          const { url, kind, name, size, mimeType } = await uploadFile(
-            blob,
-            { category: "message", clientId },
-            {
-              onProgress: (pct) => setPending((cur) => cur.map((pm) => (pm.localId === localId ? { ...pm, progress: pct } : pm))),
-              signal: controller.signal,
-            },
-          );
-          attachmentPayload = { url, kind, name, size, mimeType };
-        } finally {
-          uploadAborts.current.delete(localId);
-        }
-        setPending((cur) => cur.map((pm) => (pm.localId === localId ? { ...pm, status: "sending" } : pm)));
-      }
-      const confirmed = await sendMessage(clientId, { id: meId, role: meRole }, text, { attachment: attachmentPayload, clientMsgId: localId });
-      setJustSent((cur) => [...cur, confirmed]);
-      setPending((cur) => cur.filter((pm) => pm.localId !== localId));
-      return true;
-    } catch (err) {
-      if (err instanceof UploadError && err.code === "cancelled") {
-        // Cancel-in-flight: drop the pending bubble and hand the text/attachment
-        // back to the composer instead of leaving it stranded as "failed".
-        setPending((cur) => cur.filter((pm) => pm.localId !== localId));
-        setBody((cur) => cur || text);
-        if (attachment) setDraft((cur) => cur ?? attachment);
-        return false;
-      }
-      setPending((cur) => cur.map((pm) => (pm.localId === localId ? { ...pm, status: "failed" } : pm)));
-      if (err instanceof UploadError) {
-        await alertDialog({ title: t("messages.title"), message: t(`upload.${err.code}`) });
-      }
-      return false;
-    }
-  };
-
-  /** Cancel an in-flight upload for a pending message: aborts the XHR and returns its text/attachment to the composer. */
-  const cancelUpload = (localId: string) => {
-    uploadAborts.current.get(localId)?.abort();
-  };
-
-  // An attachment and a typed caption are sent as TWO independent messages,
-  // attachment first — never bundled into one document. They're sent in
-  // strict sequence (not in parallel) so slower networks can never reorder
-  // them, and each gets its own `clientMsgId` so a retry of either one can
-  // never duplicate or touch the other.
+  // An attachment and a typed caption are TWO independent messages, attachment
+  // first — never bundled. Both are queued in the outbox before the composer
+  // clears (nothing typed is lost if queueing fails); the caption waits for its
+  // attachment (`dependsOn`) so slow networks can never reorder them, and each
+  // has its own id so a retry of either can never duplicate or touch the other.
   const doSend = async () => {
     const text = body.trim();
     const attachment = draft;
     if (!text && !attachment) return;
     if (sending) return;
     setSending(true);
-    setBody("");
-    setDraft(null); // composer clears immediately — pending bubble(s) below now carry the send(s)
     try {
+      let attachmentOpId: string | undefined;
       if (attachment) {
-        const ok = await sendPending("", attachment, uid("msg"));
-        if (!ok) {
-          // The attachment failed (or was cancelled) — its own pending bubble
-          // already offers Retry/Discard (or, on cancel, reappears as the
-          // composer draft). Restore the caption too so it's neither silently
-          // sent on its own as if nothing happened, nor silently lost.
-          if (text) setBody((cur) => cur || text);
-          return;
-        }
+        const op = await queueMessage({ clientId, text: "", attachment: { file: attachment.file, kind: attachment.kind, downscale: attachment.downscale } });
+        attachmentOpId = op.operationId;
+        if (attachment.previewUrl) setPreviews((p) => ({ ...p, [op.operationId]: attachment.previewUrl! })); // handed over, not revoked
+        void reportFirstUploadFailure(op.operationId, attachment.file, attachment.kind);
       }
-      if (text) {
-        await sendPending(text, null, uid("msg"));
-      }
+      if (text) await queueMessage({ clientId, text, dependsOn: attachmentOpId });
+      setBody("");
+      setDraft(null);
+      stick.current = true;
+      requestAnimationFrame(scrollToBottom);
+    } catch (err) {
+      console.error("[messages] could not queue the message:", err);
+      await alertDialog({ title: t("messages.title"), message: t("messages.sendFailed") });
     } finally {
       setSending(false);
     }
   };
 
-  const retryPending = (pm: PendingMessage) => {
-    const attachment: DraftAttachment | null = pm.file ? { file: pm.file, kind: pm.attachment?.kind ?? "file", previewUrl: pm.attachment?.previewUrl, downscale: pm.downscale } : null;
-    void sendPending(pm.body, attachment, pm.localId, pm.progress);
+  /**
+   * Truthful upload failures (B0), kept with the outbox (B1.6): the user just
+   * pressed Send, so if the FIRST upload attempt fails while online they are
+   * told at once. A file that can never be sent (type / size) comes back to the
+   * composer with the reason; a transient failure stays queued and retries on
+   * its own. Offline sends just wait (no dialog), and a user cancel is silent.
+   */
+  const reportFirstUploadFailure = async (opId: string, file: File, kind: AttachmentKind) => {
+    const op = await waitForFirstAttempt(opId);
+    if (!op || (op.status !== "failed_permanent" && op.status !== "failed_retryable")) return;
+    if (op.status === "failed_permanent") {
+      const code = op.lastError?.code;
+      const reason = code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : t("upload.failed");
+      if (await discardOutbox(opId)) {
+        dropPreview(opId);
+        setDraft((cur) => cur ?? { file, kind, previewUrl: kind === "image" || kind === "audio" || kind === "video" ? URL.createObjectURL(file) : undefined, downscale: kind === "image" && file.type !== "image/svg+xml" });
+      }
+      await alertDialog({ title: t("messages.title"), message: reason });
+      return;
+    }
+    await alertDialog({ title: t("messages.title"), message: `${t("upload.failed")} ${t("trust.outbox.keptRetrying")}` });
   };
-  const dismissPending = (localId: string) =>
-    setPending((cur) => {
-      const pm = cur.find((p) => p.localId === localId);
-      if (pm?.attachment?.previewUrl) URL.revokeObjectURL(pm.attachment.previewUrl);
-      return cur.filter((p) => p.localId !== localId);
-    });
+
+  const retryPending = (op: OutboxOp) => void retryOutbox(op.operationId);
+  const dismissPending = async (op: OutboxOp) => {
+    const removed = await discardOutbox(op.operationId);
+    if (removed) dropPreview(op.operationId);
+  };
+  /** Cancel an upload in flight: the attachment — and a caption waiting on it — go back to the composer. */
+  const cancelUpload = async (op: OutboxOp) => {
+    const a = pendingPayload(op).attachment;
+    const blob = a ? await blobStore.get(a.blobKey) : null;
+    const removed = await discardOutbox(op.operationId);
+    if (!removed) return; // it was delivered after all — nothing to restore
+    dropPreview(op.operationId);
+    for (const dep of outboxOps.filter((o) => o.dependencyIds?.includes(op.operationId))) {
+      const r = await discardOutbox(dep.operationId);
+      const caption = r ? pendingPayload(r).text : "";
+      if (caption) setBody((cur) => cur || caption);
+    }
+    if (blob && a) setDraftFromFile(new File([blob], a.name, { type: a.mimeType }), a.kind);
+  };
 
   const onAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -763,47 +739,60 @@ export function MessageThread({
                 />
               );
             })}
-            {pending.map((pm) => (
-              <div key={pm.localId} className="mt-2 flex items-end justify-end gap-2" data-testid="message-bubble-pending">
-                <div className="flex min-w-0 max-w-[85%] flex-col items-end">
-                  {pm.attachment && (
-                    <div className="mb-1 w-fit max-w-full overflow-hidden rounded-xl border border-line-soft">
-                      {pm.attachment.kind === "image" && pm.attachment.previewUrl && (
-                        <img src={pm.attachment.previewUrl} alt="" className="max-h-40 object-cover opacity-80" />
-                      )}
-                      {pm.attachment.kind === "audio" && pm.attachment.previewUrl && <audio src={pm.attachment.previewUrl} controls className="w-56" />}
-                      {(pm.attachment.kind === "file" || pm.attachment.kind === "video") && (
-                        <div className="flex items-center gap-2 px-2.5 py-2 text-[13px] text-earth-muted">
-                          <Icon name={pm.attachment.kind === "video" ? "video" : "download"} size={16} /> {pm.attachment.name}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {pm.body && (
-                    <div className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm rounded-ee-[5px] ${pm.status === "failed" ? "border border-danger/50 bg-danger/10 text-earth" : "bg-gradient-brand text-brand-ink opacity-70"}`}>
-                      <p className="whitespace-pre-wrap break-words">{pm.body}</p>
-                    </div>
-                  )}
-                  {pm.status === "failed" ? (
-                    <span className="mt-1 flex items-center gap-2 px-1 text-[11px] text-danger">
-                      {t("messages.sendFailed")}
-                      <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(pm)}>{t("common.retry")}</button>
-                      <button type="button" data-testid="message-discard" className="underline" onClick={() => dismissPending(pm.localId)}>{t("common.delete")}</button>
-                    </span>
-                  ) : (
-                    <span className="mt-1 flex items-center gap-1.5 px-1 text-[10px] text-earth-subtle">
-                      <Icon name="rotate" size={11} className="animate-spin" />
-                      {pm.status === "uploading" && pm.progress != null ? `${t("upload.uploading")} ${pm.progress}%` : t("messages.sending")}
-                      {pm.status === "uploading" && (
-                        <button type="button" data-testid="message-cancel-upload" className="underline" onClick={() => cancelUpload(pm.localId)}>
-                          {t("common.cancel")}
-                        </button>
-                      )}
-                    </span>
-                  )}
+            {pending.map((op) => {
+              const p = pendingPayload(op);
+              const preview = previews[op.operationId];
+              const uploading = !!p.attachment && !op.media?.attachment && op.status === "sending";
+              const pct = outboxProgress[op.operationId];
+              const failed = op.status === "failed_permanent";
+              const code = op.lastError?.code;
+              const uploadReason = failed && code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : null;
+              return (
+                <div key={op.operationId} className="mt-2 flex items-end justify-end gap-2" data-testid="message-bubble-pending" data-outbox-status={op.status}>
+                  <div className="flex min-w-0 max-w-[85%] flex-col items-end">
+                    {p.attachment && (
+                      <div className="mb-1 w-fit max-w-full overflow-hidden rounded-xl border border-line-soft">
+                        {p.attachment.kind === "image" && preview && <img src={preview} alt="" className="max-h-40 object-cover opacity-80" />}
+                        {p.attachment.kind === "audio" && preview && <audio src={preview} controls className="w-56" />}
+                        {(p.attachment.kind === "file" || p.attachment.kind === "video") && (
+                          <div className="flex items-center gap-2 px-2.5 py-2 text-[13px] text-earth-muted">
+                            <Icon name={p.attachment.kind === "video" ? "video" : "download"} size={16} /> {p.attachment.name}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {p.text && (
+                      <div className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm rounded-ee-[5px] ${failed ? "border border-danger/50 bg-danger/10 text-earth" : "bg-gradient-brand text-brand-ink opacity-70"}`}>
+                        <p className="whitespace-pre-wrap break-words">{p.text}</p>
+                      </div>
+                    )}
+                    {failed ? (
+                      <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-danger" role="status">
+                        {uploadReason ?? t("messages.sendFailed")}
+                        <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("common.retry")}</button>
+                        <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
+                      </span>
+                    ) : op.status === "failed_retryable" || op.status === "waiting_for_network" ? (
+                      <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-earth-subtle" role="status">
+                        {op.status === "waiting_for_network" ? t("trust.outbox.waiting") : t("trust.outbox.retrying")}
+                        <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("trust.outbox.retryNow")}</button>
+                        <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
+                      </span>
+                    ) : (
+                      <span className="mt-1 flex items-center gap-1.5 px-1 text-[11px] text-earth-subtle" role="status">
+                        <Icon name="rotate" size={11} className="animate-spin motion-reduce:animate-none" />
+                        {uploading && pct != null ? `${t("upload.uploading")} ${Math.round(pct * 100)}%` : t("messages.sending")}
+                        {uploading && (
+                          <button type="button" data-testid="message-cancel-upload" className="underline" onClick={() => void cancelUpload(op)}>
+                            {t("common.cancel")}
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -845,7 +834,7 @@ export function MessageThread({
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-[13px] text-earth-muted">
                     <Icon name={draft.kind === "video" ? "video" : "download"} size={18} className="shrink-0" />
                     <span className="min-w-0 truncate">{draft.file.name}</span>
-                    <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{fmtBytes(draft.file.size)}</span>
+                    <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{formatBytes(draft.file.size, i18n.language)}</span>
                   </span>
                 )}
                 {draft.kind === "audio" && (
@@ -888,6 +877,7 @@ export function MessageThread({
                 ref={taRef}
                 className="input max-h-32 min-h-11 flex-1 resize-none py-2.5"
                 data-testid="message-input"
+                aria-label={t("messages.composerLabel")}
                 rows={1}
                 placeholder={draft ? t("messages.captionPlaceholder") : t("messages.placeholder")}
                 value={body}
@@ -999,7 +989,7 @@ const MessageRow = memo(function MessageRow({
     longPressStart.current = null;
   };
   const curDay = new Date(m.createdAt).toDateString();
-  const dateLabel = curDay === new Date().toDateString() ? t("common.today") : new Date(m.createdAt).toLocaleDateString(i18n.language, { weekday: "short", month: "short", day: "numeric" });
+  const dateLabel = curDay === new Date().toDateString() ? t("common.today") : formatDate(m.createdAt, i18n.language, 'weekdayShort');
   const daySeparator = isNewDay && (
     <div className="my-3 flex items-center justify-center" data-testid="date-separator">
       <span className="rounded-full bg-surface-raised px-3 py-1 text-[11px] font-medium text-earth-subtle">{dateLabel}</span>
@@ -1031,7 +1021,7 @@ const MessageRow = memo(function MessageRow({
     acc[v] = (acc[v] ?? 0) + 1;
     return acc;
   }, {});
-  const timeStr = new Date(m.createdAt).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit" });
+  const timeStr = formatTime(m.createdAt, i18n.language);
 
   // WhatsApp/Messenger-style trailing time — lives INSIDE its own bubble's
   // bottom edge (never a separate floating line), so it's unambiguous which
@@ -1120,6 +1110,7 @@ const MessageRow = memo(function MessageRow({
               <div className="w-64 max-w-full space-y-1.5 rounded-2xl border border-brand/40 bg-surface-card p-2">
                 <textarea
                   ref={editRef}
+                  aria-label={t("messages.editLabel")}
                   className="input min-h-16 w-full resize-none text-sm"
                   value={editText}
                   onChange={(e) => onEditTextChange(e.target.value)}

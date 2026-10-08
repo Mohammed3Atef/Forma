@@ -6,6 +6,7 @@ import { notifyHabitChange } from './habitStore';
 import { useDay } from './dayStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { LIVE_MAX_AGE_MS, readLive, writeLive } from '@/lib/liveState';
+import { registerCriticalWork } from '@/lib/criticalWork';
 
 interface CardioState {
   cardioLogs: CardioLog[];
@@ -122,3 +123,6 @@ export const useCardio = create<CardioState>((set, get) => ({
     return w.length ? w[w.length - 1].weightKg : null;
   },
 }));
+
+// A live cardio timer must never be interrupted by an app update (B0.7).
+registerCriticalWork('cardio', () => !!useCardio.getState().liveStart, useCardio.subscribe);

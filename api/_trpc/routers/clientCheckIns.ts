@@ -111,6 +111,8 @@ export const checkInsRouter = router({
         sleepQuality: z.number().optional(),
         notes: z.string().optional(),
         progressPhotos: z.object({ front: z.string().optional(), side: z.string().optional(), back: z.string().optional() }).optional(),
+        /** Client-generated operation id (B1.6 outbox): a replay of the same submission returns it instead of failing. */
+        opId: z.string().trim().min(1).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -119,8 +121,10 @@ export const checkInsRouter = router({
       const _id = checkInId(clientId, input.weekStart);
       const existing = await col.findOne({ _id });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
-      const allowed = ctx.user.accountStatus === 'active' && ctx.user.id === clientId && existing.status === 'requested';
-      if (!allowed) throw new TRPCError({ code: 'FORBIDDEN' });
+      const own = ctx.user.accountStatus === 'active' && ctx.user.id === clientId;
+      // Idempotent replay: the device never saw the answer to its own earlier submit.
+      if (own && input.opId && existing.status !== 'requested' && existing.submitOpId === input.opId) return existing;
+      if (!own || existing.status !== 'requested') throw new TRPCError({ code: 'FORBIDDEN' });
 
       const now = Date.now();
       const patch: Record<string, unknown> = { status: 'submitted', submittedAt: now, updatedAt: now };
@@ -134,7 +138,14 @@ export const checkInsRouter = router({
         if (url) photos[pose] = url;
       }
       patch.progressPhotos = photos;
-      await col.updateOne({ _id }, { $set: patch });
+      if (input.opId) patch.submitOpId = input.opId;
+      // Compare-and-set on the status, so two racing submits can't both win.
+      const res = await col.updateOne({ _id, status: 'requested' }, { $set: patch });
+      if (res.matchedCount === 0) {
+        const now2 = await col.findOne({ _id });
+        if (input.opId && now2?.submitOpId === input.opId) return now2;
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
       const updated = await col.findOne({ _id });
       await notify({ clientId, forRole: 'coach', type: 'checkin_submitted', entityType: 'checkin', entityId: input.weekStart, route: `/coach/client/${clientId}/checkins`, createdBy: clientId });
       // The request is done — it must not stay unread or replay (B0 / NT-03).
@@ -248,7 +259,7 @@ export const subscriptionRequestRouter = router({
         updatedAt: now,
       };
       await (await subscriptionRequestsCol()).replaceOne({ _id: clientId }, doc, { upsert: true });
-      await notify({ clientId, forRole: 'coach', type: 'freeze_requested', body: input.reason.trim().slice(0, 140), route: `/coach/client/${clientId}`, createdBy: clientId });
+      await notify({ clientId, forRole: 'coach', type: 'freeze_requested', body: input.reason.trim().slice(0, 140), route: `/coach/client/${clientId}/subscription`, createdBy: clientId });
       return doc;
     }),
 

@@ -38,3 +38,18 @@ export function Pill({
     </span>
   );
 }
+
+/**
+ * StatusChip (B1.3) — the evolved Pill: same six tones, on the type scale
+ * (12px floor, VS-04) and announced as a status. New and migrated screens use
+ * this; legacy `Pill` call sites keep their 10px size until they move (B2/B3).
+ */
+export function StatusChip({ tone = 'mute', dot = true, children, className = '', testId }: Parameters<typeof Pill>[0]) {
+  return (
+    <span role="status" className="contents">
+      <Pill tone={tone} dot={dot} className={`text-[12px] tracking-[0.06em] ${className}`} testId={testId}>
+        {children}
+      </Pill>
+    </span>
+  );
+}

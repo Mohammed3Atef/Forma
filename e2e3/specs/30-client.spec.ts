@@ -338,7 +338,8 @@ test.describe('client journeys', () => {
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'measurementLogs' });
     const day = todayKey();
     const { page } = await as('clientA');
-    const field = (label: string) => page.locator('div').filter({ has: page.locator(`label:text-is("${label}")`) }).locator('> input');
+    // B1: measurement inputs are NumericFields — found by their associated label, not by DOM nesting.
+    const field = (label: string) => page.getByLabel(label, { exact: true });
     await page.goto('/progress/measurements');
     await ready(page);
     await field('Waist').fill('81.5');
@@ -381,7 +382,7 @@ test.describe('client journeys', () => {
     await shot(page, testInfo, '02-cleared-after-reload');
     // Fresh context: server copy only.
     const fresh = await as('clientA');
-    const ff = (label: string) => fresh.page.locator('div').filter({ has: fresh.page.locator(`label:text-is("${label}")`) }).locator('> input');
+    const ff = (label: string) => fresh.page.getByLabel(label, { exact: true });
     await fresh.page.goto('/progress/measurements');
     await ready(fresh.page);
     await expect(ff('Chest')).toHaveValue('99', { timeout: 20_000 });

@@ -7,10 +7,11 @@ import { Icon } from '@/components/Icon';
 import { fetchClientDay } from '@/services/platform/coachApi';
 import { getClientCardioPlan } from '@/services/platform/planApi';
 import { today } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 /** Coach view of a client's cardio: prescribed sessions + what was logged that day. */
 export function CoachViewCardio({ clientId }: { clientId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [date, setDate] = useState(today());
   const plan = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
   const day = useQuery({ queryKey: ['clientDay', clientId, date], queryFn: () => fetchClientDay(clientId, date), enabled: !!clientId });
@@ -61,7 +62,7 @@ export function CoachViewCardio({ clientId }: { clientId: string }) {
                 <span className="flex items-center gap-2"><Icon name="activity" size={14} className="text-brand" /> {t(`cardio.types.${c.type}`)}</span>
                 <span className="flex items-center gap-3 text-earth-muted">
                   {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
-                  {c.steps != null && <span>{c.steps.toLocaleString()} {t('cardio.steps')}</span>}
+                  {c.steps != null && <span>{formatNumber(c.steps, i18n.language, { maxFractionDigits: 0 })} {t('cardio.steps')}</span>}
                   {c.distanceKm != null && <span>{c.distanceKm} km</span>}
                 </span>
               </div>

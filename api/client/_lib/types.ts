@@ -206,6 +206,8 @@ export interface WeeklyCheckInDoc {
   weekEnd: string;
   status: CheckInStatus;
   submittedAt?: number;
+  /** Outbox operation id of the submission (B1.6) — makes a replayed submit idempotent. */
+  submitOpId?: string;
   reviewedAt?: number;
   currentWeight?: number;
   adherenceTraining?: number;
@@ -238,25 +240,8 @@ export interface MeasurementLogDoc {
 // coach-bound alerts, coach writes client-bound alerts; both may mark seen).
 // ---------------------------------------------------------------------------
 
-export type NotificationType =
-  | 'coach_note'
-  | 'plan_assigned'
-  | 'targets_updated'
-  | 'subscription_updated'
-  | 'freeze_decided'
-  | 'measurement_added'
-  | 'assessment_reviewed'
-  | 'freeze_requested'
-  | 'assessment_submitted'
-  | 'checkin_requested'
-  | 'checkin_submitted'
-  | 'checkin_reviewed'
-  | 'message_received'
-  | 'trial_expiring'
-  | 'plan_change_requested'
-  | 'plan_decided'
-  | 'coach_assigned'
-  | 'client_released';
+import type { NotificationType } from '../../_lib/notificationTypes.js';
+export type { NotificationType };
 
 export interface AppNotificationDoc {
   _id: string;

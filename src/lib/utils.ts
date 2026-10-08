@@ -1,3 +1,5 @@
+import { formatDate, formatDuration as fmtDuration, weekdayInitials as fmtWeekdayInitials } from './format';
+
 /** Small dependency-free helpers shared across the app. */
 
 /** Local calendar day key `YYYY-MM-DD` for a given Date (defaults to now). */
@@ -74,26 +76,14 @@ export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-/** Format seconds as M:SS or H:MM:SS. */
+/** Format seconds as M:SS or H:MM:SS (the formatting service owns it — B1.8). */
 export function formatDuration(totalSec: number): string {
-  const s = Math.max(0, Math.floor(totalSec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  }
-  return `${m}:${String(sec).padStart(2, '0')}`;
+  return fmtDuration(totalSec);
 }
 
-/** Pretty short date label, e.g. "Mon 29 May". */
+/** Pretty short date label for a day key, e.g. "Mon 29 May" (via the formatting service — B1.8). */
 export function shortDate(key: string, locale = 'en'): string {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(locale.startsWith('ar') ? 'ar-EG' : 'en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  return formatDate(key, locale, 'weekdayShort');
 }
 
 export interface Debounced<A extends unknown[]> {
@@ -146,18 +136,18 @@ export function round(n: number, dp = 0): number {
 }
 
 /**
- * The Intl locale for dates/numbers in the app language (B0 / RTL-02): BOTH
- * Arabic locales (`ar`, `ar-eg`) format as Egyptian Arabic — `=== 'ar'` checks
- * used to give ar-eg users English dates and weekdays.
+ * The region locale for the app language (B0 / RTL-02): BOTH Arabic locales
+ * (`ar`, `ar-eg`) map to Egyptian Arabic.
+ * @deprecated Format through `@/lib/format` (B1.8) — it also applies the
+ * Latin-digit policy, which a bare `toLocaleDateString(dateLocale(…))` misses.
  */
 export function dateLocale(lang: string | undefined, fallback = 'en-GB'): string {
   return (lang ?? '').toLowerCase().startsWith('ar') ? 'ar-EG' : fallback;
 }
 
-/** Saturday-first narrow weekday labels in the app language (no slicing of localized names). */
+/** Saturday-first narrow weekday labels in the app language (via the formatting service — B1.8). */
 export function weekdayInitials(lang: string | undefined): string[] {
-  // 2026-01-03 is a Saturday.
-  return Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 3 + i).toLocaleDateString(dateLocale(lang, 'en-US'), { weekday: 'narrow' }));
+  return fmtWeekdayInitials(lang);
 }
 
 /**
@@ -168,10 +158,22 @@ export function weekdayInitials(lang: string | undefined): string[] {
  */
 export function normalizeNumericText(raw: string): string {
   return raw
-    .replace(/[\u200e\u200f\u061c\s]/g, '')
+    .replace(/[\u200e\u200f\u061c\u2066-\u2069\s]/g, '') // direction marks + isolates (pasted from RTL text)
+    .replace(/\u066c/g, '') // the Arabic thousands separator
     .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
     .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[،,٫]/g, '.');
+}
+
+/**
+ * `Number()` for typed text, through the shared normaliser (B1.8): Arabic-Indic
+ * digits and separators parse; empty or unreadable text is NaN (callers keep
+ * their own `>= 0` / `|| fallback` validation). Before B1 the coach/admin money
+ * and duration fields used bare `Number()`, so an Arabic "١٠٠" became 0.
+ */
+export function parseNumber(raw: string): number {
+  const n = normalizeNumericText(raw ?? '');
+  return n === '' ? Number.NaN : Number(n);
 }
 
 /** Like `parseDecimal`, but `null` for empty or unparseable input (never a silent 0). */
@@ -188,11 +190,7 @@ export function parseDecimalOrNull(raw: string): number | null {
  * Number() returns NaN for those. Returns 0 when unparseable.
  */
 export function parseDecimal(raw: string): number {
-  const normalized = raw
-    .trim()
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    .replace(/[،,٫]/g, '.');
-  const n = Number(normalized);
+  // One normaliser for every number entry (B1.8): digits, separators, bidi marks.
+  const n = Number(normalizeNumericText(raw));
   return Number.isFinite(n) ? n : 0;
 }

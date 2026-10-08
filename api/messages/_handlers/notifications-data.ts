@@ -11,22 +11,8 @@ import type { AuthedUser } from '../../_trpc/context.js';
  * (minus `id`, which Mongo gives us as `_id`) so a future polling-hook swap is
  * a clean drop-in.
  */
-export type NotificationType =
-  | 'coach_note'
-  | 'plan_assigned'
-  | 'targets_updated'
-  | 'subscription_updated'
-  | 'freeze_decided'
-  | 'measurement_added'
-  | 'assessment_reviewed'
-  | 'freeze_requested'
-  | 'assessment_submitted'
-  | 'checkin_requested'
-  | 'checkin_submitted'
-  | 'checkin_reviewed'
-  | 'message_received'
-  | 'trial_expiring'
-  | 'plan_change_requested';
+import type { NotificationType } from '../../_lib/notificationTypes.js';
+export type { NotificationType };
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `NoteScreen` — kept in sync

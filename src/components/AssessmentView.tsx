@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { viewImages } from '@/stores/imageViewerStore';
+import { viewImages } from '@/stores/mediaViewerStore';
 import type { ClientAssessment } from '@/types';
 
 /** Calendar-accurate age in whole years from an ISO `YYYY-MM-DD` date of birth. */

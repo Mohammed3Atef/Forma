@@ -4,9 +4,9 @@ import { Icon } from '@/components/Icon';
 import { listClientCoachHistory } from '@/services/platform/coachClientsApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 import type { CoachClientRelationship } from '@/types';
+import { formatDate } from '@/lib/format';
 
-const fmt = (ms: number | undefined, lang: string) =>
-  ms ? new Date(ms).toLocaleDateString(lang.startsWith('ar') ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const fmt = (ms: number | undefined, lang: string) => (ms ? formatDate(ms, lang, 'medium') : '');
 
 interface Row {
   rel: CoachClientRelationship;

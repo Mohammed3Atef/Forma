@@ -96,7 +96,7 @@ export function Workout() {
                   <h2 className="font-display text-base font-semibold tracking-[-0.01em]">{day.title}</h2>
                 </div>
                 <span className="pill pill-mute">{totalSets} {t('common.sets').toLowerCase()}</span>
-                <Icon name={isOpen ? 'chevronDown' : 'chevron'} size={18} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+                <Icon name={isOpen ? 'chevronDown' : 'chevron'} size={18} className="shrink-0 text-earth-subtle" />
               </button>
 
               {isOpen && (

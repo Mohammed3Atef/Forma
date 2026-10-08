@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { parseNumber } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -59,13 +60,13 @@ export function FormaPlanTab() {
     if (q.data && !form) setForm(toForm(q.data));
   }, [q.data, form]);
 
-  const int = (v: string) => (v.trim() === '' ? NaN : Math.floor(Number(v)));
+  const int = (v: string) => (v.trim() === '' ? NaN : Math.floor(parseNumber(v)));
   const errors = form
     ? {
         maxClients: !(int(form.maxClients) >= 1) ? t('forma.admin.errMin1') : undefined,
         trialDurationDays: form.trialEnabled && !(int(form.trialDurationDays) >= 1 && int(form.trialDurationDays) <= 365) ? t('forma.admin.errTrialDays') : undefined,
         trialClientLimit: form.trialClientLimit.trim() !== '' && !(int(form.trialClientLimit) >= 1) ? t('forma.admin.errMin1') : undefined,
-        priceMonthly: !(Number(form.priceMonthly) >= 0) || form.priceMonthly.trim() === '' ? t('forma.admin.errPrice') : undefined,
+        priceMonthly: !(parseNumber(form.priceMonthly) >= 0) || form.priceMonthly.trim() === '' ? t('forma.admin.errPrice') : undefined,
         termDays: !(int(form.termDays) >= 1 && int(form.termDays) <= 366) ? t('forma.admin.errTerm') : undefined,
         currency: !form.currency.trim() ? t('forma.admin.errRequired') : undefined,
         titleEn: !form.titleEn.trim() ? t('forma.admin.errRequired') : undefined,
@@ -81,7 +82,7 @@ export function FormaPlanTab() {
         trialDurationDays: int(f.trialDurationDays) || q.data?.trialDurationDays || 15,
         trialClientLimit: f.trialClientLimit.trim() === '' ? null : int(f.trialClientLimit),
         maxClients: int(f.maxClients),
-        priceMonthly: Number(f.priceMonthly),
+        priceMonthly: parseNumber(f.priceMonthly),
         currency: f.currency.trim(),
         termDays: int(f.termDays),
         publicVisible: f.publicVisible,

@@ -12,6 +12,7 @@ import { NoteVisibilityBadge, NoteVisibilityToggle } from '@/components/NoteVisi
 import { LoadingState } from '@/components/ui/LoadingState';
 import type { NoteVisibility } from '@/types';
 import { showToast } from '@/stores/toastStore';
+import { formatDate } from '@/lib/format';
 
 /**
  * The workspace's `notes` tab — every internal coach note for this client, in
@@ -19,7 +20,7 @@ import { showToast } from '@/stores/toastStore';
  * preview on Overview). Matches the design's dedicated `notes` tab exactly.
  */
 export function CoachClientNotes() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const { clientId = '' } = useParams();
   const account = useSession((s) => s.account);
@@ -68,7 +69,7 @@ export function CoachClientNotes() {
               <p className="whitespace-pre-wrap text-sm">{n.body}</p>
               <div className="mt-1 flex items-center gap-2">
                 <NoteVisibilityBadge visibility={n.visibility} />
-                <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(n.createdAt).toLocaleDateString()}</span>
+                <span className="font-mono text-[10.5px] text-earth-subtle">{formatDate(n.createdAt, i18n.language, 'medium')}</span>
               </div>
             </div>
           ))}

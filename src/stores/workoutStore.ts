@@ -12,6 +12,7 @@ import { debounce, today } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { isSubscriptionReadOnly } from './subscriptionGate';
+import { registerCriticalWork } from '@/lib/criticalWork';
 
 /** Last performed weight×reps for an exercise, for the "previous" ghost column. */
 export interface PrevPerf {
@@ -442,3 +443,13 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
     return null;
   },
 }));
+
+// A live workout session must never be interrupted by an app update (B0.7).
+registerCriticalWork(
+  'workout',
+  () => {
+    const w = useWorkout.getState().active;
+    return !!(w && w.startedAt && !w.finished);
+  },
+  useWorkout.subscribe,
+);

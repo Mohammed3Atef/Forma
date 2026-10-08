@@ -273,7 +273,7 @@ export function AdminAssignments() {
         <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
           <Icon name="search" size={18} />
         </span>
-        <input className="input ps-10" placeholder={t('admin.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input ps-10" aria-label={t('admin.searchClients')} placeholder={t('admin.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       {clients.isLoading ? (

@@ -28,7 +28,8 @@ export function BrandBar() {
     <header
       data-testid="brand-bar"
       className="sticky top-0 z-30 flex items-center justify-between gap-2.5 bg-surface/85 px-5 pb-2 pt-3 backdrop-blur-md"
-      style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      // body already pads the top inset; pull up by it so the notch is covered ONCE (B1.4 shell contract).
+      style={{ paddingTop: 'max(0.75rem, var(--shell-safe-top))', marginTop: 'calc(-1 * var(--shell-safe-top))' }}
     >
       {/* Logo sits on the logical start (right in RTL, left in LTR). */}
       <img

@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/Icon';
+import { useLocation } from 'react-router-dom';
+import { Banner as BannerView } from '@/components/ui/Banner';
+import { BANNER_PRIORITY, useBannerSlot } from '@/stores/bannerRegionStore';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchBannersForViewer, type Banner, type BannerPlacement, type BannerStyle } from '@/services/platform/bannersApi';
 
-const STYLE: Record<BannerStyle, string> = {
-  info: 'border-brand/40 bg-brand/5',
-  success: 'border-success/40 bg-success/5',
-  warning: 'border-warn/40 bg-warn/5',
-  promo: 'border-brand/50 bg-brand/10',
+const TONE: Record<BannerStyle, 'info' | 'success' | 'warning' | 'brand'> = {
+  info: 'info',
+  success: 'success',
+  warning: 'warning',
+  promo: 'brand',
+};
+
+/** Where each placement shows (B1.4): the home screen it is named after, not every route. */
+const PLACEMENT_ROUTES: Partial<Record<BannerPlacement, string[]>> = {
+  client_home: ['/'],
+  coach_dashboard: ['/coach', '/coach/dashboard'],
 };
 
 const DISMISSED_KEY = 'forma:dismissedBanners';
@@ -31,16 +38,15 @@ function saveDismissed(ids: Set<string>) {
 }
 
 /**
- * Renders active, in-window, audience-matched banners at the top of the client
- * home / coach dashboard. Admins never see marketing banners (placement null).
- * Mounted at the app root (outside the role QueryClientProviders), so it fetches
+ * Renders active, in-window, audience-matched announcements on the client home /
+ * coach dashboard, as the lowest-priority slot of the shell's banner region
+ * (B1.4). Admins never see marketing banners (placement null). Fetches
  * directly rather than via react-query. Dismissals persist in `sessionStorage`
  * (survive a refresh within the same tab, clear on a fresh session) — a plain
  * in-memory Set previously reset on every reload, so a dismissed banner kept
  * coming back.
  */
 export function BannerHost() {
-  const { t } = useTranslation();
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid);
   const createdAt = useSession((s) => s.account?.createdAt ?? 0);
@@ -48,10 +54,8 @@ export function BannerHost() {
   const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed);
 
   const placement: BannerPlacement | null = role === 'client' ? 'client_home' : role === 'coach' ? 'coach_dashboard' : null;
-  // The client app is a fixed mobile-width shell at every viewport size (see
-  // AppShell's `max-w-md`) — only the coach/admin dashboards actually widen on
-  // desktop, so only they get the wider banner treatment.
-  const wide = role === 'coach';
+  const { pathname } = useLocation();
+  const onPlacementRoute = !!placement && (PLACEMENT_ROUTES[placement] ?? []).includes(pathname.replace(/\/$/, '') || '/');
 
   useEffect(() => {
     if (!role || !placement || !uid) {
@@ -66,7 +70,8 @@ export function BannerHost() {
   }, [role, placement, uid, createdAt]);
 
   const shown = useMemo(() => banners.filter((b) => !dismissed.has(b.id)), [banners, dismissed]);
-  if (!placement || shown.length === 0) return null;
+  const show = useBannerSlot('announcement', BANNER_PRIORITY.announcement, onPlacementRoute && shown.length > 0);
+  if (!show || !placement || shown.length === 0) return null;
 
   const dismiss = (id: string) => {
     const next = new Set(dismissed).add(id);
@@ -75,22 +80,25 @@ export function BannerHost() {
   };
 
   return (
-    <div className={`mx-auto w-full max-w-md space-y-2 px-5 pt-3 ${wide ? 'md:max-w-none md:px-6' : ''}`} data-testid="banner-host">
+    <div className="space-y-2" data-testid="banner-host">
       {shown.map((b) => (
-        <div key={b.id} className={`relative rounded-xl border px-4 py-3 ${STYLE[b.style]}`} data-testid="app-banner">
-          <button
-            type="button"
-            aria-label={t('common.dismiss')}
-            className="icon-btn absolute end-1.5 top-1.5 h-8 w-8 text-earth-subtle"
-            onClick={() => dismiss(b.id)}
-          >
-            <Icon name="close" size={16} />
-          </button>
-          <p className="pe-6 font-semibold">{b.title}</p>
-          {b.body ? <p className="pe-6 mt-0.5 text-sm text-earth-muted">{b.body}</p> : null}
-          {/* http(s) only at render too — covers banners stored before the server-side check. */}
-          {b.ctaLabel && b.ctaHref && /^https?:\/\//i.test(b.ctaHref) ? <a href={b.ctaHref} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand">{b.ctaLabel}</a> : null}
-        </div>
+        <BannerView
+          key={b.id}
+          tone={TONE[b.style]}
+          testId="app-banner"
+          title={b.title}
+          onDismiss={() => dismiss(b.id)}
+          action={
+            // http(s) only at render too — covers banners stored before the server-side check.
+            b.ctaLabel && b.ctaHref && /^https?:\/\//i.test(b.ctaHref) ? (
+              <a href={b.ctaHref} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand">
+                {b.ctaLabel}
+              </a>
+            ) : undefined
+          }
+        >
+          {b.body ? b.body : null}
+        </BannerView>
       ))}
     </div>
   );

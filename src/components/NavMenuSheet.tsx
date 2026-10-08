@@ -50,7 +50,7 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
             {badge > 9 ? '9+' : badge}
           </span>
         )}
-        <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+        <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
       </button>
     );
   };

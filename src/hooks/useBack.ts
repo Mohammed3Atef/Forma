@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { confirmLeave } from '@/stores/navGuardStore';
+import { useSession } from '@/services/auth/sessionStore';
+import { isRolePath, roleSpaceOf, semanticParent, type RoleSpace } from '@/lib/navContract';
 
 /**
  * The one back-navigation rule for the whole app: prefer real browser/in-app
@@ -21,15 +23,29 @@ import { confirmLeave } from '@/stores/navGuardStore';
  * `onLeave` (optional) runs once the guard has actually cleared, right
  * before navigating — for cleanup that must NOT happen if the user chose to
  * stay (e.g. clearing a local draft only once the exit is truly confirmed).
+ *
+ * With nothing to go back to, the destination is (B1.10 navigation contract):
+ * a `?returnTo=` the link carried — only if it's one of this role's own
+ * screens — else the caller's `fallback`, else the screen's semantic parent
+ * (`lib/navContract`), so a cold deep link's Back always goes "up".
  */
 export function canGoBackInApp(): boolean {
   const idx = (window.history.state as { idx?: unknown } | null)?.idx;
   return typeof idx === 'number' && idx > 0;
 }
 
-export function useBack(fallback: string | (() => void), onLeave?: () => void): () => void {
+/** Where Back goes when there is no in-app history (see `useBack`). */
+export function backTarget(location: { pathname: string; search: string }, space: RoleSpace, fallback?: string): string {
+  const returnTo = new URLSearchParams(location.search).get('returnTo');
+  if (isRolePath(returnTo, space) && returnTo.split(/[?#]/)[0] !== location.pathname) return returnTo;
+  if (fallback && isRolePath(fallback, space)) return fallback;
+  return semanticParent(location.pathname, space);
+}
+
+export function useBack(fallback?: string | (() => void), onLeave?: () => void): () => void {
   const navigate = useNavigate();
   const location = useLocation();
+  const role = useSession((s) => s.account?.role);
   return useCallback(() => {
     void (async () => {
       if (!(await confirmLeave())) return;
@@ -39,9 +55,9 @@ export function useBack(fallback: string | (() => void), onLeave?: () => void): 
         return;
       }
       if (typeof fallback === 'function') fallback();
-      else navigate(fallback, { replace: true });
+      else navigate(backTarget(location, roleSpaceOf(role), fallback), { replace: true });
     })();
     // `location.key` keeps the callback fresh per navigation (the idx is read at click time).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key, navigate, fallback, onLeave]);
+  }, [location.key, navigate, fallback, onLeave, role]);
 }

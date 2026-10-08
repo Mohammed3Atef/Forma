@@ -6,6 +6,7 @@ import { CommandHost } from '@/components/CommandHost';
 import { CoachPlanProvider, CoachPlanGate } from '@/components/coach/CoachPlanProvider';
 import { CoachClientWorkspaceLayout } from '@/components/coach/CoachClientWorkspaceLayout';
 import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
+import { BannerHost } from '@/components/BannerHost';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { COACH_NAV, COACH_SIDEBAR } from '@/config/nav';
 import { useIsTabletUp } from '@/hooks/useMediaQuery';
@@ -61,8 +62,16 @@ function CoachIndex() {
  */
 export function CoachApp() {
   const shell = (node: ReactNode) => (
-    <ResponsiveShell navItems={COACH_NAV} sidebarItems={COACH_SIDEBAR}>
-      <CoachPlanBanner />
+    <ResponsiveShell
+      navItems={COACH_NAV}
+      sidebarItems={COACH_SIDEBAR}
+      banners={
+        <>
+          <CoachPlanBanner />
+          <BannerHost />
+        </>
+      }
+    >
       {node}
     </ResponsiveShell>
   );

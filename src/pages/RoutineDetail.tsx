@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useBack } from "@/hooks/useBack";
 import { muscleColor, muscleLabel } from "@/lib/muscle";
 import type { Exercise, WorkoutDay, WorkoutSection } from "@/types";
+import { useLocalized } from "@/hooks/useLocalized";
 
 /** Build the display sections for a day: real sections, or a single fallback group. */
 function displaySections(day: WorkoutDay): WorkoutSection[] {
@@ -19,6 +20,7 @@ function displaySections(day: WorkoutDay): WorkoutSection[] {
 
 export function RoutineDetail() {
   const { t } = useTranslation();
+  const loc = useLocalized(); // Arabic clients see the coach's Arabic notes (B1.8)
   const navigate = useNavigate();
   const { dayId } = useParams();
   const plan = useWorkout((s) => s.plan);
@@ -90,7 +92,7 @@ export function RoutineDetail() {
             </span>
             {ex.videoUrl && <Icon name="video" size={12} className="text-brand" />}
           </p>
-          {ex.notes?.en && <p className="mt-1 line-clamp-2 text-[12px] text-earth-subtle">{ex.notes.en}</p>}
+          {ex.notes && loc(ex.notes) && <p className="mt-1 line-clamp-2 text-[12px] text-earth-subtle">{loc(ex.notes)}</p>}
         </div>
         <Icon name="chevron" size={16} className="text-earth-subtle" />
       </button>

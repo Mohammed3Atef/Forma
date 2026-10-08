@@ -70,7 +70,7 @@ export function CoachTemplates() {
             <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
               <Icon name="search" size={18} />
             </span>
-            <input className="input ps-10" data-testid="template-search" placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="input ps-10" data-testid="template-search" aria-label={t('coachLib.search')} placeholder={t('coachLib.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="mb-4 flex flex-wrap gap-2">
             {goals.map((g) => (

@@ -1,0 +1,273 @@
+/*
+ * Forma authenticated-app design tokens (B1.2) — the ONE source for colour,
+ * type, space, radius, elevation, layers and motion in new components.
+ *
+ * Every value is a CSS custom property so components, Tailwind (`ui-*` keys in
+ * tailwind.config.ts) and inline styles read the same number. Colours are
+ * stored as RGB channels so Tailwind's `/alpha` modifier works
+ * (`bg-ui-accent/15`). The legacy palette (`surface`, `brand`, `earth`,
+ * `line`…) keeps rendering existing screens; the migration map in
+ * docs/product-audit/B1_FOUNDATION_SPEC.md §24 says which token replaces it.
+ *
+ * Direction: the approved website (warm charcoal, restrained orange → gold,
+ * hairline tiers, depth from surfaces rather than shadows).
+ */
+:root {
+  /* ---- Shell contract (B1.4) — the ONE source for screen insets ----------
+     body pads the top inset for in-flow content; sticky chrome that must
+     cover the notch (BrandBar) pulls itself up by --shell-safe-top instead of
+     adding a second inset. Anything pinned above the bottom nav sits at
+     --shell-bottom-clearance (nav height + home-indicator inset).
+     --shell-keyboard is the on-screen keyboard height (0 when closed), kept
+     current by lib/viewportInsets.ts; <html data-keyboard="open"> too. */
+  --shell-safe-top: env(safe-area-inset-top, 0px);
+  --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shell-bottom-clearance: calc(var(--bottomnav-h, 4.5rem) + var(--shell-safe-bottom));
+  --shell-keyboard: 0px;
+
+  /* ---- Surfaces: background → surface → raised; interactive = hover/pressed fill ---- */
+  --ui-bg: 12 10 9; /* #0C0A09 page canvas */
+  --ui-surface: 20 17 16; /* #141110 grouped content, nav bars */
+  --ui-surface-raised: 27 23 20; /* #1B1714 inputs, sheets, menus */
+  --ui-surface-interactive: 36 30 26; /* #241E1A hover / pressed fill */
+
+  /* ---- Hairlines (translucent warm white, the website's three tiers) ---- */
+  --ui-border-subtle: rgba(255, 238, 228, 0.09);
+  --ui-border: rgba(255, 238, 228, 0.14);
+  --ui-border-strong: rgba(255, 238, 228, 0.22);
+
+  /* ---- Text (contrast-checked on every surface tier; muted ≥ 4.5:1) ---- */
+  --ui-text-primary: 248 244 241; /* #F8F4F1 */
+  --ui-text-secondary: 171 161 155; /* #ABA19B */
+  --ui-text-muted: 148 138 131; /* #948A83 — the floor for meaningful text */
+
+  /* ---- Accent = "act here" only (primary actions, the active nav item, focus) ---- */
+  --ui-accent: 255 139 2; /* #FF8B02 */
+  --ui-accent-hover: 255 178 8; /* #FFB208 — also accent TEXT on dark (amber) */
+  --ui-accent-pressed: 255 76 1; /* #FF4C01 */
+  --ui-accent-ink: 26 14 5; /* #1A0E05 text on the accent gradient */
+  --ui-accent-gradient: linear-gradient(135deg, #ffb208 0%, #ff8b02 48%, #ff4c01 100%);
+
+  /* ---- Status (meaning, never decoration) ---- */
+  --ui-success: 63 178 127; /* #3FB27F */
+  --ui-warning: 245 166 35; /* #F5A623 */
+  --ui-error: 240 72 62; /* #F0483E */
+  --ui-info: 91 141 239; /* #5B8DEF */
+  /* Sync/connectivity states get their own roles so they can diverge later
+     without renaming call sites. Offline is NOT an error. */
+  --ui-offline: 154 164 178; /* #9AA4B2 cool neutral */
+  --ui-syncing: 91 141 239; /* = info */
+  --ui-conflict: 245 166 35; /* = warning — a decision is needed */
+
+  /* ---- Focus ---- */
+  --ui-focus-ring: 255 178 8;
+
+  /* ---- Type families ---- */
+  --ui-font-latin: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ui-font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ui-font-arabic: 'IBM Plex Sans Arabic', 'Cairo', system-ui, sans-serif;
+
+  /* ---- Space (4px grid; semantic steps) ---- */
+  --ui-gutter: 16px; /* page side padding — grows at md / lg below */
+  --ui-section: 24px; /* between sections */
+  --ui-stack: 12px; /* between items in a stack */
+  --ui-inset: 16px; /* inside a surface / row */
+  --ui-inset-compact: 12px; /* dense desktop rows */
+
+  /* ---- Radius ---- */
+  --ui-radius-control: 12px; /* buttons (non-pill), inputs, chips' focus */
+  --ui-radius-surface: 16px; /* cards, list groups, menus */
+  --ui-radius-surface-lg: 24px; /* sheets, dialogs */
+  --ui-radius-pill: 9999px; /* status chips, segmented control, filter chips */
+
+  /* ---- Elevation: only where something physically floats ---- */
+  --ui-shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --ui-shadow-sheet: 0 -12px 40px rgba(0, 0, 0, 0.5);
+  --ui-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --ui-shadow-sticky: 0 -1px 0 var(--ui-border-subtle), 0 -8px 24px rgba(0, 0, 0, 0.35);
+
+  /* ---- Touch targets ---- */
+  --ui-hit: 44px; /* standard */
+  --ui-hit-workout: 56px; /* gym-critical controls */
+  --ui-control-dense: 32px; /* dense desktop, with a 44px hit area */
+
+  /* ---- Layers: one ladder, matching the order the app already stacks in
+     (so new and legacy overlays interleave correctly; spec §6). ---- */
+  --ui-z-sticky: 20; /* sticky in-page headers */
+  --ui-z-header: 30; /* app header */
+  --ui-z-nav: 40; /* bottom nav, floating timers */
+  --ui-z-banner: 45; /* floating notices (update ready) */
+  --ui-z-task: 50; /* full-screen task flows (check-in, wizards) */
+  --ui-z-overlay: 50; /* sheets, menus — later in the DOM wins at equal z */
+  --ui-z-toast: 55;
+  --ui-z-dialog: 60; /* decisions; the offline notice shares it */
+  --ui-z-media: 70; /* media viewer */
+  --ui-z-palette: 80; /* command palette */
+
+  /* ---- Motion ---- */
+  --ui-dur-fast: 120ms; /* press feedback, colour */
+  --ui-dur-base: 200ms; /* small content / status change */
+  --ui-dur-slow: 320ms; /* sheet / dialog */
+  --ui-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ui-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --ui-gutter: 24px;
+    --ui-section: 32px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --ui-gutter: 32px;
+  }
+}
+
+/* ---- Type roles (B1.2). One class per role; the Arabic path is part of the
+   role, not a page-level patch: Arabic face, no letter-spacing, no caps, and a
+   taller line height (Arabic ascenders/descenders and diacritics). ---- */
+.t-display,
+.t-title-lg,
+.t-title,
+.t-heading,
+.t-body,
+.t-body-sm,
+.t-label,
+.t-caption {
+  font-family: var(--ui-font-latin);
+}
+.t-display {
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.t-title-lg {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.t-title {
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.t-heading {
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.t-body {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.t-body-sm {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.t-label {
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+.t-caption {
+  font-size: 12px; /* the floor for meaningful text */
+  line-height: 1.4;
+}
+/* Short tags / eyebrows: the brand's mono signature — Latin only. */
+.t-tag {
+  font-family: var(--ui-font-mono);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Numbers that are read and compared: tabular figures, mono face. */
+.t-numeric {
+  font-family: var(--ui-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Arabic path for every role (also covers ar-EG). */
+:lang(ar) .t-display,
+:lang(ar) .t-title-lg,
+:lang(ar) .t-title,
+:lang(ar) .t-heading,
+:lang(ar) .t-body,
+:lang(ar) .t-body-sm,
+:lang(ar) .t-label,
+:lang(ar) .t-caption,
+:lang(ar) .t-tag,
+.t-display:lang(ar),
+.t-title-lg:lang(ar),
+.t-title:lang(ar),
+.t-heading:lang(ar),
+.t-body:lang(ar),
+.t-body-sm:lang(ar),
+.t-label:lang(ar),
+.t-caption:lang(ar),
+.t-tag:lang(ar) {
+  font-family: var(--ui-font-arabic);
+  letter-spacing: 0;
+  text-transform: none;
+}
+:lang(ar) .t-display,
+:lang(ar) .t-title-lg {
+  line-height: 1.35;
+}
+:lang(ar) .t-title,
+:lang(ar) .t-heading,
+:lang(ar) .t-label {
+  line-height: 1.45;
+}
+:lang(ar) .t-body,
+:lang(ar) .t-body-sm,
+:lang(ar) .t-caption {
+  line-height: 1.7;
+}
+:lang(ar) .t-tag {
+  font-size: 13px;
+  font-weight: 600;
+}
+/* Numbers keep the mono face in Arabic (digits are Latin by policy — spec §15),
+   but never letter-spacing. */
+:lang(ar) .t-numeric {
+  letter-spacing: 0;
+}
+
+/*
+ * RTL-01 at the root: legacy screens style Arabic text with DM Mono (no Arabic
+ * glyphs), uppercase and wide tracking utilities. Arabic has no case and must
+ * never be letter-spaced — this neutralises every such utility for Arabic
+ * content at once instead of patching pages. Digits inside `.font-mono` keep
+ * rendering in the mono face (unicode-range is not involved: DM Mono simply
+ * lacks Arabic, so the browser falls back per glyph to the Arabic face below).
+ */
+:lang(ar) .font-mono {
+  font-family: var(--ui-font-mono), var(--ui-font-arabic);
+}
+:lang(ar) .uppercase {
+  text-transform: none;
+}
+:lang(ar) [class*='tracking-'] {
+  letter-spacing: 0;
+}
+
+/* ---- Reduced motion: one global kill switch (the website has the same). ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

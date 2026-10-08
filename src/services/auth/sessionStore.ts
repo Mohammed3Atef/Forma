@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { mongoAuth, type MongoUserRecord, type ProfilePatch } from './mongoAuth';
 import { queryClient } from '@/services/platform/queryClient';
-import { refreshSessionDetailed, setAccessToken } from '@/services/platformApi';
+import { refreshSessionDetailed, setAccessToken, takeRefreshedUser } from '@/services/platformApi';
 import type { AccountStatus, UserRecord } from '@/types';
 
 /**
@@ -286,6 +286,13 @@ export const useSession = create<SessionState>((set, get) => ({
       rememberIdentity(user);
       set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus), verified: true });
     };
+    // B1.13 / PF-01: a refresh that just succeeded already returned the user —
+    // use it instead of a second, serial `auth.me` round-trip.
+    const fresh = takeRefreshedUser<UserRecord>();
+    if (fresh?.id) {
+      accept(fresh);
+      return;
+    }
     try {
       accept(await mongoAuth.me());
     } catch (e) {
@@ -340,3 +347,15 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ account: next });
   },
 }));
+
+/*
+ * The query cache belongs to ONE account (B1.12). Sign-out clears it, but an
+ * account can also change WITHOUT a sign-out in this tab — another tab signs
+ * out and in as someone else, and this tab learns it from its next refresh.
+ * Any change of signed-in account drops every cached server read first.
+ */
+let cacheOwner: string | null = null;
+useSession.subscribe((s) => {
+  if (s.uid && cacheOwner && s.uid !== cacheOwner) queryClient.clear();
+  if (s.uid) cacheOwner = s.uid;
+});

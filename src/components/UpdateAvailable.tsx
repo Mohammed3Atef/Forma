@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { confirmDialog } from '@/stores/dialogStore';
-import { isCriticalWorkActive, useUpdate } from '@/stores/updateStore';
+import { isCriticalWorkActive, otherTabBusy, useUpdate } from '@/stores/updateStore';
 
 /**
  * Minimal "Update available" pill (B0 / B0.7). Installing happens on its own
@@ -15,10 +15,11 @@ export function UpdateAvailable() {
   if (!ready || !apply) return null;
 
   const onUpdate = async () => {
-    if (isCriticalWorkActive()) {
+    const here = isCriticalWorkActive();
+    if (here || otherTabBusy()) {
       const ok = await confirmDialog({
         title: t('trust.update.busyTitle'),
-        message: t('trust.update.busyBody'),
+        message: t(here ? 'trust.update.busyBody' : 'trust.update.busyOtherTab'),
         confirmLabel: t('trust.update.now'),
         cancelLabel: t('trust.update.later'),
       });

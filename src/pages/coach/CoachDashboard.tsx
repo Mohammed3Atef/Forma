@@ -51,7 +51,7 @@ export function CoachDashboard() {
         title={greeting}
         actions={
           <button type="button" className="btn-primary !px-4" onClick={() => navigate('/coach/clients?new=1')}>
-            <Icon name="plus" size={16} /> <span className="hidden sm:inline">{t('coachDash.addClient')}</span>
+            <Icon name="plus" size={16} /> <span className="sr-only sm:not-sr-only">{t('coachDash.addClient')}</span>
           </button>
         }
         stats={

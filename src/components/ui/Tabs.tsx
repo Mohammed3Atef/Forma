@@ -76,3 +76,43 @@ export function Tabs({
     </div>
   );
 }
+
+/**
+ * Segmented control (B1.3): a small set of mutually exclusive options that
+ * switch a view in place (not navigation — that's `Tabs`). Radio semantics,
+ * so screen readers announce "1 of 3, selected". Built on the `.seg` styles.
+ */
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  testIdPrefix,
+  className = '',
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  /** Accessible name of the group. */
+  label: string;
+  testIdPrefix?: string;
+  className?: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className={`seg ${className}`}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={o.value === value}
+          className={o.value === value ? 'on' : ''}
+          data-testid={testIdPrefix ? `${testIdPrefix}-${o.value}` : undefined}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}

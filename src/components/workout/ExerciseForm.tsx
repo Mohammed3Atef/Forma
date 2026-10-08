@@ -10,6 +10,8 @@ import { parseDecimal } from '@/lib/utils';
 import { uploadFile, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
 import { alertDialog } from '@/stores/dialogStore';
 import type { Exercise } from '@/types';
+import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
+import { applyLocalizedEdit, localizedEqual, secondLanguageStale, setLocalized } from '@/lib/localizedText';
 
 /**
  * Controlled editor for a single exercise's details, used inside a bottom sheet
@@ -47,6 +49,8 @@ export function ExerciseForm({
     restSec: String(initial.restSec),
     videoUrl: initial.videoUrl ?? '',
     notes: initial.notes.en,
+    notesAr: initial.notes.ar ?? '',
+    notesArTouched: false,
     progressionNotes: initial.progressionNotes ?? '',
     tags: initial.tags ?? [],
   });
@@ -79,19 +83,27 @@ export function ExerciseForm({
   const save = () => {
     if (videoInvalid) return;
     const warmupSetCount = int(f.warmupSets);
+    // Untouched fields keep their ORIGINAL value exactly (B1.8 / EX-06): a
+    // normalised copy (trimmed name, `null` for an absent link, the English
+    // notes copied into Arabic) used to look like an edit of a library field and
+    // silently detached the exercise from the library.
+    const keep = <T,>(orig: T, next: T, same: boolean): T => (same ? orig : next);
+    const opt = (v: string | undefined | null) => v?.trim() || undefined;
+    // The Arabic notes are kept unless the coach edits them (or they were only a copy of the English).
+    const notes = f.notesArTouched ? setLocalized(f.notes, f.notesAr) : applyLocalizedEdit(initial.notes, f.notes, 'en');
     onSave({
       ...initial,
-      name: f.name.trim(),
-      targetMuscle: f.targetMuscle.trim(),
-      category: f.category.trim() || undefined,
-      equipment: f.equipment.trim() || undefined,
+      name: keep(initial.name, f.name.trim(), f.name.trim() === (initial.name ?? '').trim()),
+      targetMuscle: keep(initial.targetMuscle, f.targetMuscle.trim(), f.targetMuscle.trim() === (initial.targetMuscle ?? '').trim()),
+      category: keep(initial.category, opt(f.category), opt(f.category) === opt(initial.category)),
+      equipment: keep(initial.equipment, opt(f.equipment), opt(f.equipment) === opt(initial.equipment)),
       warmupSets: String(warmupSetCount),
       warmupSetCount,
       workingSets: int(f.workingSets),
       repRange: f.repRange.trim(),
       restSec: dec(f.restSec),
-      videoUrl: f.videoUrl.trim() || null,
-      notes: { en: f.notes.trim(), ar: f.notes.trim() },
+      videoUrl: keep(initial.videoUrl, f.videoUrl.trim() || null, (f.videoUrl.trim() || null) === (initial.videoUrl?.trim() || null)),
+      notes: keep(initial.notes, notes, localizedEqual(notes, initial.notes)),
       progressionNotes: f.progressionNotes.trim() || undefined,
       tags: f.tags,
     });
@@ -155,6 +167,7 @@ export function ExerciseForm({
         )}
       </div>
       <TextAreaField label={t('field.notes')} className="min-h-20" data-testid="ex-notes" placeholder={t('coachEditor.instructions')} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+      <SecondLanguageField lang="ar" multiline testId="ex-notes-ar" value={f.notesAr} onChange={(v) => setF({ ...f, notesAr: v, notesArTouched: true })} stale={!f.notesArTouched && secondLanguageStale(initial.notes, f.notes, 'en')} />
       <TextAreaField label={t('coachEditor.progression')} className="min-h-16" value={f.progressionNotes} onChange={(e) => setF({ ...f, progressionNotes: e.target.value })} />
       <div>
         <div className="label mb-1.5">{t('coachLib.tags')}</div>

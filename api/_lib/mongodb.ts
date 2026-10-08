@@ -14,15 +14,43 @@ import type { PasswordResetDoc, RefreshTokenDoc, UserDoc } from './types.js';
 let clientPromise: Promise<MongoClient> | null = null;
 let cachedDb: Db | null = null;
 
-export async function getDb(): Promise<Db> {
-  if (cachedDb) return cachedDb;
+/**
+ * Request-path timeouts (B1.13 / PF-02). The driver's defaults wait 30 s to
+ * find a server and never time a socket out, so an unreachable or stalled
+ * cluster hung a request until the platform killed the function. Fail fast
+ * instead (the client already gives every request a 30 s deadline): the
+ * device sees a server error and retries, its local data untouched.
+ */
+export function mongoTimeouts() {
+  const env = (k: string, d: number) => {
+    const v = Number(process.env[k]);
+    return Number.isFinite(v) && v > 0 ? v : d;
+  };
+  return {
+    serverSelectionTimeoutMS: env('MONGO_SERVER_SELECTION_TIMEOUT_MS', 8_000),
+    connectTimeoutMS: env('MONGO_CONNECT_TIMEOUT_MS', 8_000),
+    socketTimeoutMS: env('MONGO_SOCKET_TIMEOUT_MS', 25_000),
+  };
+}
+
+/** One shared client; a FAILED connect is dropped so the next request retries (it used to be cached forever). */
+function connectClient(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is not set');
   if (!clientPromise) {
-    const client = new MongoClient(uri, { maxPoolSize: 10 });
-    clientPromise = client.connect();
+    const client = new MongoClient(uri, { maxPoolSize: 10, ...mongoTimeouts() });
+    clientPromise = client.connect().catch((e) => {
+      clientPromise = null;
+      cachedDb = null;
+      throw e;
+    });
   }
-  const client = await clientPromise;
+  return clientPromise;
+}
+
+export async function getDb(): Promise<Db> {
+  if (cachedDb) return cachedDb;
+  const client = await connectClient();
   cachedDb = client.db(process.env.MONGODB_DB || 'forma');
   return cachedDb;
 }
@@ -51,13 +79,7 @@ export async function passwordResetsCol(): Promise<Collection<PasswordResetDoc>>
  * snapshot-apply) — both must reach an all-or-nothing final state.
  */
 export async function withDbTransaction<T>(fn: (session: ClientSession) => Promise<T>): Promise<T> {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI is not set');
-  if (!clientPromise) {
-    const client = new MongoClient(uri, { maxPoolSize: 10 });
-    clientPromise = client.connect();
-  }
-  const client = await clientPromise;
+  const client = await connectClient();
   const session = client.startSession();
   try {
     return await session.withTransaction(() => fn(session));

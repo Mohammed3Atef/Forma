@@ -131,11 +131,11 @@ describe('authorization matrix — one representative per guard class', () => {
     const pending = await insertUser({ _id: 'p', role: 'client', accountStatus: 'pending' });
     const suspended = await insertUser({ _id: 's', role: 'client', accountStatus: 'suspended' });
     const coach = await insertUser({ _id: 'k', role: 'coach' });
-    expect(await code(caller(null).sync.pull({ collection: 'x' }))).toBe('UNAUTHORIZED');
-    expect(await code(caller(pending).sync.pull({ collection: 'x' }))).toBe('OK');
-    expect(await code(caller(suspended).sync.pull({ collection: 'x' }))).toBe('OK');
+    expect(await code(caller(null).sync.pull({ collection: 'weightLogs' }))).toBe('UNAUTHORIZED');
+    expect(await code(caller(pending).sync.pull({ collection: 'weightLogs' }))).toBe('OK');
+    expect(await code(caller(suspended).sync.pull({ collection: 'weightLogs' }))).toBe('OK');
     // B0 / RM-81: client sync is CLIENT-only — a coach/admin session can't push or pull tracker data.
-    expect(await code(caller(coach).sync.pull({ collection: 'x' }))).toBe('FORBIDDEN');
+    expect(await code(caller(coach).sync.pull({ collection: 'weightLogs' }))).toBe('FORBIDDEN');
     expect(await code(caller(suspended).profile.get())).toBe('OK');
   });
 

@@ -2,15 +2,9 @@ import type { Role } from '@/types';
 import { closeAccountScope, currentLocalOwner, openAccountScope } from './localScope';
 import { bootstrapData } from './bootstrap';
 import { useSettings } from '@/stores/settingsStore';
-import { flushWorkoutWrites, useWorkout } from '@/stores/workoutStore';
-import { useNutrition } from '@/stores/nutritionStore';
-import { useCardio } from '@/stores/cardioStore';
-import { useHabits } from '@/stores/habitStore';
-import { useMeasurements } from '@/stores/measurementStore';
-import { useReminders } from '@/services/reminders/reminderStore';
-import { useCloud } from '@/services/auth/cloudStore';
-import { useTimer } from '@/stores/timerStore';
-import { usePhotos } from '@/stores/photoStore';
+import { refreshPendingSync } from './sync/syncTruth';
+import { useSyncConflicts } from './sync/conflicts';
+import { reloadOnceForStaleChunk } from '@/lib/staleChunk';
 
 /**
  * Opens / closes the signed-in account's LOCAL runtime (B0 / PWA-02, PWA-04):
@@ -21,46 +15,43 @@ import { usePhotos } from '@/stores/photoStore';
  *  - leaving an account first flushes its pending writes and waits for any
  *    in-flight sync, so nothing of one account can land in another's database.
  * Switches are serialized.
+ *
+ * The client runtime and the outbox are loaded on demand (B1.13 / AR-02): an
+ * anonymous visitor downloads neither, a coach or admin only the outbox.
  */
+type ClientRuntime = typeof import('./clientRuntime');
+type OutboxRuntime = typeof import('./outbox/runtime');
+
+let clientRuntime: ClientRuntime | null = null;
+let outboxRuntime: OutboxRuntime | null = null;
+const loadClientRuntime = async () => (clientRuntime ??= await import('./clientRuntime'));
+const loadOutboxRuntime = async () => (outboxRuntime ??= await import('./outbox/runtime'));
+
 let active: { uid: string; role: Role } | null = null;
 let chain: Promise<void> = Promise.resolve();
 
 async function leave(): Promise<void> {
   if (!active) return;
-  if (active.role === 'client') {
-    await flushWorkoutWrites().catch(() => undefined);
-    useReminders.getState().stop();
-    // Stop this account's timers in memory only (their persisted state stays with the account).
-    const timer = useTimer.getState();
-    if (timer.intervalId) clearInterval(timer.intervalId);
-    useTimer.setState({ running: false, paused: false, remainingSec: 0, endsAt: null, intervalId: null, pausedRemaining: null });
-    useCardio.setState({ liveStart: null, liveParams: null });
-    // Photos load on demand (not in enter()), so drop this account's list — the
-    // next account must never see its metadata or CDN URLs (PWA-14).
-    usePhotos.setState({ photos: [], loaded: false });
-    await useCloud.getState().stop();
-  }
+  if (active.role === 'client' && clientRuntime) await clientRuntime.leaveClient();
+  // Every role has an outbox (coaches send messages too); stop it before the
+  // database is closed so nothing of this account can be sent under the next one.
+  if (outboxRuntime) await outboxRuntime.stopOutbox();
   closeAccountScope();
+  useSyncConflicts.setState({ conflicts: [] });
+  refreshPendingSync(0);
   active = null;
 }
 
 async function enter(uid: string, role: Role): Promise<void> {
+  // Fetch the code before opening anything, so a failed chunk load leaves no half-open account.
+  const [outbox, client] = await Promise.all([loadOutboxRuntime(), role === 'client' ? loadClientRuntime() : null]);
   await openAccountScope(uid);
+  await outbox.startOutbox(uid);
+  void useSyncConflicts.getState().refresh().catch(() => undefined);
+  refreshPendingSync(0);
   await bootstrapData();
   await useSettings.getState().load();
-  if (role === 'client') {
-    await Promise.all([
-      useWorkout.getState().load(),
-      useNutrition.getState().load(),
-      useCardio.getState().load(),
-      useMeasurements.getState().load(),
-    ]);
-    await useHabits.getState().refresh();
-    await useReminders.getState().load();
-    useReminders.getState().start();
-    useTimer.getState().restore(); // a rest timer running when the app was killed (PWA-07)
-    useCloud.getState().start(uid);
-  }
+  if (client) await client.enterClient(uid);
   active = { uid, role };
 }
 
@@ -73,6 +64,8 @@ export function syncLocalRuntime(uid: string | null, role: Role | null): Promise
       if (uid && role) await enter(uid, role);
     })
     .catch((e) => {
+      // A stale chunk after a deploy: reload once to pick up the new build.
+      if (reloadOnceForStaleChunk(e)) return;
       console.error('[runtime] failed to open the local data for this account:', e);
     });
   return chain;
@@ -92,7 +85,7 @@ export function runtimeAccount(): string | null {
 // hidden — iOS may kill a backgrounded PWA without another chance.
 if (typeof document !== 'undefined') {
   const flush = () => {
-    if (active?.role === 'client') void flushWorkoutWrites();
+    if (active?.role === 'client' && clientRuntime) void clientRuntime.flushClientWrites();
   };
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flush();

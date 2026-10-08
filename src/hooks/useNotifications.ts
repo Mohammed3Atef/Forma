@@ -4,6 +4,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { refreshNotifications, subscribeCoachNotifications, subscribeNotifications } from '@/services/platform/notificationsApi';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import type { AppNotification, CoachPlanRequest } from '@/types';
+import { bellCount } from '@/lib/notificationTaxonomy';
 
 /** Map a pending coach plan request to the notification shape the bell + feed
  *  render. Admins have no clientData notifications doc, so their actionable
@@ -73,7 +74,8 @@ export function useNotifications() {
   }, [enabled, isAdmin, isCoach, uid, nonce]);
 
   const resolvedItems: AppNotification[] = isSuper ? (adminQ.data ?? []).map(planRequestToNotification) : items;
-  const unread = resolvedItems.filter((n) => !n.seenAt).length;
+  // The bell's number (B1.9): unseen feed rows after grouping, chat messages excluded (the Messages badge counts those).
+  const unread = bellCount(resolvedItems);
   const loading = enabled && (isSuper ? adminQ.isLoading : !isAdmin && personalLoading);
   // `error` only while nothing has loaded yet (a later failed poll keeps the last good feed).
   const error = isSuper ? adminQ.isError && !adminQ.data : failed && personalLoading;

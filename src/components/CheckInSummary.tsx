@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { viewImages } from '@/stores/imageViewerStore';
+import { viewImages } from '@/stores/mediaViewerStore';
 import type { WeeklyCheckIn } from '@/types';
 
 /** Read-only display of a submitted check-in's answers + photos (coach review + client view). */

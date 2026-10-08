@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { EntityNotes } from '@/components/EntityNotes';
 import { Icon } from '@/components/Icon';
-import { viewImages } from '@/stores/imageViewerStore';
+import { viewImages } from '@/stores/mediaViewerStore';
 import { fetchClientPhotos } from '@/services/platform/coachApi';
 import { shortDate } from '@/lib/utils';
 import type { ProgressPhoto } from '@/types';

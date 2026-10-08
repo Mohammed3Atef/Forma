@@ -1,23 +1,18 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { syncLocalRuntime, clientRuntimeReady, runtimeAccount } from '@/data/accountRuntime';
 import { applyLocale, deviceLocale } from '@/i18n';
-import { useWorkout } from '@/stores/workoutStore';
-import { useNutrition } from '@/stores/nutritionStore';
-import { useHabits } from '@/stores/habitStore';
 import { useSession } from '@/services/auth/sessionStore';
-import { useDay } from '@/stores/dayStore';
 import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
 import { ToastHost } from '@/components/ToastHost';
-import { ImageViewer } from '@/components/ImageViewer';
-import { VideoPopup } from '@/components/VideoPopup';
+import { MediaViewer } from '@/components/media/MediaViewer';
 import { MustChangePasswordPrompt } from '@/components/MustChangePasswordPrompt';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { PresenceTracker } from '@/components/PresenceTracker';
 import { SiteAnalytics } from '@/components/SiteAnalytics';
-import { BannerHost } from '@/components/BannerHost';
 import { UpdateAvailable } from '@/components/UpdateAvailable';
 import { Splash } from '@/components/Splash';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
@@ -34,30 +29,37 @@ const CoachApp = lazy(() => import('@/apps/CoachApp').then((m) => ({ default: m.
 const AdminApp = lazy(() => import('@/apps/AdminApp').then((m) => ({ default: m.AdminApp })));
 const AnonymousApp = lazy(() => import('@/apps/AnonymousApp').then((m) => ({ default: m.AnonymousApp })));
 
+// DEV-only foundation showcase (B1.16). `import.meta.env.DEV` is a build-time
+// constant: production builds drop this import, so the page never ships.
+const FoundationShowcase = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/FoundationShowcase').then((m) => ({ default: m.FoundationShowcase })))
+  : null;
+
 export function App() {
+  const { pathname } = useLocation();
+  if (FoundationShowcase && pathname === '/__foundation') {
+    return (
+      <Suspense fallback={<Splash />}>
+        <FoundationShowcase />
+      </Suspense>
+    );
+  }
+  return <AppMain />;
+}
+
+function AppMain() {
   const [ready, setReady] = useState(false);
   // The account whose local runtime (own database, and for clients the
   // stores + sync) is open — the role app mounts only once it matches.
   const [runtimeUid, setRuntimeUid] = useState<string | null>(null);
-  const selectedDay = useDay((s) => s.selected);
   const phase = useSession((s) => s.phase);
   const role = useSession((s) => s.account?.role ?? 'client');
   const account = useSession((s) => s.account);
   const uid = account?.id ?? null;
   const signedIn = phase !== 'loading' && phase !== 'anonymous' && !!uid;
-  const clientRuntime = signedIn && role === 'client' && runtimeUid === uid;
   // A signed-in client with no phone must provide one before using the app
   // (coaches/admins get theirs through the create-account form).
   const needsContact = !!account && account.role === 'client' && !account.phone;
-
-  // When the focused day changes, reload all day-scoped data for that date
-  // (client runtime only — coaches/admins never load client stores).
-  useEffect(() => {
-    if (!clientRuntime) return;
-    void useNutrition.getState().load(selectedDay);
-    void useWorkout.getState().loadDay(selectedDay);
-    void useHabits.getState().refresh(selectedDay);
-  }, [selectedDay, clientRuntime]);
 
   // Re-verify the session when the app returns to the foreground, so a
   // coach's account-status change (suspend / pending / reactivate) takes effect
@@ -125,9 +127,7 @@ export function App() {
       <OfflineBanner />
       <DialogHost />
       <ToastHost />
-      <ImageViewer />
-      <VideoPopup />
-      <BannerHost />
+      <MediaViewer />
       <UpdateAvailable />
       <Suspense fallback={<Splash />}>{body}</Suspense>
       <MustChangePasswordPrompt />

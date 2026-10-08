@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { parseDecimal } from '@/lib/utils';
+import { NumericField } from "@/components/ui/NumericField";
+import { parseDecimal, parseDecimalOrNull } from '@/lib/utils';
 import { useTranslation } from "react-i18next";
-import type { FoodItem } from "@/types";
+import type { FoodItem, LocalizedText } from "@/types";
+import { applyLocalizedEdit, langOf } from "@/lib/localizedText";
 import { useNutrition, computeConsumed } from "@/stores/nutritionStore";
 import { useSettings } from "@/stores/settingsStore";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -21,9 +23,10 @@ import { WaitingForCoach } from "@/components/WaitingForCoach";
 import { uid } from "@/lib/utils";
 import { foodLine } from "@/lib/foodFormat";
 import { FoodSearchPicker } from "@/components/workout/FoodSearchPicker";
+import { formatNumber } from '@/lib/format';
 
 export function Nutrition() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const loc = useLocalized();
   const plan = useNutrition((s) => s.plan);
   const log = useNutrition((s) => s.log);
@@ -47,7 +50,7 @@ export function Nutrition() {
     | { type: "addMeal"; mealId: string; foodId?: string }
     | { type: "replace"; itemId: string };
   const [editor, setEditor] = useState<EditorMode | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{ name: string; nameOrig?: LocalizedText; quantity: string; protein: string; carbs: string; fats: string }>({
     name: "",
     quantity: "",
     protein: "",
@@ -83,6 +86,8 @@ export function Nutrition() {
     mode: EditorMode,
     prefill?: {
       name: string;
+      /** The food's bilingual name when editing an existing item (B1.8). */
+      nameOrig?: LocalizedText;
       quantity: string;
       protein: number;
       carbs: number;
@@ -93,6 +98,7 @@ export function Nutrition() {
       prefill
         ? {
             name: prefill.name,
+            nameOrig: prefill.nameOrig,
             quantity: prefill.quantity,
             protein: String(prefill.protein),
             carbs: String(prefill.carbs),
@@ -141,7 +147,8 @@ export function Nutrition() {
     const existingId = editor.type !== "replace" ? editor.foodId : undefined;
     const food: FoodItem = {
       id: existingId ?? uid("food"),
-      name: { en: name, ar: name },
+      // The client edits in THEIR language; the coach's other-language name is kept (B1.8 / FD-01).
+      name: applyLocalizedEdit(form.nameOrig, name, langOf(i18n.language)),
       quantity: form.quantity.trim(),
       protein,
       carbs,
@@ -203,7 +210,7 @@ export function Nutrition() {
                   <span className="ms-1 text-[15px] text-earth-subtle">kcal</span>
                 </p>
                 <p className="mt-1.5 text-[13px] text-earth-muted">
-                  {Math.round(consumed.calories).toLocaleString()} / {targets.calories.toLocaleString()}
+                  {formatNumber(Math.round(consumed.calories), i18n.language, { maxFractionDigits: 0 })} / {formatNumber(targets.calories, i18n.language, { maxFractionDigits: 0 })}
                 </p>
               </div>
               <ProgressRing value={pct} size={76} stroke={7} label={`${Math.round(pct * 100)}%`} />
@@ -426,11 +433,7 @@ export function Nutrition() {
                                   aria-label={t("nutrition.reset")}
                                   data-testid="sub-reset"
                                 >
-                                  <Icon
-                                    name="chevron"
-                                    size={14}
-                                    className="rotate-180"
-                                  />
+                                  <Icon name="chevronLeft" size={14} />
                                 </button>
                               </>
                             ) : canSwap ? (
@@ -499,6 +502,7 @@ export function Nutrition() {
                               },
                               {
                                 name: loc(f.name),
+                                nameOrig: f.name,
                                 quantity: f.quantity,
                                 protein: f.protein,
                                 carbs: f.carbs,
@@ -576,6 +580,7 @@ export function Nutrition() {
                           { type: "custom", foodId: f.id },
                           {
                             name: loc(f.name),
+                            nameOrig: f.name,
                             quantity: f.quantity,
                             protein: f.protein,
                             carbs: f.carbs,
@@ -718,26 +723,23 @@ export function Nutrition() {
             onChange={(e) => setForm({ ...form, quantity: e.target.value })}
           />
           <div className="grid grid-cols-3 gap-2">
-            <TextInput
+            <NumericField
               label={t("nutrition.protein")}
-              inputMode="numeric"
               placeholder="0"
-              value={form.protein}
-              onChange={(e) => setForm({ ...form, protein: e.target.value })}
+              value={parseDecimalOrNull(form.protein)}
+              onChange={(n) => setForm({ ...form, protein: n == null ? "" : String(n) })}
             />
-            <TextInput
+            <NumericField
               label={t("nutrition.carbs")}
-              inputMode="numeric"
               placeholder="0"
-              value={form.carbs}
-              onChange={(e) => setForm({ ...form, carbs: e.target.value })}
+              value={parseDecimalOrNull(form.carbs)}
+              onChange={(n) => setForm({ ...form, carbs: n == null ? "" : String(n) })}
             />
-            <TextInput
+            <NumericField
               label={t("nutrition.fats")}
-              inputMode="numeric"
               placeholder="0"
-              value={form.fats}
-              onChange={(e) => setForm({ ...form, fats: e.target.value })}
+              value={parseDecimalOrNull(form.fats)}
+              onChange={(n) => setForm({ ...form, fats: n == null ? "" : String(n) })}
             />
           </div>
           {editorError && <p role="alert" className="text-sm text-danger">{t("common.savedFailed")}</p>}

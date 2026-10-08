@@ -13,7 +13,7 @@ import { useCloud } from '@/services/auth/cloudStore';
 import { countPendingChanges } from '@/data/sync/pending';
 import { confirmDialog, confirmDelete } from '@/stores/dialogStore';
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
-import { SyncStatusBadge } from '@/components/SyncStatusBadge';
+import { SyncStatus } from '@/components/ui/SyncStatus';
 import { CoachInfoCard } from '@/components/CoachInfoCard';
 import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -23,6 +23,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { Switch } from '@/components/ui/Switch';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
+import { formatDate } from '@/lib/format';
 
 const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
   not_started: 'mute',
@@ -197,7 +198,7 @@ export function Settings() {
     );
   }
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString(settings.locale.startsWith('ar') ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' });
+  const memberSince = formatDate(profile.createdAt, settings.locale, 'monthYear');
 
   const enableNotifications = async () => {
     const granted = await requestPermission();
@@ -225,7 +226,7 @@ export function Settings() {
       <TopBar
         title={t('settings.title')}
         eyebrow={t('gt.athlete')}
-        right={<SyncStatusBadge />}
+        right={<SyncStatus />}
       />
 
       {/* Featured identity card — stays visible above the tabs, like the design's settings() screen */}
@@ -336,7 +337,7 @@ export function Settings() {
               <button type="button" onClick={() => void forceUpdate()} className="row w-full text-start">
                 <span className="row-av"><Icon name="timer" size={16} /></span>
                 <span className="min-w-0 flex-1 font-medium">{t('settings.forceUpdate')}</span>
-                <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
+                <Icon name="chevron" size={16} className="text-earth-subtle" />
               </button>
             </div>
           </section>
@@ -352,37 +353,28 @@ export function Settings() {
               <span className="row-av bg-brand/15 text-brand"><Icon name="list" size={18} /></span>
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">{t('assessment.title')}</span>
-                <span className="block text-[13px] text-earth-muted">{t('assessment.lastUpdated')}: {assessment.data.updatedAt ? new Date(assessment.data.updatedAt).toLocaleDateString(i18n.language) : '—'}</span>
+                <span className="block text-[13px] text-earth-muted">{t('assessment.lastUpdated')}: {assessment.data.updatedAt ? formatDate(assessment.data.updatedAt, i18n.language, 'medium') : '—'}</span>
               </span>
               <Pill tone={ASSESS_TONE[aStatus]}>{t(`assessment.status.${aStatus}`)}</Pill>
-              <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
+              <Icon name="chevron" size={16} className="text-earth-subtle" />
             </button>
           )}
 
           <button type="button" data-testid="settings-subscription-link" onClick={() => navigate('/settings/subscription')} className="card-tap flex w-full items-center gap-3 text-start">
             <span className="row-av bg-brand/15 text-brand"><Icon name="shield" size={18} /></span>
             <span className="min-w-0 flex-1 font-medium">{t('nav.subscription')}</span>
-            <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
+            <Icon name="chevron" size={16} className="text-earth-subtle" />
           </button>
 
           <section className="card">
             <div className="mb-2 flex items-center justify-between gap-2">
               <h2 className="font-bold">{t('settings.cloud')}</h2>
-              <SyncStatusBadge />
             </div>
             {cloudState.user ? (
               <div className="space-y-2">
-                {cloudState.error ? (
-                  <p className="text-sm font-medium text-danger">
-                    <span className="flex items-center gap-1.5"><Icon name="close" size={16} /> {t('cloudState.error')}</span>
-                  </p>
-                ) : (
-                  <p className="flex items-center gap-1.5 text-sm font-medium text-brand">
-                    <Icon name="check" size={16} /> {cloudState.syncing ? t('settings.syncing') : t('settings.synced')}
-                  </p>
-                )}
+                {/* One truthful status (B1.7): never "Synced" while anything is unacknowledged. */}
+                <SyncStatus variant="detail" />
                 <p className="text-sm text-earth-muted">{account?.email}</p>
-                {cloudState.lastSync && <p className="text-xs text-earth-subtle">{t('settings.lastSync')}: {new Date(cloudState.lastSync).toLocaleTimeString()}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => void cloudState.syncNow(true)} disabled={cloudState.syncing} className="btn-primary flex-1">{cloudState.syncing ? '…' : t('settings.syncNow')}</button>
                   <button

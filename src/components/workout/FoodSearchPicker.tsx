@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { parseNumber } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SearchField } from '@/components/ui/Field';
@@ -38,7 +39,7 @@ export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: 
     return () => clearTimeout(timer.current);
   }, [query, language]);
 
-  const scaled = picked ? scaleNutrition(picked.sourceNutrition, Math.max(0, Number(grams) || 0)) : null;
+  const scaled = picked ? scaleNutrition(picked.sourceNutrition, Math.max(0, parseNumber(grams) || 0)) : null;
 
   const commit = () => {
     if (!picked || !scaled) return;

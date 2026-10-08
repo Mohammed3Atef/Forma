@@ -11,6 +11,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { capacityOf, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { cancelPlanRequest, hasDeadline, isActionable, isSubscriptionRequest, submitCapacityRequest, submitSubscriptionRequest } from '@/services/platform/coachPlanRequestsApi';
 import { getMyCommercialOverview } from '@/services/platform/coachCommercialApi';
+import { useSession } from '@/services/auth/sessionStore';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { useLocalized } from '@/hooks/useLocalized';
 import { fmtDate, termPreview, useCapacityPrice } from '@/lib/formaFormat';
@@ -33,7 +34,8 @@ export function CoachPlan() {
   const loc = useLocalized();
   const price = useCapacityPrice();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['coachCommercial', 'mine'], queryFn: getMyCommercialOverview, refetchInterval: 60_000 });
+  const uid = useSession((s) => s.uid);
+  const q = useQuery({ queryKey: ['coachCommercial', 'mine', uid], queryFn: getMyCommercialOverview, refetchInterval: 60_000 });
   const d = q.data;
 
   const refreshAll = () => {

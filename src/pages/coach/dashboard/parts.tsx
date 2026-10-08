@@ -71,7 +71,7 @@ export function ClientRow({ row, onOpen }: { row: ClientDashboardRow; onOpen: ()
         </span>
       </span>
       <span className="font-mono text-xs text-earth-subtle">{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</span>
-      <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
+      <Icon name="chevron" size={16} className="text-earth-subtle" />
     </button>
   );
 }

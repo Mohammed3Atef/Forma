@@ -7,7 +7,7 @@ import { EntityNotes } from '@/components/EntityNotes';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { confirmDelete, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { viewImages } from '@/stores/imageViewerStore';
+import { viewImages } from '@/stores/mediaViewerStore';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 

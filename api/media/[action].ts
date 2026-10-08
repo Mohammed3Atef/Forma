@@ -99,7 +99,7 @@ async function upload(req: VercelRequest, res: VercelResponse, user: AuthedUser)
   const body = await readBody(req, cap, tooLargeCodeFor(target.kind));
   if (body.length === 0) throw new MediaError(400, 'badRequest', 'Empty upload');
   const url = await putObject(target.path, target.mimeType, body);
-  send(res, 200, { url, size: body.length, kind: target.kind, name: target.name, mimeType: target.mimeType });
+  send(res, 200, { url, path: target.path, size: body.length, kind: target.kind, name: target.name, mimeType: target.mimeType });
 }
 
 async function init(req: VercelRequest, res: VercelResponse, user: AuthedUser): Promise<void> {
@@ -177,7 +177,7 @@ async function finalize(req: VercelRequest, res: VercelResponse, user: AuthedUse
   const url = await putObject(session.path, session.mimeType, assembled);
   const sessions = await mediaUploadsCol();
   await Promise.all([chunksCol.deleteMany({ uploadId: session._id }), sessions.deleteOne({ _id: session._id })]);
-  send(res, 200, { url, size: assembled.length, kind: session.kind, name: session.name, mimeType: session.mimeType });
+  send(res, 200, { url, path: session.path, size: assembled.length, kind: session.kind, name: session.name, mimeType: session.mimeType });
 }
 
 // ---- entry ----------------------------------------------------------------

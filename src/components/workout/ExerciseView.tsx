@@ -3,6 +3,7 @@ import { muscleLabel } from '@/lib/muscle';
 import { VideoSourcePlayer } from '@/components/video/VideoPlayer';
 import { classifyVideoUrl, safeExternalUrl } from '@/lib/videoSource';
 import type { Exercise } from '@/types';
+import { useLocalized } from '@/hooks/useLocalized';
 
 /**
  * Read-only presentation of a library exercise — shown when a coach taps an
@@ -10,6 +11,7 @@ import type { Exercise } from '@/types';
  */
 export function ExerciseView({ ex }: { ex: Exercise }) {
   const { t } = useTranslation();
+  const loc = useLocalized(); // Arabic clients see the coach's Arabic notes (B1.8)
   const meta = [ex.category, ex.equipment].filter(Boolean).join(' · ');
   const img = ex.imageUrl || ex.images?.[0];
   const source = classifyVideoUrl(ex.videoUrl);
@@ -44,10 +46,10 @@ export function ExerciseView({ ex }: { ex: Exercise }) {
         {row(t('workout.tempo'), ex.tempo)}
       </div>
 
-      {ex.notes?.en ? (
+      {ex.notes && loc(ex.notes) ? (
         <div>
           <div className="label mb-1">{t('coachEditor.instructions')}</div>
-          <p className="whitespace-pre-line text-sm text-earth-muted">{ex.notes.en}</p>
+          <p className="whitespace-pre-line text-sm text-earth-muted">{loc(ex.notes)}</p>
         </div>
       ) : null}
 

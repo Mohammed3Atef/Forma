@@ -12,6 +12,7 @@ import { fetchMyAssessment } from "@/services/platform/clientCoachApi";
 import { assessmentStatus } from "@/lib/assessment";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus } from "@/types";
+import { formatDate } from '@/lib/format';
 
 const TONE: Record<AssessmentStatus, PillTone> = {
   not_started: "mute",
@@ -86,7 +87,7 @@ export function MyAssessment() {
               </span>
               <span className="font-mono">
                 {a.updatedAt
-                  ? new Date(a.updatedAt).toLocaleDateString(i18n.language)
+                  ? formatDate(a.updatedAt, i18n.language, 'medium')
                   : "—"}
               </span>
             </div>
@@ -97,7 +98,7 @@ export function MyAssessment() {
                     {t("assessment.reviewedOn")}
                   </span>
                   <span className="font-mono">
-                    {new Date(a.reviewedAt).toLocaleDateString(i18n.language)}
+                    {formatDate(a.reviewedAt, i18n.language, 'medium')}
                   </span>
                 </div>
               )}

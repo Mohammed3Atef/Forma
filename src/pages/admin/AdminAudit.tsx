@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useCan } from '@/services/auth/permissions';
 import { fetchAuditPage } from '@/services/platform/auditApi';
+import { formatDateTime } from '@/lib/format';
 
 /** The real category a logged action belongs to — derived from its dot-prefix (e.g. `coachPlan.setTier` -> `coachPlan`), not a fixed taxonomy the data doesn't have. */
 function categoryOf(action: string): string {
@@ -33,7 +34,7 @@ function categoryOf(action: string): string {
  * yet since admins don't have a raw user id to type — see the pass report.
  */
 export function AdminAudit() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const canAudit = useCan('audit.read');
   const [cat, setCat] = useState('all');
 
@@ -102,7 +103,7 @@ export function AdminAudit() {
                 <div className="grow min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-sm font-medium">{t(log.action, { defaultValue: log.action.replace(/\./g, ' ') })}</span>
-                    <span className="shrink-0 font-mono text-[10.5px] text-earth-subtle">{new Date(log.createdAt).toLocaleString()}</span>
+                    <span className="shrink-0 font-mono text-[10.5px] text-earth-subtle">{formatDateTime(log.createdAt, i18n.language)}</span>
                   </div>
                   <p className="truncate text-[12px] text-earth-subtle">{t(`roles.${log.actorRole}`)} → {log.targetUserId}</p>
                 </div>

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { dateLocale } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
@@ -17,7 +16,7 @@ import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ProgressRing';
 import { StatTile } from '@/components/StatTile';
 import { BarChart } from '@/components/charts';
-import { SyncStatusBadge } from '@/components/SyncStatusBadge';
+import { SyncStatus } from '@/components/ui/SyncStatus';
 import { CoachCard } from '@/components/CoachCard';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -27,6 +26,7 @@ import { TaskRow } from '@/components/TaskRow';
 import { logVolume, logSetCount, weeklyVolumeTrend } from '@/lib/calc';
 import { formatDuration, weekStartOf } from '@/lib/utils';
 import type { WorkoutDay, WorkoutPlan } from '@/types';
+import { formatDate, formatNumber } from '@/lib/format';
 
 function parseDay(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
@@ -148,11 +148,7 @@ export function Home() {
     navigate('/workout/session');
   };
 
-  const dateEyebrow = new Date().toLocaleDateString(dateLocale(i18n.language, 'en-US'), {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const dateEyebrow = formatDate(Date.now(), i18n.language, 'weekdayDayMonth');
 
   return (
     <div className="anim-rise space-y-4 pt-2" data-testid="client-home">
@@ -172,7 +168,7 @@ export function Home() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <Avatar name={profile?.name} photoUrl={photoUrl} size="sm" rounded="rounded-full" onClick={() => navigate('/settings')} />
-          <SyncStatusBadge />
+          <SyncStatus />
         </div>
       </header>
 
@@ -194,7 +190,7 @@ export function Home() {
             <span className="eyebrow mb-1 block text-warn">{t('checkin.requiredTitle')}</span>
             <span className="block text-sm text-earth-muted">{t('checkin.requiredBody')}</span>
           </span>
-          <Icon name="chevron" size={18} className="rtl:rotate-180" />
+          <Icon name="chevron" size={18} />
         </button>
       )}
 
@@ -283,7 +279,7 @@ export function Home() {
                 icon="activity"
                 tone="info"
                 title={t('nav.cardio')}
-                subtitle={`${todaySteps.toLocaleString()} ${t('home.steps').toLowerCase()}`}
+                subtitle={`${formatNumber(todaySteps, i18n.language, { maxFractionDigits: 0 })} ${t('home.steps').toLowerCase()}`}
                 done={cardioDone}
                 onClick={() => navigate('/cardio')}
               />
@@ -331,7 +327,7 @@ export function Home() {
             </div>
           );
         })()}
-        <Icon name="chevron" size={18} className="text-earth-subtle rtl:rotate-180" />
+        <Icon name="chevron" size={18} className="text-earth-subtle" />
       </button>
 
       {/* This week */}
@@ -383,12 +379,12 @@ export function Home() {
                   <div className="grow min-w-0">
                     <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
                     <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
-                      {parseDay(l.date).toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'short' })}
+                      {formatDate(l.date, i18n.language, 'short')}
                       {' · '}
                       {formatDuration(l.durationSec)} · {(logVolume(l) / 1000).toFixed(1)}t
                     </p>
                   </div>
-                  <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+                  <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
                 </button>
               );
             })}

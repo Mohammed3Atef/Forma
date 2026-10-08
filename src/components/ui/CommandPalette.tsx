@@ -122,6 +122,7 @@ export function CommandPalette({
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder={placeholder ?? t('search.placeholder')}
+              aria-label={placeholder ?? t('search.placeholder')}
               data-testid="command-input"
               className="no-focus-ring w-full bg-transparent text-base text-earth outline-none placeholder:text-earth-subtle"
             />

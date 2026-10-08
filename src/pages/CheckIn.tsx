@@ -7,11 +7,14 @@ import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Slider } from '@/components/Slider';
-import { NumberStepper } from '@/components/NumberStepper';
+import { NumericField } from '@/components/ui/NumericField';
 import { PosePhotoPicker } from '@/components/PosePhotoPicker';
 import { CheckInSummary } from '@/components/CheckInSummary';
 import { useUploadConfigured } from '@/services/platform/mediaApi';
-import { getCheckIn, submitCheckIn, type CheckInSubmission } from '@/services/platform/checkInApi';
+import { getCheckIn, type CheckInSubmission } from '@/services/platform/checkInApi';
+import { discardOutbox, onOutboxAck, retryOutbox, useOutbox, waitForFirstAttempt } from '@/data/outbox/outbox';
+import { isLocalRef, queueCheckInSubmit, stashCheckInPhoto } from '@/data/outbox/handlers';
+import { blobStore } from '@/data/blobStore';
 import { useSession } from '@/services/auth/sessionStore';
 import { useBack } from '@/hooks/useBack';
 import { showToast } from '@/stores/toastStore';
@@ -81,22 +84,50 @@ export function CheckIn() {
   const dirty = useMemo(() => step > 0 || JSON.stringify(form) !== JSON.stringify(INITIAL), [form, step]);
   const submittingRef = useRef(false);
   const [done, setDone] = useState(false);
+  // The submission is a durable outbox op (B1.6 / PWA-12): it survives a reload
+  // or a dead connection and is sent by itself; "submitted" only on the
+  // server's acknowledgement.
+  const outboxOps = useOutbox((s) => s.ops);
+  const queued = useMemo(() => outboxOps.find((o) => o.dedupeKey === `checkin:${id}` && o.status !== 'acknowledged') ?? null, [outboxOps, id]);
+  const delivered = () => {
+    writeDraft(uid, id, null);
+    setDone(true);
+    void qc.invalidateQueries({ queryKey: ['checkIn', uid, id] });
+    void qc.invalidateQueries({ queryKey: ['activeCheckIn', uid] });
+    void qc.invalidateQueries({ queryKey: ['checkInsHistory', uid] });
+    showToast({ title: t('checkin.submitted'), variant: 'success' });
+  };
   const submit = useMutation({
-    mutationFn: () => submitCheckIn(uid, id, form),
-    onSuccess: () => {
-      writeDraft(uid, id, null);
-      setDone(true);
-      void qc.invalidateQueries({ queryKey: ['checkIn', uid, id] });
-      void qc.invalidateQueries({ queryKey: ['activeCheckIn', uid] });
-      void qc.invalidateQueries({ queryKey: ['checkInsHistory', uid] });
-      showToast({ title: t('checkin.submitted'), variant: 'success' });
+    mutationFn: async (): Promise<'sent' | 'queued'> => {
+      const op = await queueCheckInSubmit({ clientId: uid, weekStart: id, form });
+      const first = await waitForFirstAttempt(op.operationId, 30_000);
+      if (first?.status === 'acknowledged') return 'sent';
+      if (first?.status === 'failed_permanent') {
+        // The server refused it (not a connection problem): back to the answers, with the error (B0 behaviour).
+        await discardOutbox(op.operationId);
+        throw new Error(first.lastError?.code ?? 'refused');
+      }
+      return 'queued'; // offline / retrying — sent automatically
+    },
+    onSuccess: (outcome) => {
+      if (outcome === 'sent') delivered();
+      else showToast({ title: t('trust.checkin.queuedToast'), variant: 'info' });
     },
     onSettled: () => {
       submittingRef.current = false;
     },
   });
+  // Delivered later (reconnect / retry), possibly after leaving and coming back.
+  useEffect(
+    () =>
+      onOutboxAck((op) => {
+        if (op.type === 'checkin.submit' && (op.payload as { weekStart: string }).weekStart === id) delivered();
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, uid],
+  );
 
-  const wizard = !!q.data && q.data.status === 'requested' && !done;
+  const wizard = !!q.data && q.data.status === 'requested' && !done && !queued;
   // Autosave every answer / step change while the check-in is open.
   useEffect(() => {
     if (wizard && dirty) writeDraft(uid, id, { form, step });
@@ -116,7 +147,11 @@ export function CheckIn() {
   }, [wizard, dirty, t]);
 
   const setPhoto = (pose: 'front' | 'side' | 'back', url?: string) =>
-    setForm((f) => ({ ...f, progressPhotos: { ...f.progressPhotos, [pose]: url } }));
+    setForm((f) => {
+      const prev = f.progressPhotos?.[pose];
+      if (isLocalRef(prev) && prev !== url) void blobStore.remove(prev.slice('local:'.length)).catch(() => undefined);
+      return { ...f, progressPhotos: { ...f.progressPhotos, [pose]: url } };
+    });
 
   const stepName: Step = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -165,6 +200,36 @@ export function CheckIn() {
     );
   }
 
+  // Submitted on this device but not delivered yet — say exactly that (never "submitted").
+  if (queued && checkIn.status === 'requested' && !done) {
+    const sending = queued.status === 'queued' || queued.status === 'sending';
+    const line =
+      queued.status === 'failed_permanent'
+        ? t('trust.checkin.queuedFailed')
+        : queued.status === 'failed_retryable'
+          ? t('trust.checkin.queuedRetrying')
+          : sending
+            ? t('messages.sending')
+            : t('trust.checkin.queuedWaiting');
+    return (
+      <div className="anim-rise space-y-4">
+        <TopBar title={t('checkin.title')} eyebrow={`${shortDate(checkIn.weekStart, i18n.language)} – ${shortDate(checkIn.weekEnd, i18n.language)}`} onBack={leave} />
+        <div className="card space-y-3" data-testid="checkin-queued" data-outbox-status={queued.status} role="status">
+          <p className="font-semibold">{t('trust.checkin.queuedTitle')}</p>
+          <p className={`text-sm ${queued.status === 'failed_permanent' ? 'text-danger' : 'text-earth-muted'}`}>{line}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-primary" data-testid="checkin-retry" disabled={sending} onClick={() => void retryOutbox(queued.operationId)}>
+              {t('trust.outbox.retryNow')}
+            </button>
+            <button type="button" className="btn-ghost" data-testid="checkin-edit" disabled={queued.status === 'sending'} onClick={() => void discardOutbox(queued.operationId).then(() => setStep(STEPS.length - 1))}>
+              {t('trust.checkin.editAnswers')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Already submitted/reviewed — read-only summary, not the wizard.
   if (checkIn.status !== 'requested') {
     return (
@@ -192,7 +257,7 @@ export function CheckIn() {
       <header className="shrink-0 border-b border-line bg-surface px-5 pb-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <button type="button" onClick={goBack} className="icon-btn h-9 w-9" aria-label={t('checkin.back')}>
-            <Icon name="chevronLeft" size={18} className="rtl:rotate-180" />
+            <Icon name="chevronLeft" size={18} />
           </button>
           <p className="ui-label">{t('checkin.title')}</p>
           <button type="button" onClick={leave} className="icon-btn h-9 w-9" aria-label={t('common.close')} data-testid="checkin-close">
@@ -216,7 +281,7 @@ export function CheckIn() {
             <div className="card space-y-4">
               <div>
                 <label className="label">{t('checkin.weight')}</label>
-                <NumberStepper value={form.currentWeight ?? null} onChange={(v) => setForm({ ...form, currentWeight: v ?? undefined })} step={0.1} min={0} max={400} suffix={t('common.kg')} ariaLabel={t('checkin.weight')} />
+                <NumericField stepper value={form.currentWeight ?? null} onChange={(v) => setForm({ ...form, currentWeight: v ?? undefined })} step={0.1} min={0} max={400} suffix={t('common.kg')} ariaLabel={t('checkin.weight')} placeholder="0" />
               </div>
               <div>
                 <label className="label mb-1 block">{t('checkin.energy')}</label>
@@ -263,14 +328,14 @@ export function CheckIn() {
             <h1 className="h1">{t('checkin.steps.notes')}</h1>
             <p className="">{t('checkin.notesIntro')}</p>
             <div className="card">
-              <label className="label">{t('checkin.notes')}</label>
-              <textarea className="input min-h-20" data-testid="checkin-notes" value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <label className="label" htmlFor="checkin-notes">{t('checkin.notes')}</label>
+              <textarea id="checkin-notes" className="input min-h-20" data-testid="checkin-notes" value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
             {uploadsEnabled && (
               <div className="space-y-2">
                 <p className="label">{t('checkin.photos')}</p>
                 {(['front', 'side', 'back'] as const).map((pose) => (
-                  <PosePhotoPicker key={pose} pose={pose} target={{ category: 'checkin', checkInId: id }} url={form.progressPhotos?.[pose]} onChange={(url) => setPhoto(pose, url)} />
+                  <PosePhotoPicker key={pose} pose={pose} target={{ category: 'checkin', checkInId: id }} url={form.progressPhotos?.[pose]} onChange={(url) => setPhoto(pose, url)} stash={(blob) => stashCheckInPhoto(id, pose, blob)} />
                 ))}
               </div>
             )}
@@ -285,7 +350,7 @@ export function CheckIn() {
           </p>
         )}
         <button type="button" data-testid={isLast ? 'checkin-submit' : 'checkin-next'} className="btn-primary btn-lg w-full disabled:opacity-40" disabled={submit.isPending || done} onClick={goNext}>
-          {isLast ? (submit.isPending ? t('auth.working') : (<><Icon name="check" size={16} /> {t('checkin.submit')}</>)) : (<>{t('checkin.continue')} <Icon name="chevron" size={16} className="rtl:rotate-180" /></>)}
+          {isLast ? (submit.isPending ? t('auth.working') : (<><Icon name="check" size={16} /> {t('checkin.submit')}</>)) : (<>{t('checkin.continue')} <Icon name="chevron" size={16} /></>)}
         </button>
       </div>
     </div>

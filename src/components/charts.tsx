@@ -4,6 +4,7 @@
  */
 import { useId, useRef, useState } from 'react';
 import { colors } from '@/theme/colors';
+import { formatDate } from '@/lib/format';
 
 const COPPER = colors.brandOrange;
 const TRACK = 'rgba(255,238,228,0.16)';
@@ -16,13 +17,8 @@ export interface BarDatum {
   date?: string;
 }
 
-function localeFor(locale: string): string {
-  return locale.startsWith('ar') ? 'ar-EG' : 'en-GB';
-}
 function shortTick(iso: string, locale: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString(localeFor(locale), { day: 'numeric', month: 'short' });
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? formatDate(iso, locale, 'short') : iso;
 }
 
 /**

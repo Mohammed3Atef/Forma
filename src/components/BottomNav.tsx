@@ -37,7 +37,7 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
     <nav
       data-testid="bottom-nav"
       className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-surface from-[58%] via-surface/90 to-transparent"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{ paddingBottom: 'var(--shell-safe-bottom)' }}
     >
       <ul className="mx-auto flex max-w-md items-end justify-between px-2 pb-2 pt-2.5">
         {items.map((item) =>

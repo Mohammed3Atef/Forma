@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SelectField, TextInput } from '@/components/ui/Field';
 import { listCoachPlans } from '@/services/platform/coachPlansApi';
-import { parseDecimal } from '@/lib/utils';
+import { parseDecimal, parseNumber } from '@/lib/utils';
 import type { CoachSubscriptionPlan } from '@/types';
 
 /** Normalised result of the picker — a superset of the fields the assign/invite
@@ -62,7 +62,7 @@ export function SubscriptionPlanPicker({
   const result = useMemo<PlanPickResult>(() => {
     if (sel === 'pending') return { status: 'pending' };
     if (sel === 'custom') {
-      const dur = Math.max(1, Number(cDur) || 1);
+      const dur = Math.max(1, parseNumber(cDur) || 1);
       return {
         status: 'active',
         ...(cUnit === 'days' ? { days: dur } : { months: dur }),

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { HAPTIC, vibrate } from '@/lib/haptics';
 import { readLive, writeLive } from '@/lib/liveState';
+import { registerCriticalWork } from '@/lib/criticalWork';
 
 /**
  * Global rest-timer. A single timestamp (`endsAt`) drives a countdown so the
@@ -143,3 +144,6 @@ export const useTimer = create<TimerState>((set, get) => ({
     get().startRest(Math.round(remainingMs / 1000), { totalSec: saved.totalSec });
   },
 }));
+
+// A running rest timer must never be interrupted by an app update (B0.7).
+registerCriticalWork('rest-timer', () => useTimer.getState().running, useTimer.subscribe);

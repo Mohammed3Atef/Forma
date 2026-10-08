@@ -6,9 +6,10 @@ import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSectio
 import { useCoachContent } from '@/hooks/useCoachContent';
 import { useBack } from '@/hooks/useBack';
 import { openClientNote } from '@/lib/noteTarget';
+import { formatDate } from '@/lib/format';
 
 export function CoachInbox() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const goBack = useBack('/');
   const { enabled, notes, targets } = useCoachContent();
@@ -63,7 +64,7 @@ export function CoachInbox() {
                       <span className="min-w-0 flex-1">
                         {n.kind === 'announcement' && <span className="eyebrow mb-1 block text-brand">{t('clientCoach.announcement')}</span>}
                         <span className="block whitespace-pre-wrap text-sm">{n.body}</span>
-                        <span className="font-mono text-[10.5px] text-earth-subtle">{new Date(n.createdAt).toLocaleDateString()}</span>
+                        <span className="font-mono text-[10.5px] text-earth-subtle">{formatDate(n.createdAt, i18n.language, 'medium')}</span>
                       </span>
                       {anchored && <Icon name="chevron" size={16} className="mt-0.5 shrink-0 text-earth-subtle" />}
                     </button>

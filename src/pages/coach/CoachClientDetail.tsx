@@ -25,6 +25,7 @@ import { Icon, type IconName } from "@/components/Icon";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AssessmentStatus, NoteVisibility, WeightLog, WorkoutLog } from "@/types";
 import { NoteVisibilityBadge, NoteVisibilityToggle } from "@/components/NoteVisibility";
+import { formatDate } from '@/lib/format';
 
 const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
   not_started: "mute",
@@ -35,7 +36,7 @@ const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
 };
 
 export function CoachClientDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { clientId = "" } = useParams();
@@ -185,7 +186,7 @@ export function CoachClientDetail() {
                 {t("messages.openThread")}
               </span>
             </span>
-            <Icon name="chevron" size={18} className="rtl:rotate-180" />
+            <Icon name="chevron" size={18} />
           </button>
 
           {/* Client onboarding assessment (read-only) */}
@@ -207,7 +208,7 @@ export function CoachClientDetail() {
             <Pill testId="assessment-status-badge" tone={ASSESS_TONE[assessStatus]}>
               {t(`assessment.status.${assessStatus}`)}
             </Pill>
-            <Icon name="chevron" size={18} className="rtl:rotate-180" />
+            <Icon name="chevron" size={18} />
           </button>
 
           {/* Weekly check-ins */}
@@ -226,7 +227,7 @@ export function CoachClientDetail() {
                 {t("checkin.coachHint")}
               </span>
             </span>
-            <Icon name="chevron" size={18} className="rtl:rotate-180" />
+            <Icon name="chevron" size={18} />
           </button>
         </div>
 
@@ -261,7 +262,7 @@ export function CoachClientDetail() {
                 <div className="mt-1 flex items-center gap-2">
                   <NoteVisibilityBadge visibility={n.visibility} />
                   <span className="font-mono text-[10.5px] text-earth-subtle">
-                    {new Date(n.createdAt).toLocaleDateString()}
+                    {formatDate(n.createdAt, i18n.language, 'medium')}
                   </span>
                 </div>
               </div>
@@ -459,7 +460,7 @@ function ManageSheet({
           {sub}
         </span>
       </span>
-      <Icon name="chevron" size={18} className="rtl:rotate-180" />
+      <Icon name="chevron" size={18} />
     </button>
   );
   return (

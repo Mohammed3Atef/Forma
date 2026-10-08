@@ -3,6 +3,37 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+// In-memory localforage: the submission is a durable outbox op (B1.6) in the account's own database.
+const dbs = new Map<string, Map<string, unknown>>();
+vi.mock('localforage', () => {
+  const make = (name: string, storeName: string) => {
+    const key = `${name}/${storeName}`;
+    const m = () => {
+      if (!dbs.has(key)) dbs.set(key, new Map());
+      return dbs.get(key)!;
+    };
+    const copy = (v: unknown) => (v instanceof Blob ? v : structuredClone(v));
+    return {
+      getItem: async (k: string) => (m().has(k) ? copy(m().get(k)) : null),
+      setItem: async (k: string, v: unknown) => {
+        m().set(k, copy(v));
+        return v;
+      },
+      removeItem: async (k: string) => void m().delete(k),
+      clear: async () => m().clear(),
+      keys: async () => [...m().keys()],
+      iterate: async (fn: (v: unknown, k: string, i: number) => unknown) => {
+        let i = 0;
+        for (const [k, v] of m()) {
+          const r = fn(copy(v), k, i++);
+          if (r !== undefined) return r;
+        }
+      },
+    };
+  };
+  return { default: { createInstance: (o: { name: string; storeName: string }) => make(o.name, o.storeName) } };
+});
+
 const getCheckIn = vi.fn();
 const submitCheckIn = vi.fn();
 vi.mock('@/services/platform/checkInApi', () => ({
@@ -12,6 +43,9 @@ vi.mock('@/services/platform/checkInApi', () => ({
 vi.mock('@/services/platform/mediaApi', () => ({ useUploadConfigured: () => false }));
 
 import { CheckIn } from './CheckIn';
+import { closeAccountScope, openAccountScope } from '@/data/localScope';
+import { retryOutbox, startOutbox, stopOutbox, useOutbox } from '@/data/outbox/outbox';
+import '@/data/outbox/handlers';
 import { useSession } from '@/services/auth/sessionStore';
 import { hasNavGuard } from '@/stores/navGuardStore';
 import type { UserRecord } from '@/types';
@@ -33,7 +67,15 @@ function mount() {
 }
 const next = () => fireEvent.click(screen.getByTestId('checkin-next'));
 
-beforeEach(() => {
+const serverRefusal = () => Object.assign(new Error('500 {"raw":true}'), { name: 'TRPCClientError', data: { code: 'BAD_REQUEST', httpStatus: 400 } });
+const connectionDrop = () => Object.assign(new Error('Failed to fetch'), { name: 'TRPCClientError', data: undefined, cause: new TypeError('Failed to fetch') });
+
+beforeEach(async () => {
+  dbs.clear();
+  await stopOutbox();
+  closeAccountScope();
+  await openAccountScope('client-1');
+  await startOutbox('client-1');
   localStorage.clear();
   getCheckIn.mockReset();
   submitCheckIn.mockReset();
@@ -101,8 +143,8 @@ describe('check-in task flow (CL-42 / JR-05)', () => {
     await waitFor(() => expect(localStorage.getItem('forma.checkinDraft.v1.client-1.2026-09-28')).toBeNull());
   });
 
-  it('a failed submit says so and keeps every answer', async () => {
-    submitCheckIn.mockRejectedValue(new Error('500 {"raw":true}'));
+  it('a submit the server refuses says so and keeps every answer', async () => {
+    submitCheckIn.mockRejectedValue(serverRefusal());
     mount();
     await screen.findByTestId('checkin-flow');
     next();
@@ -114,5 +156,30 @@ describe('check-in task flow (CL-42 / JR-05)', () => {
     expect(screen.queryByText(/raw/)).toBeNull();
     expect(screen.getByDisplayValue('Knee felt better')).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('forma.checkinDraft.v1.client-1.2026-09-28')!).form.notes).toBe('Knee felt better');
+  });
+
+  it('a submit that cannot reach the server is saved on the device (never "submitted") and delivered later', async () => {
+    submitCheckIn.mockRejectedValueOnce(connectionDrop());
+    mount();
+    await screen.findByTestId('checkin-flow');
+    next();
+    next();
+    next();
+    fireEvent.change(screen.getByTestId('checkin-notes'), { target: { value: 'Offline week' } });
+    fireEvent.click(screen.getByTestId('checkin-submit'));
+    const queued = await screen.findByTestId('checkin-queued');
+    expect(queued).toHaveTextContent('Saved on this device');
+    expect(screen.queryByText(/^Submitted$/)).toBeNull();
+    // The answers are still on the device until the server acknowledges them.
+    expect(JSON.parse(localStorage.getItem('forma.checkinDraft.v1.client-1.2026-09-28')!).form.notes).toBe('Offline week');
+    expect(useOutbox.getState().ops[0]).toMatchObject({ type: 'checkin.submit', payload: { weekStart: '2026-09-28', form: { notes: 'Offline week' } } });
+
+    // Connection back: the same operation is delivered (same op id → idempotent on the server).
+    submitCheckIn.mockResolvedValue(undefined);
+    getCheckIn.mockResolvedValue({ ...requested, status: 'submitted' });
+    const opId = useOutbox.getState().ops[0].operationId;
+    await retryOutbox(opId);
+    await waitFor(() => expect(localStorage.getItem('forma.checkinDraft.v1.client-1.2026-09-28')).toBeNull());
+    expect(submitCheckIn).toHaveBeenLastCalledWith('client-1', '2026-09-28', expect.objectContaining({ notes: 'Offline week' }), opId);
   });
 });

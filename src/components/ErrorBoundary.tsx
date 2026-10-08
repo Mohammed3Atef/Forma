@@ -1,14 +1,7 @@
 import { Component, type ReactNode } from 'react';
+import { reloadOnceForStaleChunk } from '@/lib/staleChunk';
 
-export const CHUNK_RELOAD_GUARD_KEY = 'forma:chunk-reload-attempted';
-
-/** True for the "a lazy import 404'd" family of errors — almost always a stale
- *  chunk reference left over from before a new deployment replaced the build,
- *  never a real code bug. Browsers phrase this differently. */
-function isStaleChunkError(error: unknown): boolean {
-  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error);
-  return /ChunkLoadError|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload CSS/i.test(message);
-}
+export { CHUNK_RELOAD_GUARD_KEY } from '@/lib/staleChunk';
 
 interface State {
   hasError: boolean;
@@ -31,14 +24,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: unknown) {
-    if (isStaleChunkError(error) && !sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY)) {
-      try {
-        sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, '1');
-      } catch {
-        /* private-browsing / storage blocked — still attempt the reload */
-      }
+    if (reloadOnceForStaleChunk(error)) {
       this.setState({ recovering: true });
-      window.location.reload();
       return;
     }
     console.error('[ErrorBoundary] Unhandled render error:', error);

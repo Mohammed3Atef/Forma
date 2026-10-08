@@ -287,6 +287,32 @@
   "imageViewer": {
     "close": "Close"
   },
+  "media": {
+    "loading": "Loading…",
+    "failed": "This couldn't be loaded.",
+    "offline": "You're offline — this will load when you're back online.",
+    "notUploaded": "Saved on this device — not uploaded yet",
+    "missingLocal": "This file isn't on this device any more.",
+    "unsupported": "This file can't be previewed here.",
+    "open": "Open",
+    "kind": {
+      "image": "Photo",
+      "video": "Video",
+      "audio": "Voice note",
+      "file": "File"
+    }
+  },
+  "banners": {
+    "more_one": "{{count}} more notice",
+    "more_other": "{{count}} more notices",
+    "showLess": "Show less"
+  },
+  "states": {
+    "offline": "You're offline and this hasn't been saved on this device yet. It will load when you're back online.",
+    "staleOffline": "Offline — showing what's saved on this device.",
+    "staleFailed": "Couldn't refresh — showing the last loaded version.",
+    "emptyTitle": "Nothing here yet"
+  },
   "coachInfo": {
     "yourCoach": "Your coach",
     "message": "Message"
@@ -344,7 +370,9 @@
       "offer": "Offer",
       "reminder": "Reminder",
       "update": "Update"
-    }
+    },
+    "composerLabel": "Message",
+    "editLabel": "Edit message"
   },
   "home": {
     "steps": "Steps",
@@ -493,7 +521,6 @@
     "signOut": "Sign out",
     "signUp": "Sign up",
     "syncNow": "Sync now",
-    "lastSync": "Last sync",
     "email": "Email",
     "password": "Password",
     "phone": "Phone number",
@@ -506,8 +533,6 @@
       "preferences": "Preferences",
       "account": "Account"
     },
-    "synced": "Backed up & syncing",
-    "syncing": "Syncing…",
     "notifWhileOpen": "Your browser only shows reminders while the app is open.",
     "forceUpdate": "Update the app",
     "forceUpdateConfirm": "Reload to get the latest version. Your data, downloaded videos and login are kept.",
@@ -683,19 +708,10 @@
     "rear delts": "Rear delts",
     "full body": "Full body"
   },
-  "cloudState": {
-    "local": "Local only",
-    "signedIn": "Signed in",
-    "syncing": "Syncing…",
-    "synced": "Synced",
-    "error": "Sync error"
-  },
   "offline": {
     "banner": "You're offline — showing saved data. Changes sync when you reconnect.",
-    "actionDisabled": "You're offline — reconnect to do this."
-  },
-  "sync": {
-    "retry": "Retry"
+    "actionDisabled": "You're offline — reconnect to do this.",
+    "bannerStaff": "You're offline — messages send when you reconnect; other changes need a connection."
   },
   "reminder": {
     "dueNow": "Reminder: {{label}}"
@@ -1426,9 +1442,6 @@
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications yet.",
-    "justNow": "just now",
-    "minutesAgo": "{{n}}m ago",
-    "hoursAgo": "{{n}}h ago",
     "types": {
       "coach_note": "New coach note",
       "plan_assigned": "New plan assigned",
@@ -2300,7 +2313,14 @@
       "leaveBody": "Your answers are saved on this device — you can continue later from where you stopped.",
       "leave": "Leave",
       "keepGoing": "Keep going",
-      "submitFailed": "Your check-in wasn't sent. Your answers are kept — check your connection and try again."
+      "submitFailed": "Your check-in wasn't sent. Your answers are kept — check your connection and try again.",
+      "queuedTitle": "Saved on this device",
+      "queuedWaiting": "It will be sent to your coach automatically when you're back online.",
+      "queuedRetrying": "Not sent yet — trying again.",
+      "queuedFailed": "Your check-in couldn't be sent. Retry, or edit your answers.",
+      "editAnswers": "Edit answers",
+      "queuedToast": "Check-in saved — it will be sent automatically",
+      "photoKeptLocal": "Saved on this device — it uploads when you submit."
     },
     "existing": {
       "addExistingDesc": "Already has a Forma account. Find them by their exact email or phone.",
@@ -2367,6 +2387,7 @@
       "available": "Update available · Tap to update",
       "busyTitle": "Update now?",
       "busyBody": "Something is in progress (a workout, timer, check-in or unsaved edit). Its saved progress resumes after the update, but you can also update later — it will install on its own once you're done.",
+      "busyOtherTab": "The app is open in another tab with something in progress (a workout, timer, check-in or unsaved edit). Updating reloads every tab. You can also update later — it will install on its own once that tab is done.",
       "now": "Update now",
       "later": "Later"
     },
@@ -2389,6 +2410,34 @@
     },
     "numbers": {
       "invalid": "Not a number"
+    },
+    "outbox": {
+      "waiting": "Waiting for a connection — it will send automatically",
+      "retrying": "Couldn't send yet — trying again",
+      "retryNow": "Retry now",
+      "keptRetrying": "It's kept on this device and will be sent automatically — or tap Retry now."
+    },
+    "syncState": {
+      "synced": "Synced",
+      "syncing": "Syncing…",
+      "waiting": "Waiting to sync",
+      "saved_on_device": "Saved on this device",
+      "failed": "Sync failed",
+      "conflict": "Needs your choice",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "retry": "Retry",
+      "conflictDetail": "Something was changed on two devices — choose which version to keep.",
+      "failedDetail_one": "{{count}} change couldn't sync — it stays on this device.",
+      "failedDetail_other": "{{count}} changes couldn't sync — they stay on this device.",
+      "pending_one": "{{count}} change not synced yet",
+      "pending_other": "{{count}} changes not synced yet",
+      "lastSynced": "Last synced {{when}}"
     }
+  },
+  "i18nField": {
+    "arabicVersion": "Arabic version",
+    "englishVersion": "English version",
+    "mayNeedUpdate": "The main text changed — check that this translation still matches."
   }
 }

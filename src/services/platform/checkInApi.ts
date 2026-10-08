@@ -76,9 +76,12 @@ export async function requestCheckIn(coachId: string, clientId: string, weekStar
   await trpc.checkIns.request.mutate({ clientId, weekStart, weekEnd, coachId });
 }
 
-/** Client submits their check-in (once, while status is still 'requested' — enforced server-side). The backend notifies the coach. */
-export async function submitCheckIn(clientId: string, id: string, data: CheckInSubmission): Promise<void> {
-  await trpc.checkIns.submit.mutate({ clientId, weekStart: id, ...data });
+/**
+ * Client submits their check-in (once, while status is still 'requested' — enforced server-side). The backend notifies the coach.
+ * `opId` is the outbox operation id (B1.6): a replay of the same submission is idempotent.
+ */
+export async function submitCheckIn(clientId: string, id: string, data: CheckInSubmission, opId?: string): Promise<void> {
+  await trpc.checkIns.submit.mutate({ clientId, weekStart: id, ...data, ...(opId ? { opId } : {}) });
 }
 
 /** Coach reviews a submitted check-in with feedback. The backend notifies the client. */

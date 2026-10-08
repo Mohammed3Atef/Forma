@@ -13,7 +13,8 @@ import { confirmDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { planPhaseLabel } from '@/lib/formaFormat';
-import { shortDate } from '@/lib/utils';
+
+import { formatDate } from '@/lib/format';
 
 /** Common billing currencies a coach can default to (ISO codes). */
 const CURRENCIES = ['EGP', 'USD', 'SAR', 'AED', 'EUR', 'GBP', 'KWD', 'QAR'] as const;
@@ -96,7 +97,7 @@ export function RoleAccount() {
               <h2 className="truncate font-display text-lg font-semibold">{account.displayName || account.email}</h2>
               {account.email && <p className="truncate text-[13px] text-earth-muted">{account.email}</p>}
               <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-brand">
-                {t(`roles.${account.role}`)} · {t('timeline.since', { date: shortDate(new Date(account.createdAt).toISOString().slice(0, 10), i18n.language) })}
+                {t(`roles.${account.role}`)} · {t('timeline.since', { date: formatDate(account.createdAt, i18n.language, 'weekdayShort') })}
               </p>
             </div>
           </div>

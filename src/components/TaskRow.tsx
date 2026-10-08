@@ -52,7 +52,7 @@ export function TaskRow({
         <span className={`block truncate font-medium ${done ? 'text-earth-subtle line-through' : ''}`}>{title}</span>
         <span className="block truncate text-[12.5px] text-earth-muted">{subtitle}</span>
       </span>
-      {!done && onClick && <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />}
+      {!done && onClick && <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />}
     </Wrapper>
   );
 }

@@ -114,7 +114,7 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
           <div className="flex shrink-0 items-center gap-2 px-5 pb-3 pt-3 md:px-6 md:pt-5">
             {onBack && (
               <button type="button" onClick={onBack} className="icon-btn h-9 w-9" aria-label={t('common.back')} data-testid={backTestId}>
-                <Icon name="chevron" size={18} className="rotate-180 rtl:rotate-0" />
+                <Icon name="chevronLeft" size={18} />
               </button>
             )}
             {title && <h2 id={titleId} className="h2 min-w-0 flex-1 truncate">{title}</h2>}

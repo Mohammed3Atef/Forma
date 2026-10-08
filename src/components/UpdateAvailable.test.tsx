@@ -5,7 +5,7 @@ const confirmDialog = vi.fn();
 vi.mock('@/stores/dialogStore', () => ({ confirmDialog: (...a: unknown[]) => confirmDialog(...a) }));
 
 import { UpdateAvailable } from './UpdateAvailable';
-import { applyUpdateAtSafePoint, useUpdate } from '@/stores/updateStore';
+import { applyUpdateAtSafePoint, BEACON_TTL_MS, otherTabBusy, publishTabBusy, useUpdate } from '@/stores/updateStore';
 import { useTimer } from '@/stores/timerStore';
 import { useCardio } from '@/stores/cardioStore';
 
@@ -17,6 +17,7 @@ beforeEach(() => {
   useTimer.setState({ running: false, paused: false, endsAt: null, intervalId: null, pausedRemaining: null, remainingSec: 0 });
   useCardio.setState({ liveStart: null, liveParams: null });
   setVisibility('visible');
+  localStorage.clear();
 });
 
 describe('update available (B0.7)', () => {
@@ -51,5 +52,40 @@ describe('update available (B0.7)', () => {
     useTimer.setState({ running: false });
     expect(applyUpdateAtSafePoint()).toBe(true);
     expect(apply).toHaveBeenCalledTimes(1);
+  });
+
+  it('another tab mid-workout defers the auto-install; a stale heartbeat (crashed tab) does not (PWA-10)', () => {
+    const apply = vi.fn();
+    useUpdate.getState().setReady(apply);
+    setVisibility('hidden');
+    localStorage.setItem('forma-busy-tab:other', String(Date.now()));
+    expect(otherTabBusy()).toBe(true);
+    expect(applyUpdateAtSafePoint()).toBe(false);
+    expect(apply).not.toHaveBeenCalled();
+    localStorage.setItem('forma-busy-tab:other', String(Date.now() - BEACON_TTL_MS - 1));
+    expect(otherTabBusy()).toBe(false);
+    expect(applyUpdateAtSafePoint()).toBe(true);
+  });
+
+  it('this tab publishes its own heartbeat while busy and clears it after — never counted as "another tab"', () => {
+    useTimer.setState({ running: true });
+    publishTabBusy(Date.now() + 60_000);
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith('forma-busy-tab:'));
+    expect(keys).toHaveLength(1);
+    expect(otherTabBusy()).toBe(false);
+    useTimer.setState({ running: false });
+    publishTabBusy();
+    expect(Object.keys(localStorage).filter((k) => k.startsWith('forma-busy-tab:'))).toHaveLength(0);
+  });
+
+  it('tapping while another tab is busy asks first, with the other-tab explanation', async () => {
+    const apply = vi.fn();
+    useUpdate.getState().setReady(apply);
+    localStorage.setItem('forma-busy-tab:other', String(Date.now()));
+    confirmDialog.mockResolvedValue(true);
+    render(<UpdateAvailable />);
+    fireEvent.click(screen.getByTestId('update-available'));
+    await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
+    expect(confirmDialog.mock.calls[0][0].message).toMatch(/another tab/);
   });
 });

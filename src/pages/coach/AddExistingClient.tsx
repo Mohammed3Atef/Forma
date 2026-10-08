@@ -74,7 +74,7 @@ export function AddExistingClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const results = useQuery({
-    queryKey: ['existingClientSearch', term],
+    queryKey: ['existingClientSearch', coachId, term],
     enabled: term.trim().length > 0,
     queryFn: async (): Promise<ResultRow[]> => {
       const users = await searchClients(term.trim());

@@ -5,14 +5,15 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { MobileCardList } from '@/components/ui/MobileCardList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DonutChart } from '@/components/charts';
-import { shortDate } from '@/lib/utils';
+
 import { colors } from '@/theme/colors';
 import type { CoachDashboard, RenewalEntry } from '@/services/platform/coachDashboardApi';
+import { formatDate } from '@/lib/format';
 
 export function AnalyticsPanel({ d }: { d: CoachDashboard }) {
   const { t, i18n } = useTranslation();
   const cur = d.currency;
-  const fmt = (ms: number) => shortDate(new Date(ms).toISOString().slice(0, 10), i18n.language);
+  const fmt = (ms: number) => formatDate(ms, i18n.language, 'weekdayShort');
 
   const renewalCols: Column<RenewalEntry>[] = [
     { key: 'name', header: t('coach.clients'), cell: (r) => <span className="truncate font-medium">{r.name}</span> },

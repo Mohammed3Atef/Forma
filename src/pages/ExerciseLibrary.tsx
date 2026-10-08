@@ -66,7 +66,7 @@ export function ExerciseLibrary() {
         <span className="absolute inset-y-0 left-3 flex items-center text-earth-subtle rtl:left-auto rtl:right-3">
           <Icon name="search" size={18} />
         </span>
-        <input className="input pl-10 rtl:pl-4 rtl:pr-10" placeholder={t('gt.searchExercises')} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input pl-10 rtl:pl-4 rtl:pr-10" aria-label={t('gt.searchExercises')} placeholder={t('gt.searchExercises')} value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <div className="-mx-5 mb-1 flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -96,7 +96,7 @@ export function ExerciseLibrary() {
                   <p className="font-mono text-[11.5px] text-earth-muted">{muscleLabel(ex.targetMuscle, t)}</p>
                 </div>
                 {pr && <span className="shrink-0 font-mono text-[12px] text-earth-muted">{pr.e1rm}{t('common.kg')}</span>}
-                <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+                <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
               </button>
             );
           })}

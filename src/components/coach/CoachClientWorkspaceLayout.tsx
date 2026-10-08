@@ -58,6 +58,16 @@ function tabPath(clientId: string, key: string): string {
   }
 }
 
+/**
+ * How a tab opens (B1.10 / NAV-K01). Tabs inside the workspace REPLACE the
+ * entry, so switching tabs doesn't pile up history; the two escape hatches
+ * (Progress, Messages) leave this shell, so they PUSH — Back then returns to
+ * the workspace instead of skipping past it to the clients list.
+ */
+export function workspaceTabNav(clientId: string, key: string): { to: string; replace: boolean } {
+  return { to: tabPath(clientId, key), replace: key !== 'progress' && key !== 'messages' };
+}
+
 /** Which tab key the current pathname corresponds to, for this client — used both to highlight the active tab and to preserve it when switching clients. */
 function activeTabKey(pathname: string, clientId: string): string {
   const hit = TABS.find((tb) => {
@@ -110,7 +120,7 @@ export function CoachClientWorkspaceLayout() {
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" onClick={goBack} className="icon-btn h-9 w-9 shrink-0" aria-label={t('common.back')}>
-              <Icon name="chevronLeft" size={18} className="rtl:rotate-180" />
+              <Icon name="chevronLeft" size={18} />
             </button>
             <button type="button" className="flex min-w-0 items-center gap-3 text-start" data-testid="workspace-switch-trigger" onClick={() => setSwitcherOpen(true)} aria-label={t('workspace.switchClient')}>
               <Avatar name={name} photoUrl={photoUrl} size="md" />
@@ -126,10 +136,10 @@ export function CoachClientWorkspaceLayout() {
           </div>
           <div className="flex shrink-0 gap-2">
             <button type="button" className="btn-secondary btn-sm" onClick={() => navigate(`/coach/messages/${clientId}`)}>
-              <Icon name="chat" size={14} /> <span className="hidden sm:inline">{t('coachDash.message')}</span>
+              <Icon name="chat" size={14} /> <span className="sr-only sm:not-sr-only">{t('coachDash.message')}</span>
             </button>
             <button type="button" className="btn-primary btn-sm" onClick={() => navigate(`/coach/client/${clientId}/workout`)}>
-              <Icon name="edit" size={14} /> <span className="hidden sm:inline">{t('workspace.editPlan')}</span>
+              <Icon name="edit" size={14} /> <span className="sr-only sm:not-sr-only">{t('workspace.editPlan')}</span>
             </button>
           </div>
         </div>
@@ -142,7 +152,10 @@ export function CoachClientWorkspaceLayout() {
                 key={tb.key}
                 type="button"
                 data-testid={`workspace-tab-${tb.key}`}
-                onClick={() => navigate(to, { replace: true })}
+                onClick={() => {
+                  const nav = workspaceTabNav(clientId, tb.key);
+                  navigate(nav.to, { replace: nav.replace });
+                }}
                 className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
                   active ? 'text-white' : 'text-earth-subtle hover:text-earth'
                 }`}
@@ -174,7 +187,6 @@ export function CoachClientWorkspaceLayout() {
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} size="sm" title={t('workspace.tabs.more')}>
         <div className="space-y-1" data-testid="workspace-more-sheet">
           {MOBILE_MORE.map((tb) => {
-            const to = tabPath(clientId, tb.key);
             const active = tb.key === currentTab;
             return (
               <button
@@ -182,7 +194,11 @@ export function CoachClientWorkspaceLayout() {
                 type="button"
                 data-testid={`workspace-more-${tb.key}`}
                 className={`row w-full text-start ${active ? 'bg-brand/10' : ''}`}
-                onClick={() => { setMoreOpen(false); navigate(to, { replace: true }); }}
+                onClick={() => {
+                  setMoreOpen(false);
+                  const nav = workspaceTabNav(clientId, tb.key);
+                  navigate(nav.to, { replace: nav.replace });
+                }}
               >
                 <Icon name={tb.icon} size={18} className="text-earth-muted" />
                 <span className="min-w-0 flex-1">{t(tb.labelKey)}</span>

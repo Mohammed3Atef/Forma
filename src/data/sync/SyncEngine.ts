@@ -5,6 +5,7 @@ import type { Repository, SingletonRepository } from '@/data/repositories';
 import type { AppSettings, UserProfile } from '@/types';
 import { clearTombstone, listTombstones } from './tombstones';
 import { hasConflict, recordConflict, sameContent, useSyncConflicts } from './conflicts';
+import { PUSH_BATCH, SYNC_SCHEMA_VERSION, updateRejected, validatePulledRecord } from './contract';
 
 /**
  * Conflict-safe sync between the local store (source of truth while offline)
@@ -86,6 +87,10 @@ export interface SyncResult {
   conflicts?: number;
   /** True when the pass was skipped because the device is offline. */
   offline?: boolean;
+  /** Local records the server refused under the contract (they stay on this device). */
+  rejected?: number;
+  /** Pulled records that were malformed or from a newer schema — NOT imported. */
+  skipped?: number;
 }
 
 /** Thrown when the open account changed under a running pass — abort without writing anything further. */
@@ -112,6 +117,8 @@ export class SyncEngine {
   private conflicts = 0;
   /** Derived records replaced by the server copy this pass (counts as pulled, so the stores recompute). */
   private adopted = 0;
+  private rejected = 0;
+  private skipped = 0;
 
   async pushCollection(name: CollName): Promise<number> {
     this.guard();
@@ -129,14 +136,26 @@ export class SyncEngine {
     // A record waiting for the user's conflict decision is not pushed.
     for (const r of candidates) if (!(await hasConflict(name, r.id))) dirty.push(r);
     if (dirty.length === 0) return 0;
+    let accepted = 0;
+    for (let i = 0; i < dirty.length; i += PUSH_BATCH) accepted += await this.pushBatch(name, dirty.slice(i, i + PUSH_BATCH));
+    return accepted;
+  }
+
+  private async pushBatch(name: CollName, dirty: Dirty[]): Promise<number> {
+    const repo = repoFor(name);
     const res = await trpc.sync.push.mutate({
       collection: name,
       records: dirty.map((rec) => {
         const { dirty: _d, _rev, _remoteRev: _rr, ...data } = rec;
-        return { id: rec.id, updatedAt: rec.updatedAt, data, baseRev: _rev ?? null };
+        return { id: rec.id, updatedAt: rec.updatedAt, data, baseRev: _rev ?? null, sv: SYNC_SCHEMA_VERSION };
       }),
     });
     this.guard();
+    // Refused under the contract: kept on the device, remembered for the status (B1.7).
+    const rejected = res.rejected ?? [];
+    await updateRejected(name, rejected, res.accepted.map((a) => a.id));
+    this.rejected += rejected.length;
+    if (rejected.length) console.warn(`[sync] ${rejected.length} ${name} record(s) refused by the server:`, rejected.map((r) => r.reason).join(', '));
     const sent = new Map(dirty.map((r) => [r.id, r]));
     for (const acc of res.accepted) {
       // Compare-and-set: the user may have edited the record during the
@@ -169,6 +188,13 @@ export class SyncEngine {
     const legacyCutoff = (await syncMeta.getItem<number>('migratedFromLegacy')) ?? null;
     let pulled = 0;
     for (const rec of res.records) {
+      // Never import a malformed record or one from a newer schema (B1.7 / PWA-13).
+      const skip = validatePulledRecord(name, rec);
+      if (skip) {
+        this.skipped += 1;
+        console.warn(`[sync] skipped a ${name} record from the server (${skip}) — not imported`);
+        continue;
+      }
       const remote = rec.data as unknown as Dirty;
       const rev = rec.rev ?? 0;
       const local = await repo.get(rec.id);
@@ -250,7 +276,7 @@ export class SyncEngine {
     this.guard();
     let applied = 0;
     for (const marker of res.deletions) {
-      if (!(COLLECTIONS as readonly string[]).includes(marker.collection)) continue;
+      if (!(COLLECTIONS as readonly string[]).includes(marker.collection) || typeof marker.id !== 'string' || !marker.id) continue;
       const repo = repoFor(marker.collection as CollName);
       const local = await repo.get(marker.id);
       // Edit-wins: never drop unsynced local edits because of a remote delete.
@@ -268,6 +294,8 @@ export class SyncEngine {
     this.guard();
     this.conflicts = 0;
     this.adopted = 0;
+    this.rejected = 0;
+    this.skipped = 0;
     const ds = getDataSource();
     const deletionsCursorKey = this.cursorKey('deletions');
     const lastDeletionsPulled = (await syncMeta.getItem<number>(deletionsCursorKey)) ?? 0;
@@ -294,6 +322,6 @@ export class SyncEngine {
       pushed += await this.pushCollection(name);
     }
     await useSyncConflicts.getState().refresh();
-    return { pushed, pulled: pulled + this.adopted, conflicts: this.conflicts };
+    return { pushed, pulled: pulled + this.adopted, conflicts: this.conflicts, rejected: this.rejected, skipped: this.skipped };
   }
 }

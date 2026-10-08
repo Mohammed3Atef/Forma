@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { normalizeNumericText } from "@/lib/utils";
+import { useState } from "react";
+import { NumericField } from "@/components/ui/NumericField";
 import { useTranslation } from "react-i18next";
 import type { Exercise, ExerciseLog, SetLog } from "@/types";
 import type { PrevPerf } from "@/stores/workoutStore";
@@ -162,19 +162,20 @@ export function ExerciseCard({
                 <span className="truncate font-mono text-[11.5px] text-earth-subtle">
                   {prevLabel}
                 </span>
-                <NumericCell
+                <NumericField
                   ariaLabel={t("workout.weight")}
+                  inputClassName={cell}
                   value={set.weightKg}
                   placeholder={
                     prevSet?.weightKg != null ? String(prevSet.weightKg) : "0"
                   }
                   onChange={(n) => onUpdateSet(set.setIndex, { weightKg: n })}
-                  className={cell}
                 />
-                <NumericCell
+                <NumericField
                   ariaLabel={t("common.reps")}
                   testId={`set-reps-${set.setIndex}`}
-                  invalid={needsReps === set.setIndex}
+                  error={needsReps === set.setIndex}
+                  inputClassName={`${cell}${needsReps === set.setIndex ? " !border-warn" : ""}`}
                   value={set.actualReps}
                   placeholder={
                     prevSet?.actualReps != null
@@ -185,7 +186,6 @@ export function ExerciseCard({
                     if (n != null && needsReps === set.setIndex) setNeedsReps(null);
                     onUpdateSet(set.setIndex, { actualReps: n });
                   }}
-                  className={cell}
                 />
                 <button
                   type="button"
@@ -233,56 +233,5 @@ export function ExerciseCard({
         </div>
       </div>
     </section>
-  );
-}
-
-interface NumericCellProps {
-  value: number | null;
-  placeholder?: string;
-  ariaLabel: string;
-  className: string;
-  onChange: (n: number | null) => void;
-  testId?: string;
-  /** Highlights the cell (e.g. reps needed before the set can be ticked). */
-  invalid?: boolean;
-}
-
-/**
- * Number entry that tolerates decimals. A plain controlled number input eats the
- * decimal point ("12." → Number → 12 → re-render strips the dot), so we hold the
- * raw text while focused and only sync from the model when the field is idle.
- */
-function NumericCell({ value, placeholder, ariaLabel, className, onChange, testId, invalid }: NumericCellProps) {
-  const [text, setText] = useState(value == null ? "" : String(value));
-  const [focused, setFocused] = useState(false);
-
-  // Reflect external changes (undo, restore, set add) only when not mid-edit.
-  useEffect(() => {
-    if (!focused) setText(value == null ? "" : String(value));
-  }, [value, focused]);
-
-  return (
-    <input
-      inputMode="decimal"
-      aria-label={ariaLabel}
-      aria-invalid={invalid || undefined}
-      data-testid={testId}
-      value={text}
-      placeholder={placeholder}
-      onFocus={(e) => {
-        setFocused(true);
-        e.currentTarget.select();
-      }}
-      onBlur={() => setFocused(false)}
-      onChange={(e) => {
-        // Arabic-Indic digits and the Arabic decimal separator are normalised first (RTL-04).
-        const raw = normalizeNumericText(e.target.value);
-        if (!/^\d*\.?\d*$/.test(raw)) return; // digits + at most one dot
-        setText(raw);
-        const parsed = raw === "" || raw === "." ? null : Number(raw);
-        onChange(Number.isNaN(parsed) ? null : parsed);
-      }}
-      className={`${className}${invalid ? " !border-warn" : ""}`}
-    />
   );
 }

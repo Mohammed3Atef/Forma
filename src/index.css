@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,16 +39,29 @@ body {
 html[dir='rtl'] body {
   @apply font-arabic;
 }
-/* Arabic has no letter-case — neutralise the design's uppercase UI labels. */
+/* Arabic has no letter-case and is never letter-spaced — neutralise every
+   component class that bakes in mono / uppercase / tracking (B1.8 / RTL-01
+   extended the list: .label .sec-link .chip .h1 .h2 .stat-num .stat-unit were
+   missed). Utility classes are handled in styles/tokens.css. */
 html[dir='rtl'] .eyebrow,
 html[dir='rtl'] .ui-label,
 html[dir='rtl'] .btn,
 html[dir='rtl'] .seg button,
 html[dir='rtl'] .stat-label,
-html[dir='rtl'] .pill {
+html[dir='rtl'] .pill,
+html[dir='rtl'] .label,
+html[dir='rtl'] .sec-link,
+html[dir='rtl'] .chip,
+html[dir='rtl'] .h1,
+html[dir='rtl'] .h2 {
   text-transform: none;
   letter-spacing: 0;
   font-family: theme('fontFamily.arabic');
+}
+/* Numbers keep the mono face (Latin digits by policy); only the tracking goes. */
+html[dir='rtl'] .stat-num,
+html[dir='rtl'] .stat-unit {
+  letter-spacing: 0;
 }
 
 /* ---- Scrollbars — subtle Forma-styled scrollbar everywhere, replacing the
@@ -99,11 +114,12 @@ input[type='number'] {
 }
 
 /* Visible keyboard focus across every interactive surface (a11y). Pointer
-   clicks stay ring-free via :focus-visible; only keyboard nav shows the ring. */
+   clicks stay ring-free via :focus-visible; only keyboard nav shows the ring.
+   The outline follows each element's own radius (B1.14 / VS-02: the old rule
+   forced `border-radius: 5px`, squaring pills and cards while focused). */
 :focus-visible {
-  outline: 2px solid theme('colors.brand.DEFAULT');
+  outline: 2px solid rgb(var(--ui-focus-ring));
   outline-offset: 2px;
-  border-radius: 5px;
 }
 /* Components manage their own focus ring where the default would clip. */
 .no-focus-ring:focus-visible {
@@ -239,6 +255,23 @@ input[type='number'] {
       bg-transparent text-white transition-transform duration-200 ease-card
       hover:bg-white/5 active:scale-90 disabled:opacity-40
       motion-reduce:transition-none motion-reduce:active:scale-100;
+  }
+
+  /* B1.14 / AX-01: a GUARANTEED 44x44px hit area around a smaller visual
+     (the -4px rule above tops a 32px control up to only 40px). Centered on
+     the control, so it never changes layout. Used by the B1.3 primitives. */
+  .hit-44 {
+    position: relative;
+  }
+  .hit-44::before {
+    content: '';
+    position: absolute;
+    inset: auto;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 
   /* ---- Inputs ---- */

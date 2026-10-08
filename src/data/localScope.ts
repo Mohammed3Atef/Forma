@@ -42,6 +42,7 @@ export const USER_STORES = [
   'blobs',
   'deletions',
   'syncConflicts',
+  'outbox',
   'meta',
 ] as const;
 export type UserStoreName = (typeof USER_STORES)[number];
@@ -86,7 +87,7 @@ async function migrateLegacyIfOwner(uid: string): Promise<boolean> {
   if (owner !== uid) return false;
   const target = (s: string) => userStore(s as UserStoreName);
   for (const s of USER_STORES) {
-    if (s === 'meta' || s === 'syncConflicts') continue;
+    if (s === 'meta' || s === 'syncConflicts' || s === 'outbox') continue; // never in the pre-B0 shared database
     const src = legacy(s);
     const entries: [string, unknown][] = [];
     await src.iterate<unknown, void>((v, k) => {
@@ -107,7 +108,7 @@ async function migrateLegacyIfOwner(uid: string): Promise<boolean> {
   await dstMeta.setItem('migratedFromLegacy', Date.now());
   // Copy succeeded — now remove the moved data from the shared database.
   for (const s of USER_STORES) {
-    if (s === 'meta' || s === 'syncConflicts') continue;
+    if (s === 'meta' || s === 'syncConflicts' || s === 'outbox') continue; // never in the pre-B0 shared database
     await legacy(s).clear();
   }
   for (const [k] of metaEntries) await legacyMeta.removeItem(k);

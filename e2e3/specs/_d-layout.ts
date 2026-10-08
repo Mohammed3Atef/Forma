@@ -231,7 +231,8 @@ export function defineLayoutTests() {
             expect.soft(c.direction, `${n} chart computed direction`).toBe('ltr');
             expect.soft(c.items.length, `${n} chart points`).toBe(3);
             // Seeded 68 kg (14d ago) → 69 (7d) → 69.86 (1d): list order == physical left→right order under dir=ltr.
-            expect.soft(c.items.map((i) => i.match(/(\d+(\.\d+)?)\s/)?.[1]?.slice(0, 2)), `${n} oldest→newest`).toEqual(['68', '69', '69']);
+            // Items read "<date>: <value> <unit>" — the value is after the colon (B1: dates use Latin digits too).
+            expect.soft(c.items.map((i) => i.split(':').pop()?.match(/(\d+(\.\d+)?)/)?.[1]?.slice(0, 2)), `${n} oldest→newest`).toEqual(['68', '69', '69']);
             expect.soft(c.items[2], `${n} newest last`).toMatch(/69\.8/);
           }
           if ('chevron' in r) expect.soft((r.chevron as { flipped: boolean }).flipped, `${n} back chevron mirrored ${JSON.stringify(r.chevron)}`).toBe(true);

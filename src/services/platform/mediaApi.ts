@@ -197,6 +197,8 @@ interface UploadResponse extends UploadResult {
   kind: AttachmentKind;
   name: string;
   mimeType: string;
+  /** Storage path of the object (B1.11 media seam) — absent from servers older than B1. */
+  path?: string;
 }
 
 function toResult(json: Record<string, unknown>): UploadResponse {
@@ -206,6 +208,7 @@ function toResult(json: Record<string, unknown>): UploadResponse {
     kind: (json.kind as AttachmentKind) ?? 'file',
     name: String(json.name ?? ''),
     mimeType: String(json.mimeType ?? ''),
+    ...(typeof json.path === 'string' && json.path ? { path: json.path } : {}),
   };
 }
 

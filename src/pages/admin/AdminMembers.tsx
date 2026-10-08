@@ -21,9 +21,10 @@ import { fetchMembers, inSegment, type MemberRow, type MemberSegment } from '@/s
 import { bumpUsage } from '@/services/platform/usageApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { shortDate } from '@/lib/utils';
+
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, Role } from '@/types';
+import { formatDate } from '@/lib/format';
 
 const ACCT_TONE: Record<AccountStatus, PillTone> = {
   active: 'ok',
@@ -134,7 +135,7 @@ export function AdminMembers() {
     { key: 'role', header: t('adminMembers.role'), cell: (r) => <span className="text-[13px]">{t(`roles.${r.user.role}`)}</span> },
     { key: 'acct', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill> },
     { key: 'sub', header: t('adminMembers.subscription'), cell: (r) => r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <span className="text-earth-subtle">—</span> },
-    { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{formatDate(r.user.createdAt, i18n.language, 'weekdayShort')}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (r) => canManage(r.user.role) && r.user.id !== actorId ? (
       <button type="button" disabled={status.isPending} className="btn-ghost h-8 px-3 text-[11px] disabled:opacity-40" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
         {r.user.accountStatus === 'suspended' || r.user.accountStatus === 'disabled' ? t('adminMembers.reactivate') : t('adminMembers.suspend')}
@@ -220,7 +221,7 @@ export function AdminMembers() {
                       <Avatar name={r.user.displayName || r.user.email} photoUrl={r.user.photoUrl} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
-                        <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span>
+                        <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {formatDate(r.user.createdAt, i18n.language, 'weekdayShort')}</span>
                       </span>
                       {r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill>}
                     </button>

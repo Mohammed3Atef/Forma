@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { Pill } from '@/components/ui/Pill';
 import type { Subscription, SubscriptionPeriod } from '@/types';
+import { formatDate } from '@/lib/format';
 
-const fmtDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '—');
+const fmtDate = (ms: number | null | undefined, lang: string) => (ms ? formatDate(ms, lang, 'medium') : '—');
 
 interface Row {
   startAt: number;
@@ -21,7 +22,7 @@ interface Row {
  * Renders nothing when there's no subscription at all.
  */
 export function SubscriptionHistory({ sub, history }: { sub?: Subscription | null; history?: SubscriptionPeriod[] }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(true);
 
   const rows: Row[] = [...(history ?? [])];
@@ -51,7 +52,7 @@ export function SubscriptionHistory({ sub, history }: { sub?: Subscription | nul
                       {r.months != null ? t('subscription.renewedMonths', { n: r.months }) : t('subscription.term')}
                       {r.current && <Pill tone="ok">{t('subscription.current')}</Pill>}
                     </p>
-                    <p className="font-mono">{fmtDate(r.startAt)} → {fmtDate(r.endAt)}</p>
+                    <p className="font-mono">{fmtDate(r.startAt, i18n.language)} → {fmtDate(r.endAt, i18n.language)}</p>
                   </div>
                   {r.price != null && (
                     <span className="shrink-0 font-mono text-[13px] font-medium text-earth">{r.price}{r.currency ? ` ${r.currency}` : ''}</span>

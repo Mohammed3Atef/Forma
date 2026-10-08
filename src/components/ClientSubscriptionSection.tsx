@@ -9,6 +9,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { cancelFreezeRequest, fetchMyFreezeRequest, submitFreezeRequest } from '@/services/platform/clientCoachApi';
 import { showToast } from '@/stores/toastStore';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { dayKeyOf, formatDate } from '@/lib/format';
 
 const SUB_TONE: Record<string, PillTone> = {
   active: 'ok',
@@ -16,9 +17,9 @@ const SUB_TONE: Record<string, PillTone> = {
   ended: 'bad',
   none: 'mute',
 };
-const fmtDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
+const fmtDate = (ms: number | null | undefined, lang: string) => (ms ? formatDate(ms, lang, 'medium') : '');
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => dayKeyOf(Date.now()); // local day (the UTC day is off by one east/west of Greenwich)
 
 /**
  * Client-facing subscription card: status + dates + price plus the freeze-request
@@ -27,7 +28,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
  * Settings so the request affordance is discoverable.
  */
 export function ClientSubscriptionSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const uid = useSession((s) => s.uid) ?? '';
   const { sub, history, status, hasCoach } = useSubscription();
@@ -68,7 +69,7 @@ export function ClientSubscriptionSection() {
       <div className="card-featured space-y-2">
         <div className="flex items-center justify-between gap-2">
           <Pill testId="client-sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
-          {sub && <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(sub.startAt)} → {fmtDate(sub.endAt)}</span>}
+          {sub && <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(sub.startAt, i18n.language)} → {fmtDate(sub.endAt, i18n.language)}</span>}
         </div>
         {sub?.price != null && (
           <p className="font-display text-3xl font-bold" data-testid="client-sub-price">
@@ -85,7 +86,7 @@ export function ClientSubscriptionSection() {
           {pending ? (
             <>
               <p className="text-sm text-warn">{t('subscription.requestPending')}</p>
-              {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from)} → {fmtDate(r.until)}</p>}
+              {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from, i18n.language)} → {fmtDate(r.until, i18n.language)}</p>}
               {cancel.isError && <p role="alert" className="text-sm text-danger">{t('common.errorGeneric')}</p>}
               <SubmitButton type="button" variant="ghost" fullWidth data-testid="freeze-cancel" pending={cancel.isPending} onClick={() => cancel.mutate()}>
                 {t('subscription.cancelRequest')}

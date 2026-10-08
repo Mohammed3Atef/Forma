@@ -135,7 +135,7 @@ export function ExercisePickerSheet({
             <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
               <Icon name="search" size={18} />
             </span>
-            <input className="input ps-10" data-testid="picker-search" placeholder={t('coachEditor.searchLibrary')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="input ps-10" data-testid="picker-search" aria-label={t('coachEditor.searchLibrary')} placeholder={t('coachEditor.searchLibrary')} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <button type="button" className="btn-primary w-full" data-testid="picker-quick-create" onClick={() => setMode('create')}>
             <Icon name="plus" size={16} /> {t('coachEditor.quickCreate')}

@@ -4,9 +4,11 @@ const me = vi.fn();
 const signOutUser = vi.fn(async () => true);
 vi.mock('./mongoAuth', () => ({ mongoAuth: { signOutUser: () => signOutUser(), me: () => me() } }));
 const refreshSessionDetailed = vi.fn();
+const takeRefreshedUser = vi.fn((): unknown => null);
 vi.mock('@/services/platformApi', async (orig) => ({
   ...(await orig<typeof import('@/services/platformApi')>()),
   refreshSessionDetailed: () => refreshSessionDetailed(),
+  takeRefreshedUser: () => takeRefreshedUser(),
 }));
 
 import { queryClient } from '@/services/platform/queryClient';
@@ -23,6 +25,8 @@ beforeEach(() => {
   signOutUser.mockReset();
   signOutUser.mockResolvedValue(true);
   refreshSessionDetailed.mockReset();
+  takeRefreshedUser.mockReset();
+  takeRefreshedUser.mockReturnValue(null);
   useSession.setState({ phase: 'anonymous', uid: null, account: null, verified: false, error: null });
 });
 
@@ -49,6 +53,26 @@ describe('session end clears server-state cache', () => {
     await useSession.getState().refreshAccount({ silent: true });
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(useSession.getState().phase).toBe('anonymous');
+  });
+});
+
+describe('the query cache belongs to one account (B1.12)', () => {
+  it('another tab switched the account: the refresh that brings user B drops user A cached reads', async () => {
+    useSession.getState().hydrate(account('coach-a'));
+    queryClient.setQueryData(['coachCommercial', 'mine', 'coach-a'], { owner: 'a' });
+    queryClient.setQueryData(['coachDashboard'], { owner: 'a' });
+    takeRefreshedUser.mockReturnValue(account('coach-b'));
+    await useSession.getState().refreshAccount({ silent: true });
+    expect(useSession.getState().uid).toBe('coach-b');
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+  });
+
+  it('a refresh of the SAME account keeps the cache', async () => {
+    useSession.getState().hydrate(account('coach-a'));
+    queryClient.setQueryData(['coachDashboard'], { owner: 'a' });
+    takeRefreshedUser.mockReturnValue(account('coach-a'));
+    await useSession.getState().refreshAccount({ silent: true });
+    expect(queryClient.getQueryData(['coachDashboard'])).toEqual({ owner: 'a' });
   });
 });
 
@@ -109,5 +133,20 @@ describe('signing out offline is final (PWA-08)', () => {
     await useSession.getState().reverify();
     expect(refreshSessionDetailed).not.toHaveBeenCalled();
     expect(useSession.getState().phase).toBe('anonymous');
+  });
+});
+
+describe('boot uses the user the refresh already returned (B1.13 / PF-01)', () => {
+  it('no second auth.me round-trip after a successful refresh', async () => {
+    takeRefreshedUser.mockReturnValue(account('client-a'));
+    await useSession.getState().refreshAccount({ silent: true });
+    expect(me).not.toHaveBeenCalled();
+    expect(useSession.getState()).toMatchObject({ uid: 'client-a', phase: 'ready', verified: true });
+  });
+  it('without a fresh refresh answer it still asks the server', async () => {
+    me.mockResolvedValue(account('client-b'));
+    await useSession.getState().refreshAccount({ silent: true });
+    expect(me).toHaveBeenCalledTimes(1);
+    expect(useSession.getState().uid).toBe('client-b');
   });
 });

@@ -49,10 +49,14 @@ async function refreshOnce(): Promise<RefreshOutcome> {
     });
     if (res.status === 401 || res.status === 403) return 'unauthorized';
     if (!res.ok) return 'error';
-    const body = (await res.json()) as { result?: { data?: { accessToken?: string } } };
+    const body = (await res.json()) as { result?: { data?: { accessToken?: string; user?: unknown } } };
     const token = body.result?.data?.accessToken;
     if (!token) return 'error';
     setAccessToken(token);
+    // The refresh answer already carries the user — keep it so boot doesn't
+    // need a second, serial `auth.me` round-trip (B1.13 / PF-01).
+    refreshedUser = body.result?.data?.user ?? null;
+    refreshedAt = Date.now();
     return 'ok';
   } catch {
     return 'network';
@@ -62,6 +66,19 @@ async function refreshOnce(): Promise<RefreshOutcome> {
 }
 
 let inFlight: Promise<RefreshOutcome> | null = null;
+let refreshedUser: unknown = null;
+let refreshedAt = 0;
+
+/**
+ * The user record returned by a refresh that JUST succeeded (consumed once).
+ * Older than `maxAgeMs` it is ignored — a refresh done earlier for a 401 retry
+ * must not stand in for a fresh status check minutes later.
+ */
+export function takeRefreshedUser<T>(maxAgeMs = 5_000): T | null {
+  const u = Date.now() - refreshedAt <= maxAgeMs ? (refreshedUser as T | null) : null;
+  refreshedUser = null;
+  return u;
+}
 
 /**
  * Raw (non-tRPC-client) call to `auth.refresh` — deliberately NOT routed

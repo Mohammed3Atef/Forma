@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { parseNumber } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
@@ -49,10 +50,10 @@ export function CoachSubscriptionPlans() {
         coachId,
         name: f.name.trim() || t('coachPlans.untitled'),
         unit: f.unit,
-        duration: Math.max(1, Number(f.duration) || 1),
-        price: f.price.trim() ? Number(f.price) || 0 : undefined,
+        duration: Math.max(1, parseNumber(f.duration) || 1),
+        price: f.price.trim() ? parseNumber(f.price) || 0 : undefined,
         isTrial: f.isTrial,
-        order: Number(f.order) || undefined,
+        order: parseNumber(f.order) || undefined,
       }),
     onSuccess: () => { setForm(null); invalidate(); },
   });
@@ -130,7 +131,7 @@ export function CoachSubscriptionPlans() {
               type="button"
               className="btn-primary w-full disabled:opacity-40"
               data-testid="coach-plan-save"
-              disabled={save.isPending || !online || !canWrite || !form.name.trim() || !(Number(form.duration) > 0)}
+              disabled={save.isPending || !online || !canWrite || !form.name.trim() || !(parseNumber(form.duration) > 0)}
               title={!online ? t('offline.actionDisabled') : undefined}
               onClick={() => save.mutate(form)}
             >

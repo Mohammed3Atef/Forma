@@ -30,8 +30,9 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { shortDate } from '@/lib/utils';
+
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { formatDate } from '@/lib/format';
 
 const STATE_TONE: Record<string, PillTone> = {
   trial: 'brand',
@@ -149,7 +150,7 @@ export function AdminCoaches() {
     if (r.state === 'expired' || r.state === 'suspended') return <span className="text-[12px] font-medium text-danger">{t('adminCoaches.expired')}</span>;
     const left = trialDaysLeft(r.plan);
     if (left != null && left <= 5) return <span className="text-[12px] font-medium text-warn">{t('subscription.daysLeft', { n: Math.max(0, left) })}</span>;
-    return <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.plan.endsAt).toISOString().slice(0, 10), i18n.language)}</span>;
+    return <span className="text-[12px] text-earth-subtle">{formatDate(r.plan.endsAt, i18n.language, 'weekdayShort')}</span>;
   };
 
   const columns: Column<CoachAdminRow>[] = [
@@ -167,7 +168,7 @@ export function AdminCoaches() {
       return <span className={`font-mono text-sm ${over ? 'text-warn' : ''}`} title={over ? t('forma.capacity.overBy', { n: over }) : undefined}>{r.clientCount}/{r.plan.maxClients}</span>;
     }, className: 'text-end' },
     { key: 'renews', header: t('adminCoaches.renews'), cell: renewsCell },
-    { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{formatDate(r.coach.createdAt, i18n.language, 'weekdayShort')}</span> },
     { key: 'attn', header: '', className: 'text-end', cell: (r) => {
       const needsRenew = !!r.plan && (r.state === 'expired' || r.state === 'suspended' || (trialDaysLeft(r.plan) ?? 99) <= 5);
       const hasReq = pendingSet.has(r.coach.id);
@@ -352,9 +353,9 @@ function CoachPreview({
 
       <div className="space-y-2 text-sm">
         <PreviewRow label={t('adminCoaches.renews')}>
-          {row.plan?.endsAt ? shortDate(new Date(row.plan.endsAt).toISOString().slice(0, 10), i18n.language) : '—'}
+          {row.plan?.endsAt ? formatDate(row.plan.endsAt, i18n.language, 'weekdayShort') : '—'}
         </PreviewRow>
-        <PreviewRow label={t('adminCoaches.registered')}>{shortDate(new Date(c.createdAt).toISOString().slice(0, 10), i18n.language)}</PreviewRow>
+        <PreviewRow label={t('adminCoaches.registered')}>{formatDate(c.createdAt, i18n.language, 'weekdayShort')}</PreviewRow>
       </div>
 
       <div className="flex flex-col gap-2">

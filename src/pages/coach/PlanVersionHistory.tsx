@@ -9,6 +9,7 @@ import { confirmDialog } from '@/stores/dialogStore';
 import { Pill } from '@/components/ui/Pill';
 import { useBack } from '@/hooks/useBack';
 import type { CardioPlan, MealPlan, PlanVersion, PlanVersionKind, WorkoutPlan } from '@/types';
+import { formatDate } from '@/lib/format';
 
 type AnyPlan = WorkoutPlan | MealPlan | CardioPlan;
 const KINDS: PlanVersionKind[] = ['workout', 'nutrition', 'cardio'];
@@ -34,7 +35,7 @@ function summarize(kind: PlanVersionKind, plan: AnyPlan | null | undefined, t: (
 
 /** Coach view of a plan's version history: list, compare summary, and restore. */
 export function PlanVersionHistory() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const { clientId = '', kind: kindParam = 'workout' } = useParams();
   const kind: PlanVersionKind = isKind(kindParam) ? kindParam : 'workout';
@@ -91,7 +92,7 @@ export function PlanVersionHistory() {
                   <div className="truncate text-[13px] text-earth-muted">{v.name}</div>
                   <div className="mt-0.5 font-mono text-[11px] text-earth-subtle">{summarize(kind, v.snapshot, t)}</div>
                   {v.reason && <div className="mt-1 text-[12px] text-earth-subtle">“{v.reason}”</div>}
-                  <div className="mt-0.5 font-mono text-[10.5px] text-earth-subtle">{new Date(v.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-0.5 font-mono text-[10.5px] text-earth-subtle">{formatDate(v.createdAt, i18n.language, 'medium')}</div>
                 </div>
                 {!v.active && (
                   <button type="button" data-testid={`version-restore-${v.versionNumber}`} className="btn-ghost h-9 shrink-0 px-3 text-xs" disabled={restore.isPending} onClick={() => void doRestore(v)}>

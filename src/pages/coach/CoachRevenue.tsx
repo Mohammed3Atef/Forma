@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useSession } from '@/services/auth/sessionStore';
-import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
+import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
 import { AnalyticsPanel } from '@/pages/coach/dashboard/AnalyticsPanel';
 
 /**
@@ -17,12 +17,8 @@ import { AnalyticsPanel } from '@/pages/coach/dashboard/AnalyticsPanel';
 export function CoachRevenue() {
   const { t } = useTranslation();
   const coachId = useSession((s) => s.account?.id);
-  const q = useQuery({
-    queryKey: ['coachDashboard', coachId],
-    queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId,
-    staleTime: 300_000,
-  });
+  // The one shared definition (B1.13): a page-local staleTime on the same key made freshness depend on which screen mounted first.
+  const q = useQuery(coachDashboardQuery(coachId));
   const d = q.data;
 
   return (

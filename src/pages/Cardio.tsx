@@ -19,6 +19,7 @@ import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyCardioPlan } from '@/services/platform/clientCoachApi';
 import { colors } from '@/theme/colors';
+import { formatNumber } from '@/lib/format';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
 /** Types where a constant speed/incline makes distance & calories computable. */
@@ -127,7 +128,7 @@ export function Cardio() {
   // Subtitle reflects the COACH-ASSIGNED targets, not a hardcoded goal.
   const goalHint = hasGoal
     ? [
-        stepsTarget > 0 ? t('cardio.goalSteps', { n: stepsTarget.toLocaleString() }) : null,
+        stepsTarget > 0 ? t('cardio.goalSteps', { n: formatNumber(stepsTarget, i18n.language, { maxFractionDigits: 0 }) }) : null,
         cardioTarget > 0 ? t('cardio.goalCardio', { n: cardioTarget }) : null,
       ]
         .filter(Boolean)
@@ -159,8 +160,8 @@ export function Cardio() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-xl text-earth">
-              {todaySteps.toLocaleString()}
-              {stepsTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {stepsTarget.toLocaleString()}</span>}
+              {formatNumber(todaySteps, i18n.language, { maxFractionDigits: 0 })}
+              {stepsTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {formatNumber(stepsTarget, i18n.language, { maxFractionDigits: 0 })}</span>}
             </p>
             <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.steps')}</p>
             <div className="prog">
@@ -252,7 +253,7 @@ export function Cardio() {
               </div>
               <div className="flex shrink-0 items-center gap-3 text-sm text-earth-muted">
                 {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
-                {c.steps != null && <span>{c.steps.toLocaleString()} {t('cardio.steps')}</span>}
+                {c.steps != null && <span>{formatNumber(c.steps, i18n.language, { maxFractionDigits: 0 })} {t('cardio.steps')}</span>}
                 {c.distanceKm != null && <span>{c.distanceKm} km</span>}
                 <button type="button" onClick={async () => { if (await confirmDelete()) void removeCardio(c.id); }} className="text-danger" aria-label={t('common.delete')}>
                   <Icon name="close" size={16} />

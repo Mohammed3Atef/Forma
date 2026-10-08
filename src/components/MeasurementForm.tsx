@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { parseDecimalOrNull } from '@/lib/utils';
+import { NumericField } from '@/components/ui/NumericField';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementKey, MeasurementLog } from '@/types';
 import { useSettings } from '@/stores/settingsStore';
@@ -54,14 +54,14 @@ export function MeasurementForm({
       defaultValue: customMeasurements?.find((m) => m.key === key)?.label ?? key,
     });
 
-  const [form, setForm] = useState<Record<string, string>>({});
+  // Numbers (null = empty); unreadable text is tracked per field by the canonical NumericField (B1.8).
+  const [form, setForm] = useState<Record<string, number | null>>({});
+  const [unreadable, setUnreadable] = useState<Record<string, boolean>>({});
   useEffect(() => {
-    const seed: Record<string, string> = {};
-    for (const k of MEASUREMENT_KEYS) {
-      const v = existing?.values[k];
-      seed[k] = v != null ? String(v) : '';
-    }
+    const seed: Record<string, number | null> = {};
+    for (const k of MEASUREMENT_KEYS) seed[k] = existing?.values[k] ?? null;
     setForm(seed);
+    setUnreadable({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, existing?.updatedAt]);
 
@@ -81,10 +81,10 @@ export function MeasurementForm({
     // A typed value that can't be read is flagged — never silently dropped (RTL-04).
     const bad: string[] = [];
     for (const k of MEASUREMENT_KEYS) {
-      const n = form[k] ? parseDecimalOrNull(form[k]) : null;
-      if (form[k] && n != null) values[k] = n;
-      else if (form[k]) bad.push(k);
-      else if (!form[k] && existing?.values?.[k] != null) clear.push(k);
+      const n = form[k] ?? null;
+      if (unreadable[k]) bad.push(k);
+      else if (n != null) values[k] = n;
+      else if (existing?.values?.[k] != null) clear.push(k);
     }
     setInvalid(bad);
     if (bad.length) return;
@@ -107,16 +107,17 @@ export function MeasurementForm({
       <div className="grid grid-cols-3 gap-2">
         {MEASUREMENT_KEYS.map((k) => (
           <div key={k}>
-            <label className="label truncate">{labelOf(k)}</label>
-            <input
-              className="input h-11 text-center"
-              inputMode="decimal"
+            <label className="label truncate" htmlFor={`measure-${k}`}>{labelOf(k)}</label>
+            <NumericField
+              id={`measure-${k}`}
+              invalid="flag"
               placeholder="0"
-              value={form[k] ?? ''}
-              aria-invalid={invalid.includes(k) || undefined}
-              onChange={(e) => {
+              value={form[k] ?? null}
+              error={invalid.includes(k)}
+              onValidityChange={(valid) => setUnreadable((cur) => ({ ...cur, [k]: !valid }))}
+              onChange={(n) => {
                 setInvalid((cur) => cur.filter((x) => x !== k));
-                setForm({ ...form, [k]: e.target.value });
+                setForm((cur) => ({ ...cur, [k]: n }));
               }}
             />
             {invalid.includes(k) && (

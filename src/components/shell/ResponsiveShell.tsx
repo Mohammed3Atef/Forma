@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { BottomNav } from '@/components/BottomNav';
-import { ReminderBanner } from '@/components/ReminderBanner';
+import { BannerRegion } from '@/components/ui/Banner';
 import { WhatsAppFab } from '@/components/WhatsAppFab';
 import type { NavItem, NavGroup } from '@/config/nav';
 import { useLayoutStore } from '@/stores/layoutStore';
@@ -19,10 +19,13 @@ import { DesktopTopBar } from './DesktopTopBar';
 export function ResponsiveShell({
   navItems,
   sidebarItems,
+  banners,
   children,
 }: {
   navItems: NavItem[];
   sidebarItems: NavItem[] | NavGroup[];
+  /** This role's shell-level notices — rendered in the one banner region (B1.4). */
+  banners?: ReactNode;
   children: ReactNode;
 }) {
   // Data-dense pages opt into full width via useFullBleed(); others stay capped.
@@ -37,8 +40,8 @@ export function ResponsiveShell({
         <div className="hidden md:block">
           <DesktopTopBar />
         </div>
-        <ReminderBanner />
         <main className={`mx-auto w-full max-w-md flex-1 overflow-x-hidden px-5 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-1 md:px-6 md:pb-8 md:pt-5 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
+          {banners ? <BannerRegion className="mt-2 md:mt-0">{banners}</BannerRegion> : null}
           {children}
         </main>
         <div className="md:hidden">

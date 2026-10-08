@@ -9,7 +9,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useSettings } from '@/stores/settingsStore';
 import { useDay } from '@/stores/dayStore';
 import { useTimer } from '@/stores/timerStore';
-import { playVideo } from '@/stores/videoPopupStore';
+import { playVideo } from '@/stores/mediaViewerStore';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useElapsed } from '@/hooks/useElapsed';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -400,7 +400,7 @@ export function WorkoutSession() {
                     className="icon-btn h-8 w-8 disabled:opacity-30"
                     aria-label={t('common.previous')}
                   >
-                    <Icon name="chevronLeft" size={16} className="rtl:rotate-180" />
+                    <Icon name="chevronLeft" size={16} />
                   </button>
                   <button
                     type="button"
@@ -409,7 +409,7 @@ export function WorkoutSession() {
                     className="icon-btn h-8 w-8 disabled:opacity-30"
                     aria-label={t('common.next')}
                   >
-                    <Icon name="chevron" size={16} className="rtl:rotate-180" />
+                    <Icon name="chevron" size={16} />
                   </button>
                 </div>
               </div>
@@ -520,6 +520,7 @@ export function WorkoutSession() {
           <input
             className="input pl-10 rtl:pl-4 rtl:pr-10"
             placeholder={t('gt.searchExercises')}
+            aria-label={t('gt.searchExercises')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

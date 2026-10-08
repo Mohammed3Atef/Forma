@@ -1,59 +1,73 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/Icon';
+import { Banner } from '@/components/ui/Banner';
+import { BANNER_PRIORITY, useBannerSlot } from '@/stores/bannerRegionStore';
 import { keepThisDevice, useOtherDevice, useSyncConflicts, type SyncConflict } from '@/data/sync/conflicts';
 import { refreshStoresAfterPull, useCloud } from '@/services/auth/cloudStore';
 
 /**
  * B0 / PWA-06: a record edited on this device AND changed on another device
  * since is never silently overwritten — the user picks which version to keep.
- * Shown at the top of the client app until every conflict is resolved.
+ *
+ * `ConflictState` (B1.5) is that decision for ONE conflict — a screen can show
+ * it inline next to the record. `SyncConflictNotice` shows the first open
+ * conflict as the top-priority slot of the shell's banner region.
  */
-export function SyncConflictNotice() {
+export function ConflictState({ conflict, more = 0, testId = 'sync-conflict' }: { conflict: SyncConflict; more?: number; testId?: string }) {
   const { t } = useTranslation();
-  const conflicts = useSyncConflicts((s) => s.conflicts);
-  const [busy, setBusy] = useState<string | null>(null);
-
-  useEffect(() => {
-    void useSyncConflicts.getState().refresh();
-  }, []);
-
-  if (conflicts.length === 0) return null;
-  const c = conflicts[0];
-  const id = `${c.collection}/${c.id}`;
-  const what = t(`trust.sync.kinds.${c.collection}`, { defaultValue: t('trust.sync.kinds.record') });
-  const day = /^\d{4}-\d{2}-\d{2}$/.test(c.id) ? c.id : typeof c.server.data.date === 'string' ? (c.server.data.date as string) : '';
+  const [busy, setBusy] = useState(false);
+  const what = t(`trust.sync.kinds.${conflict.collection}`, { defaultValue: t('trust.sync.kinds.record') });
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(conflict.id) ? conflict.id : typeof conflict.server.data.date === 'string' ? (conflict.server.data.date as string) : '';
 
   const resolve = async (fn: (c: SyncConflict) => Promise<void>) => {
-    setBusy(id);
+    setBusy(true);
     try {
-      await fn(c);
+      await fn(conflict);
       // The screens hold the pre-resolution copy in memory — reload them so a
       // later tap can't re-save the version the user just discarded.
       await refreshStoresAfterPull();
       await useCloud.getState().syncNow(true);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="mb-3 rounded-xl border border-warn/50 bg-warn/10 px-4 py-3" role="alert" data-testid="sync-conflict">
-      <p className="flex items-center gap-2 text-sm font-semibold text-warn">
-        <Icon name="info" size={16} /> {t('trust.sync.conflictTitle')}
-        {conflicts.length > 1 && <span className="text-[12px] font-normal text-earth-muted">({t('trust.sync.more', { n: conflicts.length - 1 })})</span>}
-      </p>
-      <p className="mt-1 text-[13px] text-earth-muted" data-testid="sync-conflict-body">
-        {t('trust.sync.conflictBody', { what, day: day ? ` · ${day}` : '' })}
-      </p>
+    <Banner
+      tone="warning"
+      icon="info"
+      alert
+      testId={testId}
+      title={
+        <>
+          {t('trust.sync.conflictTitle')}
+          {more > 0 && <span className="ms-2 text-[12px] font-normal text-earth-muted">({t('trust.sync.more', { n: more })})</span>}
+        </>
+      }
+    >
+      <p data-testid={`${testId}-body`}>{t('trust.sync.conflictBody', { what, day: day ? ` · ${day}` : '' })}</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid="sync-conflict-keep-mine" disabled={busy === id} onClick={() => void resolve(keepThisDevice)}>
+        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid={`${testId}-keep-mine`} disabled={busy} onClick={() => void resolve(keepThisDevice)}>
           {t('trust.sync.keepMine')}
         </button>
-        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid="sync-conflict-use-other" disabled={busy === id} onClick={() => void resolve(useOtherDevice)}>
+        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid={`${testId}-use-other`} disabled={busy} onClick={() => void resolve(useOtherDevice)}>
           {t('trust.sync.useOther')}
         </button>
       </div>
-    </div>
+    </Banner>
   );
+}
+
+export function SyncConflictNotice() {
+  const conflicts = useSyncConflicts((s) => s.conflicts);
+  // Highest priority in the shell's banner region (B1.4): data needs a decision.
+  const show = useBannerSlot('sync-conflict', BANNER_PRIORITY.syncConflict, conflicts.length > 0);
+
+  useEffect(() => {
+    void useSyncConflicts.getState().refresh();
+  }, []);
+
+  if (!show || conflicts.length === 0) return null;
+  const c = conflicts[0];
+  return <ConflictState key={`${c.collection}/${c.id}`} conflict={c} more={conflicts.length - 1} />;
 }

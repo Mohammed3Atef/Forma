@@ -22,6 +22,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
 import { broadcast, subscribeCoachThreadsSummary, type ThreadMeta } from '@/services/platform/messagesApi';
 import { alertDialog } from '@/stores/dialogStore';
+import { formatDate, formatTime } from '@/lib/format';
 
 const CATEGORIES: MessageCategory[] = ['announcement', 'offer', 'reminder', 'update'];
 const INBOX_FILTERS = ['all', 'unread', 'broadcasts'] as const;
@@ -249,10 +250,7 @@ function threadTimeLabel(ms: number, locale: string): string {
   const d = new Date(ms);
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
-  const loc = locale.startsWith('ar') ? 'ar-EG' : 'en-US';
-  return sameDay
-    ? d.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit' })
-    : d.toLocaleDateString(loc, { day: 'numeric', month: 'short' });
+  return sameDay ? formatTime(d, locale) : formatDate(d, locale, 'short');
 }
 
 function ThreadRow({ client, meta, metaLoaded = true, onOpen, active = false }: { client: UserRecord; meta?: ThreadMeta; metaLoaded?: boolean; onOpen: () => void; active?: boolean }) {

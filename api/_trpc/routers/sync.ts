@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, roleProcedureNoActive } from '../trpc.js';
+import { isSyncCollection, MAX_RECORDS_PER_PUSH, SYNC_SCHEMA_VERSION, validatePushedRecord, type RejectReason } from '../../sync/_contract.js';
 import { recordId, singletonId, syncDeletionsCol, syncRecordsCol, syncSingletonsCol, type SyncRecordDoc } from '../../sync/_data.js';
 
 /** The server's copy of a record, returned when a device's write can't be applied on top of it. */
@@ -10,6 +12,11 @@ interface ServerCopy {
   data: Record<string, unknown>;
 }
 const copyOf = (d: SyncRecordDoc): ServerCopy => ({ id: d.recordId, updatedAt: d.updatedAt, rev: d.rev ?? 0, data: d.data });
+
+/** B1.7: an unknown collection is a programming error — refuse the request (records are checked one by one). */
+function assertCollection(name: string): void {
+  if (!isSyncCollection(name)) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Unknown collection' });
+}
 const isDuplicateKey = (e: unknown) => (e as { code?: number } | null)?.code === 11000;
 
 /**
@@ -48,22 +55,38 @@ export const syncRouter = router({
     .input(
       z.object({
         collection: z.string().min(1).max(60),
-        records: z.array(
-          z.object({
-            id: z.string().min(1),
-            updatedAt: z.number(),
-            data: z.record(z.string(), z.unknown()),
-            baseRev: z.number().int().min(0).nullable().optional(),
-          }),
-        ),
+        records: z
+          .array(
+            z.object({
+              id: z.string().min(1).max(200),
+              // Checked per record by the contract (a bad value rejects that record, not the batch).
+              updatedAt: z.unknown(),
+              data: z.record(z.string(), z.unknown()),
+              baseRev: z.number().int().min(0).nullable().optional(),
+              /** Record schema version (B1.7); absent from pre-B1 clients = 1. */
+              sv: z.number().int().optional(),
+            }),
+          )
+          .max(MAX_RECORDS_PER_PUSH),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      assertCollection(input.collection);
+      const collection = input.collection as Parameters<typeof validatePushedRecord>[0];
       const col = await syncRecordsCol();
       const syncedAt = Date.now();
       const accepted: { id: string; rev: number }[] = [];
       const conflicts: ServerCopy[] = [];
-      for (const rec of input.records) {
+      // Records that break the contract are refused ONE BY ONE (B1.7 / PWA-13):
+      // the rest of the batch still applies, and the device learns why.
+      const rejected: { id: string; reason: RejectReason }[] = [];
+      for (const raw of input.records) {
+        const reason = validatePushedRecord(collection, { ...raw, updatedAt: raw.updatedAt as number });
+        if (reason) {
+          rejected.push({ id: raw.id, reason });
+          continue;
+        }
+        const rec = { ...raw, updatedAt: raw.updatedAt as number };
         const _id = recordId(ctx.user.id, input.collection, rec.id);
         const existing = await col.findOne({ _id });
         let ok: boolean;
@@ -72,7 +95,7 @@ export const syncRouter = router({
         else ok = !existing || (existing.rev ?? 0) === rec.baseRev;
         if (ok) {
           const rev = (existing?.rev ?? 0) + 1;
-          const doc = { clientId: ctx.user.id, collection: input.collection, recordId: rec.id, data: rec.data, updatedAt: rec.updatedAt, syncedAt, rev };
+          const doc = { clientId: ctx.user.id, collection: input.collection, recordId: rec.id, data: rec.data, updatedAt: rec.updatedAt, syncedAt, rev, sv: rec.sv ?? SYNC_SCHEMA_VERSION };
           if (existing) {
             // Atomic compare-and-set on the revision we checked.
             const filter = existing.rev == null ? { _id, rev: { $exists: false } } : { _id, rev: existing.rev };
@@ -93,12 +116,13 @@ export const syncRouter = router({
         const current = await col.findOne({ _id });
         if (current) conflicts.push(copyOf(current));
       }
-      return { pushed: accepted.length, syncedAt, accepted, conflicts };
+      return { pushed: accepted.length, syncedAt, accepted, conflicts, rejected };
     }),
 
   pull: clientSyncProcedure
     .input(z.object({ collection: z.string().min(1).max(60), since: z.number().min(0).default(0) }))
     .query(async ({ ctx, input }) => {
+      assertCollection(input.collection);
       const col = await syncRecordsCol();
       const docs = await col
         .find({ clientId: ctx.user.id, collection: input.collection, ...(input.since > 0 ? { syncedAt: { $gt: input.since } } : {}) })
@@ -106,7 +130,7 @@ export const syncRouter = router({
       let maxSyncedAt = input.since;
       const records = docs.map((d) => {
         maxSyncedAt = Math.max(maxSyncedAt, d.syncedAt);
-        return { id: d.recordId, updatedAt: d.updatedAt, rev: d.rev ?? 0, data: d.data };
+        return { id: d.recordId, updatedAt: d.updatedAt, rev: d.rev ?? 0, sv: d.sv ?? 1, data: d.data };
       });
       return { records, maxSyncedAt };
     }),
@@ -133,6 +157,7 @@ export const syncRouter = router({
       const rejected: (ServerCopy & { collection: string })[] = [];
       let flushed = 0;
       for (const del of input.deletions) {
+        if (!isSyncCollection(del.collection)) continue; // never store a tombstone for something that can't exist
         const _id = recordId(ctx.user.id, del.collection, del.id);
         const live = await records.findOne({ _id });
         if (live) {

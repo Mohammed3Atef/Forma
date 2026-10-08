@@ -12,8 +12,9 @@ import type { Permission } from '@/types';
 import { listFlags, saveFlag } from '@/services/platform/flagsApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { shortDate } from '@/lib/utils';
+
 import type { FeatureFlag, FeatureFlagScope, Role } from '@/types';
+import { formatDate } from '@/lib/format';
 
 // Client-first column order, matching the design's role×capability matrix exactly.
 const ROLES: Role[] = ['client', 'coach', 'admin', 'super_admin'];
@@ -86,7 +87,7 @@ export function GovernanceSections() {
                 <div className="text-[12px] text-earth-subtle">
                   {t(`platform.scopes.${f.scope}`)}
                   {f.targetId ? ` · ${f.targetId}` : ''}
-                  {f.updatedAt ? ` · ${t('admin.flagUpdated', { date: shortDate(new Date(f.updatedAt).toISOString().slice(0, 10), i18n.language) })}` : ''}
+                  {f.updatedAt ? ` · ${t('admin.flagUpdated', { date: formatDate(f.updatedAt, i18n.language, 'weekdayShort') })}` : ''}
                 </div>
               </div>
               <button

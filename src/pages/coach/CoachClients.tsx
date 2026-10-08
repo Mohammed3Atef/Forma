@@ -32,6 +32,7 @@ import { shortDate } from '@/lib/utils';
 import { alertDialog } from '@/stores/dialogStore';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AccountStatus, SignupInvite } from '@/types';
+import { formatDate } from '@/lib/format';
 
 type AddMode = 'choose' | 'create' | 'existing';
 
@@ -196,7 +197,7 @@ export function CoachClients() {
     { key: 'status', header: t('subscription.title'), cell: (r) => <CoachingPills state={coachingStateOf(r)} account={r.client.accountStatus} daysLeft={subscriptionDaysLeft(r.subscription)} /> },
     { key: 'assess', header: t('assessment.title'), cell: (r) => <span className="text-[12px] text-earth-subtle">{t(`assessment.status.${r.assessment}`)}</span> },
     { key: 'last', header: t('coachDash.recentActivity'), cell: (r) => <span className="text-[12px] text-earth-subtle">{r.lastActivity ? shortDate(r.lastActivity, i18n.language) : '—'}</span> },
-    { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.addedAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{formatDate(r.addedAt, i18n.language, 'weekdayShort')}</span> },
     { key: 'adh', header: t('coach.adherence'), cell: (r) => <span className="font-mono text-sm">{r.workouts7d}<span className="text-earth-subtle"> /7d</span></span>, className: 'text-end' },
     {
       key: 'actions',
@@ -215,7 +216,7 @@ export function CoachClients() {
       <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
         <Icon name="search" size={18} />
       </span>
-      <input className="input ps-10" data-testid="coach-clients-search" placeholder={t('coach.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
+      <input className="input ps-10" data-testid="coach-clients-search" aria-label={t('coach.searchClients')} placeholder={t('coach.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
     </div>
   );
   const filterBar = (
@@ -380,7 +381,7 @@ function AddChooser({ onCreate, onExisting }: { onCreate: () => void; onExisting
 }
 
 function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: string; coachName: string; atLimit: boolean; maxClients: number }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const [copied, setCopied] = useState<string | null>(null);
   const [prefill, setPrefill] = useState({ name: '', email: '', phone: '' });
@@ -502,7 +503,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
                       <span className="font-mono text-sm">{inv.code}</span>
                       <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
                       {inv.expiresAt != null && (
-                        <span className="text-[10px] text-earth-subtle">{t('invite.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}</span>
+                        <span className="text-[10px] text-earth-subtle">{t('invite.expiresOn', { date: formatDate(inv.expiresAt, i18n.language, 'medium') })}</span>
                       )}
                     </span>
                     <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
@@ -582,7 +583,7 @@ function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; on
         <Row label={t('assessment.title')}>{t(`assessment.status.${row.assessment}`)}</Row>
         <Row label={t('coach.adherence')}>{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</Row>
         <Row label={t('coachDash.recentActivity')}>{row.lastActivity ? shortDate(row.lastActivity, i18n.language) : t('coachDash.neverActive')}</Row>
-        <Row label={t('coachDash.added')}>{shortDate(new Date(row.addedAt).toISOString().slice(0, 10), i18n.language)}</Row>
+        <Row label={t('coachDash.added')}>{formatDate(row.addedAt, i18n.language, 'weekdayShort')}</Row>
         {c.phone && <Row label={t('settings.phone')}>{c.phone}</Row>}
       </div>
       <div className="flex flex-col gap-2">

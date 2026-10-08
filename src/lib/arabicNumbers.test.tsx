@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { dateLocale, normalizeNumericText, parseDecimalOrNull, shortDate, weekdayInitials } from './utils';
-import { NumberStepper } from '@/components/NumberStepper';
+import { NumericField } from '@/components/ui/NumericField';
 import { MeasurementForm } from '@/components/MeasurementForm';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import type { Exercise, ExerciseLog } from '@/types';
@@ -16,9 +16,9 @@ describe('Arabic number entry (RTL-04)', () => {
     expect(parseDecimalOrNull('abc')).toBeNull(); // never a silent 0
   });
 
-  it('check-in weight stepper accepts "٨٠٫٥" (and "80." mid-typing)', () => {
+  it('check-in weight stepper accepts "٨٠٫٥" (and "80." mid-typing) — now the canonical NumericField (B1.8)', () => {
     const onChange = vi.fn();
-    render(<NumberStepper value={null} onChange={onChange} ariaLabel="weight" />);
+    render(<NumericField stepper value={null} onChange={onChange} ariaLabel="weight" />);
     const input = screen.getByLabelText('weight');
     expect(input).toHaveAttribute('type', 'text');
     fireEvent.change(input, { target: { value: '80.' } });

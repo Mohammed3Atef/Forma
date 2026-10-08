@@ -1,5 +1,6 @@
 import type { Repository, SingletonRepository } from '@/data/repositories';
 import { userStore, type UserStoreName } from '@/data/localScope';
+import { notifyLocalChange } from '@/data/localChanges';
 
 /**
  * localForage-backed implementations of the repository interfaces.
@@ -40,6 +41,7 @@ export class LocalRepository<T extends { id: string }> implements Repository<T> 
   async put(item: T): Promise<T> {
     const next = withBaseRevision(item, await this.store.getItem<Revisioned>(item.id));
     await this.store.setItem(item.id, next);
+    notifyLocalChange();
     return next;
   }
 
@@ -50,6 +52,7 @@ export class LocalRepository<T extends { id: string }> implements Repository<T> 
   /** Sync-engine write: `_rev` / `_remoteRev` are stored exactly as given. */
   async putFromSync(item: T): Promise<T> {
     await this.store.setItem(item.id, item);
+    notifyLocalChange();
     return item;
   }
 
@@ -59,6 +62,7 @@ export class LocalRepository<T extends { id: string }> implements Repository<T> 
     const cur = await this.store.getItem<{ _rev?: number }>(id);
     if (cur && typeof cur._rev === 'number') rememberRemovedRev(this.storeName, id, cur._rev);
     await this.store.removeItem(id);
+    notifyLocalChange();
   }
 }
 

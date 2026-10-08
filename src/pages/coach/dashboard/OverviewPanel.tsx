@@ -10,8 +10,9 @@ import { Pill } from '@/components/ui/Pill';
 import { CoachChecklist } from '@/pages/coach/onboarding/CoachChecklist';
 import { QuickActionsGrid, QuickActionsTrigger, type QuickAction as QuickActionItem } from '@/components/ui/QuickActions';
 import type { CoachDashboard } from '@/services/platform/coachDashboardApi';
-import { shortDate } from '@/lib/utils';
+
 import { AttentionRow, attentionAction, attentionReason } from './parts';
+import { formatDate } from '@/lib/format';
 
 export function OverviewPanel({ d }: { d: CoachDashboard }) {
   const { t, i18n } = useTranslation();
@@ -70,7 +71,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
                 <Icon name="chat" size={14} /> {t('coachDash.message')}
               </button>
               <button type="button" className="btn-primary btn-sm" onClick={() => navigate(`/coach/client/${worst.client.id}`)}>
-                {t('coachDash.openWorkspace')} <Icon name="chevron" size={14} className="rtl:rotate-180" />
+                {t('coachDash.openWorkspace')} <Icon name="chevron" size={14} />
               </button>
             </div>
           </div>
@@ -122,7 +123,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
                 <span className="tk-ic"><Icon name="calendar" size={14} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-medium">{r.name}</span>
-                  <span className="block text-[12px] text-earth-subtle">{shortDate(new Date(r.date).toISOString().slice(0, 10), i18n.language)}</span>
+                  <span className="block text-[12px] text-earth-subtle">{formatDate(r.date, i18n.language, 'weekdayShort')}</span>
                 </span>
                 <span className="shrink-0 font-mono text-[13px] text-earth">{r.amount} {r.currency}</span>
               </button>

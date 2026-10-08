@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { dateLocale, weekdayInitials } from '@/lib/utils';
+import { weekdayInitials } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useWorkout } from '@/stores/workoutStore';
@@ -9,6 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { logVolume, logSetCount, logExerciseCount } from '@/lib/calc';
 import { formatDuration, weekdayOffset } from '@/lib/utils';
 import { useBack } from '@/hooks/useBack';
+import { formatDate } from '@/lib/format';
 
 // Week starts on Saturday: Sat, Sun, Mon, Tue, Wed, Thu, Fri.
 
@@ -51,10 +52,7 @@ export function History() {
   const leadingBlanks = weekdayOffset(new Date(cursor.y, cursor.m, 1).getDay());
   const cells: (number | null)[] = [...Array(leadingBlanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
-  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleDateString(dateLocale(i18n.language, 'en-US'), {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthLabel = formatDate(new Date(cursor.y, cursor.m, 1), i18n.language, 'monthYear');
 
   const shift = (delta: number) => {
     setCursor((c) => {
@@ -146,7 +144,7 @@ export function History() {
                 <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
                   <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
                   <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
-                    {d.toLocaleDateString(dateLocale(i18n.language, 'en-US'), { weekday: 'short' })}
+                    {formatDate(d, i18n.language, 'weekdayAbbrev')}
                   </span>
                 </span>
                 <div className="grow min-w-0">

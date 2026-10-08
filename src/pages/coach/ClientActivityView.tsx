@@ -11,6 +11,7 @@ import { warmupCountOf } from '@/stores/workoutStore';
 import { logSetCount, logVolume } from '@/lib/calc';
 import { today } from '@/lib/utils';
 import { Pill } from '@/components/ui/Pill';
+import { formatDate, formatNumber } from '@/lib/format';
 
 function shiftDay(key: string, delta: number): string {
   const [y, m, d] = key.split('-').map(Number);
@@ -47,7 +48,7 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
 
   const label = (() => {
     const [y, m, dd] = date.split('-').map(Number);
-    return new Date(y, m - 1, dd).toLocaleDateString(i18n.language, { weekday: 'short', month: 'short', day: 'numeric' });
+    return formatDate(new Date(y, m - 1, dd), i18n.language, 'weekdayShort');
   })();
 
   return (
@@ -55,7 +56,7 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
       {/* Day navigator */}
       <div className="mb-4 flex items-center justify-between rounded-xl border border-line bg-surface-card px-2 py-2">
         <button type="button" className="icon-btn h-10 w-10" aria-label={t('activity.prevDay')} onClick={() => setDate(shiftDay(date, -1))}>
-          <Icon name="chevronLeft" size={20} className={i18n.dir() === 'rtl' ? 'rotate-180' : ''} />
+          <Icon name="chevronLeft" size={20} />
         </button>
         <div className="text-center">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-brand">{date === todayKey ? t('common.today') : label}</div>
@@ -68,7 +69,7 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
           disabled={date >= todayKey}
           onClick={() => setDate(shiftDay(date, 1))}
         >
-          <Icon name="chevron" size={20} className={i18n.dir() === 'rtl' ? 'rotate-180' : ''} />
+          <Icon name="chevron" size={20} />
         </button>
       </div>
 
@@ -193,7 +194,7 @@ export function ClientActivityView({ clientId }: { clientId: string }) {
           <section>
             <h2 className="h2 mb-2">{t('activity.activityBody')}</h2>
             <div className="grid grid-cols-2 gap-2.5">
-              <StatTile icon="steps" value={totalSteps.toLocaleString()} label={t('cardio.steps')} />
+              <StatTile icon="steps" value={formatNumber(totalSteps, i18n.language, { maxFractionDigits: 0 })} label={t('cardio.steps')} />
               <StatTile icon="activity" value={totalCardioMin} unit={t('common.min')} label={t('cardio.minutes')} />
               <StatTile icon="water" value={d?.nutrition?.waterMl ?? 0} unit="ml" label={t('nutrition.water')} />
               <StatTile icon="scale" value={d?.weight?.weightKg ?? '—'} unit={d?.weight ? t('common.kg') : undefined} label={t('coach.lastWeight')} />

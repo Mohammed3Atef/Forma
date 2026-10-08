@@ -43,8 +43,8 @@ export function Pagination({
           aria-label={t('common.pagination.prev')}
           className="chip flex items-center gap-1 disabled:opacity-40"
         >
-          <Icon name="chevron" size={14} className="rotate-180 rtl:rotate-0" />
-          <span className="hidden sm:inline">{t('common.pagination.prev')}</span>
+          <Icon name="chevronLeft" size={14} />
+          <span className="sr-only sm:not-sr-only">{t('common.pagination.prev')}</span>
         </button>
         <span className="font-mono text-[12px] text-earth-muted" data-testid="pagination-status">
           {t('common.pagination.page', { page, total: totalPages })}
@@ -57,8 +57,8 @@ export function Pagination({
           aria-label={t('common.pagination.next')}
           className="chip flex items-center gap-1 disabled:opacity-40"
         >
-          <span className="hidden sm:inline">{t('common.pagination.next')}</span>
-          <Icon name="chevron" size={14} className="rtl:rotate-180" />
+          <span className="sr-only sm:not-sr-only">{t('common.pagination.next')}</span>
+          <Icon name="chevron" size={14} />
         </button>
       </div>
     </div>
