@@ -59,7 +59,7 @@ export function buildSubscription(input: ClientSubscriptionInput, now: number): 
 /**
  * True when the coach is at/over their client cap, per `coachPlans`.
  *
- * NOTE — this is intentionally STRICTER than `firestore.rules`' `coachAtClientCap()`,
+ * NOTE — this is intentionally STRICTER than the retired Firestore rule `coachAtClientCap()`,
  * which treats a missing/legacy plan doc as "not blocked" (best-effort). Per this
  * migration's explicit product decision, a missing or malformed `coachPlans` doc is
  * treated as "at cap" here — the safer failure mode is refusing a new client link,

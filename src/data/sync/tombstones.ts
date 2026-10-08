@@ -1,4 +1,5 @@
-import localforage from 'localforage';
+import { userStore } from '../localScope';
+import { takeRemovedRev } from '../adapters/local/LocalRepository';
 
 /**
  * Deletion tracking. When a record is deleted locally we record a "tombstone"
@@ -11,14 +12,23 @@ export interface Tombstone {
   id: string;
   /** When the local deletion happened (used for delete-vs-edit conflicts). */
   deletedAt?: number;
+  /** Server revision of the copy that was deleted (B0 / PWA-06); absent for pre-revision records. */
+  baseRev?: number;
 }
 
-const store = localforage.createInstance({ name: 'gym-tracker', storeName: 'deletions' });
+/** Per-account outbox of deletions (B0 / PWA-03): one account's pending deletes can never be flushed under another. */
+const store = {
+  setItem: (k: string, v: Tombstone) => userStore('deletions').setItem(k, v),
+  removeItem: (k: string) => userStore('deletions').removeItem(k),
+  iterate: <T, U>(fn: (v: T, k: string, i: number) => U) => userStore('deletions').iterate<T, U>(fn),
+  clear: () => userStore('deletions').clear(),
+};
 
 const key = (collection: string, id: string) => `${collection}/${id}`;
 
 export async function recordDeletion(collection: string, id: string): Promise<void> {
-  await store.setItem(key(collection, id), { collection, id, deletedAt: Date.now() });
+  const baseRev = takeRemovedRev(collection, id);
+  await store.setItem(key(collection, id), { collection, id, deletedAt: Date.now(), ...(baseRev != null ? { baseRev } : {}) });
 }
 
 export async function recordDeletions(collection: string, ids: string[]): Promise<void> {

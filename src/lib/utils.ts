@@ -21,12 +21,6 @@ export function addDays(key: string, n: number): string {
   return dayKey(date);
 }
 
-/** Day-of-week 0 (Sun) - 6 (Sat) for a day key. */
-export function dowOf(key: string): number {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).getDay();
-}
-
 /**
  * First day of the week in this app's calendar: 6 = Saturday (JS getDay value).
  * The training week runs Saturday → Friday (Friday is the rest day).
@@ -146,32 +140,46 @@ export function sum(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0);
 }
 
-/**
- * Parse a flexible rest-time input into seconds. Accepts:
- *  - "M:SS"          → minutes:seconds  ("1:30" → 90, "1.5:30" → 120)
- *  - decimal minutes → "1.5"            → 90
- *  - plain seconds   → "90"             → 90
- * Returns null when the input can't be parsed.
- */
-export function parseRestInput(raw: string): number | null {
-  const s = raw.trim();
-  if (!s) return null;
-  if (s.includes(':')) {
-    const [mPart, sPart = '0'] = s.split(':');
-    const mins = Number(mPart);
-    const secs = Number(sPart);
-    if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
-    return Math.max(0, Math.round(mins * 60 + secs));
-  }
-  const n = Number(s);
-  if (Number.isNaN(n)) return null;
-  // A decimal value is interpreted as minutes (1.5 → 90s); an integer as seconds.
-  return Math.max(0, Math.round(s.includes('.') ? n * 60 : n));
-}
-
 export function round(n: number, dp = 0): number {
   const f = 10 ** dp;
   return Math.round(n * f) / f;
+}
+
+/**
+ * The Intl locale for dates/numbers in the app language (B0 / RTL-02): BOTH
+ * Arabic locales (`ar`, `ar-eg`) format as Egyptian Arabic — `=== 'ar'` checks
+ * used to give ar-eg users English dates and weekdays.
+ */
+export function dateLocale(lang: string | undefined, fallback = 'en-GB'): string {
+  return (lang ?? '').toLowerCase().startsWith('ar') ? 'ar-EG' : fallback;
+}
+
+/** Saturday-first narrow weekday labels in the app language (no slicing of localized names). */
+export function weekdayInitials(lang: string | undefined): string[] {
+  // 2026-01-03 is a Saturday.
+  return Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 3 + i).toLocaleDateString(dateLocale(lang, 'en-US'), { weekday: 'narrow' }));
+}
+
+/**
+ * Normalise what a phone keyboard types into a plain ASCII number string
+ * (B0 / RTL-04): Arabic-Indic (٠-٩) and Persian (۰-۹) digits → 0-9, the
+ * Arabic decimal separator / comma (٫ , ،) → ".", and invisible direction
+ * marks removed. Validation then runs on the normalised text.
+ */
+export function normalizeNumericText(raw: string): string {
+  return raw
+    .replace(/[\u200e\u200f\u061c\s]/g, '')
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[،,٫]/g, '.');
+}
+
+/** Like `parseDecimal`, but `null` for empty or unparseable input (never a silent 0). */
+export function parseDecimalOrNull(raw: string): number | null {
+  const n = normalizeNumericText(raw);
+  if (n === '' || n === '.') return null;
+  const v = Number(n);
+  return Number.isFinite(v) ? v : null;
 }
 
 /**

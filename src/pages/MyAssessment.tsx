@@ -7,7 +7,6 @@ import { AssessmentView } from "@/components/AssessmentView";
 import { CoachInfoCard } from "@/components/CoachInfoCard";
 import { AssessmentWizard } from "@/pages/onboarding/AssessmentWizard";
 import { useBack } from "@/hooks/useBack";
-import { cloudAvailable } from "@/data/dataSource";
 import { useSession } from "@/services/auth/sessionStore";
 import { fetchMyAssessment } from "@/services/platform/clientCoachApi";
 import { assessmentStatus } from "@/lib/assessment";
@@ -32,7 +31,7 @@ export function MyAssessment() {
   const goBack = useBack("/settings?tab=account");
   const uid = useSession((s) => s.uid) ?? "";
   const displayName = useSession((s) => s.account?.displayName) ?? "";
-  const enabled = cloudAvailable() && !!uid && uid !== "local-user";
+  const enabled = !!uid;
   const [editing, setEditing] = useState(false);
 
   const q = useQuery({
@@ -103,12 +102,6 @@ export function MyAssessment() {
                 </div>
               )}
           </div>
-          {a.coachNotes?.trim() && (
-            <div className="card border border-brand/30">
-              <p className="label">{t("assessment.coachFeedback")}</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{a.coachNotes}</p>
-            </div>
-          )}
 
           <CoachInfoCard />
 

@@ -11,6 +11,3 @@ export function passwordError(pwd: string): PasswordErrorCode | null {
   return null;
 }
 
-export function passwordValid(pwd: string): boolean {
-  return passwordError(pwd) === null;
-}

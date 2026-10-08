@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +7,8 @@ import { Tabs, useTabParam, type TabDef } from '@/components/ui/Tabs';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useSession } from '@/services/auth/sessionStore';
 import { useFullBleed } from '@/hooks/useFullBleed';
-import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
-import { getCoachPlan } from '@/services/platform/coachPlanApi';
-import { checkTrialExpiry } from '@/services/platform/coachTrialApi';
+import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
+import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { CoachTrialBanner } from '@/pages/coach/onboarding/CoachTrialBanner';
 import { OverviewPanel } from '@/pages/coach/dashboard/OverviewPanel';
 import { ClientsPanel } from '@/pages/coach/dashboard/ClientsPanel';
@@ -26,16 +24,8 @@ export function CoachDashboard() {
   const coachId = useSession((s) => s.account?.id);
   const account = useSession((s) => s.account);
 
-  const q = useQuery({
-    queryKey: ['coachDashboard', coachId],
-    queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId,
-    staleTime: 300_000,
-  });
-  const planQ = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId!), enabled: !!coachId, staleTime: 300_000 });
-  useEffect(() => {
-    if (coachId && planQ.data) void checkTrialExpiry(coachId, planQ.data);
-  }, [coachId, planQ.data]);
+  const q = useQuery(coachDashboardQuery(coachId));
+  const planQ = useQuery(coachPlanQuery(coachId));
 
   const d = q.data;
   // Analytics and Reports moved to their own destinations (`/coach/revenue`,

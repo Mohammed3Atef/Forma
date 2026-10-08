@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { useVideoPopup } from '@/stores/videoPopupStore';
-import { youtubeEmbed } from '@/services/video/VideoStore';
+import { VideoSourcePlayer } from '@/components/video/VideoPlayer';
 
 /**
  * In-app video player popup, mounted once at the app root. Opened via
@@ -28,7 +28,6 @@ export function VideoPopup() {
   }, [url, close]);
 
   if (!url) return null;
-  const embed = youtubeEmbed(url);
 
   return (
     <div
@@ -48,19 +47,8 @@ export function VideoPopup() {
       </button>
 
       <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-        {embed ? (
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-            <iframe
-              src={`${embed}?autoplay=1&rel=0&playsinline=1`}
-              title={t('imageViewer.close')}
-              className="h-full w-full"
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-            />
-          </div>
-        ) : (
-          <video src={url} controls autoPlay playsInline className="max-h-[80vh] w-full rounded-xl bg-black" />
-        )}
+        {/* Loading, unsupported link and failed playback are all explicit (B0 / CL-20). */}
+        <VideoSourcePlayer url={url} title={t('workout.watchVideo')} autoPlay />
       </div>
     </div>
   );

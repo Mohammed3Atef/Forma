@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { mongoAuth, type MongoUserRecord, type ProfilePatch } from './mongoAuth';
 import { queryClient } from '@/services/platform/queryClient';
-import { setAccessToken } from '@/services/platformApi';
+import { refreshSessionDetailed, setAccessToken } from '@/services/platformApi';
 import type { AccountStatus, UserRecord } from '@/types';
 
 /**
@@ -17,12 +17,74 @@ import type { AccountStatus, UserRecord } from '@/types';
 
 export type SessionPhase = 'loading' | 'anonymous' | 'pending' | 'suspended' | 'ready';
 
+/**
+ * B0 / PWA-01, PWA-08 — the session survives everything except an explicit
+ * "unauthorized" answer from the server:
+ *  - The last server-verified identity is kept on the device
+ *    (`IDENTITY_KEY`). If the app starts or resumes while offline / on a dead
+ *    connection / during a 5xx, the user stays signed in on that identity
+ *    (`verified: false`) and local data stays usable; it is re-verified as
+ *    soon as the network answers.
+ *  - Only a 401/403 from the refresh endpoint (no cookie, expired, revoked)
+ *    or an explicit sign-out ends the session.
+ *  - Signing out while offline can't revoke the httpOnly refresh cookie, so
+ *    a "signed out" marker (`SIGNED_OUT_KEY`) blocks every automatic restore
+ *    until the server logout succeeds or someone signs in explicitly.
+ */
+const IDENTITY_KEY = 'forma.identity.v1';
+const SIGNED_OUT_KEY = 'forma.signedOut.v1';
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+function writeKey(key: string, value: string | null): void {
+  try {
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable (private mode) — the session just won't survive offline restarts */
+  }
+}
+const rememberIdentity = (user: UserRecord) => writeKey(IDENTITY_KEY, JSON.stringify(user));
+const forgetIdentity = () => writeKey(IDENTITY_KEY, null);
+const cachedIdentity = () => readJson<UserRecord>(IDENTITY_KEY);
+export const hasPendingSignOut = () => readJson<number>(SIGNED_OUT_KEY) != null;
+
+/** Revokes the refresh cookie server-side after an offline sign-out; clears the marker once it lands. */
+async function flushPendingSignOut(): Promise<void> {
+  if (!hasPendingSignOut()) return;
+  if (await mongoAuth.signOutUser()) writeKey(SIGNED_OUT_KEY, null);
+}
+
+/** True only for an explicit "not signed in" answer — never for offline / timeout / 5xx. */
+function isUnauthorized(e: unknown): boolean {
+  const code = (e as { data?: { code?: string } } | null)?.data?.code;
+  return code === 'UNAUTHORIZED';
+}
+
 interface SessionState {
   phase: SessionPhase;
   uid: string | null;
   account: UserRecord | null;
   error: string | null;
+  /**
+   * False while running on the device's last verified identity because the
+   * server couldn't be reached (offline start/resume). Re-verified on
+   * `online` / foreground via `reverify()`.
+   */
+  verified: boolean;
   init: () => void;
+  /**
+   * Foreground / reconnect check. Re-verifies a signed-in (or offline-cached)
+   * session; NEVER restores a session from a real anonymous state (explicit
+   * sign-out, 401) — only from one caused by a failed offline restore.
+   */
+  reverify: () => Promise<void>;
   /**
    * Resolves true on success; on failure sets `error` and resolves false.
    * `create` + `role: 'coach'` self-registers a coach (active immediately, no
@@ -42,6 +104,10 @@ interface SessionState {
    */
   hydrate: (user: MongoUserRecord) => void;
   signOut: () => Promise<void>;
+  /** Clears the in-memory session + device identity (sign-out or a server-confirmed 401). */
+  endSessionLocally: () => void;
+  /** A transient failure: stay signed in (or fall back to the cached identity during boot). */
+  keepOfflineSession: () => void;
   /**
    * Re-fetches the signed-in user's own identity doc and recomputes `phase`.
    * `silent` (used by the bootstrap/background call sites — `init()`'s
@@ -70,24 +136,65 @@ function phaseForStatus(status: AccountStatus): SessionPhase {
 
 /** Guard so init() can be called from React effects (StrictMode re-runs them). */
 let initialized = false;
+/** Anonymous only because the boot restore couldn't reach the server (no cached identity) — retry on reconnect. */
+let restorePending = false;
 
 export const useSession = create<SessionState>((set, get) => ({
   phase: 'loading',
   uid: null,
   account: null,
   error: null,
+  verified: false,
 
   init() {
     if (initialized) return; // React StrictMode mounts effects twice in dev
     initialized = true;
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        void flushPendingSignOut();
+        void get().reverify();
+      });
+    }
     void (async () => {
-      const restored = await mongoAuth.restoreSession();
-      if (!restored) {
-        set({ phase: 'anonymous', uid: null, account: null });
+      if (hasPendingSignOut()) {
+        // Signed out on this device (possibly offline): never auto-restore.
+        set({ phase: 'anonymous', uid: null, account: null, verified: false });
+        void flushPendingSignOut();
         return;
       }
-      await get().refreshAccount({ silent: true });
+      const outcome = await refreshSessionDetailed();
+      if (outcome === 'ok') {
+        await get().refreshAccount({ silent: true });
+        return;
+      }
+      if (outcome === 'unauthorized') {
+        forgetIdentity();
+        set({ phase: 'anonymous', uid: null, account: null, verified: false });
+        return;
+      }
+      // Offline / timeout / server error: keep the last verified identity.
+      get().keepOfflineSession();
     })();
+  },
+
+  async reverify() {
+    if (hasPendingSignOut()) return;
+    const { phase, verified } = get();
+    if (phase === 'loading') return;
+    if (phase === 'anonymous' && !restorePending) return; // a real sign-out / 401 is final
+    if (phase !== 'anonymous' && verified) {
+      await get().refreshAccount({ silent: true });
+      return;
+    }
+    const outcome = await refreshSessionDetailed();
+    if (outcome === 'ok') {
+      restorePending = false;
+      await get().refreshAccount({ silent: true });
+    } else if (outcome === 'unauthorized') {
+      restorePending = false;
+      get().endSessionLocally();
+    }
+    // network / error: stay as we are; the next reconnect/foreground retries
   },
 
   // Re-read the identity doc when the app returns to the foreground, so a
@@ -107,7 +214,7 @@ export const useSession = create<SessionState>((set, get) => ({
       } else {
         user = await mongoAuth.signIn(email, password);
       }
-      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+      get().hydrate(user);
       return true;
     } catch (e) {
       console.error('[session] sign-in failed:', e);
@@ -120,7 +227,7 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ error: null });
     try {
       const user = await mongoAuth.signInWithGoogle(idToken);
-      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+      get().hydrate(user);
       return true;
     } catch (e) {
       console.error('[session] Google sign-in failed:', e);
@@ -130,38 +237,81 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   hydrate(user) {
-    set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+    // An explicit sign-in supersedes an earlier offline sign-out on this device.
+    writeKey(SIGNED_OUT_KEY, null);
+    restorePending = false;
+    rememberIdentity(user);
+    set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus), verified: true, error: null });
   },
 
   async signOut() {
-    await mongoAuth.signOutUser();
+    const revoked = await mongoAuth.signOutUser();
+    // Offline (or the server didn't answer): the refresh cookie is still valid
+    // server-side. Remember the sign-out so nothing restores this account
+    // automatically; the logout is retried on the next reconnect / launch.
+    if (!revoked) writeKey(SIGNED_OUT_KEY, JSON.stringify(Date.now()));
+    get().endSessionLocally();
+  },
+
+  endSessionLocally() {
     setAccessToken(null);
+    forgetIdentity();
     // Drop every cached server read BEFORE the next account can mount: the
     // shared QueryClient outlives the session, so without this the next user
     // on this device saw the previous user's lists/plan/requests until each
     // query happened to refetch.
     queryClient.clear();
-    set({ phase: 'anonymous', uid: null, account: null });
+    set({ phase: 'anonymous', uid: null, account: null, verified: false });
+  },
+
+  keepOfflineSession() {
+    // Transient failure: keep whoever is signed in. During boot (no account
+    // yet) fall back to the device's last verified identity.
+    if (get().account) {
+      set({ verified: false });
+      return;
+    }
+    const cached = cachedIdentity();
+    if (cached) set({ uid: cached.id, account: cached, phase: phaseForStatus(cached.accountStatus), verified: false });
+    else {
+      restorePending = true;
+      set({ phase: 'anonymous', uid: null, account: null, verified: false });
+    }
   },
 
   async refreshAccount(opts) {
+    const accept = (user: UserRecord) => {
+      if (hasPendingSignOut()) return; // signed out while this was in flight
+      restorePending = false;
+      rememberIdentity(user);
+      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus), verified: true });
+    };
     try {
-      const user = await mongoAuth.me();
-      set({ uid: user.id, account: user, phase: phaseForStatus(user.accountStatus) });
+      accept(await mongoAuth.me());
     } catch (e) {
-      console.error('[session] failed to load account:', e);
-      // A failed `auth.me` (e.g. the refresh-retry in trpc.ts also failed)
-      // means the in-memory access token is already useless server-side —
-      // clear it too, matching what `signOut()` does, instead of leaving a
-      // stale token sitting in memory alongside the now-anonymous phase.
-      setAccessToken(null);
-      queryClient.clear(); // same reason as signOut — never carry one account's cache into the next
-      set({
-        phase: 'anonymous',
-        uid: null,
-        account: null,
-        ...(opts?.silent ? {} : { error: e instanceof Error ? e.message : 'Failed to load account' }),
-      });
+      // Only an explicit "unauthorized" ends the session — and only once the
+      // refresh endpoint itself confirms it (the 401 may just mean the access
+      // token expired while the refresh call failed for a network reason).
+      if (isUnauthorized(e)) {
+        const outcome = await refreshSessionDetailed();
+        if (outcome === 'ok') {
+          try {
+            accept(await mongoAuth.me());
+            return;
+          } catch (e2) {
+            if (!isUnauthorized(e2)) return void get().keepOfflineSession();
+          }
+        } else if (outcome !== 'unauthorized') {
+          return void get().keepOfflineSession();
+        }
+        console.warn('[session] session ended by the server');
+        get().endSessionLocally();
+        if (!opts?.silent) set({ error: e instanceof Error ? e.message : 'Failed to load account' });
+        return;
+      }
+      console.warn('[session] account check failed (kept signed in):', e);
+      get().keepOfflineSession();
+      if (!opts?.silent) set({ error: e instanceof Error ? e.message : 'Failed to load account' });
     }
   },
 
@@ -173,6 +323,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const account = get().account;
     if (!account) return;
     const updated = await mongoAuth.updateProfile(patch);
+    rememberIdentity(updated);
     set({ account: updated });
   },
 
@@ -184,6 +335,8 @@ export const useSession = create<SessionState>((set, get) => ({
     const account = get().account;
     if (!account) return;
     await mongoAuth.changePassword(currentPassword, newPassword);
-    set({ account: { ...account, mustChangePassword: false } });
+    const next = { ...account, mustChangePassword: false };
+    rememberIdentity(next);
+    set({ account: next });
   },
 }));

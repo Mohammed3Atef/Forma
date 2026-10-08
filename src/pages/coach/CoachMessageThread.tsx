@@ -8,6 +8,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { useBack } from '@/hooks/useBack';
 import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
+import { useFillToBottomNav } from '@/hooks/useFillToBottomNav';
 
 /** Coach side of a 1:1 thread with one client. */
 export function CoachMessageThread() {
@@ -26,8 +27,13 @@ export function CoachMessageThread() {
     daysLeft != null ? t('subscription.daysLeft', { n: daysLeft }) : null,
   ].filter(Boolean).join(' · ');
 
+  // Sized from its real top edge so a plan/subscription/reminder banner above
+  // never pushes the composer under the bottom nav (B0 / CO-04). At ≥ md the
+  // shell has no bottom nav; leave main's bottom padding (md:pb-8) instead.
+  const fill = useFillToBottomNav('2rem');
+
   return (
-    <div className="anim-rise -mb-28 flex h-[calc(100dvh-8.5rem)] flex-col md:mb-0 md:h-[calc(100dvh-7rem)]">
+    <div ref={fill.ref} className="anim-rise -mb-28 flex flex-col md:mb-0" style={{ height: fill.height }} data-testid="coach-thread">
       {/* Elevated header band — a distinct warm-charcoal surface from the sunken
           chat canvas below, instead of blending into the page background. */}
       <div className="-mx-5 border-b border-line bg-surface-raised px-5">

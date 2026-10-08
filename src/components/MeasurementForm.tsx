@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { parseDecimalOrNull } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import type { MeasurementKey, MeasurementLog } from '@/types';
 import { useSettings } from '@/stores/settingsStore';
@@ -71,16 +72,22 @@ export function MeasurementForm({
   // still gets working feedback for free.
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const [invalid, setInvalid] = useState<string[]>([]);
   const submit = async () => {
     const values: Record<string, number> = {};
     // Fields that HAD a value and are now empty — must be sent explicitly or
     // the save merges them back in and the "cleared" value reappears.
     const clear: string[] = [];
+    // A typed value that can't be read is flagged — never silently dropped (RTL-04).
+    const bad: string[] = [];
     for (const k of MEASUREMENT_KEYS) {
-      const n = Number(form[k]);
-      if (form[k] && !Number.isNaN(n)) values[k] = n;
+      const n = form[k] ? parseDecimalOrNull(form[k]) : null;
+      if (form[k] && n != null) values[k] = n;
+      else if (form[k]) bad.push(k);
       else if (!form[k] && existing?.values?.[k] != null) clear.push(k);
     }
+    setInvalid(bad);
+    if (bad.length) return;
     setBusy(true);
     setError(false);
     try {
@@ -106,8 +113,17 @@ export function MeasurementForm({
               inputMode="decimal"
               placeholder="0"
               value={form[k] ?? ''}
-              onChange={(e) => setForm({ ...form, [k]: e.target.value })}
+              aria-invalid={invalid.includes(k) || undefined}
+              onChange={(e) => {
+                setInvalid((cur) => cur.filter((x) => x !== k));
+                setForm({ ...form, [k]: e.target.value });
+              }}
             />
+            {invalid.includes(k) && (
+              <p className="mt-0.5 text-[11px] text-danger" role="alert" data-testid={`measure-invalid-${k}`}>
+                {t('trust.numbers.invalid')}
+              </p>
+            )}
             {extras?.(k)}
           </div>
         ))}

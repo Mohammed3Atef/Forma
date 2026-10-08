@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EntityNotesProvider } from '@/components/EntityNotes';
 import { useSession } from '@/services/auth/sessionStore';
-import { cloudAvailable } from '@/data/dataSource';
 import { fetchMyCoachNotes } from '@/services/platform/clientCoachApi';
 
 /**
@@ -12,7 +11,7 @@ import { fetchMyCoachNotes } from '@/services/platform/clientCoachApi';
  */
 export function ClientNotesProvider({ children }: { children: ReactNode }) {
   const uid = useSession((s) => s.uid) ?? '';
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const enabled = !!uid;
   const q = useQuery({ queryKey: ['coachNotes', uid], queryFn: () => fetchMyCoachNotes(uid), enabled });
   return <EntityNotesProvider notes={q.data ?? []}>{children}</EntityNotesProvider>;
 }

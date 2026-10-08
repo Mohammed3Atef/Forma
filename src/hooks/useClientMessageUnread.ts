@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { subscribeThreadMeta } from '@/services/platform/messagesApi';
 
@@ -11,7 +10,7 @@ import { subscribeThreadMeta } from '@/services/platform/messagesApi';
 export function useClientMessageUnread(): number {
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid) ?? '';
-  const enabled = cloudAvailable() && role === 'client' && !!uid && uid !== 'local-user';
+  const enabled = role === 'client' && !!uid;
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!enabled) {

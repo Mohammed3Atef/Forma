@@ -1,6 +1,6 @@
 import { test, expect, shot } from '../fixtures';
 import type { Db } from '../fixtures';
-import { appReady, confirmYes, expectToast, fullAssessment, refocus, uniq } from './_b-helpers';
+import { appReady, confirmYes, expectToast, fullAssessment, openPlanBuilder, refocus, uniq } from './_b-helpers';
 
 test.setTimeout(120_000);
 
@@ -34,7 +34,7 @@ test('E-B-1 probe: plan editor renders for a client with a legacy (partial) asse
   const { page } = await as('coachB');
   await page.goto('/coach/client/e2e-client-b/workout');
   await appReady(page);
-  await expect(page.getByTestId('builder-plan')).toBeVisible({ timeout: 20_000 }).finally(() => shot(page, testInfo, '01-workout-editor-legacy-assessment'));
+  await openPlanBuilder(page).finally(() => shot(page, testInfo, '01-workout-editor-legacy-assessment'));
 });
 
 test('invite → anonymous claim → coach roster updates without reload', async ({ as, anon, db }, testInfo) => {
@@ -148,7 +148,7 @@ test('workspace: workout plan built in PlanBuilder saves and survives reload', a
   const { page } = await as('coachPro');
   await page.goto(`/coach/client/${FREE}/workout`);
   await appReady(page, 'coach-workout-editor');
-  await expect(page.getByTestId('builder-plan')).toBeVisible();
+  await openPlanBuilder(page);
   const planName = uniq('Plan');
   await page.getByTestId('workout-plan-name').fill(planName);
   await page.getByTestId('builder-add-day').click();
@@ -197,6 +197,7 @@ test('workspace: nutrition plan saves and survives reload', async ({ as, db }, t
   await page.goto(`/coach/client/${FREE}/nutrition`);
   await appReady(page, 'coach-nutrition-editor');
   await expect(page.getByTestId('coach-nutrition-editor')).toBeVisible();
+  await openPlanBuilder(page, 'nutrition-plan-name');
   const name = uniq('Meals');
   await page.getByTestId('nutrition-plan-name').fill(name);
   await page.getByTestId('nutrition-target-calories').fill('2100');
@@ -230,6 +231,7 @@ test('workspace: cardio plan saves and survives reload', async ({ as, db }, test
   await page.goto(`/coach/client/${FREE}/cardio`);
   await appReady(page, 'coach-cardio-editor');
   await expect(page.getByTestId('coach-cardio-editor')).toBeVisible();
+  await openPlanBuilder(page, 'cardio-plan-name');
   const name = uniq('Cardio');
   await page.getByTestId('cardio-plan-name').fill(name);
   await page.getByTestId('cardio-add-session').first().click();

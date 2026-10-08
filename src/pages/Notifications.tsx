@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,11 +9,10 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSession } from '@/services/auth/sessionStore';
-import { markMessageNotificationsSeen, markNotificationSeen } from '@/services/platform/notificationsApi';
+import { markAllNotificationsSeen, markMessageNotificationsSeen, markNotificationSeen } from '@/services/platform/notificationsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import { fetchMyCoach } from '@/services/platform/clientCoachApi';
-import { cloudAvailable } from '@/data/dataSource';
-import { clientNoteRoute } from '@/lib/noteTarget';
+import { openClientNote } from '@/lib/noteTarget';
 import { useBack } from '@/hooks/useBack';
 import type { AppNotification, NotificationType } from '@/types';
 
@@ -60,7 +59,21 @@ function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) =>
 export function Notifications() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { items, isCoach, isAdmin, loading } = useNotifications();
+  const { items, isCoach, isAdmin, loading, error, retry, unread } = useNotifications();
+  const [markingAll, setMarkingAll] = useState(false);
+  const [markAllFailed, setMarkAllFailed] = useState(false);
+  const markAll = async () => {
+    setMarkingAll(true);
+    setMarkAllFailed(false);
+    try {
+      await markAllNotificationsSeen();
+      retry(); // re-poll now so the badge and rows update immediately
+    } catch {
+      setMarkAllFailed(true);
+    } finally {
+      setMarkingAll(false);
+    }
+  };
   const goBack = useBack(() => navigate(isAdmin ? '/admin' : isCoach ? '/coach' : '/'));
   const uid = useSession((s) => s.uid) ?? '';
   const coachId = useSession((s) => s.account?.assignedCoachId);
@@ -70,12 +83,12 @@ export function Notifications() {
   const clientsQ = useQuery({
     queryKey: ['myClients', uid],
     queryFn: () => listMyClients(uid),
-    enabled: cloudAvailable() && isCoach && !!uid,
+    enabled: isCoach && !!uid,
   });
   const coachQ = useQuery({
     queryKey: ['myCoach', coachId],
     queryFn: () => fetchMyCoach(coachId!),
-    enabled: cloudAvailable() && !isCoach && !isAdmin && !!coachId,
+    enabled: !isCoach && !isAdmin && !!coachId,
   });
   const clientInfo = useMemo(() => {
     const m = new Map<string, { name: string; photoUrl?: string }>();
@@ -134,7 +147,7 @@ export function Notifications() {
     if (n.type === 'message_received') {
       // Clear every message notification for this thread/audience at once.
       void markMessageNotificationsSeen(n.clientId, isCoach ? 'coach' : 'client');
-      navigate(isCoach ? n.route ?? '/coach' : clientNoteRoute(n));
+      navigate(isCoach ? n.route ?? '/coach' : openClientNote(n));
       return;
     }
     if (!n.seenAt) await markNotificationSeen(n.clientId, n.id).catch(() => undefined);
@@ -142,14 +155,37 @@ export function Notifications() {
       navigate(n.route ?? '/coach');
       return;
     }
-    navigate(clientNoteRoute(n));
+    navigate(openClientNote(n));
   };
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={goBack} />
+      <TopBar
+        title={t('notifications.title')}
+        eyebrow={t('app.name')}
+        onBack={goBack}
+        right={
+          !isAdmin && unread > 0 ? (
+            <button type="button" className="btn-ghost btn-sm shrink-0" data-testid="notifications-mark-all" disabled={markingAll} onClick={() => void markAll()}>
+              {t('trust.notifications.markAll')}
+            </button>
+          ) : undefined
+        }
+      />
+      {markAllFailed && (
+        <p className="text-sm text-danger" role="alert">
+          {t('trust.notifications.markAllFailed')}
+        </p>
+      )}
 
-      {loading ? (
+      {error ? (
+        <div className="card space-y-2 text-center" role="alert" data-testid="notifications-error">
+          <p className="text-sm text-danger">{t('trust.notifications.loadFailed')}</p>
+          <button type="button" className="btn-ghost w-full" onClick={retry}>
+            {t('common.retry')}
+          </button>
+        </div>
+      ) : loading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : rows.length === 0 ? (
         <p className="py-10 text-center text-sm text-earth-muted">{t('notifications.empty')}</p>
@@ -189,6 +225,11 @@ export function Notifications() {
                         </span>
                       )}
                       {row.unseen && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />}
+                      {n.resolvedAt && !isMsg && (
+                        <span className="shrink-0 rounded-full bg-success/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-success" data-testid="notification-done">
+                          {t('trust.notifications.done')}
+                        </span>
+                      )}
                     </span>
                     {who && <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-earth-subtle">{typeLabel}</span>}
                     {n.body && <span className="mt-0.5 block truncate text-[13px] text-earth-muted">{n.body}</span>}

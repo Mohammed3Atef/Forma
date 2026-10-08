@@ -4,8 +4,9 @@ import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, isActiveSelf, resolveClientId } from '../../client/_lib/access.js';
 import { clientProfilesCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
+import { resolveNotifications } from '../../messages/_handlers/notifications-data.js';
 import { usersCol } from '../../_lib/mongodb.js';
-import type { AssessmentStatus, ClientProfileFields } from '../../client/_lib/types.js';
+import type { AssessmentStatus, ClientAssessmentFields, ClientProfileDoc, ClientProfileFields } from '../../client/_lib/types.js';
 
 const ProfileFieldsSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -67,6 +68,22 @@ const DraftBody = z.object({
 });
 
 /**
+ * B0 / CO-02: the coach's review notes are PRIVATE. They live in
+ * `privateNotes.assessment`, outside the client-written `assessment` object,
+ * and every assessment read returned to a client has `coachNotes` removed —
+ * including legacy docs that still carry `assessment.coachNotes` (treated as
+ * private). Coaches/admins get the private note back as `coachNotes`.
+ */
+function assessmentForViewer(doc: ClientProfileDoc | null | undefined, viewer: { id: string; role: string }): ClientAssessmentFields | null {
+  const a = doc?.assessment;
+  if (!a) return null;
+  const { coachNotes: legacy, ...rest } = a;
+  if (viewer.role === 'client' || viewer.id === doc?.clientId || viewer.id === doc?._id) return rest as ClientAssessmentFields;
+  const notes = doc?.privateNotes?.assessment ?? legacy;
+  return (notes != null ? { ...rest, coachNotes: notes } : rest) as ClientAssessmentFields;
+}
+
+/**
  * The onboarding assessment. Read = owner/coach/admin(readAll); create = self
  * only; update = self ALWAYS (the "living assessment" — no lock-out after
  * review) OR assigned coach / admin(writeAll) for the review fields.
@@ -76,7 +93,7 @@ export const assessmentRouter = router({
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const doc = await (await clientProfilesCol()).findOne({ _id: clientId });
-    return doc?.assessment ?? null;
+    return assessmentForViewer(doc, ctx.user);
   }),
 
   /** Client saves an in-progress draft (does not touch profile/main). */
@@ -94,7 +111,7 @@ export const assessmentRouter = router({
       }
       await col.updateOne({ _id: clientId }, { $set: set }, { upsert: true });
       const updated = await col.findOne({ _id: clientId });
-      return updated?.assessment ?? null;
+      return assessmentForViewer(updated, ctx.user);
     }),
 
   /** Submits the assessment AND the derived fitness profile atomically; syncs displayName; notifies the coach. */
@@ -136,13 +153,15 @@ export const assessmentRouter = router({
           completedAt: now,
           submittedAt: prevAssessment?.submittedAt ?? now,
           updatedAt: now,
-          ...(prevAssessment?.coachNotes != null ? { coachNotes: prevAssessment.coachNotes } : {}),
           ...(prevAssessment?.reviewedAt != null ? { reviewedAt: prevAssessment.reviewedAt } : {}),
           ...(prevAssessment?.reviewedBy != null ? { reviewedBy: prevAssessment.reviewedBy } : {}),
         },
       };
       if (input.profile) {
         set.profile = { id: clientId, ...input.profile, createdAt: existing?.profile?.createdAt ?? now, updatedAt: now };
+      }
+      if (prevAssessment?.coachNotes != null && existing?.privateNotes?.assessment == null) {
+        set['privateNotes.assessment'] = prevAssessment.coachNotes;
       }
       await col.updateOne({ _id: clientId }, { $set: set }, { upsert: true });
 
@@ -154,10 +173,10 @@ export const assessmentRouter = router({
       await notify({ clientId, forRole: 'coach', type: 'assessment_submitted', route: `/coach/client/${clientId}/assessment`, createdBy: clientId });
 
       const updated = await col.findOne({ _id: clientId });
-      return updated?.assessment ?? null;
+      return assessmentForViewer(updated, ctx.user);
     }),
 
-  /** Coach records review notes (merge, doesn't reset status). */
+  /** Coach records PRIVATE review notes (never returned to the client). */
   setCoachNotes: authedProcedure
     .input(z.object({ clientId: z.string().optional(), coachNotes: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -165,9 +184,13 @@ export const assessmentRouter = router({
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await clientProfilesCol();
       const now = Date.now();
-      await col.updateOne({ _id: clientId }, { $set: { clientId, updatedAt: now, 'assessment.coachNotes': input.coachNotes, 'assessment.updatedAt': now } }, { upsert: true });
+      await col.updateOne(
+        { _id: clientId },
+        { $set: { clientId, updatedAt: now, 'privateNotes.assessment': input.coachNotes, 'privateNotes.updatedAt': now, 'privateNotes.updatedBy': ctx.user.id }, $unset: { 'assessment.coachNotes': '' } },
+        { upsert: true },
+      );
       const updated = await col.findOne({ _id: clientId });
-      return updated?.assessment ?? null;
+      return assessmentForViewer(updated, ctx.user);
     }),
 
   /** Coach marks the assessment reviewed (locks further client edits until reset). */
@@ -182,8 +205,9 @@ export const assessmentRouter = router({
       { upsert: true },
     );
     await notify({ clientId, forRole: 'client', type: 'assessment_reviewed', route: '/coach-notes', createdBy: ctx.user.id });
+    await resolveNotifications({ clientId, forRole: 'coach', type: 'assessment_submitted' });
     const updated = await col.findOne({ _id: clientId });
-    return updated?.assessment ?? null;
+    return assessmentForViewer(updated, ctx.user);
   }),
 
   /** Coach re-opens the assessment so the client can edit + resubmit. */
@@ -198,6 +222,6 @@ export const assessmentRouter = router({
       { upsert: true },
     );
     const updated = await col.findOne({ _id: clientId });
-    return updated?.assessment ?? null;
+    return assessmentForViewer(updated, ctx.user);
   }),
 });

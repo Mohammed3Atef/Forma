@@ -52,6 +52,21 @@ async function ensureBundleLoaded(locale: Locale): Promise<void> {
   }
 }
 
+/**
+ * The device's last applied language (B0 / PWA-02). Local data is now per
+ * account, so the login screen / splash (no account open yet) and a brand-new
+ * account database take their language from here instead of a shared store.
+ */
+const DEVICE_LOCALE_KEY = 'forma.locale';
+export function deviceLocale(): Locale | null {
+  try {
+    const v = localStorage.getItem(DEVICE_LOCALE_KEY);
+    return v === 'en' || v === 'ar' || v === 'ar-eg' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Apply locale to i18next and reflect direction/lang on <html>. Loads that locale's translation bundle first if it isn't already in memory. */
 export async function applyLocale(locale: Locale): Promise<void> {
   await ensureBundleLoaded(locale);
@@ -59,6 +74,11 @@ export async function applyLocale(locale: Locale): Promise<void> {
   const html = document.documentElement;
   html.lang = locale;
   html.dir = RTL.includes(locale) ? 'rtl' : 'ltr';
+  try {
+    localStorage.setItem(DEVICE_LOCALE_KEY, locale);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 export default i18n;

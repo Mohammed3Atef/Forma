@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { dateLocale } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
@@ -147,7 +148,7 @@ export function Home() {
     navigate('/workout/session');
   };
 
-  const dateEyebrow = new Date().toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
+  const dateEyebrow = new Date().toLocaleDateString(dateLocale(i18n.language, 'en-US'), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -382,7 +383,7 @@ export function Home() {
                   <div className="grow min-w-0">
                     <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
                     <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
-                      {parseDay(l.date).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short' })}
+                      {parseDay(l.date).toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'short' })}
                       {' · '}
                       {formatDuration(l.durationSec)} · {(logVolume(l) / 1000).toFixed(1)}t
                     </p>

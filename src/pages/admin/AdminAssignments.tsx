@@ -260,7 +260,7 @@ export function AdminAssignments() {
                       <span className="truncate font-medium">{r.coach.displayName || r.coach.email}</span>
                       <span className="shrink-0 font-mono text-[12px] text-earth-muted">{r.clientCount}/{r.plan!.maxClients}</span>
                     </span>
-                    <span className="prog thin block"><span style={{ width: `${pct}%` }} /></span>
+                    <span className="prog block"><span style={{ width: `${pct}%` }} /></span>
                   </span>
                 </button>
               ))}

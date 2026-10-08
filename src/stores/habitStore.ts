@@ -18,8 +18,6 @@ interface HabitState {
   refresh: (date?: string) => Promise<void>;
   /** Recompute all streaks (reads full history). */
   refreshStreaks: () => Promise<void>;
-  /** Manually toggle a checklist item (overrides the auto value). */
-  toggle: (key: string) => Promise<void>;
 }
 
 /** Two checklists are equivalent when every item agrees (order-insensitive). */
@@ -115,31 +113,6 @@ export const useHabits = create<HabitState>((set, get) => ({
     set({ streaks });
   },
 
-  async toggle(key) {
-    const cur = get().checklist;
-    if (!cur) return;
-    refreshSeq += 1; // invalidate any in-flight refresh built from pre-toggle data
-    const ds = getDataSource();
-    const existing = cur.items[key];
-    const nextDone = !existing?.done;
-    const items = {
-      ...cur.items,
-      [key]: { done: nextDone, auto: false },
-    };
-    const keys = Object.keys(items);
-    const doneCount = keys.filter((k) => items[k].done).length;
-    const next: DailyChecklist = {
-      ...cur,
-      items,
-      completionPct: keys.length ? Math.round((doneCount / keys.length) * 100) : 0,
-      fullyComplete: keys.length > 0 && doneCount === keys.length,
-      updatedAt: Date.now(),
-      dirty: true,
-    };
-    set({ checklist: next });
-    await ds.dailyChecklists.put(next);
-    await get().refreshStreaks();
-  },
 }));
 
 /** Refresh the habit checklist for the currently-focused day after a change. */

@@ -11,7 +11,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { useSettings } from '@/stores/settingsStore';
 import { confirmDialog } from '@/stores/dialogStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { planPhaseLabel } from '@/lib/formaFormat';
 import { shortDate } from '@/lib/utils';
 
@@ -31,13 +31,13 @@ export function RoleAccount() {
   const isCoach = account?.role === 'coach';
   const isAdmin = account?.role === 'admin' || account?.role === 'super_admin';
   const coachId = account?.id ?? '';
-  const plan = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId), enabled: isCoach && !!coachId, staleTime: 300_000 });
+  const plan = useQuery({ ...coachPlanQuery(coachId), enabled: isCoach && !!coachId });
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: isCoach && !!coachId, staleTime: 60_000 });
   const cap = plan.data?.maxClients ?? 0;
   const used = clients.data?.length ?? 0;
   const atCapacity = cap > 0 && used >= cap;
 
-  const editable = !!account && account.id !== 'local-user';
+  const editable = !!account;
   const [pwOpen, setPwOpen] = useState(false);
   const [name, setName] = useState(account?.displayName ?? '');
   const [phone, setPhone] = useState(account?.phone ?? '');
@@ -140,7 +140,7 @@ export function RoleAccount() {
           </div>
         </section>
       ) : (
-        <div className="card text-sm text-earth-muted">{account?.email ?? '—'}</div>
+        <div className="card text-sm text-earth-muted">—</div>
       )}
 
       <section className="card mt-4">

@@ -1,17 +1,11 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { bootstrapData } from '@/data/bootstrap';
-import { cloudAvailable } from '@/data/dataSource';
-import { useSettings } from '@/stores/settingsStore';
+import { syncLocalRuntime, clientRuntimeReady, runtimeAccount } from '@/data/accountRuntime';
+import { applyLocale, deviceLocale } from '@/i18n';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition } from '@/stores/nutritionStore';
-import { useCardio } from '@/stores/cardioStore';
-import { useVideos } from '@/stores/videoStore';
 import { useHabits } from '@/stores/habitStore';
-import { useReminders } from '@/services/reminders/reminderStore';
-import { useCloud } from '@/services/auth/cloudStore';
 import { useSession } from '@/services/auth/sessionStore';
 import { useDay } from '@/stores/dayStore';
-import { useMeasurements } from '@/stores/measurementStore';
 import { setupPersistentStorage } from '@/lib/storage';
 import { initNative } from '@/lib/native';
 import { DialogHost } from '@/components/DialogHost';
@@ -24,6 +18,7 @@ import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { PresenceTracker } from '@/components/PresenceTracker';
 import { SiteAnalytics } from '@/components/SiteAnalytics';
 import { BannerHost } from '@/components/BannerHost';
+import { UpdateAvailable } from '@/components/UpdateAvailable';
 import { Splash } from '@/components/Splash';
 import { CompleteAccount } from '@/pages/auth/CompleteAccount';
 import { AccountPending } from '@/pages/auth/AccountPending';
@@ -41,51 +36,47 @@ const AnonymousApp = lazy(() => import('@/apps/AnonymousApp').then((m) => ({ def
 
 export function App() {
   const [ready, setReady] = useState(false);
+  // The account whose local runtime (own database, and for clients the
+  // stores + sync) is open — the role app mounts only once it matches.
+  const [runtimeUid, setRuntimeUid] = useState<string | null>(null);
   const selectedDay = useDay((s) => s.selected);
   const phase = useSession((s) => s.phase);
   const role = useSession((s) => s.account?.role ?? 'client');
   const account = useSession((s) => s.account);
+  const uid = account?.id ?? null;
+  const signedIn = phase !== 'loading' && phase !== 'anonymous' && !!uid;
+  const clientRuntime = signedIn && role === 'client' && runtimeUid === uid;
   // A signed-in client with no phone must provide one before using the app
   // (coaches/admins get theirs through the create-account form).
-  const needsContact = cloudAvailable() && !!account && account.id !== 'local-user' && account.role === 'client' && !account.phone;
+  const needsContact = !!account && account.role === 'client' && !account.phone;
 
-  // When the focused day changes, reload all day-scoped data for that date.
+  // When the focused day changes, reload all day-scoped data for that date
+  // (client runtime only — coaches/admins never load client stores).
   useEffect(() => {
-    if (!ready) return;
+    if (!clientRuntime) return;
     void useNutrition.getState().load(selectedDay);
     void useWorkout.getState().loadDay(selectedDay);
     void useHabits.getState().refresh(selectedDay);
-  }, [selectedDay, ready]);
+  }, [selectedDay, clientRuntime]);
 
-  // Re-read the identity doc when the app returns to the foreground, so a
+  // Re-verify the session when the app returns to the foreground, so a
   // coach's account-status change (suspend / pending / reactivate) takes effect
-  // on the client's next focus instead of waiting for a full reload.
+  // on the client's next focus. Never restores a signed-out session (PWA-08).
   useEffect(() => {
-    if (!cloudAvailable()) return; // local-only mode has no identity doc to re-read
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void useSession.getState().refreshAccount({ silent: true });
+      if (document.visibilityState === 'visible') void useSession.getState().reverify();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
+  // Boot: device language first (the splash/login need it), then the session.
+  // Local data is opened per account below, once we know who is signed in.
   useEffect(() => {
     let mounted = true;
     void (async () => {
-      await bootstrapData();
-      await Promise.all([
-        useSettings.getState().load(),
-        useWorkout.getState().load(),
-        useNutrition.getState().load(),
-        useCardio.getState().load(),
-        useVideos.getState().load(),
-        useMeasurements.getState().load(),
-      ]);
-      await useHabits.getState().refresh();
-      await useReminders.getState().load();
-      useReminders.getState().start();
+      await applyLocale(deviceLocale() ?? 'en').catch(() => undefined);
       useSession.getState().init(); // role / identity → drives routing
-      useCloud.getState().init(); // client's own local-first cloud sync
       void initNative(); // native status bar + splash (Capacitor only)
       // Ask the OS not to evict our IndexedDB/CacheStorage data (login, videos,
       // photos). Retries on first user gesture if the browser defers the grant.
@@ -94,11 +85,26 @@ export function App() {
     })();
     return () => {
       mounted = false;
-      useReminders.getState().stop();
     };
   }, []);
 
+  // Open the signed-in account's own local database (and, for clients, the
+  // local-first runtime); close it on sign-out / account switch (PWA-02/04).
+  useEffect(() => {
+    if (phase === 'loading') return;
+    const target = signedIn ? uid : null;
+    let cancelled = false;
+    void syncLocalRuntime(target, signedIn ? (account?.role ?? null) : null).then(() => {
+      if (!cancelled) setRuntimeUid(runtimeAccount());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, signedIn, uid, account?.role]);
+
   if (!ready || phase === 'loading') return <Splash />;
+  // A signed-in role app mounts only on its own account's local data.
+  if (signedIn && (runtimeUid !== uid || (role === 'client' && !clientRuntimeReady(uid)))) return <Splash />;
 
   // Role-based routing: the session phase + role select which app mounts. Each
   // app owns its own <Routes> with absolute paths and a catch-all redirect.
@@ -122,6 +128,7 @@ export function App() {
       <ImageViewer />
       <VideoPopup />
       <BannerHost />
+      <UpdateAvailable />
       <Suspense fallback={<Splash />}>{body}</Suspense>
       <MustChangePasswordPrompt />
     </>

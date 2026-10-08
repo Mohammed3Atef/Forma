@@ -122,9 +122,6 @@ const config: Config = {
         // Public website's Arabic face (the design's --f-ar).
         'site-ar': ['IBM Plex Sans Arabic', 'Poppins', 'sans-serif'],
       },
-      spacing: {
-        touch: '3.5rem', // 56px — gym-friendly large touch target
-      },
       borderRadius: {
         xl2: '18px', // cards
         hero: '20px',

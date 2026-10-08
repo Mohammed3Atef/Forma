@@ -5,7 +5,7 @@ import { Icon } from '@/components/Icon';
 import { ClientSubscriptionSection } from '@/components/ClientSubscriptionSection';
 import { useCoachContent } from '@/hooks/useCoachContent';
 import { useBack } from '@/hooks/useBack';
-import { clientNoteRoute } from '@/lib/noteTarget';
+import { openClientNote } from '@/lib/noteTarget';
 
 export function CoachInbox() {
   const { t } = useTranslation();
@@ -57,7 +57,7 @@ export function CoachInbox() {
                       key={n.id}
                       type="button"
                       disabled={!anchored}
-                      onClick={() => anchored && navigate(clientNoteRoute(n))}
+                      onClick={() => anchored && navigate(openClientNote(n))}
                       className="flex w-full items-start gap-2 py-3 text-start first:pt-0 last:pb-0 disabled:cursor-default"
                     >
                       <span className="min-w-0 flex-1">

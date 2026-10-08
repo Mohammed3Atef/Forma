@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
-import { coachPlanState, getCoachPlan, trialDaysLeft } from '@/services/platform/coachPlanApi';
+import { coachPlanState, coachPlanQuery, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import type { CoachPlan } from '@/types';
 
 type CoachPlanStateKey = 'trial' | 'active' | 'expired' | 'suspended' | 'none';
@@ -27,7 +27,7 @@ export const useCoachPlan = () => useContext(Ctx);
  */
 export function CoachPlanProvider({ children }: { children: ReactNode }) {
   const coachId = useSession((s) => s.account?.id);
-  const q = useQuery({ queryKey: ['coachPlan', coachId], queryFn: () => getCoachPlan(coachId!), enabled: !!coachId, staleTime: 60_000 });
+  const q = useQuery(coachPlanQuery(coachId));
   const plan = q.data ?? null;
   const state = coachPlanState(plan);
   const daysLeft = plan ? trialDaysLeft(plan) : null;

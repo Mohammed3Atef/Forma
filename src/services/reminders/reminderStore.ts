@@ -69,7 +69,7 @@ async function scheduleTriggers(reminders: Reminder[]): Promise<void> {
   for (const n of existing) if (n.tag?.startsWith('reminder:')) n.close();
 
   for (const r of reminders.filter((x) => x.enabled)) {
-    await reg.showNotification('Gym Tracker', {
+    await reg.showNotification('Forma', {
       body: r.label,
       tag: `reminder:${r.id}`,
       icon: '/icons/icon-192.png',
@@ -86,14 +86,14 @@ async function fireNow(reminder: Reminder): Promise<void> {
   try {
     const reg = await navigator.serviceWorker?.ready;
     if (reg) {
-      await reg.showNotification('Gym Tracker', {
+      await reg.showNotification('Forma', {
         body: reminder.label,
         tag: `reminder-now:${reminder.id}`,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
       });
     } else {
-      new Notification('Gym Tracker', { body: reminder.label });
+      new Notification('Forma', { body: reminder.label });
     }
   } catch {
     /* fall back to in-app banner only */

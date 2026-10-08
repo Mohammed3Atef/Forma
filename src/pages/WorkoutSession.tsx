@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { readLive, writeLive } from '@/lib/liveState';
+import { isPlayableVideoUrl } from '@/lib/videoSource';
+import { normalizeNumericText } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { VideoAsset } from '@/types';
 import { useWorkout } from '@/stores/workoutStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useSettings } from '@/stores/settingsStore';
 import { useDay } from '@/stores/dayStore';
 import { useTimer } from '@/stores/timerStore';
-import { useVideos } from '@/stores/videoStore';
 import { playVideo } from '@/stores/videoPopupStore';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useElapsed } from '@/hooks/useElapsed';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { RestTimerBar } from '@/components/RestTimerBar';
-import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
 import { Sheet } from '@/components/Sheet';
 import { Icon } from '@/components/Icon';
 import { StatTile } from '@/components/StatTile';
@@ -57,10 +57,7 @@ export function WorkoutSession() {
   const restDefault = useSettings((s) => s.settings?.restDefaultSec ?? 90);
   const startRest = useTimer((s) => s.startRest);
   const timerOn = useTimer((s) => s.running || s.paused);
-  const byExercise = useVideos((s) => s.byExercise);
 
-  const [videoAsset, setVideoAsset] = useState<VideoAsset | null>(null);
-  const [videoTitle, setVideoTitle] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [durationMin, setDurationMin] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -97,8 +94,13 @@ export function WorkoutSession() {
   // shrinks (e.g. the current one gets removed).
   const [currentIndex, setCurrentIndex] = useState(0);
   useEffect(() => {
-    setCurrentIndex(0);
+    // Resume where the user was in THIS session after a reload / OS kill (PWA-07).
+    const saved = readLive().session;
+    setCurrentIndex(activeId && saved?.logId === activeId ? saved.index : 0);
   }, [activeId]);
+  useEffect(() => {
+    if (activeId) writeLive({ session: { logId: activeId, index: currentIndex } });
+  }, [activeId, currentIndex]);
   const exerciseCount = active?.exercises.length ?? 0;
   useEffect(() => {
     setCurrentIndex((i) => Math.min(i, Math.max(0, exerciseCount - 1)));
@@ -180,24 +182,19 @@ export function WorkoutSession() {
   const handleToggle = (exerciseId: string, setIndex: number) => {
     const ex = active.exercises.find((e) => e.exerciseId === exerciseId);
     const wasDone = ex?.sets.find((s) => s.setIndex === setIndex)?.done;
-    toggleSetDone(exerciseId, setIndex);
-    if (!wasDone) {
+    const ok = toggleSetDone(exerciseId, setIndex);
+    if (ok && !wasDone) {
       vibrate(HAPTIC.success);
       // Prefer the exercise's own rest time over the global default.
       startRest(plan.exercises[exerciseId]?.restSec ?? restDefault);
     }
+    return ok;
   };
 
-  const openVideo = (exerciseId: string) => {
-    // Coach-assigned video URL first (same rule as ExerciseDetail) — without
-    // this the in-session button did nothing for every coach-supplied video.
+  // A video button exists only when the coach's link can play (B0 / CL-20).
+  const videoFor = (exerciseId: string): (() => void) | undefined => {
     const url = plan.exercises[exerciseId]?.videoUrl;
-    if (url) {
-      playVideo(url);
-      return;
-    }
-    setVideoAsset(byExercise(exerciseId));
-    setVideoTitle(plan.exercises[exerciseId]?.name ?? '');
+    return isPlayableVideoUrl(url) ? () => playVideo(url!) : undefined;
   };
 
   const doSave = async () => {
@@ -425,7 +422,7 @@ export function WorkoutSession() {
                 onToggleDone={(setIndex) => handleToggle(log.exerciseId, setIndex)}
                 onAddSet={() => addSet(log.exerciseId)}
                 onRemoveSet={(setIndex) => removeSet(log.exerciseId, setIndex)}
-                onVideo={() => openVideo(log.exerciseId)}
+                onVideo={videoFor(log.exerciseId)}
                 onRemoveExercise={active.exercises.length > 1 ? () => removeExercise(log.exerciseId) : undefined}
               />
               {upNext.length > 0 && (
@@ -452,8 +449,8 @@ export function WorkoutSession() {
                             <Icon name="dumbbell" size={15} />
                           </span>
                           <div className="grow min-w-0">
-                            <p className="h3 truncate">{nex.name}</p>
-                            <p className="bd-s truncate">
+                            <p className="truncate">{nex.name}</p>
+                            <p className="truncate">
                               {nl.sets.length} × {nl.sets[0]?.targetReps || '–'}
                               {prevLabel ? ` · ${prevLabel}` : ''}
                             </p>
@@ -497,7 +494,7 @@ export function WorkoutSession() {
           id="finish-duration"
           inputMode="numeric"
           value={durationMin}
-          onChange={(e) => setDurationMin(e.target.value.replace(/[^\d]/g, ''))}
+          onChange={(e) => setDurationMin(normalizeNumericText(e.target.value).replace(/[^\d]/g, ''))}
           onFocus={(e) => e.currentTarget.select()}
           className="input mb-5"
         />
@@ -554,7 +551,6 @@ export function WorkoutSession() {
         </ul>
       </Sheet>
 
-      <VideoPlayerSheet asset={videoAsset} title={videoTitle} onClose={() => setVideoAsset(null)} />
     </div>
   );
 }

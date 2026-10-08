@@ -227,9 +227,11 @@ export const messagesRouter = router({
         const filter = await feedFilter(ctx.user);
         if (filter) {
           const notifications = await notificationsCol();
+          // Reading the thread is the task a message notification asks for:
+          // mark them read AND done (B0 / NT-03).
           await notifications.updateMany(
-            { clientId: input.clientId, forRole: readerRole, type: 'message_received', seenAt: null },
-            { $set: { seenAt: now, updatedAt: now } },
+            { clientId: input.clientId, forRole: readerRole, type: 'message_received', resolvedAt: null },
+            [{ $set: { seenAt: { $ifNull: ['$seenAt', now] }, resolvedAt: now, updatedAt: now } }],
           );
         }
       } catch (e) {

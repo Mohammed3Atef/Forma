@@ -16,7 +16,11 @@ export const coachNotesRouter = router({
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await coachNotesCol();
-    return col.find({ clientId }).sort({ createdAt: -1 }).limit(50).toArray();
+    // B0 / CO-02, CO-21: the client only ever receives notes the coach explicitly
+    // shared. Private and legacy (unclassified) notes never leave the server.
+    const clientSide = ctx.user.role === 'client' || ctx.user.id === clientId;
+    const filter = clientSide ? { clientId, visibility: 'client' as const } : { clientId };
+    return col.find(filter).sort({ createdAt: -1 }).limit(50).toArray();
   }),
 
   create: authedProcedure
@@ -25,6 +29,8 @@ export const coachNotesRouter = router({
         clientId: z.string().optional(),
         body: z.string().trim().min(1).max(4000),
         kind: z.enum(['note', 'announcement']).optional(),
+        /** Private by default; `client` must be chosen explicitly. */
+        visibility: z.enum(['private', 'client']).optional(),
         screen: NoteScreenEnum.optional(),
         date: z.string().optional(),
         entityType: NoteEntityTypeEnum.optional(),
@@ -42,6 +48,7 @@ export const coachNotesRouter = router({
         authorRole: ctx.user.role,
         body: input.body,
         kind: input.kind ?? 'note',
+        visibility: input.visibility ?? 'private',
         createdAt: now,
         updatedAt: now,
       };
@@ -50,28 +57,32 @@ export const coachNotesRouter = router({
       if (input.entityType) note.entityType = input.entityType;
       if (input.entityId) note.entityId = input.entityId;
       await (await coachNotesCol()).insertOne(note);
-      await notify({
-        clientId,
-        forRole: 'client',
-        type: 'coach_note',
-        body: input.body.trim().slice(0, 140),
-        screen: input.screen,
-        date: input.date,
-        entityType: input.entityType,
-        entityId: input.entityId,
-        createdBy: ctx.user.id,
-      });
+      // Only a note shared with the client notifies them (a private note's text must never reach the client).
+      if (note.visibility === 'client') {
+        await notify({
+          clientId,
+          forRole: 'client',
+          type: 'coach_note',
+          body: input.body.trim().slice(0, 140),
+          screen: input.screen,
+          date: input.date,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          noteVisibility: 'client',
+          createdBy: ctx.user.id,
+        });
+      }
       return note;
     }),
 
   update: authedProcedure
-    .input(z.object({ clientId: z.string().optional(), id: z.string().min(1), body: z.string().trim().min(1).max(4000) }))
+    .input(z.object({ clientId: z.string().optional(), id: z.string().min(1), body: z.string().trim().min(1).max(4000), visibility: z.enum(['private', 'client']).optional() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await coachNotesCol();
       const now = Date.now();
-      await col.updateOne({ _id: input.id, clientId }, { $set: { body: input.body, updatedAt: now } });
+      await col.updateOne({ _id: input.id, clientId }, { $set: { body: input.body, updatedAt: now, ...(input.visibility ? { visibility: input.visibility } : {}) } });
       const updated = await col.findOne({ _id: input.id, clientId });
       if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Note not found' });
       return updated;

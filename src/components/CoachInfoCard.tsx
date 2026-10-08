@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
-import { cloudAvailable } from "@/data/dataSource";
 import { useSession } from "@/services/auth/sessionStore";
 import { fetchMyCoach } from "@/services/platform/clientCoachApi";
 
@@ -16,7 +15,7 @@ export function CoachInfoCard({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const coachId = useSession((s) => s.account?.assignedCoachId);
-  const enabled = cloudAvailable() && !!coachId;
+  const enabled = !!coachId;
   const q = useQuery({
     queryKey: ["myCoach", coachId],
     queryFn: () => fetchMyCoach(coachId!),

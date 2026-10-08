@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { dateLocale, weekdayInitials } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useWorkout } from '@/stores/workoutStore';
@@ -10,7 +11,6 @@ import { formatDuration, weekdayOffset } from '@/lib/utils';
 import { useBack } from '@/hooks/useBack';
 
 // Week starts on Saturday: Sat, Sun, Mon, Tue, Wed, Thu, Fri.
-const WEEKDAYS = ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
 
 export function History() {
   const { t, i18n } = useTranslation();
@@ -51,7 +51,7 @@ export function History() {
   const leadingBlanks = weekdayOffset(new Date(cursor.y, cursor.m, 1).getDay());
   const cells: (number | null)[] = [...Array(leadingBlanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
-  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
+  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleDateString(dateLocale(i18n.language, 'en-US'), {
     month: 'long',
     year: 'numeric',
   });
@@ -90,7 +90,7 @@ export function History() {
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {WEEKDAYS.map((d, i) => (
+          {weekdayInitials(i18n.language).map((d, i) => (
             <div key={i} className="pb-1 text-center font-mono text-[10px] uppercase tracking-[0.04em] text-earth-subtle">
               {d}
             </div>
@@ -113,7 +113,7 @@ export function History() {
                 aria-label={log ? `${day} · ${(logVolume(log) / 1000).toFixed(1)}t` : String(day)}
                 className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm ${
                   log ? 'font-medium text-white' : 'text-earth-muted'
-                } ${isToday ? 'ring-1.5 ring-brand' : ''}`}
+                }`}
                 style={{
                   background: log ? `rgba(255,139,2,${intensity})` : undefined,
                   boxShadow: isToday ? 'inset 0 0 0 1.5px #FF8B02' : undefined,
@@ -146,7 +146,7 @@ export function History() {
                 <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
                   <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
                   <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
-                    {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
+                    {d.toLocaleDateString(dateLocale(i18n.language, 'en-US'), { weekday: 'short' })}
                   </span>
                 </span>
                 <div className="grow min-w-0">

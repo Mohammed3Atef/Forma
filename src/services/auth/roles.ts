@@ -1,4 +1,4 @@
-import type { AccountStatus, Permission, Role } from '@/types';
+import type { Permission, Role } from '@/types';
 
 /**
  * Role → permission model for the Forma platform.
@@ -45,22 +45,3 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   client: [],
 };
 
-/**
- * Status assigned to brand-new self-service sign-ups. Defaults to 'pending'
- * (gated onboarding — the account cannot write cloud data until an admin
- * activates it). Change to 'active' to allow open self-serve registration.
- */
-export const SELF_SIGNUP_STATUS: AccountStatus = 'pending';
-
-/** Landing route for each role after authentication. */
-export function homeFor(role: Role | null | undefined): string {
-  switch (role) {
-    case 'coach':
-      return '/coach';
-    case 'admin':
-    case 'super_admin':
-      return '/admin';
-    default:
-      return '/';
-  }
-}

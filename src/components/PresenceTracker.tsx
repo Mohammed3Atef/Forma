@@ -11,7 +11,7 @@ export function PresenceTracker() {
   const uid = useSession((s) => s.uid);
   const role = useSession((s) => s.account?.role);
   useEffect(() => {
-    if (!uid || uid === 'local-user' || !role) return;
+    if (!uid || !role) return;
     const mark = () => {
       const key = `forma:active:${new Date().toISOString().slice(0, 10)}`;
       try {

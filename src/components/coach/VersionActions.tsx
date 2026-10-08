@@ -1,60 +1,44 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sheet } from "@/components/Sheet";
 import { Icon } from "@/components/Icon";
 import { TextInput } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { showToast } from "@/stores/toastStore";
-import { saveAsNewVersion } from "@/services/platform/planVersionsApi";
-import type {
-  CardioPlan,
-  MealPlan,
-  PlanVersionKind,
-  WorkoutPlan,
-} from "@/types";
-
-const PLAN_QUERY_KEY: Record<PlanVersionKind, string> = {
-  workout: "clientWorkoutPlan",
-  nutrition: "clientMealPlan",
-  cardio: "clientCardioPlan",
-};
+import { useGuardedNav } from "@/hooks/useGuardedNav";
+import type { PlanVersionKind } from "@/types";
 
 /**
- * Editor toolbar: "Save as new version" (snapshots the current plan + mirrors it
- * into the assigned plan) and a link to the version history. The plain primary
- * Save button in each editor remains "save current plan" (overwrite, no version).
+ * Editor toolbar: "Save as new version" (a normal guarded save with a reason —
+ * every save is versioned now, B0 / CO-01) and a link to the version history.
+ * The save itself is owned by the editor so it uses the same concurrency check.
  */
 export function VersionActions({
   clientId,
   kind,
-  plan,
-  createdBy,
+  onSaveVersion,
+  pending,
+  error,
 }: {
   clientId: string;
   kind: PlanVersionKind;
-  plan: WorkoutPlan | MealPlan | CardioPlan;
-  createdBy: string;
+  onSaveVersion: (reason: string) => Promise<unknown>;
+  pending: boolean;
+  error?: string | null;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
+  const navigate = useGuardedNav();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
 
-  const save = useMutation({
-    mutationFn: () => saveAsNewVersion(clientId, kind, plan, createdBy, reason),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["planVersions", clientId, kind] });
-      void qc.invalidateQueries({ queryKey: [PLAN_QUERY_KEY[kind], clientId] });
+  const submit = async () => {
+    try {
+      await onSaveVersion(reason.trim());
       setOpen(false);
       setReason("");
-      showToast({ title: t("planVersions.versionSaved"), variant: "success" });
-      // Stays on the editor (this used to navigate away) — saving a version
-      // also updates the live plan, but the coach may still be mid-edit.
-    },
-  });
+    } catch {
+      /* the editor shows the error / conflict state */
+    }
+  };
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -92,17 +76,13 @@ export function VersionActions({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          {save.isError && (
-            <p className="text-sm text-danger">
-              {(save.error as Error)?.message}
-            </p>
-          )}
+          {error && <p className="text-sm text-danger">{error}</p>}
           <SubmitButton
             type="button"
             data-testid="version-save-confirm"
             fullWidth
-            pending={save.isPending}
-            onClick={() => save.mutate()}
+            pending={pending}
+            onClick={() => void submit()}
           >
             {t("planVersions.saveAsVersion")}
           </SubmitButton>

@@ -4,8 +4,9 @@ import type { AccountStatus, Permission, Role } from './types.js';
  * Backend copy of `src/services/auth/roles.ts`'s permission table. This is
  * now the REAL enforcement point (unlike the frontend copy, which only hides
  * UI) — every route that needs a permission check calls `requirePermission`
- * (see `./withAuth`), which calls `hasPermission` below. Keep both files in
- * sync by hand, same discipline as roles.ts ↔ firestore.rules today.
+ * (see `./withAuth`), which calls `hasPermission` below. Keep this file and
+ * `src/services/auth/roles.ts` in sync by hand (there is no firestore.rules —
+ * the Firestore backend was retired).
  */
 
 export const ALL_PERMISSIONS: Permission[] = [

@@ -223,9 +223,6 @@ input[type='number'] {
     /* Soft brand-tinted fill — a lower-emphasis alternative to the full gradient. */
     @apply btn border border-brand/25 bg-brand/[0.13] text-brand-hover hover:bg-brand/20;
   }
-  .btn-light {
-    @apply btn border border-white bg-white text-black;
-  }
   .btn-ghost {
     @apply btn border border-transparent bg-transparent text-earth-muted hover:bg-surface-raised hover:text-earth;
   }

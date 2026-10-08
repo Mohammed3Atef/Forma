@@ -49,7 +49,7 @@ export type AccountStatus = 'active' | 'suspended' | 'pending' | 'disabled';
 /**
  * Granular permission keys. Each role implies a baseline set (see
  * `ROLE_PERMISSIONS` in src/services/auth/roles.ts); `UserRecord.permissions`
- * can grant extras beyond that baseline. Firestore rules enforce the same set.
+ * can grant extras beyond that baseline. The server (`api/_lib/rbac.ts`) enforces the same set.
  */
 export type Permission =
   | 'users.read' // list/read other users' identity docs
@@ -66,7 +66,7 @@ export type Permission =
  * Identity / access-control document at `users/{uid}`. Deliberately separate
  * from `UserProfile` (the fitness profile, which lives at
  * `clientData/{uid}/profile`). A user can never elevate their own role,
- * permissions, or status — that is enforced in firestore.rules.
+ * permissions, or status — that is enforced server-side (`auth.updateProfile`).
  */
 export interface UserRecord {
   id: string; // == Firebase Auth uid
@@ -95,16 +95,8 @@ export interface UserRecord {
   /** Coach's default billing currency (e.g. "EGP", "USD"); applied to plans + new terms. */
   currency?: string;
   /** Coach onboarding checklist progress (Phase 1). Derived from real data where possible. */
-  onboarding?: CoachOnboarding;
   createdAt: number;
   updatedAt: number;
-}
-
-/** Coach onboarding checklist state, stored on the coach's own `users/{uid}` doc. */
-export interface CoachOnboarding {
-  profileDone?: boolean;
-  firstClientDone?: boolean;
-  firstTemplateDone?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +182,6 @@ export interface CoachPlan {
   endsAt: number | null;
   /** The confirmed paid term (absent during the Trial). */
   subscription?: SubscriptionTermSnapshot;
-  trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };
   /** Maintained client-usage counter (server-side). */
   activeClientCount?: number;
   history?: PlanHistoryEntry[];
@@ -659,6 +650,9 @@ export interface FeatureFlag {
 /** Which client-app screen a note/notification points at. */
 export type NoteScreen = 'nutrition' | 'workout' | 'cardio' | 'progress' | 'measurements' | 'photos';
 
+/** B0 / CO-02: `private` (default, coach-only) or explicitly shared with the `client`. Missing = private. */
+export type NoteVisibility = 'private' | 'client';
+
 /**
  * The kind of entity a coach note is attached to. Notes are anchored by
  * (entityType, entityId) — NEVER by screen coordinates — so they render next to
@@ -686,6 +680,8 @@ export interface CoachNote {
   body: string;
   /** Distinguishes one-off notes from broadcast announcements. */
   kind?: 'note' | 'announcement';
+  /** Who can read it. The server never returns private notes to the client. */
+  visibility?: NoteVisibility;
   // ---- entity anchoring (all optional; legacy/general notes have none) ----
   /** Client screen the note belongs to (drives notification deep-link). */
   screen?: NoteScreen;
@@ -743,6 +739,9 @@ export interface AppNotification {
   entityId?: string;
   /** Explicit fallback route when there's no screen/entity mapping. */
   route?: string;
+  /** DONE: the task it asked for was completed (B0 / NT-03) — also counts as read. */
+  resolvedAt?: number | null;
+  /** READ: seen by the user — the unread badge counts rows where this is null. */
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
@@ -801,7 +800,6 @@ export interface MessageAttachment {
 
 /** The fixed set of reactions `messages.react` accepts — keep in sync with `api/messages/_data.ts`'s `REACTION_VALUES`. */
 export const MESSAGE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
-export type MessageReaction = (typeof MESSAGE_REACTIONS)[number];
 /** How long after sending a message its sender may still edit/delete it — mirrors `EDIT_WINDOW_MS` in `api/messages/_data.ts`; the server is the real enforcement, this is only for the client to know when to hide the action. */
 export const MESSAGE_EDIT_WINDOW_MS = 2 * 60 * 1000;
 
@@ -827,25 +825,6 @@ export interface Message {
   reactions?: Record<string, string>;
 }
 
-export type PlanKind = 'workout' | 'nutrition';
-
-/**
- * A plan a coach assigns to a client. Lives at
- * `clientData/{clientId}/workoutPlans` or `/nutritionPlans`. Kept intentionally
- * simple (title + description) so it's authorable on mobile; the client reads
- * these in their app.
- */
-export interface AssignedPlan {
-  id: string;
-  clientId: string;
-  kind: PlanKind;
-  title: string;
-  description: string;
-  assignedBy: string;
-  assignedAt: number;
-  updatedAt: number;
-}
-
 /** One prescribed cardio session in a coach's cardio plan. */
 export interface CardioSession {
   id: string;
@@ -862,17 +841,6 @@ export interface CardioPlan {
   name: string;
   sessions: CardioSession[];
   meta?: AssignedPlanMeta;
-  updatedAt: number;
-}
-
-/** A coach's reusable plan template at top-level `planTemplates` (owned by coachId). */
-export interface PlanTemplate {
-  id: string;
-  coachId: string;
-  kind: PlanKind;
-  title: string;
-  description: string;
-  createdAt: number;
   updatedAt: number;
 }
 
@@ -1080,6 +1048,8 @@ export interface WorkoutLog {
   finished: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1155,7 +1125,7 @@ export interface SubstitutionPolicy {
   requireCoachApproval: boolean;
 }
 
-/** The three plan kinds that can be versioned (cardio is not a `PlanKind`). */
+/** The three plan kinds that can be versioned. */
 export type PlanVersionKind = 'workout' | 'nutrition' | 'cardio';
 
 /**
@@ -1202,6 +1172,8 @@ export interface NutritionLog {
   creatineTaken: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1220,6 +1192,8 @@ export interface CardioLog {
   steps: number | null;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export interface WeightLog {
@@ -1228,6 +1202,8 @@ export interface WeightLog {
   weightKg: number;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export type MeasurementKey =
@@ -1262,32 +1238,8 @@ export interface MeasurementLog {
   values: Record<string, number>;
   updatedAt: number;
   dirty: boolean;
-}
-
-// ---------------------------------------------------------------------------
-// Video
-// ---------------------------------------------------------------------------
-
-export type VideoKind = 'file' | 'youtube' | 'unknown';
-export type VideoStatus =
-  | 'link-pending'
-  | 'not-downloaded'
-  | 'downloading'
-  | 'downloaded'
-  | 'failed';
-
-export interface VideoAsset {
-  id: string;
-  exerciseId: string;
-  title: string;
-  sourceUrl: string | null;
-  kind: VideoKind;
-  status: VideoStatus;
-  localKey?: string;
-  sizeBytes?: number;
-  /** Set when the user pasted their own URL — seed upgrades won't replace it. */
-  userEdited?: boolean;
-  updatedAt: number;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1308,23 +1260,13 @@ export interface ProgressPhoto {
   note?: string;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
 // Habit / daily checklist / streaks / reminders
 // ---------------------------------------------------------------------------
-
-/**
- * Checklist item keys. Meal items are dynamic: `meal:<mealId>`.
- */
-export type ChecklistKey =
-  | 'workout'
-  | 'supplements'
-  | 'water'
-  | 'steps'
-  | 'cardio'
-  | 'creatine'
-  | `meal:${string}`;
 
 export interface ChecklistItemState {
   done: boolean;
@@ -1340,6 +1282,8 @@ export interface DailyChecklist {
   fullyComplete: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export type ReminderKind =
@@ -1362,6 +1306,8 @@ export interface Reminder {
   lastFiredDate?: DayKey;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export interface StreakValue {
@@ -1407,9 +1353,3 @@ export interface AppSettings {
   updatedAt: number;
 }
 
-export interface TimerLog {
-  id: string;
-  kind: 'session' | 'rest' | 'cardio';
-  startedAt: number;
-  durationSec: number;
-}

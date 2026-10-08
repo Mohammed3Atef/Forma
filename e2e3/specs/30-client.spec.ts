@@ -58,12 +58,8 @@ test.describe('client journeys', () => {
     await page.getByRole('button', { name: 'Skip' }).click();
     await expect(page.getByRole('button', { name: 'Skip' })).toHaveCount(0);
 
-    // Video button on an exercise WITHOUT any video: must not crash; record what it does.
-    await page.getByRole('button', { name: 'Watch video' }).click();
-    await page.waitForTimeout(600);
-    const noVideoPopup = await page.getByTestId('video-popup').count();
-    const noVideoSheet = await page.getByTestId('sheet').count();
-    testInfo.annotations.push({ type: 'video-no-url', description: `popup=${noVideoPopup} sheet=${noVideoSheet} (0/0 = silent no-op)` });
+    // An exercise WITHOUT any video offers no video button at all (B0 / EX-01 — no dead taps).
+    await expect(page.getByRole('button', { name: 'Watch video' })).toHaveCount(0);
     await shot(page, testInfo, '03-video-no-url');
 
     // Next → exercise 2 (has a coach videoUrl) → popup opens and closes.
@@ -397,7 +393,7 @@ test.describe('client journeys', () => {
     test.setTimeout(180_000);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'progressPhotos' });
     const { page } = await as('clientA');
-    await page.goto('/progress/photos');
+    await page.goto('/progress?tab=photos');
     await ready(page);
     const png = await makePng(page, '#3a7bd4', 96);
     await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'front.png', mimeType: 'image/png', buffer: png });
@@ -420,7 +416,7 @@ test.describe('client journeys', () => {
     expect((await res.body()).length).toBeGreaterThan(50);
 
     const fresh = await as('clientA');
-    await fresh.page.goto('/progress/photos');
+    await fresh.page.goto('/progress?tab=photos');
     await ready(fresh.page);
     const fimg = fresh.page.locator('img[alt="front"]');
     await expect(fimg).toBeVisible({ timeout: 20_000 });

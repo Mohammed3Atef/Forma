@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import i18n from '@/i18n';
+import { showToast } from './toastStore';
 import type { FoodItem, Macros, MealPlan, NutritionLog } from '@/types';
 
 type SubstitutionTag = NonNullable<NutritionLog['substitutions']>[string];
@@ -15,7 +17,6 @@ interface NutritionState {
   toggleMeal: (mealId: string) => Promise<void>;
   toggleSupplement: (suppId: string) => Promise<void>;
   addWater: (ml: number) => Promise<void>;
-  setCreatine: (taken: boolean) => Promise<void>;
   addCustomFood: (food: FoodItem) => Promise<void>;
   removeCustomFood: (id: string) => Promise<void>;
   /** Replace a planned item for this day (original kept, shown struck-through). */
@@ -102,6 +103,22 @@ function normalize(log: NutritionLog): NutritionLog {
 /** Stale-response guard: rapid day-switches fire overlapping loads. */
 let loadSeq = 0;
 
+/**
+ * Show the change, then confirm it is on the device (B0 / PWA-07 — no false
+ * "saved"): if the IndexedDB write fails, the screen goes back to the previous
+ * state and the user is told, instead of showing a tap that was never stored.
+ */
+async function commitLog(set: (p: { log: NutritionLog }) => void, prev: NutritionLog, next: NutritionLog): Promise<void> {
+  set({ log: next });
+  try {
+    await getDataSource().nutritionLogs.put(next);
+  } catch (e) {
+    console.error('[nutrition] local save failed:', e);
+    set({ log: prev });
+    showToast({ title: i18n.t('trust.local.saveFailed'), variant: 'danger' });
+  }
+}
+
 export const useNutrition = create<NutritionState>((set, get) => ({
   plan: null,
   log: null,
@@ -130,8 +147,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -145,8 +161,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -160,18 +175,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
-    notifyHabitChange();
-  },
-
-  async setCreatine(taken) {
-    if (isSubscriptionReadOnly()) return; // subscription frozen/ended → plan is view-only
-    const cur = get().log;
-    if (!cur) return;
-    const next: NutritionLog = { ...cur, creatineTaken: taken, updatedAt: Date.now(), dirty: true };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -189,8 +193,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
   },
 
   async removeCustomFood(id) {
@@ -203,8 +206,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
   },
 
   async replaceItem(originalId, food, tag) {
@@ -221,8 +223,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -239,8 +240,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -253,8 +253,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
     const subs = { ...(cur.substitutions ?? {}) };
     delete subs[originalId];
     const next: NutritionLog = { ...cur, itemOverrides: overrides, substitutions: subs, updatedAt: Date.now(), dirty: true };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -271,8 +270,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 
@@ -286,8 +284,7 @@ export const useNutrition = create<NutritionState>((set, get) => ({
       updatedAt: Date.now(),
       dirty: true,
     };
-    set({ log: next });
-    await getDataSource().nutritionLogs.put(next);
+    await commitLog(set, cur, next);
     notifyHabitChange();
   },
 }));

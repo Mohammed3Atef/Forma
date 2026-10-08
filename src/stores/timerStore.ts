@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { HAPTIC, vibrate } from '@/lib/haptics';
+import { readLive, writeLive } from '@/lib/liveState';
 
 /**
  * Global rest-timer. A single timestamp (`endsAt`) drives a countdown so the
- * timer stays accurate across re-renders, tab backgrounding, and reloads. A
- * 250ms tick updates `remainingSec` for the UI.
+ * timer stays accurate across re-renders and tab backgrounding, and it is
+ * persisted (B0 / PWA-07) so it also survives a reload or the OS killing the
+ * app — `restore()` picks it back up. A 250ms tick updates `remainingSec`.
  */
 interface TimerState {
   running: boolean;
@@ -21,7 +23,12 @@ interface TimerState {
   resume: () => void;
   skip: () => void;
   reset: () => void;
+  /** Resume a persisted timer after a reload (an expired one is dropped silently). */
+  restore: () => void;
 }
+
+const persistRest = (s: Pick<TimerState, 'running' | 'endsAt' | 'totalSec' | 'pausedRemaining'>) =>
+  writeLive({ rest: s.running ? { endsAt: s.endsAt, totalSec: s.totalSec, pausedRemaining: s.pausedRemaining } : null });
 
 function playBeep(): void {
   try {
@@ -67,11 +74,13 @@ export const useTimer = create<TimerState>((set, get) => ({
         vibrate(HAPTIC.restDone);
         playBeep();
         set({ running: false, remainingSec: 0, endsAt: null, intervalId: null });
+        persistRest(get());
       } else {
         set({ remainingSec: remaining });
       }
     }, 250);
     set({ running: true, paused: false, totalSec, remainingSec: sec, endsAt, intervalId: id, pausedRemaining: null });
+    persistRest(get());
   },
 
   adjust(deltaSec) {
@@ -80,12 +89,14 @@ export const useTimer = create<TimerState>((set, get) => ({
     if (s.paused) {
       const next = Math.max(0, (s.pausedRemaining ?? 0) + deltaSec);
       set({ pausedRemaining: next, remainingSec: next, totalSec: Math.max(s.totalSec, next) });
+      persistRest(get());
       return;
     }
     if (!s.endsAt) return;
     const newEndsAt = s.endsAt + deltaSec * 1000;
     const remaining = Math.max(0, Math.round((newEndsAt - Date.now()) / 1000));
     set({ endsAt: newEndsAt, remainingSec: remaining, totalSec: Math.max(s.totalSec, remaining) });
+    persistRest(get());
   },
 
   pause() {
@@ -94,6 +105,7 @@ export const useTimer = create<TimerState>((set, get) => ({
     const remaining = Math.max(0, Math.round((s.endsAt - Date.now()) / 1000));
     if (s.intervalId) clearInterval(s.intervalId);
     set({ paused: true, pausedRemaining: remaining, remainingSec: remaining, endsAt: null, intervalId: null });
+    persistRest(get());
   },
 
   resume() {
@@ -106,11 +118,28 @@ export const useTimer = create<TimerState>((set, get) => ({
     const s = get();
     if (s.intervalId) clearInterval(s.intervalId);
     set({ running: false, paused: false, remainingSec: 0, endsAt: null, intervalId: null, pausedRemaining: null });
+    persistRest(get());
   },
 
   reset() {
     const s = get();
     if (s.intervalId) clearInterval(s.intervalId);
     set({ running: false, paused: false, totalSec: 0, remainingSec: 0, endsAt: null, intervalId: null, pausedRemaining: null });
+    persistRest(get());
+  },
+
+  restore() {
+    const saved = readLive().rest;
+    if (!saved || get().running) return;
+    if (saved.pausedRemaining != null) {
+      set({ running: true, paused: true, totalSec: saved.totalSec, pausedRemaining: saved.pausedRemaining, remainingSec: saved.pausedRemaining, endsAt: null, intervalId: null });
+      return;
+    }
+    const remainingMs = (saved.endsAt ?? 0) - Date.now();
+    if (remainingMs <= 0) {
+      writeLive({ rest: null }); // finished while the app was closed — nothing to resume
+      return;
+    }
+    get().startRest(Math.round(remainingMs / 1000), { totalSec: saved.totalSec });
   },
 }));

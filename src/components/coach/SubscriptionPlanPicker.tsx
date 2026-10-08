@@ -25,8 +25,7 @@ function planResult(p: CoachSubscriptionPlan): PlanPickResult {
 
 /**
  * Subscription chooser used wherever a coach assigns a term (add-existing, invite,
- * per-client term). Lists the coach's own plans; falls back to the legacy
- * Trial/1mo/3mo presets when the coach has none, plus a "Custom" option (free
+ * per-client term). Lists the coach's own plans, plus a "Custom" option (free
  * duration + price) and an optional "Set up later". Emits a {@link PlanPickResult}
  * via `onChange` (pass a stable setter to avoid loops).
  */

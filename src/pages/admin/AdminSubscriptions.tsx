@@ -160,7 +160,7 @@ export function AdminSubscriptions() {
                         <span className="text-sm font-medium">{x.label}</span>
                         <span className="font-mono text-[12px] text-earth">{x.coaches != null ? `${x.coaches} · ` : ''}{x.total} {d.forma.currency}</span>
                       </div>
-                      <div className="prog thin"><span style={{ width: `${(x.total / maxTierTotal) * 100}%` }} /></div>
+                      <div className="prog"><span style={{ width: `${(x.total / maxTierTotal) * 100}%` }} /></div>
                     </div>
                   ))}
                 </div>

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
-import { subscribeCoachNotifications, subscribeNotifications } from '@/services/platform/notificationsApi';
+import { refreshNotifications, subscribeCoachNotifications, subscribeNotifications } from '@/services/platform/notificationsApi';
 import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsApi';
 import type { AppNotification, CoachPlanRequest } from '@/types';
 
@@ -32,8 +31,8 @@ function planRequestToNotification(r: CoachPlanRequest): AppNotification {
  *  - super-admin: pending coach plan-change requests (shares the overview's
  *    cache key; the collection-group query is index-backed) — refetched on focus.
  *  - coach: coach-bound alerts across their clients + their OWN doc (plan
- *    decisions about themselves), live via Firestore `onSnapshot`.
- *  - everyone else: their own client-bound feed, live via `onSnapshot`.
+ *    decisions about themselves), via ONE shared poll of `notifications.list`.
+ *  - everyone else: their own client-bound feed, same shared poll (not realtime).
  */
 export function useNotifications() {
   const role = useSession((s) => s.account?.role) ?? 'client';
@@ -41,7 +40,7 @@ export function useNotifications() {
   const isCoach = role === 'coach';
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isSuper = role === 'super_admin';
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const enabled = !!uid;
 
   // Super-admin feed: outstanding plan requests (same key as the overview alert).
   const adminQ = useQuery({
@@ -55,6 +54,8 @@ export function useNotifications() {
   // Coach / client personal feed — real-time.
   const [items, setItems] = useState<AppNotification[]>([]);
   const [personalLoading, setPersonalLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [nonce, setNonce] = useState(0);
   useEffect(() => {
     if (!enabled || isAdmin) {
       setItems([]);
@@ -62,16 +63,24 @@ export function useNotifications() {
       return;
     }
     setPersonalLoading(true);
+    setFailed(false);
     const onItems = (next: AppNotification[]) => {
       setItems(next);
       setPersonalLoading(false);
     };
-    const unsub = isCoach ? subscribeCoachNotifications(uid, onItems) : subscribeNotifications(uid, 'client', onItems);
+    const unsub = isCoach ? subscribeCoachNotifications(uid, onItems, 50, setFailed) : subscribeNotifications(uid, 'client', onItems, 50, setFailed);
     return unsub;
-  }, [enabled, isAdmin, isCoach, uid]);
+  }, [enabled, isAdmin, isCoach, uid, nonce]);
 
   const resolvedItems: AppNotification[] = isSuper ? (adminQ.data ?? []).map(planRequestToNotification) : items;
   const unread = resolvedItems.filter((n) => !n.seenAt).length;
   const loading = enabled && (isSuper ? adminQ.isLoading : !isAdmin && personalLoading);
-  return { items: resolvedItems, unread, isCoach, isAdmin, loading, refetch: adminQ.refetch };
+  // `error` only while nothing has loaded yet (a later failed poll keeps the last good feed).
+  const error = isSuper ? adminQ.isError && !adminQ.data : failed && personalLoading;
+  const retry = () => {
+    if (isSuper) return void adminQ.refetch();
+    refreshNotifications(); // the shared poller (other bells keep it alive)
+    setNonce((n) => n + 1);
+  };
+  return { items: resolvedItems, unread, isCoach, isAdmin, loading: loading && !error, error, retry, refetch: adminQ.refetch };
 }

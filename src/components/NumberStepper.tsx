@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { normalizeNumericText, parseDecimalOrNull } from '@/lib/utils';
 import { Icon } from './Icon';
 import { HAPTIC, vibrate } from '@/lib/haptics';
 
@@ -28,6 +30,12 @@ export function NumberStepper({
   ariaLabel,
 }: NumberStepperProps) {
   const { t } = useTranslation();
+  // Local text so "80." and Arabic digits can be typed; synced from `value` when not editing.
+  const [text, setText] = useState(value == null ? '' : String(value));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setText(value == null ? '' : String(value));
+  }, [value, focused]);
   const bump = (delta: number) => {
     vibrate(HAPTIC.tap);
     const base = value ?? 0;
@@ -47,15 +55,22 @@ export function NumberStepper({
       </button>
       <div className="relative min-w-0 flex-1">
         <input
-          type="number"
+          // text + decimal keypad (not type="number", which rejects Arabic-Indic digits) — RTL-04
+          type="text"
           inputMode="decimal"
           aria-label={ariaLabel}
-          value={value ?? ''}
+          value={text}
           placeholder={placeholder}
-          onFocus={(e) => e.currentTarget.select()}
+          onFocus={(e) => {
+            setFocused(true);
+            e.currentTarget.select();
+          }}
+          onBlur={() => setFocused(false)}
           onChange={(e) => {
-            const v = e.target.value;
-            onChange(v === '' ? null : Number(v));
+            const raw = normalizeNumericText(e.target.value);
+            if (!/^\d*\.?\d*$/.test(raw)) return; // digits + at most one dot
+            setText(raw);
+            onChange(parseDecimalOrNull(raw));
           }}
           className="h-11 w-full rounded-[10px] border border-line bg-surface-raised px-1 text-center font-mono text-base font-medium text-white placeholder:text-earth-subtle focus:border-brand/60 focus:outline-none"
           step={step}

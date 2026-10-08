@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -8,8 +8,8 @@ import { markNotificationSeen } from '@/services/platform/notificationsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import { fetchMyCoach } from '@/services/platform/clientCoachApi';
 import { showToast, type ToastAvatar } from '@/stores/toastStore';
-import { cloudAvailable } from '@/data/dataSource';
-import { clientNoteRoute } from '@/lib/noteTarget';
+import { openClientNote } from '@/lib/noteTarget';
+import { pickToastable } from '@/lib/notificationBaseline';
 import type { AppNotification } from '@/types';
 import { Icon } from './Icon';
 
@@ -25,7 +25,8 @@ export function NotificationBell({ className = '' }: { className?: string }) {
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid) ?? '';
   const coachId = useSession((s) => s.account?.assignedCoachId);
-  const { items, unread } = useNotifications();
+  const { items, unread, loading } = useNotifications();
+  const location = useLocation();
   const isAdmin = role === 'admin' || role === 'super_admin';
   const isCoach = role === 'coach';
   const to = isCoach ? '/coach/notifications' : isAdmin ? '/admin/notifications' : '/notifications';
@@ -36,12 +37,12 @@ export function NotificationBell({ className = '' }: { className?: string }) {
   const clientsQ = useQuery({
     queryKey: ['myClients', uid],
     queryFn: () => listMyClients(uid),
-    enabled: cloudAvailable() && isCoach && !!uid,
+    enabled: isCoach && !!uid,
   });
   const coachQ = useQuery({
     queryKey: ['myCoach', coachId],
     queryFn: () => fetchMyCoach(coachId!),
-    enabled: cloudAvailable() && !isCoach && !isAdmin && !!coachId,
+    enabled: !isCoach && !isAdmin && !!coachId,
   });
   const clientInfo = useMemo(() => {
     const m = new Map<string, ToastAvatar>();
@@ -57,23 +58,20 @@ export function NotificationBell({ className = '' }: { className?: string }) {
     return { name: coachQ.data?.displayName || coachQ.data?.email || t('coachInfo.yourCoach'), photoUrl: coachQ.data?.photoUrl };
   };
 
-  // Pop a toast for notifications that arrive AFTER mount (never the backlog).
-  // `items` are newest-first; the high-water mark is the newest createdAt seen
-  // so far. Deduped by id in the toast store, so the two mounted bells (mobile +
-  // desktop chrome) can't double-toast the same notification.
-  const hwRef = useRef<number | null>(null);
+  // Pop a toast only for what JUST arrived — never the backlog (B0 / NT-01):
+  // "new" is judged against a per-user mark stored on the device (survives
+  // reloads, relaunches and update reloads) plus a short recency window. Toasts
+  // are deduped by id, so the two mounted bells (mobile + desktop chrome)
+  // can't double-toast. Building a toast has no side effects (NT-02).
   useEffect(() => {
-    const newest = items[0]?.createdAt ?? 0;
-    if (hwRef.current === null) {
-      hwRef.current = newest; // first populated render → establish baseline
-      return;
-    }
-    const fresh = items.filter((n) => !n.seenAt && n.createdAt > (hwRef.current ?? 0));
+    if (loading || !uid) return;
+    const fresh = pickToastable(uid, items).filter((n) => {
+      // Never toast a message for the thread that's already on screen.
+      if (n.type !== 'message_received') return true;
+      return isCoach ? location.pathname !== `/coach/messages/${n.clientId}` : location.pathname !== '/messages';
+    });
     if (fresh.length === 0) return;
-    hwRef.current = Math.max(hwRef.current ?? 0, newest);
-    // Oldest-first so the newest toast ends up at the bottom of the stack.
     [...fresh].reverse().forEach((n) => {
-      const route = isCoach ? n.route ?? '/coach' : isAdmin ? n.route ?? '/admin' : clientNoteRoute(n);
       const who = senderOf(n) ?? undefined;
       const typeLabel = t(`notifications.types.${n.type}`);
       const isMsg = n.type === 'message_received';
@@ -87,13 +85,14 @@ export function NotificationBell({ className = '' }: { className?: string }) {
         avatar: who,
         onClick: () => {
           if (!isAdmin && !n.seenAt) void markNotificationSeen(n.clientId, n.id).catch(() => undefined);
-          navigate(route);
+          // Only a TAP may move the client's day / focus (B0 / NT-02).
+          navigate(isCoach ? n.route ?? '/coach' : isAdmin ? n.route ?? '/admin' : openClientNote(n));
         },
       });
     });
     // senderOf reads clientInfo/coachQ; intentionally not deps (best-effort name).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, isAdmin, isCoach, navigate, t]);
+  }, [items, loading, uid, isAdmin, isCoach, navigate, t, location.pathname]);
   return (
     <button
       type="button"

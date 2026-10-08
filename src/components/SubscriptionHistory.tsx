@@ -47,11 +47,11 @@ export function SubscriptionHistory({ sub, history }: { sub?: Subscription | nul
                 <div key={i} className="rowline">
                   <span className="tk-ic"><Icon name="calendar" size={14} /></span>
                   <div className="grow min-w-0">
-                    <p className="h3 flex items-center gap-1.5 truncate">
+                    <p className="flex items-center gap-1.5 truncate">
                       {r.months != null ? t('subscription.renewedMonths', { n: r.months }) : t('subscription.term')}
                       {r.current && <Pill tone="ok">{t('subscription.current')}</Pill>}
                     </p>
-                    <p className="bd-s font-mono">{fmtDate(r.startAt)} → {fmtDate(r.endAt)}</p>
+                    <p className="font-mono">{fmtDate(r.startAt)} → {fmtDate(r.endAt)}</p>
                   </div>
                   {r.price != null && (
                     <span className="shrink-0 font-mono text-[13px] font-medium text-earth">{r.price}{r.currency ? ` ${r.currency}` : ''}</span>

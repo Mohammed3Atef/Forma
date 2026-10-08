@@ -16,13 +16,3 @@ export function getDataSource(): DataSource {
   instance = new LocalDataSource();
   return instance;
 }
-
-/**
- * Whether cloud sync is available. The backend is mandatory infrastructure
- * now (not an opt-in Firebase toggle) — this always returns true and exists
- * only so the ~20 existing call sites (gating "cloud" UI/behavior) don't need
- * individual edits.
- */
-export function cloudAvailable(): boolean {
-  return true;
-}

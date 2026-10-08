@@ -1,16 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { pickFreshDraft } from '@/lib/draft';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
-import { LoadingState } from '@/components/ui/LoadingState';
+import { PlanConflictBanner, PlanEditorGate } from '@/components/coach/PlanEditorStates';
+import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextAreaField, TextInput } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { showToast } from '@/stores/toastStore';
 import { VersionActions } from '@/components/coach/VersionActions';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { confirmDelete } from '@/stores/dialogStore';
@@ -23,7 +20,6 @@ import { getClientCardioPlan, saveClientCardioPlan } from '@/services/platform/p
 import type { CardioPlan, CardioSession, CardioType } from '@/types';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
-const draftStore = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
 
 function emptyPlan(): CardioPlan {
   return { id: uid('cplan'), name: '', sessions: [], updatedAt: Date.now() };
@@ -40,44 +36,24 @@ const blankSess = (): SessForm => ({ id: null, type: 'treadmill', durationMin: '
 
 export function CoachCardioEditor() {
   const { t } = useTranslation();
-  const qc = useQueryClient();
   const { clientId = '' } = useParams();
   const coachId = useSession((s) => s.account?.id ?? '');
-  const draftKey = `cardioDraft:${clientId}`;
 
-  const query = useQuery({ queryKey: ['clientCardioPlan', clientId], queryFn: () => getClientCardioPlan(clientId), enabled: !!clientId });
-  const [plan, setPlan] = useState<CardioPlan | null>(null);
-  // Dirty is COMPUTED vs the last-saved baseline (matches CoachWorkoutEditor's
-  // pattern), so a leftover draft identical to the saved plan never false-prompts.
-  const baselineRef = useRef<string>('');
-  const [justSaved, setJustSaved] = useState(false);
-  const savedTimer = useRef<number | undefined>(undefined);
+  const ed = usePlanEditor<CardioPlan>({
+    queryKey: 'clientCardioPlan',
+    clientId,
+    draftKey: `cardioDraft:${coachId}:${clientId}`,
+    load: getClientCardioPlan,
+    save: saveClientCardioPlan,
+    empty: emptyPlan,
+  });
+  const { plan, setPlan, dirty, save } = ed;
   const [editing, setEditing] = useState<SessForm | null>(null);
   const isDesktop = useIsDesktop();
 
-  useEffect(() => {
-    // Wait for the query to actually settle before falling back to an empty
-    // plan — otherwise the very first render (query.data still undefined
-    // while loading) locks in an empty plan before the real saved plan has a
-    // chance to arrive, and a coach reopening an existing client's cardio
-    // plan would silently see it as blank (and could overwrite it on save).
-    if (plan !== null || query.isLoading) return;
-    void draftStore.getItem<CardioPlan>(draftKey).then((draft) => {
-      const base = query.data ?? emptyPlan();
-      baselineRef.current = JSON.stringify(base);
-      setPlan(pickFreshDraft(draft, query.data) ?? base); // stale drafts (server changed since) are discarded — see lib/draft.ts
-    });
-  }, [query.isLoading, query.data, plan, draftKey]);
 
-  const dirty = plan !== null && JSON.stringify(plan) !== baselineRef.current;
-  useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') });
+  useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, ed.discardDraft);
 
-  // Autosave a local draft while there are unsaved changes — the same
-  // protection CoachWorkoutEditor already has, so navigating away (any tab,
-  // the workspace back button, a refresh) never actually loses the edits.
-  useEffect(() => {
-    if (plan && dirty) void draftStore.setItem(draftKey, plan);
-  }, [plan, dirty, draftKey]);
 
   // Desktop: keep pane-b populated with the first session by default (matches
   // the Workout/Nutrition builders' split-pane behavior). Mobile never
@@ -89,26 +65,14 @@ export function CoachCardioEditor() {
     }
   }, [isDesktop, plan, editing]);
 
-  const save = useMutation({
-    mutationFn: () => saveClientCardioPlan(clientId, plan!),
-    onSuccess: async () => {
-      await draftStore.removeItem(draftKey);
-      baselineRef.current = JSON.stringify(plan);
-      void qc.invalidateQueries({ queryKey: ['clientCardioPlan', clientId] });
-      showToast({ title: t('common.saved'), variant: 'success' });
-      window.clearTimeout(savedTimer.current);
-      setJustSaved(true);
-      savedTimer.current = window.setTimeout(() => setJustSaved(false), 3000);
-    },
-  });
 
-  const exit = useBack(`/coach/client/${clientId}`, () => void draftStore.removeItem(draftKey));
+  const exit = useBack(`/coach/client/${clientId}`, ed.discardDraft);
 
   if (!plan) {
     return (
       <>
         <TopBar testId="coach-cardio-editor" title={t('coachEditor.cardioTitle')} dense onBack={exit} />
-        <LoadingState variant="list" count={4} />
+        {ed.status !== 'ready' && <PlanEditorGate status={ed.status} kind="cardio" onRetry={ed.retry} onCreate={ed.startNew} />}
       </>
     );
   }
@@ -190,7 +154,7 @@ export function CoachCardioEditor() {
         dense
         onBack={exit}
         right={
-          <SubmitButton type="button" data-testid="cardio-save" pending={save.isPending} className="h-[42px] px-4 text-xs" onClick={() => save.mutate()}>
+          <SubmitButton type="button" data-testid="cardio-save" pending={save.isPending} disabled={!ed.canSave || !plan.name.trim()} className="h-[42px] px-4 text-xs" onClick={() => save.mutate({})}>
             {t('common.save')}
           </SubmitButton>
         }
@@ -202,20 +166,20 @@ export function CoachCardioEditor() {
         <p className="mb-3 text-[12px] text-earth-subtle" data-testid="cardio-saving">{t('settings.saving')}</p>
       ) : dirty ? (
         <p className="mb-3 text-[12px] text-warn" data-testid="cardio-unsaved">{t('coachEditor.unsavedIndicator')}</p>
-      ) : justSaved ? (
-        <p className="mb-3 text-[12px] text-success" data-testid="cardio-saved">{t('common.saved')}</p>
+      ) : ed.justSaved ? (
+        <p className="mb-3 text-[12px] text-success" data-testid="cardio-saved">{t('trust.planEditor.savedVersioned')}</p>
       ) : null}
-      <p className="mb-3 text-[11.5px] text-earth-subtle">{t('coachEditor.saveHint')}</p>
+      <p className="mb-3 text-[11.5px] text-earth-subtle">{t('trust.planEditor.saveHint')}</p>
 
-      {save.isError && (
-        <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          {(save.error as Error)?.message || t('coachEditor.saveFailed')}
-        </p>
-      )}
+      {ed.conflict ? (
+        <PlanConflictBanner pending={save.isPending} onLoadLatest={() => void ed.reloadLatest()} onKeepMine={() => save.mutate({ overwrite: true })} />
+      ) : save.isError ? (
+        <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert" data-testid="plan-editor-save-failed">{t('trust.planEditor.saveFailed')}</p>
+      ) : null}
 
       <TextInput label={t('field.planName')} fieldClassName="mb-2" data-testid="cardio-plan-name" value={plan.name} onChange={(e) => setPlan({ ...plan, name: e.target.value })} placeholder={t('coachEditor.cardioNamePlaceholder')} />
       <div className="mb-3">
-        <VersionActions clientId={clientId} kind="cardio" plan={plan} createdBy={coachId} />
+        <VersionActions clientId={clientId} kind="cardio" pending={save.isPending} onSaveVersion={(reason) => save.mutateAsync({ reason })} />
       </div>
       <p className="mb-4 text-[13px] text-earth-muted">{t('coachEditor.cardioHint')}</p>
 

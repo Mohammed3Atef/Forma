@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
@@ -45,9 +46,17 @@ const ACCT_TONE: Record<AccountStatus, PillTone> = {
   disabled: 'bad',
 };
 
+// Dates are parsed AND formatted in the coach's local timezone (B0 / CO-14):
+// formatting a local-midnight timestamp with toISOString() showed the previous
+// day east of UTC (e.g. Cairo).
+const pad2 = (n: number) => String(n).padStart(2, '0');
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
-const toDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const toDate = (ms?: number | null) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+const todayStr = () => toDate(Date.now());
 
 /** Coach controls for a client's subscription, account status, and freeze requests. */
 export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientId: string; coachId: string; account: UserRecord | null }) {
@@ -80,7 +89,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
     void qc.invalidateQueries({ queryKey: ['mySubscription'] });
   };
-  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: commercialErrorMessage(e, t) });
   const succeed = (title: string) => () => {
     invalidate();
     showToast({ title, variant: 'success' });
@@ -165,7 +174,16 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
             {sub && status !== 'ended' && <span className="font-mono text-[12px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>}
           </div>
 
-          {sub ? (
+          {rel.isError ? (
+            <div className="space-y-2" role="alert" data-testid="sub-load-error">
+              <p className="text-[13px] text-danger">{t('trust.subscription.loadFailed')}</p>
+              <button type="button" className="btn-ghost w-full" onClick={() => void rel.refetch()}>
+                {t('common.retry')}
+              </button>
+            </div>
+          ) : rel.isPending ? (
+            <div className="sk h-16 rounded-xl" />
+          ) : sub ? (
             <>
               {/* Clear summary grid (renewal date emphasised) instead of a dense inline line. */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -196,8 +214,8 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
             <p className="text-[13px] text-earth-muted">{t('subscription.none')}</p>
           )}
 
-          {/* Primary action (reads "Renew" for expired/cancelled/ended). */}
-          <button type="button" className="btn-primary w-full" data-testid="sub-set-term" onClick={() => setSheet('term')}>
+          {/* Primary action (reads "Renew" for expired/cancelled/ended) — only on a loaded relationship. */}
+          <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="sub-set-term" disabled={!rel.isSuccess} onClick={() => setSheet('term')}>
             {isRenew ? t('subscription.renew') : t('subscription.setTerm')}
           </button>
 
@@ -267,12 +285,16 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
 
       {/* Set-term sheet */}
       <SetTermSheet
+        // Remount on every open so the fields reflect the CURRENT term (B0 / CO-14) —
+        // the sheet used to keep whatever it was first initialised with.
+        key={sheet === 'term' ? `term-${sub?.updatedAt ?? 0}` : 'term-closed'}
         open={sheet === 'term'}
         onClose={() => setSheet(null)}
-        initialStart={sub ? toDate(sub.startAt) : todayStr()}
+        initialStart={isRenew || !sub ? todayStr() : toDate(sub.startAt)}
         initialMonths={sub?.months ?? 3}
+        initialPrice={sub?.price != null ? String(sub.price) : ''}
         coachId={coachId}
-        currency={coachCurrency}
+        currency={sub?.currency || coachCurrency}
         pending={setTerm.isPending}
         error={setTerm.isError}
         onSave={(start, term, price, planName) => setTerm.mutate({ start, term, price, planName })}
@@ -364,11 +386,20 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, pending, err
   );
 }
 
+/** The end date the term will get — shown before saving (same rule as the server: calendar months / days). */
+function previewEnd(start: string, unit: 'days' | 'months', dur: number): string {
+  const [y, m, d] = start.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const end = unit === 'days' ? new Date(y, m - 1, d + dur) : new Date(y, m - 1 + dur, d);
+  return toDate(end.getTime());
+}
+
 function SetTermSheet({
   open,
   onClose,
   initialStart,
   initialMonths,
+  initialPrice,
   coachId,
   currency,
   pending,
@@ -379,6 +410,8 @@ function SetTermSheet({
   onClose: () => void;
   initialStart: string;
   initialMonths: number;
+  /** The current term's price — a renewal is never prefilled as free. */
+  initialPrice: string;
   coachId: string;
   currency: string;
   pending: boolean;
@@ -391,7 +424,7 @@ function SetTermSheet({
   const [start, setStart] = useState(initialStart);
   const [unit, setUnit] = useState<'days' | 'months'>('months');
   const [duration, setDuration] = useState(String(initialMonths));
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState(initialPrice);
   const [planName, setPlanName] = useState<string | undefined>(undefined);
 
   // Picking a plan prefills the fields; the coach can then tweak them per client.
@@ -433,7 +466,13 @@ function SetTermSheet({
         <div>
           <label className="label">{t('coachPlans.price')} ({currency})</label>
           <input className="input" inputMode="decimal" data-testid="term-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
+          {initialPrice && price === initialPrice && <p className="mt-1 text-[11.5px] text-earth-subtle">{t('trust.subscription.priceKept')}</p>}
         </div>
+        {start && (
+          <p className="text-[13px] text-earth-muted" data-testid="term-end-preview">
+            {t('trust.subscription.endsOn', { date: previewEnd(start, unit, dur) })}
+          </p>
+        )}
         {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
         <SubmitButton
           type="button"

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Slider } from '@/components/Slider';
 import { NumberStepper } from '@/components/NumberStepper';
 import { PosePhotoPicker } from '@/components/PosePhotoPicker';
@@ -14,6 +15,8 @@ import { getCheckIn, submitCheckIn, type CheckInSubmission } from '@/services/pl
 import { useSession } from '@/services/auth/sessionStore';
 import { useBack } from '@/hooks/useBack';
 import { showToast } from '@/stores/toastStore';
+import { confirmDialog } from '@/stores/dialogStore';
+import { setNavGuard } from '@/stores/navGuardStore';
 import { shortDate } from '@/lib/utils';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { CheckInStatus } from '@/types';
@@ -26,6 +29,31 @@ const TONE: Record<CheckInStatus, PillTone> = {
 
 const STEPS = ['body', 'training', 'nutrition', 'notes'] as const;
 type Step = (typeof STEPS)[number];
+
+const INITIAL: CheckInSubmission = { adherenceTraining: 80, adherenceNutrition: 80, hungerLevel: 5, energyLevel: 5, sleepQuality: 5, progressPhotos: {} };
+
+/**
+ * Answers are saved on the device as they're given (B0 / CL-42, JR-05) so
+ * closing the flow, a reload, an OS kill or an update reload never loses them;
+ * the flow resumes at the same step. Cleared after a confirmed submit.
+ */
+const draftKey = (uid: string, id: string) => `forma.checkinDraft.v1.${uid}.${id}`;
+function readDraft(uid: string, id: string): { form: CheckInSubmission; step: number } | null {
+  try {
+    const raw = localStorage.getItem(draftKey(uid, id));
+    return raw ? (JSON.parse(raw) as { form: CheckInSubmission; step: number }) : null;
+  } catch {
+    return null;
+  }
+}
+function writeDraft(uid: string, id: string, draft: { form: CheckInSubmission; step: number } | null): void {
+  try {
+    if (draft) localStorage.setItem(draftKey(uid, id), JSON.stringify(draft));
+    else localStorage.removeItem(draftKey(uid, id));
+  } catch {
+    /* storage unavailable — answers just won't survive a reload */
+  }
+}
 
 /**
  * Client weekly check-in — a 4-step wizard (Body → Training → Nutrition →
@@ -46,17 +74,46 @@ export function CheckIn() {
   const q = useQuery({ queryKey: ['checkIn', uid, id], queryFn: () => getCheckIn(uid, id), enabled: !!uid && !!id });
   const checkIn = q.data;
 
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState<CheckInSubmission>({ adherenceTraining: 80, adherenceNutrition: 80, hungerLevel: 5, energyLevel: 5, sleepQuality: 5, progressPhotos: {} });
+  // Resume a saved draft (answers + step) for this check-in on this device.
+  const saved = useMemo(() => (uid && id ? readDraft(uid, id) : null), [uid, id]);
+  const [step, setStep] = useState(() => Math.min(saved?.step ?? 0, STEPS.length - 1));
+  const [form, setForm] = useState<CheckInSubmission>(() => saved?.form ?? INITIAL);
+  const dirty = useMemo(() => step > 0 || JSON.stringify(form) !== JSON.stringify(INITIAL), [form, step]);
+  const submittingRef = useRef(false);
+  const [done, setDone] = useState(false);
   const submit = useMutation({
     mutationFn: () => submitCheckIn(uid, id, form),
     onSuccess: () => {
+      writeDraft(uid, id, null);
+      setDone(true);
       void qc.invalidateQueries({ queryKey: ['checkIn', uid, id] });
       void qc.invalidateQueries({ queryKey: ['activeCheckIn', uid] });
       void qc.invalidateQueries({ queryKey: ['checkInsHistory', uid] });
       showToast({ title: t('checkin.submitted'), variant: 'success' });
     },
+    onSettled: () => {
+      submittingRef.current = false;
+    },
   });
+
+  const wizard = !!q.data && q.data.status === 'requested' && !done;
+  // Autosave every answer / step change while the check-in is open.
+  useEffect(() => {
+    if (wizard && dirty) writeDraft(uid, id, { form, step });
+  }, [wizard, dirty, form, step, uid, id]);
+  // Leaving mid-check-in asks first (bottom nav, header back, ✕) — answers stay saved either way.
+  useEffect(() => {
+    if (!wizard || !dirty) return;
+    setNavGuard(() =>
+      confirmDialog({
+        title: t('trust.checkin.leaveTitle'),
+        message: t('trust.checkin.leaveBody'),
+        confirmLabel: t('trust.checkin.leave'),
+        cancelLabel: t('trust.checkin.keepGoing'),
+      }),
+    );
+    return () => setNavGuard(null);
+  }, [wizard, dirty, t]);
 
   const setPhoto = (pose: 'front' | 'side' | 'back', url?: string) =>
     setForm((f) => ({ ...f, progressPhotos: { ...f.progressPhotos, [pose]: url } }));
@@ -65,6 +122,10 @@ export function CheckIn() {
   const isLast = step === STEPS.length - 1;
   const goNext = () => {
     if (isLast) {
+      // One submission per tap burst: the ref closes the gap before React
+      // re-renders the disabled button (B0.5 — no duplicate submit).
+      if (submittingRef.current || submit.isPending || done) return;
+      submittingRef.current = true;
       submit.mutate();
       return;
     }
@@ -83,6 +144,15 @@ export function CheckIn() {
       <div className="anim-rise">
         <TopBar title={t('checkin.title')} onBack={leave} />
         <LoadingState variant="list" count={3} />
+      </div>
+    );
+  }
+  // A failed read is an error with Retry — never "not found" (B0.16).
+  if (q.isError && !checkIn) {
+    return (
+      <div className="anim-rise">
+        <TopBar title={t('checkin.title')} onBack={leave} />
+        <ErrorState onRetry={() => void q.refetch()} testId="checkin-load-error" />
       </div>
     );
   }
@@ -114,16 +184,18 @@ export function CheckIn() {
     );
   }
 
-  // --- The 4-step wizard ---
+  // --- The 4-step wizard: a full-screen task (B0 / CL-42, JR-05) ---
+  // A fixed layer above the bottom nav and any banner, with its own scrolling
+  // body and a pinned action bar, so Continue / Submit is always on screen.
   return (
-    <div className="-mx-5 flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-line bg-surface px-5 py-3">
+    <div className="fixed inset-0 z-50 flex flex-col bg-surface" data-testid="checkin-flow" role="dialog" aria-modal="true" aria-label={t('checkin.title')}>
+      <header className="shrink-0 border-b border-line bg-surface px-5 pb-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <button type="button" onClick={goBack} className="icon-btn h-9 w-9" aria-label={t('checkin.back')}>
             <Icon name="chevronLeft" size={18} className="rtl:rotate-180" />
           </button>
           <p className="ui-label">{t('checkin.title')}</p>
-          <button type="button" onClick={leave} className="icon-btn h-9 w-9" aria-label={t('common.close')}>
+          <button type="button" onClick={leave} className="icon-btn h-9 w-9" aria-label={t('common.close')} data-testid="checkin-close">
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -136,11 +208,11 @@ export function CheckIn() {
         </div>
       </header>
 
-      <div className="flex-1 space-y-4 px-5 py-5 pb-28">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5" data-testid="checkin-body">
         {stepName === 'body' && (
           <>
             <h1 className="h1">{t('checkin.steps.body')}</h1>
-            <p className="bd">{t('checkin.bodyIntro')}</p>
+            <p className="">{t('checkin.bodyIntro')}</p>
             <div className="card space-y-4">
               <div>
                 <label className="label">{t('checkin.weight')}</label>
@@ -161,7 +233,7 @@ export function CheckIn() {
         {stepName === 'training' && (
           <>
             <h1 className="h1">{t('checkin.steps.training')}</h1>
-            <p className="bd">{t('checkin.trainingIntro')}</p>
+            <p className="">{t('checkin.trainingIntro')}</p>
             <div className="card">
               <label className="label mb-1 block">{t('checkin.trainingAdherence')}</label>
               <Slider value={form.adherenceTraining ?? 0} min={0} max={100} step={5} onChange={(v) => setForm({ ...form, adherenceTraining: v })} format={(v) => `${v}%`} testId="checkin-training" />
@@ -172,7 +244,7 @@ export function CheckIn() {
         {stepName === 'nutrition' && (
           <>
             <h1 className="h1">{t('checkin.steps.nutrition')}</h1>
-            <p className="bd">{t('checkin.nutritionIntro')}</p>
+            <p className="">{t('checkin.nutritionIntro')}</p>
             <div className="card space-y-4">
               <div>
                 <label className="label mb-1 block">{t('checkin.nutritionAdherence')}</label>
@@ -189,7 +261,7 @@ export function CheckIn() {
         {stepName === 'notes' && (
           <>
             <h1 className="h1">{t('checkin.steps.notes')}</h1>
-            <p className="bd">{t('checkin.notesIntro')}</p>
+            <p className="">{t('checkin.notesIntro')}</p>
             <div className="card">
               <label className="label">{t('checkin.notes')}</label>
               <textarea className="input min-h-20" data-testid="checkin-notes" value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -206,13 +278,13 @@ export function CheckIn() {
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t border-line bg-surface px-5 py-4">
+      <div className="shrink-0 border-t border-line bg-surface px-5 pt-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} data-testid="checkin-actions">
         {submit.isError && (
           <p role="alert" className="mb-3 text-center text-sm text-danger" data-testid="checkin-error">
-            {t('common.errorGeneric')}
+            {t('trust.checkin.submitFailed')}
           </p>
         )}
-        <button type="button" data-testid={isLast ? 'checkin-submit' : 'checkin-next'} className="btn-primary btn-lg w-full disabled:opacity-40" disabled={submit.isPending} onClick={goNext}>
+        <button type="button" data-testid={isLast ? 'checkin-submit' : 'checkin-next'} className="btn-primary btn-lg w-full disabled:opacity-40" disabled={submit.isPending || done} onClick={goNext}>
           {isLast ? (submit.isPending ? t('auth.working') : (<><Icon name="check" size={16} /> {t('checkin.submit')}</>)) : (<>{t('checkin.continue')} <Icon name="chevron" size={16} className="rtl:rotate-180" /></>)}
         </button>
       </div>

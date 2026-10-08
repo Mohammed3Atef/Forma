@@ -1,53 +1,10 @@
 import { useCoachContentSync } from '@/stores/coachContentStore';
-import localforage from 'localforage';
 import { getDataSource } from '@/data/dataSource';
-import { SEED_PROFILE, SEED_SETTINGS } from '@/data/seed/defaults';
+import { currentLocalOwner } from '@/data/localScope';
 import { getClientMealPlan, getClientWorkoutPlan } from './planApi';
 import { fetchMyCoachTargets, fetchMyProfile } from './clientCoachApi';
 import type { DailyTargets } from '@/types';
 
-const meta = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
-
-const ZERO_TARGETS: DailyTargets = { calories: 0, protein: 0, carbs: 0, fats: 0, waterMl: 0, steps: 0, cardioMinutes: 0 };
-
-async function clearRepo(repo: { getAll: () => Promise<{ id: string }[]>; remove: (id: string) => Promise<void> }): Promise<void> {
-  const all = await repo.getAll();
-  await Promise.all(all.map((r) => repo.remove(r.id)));
-}
-
-/**
- * Local-store data is shared per-DEVICE (one IndexedDB), so switching accounts
- * on the same device would otherwise show the previous user's logs, plan,
- * profile and PRs. When the signed-in uid differs from the device's recorded
- * owner, wipe all local fitness data and reset the profile/targets so each
- * account starts clean; their own cloud data is then pulled by the SyncEngine.
- * Returns true if a reset happened.
- */
-export async function scopeLocalToUser(uid: string, displayName: string): Promise<boolean> {
-  const owner = await meta.getItem<string>('localOwnerUid');
-  if (owner === uid) return false;
-  const ds = getDataSource();
-  await Promise.all([
-    clearRepo(ds.workoutLogs),
-    clearRepo(ds.nutritionLogs),
-    clearRepo(ds.cardioLogs),
-    clearRepo(ds.weightLogs),
-    clearRepo(ds.measurementLogs),
-    clearRepo(ds.progressPhotos),
-    clearRepo(ds.dailyChecklists),
-    clearRepo(ds.reminders),
-    clearRepo(ds.workoutPlans),
-    clearRepo(ds.mealPlans),
-    clearRepo(ds.videoAssets),
-  ]);
-  await ds.profile.set({ ...SEED_PROFILE, name: displayName || '', createdAt: 0, updatedAt: 0 });
-  await ds.settings.set({ ...SEED_SETTINGS, targets: ZERO_TARGETS, updatedAt: 0 });
-  // Reset sync state so we cleanly re-pull THIS user's data.
-  await meta.removeItem(`pullCursorV2:${uid}`);
-  await meta.removeItem(`clientDataMigrated:${uid}`);
-  await meta.setItem('localOwnerUid', uid);
-  return true;
-}
 
 /**
  * Pulls the signed-in client's coach-authored content (workout plan, meal plan,
@@ -73,10 +30,13 @@ export async function loadCoachAssignedContent(uid: string): Promise<void> {
     useCoachContentSync.getState().setStatus('failed');
     return; // keep whatever is already mirrored locally
   }
+  // The account may have changed while the reads were in flight: never mirror
+  // one account's coach content into another account's database.
+  if (currentLocalOwner() !== uid) return;
   useCoachContentSync.getState().setStatus('ok');
 
   // Apply the client's own profile deterministically (last-write-wins) so the
-  // profile-completion gate reflects real values right after scopeLocalToUser
+  // profile-completion gate reflects real values right after the account's database opens
   // reset it — without waiting for the next background sync tick.
   if (remoteProfile) {
     const localProfile = await ds.profile.get();

@@ -62,6 +62,17 @@ export interface NotificationDoc {
   entityType?: NoteEntityType;
   entityId?: string;
   route?: string;
+  /** coach_note only: set when the note was explicitly shared with the client. */
+  noteVisibility?: 'client';
+  /**
+   * B0 / NT-03 — three states, one meaning each:
+   *  - `seenAt`     READ: the user saw it (opened it, opened the thread, or "Mark all read").
+   *                 The unread badge counts rows with `seenAt: null`.
+   *  - `resolvedAt` DONE: the task it asked for was completed (check-in submitted /
+   *                 reviewed, freeze decided, assessment reviewed, thread read).
+   *                 Resolving also marks it read, so a finished task never stays unread.
+   */
+  resolvedAt?: number | null;
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
@@ -70,6 +81,21 @@ export interface NotificationDoc {
 
 /** The exact shape returned to the frontend — same fields as `AppNotification`, `id` instead of `_id`. */
 export type PublicNotification = Omit<NotificationDoc, '_id'> & { id: string };
+
+/**
+ * Marks every open notification matching `match` as DONE (and read) — called
+ * by the handler that completes the task (B0 / NT-03). Best-effort: a failure
+ * here must never fail the primary action.
+ */
+export async function resolveNotifications(match: { clientId: string; forRole: 'client' | 'coach'; type: NotificationType; entityId?: string }): Promise<void> {
+  try {
+    const now = Date.now();
+    const col = await notificationsCol();
+    await col.updateMany({ ...match, resolvedAt: null }, [{ $set: { resolvedAt: now, seenAt: { $ifNull: ['$seenAt', now] }, updatedAt: now } }]);
+  } catch (e) {
+    console.warn('[notifications] resolve failed (non-fatal):', e);
+  }
+}
 
 export function toPublicNotification(doc: NotificationDoc): PublicNotification {
   const { _id, ...rest } = doc;

@@ -8,10 +8,9 @@ import { Onboarding } from '@/components/Onboarding';
 import { Splash } from '@/components/Splash';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { queryClient } from '@/services/platform/queryClient';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { useAssessmentStatus } from '@/hooks/useAssessmentStatus';
-import { loadCoachAssignedContent, scopeLocalToUser } from '@/services/platform/clientSync';
+import { loadCoachAssignedContent } from '@/services/platform/clientSync';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition } from '@/stores/nutritionStore';
 import { useSettings } from '@/stores/settingsStore';
@@ -41,13 +40,9 @@ const Nutrition = lazy(() => import('@/pages/Nutrition').then((m) => ({ default:
 const Cardio = lazy(() => import('@/pages/Cardio').then((m) => ({ default: m.Cardio })));
 const Progress = lazy(() => import('@/pages/Progress').then((m) => ({ default: m.Progress })));
 const History = lazy(() => import('@/pages/History').then((m) => ({ default: m.History })));
-const ProgressPhotos = lazy(() => import('@/pages/ProgressPhotos').then((m) => ({ default: m.ProgressPhotos })));
 const Measurements = lazy(() => import('@/pages/Measurements').then((m) => ({ default: m.Measurements })));
 const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })));
-const ClientSettings = lazy(() => import('@/pages/ClientSettings').then((m) => ({ default: m.ClientSettings })));
 const ClientSubscriptionPage = lazy(() => import('@/pages/ClientSubscriptionPage').then((m) => ({ default: m.ClientSubscriptionPage })));
-const VideoManager = lazy(() => import('@/pages/VideoManager').then((m) => ({ default: m.VideoManager })));
-const ImportData = lazy(() => import('@/pages/ImportData').then((m) => ({ default: m.ImportData })));
 const Notifications = lazy(() => import('@/pages/Notifications').then((m) => ({ default: m.Notifications })));
 const CheckIn = lazy(() => import('@/pages/CheckIn').then((m) => ({ default: m.CheckIn })));
 const CheckInHistory = lazy(() => import('@/pages/CheckInHistory').then((m) => ({ default: m.CheckInHistory })));
@@ -80,13 +75,11 @@ function ClientGate() {
   // Pull coach-authored content (plan, meals, targets, profile) into the local
   // store on mount, when the assessment becomes complete, and on refocus.
   useEffect(() => {
-    if (!cloudAvailable()) return;
-    if (!uid || uid === 'local-user') return;
+    if (!uid) return;
     let cancelled = false;
     const refresh = async () => {
-      // Isolate this device's local store to the current account, then mirror
-      // the coach-assigned plan/targets in.
-      await scopeLocalToUser(uid, displayName);
+      // The account's own local database is already open (accountRuntime);
+      // mirror the coach-assigned plan/targets into it.
       await loadCoachAssignedContent(uid);
       if (cancelled) return;
       const day = useDay.getState().selected;
@@ -127,7 +120,7 @@ function ClientGate() {
       document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('focus', onReturn);
     };
-  }, [submitted, uid, displayName]);
+  }, [submitted, uid]);
 
   // Mandatory onboarding gate (platform clients): block the dashboard until the
   // assessment is submitted, but only on a DEFINITIVE read (`blocked`) so an
@@ -164,13 +157,9 @@ function ClientGate() {
           <Route path="/cardio" element={<AppShell showDayNav><SubscriptionGate><Cardio /></SubscriptionGate></AppShell>} />
           <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
           <Route path="/history" element={<AppShell><History /></AppShell>} />
-          <Route path="/progress/photos" element={<AppShell><ProgressPhotos /></AppShell>} />
           <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
           <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
-          <Route path="/settings/app" element={<AppShell><ClientSettings /></AppShell>} />
           <Route path="/settings/subscription" element={<AppShell><ClientSubscriptionPage /></AppShell>} />
-          <Route path="/settings/videos" element={<AppShell><VideoManager /></AppShell>} />
-          <Route path="/settings/import" element={<AppShell><ImportData /></AppShell>} />
           {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
           <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />
           <Route path="/reset/:token" element={<SignedInInterstitial kind="reset" />} />

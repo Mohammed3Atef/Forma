@@ -7,7 +7,8 @@ import type { Permission, Role, UserRecord } from '@/types';
  * grants on the account. `super_admin` short-circuits to true. Only active
  * accounts have any permissions at all.
  *
- * This gates UI visibility only — Firestore rules enforce the real boundary.
+ * This gates UI visibility only — the server enforces the real boundary
+ * (`api/_lib/rbac.ts` via the tRPC procedure guards in `api/_trpc/trpc.ts`).
  */
 
 export function effectivePermissions(account: UserRecord | null): Set<Permission> {
@@ -25,12 +26,6 @@ export function can(account: UserRecord | null, perm: Permission): boolean {
 export function useCan(perm: Permission): boolean {
   const account = useSession((s) => s.account);
   return can(account, perm);
-}
-
-/** Reactive hook for a per-user feature flag. */
-export function useFlag(flag: string): boolean {
-  const account = useSession((s) => s.account);
-  return account?.featureFlags?.[flag] ?? false;
 }
 
 /** Reactive hook for the current role (null when not signed in). */

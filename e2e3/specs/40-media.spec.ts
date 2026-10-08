@@ -130,7 +130,7 @@ test('progress photo: gallery upload → stored under the client folder, served,
   test.setTimeout(240_000);
   const { page } = await as('clientA');
   const reqs = watch(page);
-  await page.goto('/progress/photos');
+  await page.goto('/progress?tab=photos');
   await ready(page);
   const before = (await db.bunnyPuts()).length;
   const t0 = Date.now();

@@ -12,7 +12,8 @@ interface PhotoState {
   photos: ProgressPhoto[];
   loaded: boolean;
   load: () => Promise<void>;
-  add: (pose: PhotoPose, file: Blob, opts?: { date?: string; weightKg?: number; note?: string }) => Promise<void>;
+  /** Resolves `uploaded: true` only once the server acknowledged the upload (B0 — never a false "uploaded"). */
+  add: (pose: PhotoPose, file: Blob, opts?: { date?: string; weightKg?: number; note?: string }) => Promise<{ uploaded: boolean }>;
   remove: (id: string) => Promise<void>;
   url: (photo: ProgressPhoto) => Promise<string | null>;
 }
@@ -27,7 +28,7 @@ interface PhotoState {
  */
 async function tryUploadToCdn(photo: ProgressPhoto, file: Blob): Promise<ProgressPhoto> {
   const owner = useSession.getState().uid;
-  if (!owner || owner === 'local-user') return photo;
+  if (!owner) return photo;
   if (!(await ensureUploadConfig())) return photo;
   const blob = await downscaleImage(file);
   // Lands under the signed-in user's own `Forma/{uid}/` folder — the server derives that from the session.
@@ -84,10 +85,14 @@ export const usePhotos = create<PhotoState>((set, get) => ({
 
     try {
       const updated = await tryUploadToCdn(photo, file);
-      if (updated.cdnUrl) set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
+      if (updated.cdnUrl) {
+        set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
+        return { uploaded: true };
+      }
     } catch {
       /* offline / upload failed — keep local copy; load()'s retry pass will pick it up next launch */
     }
+    return { uploaded: false };
   },
 
   async remove(id) {

@@ -133,5 +133,3 @@ export function Sheet({ open, onClose, title, size = 'sm', onBack, backTestId, f
   );
 }
 
-/** Brief-named alias for the responsive overlay primitive. */
-export const ResponsiveDialog = Sheet;

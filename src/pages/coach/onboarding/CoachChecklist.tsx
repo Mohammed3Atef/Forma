@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
-import { listWorkoutTemplates } from '@/services/platform/coachAssetsApi';
 
 interface ChecklistItem {
   key: 'profile' | 'firstClient' | 'firstTemplate';
@@ -16,27 +14,19 @@ interface ChecklistItem {
  * Small coach-onboarding checklist card (NOT a wizard). Shows three items —
  * complete profile / add first client / create first template — until all are
  * done, then hides itself. Done-state is derived from REAL data where possible
- * (client count, template count, profile fields), falling back to the persisted
- * `UserRecord.onboarding` flags. Phase 1.
+ * (client count, template count, profile fields) — nothing writes persisted
+ * onboarding flags, so none are read (B0 / RM-69).
  */
-export function CoachChecklist({ totalClients }: { totalClients: number }) {
+export function CoachChecklist({ totalClients, templatesCreated }: { totalClients: number; templatesCreated: number }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const account = useSession((s) => s.account);
-  const coachId = account?.id;
 
-  const templates = useQuery({
-    queryKey: ['coachTemplatesCount', coachId],
-    queryFn: () => listWorkoutTemplates(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
 
-  const profileDone =
-    account?.onboarding?.profileDone === true ||
-    !!(account?.bio?.trim() || account?.specialty?.trim() || account?.photoUrl);
-  const firstClientDone = account?.onboarding?.firstClientDone === true || totalClients > 0;
-  const firstTemplateDone = account?.onboarding?.firstTemplateDone === true || (templates.data?.length ?? 0) > 0;
+  const profileDone = !!(account?.bio?.trim() || account?.specialty?.trim() || account?.photoUrl);
+  const firstClientDone = totalClients > 0;
+  // Counted by the dashboard query already loaded (no per-template download — RM-84).
+  const firstTemplateDone = templatesCreated > 0;
 
   const items: ChecklistItem[] = useMemo(
     () => [

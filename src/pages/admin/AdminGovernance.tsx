@@ -109,7 +109,7 @@ export function GovernanceSections() {
           capabilities (role/status changes, writing any client's data) get a
           visual flag so they read as different in kind, not just another row. */}
       <h2 className="h2 mb-2 mt-6">{t('admin.rolePermissions')}</h2>
-      <div className="tbl-wrap overflow-x-auto rounded-xl2 border border-line">
+      <div className="overflow-x-auto rounded-xl2 border border-line">
         <table className="w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line bg-surface-card">

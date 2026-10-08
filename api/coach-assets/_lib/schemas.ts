@@ -42,7 +42,18 @@ const ExerciseFieldsSchema = z.object({
   notes: LocalizedTextSchema,
   restSec: z.number(),
   videoId: z.string().nullable(),
-  videoUrl: z.string().nullable().optional(),
+  // B0 / MD-09: only https links are stored (no javascript:/data:/http) — plain
+  // http only on a loopback host (local dev / the isolated test CDN). Which
+  // hosts can actually PLAY is checked where the coach types the link.
+  videoUrl: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => v === '' || /^https:\/\/[^\s]+$/i.test(v) || /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\/[^\s]*$/i.test(v), {
+      message: 'Video links must be https:// links',
+    })
+    .nullable()
+    .optional(),
   category: nullAsAbsent(z.string().max(100)),
   equipment: nullAsAbsent(z.string().max(100)),
   tags: z.array(z.string()).optional(),

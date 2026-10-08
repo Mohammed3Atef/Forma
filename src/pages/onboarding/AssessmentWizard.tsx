@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { parseDecimalOrNull } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
@@ -195,7 +196,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
         heightCm: a.basic.heightCm,
         goal: GOAL_TO_PROFILE[a.goals.primaryGoal],
         activityLevel: a.lifestyle.activityLevel,
-        locale: i18n.language === 'ar' ? 'ar' : 'en',
+        locale: i18n.language.startsWith('ar') ? 'ar' : 'en',
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -438,7 +439,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
               <DecimalInput className="input" value={a.goals.targetWeightKg} onChange={(n) => patch('goals', { targetWeightKg: n })} />
             </Field>
             <Field label={t('assessment.deadlineMonths')}>
-              <input className="input" inputMode="numeric" value={a.goals.deadlineMonths ?? ''} onChange={(e) => patch('goals', { deadlineMonths: e.target.value ? Number(e.target.value) : undefined })} />
+              <input className="input" inputMode="numeric" value={a.goals.deadlineMonths ?? ''} onChange={(e) => patch('goals', { deadlineMonths: parseDecimalOrNull(e.target.value) ?? undefined })} />
             </Field>
           </div>
         </div>

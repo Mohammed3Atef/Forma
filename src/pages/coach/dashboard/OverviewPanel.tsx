@@ -41,7 +41,7 @@ export function OverviewPanel({ d }: { d: CoachDashboard }) {
 
   return (
     <div className="space-y-6">
-      <CoachChecklist totalClients={d.totalClients} />
+      <CoachChecklist totalClients={d.totalClients} templatesCreated={d.templatesCreated} />
 
       {/* Headline — real counts, not a generic greeting */}
       <div>

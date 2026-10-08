@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyRelationship } from '@/services/platform/clientCoachApi';
 import { effectiveSubscriptionStatus, subscriptionAccess } from '@/lib/subscription';
@@ -15,7 +14,7 @@ export function useSubscription() {
   const uid = useSession((s) => s.uid);
   const coachId = useSession((s) => s.account?.assignedCoachId);
   const hasCoach = !!coachId;
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user' && hasCoach;
+  const enabled = !!uid && hasCoach;
   const q = useQuery({
     queryKey: ['mySubscription', uid],
     queryFn: () => fetchMyRelationship(coachId!, uid!),

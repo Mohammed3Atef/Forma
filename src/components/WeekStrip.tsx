@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { dateLocale } from '@/lib/utils';
 import { dayKey, weekStartOf } from "@/lib/utils";
 
 export interface WeekStripDay {
@@ -36,7 +37,7 @@ export function WeekStrip({
         const isToday = d.key === todayKey;
         const isFuture = d.key > todayKey;
         const label = date.toLocaleDateString(
-          i18n.language === "ar" ? "ar-EG" : "en-US",
+          dateLocale(i18n.language, "en-US"),
           { weekday: "short" },
         );
         return (
@@ -60,7 +61,7 @@ export function WeekStrip({
               {label}
             </p>
             <p
-              className={`num text-[15px] ${isToday ? "text-brand-ink" : d.done ? "text-success" : "text-earth-muted"}`}
+              className={`text-[15px] ${isToday ? "text-brand-ink" : d.done ? "text-success" : "text-earth-muted"}`}
             >
               {date.getDate()}
             </p>

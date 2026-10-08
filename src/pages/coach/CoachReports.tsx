@@ -4,7 +4,7 @@ import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useSession } from '@/services/auth/sessionStore';
-import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
+import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
 import { ReportsPanel } from '@/pages/coach/dashboard/ReportsPanel';
 
 /**
@@ -19,12 +19,7 @@ export function CoachReports() {
   const { t } = useTranslation();
   const coachId = useSession((s) => s.account?.id);
 
-  const q = useQuery({
-    queryKey: ['coachDashboard', coachId],
-    queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
+  const q = useQuery(coachDashboardQuery(coachId));
   const d = q.data;
 
   return (

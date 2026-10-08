@@ -10,7 +10,6 @@ import type {
 import { getDataSource } from '@/data/dataSource';
 import { debounce, today } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
-import { useDay } from './dayStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { isSubscriptionReadOnly } from './subscriptionGate';
 
@@ -36,7 +35,13 @@ interface WorkoutState {
   resumeActive: () => WorkoutLog | null;
   discardActive: () => Promise<void>;
   updateSet: (exerciseId: string, setIndex: number, patch: Partial<SetLog>) => void;
-  toggleSetDone: (exerciseId: string, setIndex: number) => void;
+  /**
+   * Tick / untick a set. Ticking commits what the row DISPLAYS (B0 / CL-17):
+   * empty fields take last session's values (or a plain-number rep target).
+   * Returns false — and changes nothing — when the set would be logged with no
+   * reps, so an empty row can never turn into a silent "logged" set.
+   */
+  toggleSetDone: (exerciseId: string, setIndex: number) => boolean;
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setIndex: number) => void;
   addExercise: (exerciseId: string) => void;
@@ -96,9 +101,20 @@ function buildSession(plan: WorkoutPlan, day: WorkoutDay, date: string): Workout
   };
 }
 
+let lastWrite: Promise<unknown> = Promise.resolve();
 const persist = debounce((log: WorkoutLog) => {
-  void getDataSource().workoutLogs.put(log);
+  lastWrite = getDataSource().workoutLogs.put(log).catch((e) => console.error('[workout] local save failed:', e));
 }, 300);
+
+/**
+ * Settle any pending debounced set edit into IndexedDB (B0 / PWA-07). Called
+ * when the app is hidden (iOS may kill it without another chance) and before
+ * an account switch closes this account's database.
+ */
+export async function flushWorkoutWrites(): Promise<void> {
+  persist.flush();
+  await lastWrite;
+}
 
 export const useWorkout = create<WorkoutState>((set, get) => ({
   plan: null,
@@ -147,7 +163,9 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
     if (!plan) return;
     const day = plan.days.find((d) => d.id === dayId);
     if (!day) return;
-    const date = useDay.getState().selected;
+    // A NEW session is always logged on today (B0 / CL-04) — never on whatever
+    // past day the app happened to be focused on (week strip, history, a note).
+    const date = today();
     const existing = logs.find((l) => l.id === date);
     // NEVER overwrite a real session for this date. If one is already finished or
     // in progress, open it (resume/edit) — even if it's a different day type — so
@@ -229,12 +247,19 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
 
   toggleSetDone(exerciseId, setIndex) {
     const { active, logs } = get();
-    if (!active) return;
+    if (!active) return false;
+    const target = active.exercises.find((e) => e.exerciseId === exerciseId)?.sets.find((s) => s.setIndex === setIndex);
+    if (!target) return false;
+    let patch: Partial<SetLog> = { done: !target.done };
+    if (!target.done) {
+      const prevSet = get().previousFor(exerciseId)?.sets[setIndex];
+      const reps = target.actualReps ?? prevSet?.actualReps ?? (/^\d+$/.test(target.targetReps.trim()) ? Number(target.targetReps.trim()) : null);
+      if (reps == null) return false;
+      patch = { done: true, actualReps: reps, weightKg: target.weightKg ?? prevSet?.weightKg ?? null };
+    }
     const exercises = active.exercises.map((ex) => {
       if (ex.exerciseId !== exerciseId) return ex;
-      const sets = ex.sets.map((s) =>
-        s.setIndex === setIndex ? { ...s, done: !s.done } : s,
-      );
+      const sets = ex.sets.map((s) => (s.setIndex === setIndex ? { ...s, ...patch } : s));
       return { ...ex, sets, done: sets.every((s) => s.done) };
     });
     let next = { ...active, exercises, updatedAt: Date.now(), dirty: true };
@@ -248,6 +273,7 @@ export const useWorkout = create<WorkoutState>((set, get) => ({
       set({ active: next, logs: logs.map((l) => (l.id === next.id ? next : l)) });
     }
     persist(next);
+    return true;
   },
 
   addSet(exerciseId) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { normalizeNumericText } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import type { Exercise, ExerciseLog, SetLog } from "@/types";
 import type { PrevPerf } from "@/stores/workoutStore";
@@ -11,10 +12,12 @@ interface ExerciseCardProps {
   log: ExerciseLog;
   prev: PrevPerf | null;
   onUpdateSet: (setIndex: number, patch: Partial<SetLog>) => void;
-  onToggleDone: (setIndex: number) => void;
+  /** Returns false when the set can't be ticked yet (no reps to log). */
+  onToggleDone: (setIndex: number) => boolean | void;
   onAddSet: () => void;
   onRemoveSet: (setIndex: number) => void;
-  onVideo: () => void;
+  /** Omitted when there is no playable video — the button is then not shown (B0 / CL-20). */
+  onVideo?: () => void;
   onRemoveExercise?: () => void;
 }
 
@@ -35,6 +38,8 @@ export function ExerciseCard({
   const { t } = useTranslation();
   const loc = useLocalized();
   const [showNotes, setShowNotes] = useState(false);
+  // Row whose ✓ was refused because there was nothing to log (CL-17).
+  const [needsReps, setNeedsReps] = useState<number | null>(null);
 
   const dot = muscleColor(exercise.targetMuscle);
   const sub = [
@@ -43,6 +48,9 @@ export function ExerciseCard({
   ]
     .filter(Boolean)
     .join(" · ");
+
+  // ⓘ only when there is something behind it (CL-20).
+  const hasNotes = !!loc(exercise.notes) || (!!exercise.tempo && exercise.tempo !== "-");
 
   let workingSeen = 0;
   const cell =
@@ -67,22 +75,27 @@ export function ExerciseCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setShowNotes((v) => !v)}
-            className="icon-btn h-8 w-8"
-            aria-label={t("workout.notes")}
-          >
-            <Icon name="info" size={15} />
-          </button>
-          <button
-            type="button"
-            onClick={onVideo}
-            className="icon-btn h-8 w-8"
-            aria-label={t("workout.watchVideo")}
-          >
-            <Icon name="video" size={15} />
-          </button>
+          {hasNotes && (
+            <button
+              type="button"
+              onClick={() => setShowNotes((v) => !v)}
+              className="icon-btn h-8 w-8"
+              aria-label={t("workout.notes")}
+            >
+              <Icon name="info" size={15} />
+            </button>
+          )}
+          {onVideo && (
+            <button
+              type="button"
+              onClick={onVideo}
+              className="icon-btn h-8 w-8"
+              aria-label={t("workout.watchVideo")}
+              data-testid="exercise-video-button"
+            >
+              <Icon name="video" size={15} />
+            </button>
+          )}
           {onRemoveExercise && (
             <button
               type="button"
@@ -96,8 +109,7 @@ export function ExerciseCard({
         </div>
       </header>
 
-      {showNotes &&
-        (loc(exercise.notes) || (exercise.tempo && exercise.tempo !== "-")) && (
+      {showNotes && hasNotes && (
           <div className="mx-4 mb-3 rounded-xl border border-line bg-surface-raised p-3 text-sm text-earth-muted">
             {loc(exercise.notes)}
             {exercise.tempo && exercise.tempo !== "-" && (
@@ -161,18 +173,24 @@ export function ExerciseCard({
                 />
                 <NumericCell
                   ariaLabel={t("common.reps")}
+                  testId={`set-reps-${set.setIndex}`}
+                  invalid={needsReps === set.setIndex}
                   value={set.actualReps}
                   placeholder={
                     prevSet?.actualReps != null
                       ? String(prevSet.actualReps)
                       : set.targetReps || "0"
                   }
-                  onChange={(n) => onUpdateSet(set.setIndex, { actualReps: n })}
+                  onChange={(n) => {
+                    if (n != null && needsReps === set.setIndex) setNeedsReps(null);
+                    onUpdateSet(set.setIndex, { actualReps: n });
+                  }}
                   className={cell}
                 />
                 <button
                   type="button"
-                  onClick={() => onToggleDone(set.setIndex)}
+                  data-testid={`set-done-${set.setIndex}`}
+                  onClick={() => setNeedsReps(onToggleDone(set.setIndex) === false ? set.setIndex : null)}
                   className={`flex h-10 w-10 items-center justify-center rounded-[10px] border transition-transform active:scale-90 ${
                     set.done
                       ? "border-success bg-success text-[#06210f]"
@@ -182,6 +200,11 @@ export function ExerciseCard({
                 >
                   <Icon name="check" size={18} />
                 </button>
+                {needsReps === set.setIndex && (
+                  <p className="col-span-5 px-1 text-[12px] text-warn" role="alert" data-testid="set-needs-reps">
+                    {t("trust.workout.enterReps")}
+                  </p>
+                )}
               </li>
             );
           })}
@@ -219,6 +242,9 @@ interface NumericCellProps {
   ariaLabel: string;
   className: string;
   onChange: (n: number | null) => void;
+  testId?: string;
+  /** Highlights the cell (e.g. reps needed before the set can be ticked). */
+  invalid?: boolean;
 }
 
 /**
@@ -226,7 +252,7 @@ interface NumericCellProps {
  * decimal point ("12." → Number → 12 → re-render strips the dot), so we hold the
  * raw text while focused and only sync from the model when the field is idle.
  */
-function NumericCell({ value, placeholder, ariaLabel, className, onChange }: NumericCellProps) {
+function NumericCell({ value, placeholder, ariaLabel, className, onChange, testId, invalid }: NumericCellProps) {
   const [text, setText] = useState(value == null ? "" : String(value));
   const [focused, setFocused] = useState(false);
 
@@ -239,6 +265,8 @@ function NumericCell({ value, placeholder, ariaLabel, className, onChange }: Num
     <input
       inputMode="decimal"
       aria-label={ariaLabel}
+      aria-invalid={invalid || undefined}
+      data-testid={testId}
       value={text}
       placeholder={placeholder}
       onFocus={(e) => {
@@ -247,13 +275,14 @@ function NumericCell({ value, placeholder, ariaLabel, className, onChange }: Num
       }}
       onBlur={() => setFocused(false)}
       onChange={(e) => {
-        const raw = e.target.value.replace(",", "."); // accept comma as decimal sep
+        // Arabic-Indic digits and the Arabic decimal separator are normalised first (RTL-04).
+        const raw = normalizeNumericText(e.target.value);
         if (!/^\d*\.?\d*$/.test(raw)) return; // digits + at most one dot
         setText(raw);
         const parsed = raw === "" || raw === "." ? null : Number(raw);
         onChange(Number.isNaN(parsed) ? null : parsed);
       }}
-      className={className}
+      className={`${className}${invalid ? " !border-warn" : ""}`}
     />
   );
 }

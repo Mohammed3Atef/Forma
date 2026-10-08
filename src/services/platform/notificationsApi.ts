@@ -1,4 +1,5 @@
 import { trpc } from '@/services/trpc';
+import { shareSubscription } from '@/lib/sharedSubscription';
 import type { AppNotification } from '@/types';
 
 /**
@@ -15,25 +16,6 @@ import type { AppNotification } from '@/types';
  * callers but aren't sent to the API.
  */
 
-/** Fields the caller supplies; id/timestamps/seenAt are filled in here. */
-export type NewNotification = Omit<AppNotification, 'id' | 'createdAt' | 'updatedAt' | 'seenAt'>;
-
-/**
- * Best-effort: originally wrote an in-app notification straight to Firestore.
- * In the Mongo backend, notification-worthy actions create their own
- * notification server-side as part of the relevant action's own route (e.g.
- * sending a message — see `POST /api/messages`); there is no generic
- * `POST /api/notifications` route for the frontend to call directly. This
- * stays exported — and still never throws, matching the original best-effort
- * contract — purely so callers not yet migrated off Firestore (`coachApi.ts`,
- * `coachClientsApi.ts`, `coachPlanApi.ts`, `checkInApi.ts`, `coachTrialApi.ts`,
- * `clientCoachApi.ts`) keep compiling. Once each of those hits a dedicated
- * Mongo route that raises its own notification, this export — and their
- * imports of it — should be deleted.
- */
-export async function notify(_n: NewNotification): Promise<void> {
-  // Intentionally a no-op — see above.
-}
 
 interface NotificationsPage {
   notifications: AppNotification[];
@@ -56,7 +38,13 @@ const FULL_REFRESH_EVERY = 4;
  * `subscribeCoachNotifications`) what used to be a per-client fan-out of
  * listeners, now folded into the single server-side `feedFilter` query.
  */
-function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalMs = NOTIF_POLL_MS): () => void {
+function pollFeed(
+  cb: (items: AppNotification[]) => void,
+  max: number,
+  intervalMs = NOTIF_POLL_MS,
+  onError?: (failed: boolean) => void,
+  exposePollNow?: (fn: () => void) => void,
+): () => void {
   let cancelled = false;
   let cursor: number | undefined;
   let all: AppNotification[] = [];
@@ -75,12 +63,21 @@ function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalM
       cursor = all[0]?.createdAt;
       tick += 1;
       emit();
+      onError?.(false);
     } catch {
-      // Transient network/API error — keep the last known state, retry next tick.
+      // Transient network/API error — keep the last known state, retry next
+      // tick; report it so a feed that never loaded shows an error, not a
+      // spinner forever (B0.16).
+      if (!cancelled) onError?.(true);
     }
   };
 
   void poll();
+  // An immediate full refresh on demand (e.g. right after "Mark all read").
+  exposePollNow?.(() => {
+    tick = 0;
+    void poll();
+  });
   const interval = setInterval(() => void poll(), intervalMs);
   return () => {
     cancelled = true;
@@ -88,24 +85,60 @@ function pollFeed(cb: (items: AppNotification[]) => void, max: number, intervalM
   };
 }
 
-/** Notifications for one client doc, filtered by audience, newest first. */
-export async function listNotifications(
-  _clientId: string,
-  _forRole: 'client' | 'coach',
-  max = 50,
-): Promise<AppNotification[]> {
-  const { notifications } = await trpc.notifications.list.query();
-  return notifications.slice(0, max);
-}
-
 /** Polling notifications for one client doc, filtered by audience. Returns an unsubscribe. */
 export function subscribeNotifications(
-  _clientId: string,
+  clientId: string,
   _forRole: 'client' | 'coach',
   cb: (items: AppNotification[]) => void,
   max = 50,
+  onError?: (failed: boolean) => void,
 ): () => void {
-  return pollFeed(cb, max);
+  return subscribeFeed(clientId, cb, max, onError);
+}
+
+/**
+ * ONE poll loop per signed-in user, shared by every mounted bell / feed
+ * (B0 / RM-82: the responsive shells mount two bells, each used to poll).
+ */
+interface FeedState {
+  items: AppNotification[] | null;
+  failed: boolean;
+}
+let feedPollNow: (() => void) | null = null;
+function subscribeFeed(userId: string, cb: (items: AppNotification[]) => void, max: number, onError?: (failed: boolean) => void): () => void {
+  return shareSubscription<FeedState>(
+    `notif-feed:${userId}`,
+    (emit) => {
+      let items: AppNotification[] | null = null;
+      const stop = pollFeed(
+        (next) => {
+          items = next;
+          emit({ items, failed: false });
+        },
+        Math.max(max, 50),
+        NOTIF_POLL_MS,
+        (failed) => {
+          if (failed) emit({ items, failed: true });
+        },
+        (fn) => {
+          feedPollNow = fn;
+        },
+      );
+      return () => {
+        feedPollNow = null;
+        stop();
+      };
+    },
+    (state) => {
+      if (state.items) cb(state.items.slice(0, max));
+      onError?.(state.failed);
+    },
+  );
+}
+
+/** Poll the shared feed right now (after "Mark all read", or a Retry). */
+export function refreshNotifications(): void {
+  feedPollNow?.();
 }
 
 /**
@@ -114,8 +147,8 @@ export function subscribeNotifications(
  * merged them client-side; the Mongo `feedFilter` does that same merge
  * server-side, so this is just `pollFeed`.
  */
-export function subscribeCoachNotifications(_coachId: string, cb: (items: AppNotification[]) => void, max = 50): () => void {
-  return pollFeed(cb, max);
+export function subscribeCoachNotifications(coachId: string, cb: (items: AppNotification[]) => void, max = 50, onError?: (failed: boolean) => void): () => void {
+  return subscribeFeed(coachId, cb, max, onError);
 }
 
 /** Marks a single notification seen (read-state lives on the notification). */
@@ -123,6 +156,11 @@ export async function markNotificationSeen(_clientId: string, id: string): Promi
   // `_clientId` is unused: `notifications.markRead` scopes to the caller's
   // own feed + the given `id` — no clientId needed. Kept for signature compatibility.
   await trpc.notifications.markRead.mutate({ id });
+}
+
+/** "Mark all read" — every notification in the caller's own feed (B0 / NT-03). */
+export async function markAllNotificationsSeen(): Promise<void> {
+  await trpc.notifications.markRead.mutate({});
 }
 
 /**
@@ -139,11 +177,3 @@ export async function markMessageNotificationsSeen(clientId: string, _forRole: '
   }
 }
 
-/**
- * Coach-bound notifications across all the coach's active clients + their own
- * doc — the one-shot counterpart to `subscribeCoachNotifications`.
- */
-export async function listCoachNotifications(_coachId: string, max = 50): Promise<AppNotification[]> {
-  const { notifications } = await trpc.notifications.list.query();
-  return notifications.slice(0, max);
-}

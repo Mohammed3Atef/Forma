@@ -1,4 +1,5 @@
 import { trpc } from '@/services/trpc';
+import { shareSubscription } from '@/lib/sharedSubscription';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
@@ -186,18 +187,13 @@ export interface ThreadMeta {
   unreadForClient: number;
 }
 
-/** Last message + unread counts for a thread (for inbox rows / badges). */
-export async function threadMeta(clientId: string): Promise<ThreadMeta> {
-  const msgs = await listMessages(clientId);
-  return {
-    last: msgs[msgs.length - 1] ?? null,
-    unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
-    unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
-  };
-}
-
 /** Polling thread meta (last message + unread counts) for inbox rows. Returns an unsubscribe. */
 export function subscribeThreadMeta(clientId: string, cb: (meta: ThreadMeta) => void): () => void {
+  // Shared: the client's bottom nav and nav sheet both show this badge (B0 / RM-82).
+  return shareSubscription<ThreadMeta>(`thread-meta:${clientId}`, (emit) => threadMetaPoll(clientId, emit), cb);
+}
+
+function threadMetaPoll(clientId: string, cb: (meta: ThreadMeta) => void): () => void {
   return subscribeMessages(
     clientId,
     (msgs) => {
@@ -284,7 +280,12 @@ export async function coachUnreadCount(coachId: string): Promise<number> {
 
 /** Polling total of unread client→coach messages across all the coach's active threads. */
 export function subscribeCoachUnread(coachId: string, cb: (total: number) => void): () => void {
-  return subscribeCoachThreadsSummary(coachId, (rows) => cb(rows.reduce((sum, r) => sum + r.unreadForCoach, 0)));
+  // Shared: the bottom nav and the sidebar both show this badge (B0 / RM-82).
+  return shareSubscription<number>(
+    `coach-unread:${coachId}`,
+    (emit) => subscribeCoachThreadsSummary(coachId, (rows) => emit(rows.reduce((sum, r) => sum + r.unreadForCoach, 0))),
+    cb,
+  );
 }
 
 /** Send a broadcast message to many clients' threads (announcement/offer/reminder/update). */

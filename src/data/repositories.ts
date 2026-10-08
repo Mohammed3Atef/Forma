@@ -8,7 +8,6 @@ import type {
   ProgressPhoto,
   Reminder,
   UserProfile,
-  VideoAsset,
   WeightLog,
   WorkoutLog,
   WorkoutPlan,
@@ -24,6 +23,8 @@ export interface Repository<T extends { id: string }> {
   getAll(): Promise<T[]>;
   put(item: T): Promise<T>;
   putMany(items: T[]): Promise<void>;
+  /** Sync-engine write: stores the server revision fields exactly as given (app writes use `put`). */
+  putFromSync(item: T): Promise<T>;
   remove(id: string): Promise<void>;
 }
 
@@ -49,7 +50,6 @@ export interface DataSource {
   cardioLogs: Repository<CardioLog>;
   weightLogs: Repository<WeightLog>;
   measurementLogs: Repository<MeasurementLog>;
-  videoAssets: Repository<VideoAsset>;
   progressPhotos: Repository<ProgressPhoto>;
   dailyChecklists: Repository<DailyChecklist>;
   reminders: Repository<Reminder>;

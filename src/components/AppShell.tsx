@@ -5,6 +5,7 @@ import { ReminderBanner } from './ReminderBanner';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { RestTimerBar } from './RestTimerBar';
 import { DayNav } from './DayNav';
+import { SyncConflictNotice } from './SyncConflictNotice';
 import { useTimer } from '@/stores/timerStore';
 import { CLIENT_NAV, type NavItem } from '@/config/nav';
 
@@ -26,6 +27,7 @@ export function AppShell({ children, hideNav, showDayNav, navItems = CLIENT_NAV 
       <ReminderBanner />
       <main className={`flex-1 overflow-x-hidden px-5 pt-1 ${hideNav ? 'pb-4' : 'pb-[calc(var(--bottomnav-h)+2.5rem)]'}`}>
         {!hideNav && <SubscriptionBanner />}
+        {!hideNav && <SyncConflictNotice />}
         {showDayNav && <DayNav />}
         {children}
       </main>

@@ -13,7 +13,6 @@ import { alertDialog, confirmDelete, confirmDialog } from '@/stores/dialogStore'
 import { showToast } from '@/stores/toastStore';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { getExercise } from '@/services/platform/coachAssetsApi';
-import { updatePlanExerciseFromLibrary } from '@/services/platform/planApi';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
 
 type View = { level: 'plan' } | { level: 'day'; dayId: string } | { level: 'section'; dayId: string; sectionId: string };
@@ -40,7 +39,6 @@ export function PlanBuilder({
   exercises,
   onChange,
   coachId,
-  clientId,
   header,
 }: {
   days: WorkoutDay[];
@@ -172,32 +170,26 @@ export function PlanBuilder({
   };
 
   /**
-   * "Update from library" / "Reconnect" for one embedded exercise. Template
-   * context (no `clientId`): purely local — re-fetch the current library
-   * exercise and merge its synced fields into this builder's own in-memory
-   * state, same as any other template edit (persists on the template's own
-   * Save). Client-plan context (`clientId` set): the plan is already
-   * persisted per-exercise server-side, so this calls the dedicated backend
-   * mutation instead, which persists immediately and never triggers the
-   * detach logic above.
+   * "Update from library" / "Reconnect" for one embedded exercise: re-fetch the
+   * current library exercise and merge its synced fields into this builder's
+   * local state. Templates and client plans both persist it on their own Save.
    */
   const refreshFromLibrary = async (exId: string) => {
     const ex = exercises[exId];
     if (!ex?.libraryExerciseId) return;
     setRefreshing(true);
     try {
-      if (clientId) {
-        const updated = await updatePlanExerciseFromLibrary(clientId, exId);
-        updateExercise(updated);
-      } else {
-        const libEx = await getExercise(coachId, ex.libraryExerciseId);
-        const patch: Partial<Exercise> = {};
-        for (const f of SYNCED_EXERCISE_FIELDS) (patch as Record<string, unknown>)[f] = libEx[f];
-        updateExercise({ ...ex, ...patch, librarySyncEnabled: true });
-      }
+      // Merged into the editor's local state in both contexts; a client plan
+      // persists through the editor's guarded, versioned Save (B0 / CO-01).
+      const libEx = await getExercise(coachId, ex.libraryExerciseId);
+      const patch: Partial<Exercise> = {};
+      for (const f of SYNCED_EXERCISE_FIELDS) (patch as Record<string, unknown>)[f] = libEx[f];
+      updateExercise({ ...ex, ...patch, librarySyncEnabled: true });
       setEditing(null);
     } catch (e) {
-      await alertDialog({ title: t('coachLib.updateFromLibrary'), message: e instanceof Error ? e.message : t('coachLib.sourceMissing') });
+      // Never raw server text (B0.16): a gone source says so, anything else is generic.
+      const notFound = (e as { data?: { code?: string } } | null)?.data?.code === 'NOT_FOUND';
+      await alertDialog({ title: t('coachLib.updateFromLibrary'), message: notFound ? t('coachLib.sourceMissing') : t('common.errorGeneric') });
     } finally {
       setRefreshing(false);
     }

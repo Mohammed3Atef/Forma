@@ -1,6 +1,6 @@
 import { test, expect, shot } from '../fixtures';
 import type { Page } from '@playwright/test';
-import { appReady, confirmNo, confirmYes, fullAssessment } from './_b-helpers';
+import { appReady, confirmNo, confirmYes, fullAssessment, openPlanBuilder } from './_b-helpers';
 
 /**
  * Unsaved-changes guard in the coach client workout editor, and back/forward
@@ -21,7 +21,7 @@ test.beforeAll(async ({ db }) => {
 /** Open the editor and make sure a saved plan named BASE_NAME exists (not dirty). */
 async function openCleanEditor(page: Page) {
   await page.goto(EDITOR);
-  await appReady(page, 'workout-plan-name');
+  await openPlanBuilder(page, 'workout-plan-name');
   const name = page.getByTestId('workout-plan-name');
   if ((await name.inputValue()) !== BASE_NAME) {
     await name.fill(BASE_NAME);
@@ -87,7 +87,7 @@ test('unsaved guard: editor back arrow and workspace back arrow both confirm', a
   await page.goto(`/coach/client/${CA}`);
   await appReady(page, 'coach-client-detail');
   await page.getByTestId('workspace-tab-workout').click();
-  await appReady(page, 'workout-plan-name');
+  await openPlanBuilder(page, 'workout-plan-name');
   const name = page.getByTestId('workout-plan-name');
   if ((await name.inputValue()) !== BASE_NAME) {
     await name.fill(BASE_NAME);
@@ -134,7 +134,7 @@ test('unsaved guard: browser Back is NOT blocked (records actual behaviour)', as
   // In-app (pushState) history entry: overview → "Edit plan" → editor.
   await page.getByRole('button', { name: 'Edit plan' }).click();
   await expect(page).toHaveURL(new RegExp(`${EDITOR}$`));
-  await appReady(page, 'workout-plan-name');
+  await openPlanBuilder(page, 'workout-plan-name');
   const name = page.getByTestId('workout-plan-name');
   if ((await name.inputValue()) !== BASE_NAME) {
     await name.fill(BASE_NAME);

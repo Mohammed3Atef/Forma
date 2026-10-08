@@ -73,6 +73,11 @@ function monthBounds(now: number): { start: number; end: number } {
  * for every client in `clients.map(...)`. Call via React Query with a stale
  * window. No new Firestore schema.
  */
+/** The ONE query definition for the coach dashboard rows (B0 / RM-84: was defined 3× with different staleTimes). */
+export function coachDashboardQuery(coachId: string | undefined) {
+  return { queryKey: ['coachDashboard', coachId] as const, queryFn: () => getCoachDashboard(coachId!), enabled: !!coachId, staleTime: 60_000 };
+}
+
 export async function getCoachDashboard(coachId: string): Promise<CoachDashboard> {
   const [clients, summaries, rels, wTpl, nTpl, unreadMessages] = await Promise.all([
     listMyClients(coachId),

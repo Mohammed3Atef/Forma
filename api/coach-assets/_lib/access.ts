@@ -19,11 +19,6 @@ import type { AuthedUser } from '../../_trpc/context.js';
  * read-side check, which depends on the resolved target coachId from input.
  */
 
-/** Resolves the coachId a call targets: an explicit input value, or the caller's own id. */
-export function resolveCoachId(inputCoachId: string | undefined, user: AuthedUser): string {
-  return inputCoachId || user.id;
-}
-
 /** Throws FORBIDDEN unless the caller owns `coachId` or holds oversight (`users.read`). */
 export function requireReadAccess(user: AuthedUser, coachId: string): void {
   if (user.id === coachId) return;

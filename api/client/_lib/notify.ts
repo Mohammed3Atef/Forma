@@ -13,6 +13,8 @@ export interface NotifyInput {
   entityType?: NoteEntityType;
   entityId?: string;
   route?: string;
+  /** coach_note only: the note was shared with the client, so its excerpt may be shown. */
+  noteVisibility?: 'client';
   createdBy: string;
 }
 
@@ -35,5 +37,6 @@ export async function notify(input: NotifyInput): Promise<void> {
   if (input.entityType) doc.entityType = input.entityType;
   if (input.entityId) doc.entityId = input.entityId;
   if (input.route) doc.route = input.route;
+  if (input.noteVisibility) doc.noteVisibility = input.noteVisibility;
   await col.insertOne(doc);
 }

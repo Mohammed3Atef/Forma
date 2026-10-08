@@ -8,6 +8,8 @@ import type {
   ClientSubscriptionInput,
   CoachClientDoc,
   SubscriptionDoc,
+  SubscriptionPeriodDoc,
+  SubscriptionStatus,
   TransferMode,
   TransferSubHandling,
 } from './_types.js';
@@ -91,8 +93,34 @@ export async function updateSubscription(coachId: string, clientId: string, acti
       break;
   }
 
-  await col.updateOne({ _id: id }, { $set: { subscription: next, updatedAt: now } });
-  return { ...existing, subscription: next, updatedAt: now };
+  // B0 / CO-15: a term change (renewal / new term) ARCHIVES the outgoing term
+  // instead of overwriting it, so the coach's billing history and revenue keep
+  // every previous term. Price edits, freezes and extensions change the
+  // current term and are not archived. Atomic with the update itself.
+  const archive = action.op === 'setTerm' && existing.subscription ? archivedTerm(existing.subscription, now) : null;
+  await col.updateOne({ _id: id }, { $set: { subscription: next, updatedAt: now }, ...(archive ? { $push: { subscriptionHistory: archive } } : {}) });
+  return {
+    ...existing,
+    subscription: next,
+    ...(archive ? { subscriptionHistory: [...(existing.subscriptionHistory ?? []), archive] } : {}),
+    updatedAt: now,
+  };
+}
+
+/** The outgoing term as a history entry, with the state it ended in. */
+function archivedTerm(cur: SubscriptionDoc, now: number): SubscriptionPeriodDoc {
+  const lapsed = cur.endAt <= now;
+  const status: SubscriptionStatus =
+    cur.status === 'active' || cur.status === 'trial' || cur.status === 'frozen' ? (lapsed ? 'expired' : 'ended') : cur.status;
+  return {
+    startAt: cur.startAt,
+    endAt: Math.min(cur.endAt, Math.max(now, cur.startAt)),
+    ...(cur.months != null ? { months: cur.months } : {}),
+    ...(cur.price != null ? { price: cur.price } : {}),
+    ...(cur.currency ? { currency: cur.currency } : {}),
+    status,
+    endedAt: now,
+  };
 }
 
 /**

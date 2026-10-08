@@ -7,7 +7,7 @@ import { Icon } from '@/components/Icon';
 import { SearchField } from '@/components/ui/Field';
 import { Pill } from '@/components/ui/Pill';
 import { useSession } from '@/services/auth/sessionStore';
-import { getCoachDashboard } from '@/services/platform/coachDashboardApi';
+import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
 
 /**
  * Fast client switcher — search + attention/status context, so a coach can
@@ -29,7 +29,7 @@ export function ClientSwitcherSheet({
   const { t } = useTranslation();
   const coachId = useSession((s) => s.account?.id) ?? '';
   const [q, setQ] = useState('');
-  const dash = useQuery({ queryKey: ['coachDashboard', coachId], queryFn: () => getCoachDashboard(coachId), enabled: open && !!coachId });
+  const dash = useQuery({ ...coachDashboardQuery(coachId), enabled: open && !!coachId });
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();

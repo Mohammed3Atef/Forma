@@ -2,7 +2,6 @@ import { trpc, TRPCClientError } from '@/services/trpc';
 import type {
   BillingCycle,
   CoachClientRelationship,
-  CoachSubscriptionPlan,
   Subscription,
   SubscriptionPeriod,
   SubscriptionStatus,
@@ -55,32 +54,10 @@ export function relId(coachId: string, clientId: string): string {
   return `${coachId}__${clientId}`;
 }
 
-export async function listRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
-  const docs = await trpc.coachClients.list.query({ coachId, status: 'active' });
-  return docs.map(fromApiDoc);
-}
-
 /** Every relationship a coach has ever had (active, ended, pending) — for revenue/churn dashboards. */
 export async function listAllRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
   const docs = await trpc.coachClients.list.query({ coachId, status: 'all' });
   return docs.map(fromApiDoc);
-}
-
-/**
- * Writes ONLY the relationship doc — used when a coach creates their own
- * client (the client's `assignedCoachId` is set at account creation).
- *
- * NOTE: the migrated `POST /api/coach-clients` (the only assign endpoint the
- * backend exposes) always ALSO sets the client's `assignedCoachId`, unlike the
- * Firestore-era version of this function — there is no "link only" endpoint.
- * This is unused by any current component; kept for signature compatibility.
- */
-export async function linkCoachClient(coachId: string, clientId: string, _createdBy: string): Promise<void> {
-  await trpc.coachClients.assign.mutate({
-    clientId,
-    coachId,
-    subscription: { status: 'trial' as SubscriptionStatus, trialDays: 14 },
-  });
 }
 
 /** Assigns a client to a coach (idempotent on the deterministic id). */
@@ -196,19 +173,6 @@ export interface ClientSubscriptionInput {
   startAt?: number; // defaults to now
 }
 
-/** Map a coach-defined plan (+ the coach's default currency) to an assign input. */
-export function planToSubscriptionInput(plan: CoachSubscriptionPlan, currency?: string): ClientSubscriptionInput {
-  const money = {
-    ...(typeof plan.price === 'number' ? { price: plan.price } : {}),
-    ...(currency ? { currency } : {}),
-    planName: plan.name,
-  };
-  if (plan.isTrial) {
-    return { status: 'trial', trialDays: plan.unit === 'months' ? plan.duration * 30 : plan.duration, ...money };
-  }
-  return { status: 'active', ...(plan.unit === 'days' ? { days: plan.duration } : { months: plan.duration }), ...money };
-}
-
 /**
  * The client's CURRENT active coach (if any), resolved from `coachClients`.
  */
@@ -246,22 +210,6 @@ export async function assignExistingClient(
  */
 export async function releaseClient(coachId: string, clientId: string, _by: string): Promise<void> {
   await trpc.coachClients.end.mutate({ id: relId(coachId, clientId), reason: 'released' });
-}
-
-/**
- * FRESH START — archiving + clearing the previous coach's plan/notes/targets
- * content is now handled automatically, SERVER-SIDE, inside
- * `transferClientWithMode` (`api/coach-clients/_service.ts`) as one atomic
- * step of the transfer itself: when `mode === 'fresh_start'`, the backend
- * copies the client's workout/nutrition/cardio plan docs, coach notes, and
- * coach-set targets into the `archivedClientData` collection (tagged with the
- * previous coach id + an archive timestamp), then deletes the live docs,
- * before reassigning the client. There is nothing left for the frontend to
- * trigger — this is a deliberate permanent no-op, kept only so any existing
- * call site still compiles/behaves unchanged. No call site invokes it today.
- */
-export async function archiveAndClearCoachData(_clientId: string, _by: string): Promise<void> {
-  // Intentional no-op — see the doc comment above.
 }
 
 /**

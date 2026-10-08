@@ -94,17 +94,3 @@ export interface CheckInTrendPoint {
   energy?: number;
 }
 
-/** Clean, chart-ready series (oldest → newest) from submitted/reviewed check-ins. */
-export function checkInTrends(list: WeeklyCheckIn[]): CheckInTrendPoint[] {
-  return list
-    .filter((c) => c.status !== 'requested')
-    .slice()
-    .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
-    .map((c) => ({
-      week: c.weekStart,
-      weight: c.currentWeight,
-      adherenceTraining: c.adherenceTraining,
-      adherenceNutrition: c.adherenceNutrition,
-      energy: c.energyLevel,
-    }));
-}

@@ -125,6 +125,7 @@ function CheckInRow({ checkIn, onReviewed, locale }: { checkIn: WeeklyCheckIn; o
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
               />
+              <p className="-mt-1 text-[12px] text-earth-muted">{t('trust.checkin.feedbackVisible')}</p>
               <button type="button" data-testid="checkin-mark-reviewed" className="btn-primary w-full disabled:opacity-40" disabled={review.isPending} onClick={() => review.mutate()}>
                 {t('checkin.markReviewed')}
               </button>

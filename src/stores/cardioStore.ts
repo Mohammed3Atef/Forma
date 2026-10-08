@@ -5,12 +5,13 @@ import { uid } from '@/lib/utils';
 import { notifyHabitChange } from './habitStore';
 import { useDay } from './dayStore';
 import { recordDeletion } from '@/data/sync/tombstones';
+import { LIVE_MAX_AGE_MS, readLive, writeLive } from '@/lib/liveState';
 
 interface CardioState {
   cardioLogs: CardioLog[];
   weightLogs: WeightLog[];
   loaded: boolean;
-  /** Live cardio timer start (epoch ms) — in memory so navigation doesn't lose it. */
+  /** Live cardio timer start (epoch ms) — persisted (B0 / PWA-07) so a reload / OS kill doesn't lose it. */
   liveStart: number | null;
   /** Speed/incline entered before starting — drives live distance/kcal estimates. */
   liveParams: { speedKmh: number; inclinePct: number } | null;
@@ -25,7 +26,6 @@ interface CardioState {
     steps?: number | null;
     date?: string;
   }) => Promise<void>;
-  addSteps: (steps: number, date?: string) => Promise<void>;
   removeCardio: (id: string) => Promise<void>;
   logWeight: (weightKg: number, date?: string) => Promise<void>;
   stepsFor: (date: string) => number;
@@ -41,10 +41,13 @@ export const useCardio = create<CardioState>((set, get) => ({
   liveParams: null,
 
   startLive(params) {
-    set({ liveStart: Date.now(), liveParams: params ?? null });
+    const start = Date.now();
+    writeLive({ cardio: { start, params: params ?? null } });
+    set({ liveStart: start, liveParams: params ?? null });
   },
 
   stopLive() {
+    writeLive({ cardio: null });
     set({ liveStart: null, liveParams: null });
   },
 
@@ -54,7 +57,13 @@ export const useCardio = create<CardioState>((set, get) => ({
       ds.cardioLogs.getAll(),
       ds.weightLogs.getAll(),
     ]);
+    // Resume a live timer that was running when the app was reloaded / killed.
+    const live = readLive().cardio;
+    const resumable = live && Date.now() - live.start < LIVE_MAX_AGE_MS ? live : null;
+    if (live && !resumable) writeLive({ cardio: null });
     set({
+      liveStart: resumable?.start ?? null,
+      liveParams: resumable?.params ?? null,
       cardioLogs: cardioLogs.sort((a, b) => b.date.localeCompare(a.date)),
       weightLogs: weightLogs.sort((a, b) => a.date.localeCompare(b.date)),
       loaded: true,
@@ -79,24 +88,6 @@ export const useCardio = create<CardioState>((set, get) => ({
     notifyHabitChange();
   },
 
-  async addSteps(steps, date = useDay.getState().selected) {
-    // Steps are stored as a cardio log entry of type 'walking' with no duration.
-    const log: CardioLog = {
-      id: uid('steps'),
-      date,
-      type: 'walking',
-      durationSec: 0,
-      distanceKm: null,
-      caloriesBurned: null,
-      steps,
-      updatedAt: Date.now(),
-      dirty: true,
-    };
-    await getDataSource().cardioLogs.put(log);
-    set({ cardioLogs: [log, ...get().cardioLogs] });
-    notifyHabitChange();
-  },
-
   async removeCardio(id) {
     await getDataSource().cardioLogs.remove(id);
     await recordDeletion('cardioLogs', id);
@@ -105,7 +96,10 @@ export const useCardio = create<CardioState>((set, get) => ({
   },
 
   async logWeight(weightKg, date = useDay.getState().selected) {
-    const log: WeightLog = { id: date, date, weightKg, updatedAt: Date.now(), dirty: true };
+    // Keep the server revision this day is based on (B0 / PWA-06) — a fresh
+    // object would look like a brand-new record and conflict with itself.
+    const prevRev = get().weightLogs.find((w) => w.id === date)?._rev ?? (await getDataSource().weightLogs.get(date))?._rev;
+    const log: WeightLog = { id: date, date, weightKg, updatedAt: Date.now(), dirty: true, ...(prevRev != null ? { _rev: prevRev } : {}) };
     await getDataSource().weightLogs.put(log);
     const others = get().weightLogs.filter((w) => w.id !== date);
     set({ weightLogs: [...others, log].sort((a, b) => a.date.localeCompare(b.date)) });

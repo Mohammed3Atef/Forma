@@ -164,12 +164,13 @@ describe('client plans + assessment + logs + check-ins + measurements', () => {
     const { coach, other, client } = await pair();
     for (const kind of ['nutritionPlan', 'cardioPlan'] as const) {
       expect(await caller(client)[kind].get()).toBeNull();
-      await caller(coach)[kind].save({ clientId: client._id, name: 'v1', extra: 1 });
-      await caller(coach)[kind].save({ clientId: client._id, name: 'v2' });
+      // Guarded saves (B0 / CO-01): create with a null base, then edit the loaded revision.
+      const v1 = await caller(coach)[kind].save({ clientId: client._id, name: 'v1', extra: 1, baseUpdatedAt: null });
+      await caller(coach)[kind].save({ clientId: client._id, name: 'v2', baseUpdatedAt: v1.updatedAt as number });
       const got = await caller(client)[kind].get();
       expect(got?.name).toBe('v2');
       expect(got && 'extra' in got).toBe(false); // full replace, not merge
-      expect(await code(caller(client)[kind].save({ name: 'mine' }))).toBe('FORBIDDEN');
+      expect(await code(caller(client)[kind].save({ name: 'mine', baseUpdatedAt: null }))).toBe('FORBIDDEN');
       expect(await code(caller(other)[kind].get({ clientId: client._id }))).toBe('FORBIDDEN');
     }
   });

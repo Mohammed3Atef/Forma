@@ -4,6 +4,7 @@ import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteClientOrCoach, canWriteCoachOwned, isActiveSelf, resolveClientId } from '../../client/_lib/access.js';
 import { checkInsCol, coachClientsCol, measurementLogsCol, subscriptionRequestsCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
+import { resolveNotifications } from '../../messages/_handlers/notifications-data.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import type { FreezeRequestDoc, MeasurementLogDoc, WeeklyCheckInDoc } from '../../client/_lib/types.js';
 
@@ -136,6 +137,8 @@ export const checkInsRouter = router({
       await col.updateOne({ _id }, { $set: patch });
       const updated = await col.findOne({ _id });
       await notify({ clientId, forRole: 'coach', type: 'checkin_submitted', entityType: 'checkin', entityId: input.weekStart, route: `/coach/client/${clientId}/checkins`, createdBy: clientId });
+      // The request is done — it must not stay unread or replay (B0 / NT-03).
+      await resolveNotifications({ clientId, forRole: 'client', type: 'checkin_requested', entityId: input.weekStart });
       return updated;
     }),
 
@@ -150,6 +153,7 @@ export const checkInsRouter = router({
     const updated = await col.findOne({ _id });
     if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
     await notify({ clientId, forRole: 'client', type: 'checkin_reviewed', body: input.feedback.trim().slice(0, 140), entityType: 'checkin', entityId: input.weekStart, route: `/check-in/${input.weekStart}`, createdBy: ctx.user.id });
+    await resolveNotifications({ clientId, forRole: 'coach', type: 'checkin_submitted', entityId: input.weekStart });
     return updated;
   }),
 
@@ -257,6 +261,7 @@ export const subscriptionRequestRouter = router({
     await col.updateOne({ _id: clientId }, { $set: { status: 'cancelled', updatedAt: now } });
     const updated = await col.findOne({ _id: clientId });
     if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Subscription request not found' });
+    await resolveNotifications({ clientId, forRole: 'coach', type: 'freeze_requested' });
     return updated;
   }),
 
@@ -275,6 +280,7 @@ export const subscriptionRequestRouter = router({
       );
       const updated = await col.findOne({ _id: clientId });
       await notify({ clientId, forRole: 'client', type: 'freeze_decided', body: input.coachNote.trim().slice(0, 140), route: '/coach-notes', createdBy: ctx.user.id });
+      await resolveNotifications({ clientId, forRole: 'coach', type: 'freeze_requested' });
       return updated;
     }),
 });

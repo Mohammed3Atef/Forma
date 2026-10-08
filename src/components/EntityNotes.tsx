@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/Icon";
+import { NoteVisibilityBadge } from "@/components/NoteVisibility";
 import { useFocus } from "@/stores/focusStore";
 import type { CoachNote, NoteEntityType, NoteScreen } from "@/types";
 
@@ -109,7 +110,8 @@ export function EntityNotes({
           className="flex items-start gap-1.5 rounded-lg border border-brand/25 bg-brand/5 px-2.5 py-1.5 text-[12.5px] text-earth-muted"
         >
           <Icon name="info" size={13} className="mt-0.5 shrink-0 text-brand" />
-          <span className="whitespace-pre-wrap">{n.body}</span>
+          <span className="min-w-0 flex-1 whitespace-pre-wrap">{n.body}</span>
+          {onAdd && <NoteVisibilityBadge visibility={n.visibility} />}
         </div>
       ))}
       {onAdd && (

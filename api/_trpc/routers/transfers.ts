@@ -44,12 +44,16 @@ export const transfersRouter = router({
     return col.find({ toCoachId: ctx.user.id }).sort({ requestedAt: -1 }).toArray();
   }),
 
-  /** A prospective coach (`toCoachId` == self) requests a client owned by another coach (`fromCoachId`). */
+  /**
+   * A prospective coach (`toCoachId` == self) requests a client owned by another
+   * coach. `fromCoachId` is derived from the client's CURRENT active relationship
+   * when omitted (B0 / CO-03: the requesting coach is never told who that is).
+   */
   create: protectedProcedure
     .input(
       z.object({
         clientId: z.string().trim().min(1),
-        fromCoachId: z.string().trim().min(1),
+        fromCoachId: z.string().trim().min(1).optional(),
         reason: z.string().trim().min(1).max(2000),
         mode: z.enum(['fresh_start', 'keep_plans']).optional(),
         subscriptionHandling: z.enum(['keep', 'new', 'expire']).optional(),
@@ -57,8 +61,10 @@ export const transfersRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== 'coach') throw new TRPCError({ code: 'FORBIDDEN' });
-      if (input.fromCoachId === ctx.user.id) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You already coach this client' });
-      await assertCurrentCoach(input.fromCoachId, input.clientId);
+      const fromCoachId = input.fromCoachId ?? (await (await coachClientsCol()).findOne({ clientId: input.clientId, status: 'active' }, { projection: { coachId: 1 } }))?.coachId;
+      if (!fromCoachId) throw new TRPCError({ code: 'CONFLICT', message: 'This client has no current coach — add them directly' });
+      if (fromCoachId === ctx.user.id) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You already coach this client' });
+      await assertCurrentCoach(fromCoachId, input.clientId);
 
       const col = await transfersCol();
       const id = transferReqId(ctx.user.id, input.clientId);
@@ -71,7 +77,7 @@ export const transfersRouter = router({
       const doc: ClientTransferRequestDoc = {
         _id: id,
         clientId: input.clientId,
-        fromCoachId: input.fromCoachId,
+        fromCoachId,
         toCoachId: ctx.user.id,
         reason: input.reason,
         status: 'pending',

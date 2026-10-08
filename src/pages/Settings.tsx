@@ -2,24 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { ActivityLevel, Goal, Locale, ReminderKind } from '@/types';
+import type { Locale, ReminderKind } from '@/types';
 import { useSettings } from '@/stores/settingsStore';
 import { useSession } from '@/services/auth/sessionStore';
-import { cloudAvailable } from '@/data/dataSource';
 import { fetchMyAssessment } from '@/services/platform/clientCoachApi';
 import { assessmentStatus } from '@/lib/assessment';
-import { parseDecimal, shortDate } from '@/lib/utils';
+import { parseDecimal } from '@/lib/utils';
 import { useReminders } from '@/services/reminders/reminderStore';
 import { useCloud } from '@/services/auth/cloudStore';
-import { useDay } from '@/stores/dayStore';
-import { useNutrition } from '@/stores/nutritionStore';
-import { useCardio } from '@/stores/cardioStore';
-import { useWorkout } from '@/stores/workoutStore';
-import { useHabits } from '@/stores/habitStore';
-import { usePhotos } from '@/stores/photoStore';
-import { clearAllLocalData, clearDayData } from '@/data/reset';
-import { confirmDialog, alertDialog, confirmDelete } from '@/stores/dialogStore';
-import { showToast } from '@/stores/toastStore';
+import { countPendingChanges } from '@/data/sync/pending';
+import { confirmDialog, confirmDelete } from '@/stores/dialogStore';
 import { ensurePersistentStorage, isStoragePersisted } from '@/lib/storage';
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { CoachInfoCard } from '@/components/CoachInfoCard';
@@ -32,8 +24,6 @@ import { Switch } from '@/components/ui/Switch';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import type { AssessmentStatus } from '@/types';
 
-const GOALS: Goal[] = ['muscle_gain', 'fat_loss', 'recomp', 'maintenance', 'strength'];
-const ACTIVITY: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
   not_started: 'mute',
   in_progress: 'warn',
@@ -157,8 +147,7 @@ export function Settings() {
   const [pwOpen, setPwOpen] = useState(false);
 
   const uid = account?.id ?? '';
-  const cloud = cloudAvailable() && !!uid && uid !== 'local-user';
-  const assessment = useQuery({ queryKey: ['assessment', uid], queryFn: () => fetchMyAssessment(uid), enabled: cloud });
+  const assessment = useQuery({ queryKey: ['assessment', uid], queryFn: () => fetchMyAssessment(uid), enabled: !!uid });
   const aStatus = assessmentStatus(assessment.data);
 
   // Preferences tab state
@@ -172,7 +161,7 @@ export function Settings() {
 
   // Account tab state
   const cloudState = useCloud();
-  const selectedDay = useDay((s) => s.selected);
+  const [leaving, setLeaving] = useState(false);
   const [persisted, setPersisted] = useState(true);
   useEffect(() => {
     void ensurePersistentStorage().then(() => isStoragePersisted().then(setPersisted));
@@ -192,13 +181,10 @@ export function Settings() {
     async (v) => {
       await updateProfile({ name: v });
       const trimmed = v.trim();
-      if (cloud && trimmed && trimmed !== account?.displayName) await updateSelf({ displayName: trimmed });
+      if (trimmed && trimmed !== account?.displayName) await updateSelf({ displayName: trimmed });
     },
     profileStatus,
   );
-  const [ageLocal, onAgeChange] = useDebouncedField(profile?.age ?? 0, (v) => updateProfile({ age: v }), profileStatus);
-  const [weightLocal, onWeightChange] = useDebouncedField(profile?.weightKg ?? 0, (v) => updateProfile({ weightKg: v }), profileStatus);
-  const [heightLocal, onHeightChange] = useDebouncedField(profile?.heightCm ?? 0, (v) => updateProfile({ heightCm: v }), profileStatus);
   const [restLocal, onRestChange] = useDebouncedField(settings?.restDefaultSec ?? 0, (v) => updateSettings({ restDefaultSec: v }), prefsStatus);
   const [weeklyGoalLocal, onWeeklyGoalChange] = useDebouncedField(settings?.weeklyWorkoutGoal ?? 5, (v) => updateSettings({ weeklyWorkoutGoal: v }), prefsStatus);
 
@@ -218,26 +204,6 @@ export function Settings() {
     await updateSettings({ notificationsEnabled: granted });
   };
 
-  const clearDay = async () => {
-    const ok = await confirmDialog({ title: t('settings.clearDay'), message: t('settings.clearDayConfirm', { date: shortDate(selectedDay, settings.locale) }), confirmLabel: t('common.delete'), danger: true });
-    if (!ok) return;
-    try {
-      await clearDayData(selectedDay);
-      await Promise.all([
-        useNutrition.getState().load(selectedDay),
-        useWorkout.getState().load(),
-        useCardio.getState().load(),
-        usePhotos.getState().load(),
-      ]);
-      useWorkout.getState().loadDay(selectedDay);
-      await useHabits.getState().refresh(selectedDay);
-      if (cloudState.user) void cloudState.syncNow(true);
-      showToast({ title: t('common.removed'), variant: 'success' });
-    } catch {
-      await alertDialog({ title: t('settings.clearDay'), message: t('common.errorGeneric') });
-    }
-  };
-
   const forceUpdate = async () => {
     const ok = await confirmDialog({ title: t('settings.forceUpdate'), message: t('settings.forceUpdateConfirm'), confirmLabel: t('settings.forceUpdate') });
     if (!ok) return;
@@ -254,26 +220,6 @@ export function Settings() {
     window.location.reload();
   };
 
-  const resetAll = async () => {
-    const ok = await confirmDialog({ title: t('settings.resetAll'), message: t('settings.resetConfirm'), confirmLabel: t('settings.resetAll'), danger: true });
-    if (!ok) return;
-    if (cloudState.user) {
-      if (!navigator.onLine) {
-        await alertDialog({ title: t('settings.resetAll'), message: t('settings.resetOffline') });
-      } else {
-        try {
-          await cloudState.wipeCloud();
-        } catch {
-          // Local data is wiped either way (below) — telling them the cloud
-          // half failed is better than a silent partial reset.
-          await alertDialog({ title: t('settings.resetAll'), message: t('settings.resetCloudFailed') });
-        }
-      }
-    }
-    await clearAllLocalData();
-    window.location.reload();
-  };
-
   return (
     <div className="anim-rise space-y-4 pb-4">
       <TopBar
@@ -284,9 +230,7 @@ export function Settings() {
 
       {/* Featured identity card — stays visible above the tabs, like the design's settings() screen */}
       <div className="card-featured space-y-3">
-        {cloud ? (
-          <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} onChange={(url) => updateSelf({ photoUrl: url })} />
-        ) : null}
+        <AvatarPicker name={profile.name} photoUrl={account?.photoUrl} onChange={(url) => updateSelf({ photoUrl: url })} />
         <div>
           <h2 className="truncate font-display text-lg font-semibold">{profile.name}</h2>
           <p className="font-mono text-[11.5px] text-earth-muted">{t('gt.memberSince', { date: memberSince })}</p>
@@ -310,52 +254,13 @@ export function Settings() {
             </div>
             <input id="settings-name" className="input" value={nameLocal} onChange={(e) => onNameChange(e.target.value)} />
           </div>
-          {cloud && (
-            <div>
-              <label className="label">{t('settings.phone')}</label>
-              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void profileStatus.run(() => updateContact(phone)); }} />
-            </div>
-          )}
-          {/* Cloud/coached clients have this data live elsewhere (a real Assessment
-              + ongoing weight tracking in Progress) — showing a frozen one-time
-              snapshot here just drifts out of sync with it. Local-only accounts
-              have no assessment/coach, so this is their only profile entry. */}
-          {!cloud && (
-            <>
-              <div className="flex items-center justify-end"><SaveStatusBadge status={profileStatus.status} /></div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="label">{t('settings.age')}</label>
-                  <input className="input" inputMode="numeric" value={ageLocal} onChange={(e) => onAgeChange(Number(e.target.value) || 0)} />
-                </div>
-                <div>
-                  <label className="label">{t('settings.weight')}</label>
-                  <input className="input" inputMode="decimal" value={weightLocal} onChange={(e) => onWeightChange(parseDecimal(e.target.value))} />
-                </div>
-                <div>
-                  <label className="label">{t('settings.height')}</label>
-                  <input className="input" inputMode="decimal" value={heightLocal} onChange={(e) => onHeightChange(parseDecimal(e.target.value))} />
-                </div>
-              </div>
-              <div>
-                <label className="label">{t('settings.goal')}</label>
-                <select className="input" value={profile.goal} onChange={(e) => void profileStatus.run(() => updateProfile({ goal: e.target.value as Goal }))}>
-                  {GOALS.map((g) => <option key={g} value={g}>{t(`settings.goals.${g}`)}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">{t('settings.activity')}</label>
-                <select className="input" value={profile.activityLevel} onChange={(e) => void profileStatus.run(() => updateProfile({ activityLevel: e.target.value as ActivityLevel }))}>
-                  {ACTIVITY.map((a) => <option key={a} value={a}>{t(`settings.activities.${a}`)}</option>)}
-                </select>
-              </div>
-            </>
-          )}
-          {cloud && (
-            <button type="button" data-testid="change-password" className="btn-ghost w-full" onClick={() => setPwOpen(true)}>
-              <Icon name="settings" size={16} /> {t('auth.changePassword')}
-            </button>
-          )}
+          <div>
+            <label className="label">{t('settings.phone')}</label>
+            <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="settings-phone" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={() => { if (phone.trim() !== accountPhone) void profileStatus.run(() => updateContact(phone)); }} />
+          </div>
+          <button type="button" data-testid="change-password" className="btn-ghost w-full" onClick={() => setPwOpen(true)}>
+            <Icon name="settings" size={16} /> {t('auth.changePassword')}
+          </button>
         </section>
       )}
 
@@ -380,7 +285,7 @@ export function Settings() {
                 <input className="input h-10 w-20 py-1 text-center" inputMode="decimal" value={restLocal} onChange={(e) => onRestChange(Math.max(0, parseDecimal(e.target.value)))} />
               </Row>
               <Row icon="target" label={t('settings.weeklyGoal')}>
-                <input className="input h-10 w-20 py-1 text-center" inputMode="numeric" value={weeklyGoalLocal} onChange={(e) => onWeeklyGoalChange(Math.min(14, Math.max(1, Number(e.target.value.replace(/[^\d]/g, '')) || 1)))} />
+                <input className="input h-10 w-20 py-1 text-center" inputMode="numeric" value={weeklyGoalLocal} onChange={(e) => onWeeklyGoalChange(Math.min(14, Math.max(1, Math.round(parseDecimal(e.target.value)) || 1)))} />
               </Row>
               <Row icon="flame" label={t('settings.keepAwake')}>
                 <Switch on={settings.keepAwakeDuringWorkout} onChange={() => void prefsStatus.run(() => updateSettings({ keepAwakeDuringWorkout: !settings.keepAwakeDuringWorkout }))} label={t('settings.keepAwake')} />
@@ -428,16 +333,6 @@ export function Settings() {
           <section>
             <p className="ui-label mb-2 px-1">{t('settings.tools')}</p>
             <div className="card py-1">
-              <button type="button" onClick={() => navigate('/settings/videos')} className="row w-full text-start">
-                <span className="row-av"><Icon name="video" size={16} /></span>
-                <span className="min-w-0 flex-1 font-medium">{t('settings.videos')}</span>
-                <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
-              </button>
-              <button type="button" onClick={() => navigate('/settings/import')} className="row w-full text-start">
-                <span className="row-av"><Icon name="download" size={16} /></span>
-                <span className="min-w-0 flex-1 font-medium">{t('settings.import')}</span>
-                <Icon name="chevron" size={16} className="text-earth-subtle rtl:rotate-180" />
-              </button>
               <button type="button" onClick={() => void forceUpdate()} className="row w-full text-start">
                 <span className="row-av"><Icon name="timer" size={16} /></span>
                 <span className="min-w-0 flex-1 font-medium">{t('settings.forceUpdate')}</span>
@@ -452,7 +347,7 @@ export function Settings() {
         <>
           <CoachInfoCard />
 
-          {cloud && assessment.data && (
+          {assessment.data && (
             <button type="button" data-testid="profile-assessment" onClick={() => navigate('/assessment')} className="card-tap flex w-full items-center gap-3 text-start">
               <span className="row-av bg-brand/15 text-brand"><Icon name="list" size={18} /></span>
               <span className="min-w-0 flex-1">
@@ -475,32 +370,42 @@ export function Settings() {
               <h2 className="font-bold">{t('settings.cloud')}</h2>
               <SyncStatusBadge />
             </div>
-            {!cloudState.available ? (
-              <p className="text-sm text-earth-muted">{t('settings.localOnly')}</p>
-            ) : cloudState.user ? (
+            {cloudState.user ? (
               <div className="space-y-2">
                 {cloudState.error ? (
                   <p className="text-sm font-medium text-danger">
                     <span className="flex items-center gap-1.5"><Icon name="close" size={16} /> {t('cloudState.error')}</span>
-                    <span className="mt-1 block break-words text-xs font-normal text-earth-muted">{cloudState.error}</span>
                   </p>
                 ) : (
                   <p className="flex items-center gap-1.5 text-sm font-medium text-brand">
                     <Icon name="check" size={16} /> {cloudState.syncing ? t('settings.syncing') : t('settings.synced')}
                   </p>
                 )}
-                <p className="text-sm text-earth-muted">{cloudState.user.email}</p>
+                <p className="text-sm text-earth-muted">{account?.email}</p>
                 {cloudState.lastSync && <p className="text-xs text-earth-subtle">{t('settings.lastSync')}: {new Date(cloudState.lastSync).toLocaleTimeString()}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => void cloudState.syncNow(true)} disabled={cloudState.syncing} className="btn-primary flex-1">{cloudState.syncing ? '…' : t('settings.syncNow')}</button>
                   <button
                     type="button"
                     data-testid="client-sign-out"
+                    disabled={leaving}
                     onClick={() =>
                       void (async () => {
-                        // The real session sign-out (cloudStore.signOut is a deprecated no-op).
-                        if (await confirmDialog({ title: t('settings.signOut'), message: t('platform.signOutConfirm'), danger: true })) {
-                          await useSession.getState().signOut();
+                        setLeaving(true);
+                        try {
+                          // Push what can be pushed first (bounded; returns at once offline), so a change
+                          // made just before signing out isn't left behind on this device.
+                          await Promise.race([cloudState.syncNow(true), new Promise((r) => setTimeout(r, 5_000))]).catch(() => undefined);
+                          // Whatever is still unsynced stays in this account's own local database (B0 / PWA-02) — say so.
+                          const pending = await countPendingChanges().catch(() => 0);
+                          const message = pending > 0 ? `${t('platform.signOutConfirm')}
+
+${t('trust.sync.pendingSignOut', { n: pending })}` : t('platform.signOutConfirm');
+                          if (await confirmDialog({ title: t('settings.signOut'), message, danger: true })) {
+                            await useSession.getState().signOut();
+                          }
+                        } finally {
+                          setLeaving(false);
                         }
                       })()
                     }
@@ -514,16 +419,11 @@ export function Settings() {
           </section>
 
           <section className="card space-y-2">
-            <h2 className="mb-1 font-bold text-danger">{t('settings.data')}</h2>
+            <h2 className="mb-1 font-bold">{t('settings.data')}</h2>
             <p className={`flex items-center gap-1.5 text-xs ${persisted ? 'text-brand' : 'text-warn'}`}>
               <Icon name={persisted ? 'check' : 'flame'} size={14} />
               {persisted ? t('settings.storagePersisted') : t('settings.storageAtRisk')}
             </p>
-            <button type="button" onClick={() => void clearDay()} className="btn-ghost w-full justify-between text-sm">
-              <span className="flex items-center gap-2"><Icon name="close" size={16} /> {t('settings.clearDay')}</span>
-              <span className="text-xs text-earth-muted">{shortDate(selectedDay, settings.locale)}</span>
-            </button>
-            <button type="button" onClick={() => void resetAll()} className="btn-danger w-full text-sm">{t('settings.resetAll')}</button>
           </section>
         </>
       )}

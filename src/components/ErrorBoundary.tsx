@@ -7,7 +7,7 @@ export const CHUNK_RELOAD_GUARD_KEY = 'forma:chunk-reload-attempted';
  *  never a real code bug. Browsers phrase this differently. */
 function isStaleChunkError(error: unknown): boolean {
   const message = error instanceof Error ? `${error.name} ${error.message}` : String(error);
-  return /ChunkLoadError|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(message);
+  return /ChunkLoadError|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload CSS/i.test(message);
 }
 
 interface State {

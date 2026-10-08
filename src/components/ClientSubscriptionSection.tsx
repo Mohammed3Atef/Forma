@@ -31,7 +31,7 @@ export function ClientSubscriptionSection() {
   const qc = useQueryClient();
   const uid = useSession((s) => s.uid) ?? '';
   const { sub, history, status, hasCoach } = useSubscription();
-  const req = useQuery({ queryKey: ['myFreezeRequest', uid], queryFn: () => fetchMyFreezeRequest(uid), enabled: !!uid && uid !== 'local-user' });
+  const req = useQuery({ queryKey: ['myFreezeRequest', uid], queryFn: () => fetchMyFreezeRequest(uid), enabled: !!uid });
   const [reason, setReason] = useState('');
   const [from, setFrom] = useState(todayStr());
   const [until, setUntil] = useState('');

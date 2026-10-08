@@ -128,11 +128,14 @@ describe('authorization matrix — one representative per guard class', () => {
   });
 
   it('authedProcedure: anonymous is UNAUTHORIZED; pending/suspended accounts still reach it (own-data reads + offline flush)', async () => {
-    const pending = await insertUser({ _id: 'p', role: 'coach', accountStatus: 'pending' });
+    const pending = await insertUser({ _id: 'p', role: 'client', accountStatus: 'pending' });
     const suspended = await insertUser({ _id: 's', role: 'client', accountStatus: 'suspended' });
+    const coach = await insertUser({ _id: 'k', role: 'coach' });
     expect(await code(caller(null).sync.pull({ collection: 'x' }))).toBe('UNAUTHORIZED');
     expect(await code(caller(pending).sync.pull({ collection: 'x' }))).toBe('OK');
     expect(await code(caller(suspended).sync.pull({ collection: 'x' }))).toBe('OK');
+    // B0 / RM-81: client sync is CLIENT-only — a coach/admin session can't push or pull tracker data.
+    expect(await code(caller(coach).sync.pull({ collection: 'x' }))).toBe('FORBIDDEN');
     expect(await code(caller(suspended).profile.get())).toBe('OK');
   });
 
@@ -286,8 +289,6 @@ describe('tenant isolation', () => {
     expect(rows[0].clientId).toBe(a._id);
     expect((await caller(b).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(0);
     expect((await caller(a).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
-    await caller(b).sync.wipe();
-    expect((await caller(a).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1); // B's wipe never touches A
   });
 
   it('adminUsers.get returns contact details only to self / related users / users.read holders — a name card to everyone else', async () => {
@@ -560,7 +561,7 @@ describe('rate limits, validation, error semantics', () => {
     expect(await code(c.logsWorkout.list({ clientId: client._id, limit: -1 }))).toBe('BAD_REQUEST');
     expect(await code(c.logsWorkout.list({ clientId: client._id, limit: 1.5 }))).toBe('BAD_REQUEST');
     expect(await code(c.messages.react({ clientId: client._id, id: 'm', value: '🔥' as never }))).toBe('BAD_REQUEST');
-    expect(await code(c.sync.pull({ collection: 'x', since: -1 }))).toBe('BAD_REQUEST');
+    expect(await code(caller(client).sync.pull({ collection: 'x', since: -1 }))).toBe('BAD_REQUEST');
     expect(await code(c.coachClients.end({ id: 'no-separator' }))).toBe('BAD_REQUEST');
     expect(await code(c.foodSearch.search({ query: 'a' }))).toBe('BAD_REQUEST'); // min 2 chars
     // A garbage cursor is tolerated (first page), not a crash.

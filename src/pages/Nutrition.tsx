@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { parseDecimal } from '@/lib/utils';
 import { useTranslation } from "react-i18next";
 import type { FoodItem } from "@/types";
 import { useNutrition, computeConsumed } from "@/stores/nutritionStore";
@@ -132,9 +133,10 @@ export function Nutrition() {
 
   const submitEditor = async () => {
     if (!editor) return;
-    const protein = Number(form.protein) || 0;
-    const carbs = Number(form.carbs) || 0;
-    const fats = Number(form.fats) || 0;
+    // Arabic-Indic digits / "٫" accepted (RTL-04).
+    const protein = parseDecimal(form.protein);
+    const carbs = parseDecimal(form.carbs);
+    const fats = parseDecimal(form.fats);
     const name = form.name.trim() || t("nutritionSub.customFood");
     const existingId = editor.type !== "replace" ? editor.foodId : undefined;
     const food: FoodItem = {
@@ -196,7 +198,7 @@ export function Nutrition() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="eyebrow mb-1.5">{remaining >= 0 ? t("nutrition.remaining") : t("nutrition.overTarget")}</p>
-                <p className="num text-[34px] leading-none text-earth">
+                <p className="text-[34px] leading-none text-earth">
                   {Math.abs(Math.round(remaining))}
                   <span className="ms-1 text-[15px] text-earth-subtle">kcal</span>
                 </p>
@@ -210,11 +212,11 @@ export function Nutrition() {
               {subMacros.map((m) => (
                 <div key={m.key} className="min-w-0 flex-1 rounded-xl border border-line bg-surface-card px-3 py-2.5">
                   <p className="ui-label text-[8.5px]">{t(`nutrition.${m.key}`)}</p>
-                  <p className="num mt-1 text-earth">
+                  <p className="mt-1 text-earth">
                     {Math.round(m.value)}
                     <span className="text-[10px] text-earth-subtle">/{m.target}</span>
                   </p>
-                  <div className="prog thin mt-1.5">
+                  <div className="prog mt-1.5">
                     <span style={{ width: `${m.target ? Math.min(100, (m.value / m.target) * 100) : 0}%`, background: m.color }} />
                   </div>
                 </div>

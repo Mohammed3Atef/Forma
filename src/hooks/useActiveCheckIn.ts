@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { getActiveCheckIn } from '@/services/platform/checkInApi';
 
@@ -10,7 +9,7 @@ import { getActiveCheckIn } from '@/services/platform/checkInApi';
  */
 export function useActiveCheckIn() {
   const uid = useSession((s) => s.uid) ?? '';
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const enabled = !!uid;
   const q = useQuery({
     queryKey: ['activeCheckIn', uid],
     queryFn: () => getActiveCheckIn(uid),

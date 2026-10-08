@@ -8,7 +8,6 @@ import { useWorkout } from "@/stores/workoutStore";
 import { useMeasurements } from "@/stores/measurementStore";
 import { useSettings } from "@/stores/settingsStore";
 import { useSession } from "@/services/auth/sessionStore";
-import { cloudAvailable } from "@/data/dataSource";
 import { fetchMyAssessment } from "@/services/platform/clientCoachApi";
 import { Icon } from "@/components/Icon";
 import { Sheet } from "@/components/Sheet";
@@ -187,7 +186,7 @@ export function Progress() {
   // Real target weight, when the client set one during their assessment —
   // never fabricated; the "to goal" stat simply doesn't render without it.
   const uid = useSession((s) => s.uid) ?? "";
-  const assessmentEnabled = cloudAvailable() && !!uid && uid !== "local-user";
+  const assessmentEnabled = !!uid;
   const assessment = useQuery({
     queryKey: ["assessment", uid],
     queryFn: () => fetchMyAssessment(uid),
@@ -479,7 +478,7 @@ export function Progress() {
                     <span className="w-24 shrink-0 truncate font-display text-sm font-medium">
                       {muscleLabel(muscle, t)}
                     </span>
-                    <div className="prog thin flex-1">
+                    <div className="prog flex-1">
                       <span
                         style={{
                           width: `${(count / overview.maxMuscle) * 100}%`,
@@ -500,7 +499,7 @@ export function Progress() {
 
       {tab === "measure" && (
         <div className="space-y-3">
-          <div className="hdr rounded-t-xl2 border border-b-0 border-line bg-surface-card p-5 flex items-center justify-between">
+          <div className="rounded-t-xl2 border border-b-0 border-line bg-surface-card p-5 flex items-center justify-between">
             <p className="ui-label">{t("gt.measurements")}</p>
             <button
               type="button"
@@ -573,8 +572,7 @@ export function Progress() {
             </label>
             <input
               className="input"
-              type="number"
-              step="0.1"
+              type="text"
               inputMode="decimal"
               value={weightVal}
               onChange={(e) => setWeightVal(e.target.value)}

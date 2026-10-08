@@ -17,8 +17,8 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
-import { getCoachPlan } from '@/services/platform/coachPlanApi';
+import { coachDashboardQuery, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
+import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
@@ -51,7 +51,24 @@ const SUB_TONE: Record<string, PillTone> = {
   cancelled: 'bad',
   ended: 'bad',
 };
-const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
+/**
+ * What the coach actually manages (B0 / CO-07): the client's COACHING state —
+ * from the relationship's subscription — not the admin account state.
+ * "Expiring" = an active/trial term ending within 7 days.
+ */
+type CoachingState = 'active' | 'trial' | 'frozen' | 'expiring' | 'expired' | 'pending' | 'none';
+const STATE_FILTERS: (CoachingState | 'all')[] = ['all', 'active', 'trial', 'frozen', 'expiring', 'expired', 'none'];
+const STATE_TONE: Record<CoachingState, PillTone> = { active: 'ok', trial: 'brand', frozen: 'warn', expiring: 'warn', expired: 'bad', pending: 'warn', none: 'mute' };
+const EXPIRING_DAYS = 7;
+function coachingStateOf(row: ClientDashboardRow | undefined): CoachingState | null {
+  if (!row) return null; // dashboard not loaded → unknown, never guessed
+  const s = effectiveSubscriptionStatus(row.subscription);
+  if (s === 'expired' || s === 'ended' || s === 'cancelled') return 'expired';
+  if ((s === 'active' || s === 'trial') && subscriptionDaysLeft(row.subscription) <= EXPIRING_DAYS) return 'expiring';
+  return s;
+}
+/** The account state is shown only when it actually blocks the client. */
+const blocksClient = (a: AccountStatus) => a !== 'active';
 const PAGE = 20;
 
 export function CoachClients() {
@@ -65,7 +82,7 @@ export function CoachClients() {
   useFullBleed();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(() => params.get('q') ?? '');
-  const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CoachingState | 'all'>('all');
   const [visible, setVisible] = useState(PAGE);
   const [adding, setAdding] = useState(() => params.get('new') === '1');
   const [addMode, setAddMode] = useState<AddMode>('choose');
@@ -97,19 +114,9 @@ export function CoachClients() {
   // Mobile used to skip this fetch entirely (`enabled: isDesktop`), so the
   // phone list only ever had name/email/status — no adherence/attention/
   // check-in signal to help a coach decide who to look at first.
-  const dash = useQuery({
-    queryKey: ['coachDashboard', coachId],
-    queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
+  const dash = useQuery(coachDashboardQuery(coachId));
 
-  const plan = useQuery({
-    queryKey: ['coachPlan', coachId],
-    queryFn: () => getCoachPlan(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
+  const plan = useQuery(coachPlanQuery(coachId));
   const maxClients = plan.data?.maxClients ?? Infinity;
   // Prefer the REAL client count — the maintained plan counter can drift out of sync.
   const usedClients = clients.data
@@ -123,21 +130,6 @@ export function CoachClients() {
   const matches = (name: string, email: string, phone: string | undefined, q: string) =>
     (name || email).toLowerCase().includes(q) || email.toLowerCase().includes(q) || (phone ?? '').includes(q);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (clients.data ?? []).filter((c) => {
-      if (statusFilter !== 'all' && c.accountStatus !== statusFilter) return false;
-      return !q || matches(c.displayName || '', c.email, c.phone, q);
-    });
-  }, [clients.data, search, statusFilter]);
-
-  const dashRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (dash.data?.clients ?? []).filter((r) => {
-      if (statusFilter !== 'all' && r.client.accountStatus !== statusFilter) return false;
-      return !q || matches(r.client.displayName || '', r.client.email, r.client.phone, q);
-    });
-  }, [dash.data, search, statusFilter]);
   // Mobile row signal — keyed lookup into the same dashboard rows the desktop
   // table already uses, so both breakpoints show the coaching signal.
   const dashByClientId = useMemo(() => {
@@ -145,6 +137,22 @@ export function CoachClients() {
     (dash.data?.clients ?? []).forEach((r) => m.set(r.client.id, r));
     return m;
   }, [dash.data]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (clients.data ?? []).filter((c) => {
+      if (statusFilter !== 'all' && coachingStateOf(dashByClientId.get(c.id)) !== statusFilter) return false;
+      return !q || matches(c.displayName || '', c.email, c.phone, q);
+    });
+  }, [clients.data, search, statusFilter, dashByClientId]);
+
+  const dashRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (dash.data?.clients ?? []).filter((r) => {
+      if (statusFilter !== 'all' && coachingStateOf(r) !== statusFilter) return false;
+      return !q || matches(r.client.displayName || '', r.client.email, r.client.phone, q);
+    });
+  }, [dash.data, search, statusFilter]);
 
   const hasActiveFilter = search.trim() !== '' || statusFilter !== 'all';
   const clientsEmpty = (
@@ -185,7 +193,7 @@ export function CoachClients() {
         </span>
       ),
     },
-    { key: 'status', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.client.accountStatus]}>{t(`subscription.acct.${r.client.accountStatus}`)}</Pill> },
+    { key: 'status', header: t('subscription.title'), cell: (r) => <CoachingPills state={coachingStateOf(r)} account={r.client.accountStatus} daysLeft={subscriptionDaysLeft(r.subscription)} /> },
     { key: 'assess', header: t('assessment.title'), cell: (r) => <span className="text-[12px] text-earth-subtle">{t(`assessment.status.${r.assessment}`)}</span> },
     { key: 'last', header: t('coachDash.recentActivity'), cell: (r) => <span className="text-[12px] text-earth-subtle">{r.lastActivity ? shortDate(r.lastActivity, i18n.language) : '—'}</span> },
     { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.addedAt).toISOString().slice(0, 10), i18n.language)}</span> },
@@ -212,9 +220,9 @@ export function CoachClients() {
   );
   const filterBar = (
     <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-      {STATUS_FILTERS.map((s) => (
+      {STATE_FILTERS.map((s) => (
         <button key={s} type="button" data-testid={`client-status-filter-${s}`} onClick={() => setStatusFilter(s)} className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}>
-          {s === 'all' ? t('admin.allStatuses') : t(`subscription.acct.${s}`)}
+          {s === 'all' ? t('admin.allStatuses') : t(`trust.clients.state.${s}`)}
         </button>
       ))}
     </div>
@@ -301,7 +309,7 @@ export function CoachClients() {
                     <span className="block truncate font-medium">{c.displayName || c.email}</span>
                     <span className={`block truncate text-[12.5px] ${signal?.tone ?? 'text-earth-muted'}`}>{signal?.text ?? c.email}</span>
                   </span>
-                  <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
+                  <CoachingPills state={coachingStateOf(row)} account={c.accountStatus} daysLeft={row ? subscriptionDaysLeft(row.subscription) : 0} />
                   <Icon name="chevron" size={18} />
                 </button>
               );
@@ -364,7 +372,7 @@ function AddChooser({ onCreate, onExisting }: { onCreate: () => void; onExisting
         <span className="row-av h-10 w-10 shrink-0 bg-brand/15 text-brand"><Icon name="search" size={18} /></span>
         <span className="min-w-0">
           <span className="block font-medium">{t('existing.addExisting')}</span>
-          <span className="block text-[12px] text-earth-subtle">{t('existing.addExistingDesc')}</span>
+          <span className="block text-[12px] text-earth-subtle">{t('trust.existing.addExistingDesc')}</span>
         </span>
       </button>
     </div>
@@ -525,6 +533,25 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   );
 }
 
+/** Coaching state (+ the account state only when it blocks the client). Unknown → nothing, never a guess. */
+function CoachingPills({ state, account, daysLeft }: { state: CoachingState | null; account: AccountStatus; daysLeft: number }) {
+  const { t } = useTranslation();
+  return (
+    <span className="flex shrink-0 flex-col items-end gap-1">
+      {state && (
+        <Pill testId="client-coaching-state" tone={STATE_TONE[state]}>
+          {state === 'expiring' ? t('trust.clients.expiringIn', { n: daysLeft }) : t(`trust.clients.state.${state}`)}
+        </Pill>
+      )}
+      {blocksClient(account) && (
+        <Pill testId="client-account-warning" tone={ACCT_TONE[account]}>
+          {t(`subscription.acct.${account}`)}
+        </Pill>
+      )}
+    </span>
+  );
+}
+
 function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
   const { t, i18n } = useTranslation();
   const c = row.client;
@@ -541,7 +568,7 @@ function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; on
           <p className="font-semibold">{c.displayName || c.email}</p>
           <p className="text-[12px] text-earth-subtle">{c.email}</p>
         </div>
-        <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
+        {blocksClient(c.accountStatus) && <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>}
       </div>
       <div className="space-y-2 text-sm">
         <Row label={t('subscription.title')}>

@@ -13,6 +13,11 @@ export default defineConfig({
   // Test output (traces, reports, stub uploads, DB files) must never trigger
   // HMR/full reloads in a running dev server — concurrent E2E runs write there.
   server: { watch: { ignored: ['**/e2e-out/**', '**/test-results/**', '**/e2e-report/**', '**/playwright-report/**'] } },
+  // The dep pre-bundler otherwise crawls EVERY .html under the root — including
+  // thousands of Playwright trace resources in e2e-out/ — and runs esbuild out
+  // of memory before the dev server can serve the app. index.html is the only
+  // app entry (dev only; no effect on `vite build`).
+  optimizeDeps: { entries: ['index.html'] },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -74,8 +79,10 @@ export default defineConfig({
         // Marketing landing images are web-only (the installed PWA opens straight
         // to /login) — keep them out of the install precache; they're runtime-cached below.
         // The three.js landing film is lazy-loaded only on the marketing route — never precache it for installs.
-        // Same for the public website (design port): its chunk + images are for web visitors only.
-        globIgnores: ['**/landing_page/**', '**/Experience-*.js', '**/website/**', '**/SitePages-*.{js,css}'],
+        // Same for the public website's images. The SitePages chunk IS precached (B0 / PWA-01): it holds the
+        // login form, and an installed app opened offline must still be able to render it.
+        // The hidden /experience page's images + CSS are for web visitors too (B0 / RM-72: 614 KB of every install).
+        globIgnores: ['**/landing_page/**', '**/Experience-*.js', '**/Experience-*.css', '**/experience/**', '**/website/**'],
         navigateFallback: '/index.html',
         // A top-level navigation to an API URL (e.g. a media/export link opened
         // in a new tab) must reach the function, not be answered with the SPA shell.
@@ -118,18 +125,6 @@ export default defineConfig({
             },
           },
           {
-            // Exercise videos: cache on first play (range-request aware so
-            // seeking works offline). Not precached — too large for install.
-            urlPattern: ({ url }) => url.pathname.startsWith('/exercise_videos/'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'exercise-videos',
-              rangeRequests: true,
-              cacheableResponse: { statuses: [0, 200, 206] },
-              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 180 },
-            },
-          },
-          {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'google-fonts-stylesheets' },
@@ -152,13 +147,6 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 180 },
             },
-          },
-          {
-            // App data bundles (e.g. the exercise library JSON) — revalidate in the
-            // background so a returning coach/admin gets instant loads.
-            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/data/'),
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'app-data', expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 } },
           },
         ],
       },

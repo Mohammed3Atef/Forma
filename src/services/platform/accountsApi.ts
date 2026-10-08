@@ -68,15 +68,23 @@ export async function fetchByRole(role: Role, max = 200): Promise<UserRecord[]> 
   return trpc.adminUsers.byRole.query({ role, max }) as Promise<UserRecord[]>;
 }
 
+/** What "Add Existing Client" learns about a match (B0 / CO-03) — never contact details or the other coach's id. */
+export interface ClientLookup {
+  id: string;
+  displayName: string;
+  coaching: 'you' | 'another' | 'none';
+  accountStatus?: UserRecord['accountStatus'];
+}
+
 /**
- * Find existing CLIENT accounts by exact email, exact phone, or name prefix
- * (case-insensitive via `displayNameLower`) — for "Add Existing Client".
- * Matching now happens server-side in one request; never creates anything.
+ * "Add Existing Client" lookup: a coach finds a CLIENT account only by its
+ * exact email or phone (server-side, rate-limited, audited). Never creates
+ * anything.
  */
-export async function searchClients(value: string, max = 20): Promise<UserRecord[]> {
+export async function searchClients(value: string, max = 20): Promise<ClientLookup[]> {
   const v = value.trim();
   if (!v) return [];
-  return trpc.adminUsers.searchClients.query({ value: v, max }) as Promise<UserRecord[]>;
+  return trpc.adminUsers.searchClients.query({ value: v, max });
 }
 
 /** Provisions a new account (admin-driven); the API records the audit entry. */

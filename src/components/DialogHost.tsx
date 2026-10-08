@@ -63,7 +63,7 @@ export function DialogHost() {
       <div className="absolute inset-0 bg-black/60" onClick={() => respond(false)} />
       <div ref={panelRef} tabIndex={-1} className="relative w-full max-w-sm rounded-xl2 bg-surface-card p-5 shadow-2xl focus:outline-none">
         <h2 id={titleId} className="text-lg font-bold">{title}</h2>
-        {message && <p id={descId} className="mt-2 text-sm text-earth-muted">{message}</p>}
+        {message && <p id={descId} className="mt-2 whitespace-pre-line text-sm text-earth-muted">{message}</p>}
         <div className="mt-5 flex gap-2">
           {!isAlert && (
             <button ref={cancelRef} type="button" data-testid="confirm-cancel" onClick={() => respond(false)} className="btn-ghost flex-1">

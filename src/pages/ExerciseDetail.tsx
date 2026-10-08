@@ -1,13 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { VideoAsset } from '@/types';
 import { useWorkout } from '@/stores/workoutStore';
-import { useVideos } from '@/stores/videoStore';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
 import { LineChart } from '@/components/charts';
-import { VideoPlayerSheet } from '@/components/VideoPlayerSheet';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { playVideo } from '@/stores/videoPopupStore';
 import { useLocalized } from '@/hooks/useLocalized';
@@ -15,6 +12,7 @@ import { muscleColor, muscleLabel } from '@/lib/muscle';
 import { prByExercise, exerciseTrend } from '@/lib/calc';
 import { shortDate } from '@/lib/utils';
 import { useBack } from '@/hooks/useBack';
+import { isPlayableVideoUrl } from '@/lib/videoSource';
 
 export function ExerciseDetail() {
   const { t, i18n } = useTranslation();
@@ -23,9 +21,6 @@ export function ExerciseDetail() {
   const { exId } = useParams();
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
-  const byExercise = useVideos((s) => s.byExercise);
-  const [video, setVideo] = useState<VideoAsset | null>(null);
-  const [videoOpen, setVideoOpen] = useState(false);
 
   const ex = exId ? plan?.exercises[exId] : undefined;
   const pr = useMemo(() => (exId ? prByExercise(logs).get(exId) : undefined), [logs, exId]);
@@ -64,16 +59,10 @@ export function ExerciseDetail() {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const openVideo = () => {
-    // Coach-assigned direct video URL takes priority over the local library.
-    // Plays in an in-app popup (window.open would exit a standalone PWA).
-    if (ex.videoUrl) {
-      playVideo(ex.videoUrl);
-      return;
-    }
-    setVideo(byExercise(exId));
-    setVideoOpen(true);
-  };
+  // The button only exists when the coach's link can actually play (B0 / CL-20).
+  // Plays in an in-app popup (window.open would exit a standalone PWA).
+  const canPlay = isPlayableVideoUrl(ex.videoUrl);
+  const openVideo = () => playVideo(ex.videoUrl!);
 
   return (
     <div className="anim-rise pb-6">
@@ -82,9 +71,11 @@ export function ExerciseDetail() {
         eyebrow={muscleLabel(ex.targetMuscle, t)}
         onBack={goBack}
         right={
-          <button type="button" onClick={openVideo} className="icon-btn h-11 w-11" aria-label={t('workout.watchVideo')}>
-            <Icon name="video" size={18} />
-          </button>
+          canPlay ? (
+            <button type="button" onClick={openVideo} className="icon-btn h-11 w-11" aria-label={t('workout.watchVideo')} data-testid="exercise-video-button">
+              <Icon name="video" size={18} />
+            </button>
+          ) : undefined
         }
       />
 
@@ -202,7 +193,6 @@ export function ExerciseDetail() {
         </div>
       )}
 
-      <VideoPlayerSheet asset={videoOpen ? video : null} title={ex.name} onClose={() => setVideoOpen(false)} />
     </div>
   );
 }

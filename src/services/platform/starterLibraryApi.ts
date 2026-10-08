@@ -1,5 +1,4 @@
 import { trpc } from '@/services/trpc';
-import type { Exercise } from '@/types';
 
 export interface SeedResult {
   exercises: number;
@@ -22,19 +21,6 @@ interface SeedApiResult {
   groups: SeedCounts;
   supplements: SeedCounts;
   templates: SeedCounts;
-}
-
-/**
- * The shared starter EXERCISE dataset (wger.de, CC BY-SA 3.0) at
- * `public/data/exercise-library.json`. Fetched at runtime so the ~150 KB
- * (gzipped) of exercise data never bloats the JS bundle. This is the single
- * source of truth for starter exercises — both "Load starter library" and
- * the coach library's one-tap import read it.
- */
-export async function fetchStarterExercises(): Promise<Exercise[]> {
-  const res = await fetch('/data/exercise-library.json');
-  if (!res.ok) throw new Error('Failed to load exercise library');
-  return (await res.json()) as Exercise[];
 }
 
 /**

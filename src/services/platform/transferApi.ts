@@ -52,7 +52,8 @@ export function transferReqId(toCoachId: string, clientId: string): string {
 export async function submitTransferRequest(input: {
   toCoachId: string;
   clientId: string;
-  fromCoachId: string;
+  /** Omit for coach requests — the server derives the client's current coach (B0 / CO-03). */
+  fromCoachId?: string;
   reason: string;
   mode?: TransferMode;
   subscriptionHandling?: TransferSubHandling;
@@ -61,7 +62,7 @@ export async function submitTransferRequest(input: {
   // the endpoint always uses the authenticated user's id, so it isn't sent.
   await trpc.transfers.create.mutate({
     clientId: input.clientId,
-    fromCoachId: input.fromCoachId,
+    ...(input.fromCoachId ? { fromCoachId: input.fromCoachId } : {}),
     reason: input.reason.trim(),
     ...(input.mode ? { mode: input.mode } : {}),
     ...(input.subscriptionHandling ? { subscriptionHandling: input.subscriptionHandling } : {}),

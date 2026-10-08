@@ -16,7 +16,6 @@ import { showToast } from '@/stores/toastStore';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
 import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyCardioPlan } from '@/services/platform/clientCoachApi';
 import { colors } from '@/theme/colors';
@@ -109,7 +108,7 @@ export function Cardio() {
   };
 
   const uid = useSession((s) => s.uid);
-  const cardioPlanEnabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const cardioPlanEnabled = !!uid;
   const cardioPlan = useQuery({
     queryKey: ['myCardioPlan', uid],
     queryFn: () => fetchMyCardioPlan(uid!),
@@ -159,22 +158,22 @@ export function Cardio() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="num text-xl text-earth">
+            <p className="text-xl text-earth">
               {todaySteps.toLocaleString()}
               {stepsTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {stepsTarget.toLocaleString()}</span>}
             </p>
             <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.steps')}</p>
-            <div className="prog thin">
+            <div className="prog">
               <span style={{ width: `${stepsTarget > 0 ? Math.min(100, (todaySteps / stepsTarget) * 100) : 0}%`, background: colors.info }} />
             </div>
           </div>
           <div>
-            <p className="num text-xl text-earth">
+            <p className="text-xl text-earth">
               {todayCardioMin}
               {cardioTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {cardioTarget} {t('common.min')}</span>}
             </p>
             <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.minutes')}</p>
-            <div className="prog thin">
+            <div className="prog">
               <span style={{ width: `${cardioTarget > 0 ? Math.min(100, (todayCardioMin / cardioTarget) * 100) : 0}%` }} />
             </div>
           </div>

@@ -54,7 +54,7 @@ export function BannerHost() {
   const wide = role === 'coach';
 
   useEffect(() => {
-    if (!role || !placement || !uid || uid === 'local-user') {
+    if (!role || !placement || !uid) {
       setBanners([]);
       return;
     }

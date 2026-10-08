@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { pickFreshDraft } from '@/lib/draft';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import localforage from 'localforage';
 import { TopBar } from '@/components/TopBar';
-import { LoadingState } from '@/components/ui/LoadingState';
+import { PlanConflictBanner, PlanEditorGate } from '@/components/coach/PlanEditorStates';
+import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -21,7 +20,6 @@ import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
 import type { Exercise, SplitType, WorkoutDay, WorkoutGoal, WorkoutPlan } from '@/types';
 
-const draftStore = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
 const GOALS: WorkoutGoal[] = ['hypertrophy', 'fat_loss', 'strength', 'beginner', 'advanced', 'custom'];
 const SPLITS: SplitType[] = ['ppl', 'upper_lower', 'full_body', 'bro_split', 'custom'];
 
@@ -31,86 +29,47 @@ function emptyPlan(): WorkoutPlan {
 
 export function CoachWorkoutEditor() {
   const { t } = useTranslation();
-  const qc = useQueryClient();
   const { clientId = '' } = useParams();
   const coachId = useSession((s) => s.account?.id ?? '');
-  const draftKey = `workoutDraft:${clientId}`;
-
-  const query = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
-  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
-  // Dirty is COMPUTED vs the last-saved baseline (not a sticky flag), so a
-  // leftover draft identical to the saved plan doesn't trigger a false prompt.
-  const baselineRef = useRef<string>('');
-  const [asTemplate, setAsTemplate] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const savedTimer = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (plan !== null || query.isLoading) return;
-    void draftStore.getItem<WorkoutPlan>(draftKey).then((draft) => {
-      const base = query.data ?? emptyPlan();
-      baselineRef.current = JSON.stringify(base);
-      setPlan(pickFreshDraft(draft, query.data) ?? base); // stale drafts (server changed since) are discarded — see lib/draft.ts
-    });
-  }, [query.isLoading, query.data, plan, draftKey]);
-
-  const dirty = plan !== null && JSON.stringify(plan) !== baselineRef.current;
-  // Registers this dirty state with the shared nav guard, so leaving via the
-  // workspace's own back button, tab rail, or bottom nav also confirms first —
-  // not just this editor's own `exit()` (its back button already confirms via
-  // `exit`; this covers every OTHER way to leave the page).
-  useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') });
-
-  // Autosave draft locally while there are unsaved changes.
-  useEffect(() => {
-    if (plan && dirty) void draftStore.setItem(draftKey, plan);
-  }, [plan, dirty, draftKey]);
-
-  const save = useMutation({
-    mutationFn: () => {
-      const p = plan!;
-      // Editing an assigned (from-template) plan marks it customized.
-      const next = p.meta ? { ...p, meta: { ...p.meta, isCustomized: true } } : p;
-      return saveClientWorkoutPlan(clientId, next);
-    },
-    onSuccess: async () => {
-      await draftStore.removeItem(draftKey);
-      baselineRef.current = JSON.stringify(plan);
-      void qc.invalidateQueries({ queryKey: ['clientWorkoutPlan', clientId] });
-      showToast({ title: t('common.saved'), variant: 'success' });
-      // Stays on the editor — the client's plan is already live the moment
-      // this succeeds, so there's no reason to force the coach back to the
-      // overview tab if they want to keep adjusting it.
-      window.clearTimeout(savedTimer.current);
-      setJustSaved(true);
-      savedTimer.current = window.setTimeout(() => setJustSaved(false), 3000);
-    },
+  const ed = usePlanEditor<WorkoutPlan>({
+    queryKey: 'clientWorkoutPlan',
+    clientId,
+    draftKey: `workoutDraft:${coachId}:${clientId}`,
+    load: getClientWorkoutPlan,
+    // Editing an assigned (from-template) plan marks it customized.
+    save: (id, p, opts) => saveClientWorkoutPlan(id, p.meta ? { ...p, meta: { ...p.meta, isCustomized: true } } : p, opts),
+    empty: emptyPlan,
   });
+  const { plan, setPlan, dirty, save } = ed;
+  const [asTemplate, setAsTemplate] = useState(false);
+  // Registers this dirty state with the shared nav guard, so leaving via the
+  // workspace's own back button, tab rail, or bottom nav also confirms first.
+  useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, ed.discardDraft);
 
-  // Goes through the same guard `useUnsavedGuard` registered above (so this
-  // button and every other way to leave — tab rail, bottom nav — ask
-  // identically), then prefers real back over always landing on the overview
-  // tab, and only clears the draft once the exit is actually confirmed (never
-  // leaves a stale/discarded draft behind, but never wipes one the user kept).
-  const exit = useBack(`/coach/client/${clientId}`, () => void draftStore.removeItem(draftKey));
+  // Goes through the same guard, prefers real back over always landing on the
+  // overview tab, and only clears the draft once the exit is actually confirmed.
+  const exit = useBack(`/coach/client/${clientId}`, ed.discardDraft);
 
   if (!plan) {
     return (
       <>
         <TopBar testId="coach-workout-editor" title={t('coachEditor.workoutTitle')} dense onBack={exit} />
-        <LoadingState variant="list" count={4} />
+        {ed.status !== 'ready' && <PlanEditorGate status={ed.status} kind="workout" onRetry={ed.retry} onCreate={ed.startNew} />}
       </>
     );
   }
 
-  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => setPlan((p) => (p ? { ...p, days, exercises } : p));
+  const canSave = ed.canSave && plan.name.trim().length > 0;
+  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => setPlan((p) => ({ ...p, days, exercises }));
 
   const header = (
     <div className="space-y-2">
       <ClientContextPanel clientId={clientId} />
-      {save.isError && (
-        <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{(save.error as Error)?.message || t('coachEditor.saveFailed')}</p>
-      )}
+      {ed.conflict ? (
+        <PlanConflictBanner pending={save.isPending} onLoadLatest={() => void ed.reloadLatest()} onKeepMine={() => save.mutate({ overwrite: true })} />
+      ) : save.isError ? (
+        <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert" data-testid="plan-editor-save-failed">{t('trust.planEditor.saveFailed')}</p>
+      ) : null}
       {plan.meta?.sourceTemplateName && (
         <p className="text-[12px] text-earth-subtle">
           {t('coachEditor.fromTemplate', { name: plan.meta.sourceTemplateName })}
@@ -129,15 +88,15 @@ export function CoachWorkoutEditor() {
           <p className="text-[12px] text-earth-subtle" data-testid="workout-saving">{t('settings.saving')}</p>
         ) : dirty ? (
           <p className="text-[12px] text-warn" data-testid="workout-unsaved">{t('coachEditor.unsavedIndicator')}</p>
-        ) : justSaved ? (
-          <p className="text-[12px] text-success" data-testid="workout-saved">{t('common.saved')}</p>
+        ) : ed.justSaved ? (
+          <p className="text-[12px] text-success" data-testid="workout-saved">{t('trust.planEditor.savedVersioned')}</p>
         ) : <span />}
         <button type="button" className="chip" data-testid="save-as-template" onClick={() => setAsTemplate(true)}>
           {t('coachEditor.saveAsTemplate')}
         </button>
       </div>
-      <p className="text-[11.5px] text-earth-subtle">{t('coachEditor.saveHint')}</p>
-      <VersionActions clientId={clientId} kind="workout" plan={plan} createdBy={coachId} />
+      <p className="text-[11.5px] text-earth-subtle">{t('trust.planEditor.saveHint')}</p>
+      <VersionActions clientId={clientId} kind="workout" pending={save.isPending} onSaveVersion={(reason) => save.mutateAsync({ reason })} />
     </div>
   );
 
@@ -149,7 +108,7 @@ export function CoachWorkoutEditor() {
         dense
         onBack={exit}
         right={
-          <SubmitButton type="button" data-testid="workout-save" pending={save.isPending} className="h-[42px] px-4 text-xs" onClick={() => save.mutate()}>
+          <SubmitButton type="button" data-testid="workout-save" pending={save.isPending} disabled={!canSave} className="h-[42px] px-4 text-xs" onClick={() => save.mutate({})}>
             {t('coachEditor.saveAssigned')}
           </SubmitButton>
         }

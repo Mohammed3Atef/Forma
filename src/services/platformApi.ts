@@ -26,31 +26,74 @@ export function getAccessToken(): string | null {
 }
 
 /**
- * Raw (non-tRPC-client) call to `auth.refresh` — deliberately NOT routed
- * through `src/services/trpc.ts`'s `trpc` client, since that client's own
- * `httpBatchLink` fetch wrapper calls back into THIS function on a 401,
- * which would recurse. Same wire format tRPC's node-http adapter expects for
- * a single (non-batched) mutation: POST with a plain JSON body, response
- * unwrapped from `{result:{data:...}}`.
+ * Outcome of a refresh attempt (B0 / PWA-01). Only `unauthorized` — the server
+ * explicitly said the session is gone (no cookie, expired, revoked) — may end a
+ * session. `network` (offline, timeout, DNS, aborted) and `error` (5xx, bad
+ * response) are transient: the caller keeps the user signed in and retries.
  */
-async function tryRefresh(): Promise<boolean> {
+export type RefreshOutcome = 'ok' | 'unauthorized' | 'network' | 'error';
+
+/** A connection that is "up" but passes no data must never hang boot forever. */
+export const REFRESH_TIMEOUT_MS = 10_000;
+
+async function refreshOnce(): Promise<RefreshOutcome> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REFRESH_TIMEOUT_MS);
   try {
     const res = await fetch('/api/trpc/auth.refresh', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
+      signal: ctrl.signal,
     });
-    if (!res.ok) return false;
+    if (res.status === 401 || res.status === 403) return 'unauthorized';
+    if (!res.ok) return 'error';
     const body = (await res.json()) as { result?: { data?: { accessToken?: string } } };
-    const accessToken = body.result?.data?.accessToken;
-    if (!accessToken) return false;
-    setAccessToken(accessToken);
-    return true;
+    const token = body.result?.data?.accessToken;
+    if (!token) return 'error';
+    setAccessToken(token);
+    return 'ok';
   } catch {
-    return false;
+    return 'network';
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-/** Exposed only for `mongoAuth.restoreSession()` — everyone else should never need to call this directly. */
-export { tryRefresh as refreshSession };
+let inFlight: Promise<RefreshOutcome> | null = null;
+
+/**
+ * Raw (non-tRPC-client) call to `auth.refresh` — deliberately NOT routed
+ * through `src/services/trpc.ts`'s `trpc` client, since that client's own
+ * `httpBatchLink` fetch wrapper calls back into THIS function on a 401,
+ * which would recurse. Same wire format tRPC's node-http adapter expects for
+ * a single (non-batched) mutation: POST with a plain JSON body, response
+ * unwrapped from `{result:{data:...}}`.
+ *
+ * Single-flight: concurrent callers (several queries hitting a 401 at once,
+ * boot + foreground) share ONE request — the server rotates the refresh
+ * token, so a second parallel refresh with the old cookie would lose the race
+ * and look like a sign-out (PF-10). An `unauthorized` answer is retried once
+ * after a short pause, because another TAB may have just rotated the cookie
+ * (the retry then carries the new one).
+ */
+export function refreshSessionDetailed(): Promise<RefreshOutcome> {
+  if (inFlight) return inFlight;
+  inFlight = (async () => {
+    let outcome = await refreshOnce();
+    if (outcome === 'unauthorized') {
+      await new Promise((r) => setTimeout(r, 400));
+      outcome = await refreshOnce();
+    }
+    return outcome;
+  })().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+/** Boolean form for the tRPC 401-retry path (retry only when a fresh token was obtained). */
+export async function refreshSession(): Promise<boolean> {
+  return (await refreshSessionDetailed()) === 'ok';
+}

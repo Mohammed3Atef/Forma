@@ -40,7 +40,9 @@ async function requestTransfer(page: Page, env: E2EEnv, reason: string, testInfo
   await expect(page.getByTestId('existing-detail')).toBeVisible({ timeout: 20_000 });
   const panel = page.getByTestId('existing-transfer-panel');
   await expect(panel).toBeVisible();
-  await expect(panel).toContainText('Currently coached by Coach Amira');
+  // B0 / CO-03: the other coach is never named or identified to the requesting coach.
+  await expect(panel).toContainText('This client already has a coach');
+  await expect(page.getByTestId('existing-detail')).not.toContainText('Coach Amira');
   await expect(page.getByTestId('existing-assign-panel')).toHaveCount(0);
   await expect(page.getByTestId('existing-assign')).toHaveCount(0);
   await expect(page.getByTestId('existing-request-transfer')).toBeDisabled(); // reason required

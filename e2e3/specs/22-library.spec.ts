@@ -213,13 +213,14 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.getByRole('button', { name: 'Update from library' }).click();
   await expect(sec).toContainText(v3name);
   await expect(sec).toContainText('5 × 5');
-  expect(await planEx()).toMatchObject({ name: v3name, videoUrl: v3, workingSets: 5, repRange: '5', librarySyncEnabled: true });
   await shot(page, testInfo, '06-client-plan-updated');
-  // The refresh is already persisted server-side; record whether the editor still claims unsaved changes.
-  testInfo.annotations.push({ type: 'unsaved-after-update-from-library', description: String(await page.getByTestId('workout-unsaved').isVisible()) });
-  // The coach can still Save the client plan afterwards (E-B-2: nulls written by the refresh).
+  // Since B0 (CO-01) the refresh is an edit in the editor, persisted only by the guarded Save
+  // (the unguarded server-side rewrite was removed) — so it is unsaved until the coach saves.
+  await expect(page.getByTestId('workout-unsaved')).toBeVisible();
+  expect(await planEx()).toMatchObject({ name: v2name, videoUrl: v2 });
   await page.getByTestId('workout-save').click();
-  await expect.soft(page.getByTestId('workout-saved'), 'client plan saves after Update from library').toBeVisible();
+  await expect(page.getByTestId('workout-saved'), 'client plan saves after Update from library').toBeVisible();
+  expect(await planEx()).toMatchObject({ name: v3name, videoUrl: v3, workingSets: 5, repRange: '5', librarySyncEnabled: true });
   await shot(page, testInfo, '06b-client-plan-save-after-update');
 
   // 7) Override (sync off) on the template exercise — link kept.

@@ -1,17 +1,36 @@
 {
   "field": {
-    "name": "Name", "email": "Email", "phone": "Phone", "price": "Price", "currency": "Currency",
-    "months": "Months", "notes": "Notes", "reason": "Reason", "search": "Search", "category": "Category",
-    "quantity": "Quantity", "dose": "Dose", "timing": "Timing", "duration": "Duration", "frequency": "Frequency",
-    "muscle": "Target muscle", "equipment": "Equipment", "videoUrl": "Video URL", "id": "ID",
-    "targetId": "Target ID", "planName": "Plan name"
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "price": "Price",
+    "currency": "Currency",
+    "months": "Months",
+    "notes": "Notes",
+    "reason": "Reason",
+    "category": "Category",
+    "quantity": "Quantity",
+    "dose": "Dose",
+    "timing": "Timing",
+    "muscle": "Target muscle",
+    "equipment": "Equipment",
+    "videoUrl": "Video URL",
+    "id": "ID",
+    "targetId": "Target ID",
+    "planName": "Plan name"
   },
-  "app": { "name": "Forma" },
+  "app": {
+    "name": "Forma"
+  },
   "landing": {
-    "nav": { "features": "Features", "pricing": "Pricing", "how": "How it works", "showcase": "Showcase" },
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "how": "How it works",
+      "showcase": "Showcase"
+    },
     "signIn": "Sign in",
     "getStarted": "Get started",
-    "skipToLogin": "Open the app",
     "langToggle": "العربية",
     "eyebrow": "The coaching platform",
     "heroTitle": "One Coach. One App.",
@@ -44,33 +63,54 @@
     "featuresEyebrow": "Everything in one place",
     "featuresTitle": "Run your coaching business from one powerful dashboard.",
     "features": {
-      "clients": { "title": "Manage clients", "desc": "Organise every client, plan and check-in from one central hub." },
-      "programs": { "title": "Build programs", "desc": "Create workout and nutrition plans, then assign them in seconds." },
-      "adherence": { "title": "Track adherence", "desc": "Monitor workouts, check-ins and results in real time." },
-      "nutrition": { "title": "Nutrition & macros", "desc": "Set targets, approve swaps and keep nutrition on track." },
-      "messaging": { "title": "Message clients", "desc": "Chat, send updates and keep everyone accountable in-app." },
-      "secure": { "title": "Secure & private", "desc": "Built on Firebase. Your clients' data stays private and reliable." }
+      "clients": {
+        "title": "Manage clients",
+        "desc": "Organise every client, plan and check-in from one central hub."
+      },
+      "programs": {
+        "title": "Build programs",
+        "desc": "Create workout and nutrition plans, then assign them in seconds."
+      },
+      "adherence": {
+        "title": "Track adherence",
+        "desc": "Monitor workouts, check-ins and results in real time."
+      },
+      "nutrition": {
+        "title": "Nutrition & macros",
+        "desc": "Set targets, approve swaps and keep nutrition on track."
+      },
+      "messaging": {
+        "title": "Message clients",
+        "desc": "Chat, send updates and keep everyone accountable in-app."
+      },
+      "secure": {
+        "title": "Secure & private",
+        "desc": "Built on Firebase. Your clients' data stays private and reliable."
+      }
     },
-    "pricingEyebrow": "Simple pricing",
-    "pricingTitle": "Start free. Upgrade when you're ready.",
-    "pricingPopular": "Most popular",
-    "pricingPremiumLabel": "Plus",
-    "pricingFree": "Free",
-    "pricingTrialDays": "{{n}}-day free trial, no card required",
-    "pricingAfterTrial": "after your trial ends",
-    "pricingTrialClients": "Up to {{n}} clients during your trial",
-    "pricingProClients": "Up to {{n}} clients on Pro",
-    "pricingMaxClients": "Up to {{n}} clients",
-    "pricingStartTrial": "Start Trial",
-    "pricingChoose": "Choose plan",
     "stepsEyebrow": "How it works",
     "stepsTitle": "Coach better. Scale faster. Get results.",
     "steps": {
-      "1": { "title": "Add & assign", "desc": "Invite a client and assign their plan in minutes." },
-      "2": { "title": "Send workout plans", "desc": "Build programs from templates and deliver them instantly." },
-      "3": { "title": "Track nutrition", "desc": "Set macro targets and let clients log what matters." },
-      "4": { "title": "Monitor progress", "desc": "See who's on track and who needs help — in real time." },
-      "5": { "title": "All inside Forma", "desc": "One platform. Everything you need to coach." }
+      "1": {
+        "title": "Add & assign",
+        "desc": "Invite a client and assign their plan in minutes."
+      },
+      "2": {
+        "title": "Send workout plans",
+        "desc": "Build programs from templates and deliver them instantly."
+      },
+      "3": {
+        "title": "Track nutrition",
+        "desc": "Set macro targets and let clients log what matters."
+      },
+      "4": {
+        "title": "Monitor progress",
+        "desc": "See who's on track and who needs help — in real time."
+      },
+      "5": {
+        "title": "All inside Forma",
+        "desc": "One platform. Everything you need to coach."
+      }
     },
     "showcaseEyebrow": "See it in action",
     "showcaseTitle": "Designed for coaches. Loved by clients.",
@@ -90,7 +130,6 @@
     "ctaTitle": "Scale your coaching business with Forma.",
     "ctaSub": "Save time, stay organised, and deliver better results for every client.",
     "ctaButton": "Get started",
-    "footerTagline": "Train. Track. Transform.",
     "footerRights": "All rights reserved.",
     "contact": "Contact"
   },
@@ -98,9 +137,7 @@
     "welcome": "Welcome",
     "intro": "Set up your profile to get started, or sign in to restore your data.",
     "getStarted": "Get started",
-    "haveAccount": "I have an account",
-    "signIn": "Sign in",
-    "syncing": "Syncing your data…"
+    "signIn": "Sign in"
   },
   "nav": {
     "home": "Home",
@@ -184,7 +221,6 @@
     "sets": "sets",
     "yes": "Yes",
     "no": "No",
-    "of": "of",
     "previous": "Previous",
     "next": "Next",
     "continue": "Continue",
@@ -196,7 +232,6 @@
     "increase": "Increase",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "play": "Play",
     "minimize": "Minimize",
     "confirmTitle": "Are you sure?",
     "confirmDeleteName": "Delete {{name}}? This can't be undone.",
@@ -230,8 +265,7 @@
       "disable": "Disable",
       "confirmDelete": "Delete {{n}} selected item(s)? This can't be undone.",
       "confirmStatus": "Apply this status to {{n}} account(s)?",
-      "done": "{{ok}} updated",
-      "partial": "{{ok}} updated · {{failed}} failed"
+      "done": "{{ok}} updated"
     }
   },
   "search": {
@@ -250,8 +284,13 @@
     "emptyTitle": "Start with a ready-made library",
     "emptyHint": "Load 900+ exercises (many with video), common foods, food-alternative groups, supplements and starter templates — then make them your own."
   },
-  "imageViewer": { "close": "Close" },
-  "coachInfo": { "yourCoach": "Your coach", "message": "Message", "callCoach": "Call" },
+  "imageViewer": {
+    "close": "Close"
+  },
+  "coachInfo": {
+    "yourCoach": "Your coach",
+    "message": "Message"
+  },
   "messages": {
     "loadFailed": "Couldn’t load messages. Retrying…",
     "title": "Messages",
@@ -272,7 +311,11 @@
     "recipients": "Recipients",
     "noMessages": "No messages yet.",
     "searchInbox": "Search messages",
-    "filters": { "all": "All", "unread": "Unread", "broadcasts": "Broadcasts" },
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "broadcasts": "Broadcasts"
+    },
     "openThread": "Open conversation",
     "photoMsg": "📷 Photo",
     "videoMsg": "🎬 Video",
@@ -296,20 +339,17 @@
     "deletedTombstone": "Message deleted",
     "editUnavailable": "Couldn't edit message",
     "deleteUnavailable": "Couldn't delete message",
-    "category": { "announcement": "Announcement", "offer": "Offer", "reminder": "Reminder", "update": "Update" }
+    "category": {
+      "announcement": "Announcement",
+      "offer": "Offer",
+      "reminder": "Reminder",
+      "update": "Update"
+    }
   },
   "home": {
-    "todaysWorkout": "Today's workout",
-    "todaysNutrition": "Today's nutrition",
-    "bodyWeight": "Body weight",
-    "streak": "Streak",
     "steps": "Steps",
-    "cardio": "Cardio",
     "dailyChecklist": "Daily checklist",
     "completion": "Completion",
-    "missed": "Missed",
-    "nextReminder": "Next reminder",
-    "noReminder": "No reminders scheduled",
     "restDay": "Rest day — pick a workout",
     "dayOfRotation": "Day {{n}} of {{total}} this rotation",
     "todaysPlan": "Today's plan",
@@ -320,34 +360,23 @@
     "logWeightTitle": "Log body weight"
   },
   "workout": {
-    "title": "Workout",
     "weeklyPlan": "Weekly plan",
     "dayEmpty": "Your coach hasn't added exercises to this day yet",
-    "exercises": "exercises",
-    "startDay": "Start {{title}}",
     "resumeSession": "Resume session",
     "noActiveSession": "No active workout",
     "session": "Session",
     "rest": "Rest",
     "skip": "Skip",
     "pause": "Pause",
-    "restCustom": "Custom (e.g. 1:30)",
     "set": "Set",
     "warmup": "Warm-up",
     "working": "Working",
     "weight": "Weight",
-    "rpe": "RPE",
-    "addSet": "Add set",
     "removeSet": "Remove set",
-    "finishWorkout": "Finish workout",
-    "noPrevious": "No previous data",
     "lastTime": "Last: {{weight}}kg × {{reps}}",
-    "target": "Target",
     "notes": "Notes",
     "tempo": "Tempo",
     "watchVideo": "Watch video",
-    "confirmFinish": "Finish and save this workout?",
-    "elapsed": "Elapsed",
     "notStarted": "Not started — press Start",
     "exerciseOf": "Exercise {{i}} of {{n}}",
     "upNext": "Up next"
@@ -402,19 +431,15 @@
     "noLogsYet": "No cardio logged yet — log your first session above",
     "minutes": "Cardio",
     "goal": "Daily activity goal",
-    "goalHint": "10k steps or 40 min cardio",
     "goalSteps": "{{n}} steps",
     "goalCardio": "{{n}} min cardio",
     "goalJoin": "or",
     "goalUnset": "Set by your coach",
     "logActivity": "Log activity",
-    "logCardio": "Log cardio",
-    "type": "Type",
     "duration": "Duration",
     "distance": "Distance",
     "calories": "Calories burned",
     "steps": "Steps",
-    "addSteps": "Add steps",
     "history": "History",
     "setup": "Session setup",
     "setupHint": "Distance and calories are estimated from your speed and incline — you can edit them when you finish.",
@@ -451,15 +476,12 @@
     "title": "Settings",
     "saving": "Saving…",
     "saveFailed": "Couldn't save",
-    "profile": "Profile",
     "name": "Name",
     "age": "Age",
     "weight": "Weight",
     "height": "Height",
     "goal": "Goal",
-    "activity": "Activity level",
     "language": "Language",
-    "theme": "Theme",
     "restDefault": "Default rest (sec)",
     "weeklyGoal": "Weekly workout goal",
     "keepAwake": "Keep screen awake during workout",
@@ -468,7 +490,6 @@
     "reminders": "Reminders",
     "targets": "Daily targets",
     "cloud": "Cloud backup & sync",
-    "signIn": "Sign in to back up",
     "signOut": "Sign out",
     "signUp": "Sign up",
     "syncNow": "Sync now",
@@ -478,25 +499,19 @@
     "phone": "Phone number",
     "timezone": "Timezone",
     "currency": "Default currency",
-    "settingsTab": "Settings",
     "preferences": "Preferences",
     "tools": "Tools",
-    "tabs": { "profile": "Profile", "preferences": "Preferences", "account": "Account" },
+    "tabs": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "account": "Account"
+    },
     "synced": "Backed up & syncing",
     "syncing": "Syncing…",
     "notifWhileOpen": "Your browser only shows reminders while the app is open.",
-    "localOnly": "Running locally. Add Firebase keys to enable cloud sync.",
-    "import": "Import data",
-    "videos": "Video manager",
     "forceUpdate": "Update the app",
     "forceUpdateConfirm": "Reload to get the latest version. Your data, downloaded videos and login are kept.",
     "data": "Data",
-    "clearDay": "Clear this day's data",
-    "clearDayConfirm": "Delete all data logged for {{date}} (workout, food, cardio, weight, photos)?",
-    "resetAll": "Reset all data (start fresh)",
-    "resetConfirm": "This erases ALL local data and restores the default plan. This cannot be undone. Continue?",
-    "resetOffline": "You're offline — your cloud backup won't be cleared and may restore data when you reconnect. Connect to the internet for a full reset.",
-    "resetCloudFailed": "Couldn't clear your cloud backup — it may restore this data later. Local data on this device is being reset now regardless.",
     "storagePersisted": "Offline storage is protected — your data, videos & photos persist.",
     "storageAtRisk": "Install the app (Add to Home Screen) so your data isn't cleared when closed.",
     "enableNotifications": "Enable notifications",
@@ -506,50 +521,13 @@
       "recomp": "Recomposition",
       "maintenance": "Maintenance",
       "strength": "Strength"
-    },
-    "activities": {
-      "sedentary": "Sedentary",
-      "light": "Light",
-      "moderate": "Moderate",
-      "active": "Active",
-      "very_active": "Very active"
     }
-  },
-  "video": {
-    "title": "Video Manager",
-    "download": "Download",
-    "downloading": "Downloading…",
-    "downloaded": "Downloaded",
-    "failed": "Failed",
-    "notDownloaded": "Not downloaded",
-    "linkPending": "Link pending",
-    "openOnline": "Open online",
-    "playLocal": "Play offline",
-    "downloadAll": "Download all",
-    "offlineSaved": "{{done}} of {{total}} saved offline",
-    "offlineHint": "Save all clips so they play without internet.",
-    "remove": "Remove download",
-    "setUrl": "Set video URL",
-    "missingFile": "No video file found for this exercise yet. Add a matching .mp4 to public/exercise_videos/.",
-    "offlineNeedsDownload": "You're offline and this clip isn't saved yet. Connect once and tap \"Download all\" in Video Manager to use it offline.",
-    "fallback": "This source can't be saved offline. Open it online, or paste a direct video file (.mp4) URL."
-  },
-  "import": {
-    "title": "Import Data",
-    "pasteJson": "Paste JSON or CSV",
-    "preview": "Preview",
-    "apply": "Import",
-    "videoLinks": "Video links (JSON from Apps Script)",
-    "help": "Paste exported sheet rows or the video-links JSON, preview, then import.",
-    "success": "Imported successfully",
-    "invalid": "Could not parse the input"
   },
   "measure": {
     "title": "Measurements",
     "forDay": "Measurements for this day",
     "compare": "Compare",
     "part": "Body part",
-    "addPart": "Add a body part (e.g. shoulder)",
     "empty": "No measurements yet — add them to track changes over time.",
     "parts": {
       "neck": "Neck",
@@ -602,7 +580,14 @@
     "volumeTrendFlat": "Not enough sessions yet to show a trend.",
     "last8weeks": "last 8 weeks",
     "allTime": "all time",
-    "range": { "7d": "7D", "30d": "30D", "3m": "3M", "6m": "6M", "1y": "1Y", "all": "All" },
+    "range": {
+      "7d": "7D",
+      "30d": "30D",
+      "3m": "3M",
+      "6m": "6M",
+      "1y": "1Y",
+      "all": "All"
+    },
     "recent": "Recent",
     "viewAll": "View all",
     "now": "Now",
@@ -709,14 +694,12 @@
     "banner": "You're offline — showing saved data. Changes sync when you reconnect.",
     "actionDisabled": "You're offline — reconnect to do this."
   },
-  "sync": { "retry": "Retry" },
-  "state": {
-    "permissionTitle": "No access",
-    "permissionBody": "You don't have permission to view this. Contact an administrator if you think this is a mistake.",
-    "offlineTitle": "You're offline",
-    "offlineBody": "This screen needs a connection. Reconnect and try again."
+  "sync": {
+    "retry": "Retry"
   },
-  "reminder": { "dueNow": "Reminder: {{label}}" },
+  "reminder": {
+    "dueNow": "Reminder: {{label}}"
+  },
   "reminderKinds": {
     "meal": "Meal",
     "supplements": "Supplements",
@@ -726,23 +709,14 @@
     "cardio": "Cardio / walk"
   },
   "auth": {
-    "welcomeBack": "Welcome back",
-    "createAccount": "Create your account",
-    "intro": "Sign in to access your Forma dashboard.",
     "working": "Working…",
     "haveAccount": "I already have an account",
     "needAccount": "Create a new account",
     "phoneRequired": "Phone number is required.",
     "confirmPassword": "Confirm password",
-    "changePlan": "Change plan",
-    "planTrialNote": "Free for {{n}} days, no card required.",
-    "planPaidNote": "Your account starts with Forma's {{n}}-day Trial. Your {{plan}} plan will activate once payment is confirmed.",
     "pwHint": "At least 8 characters and one number.",
-    "pwTooShort": "Password must be at least 8 characters.",
-    "pwNeedsNumber": "Password must include at least one number.",
     "pwMismatch": "Passwords don't match.",
     "forgotPassword": "Forgot password?",
-    "orContinueWith": "or continue with",
     "resetInvalidTitle": "Reset link invalid",
     "resetInvalidBody": "This password reset link is invalid or has expired. Request a new one from the sign-in screen.",
     "backToSignIn": "Back to sign in",
@@ -756,7 +730,6 @@
     "currentPassword": "Current password",
     "newPassword": "New password",
     "pwChanged": "Your password has been changed.",
-    "reloginNeeded": "Please sign out and back in, then try again.",
     "mustChangeTitle": "Set your password",
     "mustChangeBody": "Your coach created this account with a temporary password. Set your own now to keep it secure.",
     "changeNow": "Change now",
@@ -768,9 +741,7 @@
     "checkAgain": "Check again",
     "suspendedTitle": "Account unavailable",
     "suspendedBody": "Your account is currently suspended. Please contact support if you think this is a mistake.",
-    "role": { "client": "Client", "coach": "Coach" },
     "roleHint": {
-      "client": "Track your training with your coach.",
       "coach": "Manage your clients and start a free trial."
     }
   },
@@ -781,10 +752,8 @@
     "client": "Client"
   },
   "platform": {
-    "comingSoon": "Coming soon",
     "account": "Account",
     "role": "Role",
-    "platform": "Platform",
     "signOutConfirm": "Sign out of Forma on this device?",
     "coachPortal": "Coach portal",
     "admin": "Admin",
@@ -803,7 +772,6 @@
   },
   "coach": {
     "clients": "Clients",
-    "templates": "Templates",
     "adherence": "Adherence",
     "messages": "Messages",
     "client": "Client",
@@ -818,9 +786,11 @@
     "lastWeight": "Last weight",
     "notes": "Notes",
     "plans": "Plans",
-    "assignPlan": "Assign plan",
-    "noPlans": "No plans assigned",
-    "kind": { "workout": "Workout", "nutrition": "Nutrition", "cardio": "Cardio" },
+    "kind": {
+      "workout": "Workout",
+      "nutrition": "Nutrition",
+      "cardio": "Cardio"
+    },
     "sessionsCount": "{{n}} sessions",
     "targets": "Targets",
     "water": "Water",
@@ -829,30 +799,15 @@
     "noNotes": "No notes yet",
     "addNote": "Add note",
     "notePlaceholder": "Write a note for this client…",
-    "planTitle": "Plan title",
-    "planDescription": "Describe the plan…",
-    "setTargets": "Set targets",
-    "newTemplate": "New template",
-    "noTemplates": "No templates yet",
-    "assign": "Assign",
-    "transfer": "Transfer",
-    "unassign": "Unassign",
-    "assignToClient": "Assign to client",
-    "confirmDeleteTemplate": "Delete this template?",
     "last7Days": "Last 7 days",
     "workoutsShort": "wk",
     "sent": "Sent",
     "sentTo": "Announcement sent to {{n}} clients.",
-    "broadcastHint": "Sends a note to all {{n}} of your clients.",
     "announcementPlaceholder": "Write an announcement…",
-    "sendAnnouncement": "Send announcement",
     "addClient": "Add client",
-    "addClientHint": "Create the client's account. Share the email and temporary password so they can log in.",
-    "createClient": "Create client",
     "noPlanAssigned": "No plan assigned — tap to create",
     "manage": "Manage plan",
-    "planEdit": "Assigned — tap to edit",
-    "profileOptional": "Profile (optional — the client can complete it later)"
+    "planEdit": "Assigned — tap to edit"
   },
   "activity": {
     "title": "Client activity",
@@ -880,9 +835,7 @@
     "session": "Cardio session",
     "frequency": "Frequency",
     "frequencyPlaceholder": "e.g. 3x/week",
-    "planName": "Plan name",
     "planNamePlaceholder": "e.g. Push / Pull / Legs",
-    "planAssigned": "Plan assigned",
     "day": "Day",
     "dayTitle": "Day title",
     "dayFocus": "Focus (e.g. Chest · Shoulders)",
@@ -892,7 +845,6 @@
     "exercise": "Exercise",
     "exerciseName": "Exercise name",
     "targetMuscle": "Target muscle",
-    "sets": "Sets",
     "warmupSets": "Warm-up sets",
     "workingSets": "Working sets",
     "warmupShort": "wu",
@@ -943,7 +895,6 @@
     "pickerTruncated": "Showing {{shown}} of {{total}} — refine your search to see more.",
     "applyDefaultsToAll": "Apply the same sets/reps/rest to all selected",
     "saveAssigned": "Save plan",
-    "saveHint": "Save updates the client's plan immediately — no history is kept unless you use \"Save as new version\" below.",
     "clientContext": "Client context",
     "currentWeight": "Current weight",
     "noAssessmentYet": "No assessment on file yet.",
@@ -995,9 +946,13 @@
   },
   "coachLib": {
     "loadStarter": "Load starter library",
-    "loadStarterConfirm": "Add 900+ ready-made exercises (muscles, equipment, instructions, many with video) to your library? You can edit or delete any of them.",
     "title": "Library",
-    "tabs": { "exercises": "Exercises", "foods": "Foods", "groups": "Food groups", "supplements": "Supplements" },
+    "tabs": {
+      "exercises": "Exercises",
+      "foods": "Foods",
+      "groups": "Food groups",
+      "supplements": "Supplements"
+    },
     "exercise": "Exercise",
     "newExercise": "New exercise",
     "search": "Search exercises",
@@ -1020,7 +975,6 @@
     "reconnectToLibrary": "Reconnect to library",
     "sourceMissing": "Source exercise is no longer available in your library",
     "detachConfirmTitle": "Make this a custom override?",
-    "detachConfirmMessage": "This exercise will stop receiving automatic updates (video/name/notes) from your library. You can reconnect it later.",
     "dataAttribution": "Exercise data provided by wger.de (CC BY-SA)"
   },
   "coachFoods": {
@@ -1076,22 +1030,24 @@
     "suspend": "Suspend",
     "reactivate": "Reactivate",
     "confirmSuspend": "Suspend {{name}}? They lose access until reactivated.",
-    "segment": { "all": "All time", "week": "New this week", "month": "New this month", "older": "Older than 30 days" },
-    "sort": { "newest": "Newest first", "oldest": "Oldest first" }
+    "segment": {
+      "all": "All time",
+      "week": "New this week",
+      "month": "New this month",
+      "older": "Older than 30 days"
+    },
+    "sort": {
+      "newest": "Newest first",
+      "oldest": "Oldest first"
+    }
   },
   "adminGrowth": {
-    "monthlyRevenue": "Monthly revenue",
-    "vsPrevWeek": "vs last week",
     "newSignups": "New signups (8 weeks)",
-    "money": "Revenue",
     "coachMrr": "Coach plans (MRR)",
     "clientMrr": "Client subscriptions (MRR)",
     "totalMrr": "Total tracked MRR",
-    "endingSoon": "Ending \u2264 7d",
-    "endingSoonTitle": "Subscriptions ending soon",
     "coachTrial": "Coach trial",
-    "clientSub": "Client subscription",
-    "urgentAlert": "{{n}} subscription(s) end within 3 days \u2014 review now."
+    "clientSub": "Client subscription"
   },
   "adminUsage": {
     "dau": "Active today",
@@ -1099,9 +1055,7 @@
     "mau": "Active this month",
     "searches7d": "Searches (7d)",
     "activeTrend": "Active users (8 days)",
-    "wauMauRatio": "{{pct}}% of monthly actives are also weekly actives.",
-    "siteTraffic": "Site traffic",
-    "siteTrafficNote": "Anonymous site-visit tracking runs through your web-analytics provider (set VITE_ANALYTICS_SRC). View visitor and page-view counts in that provider\u2019s dashboard."
+    "wauMauRatio": "{{pct}}% of monthly actives are also weekly actives."
   },
   "adminBanners": {
     "title": "Offers & banners",
@@ -1133,9 +1087,22 @@
     "endBeforeStart": "End date must be on or after the start date",
     "activeNow": "Active",
     "until": "until {{date}}",
-    "placement": { "all": "Everywhere", "client_home": "Client home", "coach_dashboard": "Coach dashboard" },
-    "styleOpt": { "promo": "Promo", "info": "Info", "success": "Success", "warning": "Warning" },
-    "segment": { "all": "Everyone", "new": "New (\u2264 30 days)", "existing": "Existing (> 30 days)" }
+    "placement": {
+      "all": "Everywhere",
+      "client_home": "Client home",
+      "coach_dashboard": "Coach dashboard"
+    },
+    "styleOpt": {
+      "promo": "Promo",
+      "info": "Info",
+      "success": "Success",
+      "warning": "Warning"
+    },
+    "segment": {
+      "all": "Everyone",
+      "new": "New (≤ 30 days)",
+      "existing": "Existing (> 30 days)"
+    }
   },
   "adminCoaches": {
     "title": "Coaches",
@@ -1149,40 +1116,38 @@
     "active": "Active",
     "expired": "Expired",
     "totalClients": "Total clients",
-    "conversion": "Trial\u2192Active",
+    "conversion": "Trial→Active",
     "none": "No coaches yet.",
     "noneMessage": "Coaches appear here once they sign up or are invited to the platform.",
-    "trialDaysLeft": "Trial days left",
     "daysLeftLabel": "Days left",
     "renews": "Renews / ends",
     "renew": "Renew +30d",
-    "confirmRenew": "Renew {{name}}'s plan for another 30 days from today?",
     "requestPending": "Request",
     "accountStatus": "Account",
-    "changeTier": "Change plan",
-    "actions": "Actions",
-    "extendTrial": "Extend trial +15d",
-    "confirmExtendTrial": "Extend {{name}}'s trial by {{n}} days?",
     "suspend": "Suspend coach",
     "confirmSuspend": "Suspend this coach? They lose access until reactivated.",
     "reactivate": "Reactivate coach",
-    "clientLimit": "Client limit",
-    "limitInvalid": "Enter a number 0 or greater",
-    "setLimit": "Set limit",
-    "confirmSetLimit": "Set {{name}}'s client limit to {{n}}? They won't be able to take on new clients beyond this.",
-    "tier": { "trial": "Trial", "starter": "Starter", "pro": "Pro", "enterprise": "Enterprise", "none": "No plan" },
-    "state": { "trial": "Trial", "active": "Active", "expired": "Expired", "suspended": "Suspended", "none": "No plan" }
+    "state": {
+      "trial": "Trial",
+      "active": "Active",
+      "expired": "Expired",
+      "suspended": "Suspended",
+      "none": "No plan"
+    }
   },
   "coachDash": {
-    "tabs": { "overview": "Overview", "analytics": "Analytics", "clients": "Clients", "engagement": "Engagement", "content": "Content", "reports": "Reports" },
+    "tabs": {
+      "overview": "Overview",
+      "clients": "Clients",
+      "engagement": "Engagement",
+      "content": "Content",
+      "reports": "Reports"
+    },
     "goodMorning": "Good morning",
     "goodAfternoon": "Good afternoon",
     "goodEvening": "Good evening",
     "renewals": "Renewals (7d)",
-    "today": "Today",
-    "thisWeek": "This week",
     "thisMonth": "This month",
-    "clientGrowth": "New clients",
     "inactiveWeek": "Inactive this week",
     "allActive": "Everyone trained this week",
     "workoutAdherence": "Workout adherence",
@@ -1192,9 +1157,6 @@
     "exportSubscriptions": "Subscriptions CSV",
     "exportRevenue": "Revenue CSV",
     "revenue": "Revenue (tracked)",
-    "monthlyRevenue": "Monthly revenue",
-    "expectedRevenue": "Expected revenue",
-    "lostRevenue": "Lost revenue",
     "revenueThisMonth": "Revenue this month",
     "revenueHint": "Collected + upcoming due (each term counted in its renewal month)",
     "collectedThisMonth": "Collected this month",
@@ -1206,26 +1168,21 @@
     "noRenewals": "No upcoming renewals this month",
     "subscriptions": "Subscriptions",
     "expiring": "Expiring 7 / 30d",
-    "expiringHint": "soon / this month",
     "growth": "Growth & retention",
     "newClients": "New clients (30d)",
     "newHint": "{{today}} today · {{week}} this week",
     "retention": "Retention (30d)",
     "churn": "Churn (30d)",
-    "activity": "Your activity",
     "templates": "Templates",
     "assessmentsReviewed": "Assessments reviewed",
     "sendBroadcast": "Send broadcast",
-    "title": "Dashboard",
     "totalClients": "Total clients",
     "activeClients": "Active clients",
     "pendingAssessments": "Pending assessments",
     "adherence": "Avg adherence",
-    "avgWorkouts": "{{n}} workouts/wk avg",
     "avgWorkoutsLabel": "Avg workouts / wk",
     "checkins": "Check-ins to review",
     "unread": "Unread messages",
-    "recentClients": "Recent clients",
     "needsAttention": "Needs attention",
     "recentActivity": "Recent activity",
     "added": "Added",
@@ -1247,7 +1204,6 @@
     "noClientsCheckinsMessage": "Add a client to start requesting weekly check-ins.",
     "reportsTitle": "Reports",
     "missedCheckins": "Pending check-ins",
-    "subsToReview": "Substitutions to review",
     "ranking": "Adherence ranking",
     "selectClient": "Select a client",
     "selectConversation": "Select a conversation",
@@ -1312,9 +1268,7 @@
   },
   "planVersions": {
     "title": "Version history",
-    "saveCurrent": "Save current plan",
     "saveAsVersion": "Save as new version",
-    "versionSaved": "Version saved",
     "saveAsVersionHint": "Snapshots the current plan as a numbered version and makes it active. The client immediately sees this version.",
     "reasonPlaceholder": "What changed? (optional)",
     "history": "History",
@@ -1359,12 +1313,25 @@
     "loadFailed": "Couldn't load images.",
     "loadFailedMessage": "Check your connection and try again.",
     "count": "{{n}} images",
-    "context": { "progress": "Progress", "assessment": "Assessment", "other": "Other" }
+    "context": {
+      "progress": "Progress",
+      "assessment": "Assessment",
+      "other": "Other"
+    }
   },
   "subscription": {
     "title": "Subscription",
     "accountTitle": "Account status",
-    "status": { "none": "No subscription", "trial": "Trial", "active": "Active", "pending": "Pending", "expired": "Expired", "cancelled": "Cancelled", "frozen": "Frozen", "ended": "Ended" },
+    "status": {
+      "none": "No subscription",
+      "trial": "Trial",
+      "active": "Active",
+      "pending": "Pending",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "frozen": "Frozen",
+      "ended": "Ended"
+    },
     "none": "No subscription set — tap Set term to start.",
     "noneTitle": "No subscription yet",
     "noneBodyHasCoach": "Your coach hasn't set up your subscription yet. Check back soon.",
@@ -1384,9 +1351,18 @@
     "from": "From",
     "until": "Until",
     "notePlaceholder": "Note (optional)…",
-    "acct": { "active": "Active", "pending": "Pending", "suspended": "Frozen", "disabled": "Trashed" },
-    "acctAction": { "freeze": "Freeze", "unfreeze": "Unfreeze", "trash": "Trash", "restore": "Restore" },
-    "confirmStatus": "Change this client's account status?",
+    "acct": {
+      "active": "Active",
+      "pending": "Pending",
+      "suspended": "Frozen",
+      "disabled": "Trashed"
+    },
+    "acctAction": {
+      "freeze": "Freeze",
+      "unfreeze": "Unfreeze",
+      "trash": "Trash",
+      "restore": "Restore"
+    },
     "confirmFreeze": "Freeze this client's account? They won't be able to use the app until you unfreeze it.",
     "confirmTrash": "Move this client to Trash? They lose access to the app. An admin handles permanent deletion.",
     "statusError": "Couldn't change account status. Make sure the latest security rules are deployed.",
@@ -1395,8 +1371,6 @@
     "noReason": "(no reason given)",
     "accept": "Accept",
     "reject": "Reject",
-    "request": "Request a freeze",
-    "requestHint": "Ask your coach to pause your subscription.",
     "reason": "Reason",
     "submitRequest": "Send request",
     "requestSubmitted": "Request sent",
@@ -1418,11 +1392,9 @@
     "price": "Price",
     "setPrice": "Set price",
     "currency": "Currency",
-    "priceLabel": "{{amount}} / term",
     "noPrice": "No price set",
     "viewHistory": "View history ({{n}})",
     "hideHistory": "Hide history",
-    "monthsShort": "{{n}} mo",
     "renewedMonths": "Renewed · {{n}} months",
     "term": "Term",
     "current": "Current",
@@ -1502,7 +1474,11 @@
     "sleep": "Sleep",
     "notes": "Notes",
     "photos": "Progress photos",
-    "status": { "requested": "Requested", "submitted": "Submitted", "reviewed": "Reviewed" },
+    "status": {
+      "requested": "Requested",
+      "submitted": "Submitted",
+      "reviewed": "Reviewed"
+    },
     "none": "Not started",
     "noneYet": "No check-ins yet",
     "startReview": "Review ({{n}})",
@@ -1516,7 +1492,12 @@
     "skipForNow": "Skip for now",
     "markReviewedNext": "Mark reviewed & next",
     "reviewed": "Check-in reviewed",
-    "steps": { "body": "Body", "training": "Training", "nutrition": "Nutrition", "notes": "Notes" },
+    "steps": {
+      "body": "Body",
+      "training": "Training",
+      "nutrition": "Nutrition",
+      "notes": "Notes"
+    },
     "stepOf": "Step {{n}} of {{total}} · {{name}}",
     "minLeft": "~{{n}} min left",
     "bodyIntro": "Your coach reviews this before adjusting next week's plan.",
@@ -1610,7 +1591,10 @@
     "dob": "Date of birth",
     "ageYears": "{{n}} years old",
     "gender": "Gender",
-    "genders": { "male": "Male", "female": "Female" },
+    "genders": {
+      "male": "Male",
+      "female": "Female"
+    },
     "primaryGoal": "What is your primary goal?",
     "goalOptions": {
       "fat_loss": "Fat loss",
@@ -1623,15 +1607,32 @@
     "targetWeight": "Target weight",
     "deadlineMonths": "Deadline (months)",
     "occupation": "Occupation type",
-    "occupations": { "desk": "Desk job", "moderate": "Moderately active", "physical": "Physically demanding" },
+    "occupations": {
+      "desk": "Desk job",
+      "moderate": "Moderately active",
+      "physical": "Physically demanding"
+    },
     "sleepHours": "Average sleep",
     "activity": "Daily activity level",
-    "activities": { "sedentary": "Sedentary", "light": "Lightly active", "active": "Active", "very_active": "Very active" },
+    "activities": {
+      "sedentary": "Sedentary",
+      "light": "Lightly active",
+      "active": "Active",
+      "very_active": "Very active"
+    },
     "trainingDays": "Training days per week",
     "trainingLevel": "Training level",
-    "levels": { "beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced" },
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
     "trainingLocation": "Training location",
-    "locations": { "commercial_gym": "Commercial gym", "home_gym": "Home gym", "both": "Both" },
+    "locations": {
+      "commercial_gym": "Commercial gym",
+      "home_gym": "Home gym",
+      "both": "Both"
+    },
     "injuriesQ": "Do you have any injuries?",
     "injuries": {
       "shoulder": "Shoulder",
@@ -1650,7 +1651,11 @@
     "allergies": "Food allergies",
     "tagPlaceholder": "Type and press Enter",
     "budget": "Food budget",
-    "budgets": { "low": "Low budget", "medium": "Medium budget", "high": "High budget" },
+    "budgets": {
+      "low": "Low budget",
+      "medium": "Medium budget",
+      "high": "High budget"
+    },
     "mealsPerDay": "Preferred meals per day",
     "challengeQ": "Your biggest challenge",
     "challenges": {
@@ -1668,43 +1673,21 @@
   },
   "admin": {
     "controlCenter": "Control center",
-    "tabs": { "overview": "Overview", "growth": "Growth", "usage": "Usage", "coaches": "Coaches", "revenue": "Revenue", "subscriptions": "Subscriptions", "system": "System" },
     "trackedRevenue": "Tracked revenue",
     "perMonth": "/mo",
     "recentCoaches": "Recently registered",
-    "expiringTrials": "Expiring trials",
-    "noExpiring": "No trials expiring in the next 7 days.",
     "planUsage": "Plan & client usage",
-    "revenueByTier": "Revenue by plan",
     "revenueByCoach": "Top coaches by clients",
     "noRevenueByCoach": "No coaches with clients yet",
-    "activePaidCoaches": "Active paid coaches",
     "pricingNote": "Confirmed payments only — subscriptions and add-ons are confirmed manually by a Super Admin.",
-    "securityOverview": "Security & permissions",
-    "planRequests": "Plan requests",
     "noRequests": "No pending plan requests.",
     "needsAction": "Needs action · {{n}}",
     "review": "Review",
-    "requestReason": "Reason",
-    "requestedTier": "Requested",
     "endDate": "End date",
     "started": "Started",
     "setEndDate": "Set end date",
     "confirmSetEndDate": "Set {{name}}'s plan to end on {{date}}? They'll lose access once that date passes unless renewed.",
-    "clearEndDate": "Clear",
-    "confirmClearEndDate": "Clear {{name}}'s end date? Their plan will no longer expire automatically.",
-    "approveRequest": "Approve",
-    "confirmApproveRequest": "Approve {{name}}'s plan-change request?",
-    "rejectRequest": "Reject",
-    "rejectRequestConfirm": "Reject this payment request? The coach keeps their current plan and is notified.",
-    "approveApplies": "Approving applies the requested plan automatically.",
-    "snapshotStale": "Tier configuration has changed since this request was made — approving still applies the price/limits shown above.",
-    "requestsPending": "{{n}} plan request(s) awaiting your review",
-    "reviewRequests": "Review",
-    "requestFrom": "Plan request",
-    "trialEndedTitle": "Trial ended — awaiting payment confirmation",
     "planHistory": "Plan history",
-    "overview": "Overview",
     "accounts": "Accounts",
     "assignments": "Assignments",
     "governance": "Governance",
@@ -1757,18 +1740,46 @@
     "capability": "Capability",
     "dangerousPermission": "Sensitive",
     "permissionInfo": {
-      "users.read": { "label": "View accounts", "desc": "See account profiles and status across the platform." },
-      "users.create": { "label": "Create accounts", "desc": "Create new client, coach, or admin accounts directly." },
-      "users.manageRoles": { "label": "Change roles & permissions", "desc": "Change a user's role, or grant/revoke individual permissions.", "dangerous": true },
-      "users.manageStatus": { "label": "Suspend / activate accounts", "desc": "Activate, suspend, or disable accounts platform-wide.", "dangerous": true },
-      "coaches.assign": { "label": "Assign & transfer clients", "desc": "Assign a client to a coach, or move them between coaches." },
-      "clients.readAll": { "label": "View all client data", "desc": "Read any client's plans, logs, and progress — not just their own coach's." },
-      "clients.writeAll": { "label": "Edit any client's data", "desc": "Write to any client's data, including fresh-start transfers that archive a client's plans and coach notes.", "dangerous": true },
-      "flags.manage": { "label": "Manage feature flags", "desc": "Turn platform features on or off for everyone, one coach, or one client." },
-      "audit.read": { "label": "View audit log", "desc": "See the platform's history of admin and security actions." }
+      "users.read": {
+        "label": "View accounts",
+        "desc": "See account profiles and status across the platform."
+      },
+      "users.create": {
+        "label": "Create accounts",
+        "desc": "Create new client, coach, or admin accounts directly."
+      },
+      "users.manageRoles": {
+        "label": "Change roles & permissions",
+        "desc": "Change a user's role, or grant/revoke individual permissions.",
+        "dangerous": true
+      },
+      "users.manageStatus": {
+        "label": "Suspend / activate accounts",
+        "desc": "Activate, suspend, or disable accounts platform-wide.",
+        "dangerous": true
+      },
+      "coaches.assign": {
+        "label": "Assign & transfer clients",
+        "desc": "Assign a client to a coach, or move them between coaches."
+      },
+      "clients.readAll": {
+        "label": "View all client data",
+        "desc": "Read any client's plans, logs, and progress — not just their own coach's."
+      },
+      "clients.writeAll": {
+        "label": "Edit any client's data",
+        "desc": "Write to any client's data, including fresh-start transfers that archive a client's plans and coach notes.",
+        "dangerous": true
+      },
+      "flags.manage": {
+        "label": "Manage feature flags",
+        "desc": "Turn platform features on or off for everyone, one coach, or one client."
+      },
+      "audit.read": {
+        "label": "View audit log",
+        "desc": "See the platform's history of admin and security actions."
+      }
     },
-    "fullAccess": "Full access",
-    "selfOnly": "Own data only",
     "roleDistribution": "Accounts by role",
     "clientSubMix": "Client subscription mix",
     "clientSubs": "Client subs",
@@ -1780,11 +1791,9 @@
     "assignedTo": "Coach:",
     "unassigned": "Unassigned",
     "assignClient": "Assign coach",
-    "transferClient": "Transfer client",
     "selectCoach": "Select a coach",
     "unassign": "Remove coach",
     "confirmAssign": "Assign {{name}} to {{coach}}?",
-    "confirmTransfer": "Move {{name}} to {{coach}}?",
     "confirmUnassign": "Remove the coach from {{name}}?",
     "clientDetail": "Client details",
     "viewClientDetails": "View client details",
@@ -1793,9 +1802,6 @@
   "invite": {
     "optional": "optional",
     "subTitle": "Client subscription",
-    "subTrial": "Trial (14 days)",
-    "sub1m": "1 Month",
-    "sub3m": "3 Months",
     "subPending": "Pending (set up later)",
     "priceOptional": "Price (optional)",
     "title": "Join your coach",
@@ -1804,7 +1810,6 @@
     "join": "Create account",
     "invalidTitle": "Invite unavailable",
     "invalidBody": "This invite link is invalid, expired, or has already been used.",
-    "inviteByLink": "Invite by link",
     "panelHint": "Generate a one-time link to invite a client. They set their own password and are added to you automatically.",
     "generate": "Generate invite link",
     "pending": "Pending invites",
@@ -1831,40 +1836,13 @@
     "daysLeft": "{{n}} days left in your trial",
     "expired": "Your trial has ended",
     "usage": "{{used}} / {{max}} clients used",
-    "limitReached": "Client limit reached",
-    "limitBody": "You've reached your client capacity of {{max}}. Add client capacity to take on more clients."
+    "limitReached": "Client limit reached"
   },
   "coachPlan": {
-    "title": "My plan",
-    "tier": "Plan",
-    "status": "Status",
-    "clientsUsed": "Clients used",
-    "endDate": "Renews / ends",
-    "requestUpgrade": "Request upgrade",
-    "desiredTier": "Desired plan",
-    "reason": "Tell us what you need (more clients, a higher tier…)",
-    "submit": "Send request",
-    "pending": "Request pending review",
-    "cancelRequest": "Cancel request",
-    "rejected": "Declined",
-    "requestExpired": "Your last plan request expired without a response — you can request again.",
-    "awaitingConfirmation": "Awaiting payment confirmation · {{n}}h left. Your current plan stays active until then.",
-    "trialEndedAwaiting": "Your trial has ended and is awaiting payment confirmation from your admin. Your account may be paused if this isn't confirmed soon.",
-    "current": "Current",
-    "accepted": "Your upgrade request was approved.",
-    "history": "Plan history",
-    "hist": { "tier": "Plan changed", "maxClients": "Client limit", "status": "Status", "endsAt": "End date", "requested": "Requested", "request": { "accepted": "Request approved", "rejected": "Request declined" } },
     "viewPlan": "View plan",
     "lockedTitle": "Your Forma subscription has ended",
     "lockedSuspendedTitle": "Your plan is suspended",
-    "lockedBody": "Renew Forma to keep creating and editing. Your clients are unaffected.",
-    "banner": {
-      "expired": "Your plan has ended — renew to keep managing clients.",
-      "suspended": "Your plan is suspended — contact your admin.",
-      "endingSoon": "Your plan ends in {{n}} day(s) — renew to avoid interruption.",
-      "renew": "Renew",
-      "requestAwaiting": "Your {{plan}} plan request is awaiting payment confirmation ({{n}}h left)."
-    }
+    "lockedBody": "Renew Forma to keep creating and editing. Your clients are unaffected."
   },
   "coachPlans": {
     "title": "Client Plans",
@@ -1877,7 +1855,10 @@
     "namePlaceholder": "e.g. 3 Months, Premium",
     "duration": "Duration",
     "unitLabel": "Unit",
-    "unit": { "days": "Days", "months": "Months" },
+    "unit": {
+      "days": "Days",
+      "months": "Months"
+    },
     "price": "Price",
     "isTrial": "Free trial",
     "trial": "Trial",
@@ -1888,41 +1869,6 @@
     "untitled": "Untitled",
     "usePlan": "Use a plan"
   },
-  "adminPlans": {
-    "title": "Plans",
-    "hint": "Edit coach plan tiers — client limit and monthly price. Changes apply when a tier is assigned.",
-    "coreFeaturesTitle": "Features (shown on the public pricing page)",
-    "coreFeaturesHint": "The full feature list shown on the pricing page and to coaches — there's one plan, so every feature lives here.",
-    "maxClientsHint": "Editing this updates every coach currently on this plan, unless an admin gave that coach a custom limit directly.",
-    "add": "Add plan",
-    "edit": "Edit plan",
-    "archive": "Archive",
-    "confirmArchive": "Archive the “{{name}}” tier? Coaches already on it keep their limit.",
-    "archived": "archived",
-    "inactive": "inactive",
-    "none": "No plans yet.",
-    "key": "Tier key",
-    "keyHint": "Lowercase id (letters, numbers, - or _). Cannot change later.",
-    "label": "Display name",
-    "order": "Order",
-    "active": "Active",
-    "priceMonthly": "Monthly price",
-    "marketingSection": "Marketing & Signup",
-    "localizedHint": "Shown on the public pricing page and signup form — fill English at minimum; Arabic is used automatically when the site is in Arabic.",
-    "publicVisible": "Show on public pricing page",
-    "signupEnabled": "Selectable at coach signup",
-    "highlighted": "Highlighted (at most one tier)",
-    "isDefaultSignupPlan": "Default signup plan",
-    "isDefaultSignupPlanHint": "Exactly one signup-enabled tier must be the default — it activates immediately and can never require payment confirmation.",
-    "requiresPaymentConfirmation": "Requires Super Admin payment confirmation",
-    "trialDurationDays": "Trial duration (days)",
-    "marketingTitle": "Marketing title",
-    "marketingDescription": "Marketing description",
-    "marketingFeatures": "Features",
-    "marketingFeaturesHint": "One feature per line.",
-    "premiumFeatures": "Premium features",
-    "premiumFeaturesHint": "What THIS plan adds on top of the Core features above — leave empty for a plan with nothing extra (e.g. the Trial)."
-  },
   "existing": {
     "title": "Add Existing Client",
     "createNewTitle": "Create New Client",
@@ -1930,31 +1876,22 @@
     "createNew": "Create New Client",
     "createNewDesc": "For someone without a Forma account yet. Generate an invite link.",
     "addExisting": "Add Existing Client",
-    "addExistingDesc": "Already has a Forma account. Search by email, phone, or name.",
-    "hint": "Search an existing Forma client by email, phone, or name. We never create a duplicate account.",
-    "searchPlaceholder": "Search by email, phone, or name",
     "search": "Search",
     "searchAgain": "Search again",
-    "emptyState": "Enter an email, phone, or name to find an existing client.",
     "searching": "Searching…",
-    "noAccount": "No Forma account found.",
     "resultsCount": "{{n}} matching account(s)",
-    "coachedBy": "Coached by {{name}}",
     "unassigned": "No coach",
     "currentCoach": "Current coach",
     "subscription": "Subscription",
-    "joined": "Joined",
     "alreadyYours": "This client is already yours.",
     "assignToMe": "Assign to me",
-    "ownedByOther": "Currently coached by {{name}}. Request a transfer or wait until they are released.",
     "waitUntilReleased": "If the current coach releases them, you can add them straight away."
   },
   "release": {
     "action": "Release client",
     "title": "Release this client?",
     "body": "Their Forma account and progress history will stay safe. Another coach can assign them later.",
-    "confirm": "Release",
-    "done": "Client released."
+    "confirm": "Release"
   },
   "transferReq": {
     "request": "Request transfer",
@@ -1967,19 +1904,10 @@
     "confirmReject": "Reject {{coach}}'s request to take over this client? They'll be notified, and the client stays with their current coach.",
     "confirmApprove": "Approve {{coach}}'s request to take over {{client}}? You'll release this client immediately.",
     "incomingTitle": "Transfer requests for your clients",
-    "outgoingTitle": "Your transfer requests",
     "pendingTitle": "Pending transfer requests",
-    "none": "No transfer requests.",
     "requestedBy": "{{name}} wants to coach this client",
     "wantsClient": "{{coach}} → {{client}}",
-    "requestedAgo": "Requested {{date}}",
     "flagged": "Waiting {{days}}d",
-    "status": {
-      "accepted": "Approved",
-      "rejected": "Rejected",
-      "cancelled": "Cancelled",
-      "pending": "Pending"
-    },
     "approveDone": "Approved — the client is now released.",
     "rejectDone": "Request rejected."
   },
@@ -1989,8 +1917,7 @@
     "step": {
       "coach": "Target coach",
       "type": "Transfer type",
-      "subscription": "Subscription",
-      "review": "Review"
+      "subscription": "Subscription"
     },
     "pickCoach": "Choose the coach to transfer this client to.",
     "noCoaches": "No other coaches available.",
@@ -2017,8 +1944,7 @@
     "freshStartLocked": "Fresh-start clearing is available to super-admins only.",
     "confirm": "Transfer client",
     "next": "Next",
-    "back": "Back",
-    "done": "Client transferred."
+    "back": "Back"
   },
   "timeline": {
     "title": "Coaching history",
@@ -2110,7 +2036,6 @@
     },
     "capacity": {
       "clients": "clients",
-      "usage": "{{used}} / {{max}} clients",
       "remaining": "{{count}} slot(s) free",
       "overBy": "Over capacity by {{n}}",
       "overExplain": "Your existing clients are not affected, but you can't add, invite or accept new clients until you add capacity.",
@@ -2330,6 +2255,140 @@
       "revenueSubscription": "Forma subscriptions",
       "revenueCapacity": "Capacity add-ons",
       "noRevenue": "No confirmed revenue yet."
+    }
+  },
+  "trust": {
+    "planEditor": {
+      "loading": "Loading the client's plan…",
+      "offlineTitle": "You're offline",
+      "offlineBody": "The client's current plan can't be loaded, so editing is paused. Nothing has been changed.",
+      "errorTitle": "Couldn't load the plan",
+      "errorBody": "Editing is unavailable until the current plan loads, so nothing can be overwritten by mistake.",
+      "retry": "Try again",
+      "emptyTitle": {
+        "workout": "No workout plan yet",
+        "nutrition": "No nutrition plan yet",
+        "cardio": "No cardio plan yet"
+      },
+      "emptyBody": "This client doesn't have one. Create it when you're ready.",
+      "create": "Create plan",
+      "conflictTitle": "This plan changed somewhere else",
+      "conflictBody": "It was saved on another device, restored from history or replaced by a template after you opened it. Your edits are kept here as a draft.",
+      "loadLatest": "Load latest (discard my edits)",
+      "keepMine": "Save my version anyway",
+      "keepMineConfirm": "The other version will stay in this plan's history, so you can restore it later.",
+      "saveFailed": "Couldn't save. Your edits are kept as a draft — try again.",
+      "savedVersioned": "Saved · previous version kept in history",
+      "saveHint": "Saving updates the client's plan immediately. Every save is kept in History, so you can restore an earlier version."
+    },
+    "notes": {
+      "private": "Private",
+      "shared": "Visible to client",
+      "visibleToClient": "Share with client",
+      "privateHint": "Off: a private note only you can see. The client is never shown it.",
+      "sharedHint": "On: the client sees this note and gets a notification.",
+      "loadFailed": "Couldn't load notes.",
+      "saveFailed": "The note wasn't saved. Check your connection and try again."
+    },
+    "assessment": {
+      "privateNotesTitle": "Private review notes",
+      "privateNotesHint": "Only you can see these. They are never shown to the client."
+    },
+    "checkin": {
+      "feedbackVisible": "The client will see this feedback.",
+      "leaveTitle": "Leave the check-in?",
+      "leaveBody": "Your answers are saved on this device — you can continue later from where you stopped.",
+      "leave": "Leave",
+      "keepGoing": "Keep going",
+      "submitFailed": "Your check-in wasn't sent. Your answers are kept — check your connection and try again."
+    },
+    "existing": {
+      "addExistingDesc": "Already has a Forma account. Find them by their exact email or phone.",
+      "hint": "Enter the client's exact email address or phone number. We never create a duplicate account.",
+      "searchPlaceholder": "Exact email or phone",
+      "emptyState": "Enter the client's exact email or phone number.",
+      "noAccount": "No client account matches that exact email or phone.",
+      "coachYou": "You",
+      "coachAnother": "Another coach",
+      "hasCoach": "Already has a coach",
+      "ownedByOther": "This client already has a coach. You can request a transfer; their current coach decides.",
+      "searchFailed": "Search didn't complete. Check your connection and try again.",
+      "tooMany": "Too many lookups. Please wait a few minutes and try again.",
+      "searchedFor": "Matched by"
+    },
+    "sync": {
+      "conflictTitle": "Changed on two devices",
+      "conflictBody": "{{what}}{{day}} was changed on another device while this one had unsynced edits. Choose which version to keep — nothing has been overwritten.",
+      "keepMine": "Keep this device's",
+      "useOther": "Use the other device's",
+      "more": "+{{n}} more",
+      "pendingSignOut": "{{n}} change(s) on this device haven't synced yet. They stay safely on this device and sync the next time you sign in here.",
+      "kinds": {
+        "record": "An entry",
+        "workoutLogs": "Workout",
+        "nutritionLogs": "Nutrition log",
+        "cardioLogs": "Cardio",
+        "weightLogs": "Weight",
+        "measurementLogs": "Measurements",
+        "progressPhotos": "Progress photo",
+        "dailyChecklists": "Daily checklist",
+        "reminders": "Reminder"
+      }
+    },
+    "local": {
+      "saveFailed": "Couldn't save that on this device. Please try again."
+    },
+    "workout": {
+      "enterReps": "Enter the reps for this set first."
+    },
+    "notifications": {
+      "markAll": "Mark all read",
+      "markAllFailed": "Couldn't mark them read. Check your connection and try again.",
+      "loadFailed": "Couldn't load notifications.",
+      "done": "Done"
+    },
+    "video": {
+      "loading": "Loading video…",
+      "failed": "The video couldn't be loaded.",
+      "offline": "You're offline — this video needs a connection.",
+      "unsupportedFormat": "This video can't be played on this device.",
+      "hevc": "This video can't be played on this device — it looks like an iPhone (HEVC) recording. Try another browser or open the video.",
+      "open": "Open video",
+      "openLink": "Open link",
+      "unsupportedLink": "This video link can't be played inside Forma.",
+      "coachInvalid": "Use a YouTube link, a direct https video file, or upload a video. Google Drive, Vimeo and Instagram links can't play inside Forma."
+    },
+    "upload": {
+      "localOnlyTitle": "Saved on this device only",
+      "localOnlyBody": "The upload didn't go through, so your coach can't see this photo yet. It will retry next time you open the app.",
+      "notUploaded": "Not uploaded"
+    },
+    "update": {
+      "available": "Update available · Tap to update",
+      "busyTitle": "Update now?",
+      "busyBody": "Something is in progress (a workout, timer, check-in or unsaved edit). Its saved progress resumes after the update, but you can also update later — it will install on its own once you're done.",
+      "now": "Update now",
+      "later": "Later"
+    },
+    "clients": {
+      "state": {
+        "active": "Active",
+        "trial": "Trial",
+        "frozen": "Paused",
+        "expiring": "Expiring",
+        "expired": "Expired",
+        "pending": "Pending",
+        "none": "No plan"
+      },
+      "expiringIn": "Ends in {{n}}d"
+    },
+    "subscription": {
+      "loadFailed": "Couldn't load this client's subscription.",
+      "endsOn": "Ends {{date}}",
+      "priceKept": "Prefilled from the current term — change it if the price changed."
+    },
+    "numbers": {
+      "invalid": "Not a number"
     }
   }
 }

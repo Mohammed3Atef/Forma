@@ -24,7 +24,11 @@ export const notificationsRouter = router({
       const docs: NotificationDoc[] = await col.find(listFilter).sort({ createdAt: -1 }).limit(DEFAULT_PAGE_SIZE).toArray();
       const unreadCount = await col.countDocuments({ ...base, seenAt: null });
 
-      return { notifications: docs.map(toPublicNotification), unreadCount };
+      // B0 / CO-21: a coach_note notification only carries its excerpt to the
+      // client when the note was explicitly shared. Older rows (and private
+      // notes) are shown without the text.
+      const visible = ctx.user.role === 'client' ? docs.map((d) => (d.type === 'coach_note' && d.noteVisibility !== 'client' ? { ...d, body: undefined } : d)) : docs;
+      return { notifications: visible.map(toPublicNotification), unreadCount };
     }),
 
   /** Marks one notification (by id, scoped to the caller's own feed) or, with no id, the whole feed, as seen. */

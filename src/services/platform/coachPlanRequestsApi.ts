@@ -48,10 +48,6 @@ export async function rejectPlanRequest(requestId: string, adminNote?: string): 
   return trpc.coachPlanRequests.reject.mutate({ requestId, adminNote });
 }
 
-export function isTRPCConflict(e: unknown): boolean {
-  return e instanceof TRPCClientError && e.data?.code === 'CONFLICT';
-}
-
 /** Machine reason on a commercial refusal (`SUBSCRIPTION_EXPIRED`, `CLIENT_CAPACITY_REACHED`, …), if any. */
 export function commercialReason(e: unknown): string | null {
   if (!(e instanceof TRPCClientError)) return null;

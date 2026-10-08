@@ -111,6 +111,18 @@ async function chevronFlipped(page: Page) {
   });
 }
 
+/**
+ * The UI switch back to English happens right before the context closes, so it
+ * may never sync — and since B0 a fresh device adopts the synced language
+ * instead of overwriting it with defaults. Restore the server copy too, so a
+ * later spec doesn't start in Arabic.
+ */
+async function restoreClientLocale(db: { updateOne(collection: string, filter: object, update: object): Promise<void> }) {
+  for (const name of ['settings', 'profile']) {
+    await db.updateOne('syncSingletons', { _id: `e2e-client-a__${name}` }, { $set: { 'data.locale': 'en', 'data.updatedAt': Date.now(), updatedAt: Date.now() } });
+  }
+}
+
 export function defineLayoutTests() {
   // Pages that poll keep networkidle busy and the shared machine runs 4 suites at once — give each journey room.
   test.describe.configure({ timeout: 180_000 });
@@ -175,7 +187,7 @@ export function defineLayoutTests() {
           const _id = `e2e-client-a__weightLogs__${date}`;
           seeded.push(_id);
           await db.deleteMany('syncRecords', { _id });
-          await db.insertOne('syncRecords', { _id, clientId: 'e2e-client-a', collection: 'weightLogs', data: { id: date, date, weightKg: 70 - daysAgo / 7, updatedAt: Date.now(), dirty: false }, updatedAt: Date.now(), syncedAt: Date.now() });
+          await db.insertOne('syncRecords', { _id, clientId: 'e2e-client-a', collection: 'weightLogs', recordId: date, rev: 1, data: { id: date, date, weightKg: 70 - daysAgo / 7, updatedAt: Date.now() }, updatedAt: Date.now(), syncedAt: Date.now() }); // the real server's shape (recordId, rev)
         }
       }
       const { page } = await as(PAGES[kind].role);
@@ -227,12 +239,13 @@ export function defineLayoutTests() {
         }
       } finally {
         await switchLanguage(page, kind, 'en').catch(() => undefined);
+        if (kind === 'client') await restoreClientLocale(db);
         for (const _id of seeded) await db.deleteMany('syncRecords', { _id });
       }
     });
   }
 
-  test('ar-eg on client home + coach dashboard', async ({ as }, testInfo) => {
+  test('ar-eg on client home + coach dashboard', async ({ as, db }, testInfo) => {
     const res: Record<string, unknown> = {};
     for (const [kind, path] of [['client', '/'], ['coach', '/coach/dashboard']] as const) {
       const { page } = await as(PAGES[kind].role);
@@ -247,6 +260,7 @@ export function defineLayoutTests() {
         res[kind] = { dir: await page.evaluate(() => document.documentElement.dir), lang: await page.evaluate(() => document.documentElement.lang), labels, overflow: await overflow(page), leaked: Object.entries(labels).filter(([k, v]) => v === tr(en, `nav.${k}`)) };
       } finally {
         await switchLanguage(page, kind, 'en').catch(() => undefined);
+        if (kind === 'client') await restoreClientLocale(db);
       }
     }
     await testInfo.attach('ar-eg.json', { body: JSON.stringify(res, null, 2), contentType: 'application/json' });

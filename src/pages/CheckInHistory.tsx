@@ -7,7 +7,6 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { useBack } from '@/hooks/useBack';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns } from '@/services/platform/checkInApi';
 import { shortDate } from '@/lib/utils';
@@ -25,7 +24,7 @@ export function CheckInHistory() {
   const navigate = useNavigate();
   const goBack = useBack('/');
   const uid = useSession((s) => s.uid) ?? '';
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const enabled = !!uid;
   const q = useQuery({ queryKey: ['checkInsHistory', uid], queryFn: () => listCheckIns(uid), enabled });
   const items = q.data ?? [];
 

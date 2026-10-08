@@ -2,19 +2,16 @@ import { normalizeAssessment } from '@/lib/assessment';
 import { trpc } from '@/services/trpc';
 import { writeAudit } from './auditApi';
 import type {
-  AssignedPlan,
   CardioLog,
   ClientAssessment,
   CoachNote,
-  CoachTargets,
   DailyChecklist,
   FreezeRequest,
   MeasurementLog,
   NoteEntityType,
   NoteScreen,
+  NoteVisibility,
   NutritionLog,
-  PlanKind,
-  PlanTemplate,
   ProgressPhoto,
   Role,
   UserProfile,
@@ -112,11 +109,6 @@ export async function resolveFreezeRequest(
   await trpc.subscriptionRequest.decide.mutate({ clientId, outcome, coachNote });
 }
 
-/** Coach sets the client's initial fitness profile (optional, at creation). */
-export async function saveClientProfile(clientId: string, profile: UserProfile): Promise<void> {
-  await trpc.profile.save.mutate({ clientId, ...profile });
-}
-
 // ---- raw fitness logs (coach read-only oversight) --------------------------
 
 /**
@@ -197,11 +189,6 @@ export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto
   return list.map((d) => withId<ProgressPhoto>(d as Record<string, unknown>, (d as { id: string }).id, { dirty: false }));
 }
 
-/** A client's cardio history (newest first). */
-export async function fetchClientCardioLogs(clientId: string, max = 120): Promise<CardioLog[]> {
-  return fetchClientLogs<CardioLog>(clientId, 'cardioLogs', max);
-}
-
 /** A client's bodyweight history (newest first). */
 export async function fetchClientWeightLogs(clientId: string, max = 120): Promise<WeightLog[]> {
   return fetchClientLogs<WeightLog>(clientId, 'weightLogs', max);
@@ -238,18 +225,24 @@ export interface NoteAnchor {
   entityId?: string;
 }
 
-/** The backend notifies the client itself (author/role are taken from the authenticated session). */
+/**
+ * Notes are PRIVATE unless `visibility: 'client'` is passed (B0 / CO-02). The
+ * backend notifies the client only for shared notes (author/role are taken
+ * from the authenticated session).
+ */
 export async function addCoachNote(
   clientId: string,
   body: string,
   _author: Author,
   kind: 'note' | 'announcement' = 'note',
   anchor?: NoteAnchor,
+  visibility: NoteVisibility = 'private',
 ): Promise<void> {
   await trpc.coachNotes.create.mutate({
     clientId,
     body,
     kind,
+    visibility,
     screen: anchor?.screen,
     date: anchor?.date,
     entityType: anchor?.entityType,
@@ -257,59 +250,3 @@ export async function addCoachNote(
   });
 }
 
-/** Sends an announcement note to every client in the list. */
-export async function broadcastAnnouncement(clientIds: string[], body: string, author: Author): Promise<void> {
-  await Promise.all(clientIds.map((id) => addCoachNote(id, body, author, 'announcement')));
-}
-
-// ---- assigned plans & templates (legacy — no backend route) ---------------
-//
-// These collections (`workoutPlans`/`nutritionPlans` "assigned plan" cards and
-// top-level `planTemplates`) have no procedure under the tRPC `client.*`
-// namespace — they were superseded by the singleton coach-authored plan +
-// version history model (see planApi.ts / planVersionsApi.ts). Nothing in the
-// app currently calls these besides `assignTemplate`, so they resolve to safe
-// no-ops.
-
-export async function listAssignedPlans(_clientId: string, _kind: PlanKind): Promise<AssignedPlan[]> {
-  return [];
-}
-
-export async function assignPlan(
-  _clientId: string,
-  _data: { kind: PlanKind; title: string; description: string; assignedBy: string },
-): Promise<void> {}
-
-export async function deleteAssignedPlan(_clientId: string, _kind: PlanKind, _id: string): Promise<void> {}
-
-export async function listTemplates(_coachId: string): Promise<PlanTemplate[]> {
-  return [];
-}
-
-export async function createTemplate(
-  _coachId: string,
-  _data: { kind: PlanKind; title: string; description: string },
-): Promise<void> {}
-
-export async function deleteTemplate(_id: string): Promise<void> {}
-
-/** Copies a template onto a client as an assigned plan. */
-export async function assignTemplate(template: PlanTemplate, clientId: string, assignedBy: string): Promise<void> {
-  await assignPlan(clientId, { kind: template.kind, title: template.title, description: template.description, assignedBy });
-}
-
-// ---- coach targets ---------------------------------------------------------
-
-export async function getCoachTargets(clientId: string): Promise<CoachTargets | null> {
-  const doc = await trpc.coachTargets.get.query({ clientId });
-  return doc ? withId<CoachTargets>(doc, 'current') : null;
-}
-
-/** The backend notifies the client itself. */
-export async function setCoachTargets(
-  clientId: string,
-  targets: Pick<CoachTargets, 'waterMl' | 'steps' | 'cardioMin' | 'calories' | 'protein'>,
-  _updatedBy: string,
-): Promise<void> {
-  await trpc.coachTargets.set.mutate({ clientId, ...targets });
-}

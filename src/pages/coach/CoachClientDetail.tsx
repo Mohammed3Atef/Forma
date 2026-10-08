@@ -23,7 +23,8 @@ import { releaseClient } from "@/services/platform/coachClientsApi";
 import { assessmentStatus } from "@/lib/assessment";
 import { Icon, type IconName } from "@/components/Icon";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import type { AssessmentStatus, WeightLog, WorkoutLog } from "@/types";
+import type { AssessmentStatus, NoteVisibility, WeightLog, WorkoutLog } from "@/types";
+import { NoteVisibilityBadge, NoteVisibilityToggle } from "@/components/NoteVisibility";
 
 const ASSESS_TONE: Record<AssessmentStatus, PillTone> = {
   not_started: "mute",
@@ -257,9 +258,12 @@ export function CoachClientDetail() {
             notes.data.slice(0, 3).map((n) => (
               <div key={n.id} className="py-3 first:pt-0 last:pb-0">
                 <p className="whitespace-pre-wrap text-sm">{n.body}</p>
-                <span className="font-mono text-[10.5px] text-earth-subtle">
-                  {new Date(n.createdAt).toLocaleDateString()}
-                </span>
+                <div className="mt-1 flex items-center gap-2">
+                  <NoteVisibilityBadge visibility={n.visibility} />
+                  <span className="font-mono text-[10.5px] text-earth-subtle">
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             ))
           ) : (
@@ -359,10 +363,13 @@ function NoteSheet({
 }) {
   const { t } = useTranslation();
   const [body, setBody] = useState("");
+  const [visibility, setVisibility] = useState<NoteVisibility>("private");
   const mut = useMutation({
-    mutationFn: () => addCoachNote(clientId, body.trim(), author),
+    mutationFn: () =>
+      addCoachNote(clientId, body.trim(), author, "note", undefined, visibility),
     onSuccess: () => {
       setBody("");
+      setVisibility("private");
       onSaved();
       onClose();
     },
@@ -377,6 +384,12 @@ function NoteSheet({
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
+      <NoteVisibilityToggle value={visibility} onChange={setVisibility} />
+      {mut.isError && (
+        <p className="mt-2 text-sm text-danger" role="alert">
+          {t("trust.notes.saveFailed")}
+        </p>
+      )}
       <button
         type="button"
         data-testid="coach-note-save"

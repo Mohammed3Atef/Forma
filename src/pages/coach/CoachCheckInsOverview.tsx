@@ -221,6 +221,7 @@ export function CoachCheckInsOverview() {
               </div>
             )}
             <TextAreaField label={t('checkin.coachFeedback')} className="min-h-24" data-testid="review-feedback" placeholder={t('checkin.coachFeedback')} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+            <p className="mt-1 text-[12px] text-earth-muted">{t('trust.checkin.feedbackVisible')}</p>
             <div className="flex gap-2">
               <button type="button" className="btn-ghost flex-1" data-testid="review-skip" onClick={() => setReviewedIds((prev) => new Set(prev).add(current.client.id))}>
                 {t('checkin.skipForNow')}

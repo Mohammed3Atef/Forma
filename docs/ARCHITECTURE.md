@@ -38,26 +38,14 @@ src/
 │   ├── shared/  ui/  shell/    shared primitives (Sheet, Field, DataTable, MetricCard, states, OfflineBanner…)
 │   ├── coach/                  coach UI (+ cross-role views Admin reuses)
 │   └── <root, client-only>     mobile-only (manifest-classified; relocation to client/ = debt)
-├── theme/               design tokens (mirror tailwind.config.ts)
+├── theme/colors.ts      colour tokens for charts/inline styles (Tailwind config is the source of truth)
 ├── services/ hooks/ stores/ lib/ types/ i18n/ config/ data/   role-agnostic, no UI
 ```
 
-## Performance — bundle before → after
+## Performance — bundle
 
-Raw chunk sizes (`npm run build`, KB). The role apps were split so each role loads only its own code.
-
-| Chunk | Before | After | Δ |
-|---|---:|---:|---|
-| `index` (entry) | 452 | **241** | **−47%** (no role app in the shared entry) |
-| `ClientApp` | (in index, eager) | **164** (lazy, client-only) | client-isolated |
-| `CoachApp` | 209 | **43** | **−80%** (heavy pages → per-route chunks) |
-| `AdminApp` | 71 | ~14 + per-page chunks | split |
-| per-page coach/admin chunks | — | 8–24 each (e.g. CoachExerciseLibrary 24, CoachDashboard 23, AdminDashboard 18) | load on open |
-| `firebase` / `react-vendor` / `i18n` / `query` | 574 / 154 / 48 / 46 | unchanged | vendor splits |
-
-**Initial JS now:** Client = `index 241 + ClientApp 164 + react-vendor 154 + query 46 + i18n 48` (firebase loads on
-auth) and **no coach/admin code**. Coach/Admin = `index 241 + CoachApp 43 (or AdminApp) + the opened page chunk`
-and **no client app**. No regressions; firebase remains the largest single chunk (loads only after sign-in).
+> The historical before/after table (with a `firebase` chunk) was removed in B0 / RM-15 — Firebase is gone.
+> Current numbers: see `docs/product-audit/B0_SAFETY_TRUST_REPORT.md` §23 and `npm run build`.
 
 ## Component complexity — 20 largest (lines)
 
@@ -97,10 +85,10 @@ Honest list of what remains (foundation laid; adoption is incremental):
   (several use relative imports — a careful move is deferred to avoid churn this pass).
 - **Search inputs → `SearchField`.** A handful of list/search bars use placeholder + icon without a visible
   label/`aria-label`; convert to `SearchField` when touched (all other Coach/Admin forms are on `Field`).
-- **Token adoption.** `src/theme/*` tokens mirror Tailwind and are the source of truth; existing components keep
-  using Tailwind classes — adopt tokens/`Icon` tone-size variants in new/changed code (no mass migration).
-- **Standard-state adoption.** `PermissionState` / `OfflineState` exist; wire them into the remaining
-  permission-denied / connection-required surfaces as those screens are touched.
+- **Tokens.** Tailwind (`tailwind.config.ts`) is the source of truth; `src/theme/colors.ts` mirrors the colours for
+  charts/inline styles. (The unused `src/theme/*` token modules were removed in B0 / RM-01.)
+- **Standard states.** The never-used `PermissionState` / `OfflineState` primitives were removed (B0 / RM-01); a
+  shared offline/permission state belongs to the B1 design-system work.
 - **Large components.** See the table — CoachExerciseLibrary/AdminAccounts/CoachClients (Coach/Admin) and the big
   client screens (Nutrition/AssessmentWizard/WorkoutSession) exceed ~400 lines; split opportunistically.
 - **Known pre-existing failing test (not from this pass):** `e2e/offline.spec.ts` "log offline → reload …" (client

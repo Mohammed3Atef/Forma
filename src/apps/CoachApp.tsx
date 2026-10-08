@@ -20,7 +20,6 @@ import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 // PlanBuilder editors in particular only load when an editor is opened.
 const CoachDashboard = lazy(() => import('@/pages/coach/CoachDashboard').then((m) => ({ default: m.CoachDashboard })));
 const CoachClientDetail = lazy(() => import('@/pages/coach/CoachClientDetail').then((m) => ({ default: m.CoachClientDetail })));
-const CoachClientActivity = lazy(() => import('@/pages/coach/CoachClientActivity').then((m) => ({ default: m.CoachClientActivity })));
 const CoachViewLayout = lazy(() => import('@/pages/coach/CoachViewLayout').then((m) => ({ default: m.CoachViewLayout })));
 const CoachCheckIns = lazy(() => import('@/pages/coach/CoachCheckIns').then((m) => ({ default: m.CoachCheckIns })));
 const CoachClientAssessment = lazy(() => import('@/pages/coach/CoachClientAssessment').then((m) => ({ default: m.CoachClientAssessment })));
@@ -103,7 +102,6 @@ export function CoachApp() {
             view, and the "view as client" impersonation screen (its own
             internal tab rail — Progress is the workspace's escape hatch into
             this), plus plan version history (reached from within the editors). */}
-        <Route path="/coach/client/:clientId/activity" element={shell(<CoachClientActivity />)} />
         <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
         <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />

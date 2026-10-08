@@ -5,7 +5,6 @@ import type {
   ArchivedClientDataDoc,
   ClientPlanDoc,
   ClientProfileDoc,
-  ClientSettingsDoc,
   CoachNoteDoc,
   CoachTargetsDoc,
   FreezeRequestDoc,
@@ -29,10 +28,6 @@ export async function coachClientsCol(): Promise<Collection<CoachClientRelDoc>> 
 
 export async function clientProfilesCol(): Promise<Collection<ClientProfileDoc>> {
   return (await getDb()).collection<ClientProfileDoc>('clientProfiles');
-}
-
-export async function clientSettingsCol(): Promise<Collection<ClientSettingsDoc>> {
-  return (await getDb()).collection<ClientSettingsDoc>('clientSettings');
 }
 
 export async function clientWorkoutPlansCol(): Promise<Collection<ClientPlanDoc>> {

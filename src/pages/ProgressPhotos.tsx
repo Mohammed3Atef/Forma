@@ -3,13 +3,11 @@ import { useTranslation } from 'react-i18next';
 import type { PhotoPose, ProgressPhoto } from '@/types';
 import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
-import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { confirmDelete, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { viewImages } from '@/stores/imageViewerStore';
-import { useBack } from '@/hooks/useBack';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -48,14 +46,24 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
     );
   }
   if (!src) return <div className={`sk ${className}`} />;
+  if (!photo.cdnUrl) {
+    // Still only on this device — the coach can't see it yet.
+    return (
+      <span className="relative block">
+        <img src={src} alt={photo.pose} loading="lazy" className={className} onClick={onView ? () => onView(src) : undefined} />
+        <span className="absolute bottom-1 start-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9.5px] text-warn" data-testid="photo-not-uploaded">
+          {t('trust.upload.notUploaded')}
+        </span>
+      </span>
+    );
+  }
   return <img src={src} alt={photo.pose} loading="lazy" className={className} onClick={onView ? () => onView(src) : undefined} />;
 }
 
 /**
  * The real content of the Progress Photos experience (capture, compare, dated
- * gallery) — no header, so it can be embedded as the Progress screen's Photos
- * tab (matching the prototype's 4-tab structure) as well as rendered as its
- * own standalone page (`/progress/photos`, still a real deep-link target).
+ * gallery) — no header; it is the Progress screen's Photos tab
+ * (`/progress?tab=photos`).
  */
 export function ProgressPhotosBody() {
   const { t } = useTranslation();
@@ -102,8 +110,10 @@ export function ProgressPhotosBody() {
     if (!file) return;
     setBusy(true);
     try {
-      await add(pose, file);
-      showToast({ title: t('common.saved'), variant: 'success' });
+      const { uploaded } = await add(pose, file);
+      // Honest status: only an acknowledged upload is "saved" for the coach.
+      if (uploaded) showToast({ title: t('common.saved'), variant: 'success' });
+      else showToast({ title: t('trust.upload.localOnlyTitle'), body: t('trust.upload.localOnlyBody'), variant: 'warning' });
     } catch {
       await alertDialog({ title: t('progress.photos'), message: t('common.savedFailed') });
     } finally {
@@ -200,18 +210,6 @@ export function ProgressPhotosBody() {
       ))}
 
       {byDate.length === 0 && <EmptyState icon="camera" title={t('progressPhotos.emptyTitle')} message={t('progressPhotos.emptyMessage')} />}
-    </div>
-  );
-}
-
-/** Standalone page wrapper (deep-linkable at `/progress/photos`). */
-export function ProgressPhotos() {
-  const { t } = useTranslation();
-  const goBack = useBack('/progress?tab=photos');
-  return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t('progress.photos')} eyebrow={t('gt.body')} onBack={goBack} />
-      <ProgressPhotosBody />
     </div>
   );
 }

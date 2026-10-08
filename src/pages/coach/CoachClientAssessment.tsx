@@ -84,7 +84,8 @@ export function CoachClientAssessment() {
             <div className="mt-5 space-y-5 lg:mt-0">
               {/* Coach review notes */}
               <section>
-                <h2 className="h2 mb-2">{t('assessment.coachNotes')}</h2>
+                <h2 className="h2 mb-1">{t('trust.assessment.privateNotesTitle')}</h2>
+                <p className="mb-2 text-[12px] text-earth-muted" data-testid="assessment-notes-private-hint">{t('trust.assessment.privateNotesHint')}</p>
                 <textarea
                   className="input min-h-24"
                   data-testid="assessment-coach-notes"

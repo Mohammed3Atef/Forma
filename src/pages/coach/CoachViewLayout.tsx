@@ -14,6 +14,8 @@ import { CoachViewPhotos } from '@/pages/coach/CoachViewPhotos';
 import { CoachViewProgress } from '@/pages/coach/CoachViewProgress';
 import { useSession } from '@/services/auth/sessionStore';
 import { addCoachNote, listCoachNotes, type Author } from '@/services/platform/coachApi';
+import { NoteVisibilityToggle } from '@/components/NoteVisibility';
+import type { NoteVisibility } from '@/types';
 import { fetchUser } from '@/services/platform/accountsApi';
 import { useBack } from '@/hooks/useBack';
 
@@ -43,14 +45,22 @@ export function CoachViewLayout() {
   // Add-note flow: an entity calls onAdd(ctx) → opens the sheet → addCoachNote(anchor).
   const [pending, setPending] = useState<NoteAnchorCtx | null>(null);
   const [body, setBody] = useState('');
+  const [visibility, setVisibility] = useState<NoteVisibility>('private');
   const addNote = useMutation({
     mutationFn: () =>
-      addCoachNote(clientId, body.trim(), author, 'note', {
-        screen: pending?.screen,
-        date: pending?.date,
-        entityType: pending?.entityType,
-        entityId: pending?.entityId,
-      }),
+      addCoachNote(
+        clientId,
+        body.trim(),
+        author,
+        'note',
+        {
+          screen: pending?.screen,
+          date: pending?.date,
+          entityType: pending?.entityType,
+          entityId: pending?.entityId,
+        },
+        visibility,
+      ),
     onSuccess: () => {
       setBody('');
       setPending(null);
@@ -77,7 +87,7 @@ export function CoachViewLayout() {
         ))}
       </div>
 
-      <EntityNotesProvider notes={notesQ.data ?? []} onAdd={(ctx) => { setBody(''); setPending(ctx); }}>
+      <EntityNotesProvider notes={notesQ.data ?? []} onAdd={(ctx) => { setBody(''); setVisibility('private'); addNote.reset(); setPending(ctx); }}>
         {activeTab === 'activity' && <ClientActivityView clientId={clientId} />}
         {activeTab === 'nutrition' && <CoachViewNutrition clientId={clientId} />}
         {activeTab === 'cardio' && <CoachViewCardio clientId={clientId} />}
@@ -88,6 +98,8 @@ export function CoachViewLayout() {
 
       <Sheet open={!!pending} onClose={() => setPending(null)} size="md" title={pending?.label ? t('notes.noteOn', { name: pending.label }) : t('coach.addNote')}>
         <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="entity-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
+        <NoteVisibilityToggle value={visibility} onChange={setVisibility} />
+        {addNote.isError && <p className="mt-2 text-sm text-danger" role="alert">{t('trust.notes.saveFailed')}</p>}
         <button type="button" data-testid="entity-note-save" disabled={!body.trim() || addNote.isPending} onClick={() => addNote.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
           {t('common.save')}
         </button>

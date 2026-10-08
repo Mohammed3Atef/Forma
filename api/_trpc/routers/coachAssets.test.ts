@@ -100,6 +100,20 @@ describe('coachAssets router — exercises (stripMeta resource: no coachId/creat
     await expect(asSuspendedCoachA.coachAssets.exercises.save({ ...exerciseInput, id: 'ex-2' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('B0 / MD-09: a video link must be https — javascript:/data:/http are refused, https YouTube and files kept', async () => {
+    const asCoachA = appRouter.createCaller(ctxFor(coachA));
+    for (const bad of ['javascript:alert(1)', 'data:text/html,hi', 'http://example.com/a.mp4', 'http://localhost@evil.com/a.mp4', 'http://127.0.0.1.evil.com/a.mp4']) {
+      await expect(asCoachA.coachAssets.exercises.save({ ...exerciseInput, videoUrl: bad })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    }
+    // Loopback http is the local/test CDN only.
+    const local = await asCoachA.coachAssets.exercises.save({ ...exerciseInput, videoUrl: 'http://127.0.0.1:5287/cdn/Forma/a.mp4' });
+    expect(local.exercise.videoUrl).toBe('http://127.0.0.1:5287/cdn/Forma/a.mp4');
+    const yt = await asCoachA.coachAssets.exercises.save({ ...exerciseInput, videoUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+    expect(yt.exercise.videoUrl).toBe('https://youtu.be/dQw4w9WgXcQ');
+    const cleared = await asCoachA.coachAssets.exercises.save({ ...exerciseInput, videoUrl: null });
+    expect(cleared.exercise.videoUrl ?? null).toBeNull();
+  });
+
   it('save is an upsert: saving the same id twice replaces rather than duplicates', async () => {
     const asCoachA = appRouter.createCaller(ctxFor(coachA));
     await asCoachA.coachAssets.exercises.save(exerciseInput);

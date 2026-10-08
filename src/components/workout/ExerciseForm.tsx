@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { isPlayableVideoUrl } from '@/lib/videoSource';
 import { useTranslation } from 'react-i18next';
 import { TagInput } from '@/components/TagInput';
 import { TextAreaField, TextInput } from '@/components/ui/Field';
@@ -73,7 +74,10 @@ export function ExerciseForm({
     }
   };
 
+  // Only links that can actually play inside Forma (B0 / CL-20, MD-09).
+  const videoInvalid = !!f.videoUrl.trim() && !isPlayableVideoUrl(f.videoUrl);
   const save = () => {
+    if (videoInvalid) return;
     const warmupSetCount = int(f.warmupSets);
     onSave({
       ...initial,
@@ -135,6 +139,11 @@ export function ExerciseForm({
 
       <div>
         <TextInput label={t('field.videoUrl')} data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
+        {videoInvalid && (
+          <p className="mt-1 text-[12px] text-danger" role="alert" data-testid="ex-video-invalid">
+            {t('trust.video.coachInvalid')}
+          </p>
+        )}
         {canUpload && (
           <>
             <button type="button" className="chip mt-1.5 flex items-center gap-1.5" data-testid="ex-video-upload" disabled={uploading} onClick={() => fileRef.current?.click()}>
@@ -154,7 +163,7 @@ export function ExerciseForm({
 
       {extra}
 
-      <SubmitButton type="button" data-testid="ex-save" disabled={!f.name.trim()} pending={pending} onClick={save} fullWidth>
+      <SubmitButton type="button" data-testid="ex-save" disabled={!f.name.trim() || videoInvalid} pending={pending} onClick={save} fullWidth>
         {saveLabel ?? t('common.save')}
       </SubmitButton>
     </div>

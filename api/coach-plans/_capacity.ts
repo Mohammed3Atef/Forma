@@ -158,12 +158,6 @@ export async function recomputeCapacity(coachId: string, session?: ClientSession
   return { before, after };
 }
 
-/** Read-only: the effective limit right now (materialized value). */
-export async function getEffectiveCoachClientLimit(coachId: string, session?: ClientSession): Promise<number> {
-  const plan = await (await coachPlansCol()).findOne({ _id: coachId }, { session, projection: { maxClients: 1 } });
-  return plan?.maxClients ?? 0;
-}
-
 /**
  * Grant a capacity entitlement, or RENEW the coach's existing active one for
  * the same package (extends `endsAt` from max(now, current end); the original
