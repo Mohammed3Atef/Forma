@@ -1,32 +1,48 @@
-import { useMemo, useState } from "react";
-import { NumericField } from "@/components/ui/NumericField";
+import { useMemo, useState } from 'react';
+import { NumericField } from '@/components/ui/NumericField';
 import { parseDecimal, parseDecimalOrNull } from '@/lib/utils';
-import { useTranslation } from "react-i18next";
-import type { FoodItem, LocalizedText } from "@/types";
-import { applyLocalizedEdit, langOf } from "@/lib/localizedText";
-import { useNutrition, computeConsumed } from "@/stores/nutritionStore";
-import { useSettings } from "@/stores/settingsStore";
-import { useSubscription } from "@/hooks/useSubscription";
-import { EntityNotes } from "@/components/EntityNotes";
-import { confirmDelete } from "@/stores/dialogStore";
-import { showToast } from "@/stores/toastStore";
-import { useLocalized } from "@/hooks/useLocalized";
-import { Icon } from "@/components/Icon";
-import { ProgressRing } from "@/components/ProgressRing";
-import { colors } from "@/theme/colors";
-import { Sheet } from "@/components/Sheet";
-import { TopBar } from "@/components/TopBar";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import { TextInput } from "@/components/ui/Field";
-import { WaitingForCoach } from "@/components/WaitingForCoach";
-import { uid } from "@/lib/utils";
-import { foodLine } from "@/lib/foodFormat";
-import { FoodSearchPicker } from "@/components/workout/FoodSearchPicker";
+import { useTranslation } from 'react-i18next';
+import type { FoodItem, LocalizedText, Meal } from '@/types';
+import { applyLocalizedEdit, langOf } from '@/lib/localizedText';
+import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
+import { useSettings } from '@/stores/settingsStore';
+import { useCoachContentSync } from '@/stores/coachContentStore';
+import { useSubscription } from '@/hooks/useSubscription';
+import { EntityNotes } from '@/components/EntityNotes';
+import { confirmDelete } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
+import { useLocalized } from '@/hooks/useLocalized';
+import { Icon } from '@/components/Icon';
+import { Sheet } from '@/components/Sheet';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Button } from '@/components/ui/Button';
+import { ActionMenu, type ActionMenuItem } from '@/components/ui/ActionMenu';
+import { TextInput } from '@/components/ui/Field';
+import { ListGroup, Section } from '@/components/ui/ListRow';
+import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { DaySwitcher } from '@/components/client/DaySwitcher';
+import { uid } from '@/lib/utils';
+import { foodLine } from '@/lib/foodFormat';
+import { FoodSearchPicker } from '@/components/workout/FoodSearchPicker';
 import { formatNumber } from '@/lib/format';
+
+/*
+ * NUTRITION (B2.4, doc 16): "What do I eat today?"
+ *   remaining calories (targets only when the coach set them — never invented);
+ *   water; meals as sections — tap the tick when eaten; each food's swap /
+ *   edit / remove sits in its row menu (no red × on every row, VS-08);
+ *   ONE add-food flow that asks which meal it belongs to (CL-26);
+ *   supplements; the coach's notes.
+ * The day is today unless the switcher says otherwise, in words (CL-04).
+ * The meal plan is the coach's: swaps follow the coach's substitution policy.
+ */
+
+type EditorMode = { type: 'add'; mealId: string | null; foodId?: string } | { type: 'replace'; itemId: string };
 
 export function Nutrition() {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const loc = useLocalized();
   const plan = useNutrition((s) => s.plan);
   const log = useNutrition((s) => s.log);
@@ -42,113 +58,64 @@ export function Nutrition() {
   const removeMealItem = useNutrition((s) => s.removeMealItem);
   const consumed = useMemo(() => computeConsumed(plan, log), [plan, log]);
   const targets = useSettings((s) => s.settings?.targets);
+  const contentSync = useCoachContentSync();
   const { readOnly } = useSubscription();
 
-  // Food editor — handles replacing a planned item, adding to a meal, or a custom snack.
-  type EditorMode =
-    | { type: "custom"; foodId?: string }
-    | { type: "addMeal"; mealId: string; foodId?: string }
-    | { type: "replace"; itemId: string };
   const [editor, setEditor] = useState<EditorMode | null>(null);
-  const [form, setForm] = useState<{ name: string; nameOrig?: LocalizedText; quantity: string; protein: string; carbs: string; fats: string }>({
-    name: "",
-    quantity: "",
-    protein: "",
-    carbs: "",
-    fats: "",
-  });
-  // The planned item being swapped (approved alternatives sheet).
+  const [form, setForm] = useState<{ name: string; nameOrig?: LocalizedText; quantity: string; protein: string; carbs: string; fats: string }>({ name: '', quantity: '', protein: '', carbs: '', fats: '' });
   const [swapItem, setSwapItem] = useState<FoodItem | null>(null);
-  // Declared BEFORE the early returns below: hooks after a conditional return
-  // change the hook order when plan/log/targets flip null→set while mounted
-  // (fresh device, plan assigned on a focus refresh) and crash the page.
   const [editorSaving, setEditorSaving] = useState(false);
-  const [editorError, setEditorError] = useState(false);
+  const [editorError, setEditorError] = useState<string | null>(null);
 
   if (!plan) {
     return (
-      <div className="anim-rise">
-        <TopBar title={t("nutrition.title")} eyebrow={t("nutrition.title")} />
-        <WaitingForCoach messageKey="clientCoach.waitingNutrition" />
-      </div>
+      <>
+        <DaySwitcher />
+        {contentSync.status === 'failed' ? (
+          <ErrorState message={t('clientCoach.loadFailed')} onRetry={contentSync.retry ?? undefined} testId="nutrition-load-error" />
+        ) : contentSync.status === 'idle' ? (
+          <LoadingState variant="list" count={3} />
+        ) : (
+          <WaitingForCoach messageKey="clientCoach.waitingNutrition" />
+        )}
+      </>
     );
   }
   if (!log || !targets) {
     return (
-      <div className="anim-rise">
-        <TopBar title={t("nutrition.title")} eyebrow={t("nutrition.title")} />
+      <>
+        <DaySwitcher />
         <LoadingState variant="list" count={3} />
-      </div>
+      </>
     );
   }
 
-  const openEditor = (
-    mode: EditorMode,
-    prefill?: {
-      name: string;
-      /** The food's bilingual name when editing an existing item (B1.8). */
-      nameOrig?: LocalizedText;
-      quantity: string;
-      protein: number;
-      carbs: number;
-      fats: number;
-    },
-  ) => {
-    setForm(
-      prefill
-        ? {
-            name: prefill.name,
-            nameOrig: prefill.nameOrig,
-            quantity: prefill.quantity,
-            protein: String(prefill.protein),
-            carbs: String(prefill.carbs),
-            fats: String(prefill.fats),
-          }
-        : { name: "", quantity: "", protein: "", carbs: "", fats: "" },
-    );
-    setEditorError(false);
+  const policy = plan.substitutionPolicy;
+  const canSwap = !!policy?.allowClientSubstitutions;
+  const canCustom = (item: FoodItem) => canSwap && !!policy?.allowCustomFoods && !!item.allowCustomSubstitution;
+
+  const openEditor = (mode: EditorMode, prefill?: { name: string; nameOrig?: LocalizedText; quantity: string; protein: number; carbs: number; fats: number }) => {
+    setForm(prefill ? { name: prefill.name, nameOrig: prefill.nameOrig, quantity: prefill.quantity, protein: String(prefill.protein), carbs: String(prefill.carbs), fats: String(prefill.fats) } : { name: '', quantity: '', protein: '', carbs: '', fats: '' });
+    setEditorError(null);
     setEditor(mode);
   };
 
-  const macros = [
-    {
-      key: "calories",
-      value: consumed.calories,
-      target: targets.calories,
-      color: colors.brandOrange,
-    },
-    {
-      key: "protein",
-      value: consumed.protein,
-      target: targets.protein,
-      color: colors.brandGold,
-    },
-    {
-      key: "carbs",
-      value: consumed.carbs,
-      target: targets.carbs,
-      color: colors.violet,
-    },
-    {
-      key: "fats",
-      value: consumed.fats,
-      target: targets.fats,
-      color: colors.teal,
-    },
-  ] as const;
-
   const submitEditor = async () => {
     if (!editor) return;
-    // Arabic-Indic digits / "٫" accepted (RTL-04).
     const protein = parseDecimal(form.protein);
     const carbs = parseDecimal(form.carbs);
     const fats = parseDecimal(form.fats);
-    const name = form.name.trim() || t("nutritionSub.customFood");
-    const existingId = editor.type !== "replace" ? editor.foodId : undefined;
+    // A food with nothing in it is not a food (CL-28).
+    if (!form.name.trim() && protein + carbs + fats <= 0) {
+      setEditorError(t('nutrition.needFood'));
+      return;
+    }
+    const name = form.name.trim() || t('nutritionSub.customFood');
+    const existingId = editor.type === 'add' ? editor.foodId : undefined;
     const food: FoodItem = {
-      id: existingId ?? uid("food"),
+      id: existingId ?? uid('food'),
       // The client edits in THEIR language; the coach's other-language name is kept (B1.8 / FD-01).
-      name: applyLocalizedEdit(form.nameOrig, name, langOf(i18n.language)),
+      name: applyLocalizedEdit(form.nameOrig, name, langOf(lang)),
       quantity: form.quantity.trim(),
       protein,
       carbs,
@@ -156,672 +123,433 @@ export function Nutrition() {
       calories: Math.round(protein * 4 + carbs * 4 + fats * 9),
     };
     setEditorSaving(true);
-    setEditorError(false);
+    setEditorError(null);
     try {
-      if (editor.type === "replace")
-        await replaceItem(editor.itemId, food, {
-          source: "client_custom_substitution",
-          pendingApproval: !!policy?.requireCoachApproval,
-        });
-      else if (editor.type === "addMeal") await addMealItem(editor.mealId, food);
+      if (editor.type === 'replace') await replaceItem(editor.itemId, food, { source: 'client_custom_substitution', pendingApproval: !!policy?.requireCoachApproval });
+      else if (editor.mealId) await addMealItem(editor.mealId, food);
       else await addCustomFood(food);
       setEditor(null);
-      showToast({ title: t("common.saved"), variant: "success" });
+      showToast({ title: t('common.saved'), variant: 'success' });
     } catch {
-      setEditorError(true);
+      setEditorError(t('common.savedFailed'));
     } finally {
       setEditorSaving(false);
     }
   };
 
-  // Coach substitution policy (carried on the synced meal plan).
-  const policy = plan.substitutionPolicy;
-  const canSwap = !!policy?.allowClientSubstitutions;
-  const canCustom = (item: FoodItem) =>
-    canSwap && !!policy?.allowCustomFoods && !!item.allowCustomSubstitution;
-
   const pickAlternative = async (item: FoodItem, alt: FoodItem) => {
-    await replaceItem(
-      item.id,
-      { ...alt, id: alt.id || uid("food") },
-      { source: "approved_substitution" },
-    );
+    await replaceItem(item.id, { ...alt, id: alt.id || uid('food') }, { source: 'approved_substitution' });
     setSwapItem(null);
   };
 
-  const waterPct = Math.min(1, log.waterMl / (targets.waterMl || 1));
+  const remaining = Math.round(targets.calories - consumed.calories);
+  const hasTargets = targets.calories > 0;
+  const macros = [
+    { key: 'protein', value: consumed.protein, target: targets.protein, color: '#FF8B02' },
+    { key: 'carbs', value: consumed.carbs, target: targets.carbs, color: '#8B7CF0' },
+    { key: 'fats', value: consumed.fats, target: targets.fats, color: '#2FB8B0' },
+  ] as const;
+  const mealsDone = plan.meals.filter((m) => log.mealsEaten[m.id]).length;
+  const waterTarget = targets.waterMl ?? 0;
 
   return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t("nutrition.title")} eyebrow={t("nav.nutrition")} />
+    <div className="space-y-7" data-testid="client-nutrition">
+      <DaySwitcher className="!mb-0" />
 
-      {/* FEATURED: remaining calories today, protein/carbs/fat mini-bars below */}
-      {(() => {
-        const remaining = targets.calories - consumed.calories;
-        const pct = targets.calories ? Math.min(1, consumed.calories / targets.calories) : 0;
-        const subMacros = macros.filter((m) => m.key !== "calories");
-        return (
-          <div className="card-featured">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="eyebrow mb-1.5">{remaining >= 0 ? t("nutrition.remaining") : t("nutrition.overTarget")}</p>
-                <p className="text-[34px] leading-none text-earth">
-                  {Math.abs(Math.round(remaining))}
-                  <span className="ms-1 text-[15px] text-earth-subtle">kcal</span>
-                </p>
-                <p className="mt-1.5 text-[13px] text-earth-muted">
-                  {formatNumber(Math.round(consumed.calories), i18n.language, { maxFractionDigits: 0 })} / {formatNumber(targets.calories, i18n.language, { maxFractionDigits: 0 })}
-                </p>
-              </div>
-              <ProgressRing value={pct} size={76} stroke={7} label={`${Math.round(pct * 100)}%`} />
-            </div>
-            <div className="mt-4 flex gap-2">
-              {subMacros.map((m) => (
-                <div key={m.key} className="min-w-0 flex-1 rounded-xl border border-line bg-surface-card px-3 py-2.5">
-                  <p className="ui-label text-[8.5px]">{t(`nutrition.${m.key}`)}</p>
-                  <p className="mt-1 text-earth">
-                    {Math.round(m.value)}
-                    <span className="text-[10px] text-earth-subtle">/{m.target}</span>
+      {/* Remaining today */}
+      <section
+        className="relative overflow-hidden rounded-[20px] border border-white/[0.1] bg-gradient-surface-hi p-5 after:pointer-events-none after:absolute after:inset-0 after:bg-gradient-halo after:content-[''] md:p-6"
+        data-testid="nutrition-summary"
+      >
+        <div className="relative z-[1]">
+          <p className="text-[13px] font-medium text-brand-hover">{hasTargets ? (remaining >= 0 ? t('nutrition.remaining') : t('nutrition.overTarget')) : t('nutrition.eatenSoFar')}</p>
+          <p className="mt-1 font-mono text-[40px] font-semibold leading-none tabular-nums">
+            <span dir="ltr">{formatNumber(hasTargets ? Math.abs(remaining) : Math.round(consumed.calories), lang)}</span>
+            <span className="ms-1.5 font-sans text-[16px] font-normal text-earth-muted">{t('common.kcal')}</span>
+          </p>
+          {hasTargets && (
+            <p className="mt-2 text-[14px] tabular-nums text-earth-muted">
+              {t('nutrition.ofTarget', { eaten: formatNumber(Math.round(consumed.calories), lang), target: formatNumber(targets.calories, lang) })}
+            </p>
+          )}
+          {macros.some((m) => m.target > 0) && (
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {macros.map((m) => (
+                <div key={m.key}>
+                  <p className="text-[12px] text-earth-muted">{t(`nutrition.${m.key}`)}</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tabular-nums">
+                    <span dir="ltr">
+                      {formatNumber(Math.round(m.value), lang)}
+                      {m.target > 0 && <span className="text-[13px] font-normal text-earth-muted">/{formatNumber(m.target, lang)}g</span>}
+                    </span>
                   </p>
-                  <div className="prog mt-1.5">
-                    <span style={{ width: `${m.target ? Math.min(100, (m.value / m.target) * 100) : 0}%`, background: m.color }} />
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+                    <span className="block h-full rounded-full" style={{ width: `${m.target > 0 ? Math.min(100, (m.value / m.target) * 100) : 0}%`, background: m.color }} />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        );
-      })()}
+          )}
+        </div>
+      </section>
 
       {/* Water */}
-      <div className="card">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/15 text-info">
-              <Icon name="water" size={17} />
-            </span>
-            <span className="font-semibold">{t("nutrition.water")}</span>
+      {waterTarget > 0 && (
+        <section className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4" data-testid="nutrition-water">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold">{t('today.water')}</p>
+              <p className="text-[14px] tabular-nums text-earth-muted">
+                <span dir="ltr">
+                  {formatNumber(log.waterMl / 1000, lang, { maxFractionDigits: 2 })} / {formatNumber(waterTarget / 1000, lang, { maxFractionDigits: 2 })}
+                </span>{' '}
+                {t('today.liters')}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-1.5">
+              {[250, 500].map((ml) => (
+                <button key={ml} type="button" disabled={readOnly} onClick={() => void addWater(ml)} className="min-h-ui-hit rounded-ui-control border border-white/[0.12] px-3 text-[14px] font-semibold tabular-nums disabled:opacity-40" aria-label={t('nutrition.addMl', { ml })}>
+                  <span dir="ltr">+{ml}</span>
+                </button>
+              ))}
+              <button type="button" disabled={readOnly || log.waterMl <= 0} onClick={() => void addWater(-250)} className="min-h-ui-hit rounded-ui-control border border-white/[0.12] px-3 text-[14px] font-semibold tabular-nums text-earth-muted disabled:opacity-30" aria-label={t('nutrition.removeMl', { ml: 250 })}>
+                <span dir="ltr">−250</span>
+              </button>
+            </div>
           </div>
-          <span className="text-sm text-earth-muted">
-            {log.waterMl} / {targets.waterMl} ml
-          </span>
-        </div>
-        <div className="prog mb-3">
-          <span style={{ width: `${waterPct * 100}%` }} />
-        </div>
-        <div className="flex gap-2">
-          {[250, 500, 1000].map((ml) => (
-            <button
-              key={ml}
-              type="button"
-              disabled={readOnly}
-              onClick={() => void addWater(ml)}
-              className="btn-ghost h-11 flex-1 text-sm disabled:opacity-40"
-            >
-              +{ml}
-            </button>
-          ))}
-          <button
-            type="button"
-            disabled={readOnly}
-            onClick={() => void addWater(-250)}
-            className="icon-btn h-11 w-11 disabled:opacity-40"
-            aria-label={`${t("common.decrease")} · ${t("nutrition.water")} 250 ml`}
-          >
-            <Icon name="minus" size={16} />
-          </button>
-        </div>
-        <EntityNotes
-          screen="nutrition"
-          date={log.date}
-          entityType="water"
-          entityId="water"
-        />
-      </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+            <span className="block h-full rounded-full bg-info" style={{ width: `${Math.min(100, (log.waterMl / waterTarget) * 100)}%` }} />
+          </div>
+          <EntityNotes screen="nutrition" date={log.date} entityType="water" entityId="water" />
+        </section>
+      )}
 
       {/* Meals */}
-      <div className="sec-head">
-        <h2 className="h2">{t("nutrition.mealsHeading", { done: plan.meals.filter((m) => log.mealsEaten[m.id]).length, total: plan.meals.length })}</h2>
-      </div>
-      <div className="space-y-3">
-        {plan.meals.map((meal) => {
-          const eaten = !!log.mealsEaten[meal.id];
-          // Effective items for the day = plan items (with swaps applied) + extras.
-          const effItems = meal.items
-            .flatMap((item) => {
-              if (item.id in log.itemOverrides) {
-                const ov = log.itemOverrides[item.id];
-                return ov ? [ov] : [];
-              }
-              return [item];
-            })
-            .concat(log.extraItems[meal.id] ?? []);
-          const mealMacros = effItems.reduce(
-            (a, i) => ({
-              p: a.p + i.protein,
-              c: a.c + i.carbs,
-              f: a.f + i.fats,
-              kcal: a.kcal + i.calories,
-            }),
-            { p: 0, c: 0, f: 0, kcal: 0 },
-          );
-          return (
-            <section
+      <Section title={t('nutrition.mealsTitle', { done: mealsDone, total: plan.meals.length })} testId="nutrition-meals">
+        <div className="space-y-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-4 xl:space-y-0">
+          {plan.meals.map((meal) => (
+            <MealSection
               key={meal.id}
-              className={`card ${eaten ? "border-success/30 bg-success/[0.03]" : ""}`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold">{loc(meal.label)}</h2>
-                  <p
-                    className="flex flex-wrap gap-x-2 text-xs text-earth-muted"
-                    dir="ltr"
-                  >
-                    <span className="font-semibold text-earth-muted">
-                      {Math.round(mealMacros.kcal)} kcal
-                    </span>
-                    <span>P {Math.round(mealMacros.p)}</span>
-                    <span>C {Math.round(mealMacros.c)}</span>
-                    <span>F {Math.round(mealMacros.f)}</span>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={readOnly}
-                  onClick={() => void toggleMeal(meal.id)}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl border disabled:opacity-40 ${eaten ? "border-success bg-success text-[#06210f]" : "border-line-strong bg-surface-raised text-earth-muted"}`}
-                  aria-label={t("nutrition.markEaten")}
-                >
-                  <Icon name="check" size={20} />
-                </button>
-              </div>
-              <ul className="mt-2 space-y-1.5 text-sm text-earth-muted ">
-                {meal.items.map((item) => {
-                  const overridden = item.id in log.itemOverrides;
-                  const replacement = overridden
-                    ? log.itemOverrides[item.id]
-                    : undefined;
-                  const sub = log.substitutions?.[item.id];
-                  const hasApproved =
-                    (item.allowedAlternatives?.length ?? 0) > 0;
-                  const swapAvailable =
-                    canSwap && (hasApproved || canCustom(item));
-                  return (
-                    <li
-                      key={item.id}
-                      className="border-b pb-2 border-earth-subtle/10 "
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          {/* Original — struck-through when replaced/removed for the day */}
-                          <p
-                            className={
-                              overridden ? "text-earth-subtle line-through" : ""
-                            }
-                          >
-                            <span>{loc(item.name)}</span>
-                            {item.quantity && (
-                              <span className="text-earth-subtle">
-                                {" "}
-                                · {item.quantity}
-                              </span>
-                            )}
-                          </p>
-                          {replacement && (
-                            <>
-                              <p className="text-brand-light">
-                                ↳ {loc(replacement.name)}
-                              </p>
-                              {foodLine(replacement) && (
-                                <p
-                                  className="text-[11px] text-earth-subtle"
-                                  dir="ltr"
-                                >
-                                  {foodLine(replacement)}
-                                </p>
-                              )}
-                            </>
-                          )}
-                          {sub && (
-                            <span
-                              data-testid="sub-badge"
-                              className={`mt-0.5 inline-flex pill ${sub.source === "approved_substitution" ? "pill-ok" : "pill-warn"}`}
-                            >
-                              {sub.source === "approved_substitution"
-                                ? t("nutritionSub.approvedSubstitution")
-                                : t("nutritionSub.customSubstitution")}
-                              {sub.pendingApproval
-                                ? ` · ${t("nutritionSub.needsReview")}`
-                                : ""}
-                            </span>
-                          )}
-                          {overridden && !replacement && (
-                            <p className="text-[11px] text-earth-subtle">
-                              {t("nutrition.removed")}
-                            </p>
-                          )}
-                        </div>
-                        {!readOnly && (
-                          <div className="flex shrink-0 items-center gap-1">
-                            {overridden ? (
-                              <>
-                                {replacement && canCustom(item) && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openEditor(
-                                        { type: "replace", itemId: item.id },
-                                        {
-                                          name: loc(replacement.name),
-                                          quantity: replacement.quantity,
-                                          protein: replacement.protein,
-                                          carbs: replacement.carbs,
-                                          fats: replacement.fats,
-                                        },
-                                      )
-                                    }
-                                    className="icon-btn h-8 w-8"
-                                    aria-label={t("common.edit")}
-                                  >
-                                    <Icon name="edit" size={14} />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => void resetItem(item.id)}
-                                  className="icon-btn h-8 w-8"
-                                  aria-label={t("nutrition.reset")}
-                                  data-testid="sub-reset"
-                                >
-                                  <Icon name="chevronLeft" size={14} />
-                                </button>
-                              </>
-                            ) : canSwap ? (
-                              <>
-                                {swapAvailable && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSwapItem(item)}
-                                    className="icon-btn h-8 w-8"
-                                    aria-label={t("nutritionSub.swap")}
-                                    data-testid="client-swap"
-                                  >
-                                    <Icon name="rotate" size={14} />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (await confirmDelete())
-                                      void removeItem(item.id);
-                                  }}
-                                  className="icon-btn h-8 w-8 text-danger"
-                                  aria-label={t("common.delete")}
-                                >
-                                  <Icon name="close" size={14} />
-                                </button>
-                              </>
-                            ) : null}
-                          </div>
-                        )}
-                      </div>
-                      <EntityNotes
-                        screen="nutrition"
-                        date={log.date}
-                        entityType="food"
-                        entityId={item.id}
-                      />
-                    </li>
-                  );
-                })}
-
-                {/* Extra foods added to this meal today */}
-                {(log.extraItems[meal.id] ?? []).map((f) => (
-                  <li
-                    key={f.id}
-                    className="flex items-start justify-between gap-2 border-b pb-2 border-earth-subtle/10"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-brand-light">+ {loc(f.name)}</p>
-                      {foodLine(f) && (
-                        <p className="text-[11px] text-earth-subtle" dir="ltr">
-                          {foodLine(f)}
-                        </p>
-                      )}
-                    </div>
-                    {!readOnly && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openEditor(
-                              {
-                                type: "addMeal",
-                                mealId: meal.id,
-                                foodId: f.id,
-                              },
-                              {
-                                name: loc(f.name),
-                                nameOrig: f.name,
-                                quantity: f.quantity,
-                                protein: f.protein,
-                                carbs: f.carbs,
-                                fats: f.fats,
-                              },
-                            )
-                          }
-                          className="icon-btn h-8 w-8"
-                          aria-label={t("common.edit")}
-                        >
-                          <Icon name="edit" size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (await confirmDelete())
-                              void removeMealItem(meal.id, f.id);
-                          }}
-                          className="icon-btn h-8 w-8 text-danger"
-                          aria-label={t("common.delete")}
-                        >
-                          <Icon name="close" size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    openEditor({ type: "addMeal", mealId: meal.id })
-                  }
-                  className="mt-2 text-xs font-medium text-brand-light"
-                >
-                  + {t("nutrition.addFood")}
-                </button>
-              )}
-              <EntityNotes
-                screen="nutrition"
-                date={log.date}
-                entityType="meal"
-                entityId={meal.id}
-              />
-            </section>
-          );
-        })}
-      </div>
-
-      {/* Custom foods */}
-      {log.customFoods.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t("nutrition.addFood")}</h2>
-          <ul className="space-y-1.5 text-sm">
-            {log.customFoods.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-start justify-between gap-2 border-b pb-2 border-earth-subtle/10"
-              >
-                <div className="min-w-0">
-                  <p>{loc(f.name)}</p>
-                  <p className="text-[11px] text-earth-subtle" dir="ltr">
-                    {f.quantity ? `${f.quantity} · ` : ""}
-                    {f.calories} kcal · P{f.protein} C{f.carbs} F{f.fats}
-                  </p>
-                </div>
-                {!readOnly && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openEditor(
-                          { type: "custom", foodId: f.id },
-                          {
-                            name: loc(f.name),
-                            nameOrig: f.name,
-                            quantity: f.quantity,
-                            protein: f.protein,
-                            carbs: f.carbs,
-                            fats: f.fats,
-                          },
-                        )
-                      }
-                      className="icon-btn h-8 w-8"
-                      aria-label={t("common.edit")}
-                    >
-                      <Icon name="edit" size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (await confirmDelete()) void removeCustomFood(f.id);
-                      }}
-                      className="icon-btn h-8 w-8 text-danger"
-                      aria-label={t("common.delete")}
-                    >
-                      <Icon name="close" size={14} />
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+              meal={meal}
+              eaten={!!log.mealsEaten[meal.id]}
+              readOnly={readOnly}
+              renderItems={() => renderMealItems(meal)}
+              mealMacros={mealMacrosOf(meal)}
+              onToggle={() => void toggleMeal(meal.id)}
+              onAdd={() => openEditor({ type: 'add', mealId: meal.id })}
+              notes={<EntityNotes screen="nutrition" date={log.date} entityType="meal" entityId={meal.id} />}
+            />
+          ))}
         </div>
-      )}
-      {!readOnly && (
-        <button
-          type="button"
-          onClick={() => openEditor({ type: "custom" })}
-          className="btn-ghost w-full"
-        >
-          <Icon name="plus" size={18} /> {t("nutrition.addFood")}
-        </button>
-      )}
+      </Section>
 
-      {/* Supplements — only the ones the coach assigned. */}
+      {/* Other foods (not part of a meal) + the one Add-food flow */}
+      <Section title={t('nutrition.otherFoods')} testId="nutrition-other">
+        {log.customFoods.length > 0 && (
+          <ListGroup className="mb-3">
+            {log.customFoods.map((f) => (
+              <FoodRow
+                key={f.id}
+                name={loc(f.name)}
+                meta={foodLine(f)}
+                readOnly={readOnly}
+                menu={[
+                  { key: 'edit', label: t('common.edit'), icon: 'edit', onSelect: () => openEditor({ type: 'add', mealId: null, foodId: f.id }, { name: loc(f.name), nameOrig: f.name, quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats }) },
+                  { key: 'remove', label: t('common.delete'), icon: 'trash', danger: true, onSelect: async () => { if (await confirmDelete()) void removeCustomFood(f.id); } },
+                ]}
+              />
+            ))}
+          </ListGroup>
+        )}
+        {!readOnly && (
+          <Button variant="secondary" icon="plus" className="w-full" onClick={() => openEditor({ type: 'add', mealId: null })}>
+            {t('nutrition.addFood')}
+          </Button>
+        )}
+      </Section>
+
       {plan.supplements.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t("nutrition.supplements")}</h2>
-          <ul className="space-y-2">
+        <Section title={t('nutrition.supplements')} testId="nutrition-supplements">
+          <ListGroup>
             {plan.supplements.map((s) => {
               const taken = !!log.supplementsTaken[s.id];
               return (
-                <li key={s.id}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
-                        <Icon name="pill" size={17} />
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium">{s.name}</p>
-                        <p className="text-xs text-earth-subtle">
-                          {[loc(s.dose), s.timing ? loc(s.timing) : ""]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => void toggleSupplement(s.id)}
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg border disabled:opacity-40 ${taken ? "border-success bg-success text-[#06210f]" : "border-line-strong bg-surface-raised text-earth-muted"}`}
-                      aria-label={s.name}
-                      aria-pressed={taken}
-                    >
-                      <Icon name="check" size={16} />
-                    </button>
+                <div key={s.id}>
+                  <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-[15px] font-semibold ${taken ? 'text-earth-muted' : ''}`}>{s.name}</span>
+                      <span className="block truncate text-[13px] text-earth-muted">{[loc(s.dose), s.timing ? loc(s.timing) : ''].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    <TickButton on={taken} disabled={readOnly} label={t('nutrition.takenLabel', { name: s.name })} onClick={() => void toggleSupplement(s.id)} />
                   </div>
-                  <EntityNotes
-                    screen="nutrition"
-                    date={log.date}
-                    entityType="supplement"
-                    entityId={s.id}
-                  />
-                </li>
+                  <div className="px-4 pb-2 empty:hidden">
+                    <EntityNotes screen="nutrition" date={log.date} entityType="supplement" entityId={s.id} />
+                  </div>
+                </div>
               );
             })}
-          </ul>
-        </div>
+          </ListGroup>
+        </Section>
       )}
 
-      {/* Notes — only when the coach added any. */}
       {(plan.generalNotes.length > 0 || plan.beverageNotes.length > 0) && (
-        <div className="card text-sm text-earth-muted">
-          {plan.generalNotes.length > 0 && (
-            <>
-              <h2 className="mb-2 font-bold">{t("nutrition.notes")}</h2>
-              <ul className="list-inside list-disc space-y-1">
-                {plan.generalNotes.map((n, i) => (
-                  <li key={i}>{loc(n)}</li>
-                ))}
-              </ul>
-            </>
-          )}
-          {plan.beverageNotes.length > 0 && (
-            <>
-              <h3 className="mb-1 mt-3 font-semibold text-earth-muted">
-                {t("nutrition.beverages")}
-              </h3>
-              <ul className="list-inside list-disc space-y-1">
-                {plan.beverageNotes.map((n, i) => (
-                  <li key={i}>{loc(n)}</li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
+        <Section title={t('exerciseDetail.coachNotes')}>
+          <div className="space-y-2 border-s-2 border-brand/50 ps-3 text-[15px] leading-relaxed text-earth">
+            {plan.generalNotes.map((n, i) => (
+              <p key={`g${i}`}>{loc(n)}</p>
+            ))}
+            {plan.beverageNotes.length > 0 && <p className="pt-1 text-[13px] font-semibold text-earth-muted">{t('nutrition.beverages')}</p>}
+            {plan.beverageNotes.map((n, i) => (
+              <p key={`b${i}`}>{loc(n)}</p>
+            ))}
+          </div>
+        </Section>
       )}
 
-      <Sheet
-        open={!!editor}
-        onClose={() => setEditor(null)}
-        title={
-          editor?.type === "replace"
-            ? t("nutrition.replace")
-            : t("nutrition.addFood")
-        }
-      >
-        <div className="space-y-3">
-          <FoodSearchPicker
-            onPick={(f) => setForm({ ...form, name: f.name, quantity: f.quantity, protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) })}
-          />
-          <div className="h-px bg-line-soft" />
-          <TextInput
-            label={t("settings.name")}
-            helper={t("nutrition.nameOptionalHint")}
-            placeholder={t("settings.name")}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          <TextInput
-            label={t("nutrition.quantity")}
-            placeholder={t("nutrition.quantityExample")}
-            value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-          />
+      {/* The one Add-food flow: search a database or type it, and choose where it goes. */}
+      <Sheet open={!!editor} onClose={() => setEditor(null)} title={editor?.type === 'replace' ? t('nutrition.replace') : editor?.type === 'add' && editor.foodId ? t('common.edit') : t('nutrition.addFood')}>
+        <div className="space-y-4">
+          {editor?.type === 'add' && !editor.foodId && (
+            <div role="radiogroup" aria-label={t('nutrition.addTo')} data-testid="food-target">
+              <p className="mb-1.5 text-[14px] font-medium">{t('nutrition.addTo')}</p>
+              <div className="flex flex-wrap gap-2">
+                {[...plan.meals.map((m) => ({ id: m.id as string | null, label: loc(m.label) })), { id: null, label: t('nutrition.otherFood') }].map((o) => (
+                  <button
+                    key={o.id ?? 'other'}
+                    type="button"
+                    role="radio"
+                    aria-checked={editor.mealId === o.id}
+                    onClick={() => setEditor({ type: 'add', mealId: o.id })}
+                    className={`min-h-ui-hit rounded-ui-pill border px-3.5 text-[14px] font-medium ${editor.mealId === o.id ? 'border-brand/60 bg-brand/[0.13] text-earth' : 'border-white/[0.12] text-earth-muted'}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <FoodSearchPicker onPick={(f) => setForm({ ...form, name: f.name, quantity: f.quantity, protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) })} />
+          <div className="h-px bg-white/[0.08]" />
+          <TextInput label={t('settings.name')} helper={t('nutrition.nameOptionalHint')} placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <TextInput label={t('nutrition.quantity')} placeholder={t('nutrition.quantityExample')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
           <div className="grid grid-cols-3 gap-2">
-            <NumericField
-              label={t("nutrition.protein")}
-              placeholder="0"
-              value={parseDecimalOrNull(form.protein)}
-              onChange={(n) => setForm({ ...form, protein: n == null ? "" : String(n) })}
-            />
-            <NumericField
-              label={t("nutrition.carbs")}
-              placeholder="0"
-              value={parseDecimalOrNull(form.carbs)}
-              onChange={(n) => setForm({ ...form, carbs: n == null ? "" : String(n) })}
-            />
-            <NumericField
-              label={t("nutrition.fats")}
-              placeholder="0"
-              value={parseDecimalOrNull(form.fats)}
-              onChange={(n) => setForm({ ...form, fats: n == null ? "" : String(n) })}
-            />
+            <NumericField label={t('nutrition.protein')} placeholder="0" value={parseDecimalOrNull(form.protein)} onChange={(n) => setForm({ ...form, protein: n == null ? '' : String(n) })} />
+            <NumericField label={t('nutrition.carbs')} placeholder="0" value={parseDecimalOrNull(form.carbs)} onChange={(n) => setForm({ ...form, carbs: n == null ? '' : String(n) })} />
+            <NumericField label={t('nutrition.fats')} placeholder="0" value={parseDecimalOrNull(form.fats)} onChange={(n) => setForm({ ...form, fats: n == null ? '' : String(n) })} />
           </div>
-          {editorError && <p role="alert" className="text-sm text-danger">{t("common.savedFailed")}</p>}
-          <SubmitButton type="button" pending={editorSaving} onClick={() => void submitEditor()} size="lg" fullWidth>
-            {editor?.type === "replace"
-              ? t("nutrition.replace")
-              : t("common.add")}
-          </SubmitButton>
+          {editorError && (
+            <p role="alert" className="text-[14px] text-warn" data-testid="food-editor-error">
+              {editorError}
+            </p>
+          )}
+          <Button size="lg" pending={editorSaving} onClick={() => void submitEditor()} className="w-full">
+            {editor?.type === 'replace' ? t('nutrition.replace') : editor?.type === 'add' && editor.foodId ? t('common.save') : t('common.add')}
+          </Button>
         </div>
       </Sheet>
 
-      {/* Swap a planned item for a coach-approved alternative (or a custom food). */}
-      <Sheet
-        open={!!swapItem}
-        onClose={() => setSwapItem(null)}
-        title={t("nutritionSub.swap")}
-      >
+      {/* Swap a planned food for a coach-approved alternative (or a custom one). */}
+      <Sheet open={!!swapItem} onClose={() => setSwapItem(null)} title={t('nutritionSub.swap')}>
         {swapItem && (
-          <div className="space-y-3" data-testid="swap-sheet">
+          <div className="space-y-4" data-testid="swap-sheet">
             {(swapItem.allowedAlternatives?.length ?? 0) > 0 ? (
               <>
-                <p className="label">
-                  {t("nutritionSub.approvedAlternatives")}
-                </p>
-                <div className="card divide-y divide-line-soft">
+                <p className="text-[14px] font-medium text-earth-muted">{t('nutritionSub.approvedAlternatives')}</p>
+                <ListGroup>
                   {swapItem.allowedAlternatives!.map((alt) => (
-                    <button
-                      key={alt.id}
-                      type="button"
-                      data-testid="swap-approved-item"
-                      className="row w-full text-start"
-                      onClick={() => void pickAlternative(swapItem, alt)}
-                    >
+                    <button key={alt.id} type="button" data-testid="swap-approved-item" className="flex min-h-14 w-full items-center gap-3 px-4 text-start hover:bg-white/[0.03]" onClick={() => void pickAlternative(swapItem, alt)}>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">
-                          {loc(alt.name)}
-                        </span>
-                        <span
-                          className="block truncate text-[12px] text-earth-subtle"
-                          dir="ltr"
-                        >
-                          {alt.quantity ? `${alt.quantity} · ` : ""}
-                          {alt.calories} kcal · P{alt.protein} C{alt.carbs} F
-                          {alt.fats}
+                        <span className="block truncate text-[15px] font-semibold">{loc(alt.name)}</span>
+                        <span className="block truncate text-[13px] text-earth-muted">
+                          <bdi>{foodLine(alt)}</bdi>
                         </span>
                       </span>
-                      <Icon name="check" size={18} className="text-brand" />
+                      <Icon name="chevron" size={18} className="text-earth-subtle" />
                     </button>
                   ))}
-                </div>
+                </ListGroup>
               </>
             ) : (
-              <p className="text-sm text-earth-muted">
-                {t("nutritionSub.noApproved")}
-              </p>
+              <p className="text-[15px] text-earth-muted">{t('nutritionSub.noApproved')}</p>
             )}
             {canCustom(swapItem) && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                icon="plus"
+                className="w-full"
                 data-testid="swap-custom"
-                className="btn-ghost w-full"
                 onClick={() => {
                   const it = swapItem;
                   setSwapItem(null);
-                  openEditor(
-                    { type: "replace", itemId: it.id },
-                    {
-                      name: loc(it.name),
-                      quantity: it.quantity,
-                      protein: it.protein,
-                      carbs: it.carbs,
-                      fats: it.fats,
-                    },
-                  );
+                  openEditor({ type: 'replace', itemId: it.id }, { name: loc(it.name), quantity: it.quantity, protein: it.protein, carbs: it.carbs, fats: it.fats });
                 }}
               >
-                <Icon name="plus" size={16} /> {t("nutritionSub.customFood")}
-              </button>
+                {t('nutritionSub.customFood')}
+              </Button>
             )}
           </div>
         )}
       </Sheet>
     </div>
+  );
+
+  function effectiveItems(meal: Meal): FoodItem[] {
+    return meal.items
+      .flatMap((item) => {
+        if (log && item.id in log.itemOverrides) {
+          const ov = log.itemOverrides[item.id];
+          return ov ? [ov] : [];
+        }
+        return [item];
+      })
+      .concat(log?.extraItems[meal.id] ?? []);
+  }
+
+  function mealMacrosOf(meal: Meal) {
+    return effectiveItems(meal).reduce((a, i) => ({ p: a.p + i.protein, c: a.c + i.carbs, f: a.f + i.fats, kcal: a.kcal + i.calories }), { p: 0, c: 0, f: 0, kcal: 0 });
+  }
+
+  function renderMealItems(meal: Meal) {
+    if (!log) return null;
+    return (
+      <>
+        {meal.items.map((item) => {
+          const overridden = item.id in log.itemOverrides;
+          const replacement = overridden ? log.itemOverrides[item.id] : undefined;
+          const sub = log.substitutions?.[item.id];
+          const swapAvailable = canSwap && ((item.allowedAlternatives?.length ?? 0) > 0 || canCustom(item));
+          const menu: ActionMenuItem[] = overridden
+            ? [
+                ...(replacement && canCustom(item) ? [{ key: 'edit', label: t('common.edit'), icon: 'edit' as const, onSelect: () => openEditor({ type: 'replace', itemId: item.id }, { name: loc(replacement.name), quantity: replacement.quantity, protein: replacement.protein, carbs: replacement.carbs, fats: replacement.fats }) }] : []),
+                { key: 'reset', label: t('nutrition.reset'), icon: 'rotate' as const, onSelect: () => void resetItem(item.id), testId: 'sub-reset' },
+              ]
+            : canSwap
+              ? [
+                  ...(swapAvailable ? [{ key: 'swap', label: t('nutritionSub.swap'), icon: 'rotate' as const, onSelect: () => setSwapItem(item), testId: 'client-swap' }] : []),
+                  { key: 'remove', label: t('nutrition.skipToday'), icon: 'trash' as const, danger: true, onSelect: async () => { if (await confirmDelete()) void removeItem(item.id); } },
+                ]
+              : [];
+          return (
+            <div key={item.id}>
+              <FoodRow
+                name={overridden && replacement ? loc(replacement.name) : loc(item.name)}
+                struck={overridden ? loc(item.name) : undefined}
+                meta={
+                  overridden && !replacement
+                    ? t('nutrition.removed')
+                    : [
+                        (replacement ?? item).quantity,
+                        `${formatNumber((replacement ?? item).calories, lang)} kcal`,
+                        sub ? (sub.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')) + (sub.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : '') : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                }
+                readOnly={readOnly}
+                menu={menu}
+                menuLabel={t('nutrition.foodOptions', { name: loc(item.name) })}
+              />
+              <div className="px-4 pb-2 empty:hidden">
+                <EntityNotes screen="nutrition" date={log.date} entityType="food" entityId={item.id} />
+              </div>
+            </div>
+          );
+        })}
+        {(log.extraItems[meal.id] ?? []).map((f) => (
+          <FoodRow
+            key={f.id}
+            name={`+ ${loc(f.name)}`}
+            meta={foodLine(f)}
+            readOnly={readOnly}
+            menuLabel={t('nutrition.foodOptions', { name: loc(f.name) })}
+            menu={[
+              { key: 'edit', label: t('common.edit'), icon: 'edit', onSelect: () => openEditor({ type: 'add', mealId: meal.id, foodId: f.id }, { name: loc(f.name), nameOrig: f.name, quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats }) },
+              { key: 'remove', label: t('common.delete'), icon: 'trash', danger: true, onSelect: async () => { if (await confirmDelete()) void removeMealItem(meal.id, f.id); } },
+            ]}
+          />
+        ))}
+      </>
+    );
+  }
+}
+
+function MealSection({
+  meal,
+  eaten,
+  readOnly,
+  renderItems,
+  mealMacros,
+  onToggle,
+  onAdd,
+  notes,
+}: {
+  meal: Meal;
+  eaten: boolean;
+  readOnly: boolean;
+  renderItems: () => React.ReactNode;
+  mealMacros: { p: number; c: number; f: number; kcal: number };
+  onToggle: () => void;
+  onAdd: () => void;
+  notes: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  const loc = useLocalized();
+  return (
+    <section
+      data-testid={`meal-${meal.id}`}
+      data-eaten={eaten || undefined}
+      className={`overflow-hidden rounded-ui-surface border bg-surface-card transition-colors duration-ui-base ${eaten ? 'border-success/40' : 'border-white/[0.07]'}`}
+    >
+      <div className="flex items-center gap-3 px-4 pb-2 pt-3.5">
+        <div className="min-w-0 flex-1">
+          <h3 className={`text-[17px] font-semibold ${eaten ? 'text-success' : ''}`}>{loc(meal.label)}</h3>
+          <p className="mt-0.5 text-[13px] tabular-nums text-earth-muted">
+            <span dir="ltr">
+              {Math.round(mealMacros.kcal)} kcal · P{Math.round(mealMacros.p)} C{Math.round(mealMacros.c)} F{Math.round(mealMacros.f)}
+            </span>
+          </p>
+        </div>
+        <TickButton on={eaten} disabled={readOnly} label={t('nutrition.markEaten')} onClick={onToggle} />
+      </div>
+      <div className="divide-y divide-white/[0.05]">{renderItems()}</div>
+      <div className="px-4 empty:hidden">{notes}</div>
+      {!readOnly && (
+        <button type="button" onClick={onAdd} className="flex min-h-12 w-full items-center gap-2 border-t border-white/[0.05] px-4 text-[14px] font-medium text-earth-muted hover:text-earth" aria-label={t('nutrition.addFoodTo', { meal: loc(meal.label) })}>
+          <Icon name="plus" size={16} /> {t('nutrition.addFood')}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function FoodRow({ name, struck, meta, readOnly, menu, menuLabel }: { name: string; struck?: string; meta?: string; readOnly: boolean; menu: ActionMenuItem[]; menuLabel?: string }) {
+  return (
+    <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+      <span className="min-w-0 flex-1">
+        {struck && <span className="block truncate text-[13px] text-earth-subtle line-through">{struck}</span>}
+        <span className="block truncate text-[15px]">{name}</span>
+        {meta ? (
+          <span className="block truncate text-[13px] text-earth-muted">
+            <bdi>{meta}</bdi>
+          </span>
+        ) : null}
+      </span>
+      {!readOnly && menu.length > 0 && <ActionMenu size="sm" label={menuLabel ?? name} items={menu} />}
+    </div>
+  );
+}
+
+function TickButton({ on, disabled, label, onClick }: { on: boolean; disabled?: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-ui-fast disabled:opacity-40 ${on ? 'border-success bg-success text-[#06210f]' : 'border-white/[0.18] text-earth-muted hover:border-white/30'}`}
+    >
+      <Icon name="check" size={20} />
+    </button>
   );
 }

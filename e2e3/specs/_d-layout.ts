@@ -29,7 +29,8 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
   super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }, { path: '/admin/plans', name: 'admin-forma-plan' }, { path: '/admin/plans?tab=packages', name: 'admin-capacity-packages' }, { path: '/admin/plans?tab=requests', name: 'admin-payment-requests' }, { path: '/admin/coaches/e2e-coach-pro', name: 'admin-coach-capacity' }] },
 };
 const NAV_KEYS = {
-  client: ['today', 'fuel', 'train', 'progress', 'inbox'],
+  // B2: Today · Train · Nutrition · Progress · Coach (You behind the avatar).
+  client: ['today', 'train', 'nutrition', 'progress', 'coach'],
   coach: ['coachDashboard', 'coachClients', 'coachMessages', 'coachRevenue'],
   super: ['adminOverview', 'adminAccounts', 'adminCoaches'],
 };
@@ -39,14 +40,21 @@ async function settle(page: Page) {
   await page.waitForTimeout(400);
 }
 
-/** Bottom nav vs sidebar by breakpoint. Client shell is a phone-width column with the bottom nav at EVERY width (by design, AppShell max-w-md). */
+/** Bottom nav vs sidebar by breakpoint. B2: the client has the bottom tab bar below 1024 px and a side rail (`client-rail`) from 1024 px — never both. */
 async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
   const w = page.viewportSize()!.width;
   const bottom = page.getByTestId('bottom-nav');
   const side = page.getByTestId('coach-sidebar');
   if (kind === 'client') {
-    await expect(bottom).toBeVisible();
-    return { bottom: true, sidebar: false };
+    const rail = page.getByTestId('client-rail');
+    if (w < 1024) {
+      await expect(bottom).toBeVisible();
+      await expect(rail).toBeHidden();
+    } else {
+      await expect(rail).toBeVisible();
+      await expect(bottom).toBeHidden();
+    }
+    return { bottom: w < 1024, sidebar: w >= 1024 };
   }
   if (w < 768) {
     await expect(bottom).toBeVisible();
@@ -61,7 +69,7 @@ async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
 /** Nav labels whose text is cut (overflow hidden + scrollWidth > clientWidth). */
 async function clippedNav(page: Page) {
   return page.evaluate(() =>
-    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *'))
+    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *, [data-testid="client-rail"] a *'))
       .filter((el) => {
         const e = el as HTMLElement;
         if (!e.textContent?.trim() || e.children.length > 0 || e.offsetParent === null) return false;
@@ -78,8 +86,10 @@ async function navLabels(page: Page, kind: 'client' | 'coach' | 'super') {
   for (const k of NAV_KEYS[kind]) {
     const b = page.getByTestId(`nav-${k}`);
     const s = page.getByTestId(`sidebar-${k}`);
+    const r = page.getByTestId(`rail-${k}`); // B2 client side rail (≥ 1024 px)
     if (await b.isVisible().catch(() => false)) out[k] = ((await b.innerText()).trim() || (await b.getAttribute('aria-label')) || '').trim();
     else if (await s.isVisible().catch(() => false)) out[k] = ((await s.getAttribute('title')) || (await s.innerText())).trim();
+    else if (await r.isVisible().catch(() => false)) out[k] = (await r.innerText()).trim().split(/\r?\n/)[0].trim();
   }
   return out;
 }

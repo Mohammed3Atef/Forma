@@ -166,7 +166,8 @@ test('client 390: a dated coach-note notification on cold open — no toast repl
   await expect(page.getByTestId('toast')).toHaveCount(0); // backlog never toasts
   await page.goto('/nutrition');
   await ready(page);
-  await expect(page.getByText(/^today$/i).first()).toBeVisible(); // the note did NOT move the day
+  // B2: scoped to the Nutrition day switcher (the nav also says "Today", so an unscoped match proved nothing).
+  await expect(page.getByTestId('day-switcher-label')).toHaveText(/^today$/i); // the note did NOT move the day
   await shot(page, testInfo, '05-cold-open-day-unchanged');
   // Reload (relaunch): still no replay.
   await page.reload();
@@ -178,7 +179,7 @@ test('client 390: a dated coach-note notification on cold open — no toast repl
   await ready(page);
   await page.getByTestId('notification-item').filter({ hasText: 'B0 check this meal' }).first().click();
   await expect(page).toHaveURL(/\/nutrition/);
-  await expect(page.getByText(/25/).first()).toBeVisible();
+  await expect(page.getByTestId('day-switcher-label')).toContainText('25');
   await shot(page, testInfo, '06-tap-opens-the-day');
 });
 

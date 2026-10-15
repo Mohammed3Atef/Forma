@@ -41,7 +41,7 @@ export default defineConfig({
       // actually run instead of just existing as dead code.
       registerType: 'prompt',
       injectRegister: false, // registered manually in src/main.tsx (with update polling)
-      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg', 'forma-logo.webp', 'forma-mark-128.webp'],
+      includeAssets: ['icons/apple-touch-icon.png', 'favicon.svg', 'forma-logo.webp', 'forma-mark-128.webp', 'brand/forma-wordmark.webp'],
       manifest: {
         name: 'Forma',
         short_name: 'Forma',

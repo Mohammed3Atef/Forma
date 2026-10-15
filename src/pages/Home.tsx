@@ -1,401 +1,463 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/stores/settingsStore';
 import { useWorkout } from '@/stores/workoutStore';
 import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
 import { useCardio } from '@/stores/cardioStore';
-import { useHabits } from '@/stores/habitStore';
 import { useDay } from '@/stores/dayStore';
+import { useCoachContentSync } from '@/stores/coachContentStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useActiveCheckIn } from '@/hooks/useActiveCheckIn';
+import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useMyCoach } from '@/hooks/useMyCoach';
 import { useSession } from '@/services/auth/sessionStore';
 import { Avatar } from '@/components/Avatar';
-import { CoachInfoCard } from '@/components/CoachInfoCard';
 import { Icon } from '@/components/Icon';
-import { ProgressRing } from '@/components/ProgressRing';
-import { StatTile } from '@/components/StatTile';
-import { BarChart } from '@/components/charts';
-import { SyncStatus } from '@/components/ui/SyncStatus';
-import { CoachCard } from '@/components/CoachCard';
-import { WaitingForCoach } from '@/components/WaitingForCoach';
+import { Button, IconButton } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { useCoachContentSync } from '@/stores/coachContentStore';
-import { WeekStrip } from '@/components/WeekStrip';
-import { TaskRow } from '@/components/TaskRow';
-import { logVolume, logSetCount, weeklyVolumeTrend } from '@/lib/calc';
-import { formatDuration, weekStartOf } from '@/lib/utils';
-import type { WorkoutDay, WorkoutPlan } from '@/types';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { IconTile, ListGroup, ListRow, Section } from '@/components/ui/ListRow';
 import { formatDate, formatNumber } from '@/lib/format';
+import { today, weekStartOf } from '@/lib/utils';
+import { isPlanUpdated } from '@/lib/planSeen';
+import type { WorkoutDay, WorkoutLog, WorkoutPlan } from '@/types';
 
-function parseDay(key: string): Date {
+/*
+ * TODAY (B2.2 — doc 16 "the home screen is an action queue, not a report").
+ * Answers one question: what is the most important thing to do next?
+ *   1. a compact greeting;
+ *   2. ONE adaptive hero (start · resume · done · week complete · waiting ·
+ *      no coach · read-only · loading · load error) — never "Start" after the
+ *      session is done (CL-10), never an invented workout;
+ *   3. at most one coach item, only when actionable;
+ *   4. today's essentials, only the ones that exist;
+ *   5. progress from real data only (no zero tiles, no invented streaks).
+ * Today is always today: arriving here resets the logging day (P5 / CL-04).
+ */
+
+function dayKeyToDate(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
+function setsOf(log: WorkoutLog) {
+  let done = 0;
+  let total = 0;
+  for (const e of log.exercises) for (const s of e.sets) {
+    total += 1;
+    if (s.done) done += 1;
+  }
+  return { done, total };
+}
+
+function plannedSets(day: WorkoutDay, plan: WorkoutPlan): number {
+  return day.exerciseIds.reduce((n, id) => {
+    const ex = plan.exercises[id];
+    return ex ? n + Math.max(1, ex.workingSets) + (ex.warmupSetCount ?? 0) : n;
+  }, 0);
+}
+
+type HeroState = 'loading' | 'error' | 'no_coach' | 'waiting' | 'in_progress' | 'done' | 'week_done' | 'planned';
+
 export function Home() {
   const { t, i18n } = useTranslation();
-  const contentSync = useCoachContentSync();
+  const lang = i18n.language;
   const navigate = useNavigate();
+  const uid = useSession((s) => s.uid) ?? '';
+  const account = useSession((s) => s.account);
   const profile = useSettings((s) => s.profile);
-  const settings = useSettings((s) => s.settings);
-  const targets = settings?.targets;
+  const targets = useSettings((s) => s.settings?.targets);
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
   const active = useWorkout((s) => s.active);
   const startSession = useWorkout((s) => s.startSession);
-  const setDay = useDay((s) => s.setDay);
-  const { readOnly } = useSubscription();
-  const { checkIn } = useActiveCheckIn();
-  const photoUrl = useSession((s) => s.account?.photoUrl);
-
   const mealPlan = useNutrition((s) => s.plan);
   const nutritionLog = useNutrition((s) => s.log);
-  const consumed = useMemo(() => computeConsumed(mealPlan, nutritionLog), [mealPlan, nutritionLog]);
+  const addWater = useNutrition((s) => s.addWater);
   const stepsFor = useCardio((s) => s.stepsFor);
-  const selectedDay = useDay((s) => s.selected);
-  const todaySteps = stepsFor(selectedDay);
-  const checklist = useHabits((s) => s.checklist);
-  const streaks = useHabits((s) => s.streaks);
+  const cardioSecFor = useCardio((s) => s.cardioSecFor);
+  const weightLogs = useCardio((s) => s.weightLogs);
+  const contentSync = useCoachContentSync();
+  const { readOnly } = useSubscription();
+  const { checkIn } = useActiveCheckIn();
+  const unreadMessages = useClientMessageUnread();
+  const { items: notifications } = useNotifications();
+  const coach = useMyCoach();
+  const day = today();
+
+  // Today is always today (P5): a past day picked on another screen never leaks in here.
+  useEffect(() => {
+    if (useDay.getState().selected !== day) useDay.getState().reset();
+  }, [day]);
 
   const finished = useMemo(() => logs.filter((l) => l.finished), [logs]);
+  const todayLog = logs.find((l) => l.date === day) ?? null;
+  const running = active && active.startedAt && !active.finished ? active : logs.find((l) => l.startedAt && !l.finished) ?? null;
+  const nextDay = useMemo(() => (plan && plan.days.length ? plan.days[finished.length % plan.days.length] : null), [plan, finished.length]);
+  const draftDay = todayLog && !todayLog.finished && plan ? plan.days.find((d) => d.id === todayLog.dayId) ?? null : null;
+  const plannedDay = draftDay ?? nextDay;
+  const weekStart = weekStartOf(new Date()).getTime();
+  const sessionsThisWeek = finished.filter((l) => weekStartOf(dayKeyToDate(l.date)).getTime() === weekStart).length;
+  const planDays = plan?.days.length ?? 0;
 
-  const suggestedDay = useMemo(() => {
-    if (!plan) return null;
-    return plan.days[finished.length % plan.days.length] ?? null;
-  }, [plan, finished.length]);
+  let state: HeroState;
+  if (!plan) {
+    if (contentSync.status === 'failed') state = 'error';
+    else if (contentSync.status === 'idle') state = 'loading';
+    else state = account?.assignedCoachId ? 'waiting' : 'no_coach';
+  } else if (running) state = 'in_progress';
+  else if (todayLog?.finished) state = 'done';
+  else if (planDays > 0 && sessionsThisWeek >= planDays) state = 'week_done';
+  else state = 'planned';
 
-  const dayMeta = (day: WorkoutDay, p: WorkoutPlan) => {
-    let sets = 0;
-    day.exerciseIds.forEach((id) => {
-      const ex = p.exercises[id];
-      if (ex) sets += ex.workingSets > 0 ? ex.workingSets + 1 : 1;
-    });
-    const restAvg = settings?.restDefaultSec ?? 90;
-    return { ex: day.exerciseIds.length, sets, timeMin: Math.round((sets * (restAvg + 45)) / 60) };
+  // Typical length of this day, from the client's own finished sessions (never a guess).
+  const typicalMin = (dayId: string | undefined) => {
+    const same = finished.filter((l) => l.dayId === dayId && l.durationSec > 0).slice(0, 5);
+    if (!same.length) return null;
+    return Math.round(same.reduce((s, l) => s + l.durationSec, 0) / same.length / 60);
   };
 
-  // This-week aggregates + 8-week volume trend (shared bucket logic with
-  // Progress.tsx's "Weekly volume" chart — see `weeklyVolumeTrend`'s doc
-  // comment for why this used to be duplicated independently in both places).
-  const { week, trend, volumeDelta, goal } = useMemo(() => {
-    const curMon = weekStartOf(new Date()).getTime();
-    const inWeek = finished.filter((l) => weekStartOf(parseDay(l.date)).getTime() === curMon);
-    const buckets = weeklyVolumeTrend(finished, weekStartOf);
-    return {
-      week: {
-        workouts: inWeek.length,
-        sets: inWeek.reduce((n, l) => n + logSetCount(l), 0),
-        volume: inWeek.reduce((v, l) => v + logVolume(l), 0),
-        timeMin: Math.round(inWeek.reduce((s, l) => s + l.durationSec, 0) / 60),
-      },
-      trend: buckets.map((b, i) => ({
-        label: i === buckets.length - 1 ? t('gt.now') : `-${buckets.length - 1 - i}w`,
-        value: b.value,
-        date: b.weekStart,
-      })),
-      // Full-window first vs. last bucket (real zeros included) — an honest
-      // "over the last 8 weeks" delta, not a filtered/skipped comparison.
-      volumeDelta: (buckets[buckets.length - 1].value - buckets[0].value) / 1000,
-      goal: settings?.weeklyWorkoutGoal ?? 5,
-    };
-  }, [finished, settings?.weeklyWorkoutGoal, t]);
-
-  const greeting = useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 12) return t('gt.greetingMorning');
-    if (h < 18) return t('gt.greetingAfternoon');
-    return t('gt.greetingEvening');
-  }, [t]);
-
-  const recent = finished.slice(0, 3);
-  const remaining = Math.max(0, goal - week.workouts);
-
-  // Week-strip: which calendar days this week already have a finished session.
-  const doneDates = useMemo(() => new Set(finished.map((l) => l.date)), [finished]);
-  // Position within the plan's day-rotation (real, not a fabricated "week n of m").
-  const rotationLabel = plan ? t('home.dayOfRotation', { n: (finished.length % plan.days.length) + 1, total: plan.days.length }) : null;
-
-  // Today's 3-pillar task list (nutrition / workout / cardio) — the exact set the
-  // real per-day checklist already derives (see habitLogic.buildChecklist), just
-  // read back out here so the hero ring and the task rows always agree.
-  const mealsDone = useMemo(() => {
-    if (!mealPlan || !checklist) return null;
-    const keys = mealPlan.meals.map((m) => `meal:${m.id}`);
-    return keys.length > 0 && keys.every((k) => checklist.items[k]?.done);
-  }, [mealPlan, checklist]);
-  const workoutDone = checklist?.items.workout?.done ?? false;
-  const hasCardioTarget = !!checklist && 'cardio' in checklist.items;
-  const cardioDone = checklist?.items.cardio?.done ?? false;
-  const coreTasks = [mealsDone !== null, plan != null, hasCardioTarget].filter(Boolean).length;
-  const coreTasksDone = [mealsDone === true, workoutDone, hasCardioTarget && cardioDone].filter(Boolean).length;
-  const todayPct = coreTasks ? coreTasksDone / coreTasks : 0;
-
-  const startSuggested = async () => {
-    if (readOnly) return; // subscription paused/ended → workouts are view-only
-    if (active && !active.finished) {
-      navigate('/workout/session');
-      return;
-    }
-    if (suggestedDay) {
-      await startSession(suggestedDay.id);
-      navigate('/workout/session');
-    }
-  };
-
-  const openSession = (date: string) => {
-    setDay(date);
+  const start = async () => {
+    if (readOnly) return;
+    if (running) return navigate('/workout/session');
+    if (!plannedDay) return;
+    await startSession(plannedDay.id);
+    useWorkout.getState().beginTimer(); // one tap starts the clock (CL-18)
     navigate('/workout/session');
   };
 
-  const dateEyebrow = formatDate(Date.now(), i18n.language, 'weekdayDayMonth');
+  // ---- coach attention: at most ONE item, and only when actionable ----
+  const coachItem = useMemo(() => {
+    if (checkIn?.status === 'requested') return { kind: 'checkin' as const };
+    if (unreadMessages > 0) {
+      const last = notifications.find((n) => n.type === 'message_received' && !n.seenAt);
+      return { kind: 'message' as const, body: last?.body };
+    }
+    if (plan && isPlanUpdated(uid, 'workout', plan.updatedAt)) return { kind: 'plan' as const };
+    const note = notifications.find((n) => n.type === 'coach_note' && !n.seenAt);
+    if (note) return { kind: 'note' as const, body: note.body };
+    return null;
+  }, [checkIn?.status, unreadMessages, notifications, plan, uid]);
+
+  // ---- essentials ----
+  const consumed = useMemo(() => computeConsumed(mealPlan, nutritionLog), [mealPlan, nutritionLog]);
+  const meals = mealPlan?.meals ?? [];
+  const mealsEaten = meals.filter((m) => nutritionLog?.mealsEaten?.[m.id]).length;
+  const supps = mealPlan?.supplements ?? [];
+  const suppsTaken = supps.filter((s) => nutritionLog?.supplementsTaken?.[s.id]).length;
+  const waterTarget = targets?.waterMl ?? 0;
+  const water = nutritionLog?.waterMl ?? 0;
+  const steps = stepsFor(day);
+  const cardioMin = Math.round(cardioSecFor(day) / 60);
+
+  // ---- progress (real data only) ----
+  const weightTrend = useMemo(() => {
+    if (weightLogs.length < 2) return null;
+    const latest = weightLogs[weightLogs.length - 1];
+    const cutoff = dayKeyToDate(latest.date).getTime() - 30 * 86_400_000;
+    const older = [...weightLogs].reverse().find((w) => dayKeyToDate(w.date).getTime() <= cutoff) ?? weightLogs[0];
+    if (older.date === latest.date) return null;
+    const days = Math.round((dayKeyToDate(latest.date).getTime() - dayKeyToDate(older.date).getTime()) / 86_400_000);
+    return { kg: latest.weightKg, delta: Math.round((latest.weightKg - older.weightKg) * 10) / 10, days };
+  }, [weightLogs]);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t('gt.greetingMorning') : hour < 18 ? t('gt.greetingAfternoon') : t('gt.greetingEvening');
+  const firstName = (profile?.name || account?.displayName || '').trim().split(/\s+/)[0];
+
+  const hero = renderHero();
 
   return (
-    <div className="anim-rise space-y-4 pt-2" data-testid="client-home">
-      {/* Greeting */}
-      <header className="flex items-start justify-between pt-2">
-        <div className="min-w-0">
-          <p className="eyebrow mb-2">{dateEyebrow}</p>
-          <h1 className="h1">
-            {greeting}
-            {profile?.name?.trim() ? (
-              <>
-                <br />
-                <span className="text-earth-muted">{profile.name}.</span>
-              </>
-            ) : null}
-          </h1>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Avatar name={profile?.name} photoUrl={photoUrl} size="sm" rounded="rounded-full" onClick={() => navigate('/settings')} />
-          <SyncStatus />
-        </div>
+    <div className="space-y-6 pb-2" data-testid="client-home">
+      <header className="pt-1">
+        <h1 className="text-[24px] font-bold leading-tight tracking-[-0.02em]">{firstName ? `${greeting} ${firstName}` : greeting.replace(/[,،]\s*$/, '')}</h1>
+        <p className="mt-1 text-[14px] text-earth-muted">{formatDate(Date.now(), lang, 'full')}</p>
       </header>
 
-      {/* Week at a glance — tapping a day jumps into it (or opens its finished session) */}
-      <WeekStrip doneDates={doneDates} onSelect={(key, done) => (done ? openSession(key) : setDay(key))} />
-
-      {/* Weekly check-in requested by the coach — an action-required item, not a generic teaser */}
-      {checkIn?.status === 'requested' && (
-        <button
-          type="button"
-          data-testid="home-checkin"
-          onClick={() => navigate(`/check-in/${checkIn.id}`)}
-          className="card-tap flex w-full items-center gap-4 border border-warn/40 bg-warn/[0.06] text-start"
-        >
-          <span className="row-av bg-warn/15 text-warn">
-            <Icon name="calendar" size={20} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="eyebrow mb-1 block text-warn">{t('checkin.requiredTitle')}</span>
-            <span className="block text-sm text-earth-muted">{t('checkin.requiredBody')}</span>
-          </span>
-          <Icon name="chevron" size={18} />
-        </button>
-      )}
-
-      {/* No plan yet — make it clear the client is waiting on their coach. */}
-      {!plan && (contentSync.status === 'failed' ? (
-        <ErrorState message={t('clientCoach.loadFailed')} onRetry={contentSync.retry ?? undefined} testId="client-home-load-error" />
-      ) : (
-        <WaitingForCoach />
-      ))}
-
-      {/* FEATURED: today's single most important action */}
-      {plan && (
-        <div className="card-featured">
-          <p className="eyebrow mb-3">
-            {dateEyebrow}
-            {rotationLabel ? ` · ${rotationLabel}` : ''}
-          </p>
-          <div className="flex flex-wrap items-center gap-5">
-            <ProgressRing
-              value={todayPct}
-              size={104}
-              stroke={8}
-              label={`${Math.round(todayPct * 100)}%`}
-              sublabel={coreTasks - coreTasksDone > 0 ? t('home.tasksLeft', { n: coreTasks - coreTasksDone }) : t('common.done')}
-            />
-            <div className="min-w-[180px] flex-1">
-              <h2 className="h1">
-                {active && !active.finished ? t('workout.resumeSession') : suggestedDay ? suggestedDay.title : t('home.restDay')}
-              </h2>
-              {suggestedDay && <p className="mt-1 text-sm text-earth-muted">{suggestedDay.focus}</p>}
-              {suggestedDay &&
-                (() => {
-                  const m = dayMeta(suggestedDay, plan);
-                  return (
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11.5px] text-earth-muted">
-                      <span className="flex items-center gap-1.5">
-                        <Icon name="list" size={14} /> {m.ex}&nbsp;{t('gt.exercises').toLowerCase()}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Icon name="bolt" size={14} /> {m.sets}&nbsp;{t('common.sets')}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Icon name="timer" size={14} /> ~{m.timeMin}&nbsp;{t('common.min')}
-                      </span>
-                    </div>
-                  );
-                })()}
-              {suggestedDay && (
-                <button type="button" disabled={readOnly} onClick={() => void startSuggested()} className="btn-primary mt-4 w-full disabled:opacity-40">
-                  <Icon name="play" size={15} /> {active && !active.finished ? t('workout.resumeSession') : t('gt.startWorkout')}
-                </button>
-              )}
-            </div>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
+        <div className="space-y-4">
+          {hero}
+          {coachItem && renderCoachItem()}
         </div>
-      )}
 
-      {/* Today's plan — the same 3 pillars behind the ring above, as tappable rows */}
-      {plan && checklist && coreTasks > 0 && (
-        <div className="card p-0">
-          <div className="flex items-center justify-between px-5 pt-4">
-            <p className="ui-label">{t('home.todaysPlan')}</p>
-            <span className="pill pill-brand">{t('home.tasksLeft', { n: coreTasks - coreTasksDone })}</span>
-          </div>
-          <div className="px-5 pb-1">
-            {mealsDone !== null && (
-              <TaskRow
-                icon="meal"
-                tone="ok"
-                title={t('nav.nutrition')}
-                subtitle={`${Math.round(consumed.calories)} / ${targets?.calories ?? 0} kcal`}
-                done={mealsDone}
-                onClick={() => navigate('/nutrition')}
-              />
-            )}
-            <TaskRow
-              icon="dumbbell"
-              tone="brand"
-              title={suggestedDay ? suggestedDay.title : t('nav.workout')}
-              subtitle={workoutDone ? t('workout.resumeSession') : active && !active.finished ? t('workout.resumeSession') : t('gt.startWorkout')}
-              done={workoutDone}
-              onClick={() => void startSuggested()}
-            />
-            {hasCardioTarget && (
-              <TaskRow
-                icon="activity"
-                tone="info"
-                title={t('nav.cardio')}
-                subtitle={`${formatNumber(todaySteps, i18n.language, { maxFractionDigits: 0 })} ${t('home.steps').toLowerCase()}`}
-                done={cardioDone}
-                onClick={() => navigate('/cardio')}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* From your coach */}
-      <CoachInfoCard compact />
-      <CoachCard />
-
-      {/* Weekly goal — tap through to the history/calendar of completed workouts */}
-      <button
-        type="button"
-        onClick={() => navigate('/history')}
-        className="card-tap flex w-full items-center gap-4 text-start"
-      >
-        <ProgressRing
-          value={goal ? week.workouts / goal : 0}
-          size={64}
-          stroke={6}
-          label={`${week.workouts}/${goal}`}
-        />
-        <div className="flex-1">
-          <h2 className="h2">{t('gt.weeklyGoal')}</h2>
-          <p className="mt-0.5 text-[13px] text-earth-muted">
-            {remaining > 0 ? t('gt.toGo', { n: remaining }) : t('gt.goalReached')}
-          </p>
-        </div>
-        {(() => {
-          const wk = streaks.workout;
-          const streakActive = wk.current > 0;
-          // Active workout streak → flame + current. Otherwise show the best
-          // streak on record (trophy) so the number still reflects an achievement.
-          return (
-            <div
-              className="flex items-center gap-1.5"
-              title={streakActive ? t('gt.currentStreak') : t('gt.bestStreak')}
-            >
-              <Icon name={streakActive ? 'flame' : 'trophy'} size={18} className={streakActive ? 'text-brand' : 'text-earth-subtle'} />
-              <span className={`font-mono text-lg font-medium ${streakActive ? '' : 'text-earth-muted'}`}>
-                {streakActive ? wk.current : wk.longest}
-              </span>
-            </div>
-          );
-        })()}
-        <Icon name="chevron" size={18} className="text-earth-subtle" />
-      </button>
-
-      {/* This week */}
-      <div className="sec-head">
-        <h2 className="h2">{t('gt.thisWeek')}</h2>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <StatTile icon="dumbbell" value={week.workouts} label={t('gt.workouts')} />
-        <StatTile icon="bolt" value={week.sets} label={t('gt.setsLogged')} />
-        <StatTile icon="arrowUp" value={(week.volume / 1000).toFixed(1)} unit="t" label={t('gt.volume')} />
-        <StatTile icon="timer" value={week.timeMin} unit="m" label={t('gt.time')} />
-      </div>
-
-      {/* Volume trend */}
-      {finished.length > 0 && (
-        <div className="card mt-3">
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="ui-label">{t('gt.volumeTrend')}</span>
-            <span className="font-mono text-[11px] text-brand">{t('gt.last8weeks')}</span>
-          </div>
-          {Math.abs(volumeDelta) >= 0.05 ? (
-            <p className="mb-2 text-sm text-earth">
-              {t(volumeDelta >= 0 ? 'gt.volumeTrendUp' : 'gt.volumeTrendDown', { t: Math.abs(volumeDelta).toFixed(1) })}
-            </p>
-          ) : (
-            <p className="mb-2 text-sm text-earth">{t('gt.volumeTrendFlat')}</p>
+        <div className="space-y-6">
+          {(meals.length > 0 || waterTarget > 0 || targets?.steps || targets?.cardioMinutes || supps.length > 0) && (
+            <Section title={t('today.essentials')} testId="today-essentials">
+              <ListGroup>
+                {meals.length > 0 && (
+                  <ListRow
+                    to="/nutrition"
+                    testId="today-row-meals"
+                    leading={<IconTile icon="meal" tone="success" />}
+                    title={t('today.meals')}
+                    meta={`${t('today.mealsMeta', { done: mealsEaten, total: meals.length })} · ${formatNumber(Math.round(consumed.calories), lang)} / ${formatNumber(mealPlan?.targets.calories ?? 0, lang)} ${t('common.kcal')}`}
+                    trailing={mealsEaten === meals.length ? <DoneTick /> : null}
+                    chevron
+                  />
+                )}
+                {waterTarget > 0 && (
+                  <ListRow
+                    testId="today-row-water"
+                    leading={<IconTile icon="water" tone="info" />}
+                    title={t('today.water')}
+                    meta={`${formatNumber(water / 1000, lang, { maxFractionDigits: 2 })} / ${formatNumber(waterTarget / 1000, lang, { maxFractionDigits: 2 })} ${t('today.liters')}`}
+                    trailing={
+                      <IconButton icon="plus" label={t('today.addWater')} disabled={readOnly} onClick={() => void addWater(250)} data-testid="today-add-water" className="border-white/10" />
+                    }
+                  />
+                )}
+                {(targets?.steps ?? 0) > 0 ? (
+                  <ListRow
+                    to="/cardio"
+                    testId="today-row-steps"
+                    leading={<IconTile icon="activity" tone="info" />}
+                    title={t('today.steps')}
+                    meta={`${formatNumber(steps, lang)} / ${formatNumber(targets!.steps, lang)}`}
+                    trailing={steps >= targets!.steps ? <DoneTick /> : null}
+                    chevron
+                  />
+                ) : (targets?.cardioMinutes ?? 0) > 0 ? (
+                  <ListRow
+                    to="/cardio"
+                    testId="today-row-cardio"
+                    leading={<IconTile icon="activity" tone="info" />}
+                    title={t('today.cardio')}
+                    meta={`${formatNumber(cardioMin, lang)} / ${formatNumber(targets!.cardioMinutes, lang)} ${t('common.min')}`}
+                    trailing={cardioMin >= targets!.cardioMinutes ? <DoneTick /> : null}
+                    chevron
+                  />
+                ) : null}
+                {supps.length > 0 && (
+                  <ListRow
+                    to="/nutrition"
+                    testId="today-row-supplements"
+                    leading={<IconTile icon="pill" tone="neutral" />}
+                    title={t('today.supplements')}
+                    meta={t('today.suppMeta', { done: suppsTaken, total: supps.length })}
+                    trailing={suppsTaken === supps.length ? <DoneTick /> : null}
+                    chevron
+                  />
+                )}
+              </ListGroup>
+            </Section>
           )}
-          <BarChart data={trend} format={(v) => `${Math.round(v / 1000)}t`} unit="t" locale={i18n.language} emptyLabel={t('progress.noData')} />
-        </div>
-      )}
 
-      {/* Recent */}
-      {recent.length > 0 && (
-        <>
-          <div className="sec-head">
-            <h2 className="h2">{t('gt.recent')}</h2>
-            <button type="button" className="sec-link" onClick={() => navigate('/history')}>
-              {t('gt.viewAll')}
-            </button>
-          </div>
-          <div className="card divide-y divide-line-soft p-0">
-            {recent.map((l) => {
-              const day = plan?.days.find((d) => d.id === l.dayId);
-              return (
-                <button key={l.id} type="button" onClick={() => openSession(l.date)} className="rowline w-full text-start">
-                  <span className="tk-ic">
-                    <Icon name="dumbbell" size={15} />
-                  </span>
-                  <div className="grow min-w-0">
-                    <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
-                    <p className="mt-0.5 font-mono text-[11.5px] text-earth-muted">
-                      {formatDate(l.date, i18n.language, 'short')}
-                      {' · '}
-                      {formatDuration(l.durationSec)} · {(logVolume(l) / 1000).toFixed(1)}t
+          {(plan || weightTrend) && (finished.length > 0 || weightTrend) && (
+            <Section
+              title={t('today.weekTitle')}
+              action={
+                <button type="button" onClick={() => navigate('/progress')} className="hit-44 text-[14px] font-medium text-brand-hover">
+                  {t('today.seeProgress')}
+                </button>
+              }
+              testId="today-progress"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                {plan && planDays > 0 && (
+                  <div className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4">
+                    <p className="text-[13px] text-earth-muted">{t('today.sessions')}</p>
+                    <p className="t-numeric mt-1 text-[28px] font-semibold leading-none">
+                      {formatNumber(sessionsThisWeek, lang)}
+                      <span className="text-[15px] text-earth-muted">/{formatNumber(planDays, lang)}</span>
+                    </p>
+                    <div className="mt-3 flex gap-1" aria-hidden="true">
+                      {Array.from({ length: planDays }, (_, i) => (
+                        <span key={i} className={`h-1.5 flex-1 rounded-full ${i < sessionsThisWeek ? 'bg-success' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {weightTrend && (
+                  <div className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4">
+                    <p className="text-[13px] text-earth-muted">{t('today.weight')}</p>
+                    <p className="t-numeric mt-1 text-[28px] font-semibold leading-none">
+                      {formatNumber(weightTrend.kg, lang, { maxFractionDigits: 1 })}
+                      <span className="text-[15px] text-earth-muted"> {t('common.kg')}</span>
+                    </p>
+                    <p className="mt-2 text-[13px] text-earth-muted">
+                      <span dir="ltr" className="tabular-nums">{weightTrend.delta > 0 ? '+' : weightTrend.delta < 0 ? '−' : ''}{formatNumber(Math.abs(weightTrend.delta), lang, { maxFractionDigits: 1 })}</span>{' '}
+                      {t('today.inDays', { count: weightTrend.days })}
                     </p>
                   </div>
-                  <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Start empty */}
-      <button type="button" onClick={() => navigate('/workout')} className="btn-ghost mt-4 w-full">
-        <Icon name="plus" size={15} /> {t('gt.startEmpty')}
-      </button>
+                )}
+              </div>
+            </Section>
+          )}
+        </div>
+      </div>
     </div>
+  );
+
+  // ------------------------------------------------------------------ hero
+  function renderHero() {
+    if (state === 'loading') {
+      return (
+        <div className="rounded-[20px] border border-white/[0.08] bg-surface-card p-5" role="status" aria-label={t('common.loading')} data-testid="today-hero" data-state="loading">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-4 h-8 w-48" />
+          <Skeleton className="mt-6 h-12 w-full rounded-full" />
+        </div>
+      );
+    }
+    if (state === 'error') {
+      return <ErrorState message={t('clientCoach.loadFailed')} onRetry={contentSync.retry ?? undefined} testId="client-home-load-error" />;
+    }
+    if (state === 'no_coach' || state === 'waiting') {
+      const waiting = state === 'waiting';
+      return (
+        <HeroShell state={state} testId={waiting ? 'waiting-for-coach' : undefined}>
+          <IconTile icon={waiting ? 'timer' : 'user'} tone="brand" size={44} />
+          <h2 className="mt-4 text-[22px] font-bold leading-tight">{waiting ? t('today.waitingTitle') : t('today.noCoachTitle')}</h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-earth-muted">{waiting ? t('clientCoach.waiting') : t('today.noCoachBody')}</p>
+          {waiting && (
+            <Button variant="secondary" icon="chat" className="mt-5 w-full" onClick={() => navigate('/messages')}>
+              {t('today.messageCoach')}
+            </Button>
+          )}
+        </HeroShell>
+      );
+    }
+    if (state === 'in_progress' && running) {
+      const day = plan?.days.find((d) => d.id === running.dayId);
+      const s = setsOf(running);
+      const pct = s.total ? s.done / s.total : 0;
+      return (
+        <HeroShell state={state}>
+          <p className="text-[13px] font-medium text-brand-hover">{t('today.inProgress')}</p>
+          <h2 className="mt-1 text-[30px] font-bold leading-[1.1] tracking-[-0.02em]">{day?.title ?? t('today.sessionLabel')}</h2>
+          <p className="mt-3 text-[14px] tabular-nums text-earth-muted">{t('today.setsDone', { done: s.done, total: s.total })}</p>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={s.total} aria-valuenow={s.done}>
+            <span className="block h-full rounded-full bg-gradient-brand" style={{ width: `${Math.round(pct * 100)}%` }} />
+          </div>
+          <Button size="lg" icon="play" className="mt-5 w-full" onClick={() => navigate('/workout/session')} data-testid="today-resume">
+            {t('today.resume')}
+          </Button>
+        </HeroShell>
+      );
+    }
+    if (state === 'done' && todayLog) {
+      const day = plan?.days.find((d) => d.id === todayLog.dayId);
+      const s = setsOf(todayLog);
+      return (
+        <HeroShell state={state}>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-success text-[#06210f]">
+              <Icon name="check" size={20} />
+            </span>
+            <p className="text-[14px] font-semibold text-success">{t('today.doneTitle')}</p>
+          </div>
+          <h2 className="mt-3 text-[30px] font-bold leading-[1.1] tracking-[-0.02em]">{day?.title ?? t('today.sessionLabel')}</h2>
+          <p className="mt-2 text-[14px] tabular-nums text-earth-muted">
+            {t('today.doneMeta', { sets: s.done, min: Math.max(1, Math.round(todayLog.durationSec / 60)) })}
+          </p>
+          <Button variant="secondary" className="mt-5 w-full" onClick={() => navigate('/workout/session')} data-testid="today-view-session">
+            {t('today.viewSession')}
+          </Button>
+          {nextDay && <p className="mt-3 text-center text-[13px] text-earth-muted">{t('today.nextUp', { title: nextDay.title })}</p>}
+        </HeroShell>
+      );
+    }
+    if (state === 'week_done') {
+      return (
+        <HeroShell state={state}>
+          <IconTile icon="trophy" tone="success" size={44} />
+          <h2 className="mt-4 text-[22px] font-bold leading-tight">{t('today.weekDoneTitle')}</h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-earth-muted">{t('today.weekDoneBody', { count: planDays })}</p>
+          <Button variant="secondary" className="mt-5 w-full" onClick={() => navigate('/workout')}>
+            {nextDay ? t('today.nextUp', { title: nextDay.title }) : t('today.viewPlan')}
+          </Button>
+        </HeroShell>
+      );
+    }
+    // planned
+    const d = plannedDay;
+    if (!d || !plan) return null;
+    const exCount = d.exerciseIds.filter((id) => plan.exercises[id]).length;
+    const names = d.exerciseIds.map((id) => plan.exercises[id]?.name).filter(Boolean) as string[];
+    const min = typicalMin(d.id);
+    return (
+      <HeroShell state="planned">
+        <p className="text-[13px] font-medium text-brand-hover">
+          {t('today.sessionLabel')} · {t('today.dayOf', { n: d.dayIndex + 1, total: planDays })}
+        </p>
+        <h2 className="mt-1 text-[32px] font-bold leading-[1.08] tracking-[-0.02em]">{d.title}</h2>
+        {d.focus ? <p className="mt-1 text-[15px] text-earth-muted">{d.focus}</p> : null}
+        <p className="mt-3 text-[14px] tabular-nums text-earth-muted">
+          {t('today.exercises', { count: exCount })} · {t('today.sets', { count: plannedSets(d, plan) })}
+          {min ? ` · ${t('today.aboutMin', { n: min })}` : ''}
+        </p>
+        {names.length > 0 && (
+          <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-earth">
+            {names.slice(0, 3).join(' · ')}
+            {names.length > 3 ? ` · ${t('today.more', { count: names.length - 3 })}` : ''}
+          </p>
+        )}
+        {readOnly ? (
+          <p className="mt-5 rounded-ui-control bg-white/[0.05] px-3 py-2.5 text-[14px] text-earth-muted" role="status" data-testid="today-readonly">
+            {t('today.readOnly')}
+          </p>
+        ) : (
+          <Button size="lg" icon="play" className="mt-5 w-full" onClick={() => void start()} data-testid="today-start">
+            {t('today.start')}
+          </Button>
+        )}
+      </HeroShell>
+    );
+  }
+
+  // ------------------------------------------------------------- coach item
+  function renderCoachItem() {
+    if (!coachItem) return null;
+    const avatar = <Avatar name={coach.name} photoUrl={coach.photoUrl} size="md" />;
+    if (coachItem.kind === 'checkin' && checkIn) {
+      return (
+        <CoachItem testId="home-checkin" onClick={() => navigate(`/check-in/${checkIn.id}`)} leading={<IconTile icon="calendar" tone="warn" size={44} />} title={t('today.coachCheckinTitle')} body={t('today.coachCheckinBody')} cta={t('today.coachCheckinCta')} />
+      );
+    }
+    if (coachItem.kind === 'message') {
+      return <CoachItem testId="today-coach-message" onClick={() => navigate('/messages')} leading={avatar} title={t('today.coachMessageTitle', { name: coach.name || t('coachInfo.yourCoach') })} body={coachItem.body} cta={t('today.reply')} />;
+    }
+    if (coachItem.kind === 'plan') {
+      return <CoachItem testId="today-coach-plan" onClick={() => navigate('/workout')} leading={avatar} title={t('today.coachPlanTitle')} body={t('today.coachPlanBody')} cta={t('today.viewPlan')} />;
+    }
+    return <CoachItem testId="today-coach-note" onClick={() => navigate('/coach-notes')} leading={avatar} title={t('today.coachNoteTitle', { name: coach.name || t('coachInfo.yourCoach') })} body={coachItem.body} cta={t('today.open')} />;
+  }
+}
+
+function HeroShell({ state, testId, children }: { state: string; testId?: string; children: React.ReactNode }) {
+  return (
+    <section
+      className="relative overflow-hidden rounded-[20px] border border-white/[0.1] bg-gradient-surface-hi p-5 after:pointer-events-none after:absolute after:inset-0 after:bg-gradient-halo after:content-[''] md:p-6"
+      data-testid="today-hero"
+      data-state={state}
+    >
+      <div className="relative z-[1]" data-testid={testId}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function CoachItem({ testId, onClick, leading, title, body, cta }: { testId: string; onClick: () => void; leading: React.ReactNode; title: string; body?: string; cta: string }) {
+  return (
+    <button type="button" data-testid={testId} onClick={onClick} className="flex w-full items-center gap-3 rounded-ui-surface border border-white/[0.08] bg-surface-card p-4 text-start transition-colors hover:bg-white/[0.03]">
+      {leading}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold leading-snug">{title}</span>
+        {body ? <span className="mt-0.5 line-clamp-2 block text-[14px] leading-snug text-earth-muted">{body}</span> : null}
+      </span>
+      <span className="shrink-0 text-[14px] font-semibold text-brand-hover">{cta}</span>
+    </button>
+  );
+}
+
+function DoneTick() {
+  const { t } = useTranslation();
+  return (
+    <span className="grid h-6 w-6 place-items-center rounded-full bg-success text-[#06210f]" role="img" aria-label={t('common.done')}>
+      <Icon name="check" size={14} />
+    </span>
   );
 }

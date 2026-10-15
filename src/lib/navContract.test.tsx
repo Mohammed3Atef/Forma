@@ -21,7 +21,12 @@ describe('navigation contract (B1.10)', () => {
     expect(coach('/coach')).toBe('/coach');
     const client = (p: string) => semanticParent(p, 'client');
     expect(client('/workout/routine/d1')).toBe('/workout');
-    expect(client('/workout/exercise/e1')).toBe('/workout/library');
+    expect(client('/workout/exercise/e1')).toBe('/workout'); // B2: the library page is retired
+    expect(client('/cardio')).toBe('/workout');
+    expect(client('/history')).toBe('/workout');
+    expect(client('/check-ins')).toBe('/messages');
+    expect(client('/coach-notes')).toBe('/messages');
+    expect(client('/assessment')).toBe('/check-ins'); // B2.6: My assessment lives under Coach › Check-ins
     expect(client('/progress/measurements')).toBe('/progress');
     expect(client('/check-in/2026-10-05')).toBe('/check-ins');
     expect(client('/settings/subscription')).toBe('/settings');

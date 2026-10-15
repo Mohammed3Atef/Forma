@@ -1,41 +1,34 @@
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { TopBar } from '@/components/TopBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MessageThread } from '@/components/MessageThread';
+import { CoachNav } from '@/components/client/CoachNav';
 import { useSession } from '@/services/auth/sessionStore';
-import { fetchMyCoach } from '@/services/platform/clientCoachApi';
-import { useBack } from '@/hooks/useBack';
+import { useMyCoach } from '@/hooks/useMyCoach';
 import { useFillToBottomNav } from '@/hooks/useFillToBottomNav';
 
-/** Client ↔ coach chat thread. */
+/*
+ * COACH › CHAT (B2.6) — the Coach tab's root. The shell header shows who the
+ * coach is (avatar + name); this screen is the section switcher and the thread.
+ * The thread engine (outbox, retries, receipts, voice, attachments) is the
+ * B0/B1 `MessageThread`, unchanged. The column ends exactly at the tab bar
+ * (phones / tablets) or near the window edge (≥ 1024 px, side rail).
+ */
 export function Messages() {
   const { t } = useTranslation();
-  const goBack = useBack('/');
   const uid = useSession((s) => s.uid) ?? '';
-  const coachId = useSession((s) => s.account?.assignedCoachId);
-  const coach = useQuery({ queryKey: ['myCoach', coachId], queryFn: () => fetchMyCoach(coachId!), enabled: !!coachId });
-  const fill = useFillToBottomNav();
+  const { coachId, name, photoUrl } = useMyCoach();
+  const fill = useFillToBottomNav('1rem', 1024);
 
   return (
-    <div ref={fill.ref} className="anim-rise -mb-28 flex flex-col" style={{ height: fill.height }} data-testid="client-messages">
-      {/* Elevated header band — a distinct warm-charcoal surface from the sunken
-          chat canvas below, instead of blending into the page background. */}
-      <div className="-mx-5 border-b border-line bg-surface-raised px-5">
-        <TopBar
-          title={coach.data?.displayName || t('coachInfo.yourCoach')}
-          avatar={{ name: coach.data?.displayName || t('coachInfo.yourCoach'), photoUrl: coach.data?.photoUrl }}
-          onBack={goBack}
-          dense
-        />
-      </div>
+    <div ref={fill.ref} className="mx-auto -mb-[calc(var(--bottomnav-h)+2.5rem)] flex max-w-3xl flex-col" style={{ height: fill.height }} data-testid="client-messages">
+      <CoachNav />
       {!coachId ? (
-        <div className="px-5" data-testid="messages-no-coach">
+        <div className="pt-6" data-testid="messages-no-coach">
           <EmptyState icon="chat" title={t('clientCoach.noCoachTitle')} message={t('clientCoach.noCoachMessage')} />
         </div>
       ) : (
-        <div className="min-h-0 flex-1">
-          <MessageThread clientId={uid} meId={uid} meRole="client" peer={{ name: coach.data?.displayName, photoUrl: coach.data?.photoUrl }} />
+        <div className="mt-3 min-h-0 flex-1">
+          <MessageThread clientId={uid} meId={uid} meRole="client" peer={{ name: name || undefined, photoUrl }} />
         </div>
       )}
     </div>

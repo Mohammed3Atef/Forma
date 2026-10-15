@@ -167,7 +167,9 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       setSavedTick(true);
       setTimeout(() => setSavedTick(false), 2000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
+      // A raw server message is not for the client (B2.7) — say what happened and that nothing is lost.
+      console.warn('[assessment] save progress failed:', e);
+      setError(t('assessment.saveProgressFailed'));
     } finally {
       setSavingDraft(false);
     }
@@ -259,7 +261,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       >
         {/* Top nav — logo + language switcher (no auth chrome on the wizard) */}
         <nav className="mb-3 flex shrink-0 items-center justify-between px-1">
-          <img src="/forma-logo.webp" alt={t('app.name')} className="h-7 w-auto rounded-[6px] object-contain" />
+          <img src="/brand/forma-wordmark.webp" alt={t('app.name')} className="h-[22px] w-auto" />
           <LanguageToggle />
         </nav>
 
@@ -272,6 +274,12 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
             <div className="prog">
               <span style={{ width: `${pct}%` }} />
             </div>
+            {/* First run only (B2.7): what this is for and how long it takes, before the first question. */}
+            {!initial && step === 0 && (
+              <p className="mt-3 text-[15px] leading-relaxed text-earth" data-testid="assessment-welcome">
+                {displayName.trim() ? t('assessment.welcome', { name: displayName.trim().split(' ')[0] }) : t('assessment.welcomeNoName')}
+              </p>
+            )}
             <h1 className="h2 mt-3">{t(`assessment.steps.${step}`)}</h1>
             <div className="mt-1 flex items-center justify-between gap-3">
               <p className="text-[13px] text-earth-muted">{t(`assessment.help.${step}`)}</p>

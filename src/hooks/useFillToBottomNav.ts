@@ -10,12 +10,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
  *
  * `desktopBottom` is the space to leave below the column at ≥ md, where the
  * coach/admin shell shows a sidebar instead of the bottom nav (`null` = the
- * bottom nav is always shown, as in the client shell).
+ * bottom nav is always shown). `minWidth` is where that switch happens: 768 px
+ * for coach/admin, 1024 px for the client's side rail (B2).
  */
-export function useFillToBottomNav(desktopBottom: string | null = null) {
+export function useFillToBottomNav(desktopBottom: string | null = null, minWidth = 768) {
   const ref = useRef<HTMLDivElement>(null);
   const [top, setTop] = useState<number | null>(null);
-  const [wide, setWide] = useState(() => desktopBottom != null && typeof window !== 'undefined' && !!window.matchMedia?.('(min-width: 768px)').matches);
+  const [wide, setWide] = useState(() => desktopBottom != null && typeof window !== 'undefined' && !!window.matchMedia?.(`(min-width: ${minWidth}px)`).matches);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -34,7 +35,7 @@ export function useFillToBottomNav(desktopBottom: string | null = null) {
       mo.observe(n, { childList: true, subtree: false });
     }
     for (const sib of Array.from(main?.children ?? [])) if (sib !== el) ro.observe(sib);
-    const mq = desktopBottom != null ? window.matchMedia?.('(min-width: 768px)') : undefined;
+    const mq = desktopBottom != null ? window.matchMedia?.(`(min-width: ${minWidth}px)`) : undefined;
     const onMq = () => {
       setWide(!!mq?.matches);
       measure();
@@ -47,7 +48,7 @@ export function useFillToBottomNav(desktopBottom: string | null = null) {
       mq?.removeEventListener?.('change', onMq);
       window.removeEventListener('resize', measure);
     };
-  }, [desktopBottom]);
+  }, [desktopBottom, minWidth]);
   const below = wide && desktopBottom != null ? desktopBottom : 'var(--bottomnav-h) - env(safe-area-inset-bottom, 0px)';
   const height = top == null ? 'calc(100dvh - 8.5rem)' : `calc(100dvh - ${top}px - ${below})`;
   return { ref, height };

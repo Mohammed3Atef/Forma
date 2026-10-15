@@ -134,6 +134,12 @@ export async function openAccountScope(uid: string): Promise<{ migrated: boolean
   return { migrated };
 }
 
+/** Drops the cached store handles for `uid`'s database (before that database is deleted, B2.7). */
+export function forgetAccountInstances(uid: string): void {
+  const prefix = `${userDbName(uid)}/`;
+  for (const key of [...instances.keys()]) if (key.startsWith(prefix)) instances.delete(key);
+}
+
 /** Points the data layer at an empty no-account database (sign-out). Nothing is deleted. */
 export function closeAccountScope(): void {
   dbName = NO_ACCOUNT_DB;

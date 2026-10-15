@@ -47,6 +47,7 @@ html[dir='rtl'] .eyebrow,
 html[dir='rtl'] .ui-label,
 html[dir='rtl'] .btn,
 html[dir='rtl'] .seg button,
+html[dir='rtl'] .seg > a,
 html[dir='rtl'] .stat-label,
 html[dir='rtl'] .pill,
 html[dir='rtl'] .label,
@@ -218,6 +219,7 @@ input[type='number'] {
   .btn-sm::before,
   .chip::before,
   .seg button::before,
+  .seg > a::before,
   .sec-link::before,
   .icon-btn::before {
     content: '';
@@ -342,11 +344,20 @@ input[type='number'] {
   .seg {
     @apply flex gap-1 rounded-full border border-line bg-surface-card p-1;
   }
-  .seg button {
+  .seg button,
+  .seg > a {
     @apply relative h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
   }
-  .seg button.on {
+  .seg button.on,
+  .seg > a.on {
     @apply bg-gradient-brand text-brand-ink;
+  }
+  /* B2 client: a segmented control switches a view — it is not the screen's
+     primary action, so the selected segment is a neutral fill and the orange
+     gradient stays with the one action per view (B2 blueprint §5). */
+  .seg.seg-quiet button.on,
+  .seg.seg-quiet > a.on {
+    @apply bg-none bg-white/[0.13] text-earth;
   }
 
   /* ---- Progress bar ---- */

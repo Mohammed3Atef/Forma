@@ -2,16 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMeasurements } from '@/stores/measurementStore';
 import { useDay } from '@/stores/dayStore';
+import { DaySwitcher } from '@/components/client/DaySwitcher';
 import { useSettings } from '@/stores/settingsStore';
-import { Icon } from '@/components/Icon';
-import { TopBar } from '@/components/TopBar';
 import { MeasurementForm, MEASUREMENT_KEYS as KEYS } from '@/components/MeasurementForm';
 import { EntityNotes } from '@/components/EntityNotes';
-import { useBack } from '@/hooks/useBack';
-import { shortDate } from '@/lib/utils';
+import { ListGroup, Section } from '@/components/ui/ListRow';
+import { formatDate, formatNumber } from '@/lib/format';
 
+/*
+ * PROGRESS › BODY › MEASUREMENTS (B2.5). The entry form for the day the
+ * switcher shows (today unless it says otherwise, CL-04), a two-date
+ * comparison, and the history. The shell header carries Back + title.
+ */
 export function Measurements() {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const logs = useMeasurements((s) => s.logs);
   const load = useMeasurements((s) => s.load);
   const loaded = useMeasurements((s) => s.loaded);
@@ -45,38 +50,42 @@ export function Measurements() {
   const a = forDate(dateA);
   const b = forDate(dateB);
 
-  const goBack = useBack('/progress?tab=measure');
+  const dateSelect = (value: string, onChange: (v: string) => void, label: string) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className="input min-h-ui-hit flex-1 py-1 text-[14px]">
+      {dates.map((d) => (
+        <option key={d} value={d}>
+          {formatDate(d, lang, 'medium')}
+        </option>
+      ))}
+    </select>
+  );
 
   return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t('measure.title')} eyebrow={t('gt.body')} onBack={goBack} />
-
-      {/* Entry form for the selected day */}
-      <MeasurementForm
-        date={selected}
-        existing={existing}
-        onSave={(d, v, clear) => save(d, v, clear)}
-        extras={(k) => <EntityNotes screen="measurements" date={selected} entityType="measurement" entityId={k} />}
-      />
+    <div className="space-y-7" data-testid="client-measurements">
+      <div>
+        <DaySwitcher />
+        {/* Entry form for the selected day */}
+        <MeasurementForm
+          date={selected}
+          existing={existing}
+          onSave={(d, v, clear) => save(d, v, clear)}
+          extras={(k) => <EntityNotes screen="measurements" date={selected} entityType="measurement" entityId={k} />}
+        />
+      </div>
 
       {/* Comparison */}
       {dates.length >= 2 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t('measure.compare')}</h2>
+        <Section title={t('measure.compare')} testId="measure-compare">
           <div className="mb-3 flex gap-2">
-            <select value={dateA} onChange={(e) => setDateA(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
-              {dates.map((d) => <option key={d} value={d}>{shortDate(d, i18n.language)}</option>)}
-            </select>
-            <select value={dateB} onChange={(e) => setDateB(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
-              {dates.map((d) => <option key={d} value={d}>{shortDate(d, i18n.language)}</option>)}
-            </select>
+            {dateSelect(dateA, setDateA, t('progress.compareFrom'))}
+            {dateSelect(dateB, setDateB, t('progress.compareTo'))}
           </div>
-          <div className="overflow-hidden rounded-xl ring-1 ring-white/10" dir="ltr">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 bg-surface-raised px-3 py-2 text-[10px] uppercase text-earth-muted">
+          <ListGroup>
+            <div className="grid grid-cols-[1fr_3.5rem_3.5rem_3.5rem] gap-x-2 px-4 py-2 text-[12px] font-medium text-earth-muted">
               <span>{t('measure.part')}</span>
-              <span className="w-12 text-right">A</span>
-              <span className="w-12 text-right">B</span>
-              <span className="w-14 text-right">Δ</span>
+              <span className="text-end">{formatDate(dateA, lang, 'short')}</span>
+              <span className="text-end">{formatDate(dateB, lang, 'short')}</span>
+              <span className="text-end">±</span>
             </div>
             {KEYS.map((k) => {
               const va = a?.values[k];
@@ -84,41 +93,41 @@ export function Measurements() {
               if (va == null && vb == null) return null;
               const delta = va != null && vb != null ? Math.round((vb - va) * 10) / 10 : null;
               return (
-                <div key={k} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 border-t border-white/5 px-3 py-2 text-sm">
-                  <span className="text-earth-muted">{labelOf(k)}</span>
-                  <span className="w-12 text-right tabular-nums">{va ?? '–'}</span>
-                  <span className="w-12 text-right tabular-nums">{vb ?? '–'}</span>
-                  <span className={`w-14 text-right font-semibold tabular-nums ${delta == null ? 'text-earth-subtle' : delta > 0 ? 'text-brand-light' : delta < 0 ? 'text-warn' : 'text-earth-muted'}`}>
-                    {delta == null ? '–' : `${delta > 0 ? '+' : ''}${delta}`}
+                <div key={k} className="grid grid-cols-[1fr_3.5rem_3.5rem_3.5rem] items-center gap-x-2 px-4 py-2.5 text-[14px]">
+                  <span className="truncate">{labelOf(k)}</span>
+                  <span className="text-end tabular-nums text-earth-muted">{va != null ? formatNumber(va, lang) : '–'}</span>
+                  <span className="text-end tabular-nums">{vb != null ? formatNumber(vb, lang) : '–'}</span>
+                  <span className="text-end font-semibold tabular-nums text-earth-muted">
+                    <span dir="ltr">{delta == null || delta === 0 ? '–' : `${delta > 0 ? '+' : '−'}${formatNumber(Math.abs(delta), lang)}`}</span>
                   </span>
                 </div>
               );
             })}
-          </div>
-        </div>
+          </ListGroup>
+        </Section>
       )}
 
       {/* History */}
-      {logs.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t('cardio.history')}</h2>
-          <ul className="space-y-1 text-sm">
-            {logs.slice().reverse().map((l) => (
-              <li key={l.id} className="flex items-start justify-between gap-2">
-                <span>{shortDate(l.date, i18n.language)}</span>
-                <span className="text-end text-earth-muted" dir="ltr">
-                  {Object.keys(l.values).map((k) => `${labelOf(k)} ${l.values[k]}`).join(' · ') || '—'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {logs.length === 0 && (
-        <p className="flex items-center gap-2 text-sm text-earth-subtle">
-          <Icon name="scale" size={16} /> {t('measure.empty')}
-        </p>
+      {logs.length > 0 ? (
+        <Section title={t('cardio.history')} testId="measure-history">
+          <ListGroup>
+            {logs
+              .slice()
+              .reverse()
+              .map((l) => (
+                <div key={l.id} className="px-4 py-3">
+                  <p className="text-[15px] font-semibold">{formatDate(l.date, lang, 'weekdayShort')}</p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-earth-muted">
+                    {Object.keys(l.values)
+                      .map((k) => `${labelOf(k)} ${formatNumber(l.values[k], lang)}`)
+                      .join(' · ') || '—'}
+                  </p>
+                </div>
+              ))}
+          </ListGroup>
+        </Section>
+      ) : (
+        <p className="text-[14px] text-earth-muted">{t('measure.empty')}</p>
       )}
     </div>
   );

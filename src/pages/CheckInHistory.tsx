@@ -1,55 +1,72 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TopBar } from '@/components/TopBar';
-import { Icon } from '@/components/Icon';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Pill, type PillTone } from '@/components/ui/Pill';
-import { useBack } from '@/hooks/useBack';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { IconTile, ListGroup, ListRow, Section } from '@/components/ui/ListRow';
+import { CoachNav } from '@/components/client/CoachNav';
 import { useSession } from '@/services/auth/sessionStore';
 import { listCheckIns } from '@/services/platform/checkInApi';
-import { shortDate } from '@/lib/utils';
-import type { CheckInStatus } from '@/types';
+import { formatDate, formatNumber } from '@/lib/format';
+import type { WeeklyCheckIn as CheckIn, CheckInStatus } from '@/types';
 
-const TONE: Record<CheckInStatus, PillTone> = {
-  requested: 'warn',
-  submitted: 'brand',
-  reviewed: 'ok',
+const STATUS_CLASS: Record<CheckInStatus, string> = {
+  requested: 'bg-warn/15 text-warn',
+  submitted: 'bg-info/15 text-info',
+  reviewed: 'bg-success/15 text-success',
 };
 
-/** Client's weekly check-in history (newest first); tap to open the full check-in. */
+/*
+ * COACH › CHECK-INS (B2.6): what the coach asked for and what came back.
+ * A requested check-in is first and opens the full-screen wizard; submitted
+ * and reviewed ones open read-only (with the coach's feedback). The client's
+ * own assessment lives here too — it is the first thing the coach reviewed.
+ */
 export function CheckInHistory() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const goBack = useBack('/');
+  const lang = i18n.language;
   const uid = useSession((s) => s.uid) ?? '';
-  const enabled = !!uid;
-  const q = useQuery({ queryKey: ['checkInsHistory', uid], queryFn: () => listCheckIns(uid), enabled });
+  const q = useQuery({ queryKey: ['checkInsHistory', uid], queryFn: () => listCheckIns(uid), enabled: !!uid });
   const items = q.data ?? [];
+  const due = items.filter((c) => c.status === 'requested');
+  const past = items.filter((c) => c.status !== 'requested');
+
+  const row = (c: CheckIn) => (
+    <ListRow
+      key={c.id}
+      to={`/check-in/${c.id}`}
+      testId="checkin-history-row"
+      leading={<IconTile icon="calendar" tone={c.status === 'requested' ? 'brand' : 'neutral'} />}
+      title={`${formatDate(c.weekStart, lang, 'short')} – ${formatDate(c.weekEnd, lang, 'short')}`}
+      meta={c.currentWeight != null ? `${formatNumber(c.currentWeight, lang)} ${t('common.kg')}` : c.status === 'requested' ? t('coachTab.checkinDueMeta') : undefined}
+      trailing={<span className={`rounded-ui-pill px-2.5 py-1 text-[12px] font-semibold ${STATUS_CLASS[c.status]}`}>{t(`checkin.status.${c.status}`)}</span>}
+      chevron
+    />
+  );
 
   return (
-    <div className="anim-rise space-y-3">
-      <TopBar title={t('checkin.history')} eyebrow={t('app.name')} onBack={goBack} />
+    <div className="space-y-7" data-testid="client-checkins">
+      <CoachNav />
 
       {q.isLoading ? (
         <LoadingState variant="list" count={3} />
-      ) : items.length === 0 ? (
-        <EmptyState icon="calendar" title={t('checkin.noCheckins')} />
+      ) : q.isError ? (
+        <ErrorState message={t('coachTab.checkinsFailed')} onRetry={() => void q.refetch()} testId="checkins-error" />
       ) : (
-        <div className="card divide-y divide-line-soft p-0">
-          {items.map((c) => (
-            <button key={c.id} type="button" data-testid="checkin-history-row" onClick={() => navigate(`/check-in/${c.id}`)} className="flex w-full items-center gap-3 px-4 py-3 text-start">
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">{shortDate(c.weekStart, i18n.language)} – {shortDate(c.weekEnd, i18n.language)}</span>
-                {c.currentWeight != null && <span className="block font-mono text-[12px] text-earth-subtle">{c.currentWeight} {t('common.kg')}</span>}
-              </span>
-              <Pill tone={TONE[c.status]}>{t(`checkin.status.${c.status}`)}</Pill>
-              <Icon name="chevron" size={16} className="text-earth-subtle" />
-            </button>
-          ))}
-        </div>
+        <>
+          {due.length > 0 && (
+            <Section title={t('coachTab.checkinDue')}>
+              <ListGroup>{due.map(row)}</ListGroup>
+            </Section>
+          )}
+          <Section title={t('coachTab.checkinPast')}>
+            {past.length === 0 ? <p className="text-[15px] text-earth-muted">{t('coachTab.noCheckins')}</p> : <ListGroup>{past.map(row)}</ListGroup>}
+          </Section>
+        </>
       )}
+
+      <ListGroup>
+        <ListRow to="/assessment" leading={<IconTile icon="clip" tone="neutral" />} title={t('nav.assessment')} meta={t('coachTab.assessmentMeta')} chevron testId="open-assessment" />
+      </ListGroup>
     </div>
   );
 }

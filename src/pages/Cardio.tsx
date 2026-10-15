@@ -6,33 +6,46 @@ import { useCardio } from '@/stores/cardioStore';
 import { useSettings } from '@/stores/settingsStore';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useDay } from '@/stores/dayStore';
+import { DaySwitcher } from '@/components/client/DaySwitcher';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
-import { TopBar } from '@/components/TopBar';
 import { EntityNotes } from '@/components/EntityNotes';
 import { confirmDelete } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { SubmitButton } from '@/components/ui/SubmitButton';
+import { Button } from '@/components/ui/Button';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { NumericField } from '@/components/ui/NumericField';
+import { IconTile, ListGroup, ListRow, Section } from '@/components/ui/ListRow';
 import { cardioCalories, cardioDistanceKm } from '@/lib/calc';
-import { formatDuration, parseDecimal, shortDate } from '@/lib/utils';
+import { parseDecimal } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyCardioPlan } from '@/services/platform/clientCoachApi';
-import { colors } from '@/theme/colors';
-import { formatNumber } from '@/lib/format';
+import { formatDate, formatDuration, formatNumber } from '@/lib/format';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
 /** Types where a constant speed/incline makes distance & calories computable. */
 const SPEED_TYPES: CardioType[] = ['walking', 'treadmill', 'running'];
 
+/*
+ * TRAIN › CARDIO (B2.3, doc 16 open decision #5 → Train): the coach's cardio
+ * plan, a live timer (speed/incline for computed distance & calories), a log
+ * for what was done, and the history. Logs go to the day shown above (the
+ * local day switcher) — today unless the client picked another day.
+ * A log needs something real in it (no "Saved" for an empty entry, CL-30);
+ * delete lives in each row's menu (VS-08).
+ */
 export function Cardio() {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const cardioLogs = useCardio((s) => s.cardioLogs);
   const addCardio = useCardio((s) => s.addCardio);
   const removeCardio = useCardio((s) => s.removeCardio);
   const stepsFor = useCardio((s) => s.stepsFor);
   const cardioSecFor = useCardio((s) => s.cardioSecFor);
   const targets = useSettings((s) => s.settings?.targets);
+  const { readOnly } = useSubscription();
 
   // Live timer start lives in the store so navigating away doesn't lose it.
   const running = useCardio((s) => s.liveStart);
@@ -41,64 +54,63 @@ export function Cardio() {
   const stopLive = useCardio((s) => s.stopLive);
   const latestWeight = useCardio((s) => s.latestWeight);
   const profileWeight = useSettings((s) => s.profile?.weightKg);
-  const [type, setType] = useState<CardioType>('treadmill');
+  const [type, setType] = useState<CardioType>('walking');
   const [logOpen, setLogOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [setup, setSetup] = useState({ speed: '5', incline: '0' });
-  const [form, setForm] = useState({ minutes: '', steps: '', distance: '', calories: '' });
+  const [form, setForm] = useState<{ minutes: number | null; steps: number | null; distance: number | null; calories: number | null }>({ minutes: null, steps: null, distance: null, calories: null });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const elapsed = useElapsed(running);
   useWakeLock(running != null);
-
-  // Bodyweight for the calorie estimate: latest logged > profile > 70 kg fallback.
   const weightForCalc = latestWeight() || profileWeight || 70;
 
-  // Speed-based types ask for speed/incline first so distance & calories can be
-  // computed automatically; other types just start the timer.
   const onStart = () => {
+    if (readOnly) return;
     if (SPEED_TYPES.includes(type)) setSetupOpen(true);
     else startLive();
   };
   const startWithParams = () => {
-    // parseDecimal accepts "5.5", "5,5" and Arabic-Indic digits alike.
     const speedKmh = parseDecimal(setup.speed);
     const inclinePct = parseDecimal(setup.incline);
     setSetupOpen(false);
     startLive(speedKmh > 0 ? { speedKmh, inclinePct } : undefined);
   };
-
-  // Stopping the live timer hands the elapsed minutes — plus the computed
-  // distance/calories when speed was set — to the editable log popup.
+  // Stopping hands the elapsed minutes (+ computed distance/calories) to the editable log.
   const stopAndSave = () => {
     if (running == null) return;
     const secs = Math.max(60, Math.round((Date.now() - running) / 1000));
-    const mins = Math.max(1, Math.round(secs / 60));
     const p = liveParams;
     stopLive();
     setForm({
-      minutes: String(mins),
-      steps: '',
-      distance: p ? String(cardioDistanceKm(p.speedKmh, secs)) : '',
-      calories: p ? String(cardioCalories(p.speedKmh, p.inclinePct, weightForCalc, secs)) : '',
+      minutes: Math.max(1, Math.round(secs / 60)),
+      steps: null,
+      distance: p ? cardioDistanceKm(p.speedKmh, secs) : null,
+      calories: p ? cardioCalories(p.speedKmh, p.inclinePct, weightForCalc, secs) : null,
     });
+    setFormError(null);
     setLogOpen(true);
   };
 
-  // One entry capturing what you actually did, e.g. "10k steps in 40 min".
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const saveManual = async () => {
+    // Something real must be logged — never a 0-minute entry announced as "Saved".
+    if (!(form.minutes && form.minutes > 0) && !(form.steps && form.steps > 0) && !(form.distance && form.distance > 0)) {
+      setFormError(t('cardio.needSomething'));
+      return;
+    }
     setSaving(true);
     setSaveError(false);
     try {
       await addCardio({
         type,
-        durationSec: parseDecimal(form.minutes) * 60,
-        steps: form.steps ? parseDecimal(form.steps) || null : null,
-        distanceKm: form.distance ? parseDecimal(form.distance) || null : null,
-        caloriesBurned: form.calories ? parseDecimal(form.calories) || null : null,
+        durationSec: (form.minutes ?? 0) * 60,
+        steps: form.steps && form.steps > 0 ? form.steps : null,
+        distanceKm: form.distance && form.distance > 0 ? form.distance : null,
+        caloriesBurned: form.calories && form.calories > 0 ? form.calories : null,
       });
-      setForm({ minutes: '', steps: '', distance: '', calories: '' });
+      setForm({ minutes: null, steps: null, distance: null, calories: null });
       setLogOpen(false);
       showToast({ title: t('common.saved'), variant: 'success' });
     } catch {
@@ -109,231 +121,207 @@ export function Cardio() {
   };
 
   const uid = useSession((s) => s.uid);
-  const cardioPlanEnabled = !!uid;
-  const cardioPlan = useQuery({
-    queryKey: ['myCardioPlan', uid],
-    queryFn: () => fetchMyCardioPlan(uid!),
-    enabled: cardioPlanEnabled,
-  });
+  const cardioPlan = useQuery({ queryKey: ['myCardioPlan', uid], queryFn: () => fetchMyCardioPlan(uid!), enabled: !!uid });
 
   const selected = useDay((s) => s.selected);
-  const todaySteps = stepsFor(selected);
-  const todayCardioMin = Math.round(cardioSecFor(selected) / 60);
+  const daySteps = stepsFor(selected);
+  const dayMin = Math.round(cardioSecFor(selected) / 60);
   const stepsTarget = targets?.steps ?? 0;
   const cardioTarget = targets?.cardioMinutes ?? 0;
-  const hasGoal = stepsTarget > 0 || cardioTarget > 0;
-  const activityMet =
-    hasGoal &&
-    ((stepsTarget > 0 && todaySteps >= stepsTarget) || (cardioTarget > 0 && todayCardioMin >= cardioTarget));
-  // Subtitle reflects the COACH-ASSIGNED targets, not a hardcoded goal.
-  const goalHint = hasGoal
-    ? [
-        stepsTarget > 0 ? t('cardio.goalSteps', { n: formatNumber(stepsTarget, i18n.language, { maxFractionDigits: 0 }) }) : null,
-        cardioTarget > 0 ? t('cardio.goalCardio', { n: cardioTarget }) : null,
-      ]
-        .filter(Boolean)
-        .join(` ${t('cardio.goalJoin')} `)
-    : t('cardio.goalUnset');
+
+  const typeLabel = (ty: string) => t(`cardio.types.${ty}`, { defaultValue: t('cardio.types.other') });
+  const typePicker = (
+    <div role="radiogroup" aria-label={t('cardio.type')} className="grid grid-cols-3 gap-2">
+      {TYPES.map((ty) => (
+        <button
+          key={ty}
+          type="button"
+          role="radio"
+          aria-checked={type === ty}
+          onClick={() => setType(ty)}
+          className={`min-h-ui-hit rounded-ui-control border px-2 text-[14px] font-medium transition-colors ${
+            type === ty ? 'border-brand/60 bg-brand/[0.13] text-earth' : 'border-white/[0.1] text-earth-muted hover:text-earth'
+          }`}
+        >
+          {typeLabel(ty)}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="anim-rise space-y-4">
-      <TopBar title={t('cardio.title')} eyebrow={t('nav.cardio')} />
-
-      {/* Combined daily activity goal — done when EITHER target is met. */}
-      <div className="card-featured">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-info/15 text-info">
-              <Icon name="activity" size={19} />
-            </span>
-            <div>
-              <p className="eyebrow mb-0.5">{t('cardio.goal')}</p>
-              <p className="text-[13px] text-earth-muted">{goalHint}</p>
-            </div>
-          </div>
-          {activityMet && (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-success bg-success text-[#06210f]">
-              <Icon name="check" size={16} />
-            </span>
+    <div className="space-y-7" data-testid="client-cardio">
+      <DaySwitcher className="!mb-0" />
+      {/* The day's activity vs the coach's targets */}
+      {(stepsTarget > 0 || cardioTarget > 0) && (
+        <section className="grid grid-cols-2 gap-3" data-testid="cardio-goals">
+          {stepsTarget > 0 && (
+            <Goal label={t('cardio.steps')} value={formatNumber(daySteps, lang)} target={formatNumber(stepsTarget, lang)} pct={daySteps / stepsTarget} />
           )}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-xl text-earth">
-              {formatNumber(todaySteps, i18n.language, { maxFractionDigits: 0 })}
-              {stepsTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {formatNumber(stepsTarget, i18n.language, { maxFractionDigits: 0 })}</span>}
-            </p>
-            <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.steps')}</p>
-            <div className="prog">
-              <span style={{ width: `${stepsTarget > 0 ? Math.min(100, (todaySteps / stepsTarget) * 100) : 0}%`, background: colors.info }} />
-            </div>
-          </div>
-          <div>
-            <p className="text-xl text-earth">
-              {todayCardioMin}
-              {cardioTarget > 0 && <span className="text-sm font-normal text-earth-muted"> / {cardioTarget} {t('common.min')}</span>}
-            </p>
-            <p className="mb-1.5 text-xs text-earth-muted">{t('cardio.minutes')}</p>
-            <div className="prog">
-              <span style={{ width: `${cardioTarget > 0 ? Math.min(100, (todayCardioMin / cardioTarget) * 100) : 0}%` }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Coach-prescribed cardio plan (read-only). */}
-      {cardioPlan.data && cardioPlan.data.sessions.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t('clientCoach.cardioPlan')}</h2>
-          <ul className="divide-y divide-line-soft">
-            {cardioPlan.data.sessions.map((s) => (
-              <li key={s.id} className="py-2.5 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{t(`cardio.types.${s.type}`)} · {s.durationMin} {t('common.min')}</span>
-                  {s.frequency && <span className="font-mono text-[11px] text-brand">{s.frequency}</span>}
-                </div>
-                {s.notes && <p className="mt-0.5 text-[13px] text-earth-muted">{s.notes}</p>}
-                <EntityNotes screen="cardio" entityType="cardio_session" entityId={s.id} />
-              </li>
-            ))}
-          </ul>
-        </div>
+          {cardioTarget > 0 && (
+            <Goal label={t('cardio.minutes')} value={formatNumber(dayMin, lang)} target={`${formatNumber(cardioTarget, lang)} ${t('common.min')}`} pct={dayMin / cardioTarget} />
+          )}
+        </section>
       )}
 
-      {/* Live cardio timer */}
-      <div className="card text-center">
-        <div className="mb-3 flex flex-wrap justify-center gap-1.5">
-          {TYPES.map((ty) => (
-            <button
-              key={ty}
-              type="button"
-              onClick={() => setType(ty)}
-              className={`chip ${type === ty ? 'chip-on' : ''}`}
-            >
-              {t(`cardio.types.${ty}`)}
-            </button>
-          ))}
-        </div>
-        <p className="font-mono text-4xl font-bold tabular-nums text-brand-light">{formatDuration(elapsed)}</p>
+      {/* Live timer */}
+      <section className="relative overflow-hidden rounded-[20px] border border-white/[0.1] bg-gradient-surface-hi p-5" data-testid="cardio-live">
+        {running == null && typePicker}
+        <p className="mt-5 text-center font-mono text-[44px] font-semibold leading-none tabular-nums" dir="ltr">
+          {formatDuration(elapsed)}
+        </p>
         {running != null && liveParams && (
-          <p className="mt-1.5 font-mono text-[12.5px] text-earth-muted" dir="ltr">
-            {cardioDistanceKm(liveParams.speedKmh, elapsed).toFixed(2)} km · ~
-            {cardioCalories(liveParams.speedKmh, liveParams.inclinePct, weightForCalc, elapsed)} {t('cardio.kcal')}
+          <p className="mt-2 text-center text-[14px] text-earth-muted" dir="ltr">
+            {formatNumber(cardioDistanceKm(liveParams.speedKmh, elapsed), lang, { maxFractionDigits: 2 })} km · ~{formatNumber(cardioCalories(liveParams.speedKmh, liveParams.inclinePct, weightForCalc, elapsed), lang)} {t('cardio.kcal')}
           </p>
         )}
-        <div className="mt-3 flex gap-2">
-          {running == null ? (
-            <button type="button" onClick={onStart} className="btn-primary btn-lg flex-1">
-              <Icon name="play" size={20} /> {t('common.start')}
-            </button>
-          ) : (
-            <button type="button" onClick={() => void stopAndSave()} className="btn-danger btn-lg flex-1">
-              <Icon name="check" size={20} /> {t('common.finish')}
-            </button>
-          )}
-        </div>
-      </div>
+        {readOnly ? (
+          <p className="mt-5 rounded-ui-control bg-white/[0.05] px-3 py-2.5 text-[14px] text-earth-muted" role="status">
+            {t('today.readOnly')}
+          </p>
+        ) : running == null ? (
+          <Button size="lg" icon="play" className="mt-5 w-full" onClick={onStart}>
+            {t('common.start')}
+          </Button>
+        ) : (
+          <Button size="lg" icon="check" className="mt-5 w-full" onClick={stopAndSave}>
+            {t('common.finish')}
+          </Button>
+        )}
+      </section>
 
-      <button type="button" onClick={() => setLogOpen(true)} className="btn-ghost btn-lg w-full">
-        <Icon name="plus" size={18} /> {t('cardio.logActivity')}
-      </button>
+      <Button
+        variant="secondary"
+        size="lg"
+        icon="plus"
+        className="w-full"
+        disabled={readOnly}
+        onClick={() => {
+          setFormError(null);
+          setLogOpen(true);
+        }}
+      >
+        {t('cardio.logActivity')}
+      </Button>
 
-      {/* History */}
-      <div>
-        <h2 className="mb-2 font-bold">{t('cardio.history')}</h2>
-        <ul className="space-y-2">
-          {cardioLogs.slice(0, 30).map((c) => (
-            <li key={c.id} className="card flex items-center gap-3 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-info/15 text-info">
-                <Icon name="activity" size={16} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{t(`cardio.types.${c.type}`)}</p>
-                <p className="text-xs text-earth-muted">{shortDate(c.date, i18n.language)}</p>
+      {cardioPlan.data && cardioPlan.data.sessions.length > 0 && (
+        <Section title={t('clientCoach.cardioPlan')}>
+          <ListGroup>
+            {cardioPlan.data.sessions.map((s) => (
+              <div key={s.id}>
+                <ListRow
+                  leading={<IconTile icon="activity" tone="info" />}
+                  title={typeLabel(s.type)}
+                  meta={[`${formatNumber(s.durationMin, lang)} ${t('common.min')}`, s.frequency].filter(Boolean).join(' · ')}
+                />
+                <div className="px-4 pb-3 ps-[4.25rem] empty:hidden">
+                  {s.notes ? <p className="border-s-2 border-brand/50 ps-2.5 text-[14px] leading-snug text-earth">{s.notes}</p> : null}
+                  <EntityNotes screen="cardio" entityType="cardio_session" entityId={s.id} />
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3 text-sm text-earth-muted">
-                {c.durationSec > 0 && <span>{Math.round(c.durationSec / 60)}{t('common.min')}</span>}
-                {c.steps != null && <span>{formatNumber(c.steps, i18n.language, { maxFractionDigits: 0 })} {t('cardio.steps')}</span>}
-                {c.distanceKm != null && <span>{c.distanceKm} km</span>}
-                <button type="button" onClick={async () => { if (await confirmDelete()) void removeCardio(c.id); }} className="text-danger" aria-label={t('common.delete')}>
-                  <Icon name="close" size={16} />
-                </button>
-              </div>
-            </li>
-          ))}
-          {cardioLogs.length === 0 && <li className="py-2 text-sm text-earth-subtle">{t('cardio.noLogsYet')}</li>}
-        </ul>
-      </div>
+            ))}
+          </ListGroup>
+        </Section>
+      )}
+
+      <Section title={t('cardio.history')} testId="cardio-history">
+        {cardioLogs.length === 0 ? (
+          <p className="text-[15px] text-earth-muted">{t('cardio.noLogsYet')}</p>
+        ) : (
+          <ListGroup>
+            {cardioLogs.slice(0, 30).map((c) => {
+              const bits = [
+                c.durationSec > 0 ? `${formatNumber(Math.round(c.durationSec / 60), lang)} ${t('common.min')}` : null,
+                c.steps ? `${formatNumber(c.steps, lang)} ${t('cardio.steps')}` : null,
+                c.distanceKm ? `${formatNumber(c.distanceKm, lang, { maxFractionDigits: 2 })} km` : null,
+              ].filter(Boolean);
+              return (
+                <div key={c.id} data-testid="cardio-entry">
+                  <ListRow
+                    leading={<IconTile icon="activity" tone="info" />}
+                    title={typeLabel(c.type)}
+                    meta={[formatDate(c.date, lang, 'weekdayShort'), ...bits].join(' · ')}
+                    trailing={
+                      <ActionMenu
+                        size="sm"
+                        label={t('cardio.entryOptions', { type: typeLabel(c.type) })}
+                        items={[{ key: 'delete', label: t('common.delete'), icon: 'trash', danger: true, onSelect: async () => { if (await confirmDelete()) void removeCardio(c.id); } }]}
+                      />
+                    }
+                  />
+                </div>
+              );
+            })}
+          </ListGroup>
+        )}
+      </Section>
 
       <Sheet open={logOpen} onClose={() => setLogOpen(false)} title={t('cardio.logActivity')}>
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            {TYPES.map((ty) => (
-              <button key={ty} type="button" onClick={() => setType(ty)} className={`chip ${type === ty ? 'chip-on' : ''}`}>
-                {t(`cardio.types.${ty}`)}
-              </button>
-            ))}
+        <div className="space-y-4">
+          {typePicker}
+          <div className="grid grid-cols-2 gap-3">
+            <NumericField id="cardio-steps" label={t('cardio.steps')} integer placeholder="10000" value={form.steps} onChange={(n) => setForm({ ...form, steps: n })} />
+            <NumericField id="cardio-minutes" label={`${t('cardio.duration')} (${t('common.min')})`} placeholder="40" value={form.minutes} onChange={(n) => setForm({ ...form, minutes: n })} />
+            <NumericField id="cardio-distance" label={`${t('cardio.distance')} (km)`} placeholder="0" value={form.distance} onChange={(n) => setForm({ ...form, distance: n })} />
+            <NumericField id="cardio-calories" label={t('cardio.calories')} integer placeholder="0" value={form.calories} onChange={(n) => setForm({ ...form, calories: n })} />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="label">{t('cardio.steps')}</label>
-              <input className="input" inputMode="decimal" placeholder="10000" value={form.steps} onChange={(e) => setForm({ ...form, steps: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">{t('cardio.duration')} ({t('common.min')})</label>
-              <input className="input" inputMode="decimal" placeholder="40" value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">{t('cardio.distance')} (km)</label>
-              <input className="input" inputMode="decimal" placeholder="0" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">{t('cardio.calories')}</label>
-              <input className="input" inputMode="decimal" placeholder="0" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} />
-            </div>
-          </div>
-          {saveError && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
-          <SubmitButton type="button" pending={saving} onClick={() => void saveManual()} size="lg" fullWidth>
+          {formError && (
+            <p role="alert" className="text-[14px] text-warn" data-testid="cardio-form-error">
+              {formError}
+            </p>
+          )}
+          {saveError && (
+            <p role="alert" className="text-[14px] text-danger">
+              {t('common.savedFailed')}
+            </p>
+          )}
+          <Button size="lg" pending={saving} onClick={() => void saveManual()} className="w-full">
             {t('common.save')}
-          </SubmitButton>
+          </Button>
         </div>
       </Sheet>
 
-      {/* Pre-start setup: speed + incline drive automatic distance/calories. */}
       <Sheet open={setupOpen} onClose={() => setSetupOpen(false)} title={t('cardio.setup')}>
-        <div className="space-y-3">
-          <p className="text-sm text-earth-muted">{t('cardio.setupHint')}</p>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-4">
+          <p className="text-[15px] text-earth-muted">{t('cardio.setupHint')}</p>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label" htmlFor="cardio-speed">{t('cardio.speed')}</label>
-              <input
-                id="cardio-speed"
-                className="input"
-                inputMode="decimal"
-                placeholder="5.0"
-                value={setup.speed}
-                onChange={(e) => setSetup({ ...setup, speed: e.target.value })}
-                onFocus={(e) => e.currentTarget.select()}
-              />
+              <label className="mb-1.5 block text-[14px] font-medium" htmlFor="cardio-speed">
+                {t('cardio.speed')}
+              </label>
+              <input id="cardio-speed" className="input" inputMode="decimal" dir="ltr" placeholder="5.0" value={setup.speed} onChange={(e) => setSetup({ ...setup, speed: e.target.value })} onFocus={(e) => e.currentTarget.select()} />
             </div>
             <div>
-              <label className="label" htmlFor="cardio-incline">{t('cardio.incline')}</label>
-              <input
-                id="cardio-incline"
-                className="input"
-                inputMode="decimal"
-                placeholder="0"
-                value={setup.incline}
-                onChange={(e) => setSetup({ ...setup, incline: e.target.value })}
-                onFocus={(e) => e.currentTarget.select()}
-              />
+              <label className="mb-1.5 block text-[14px] font-medium" htmlFor="cardio-incline">
+                {t('cardio.incline')}
+              </label>
+              <input id="cardio-incline" className="input" inputMode="decimal" dir="ltr" placeholder="0" value={setup.incline} onChange={(e) => setSetup({ ...setup, incline: e.target.value })} onFocus={(e) => e.currentTarget.select()} />
             </div>
           </div>
-          <button type="button" onClick={startWithParams} className="btn-primary btn-lg w-full">
-            <Icon name="play" size={18} /> {t('common.start')}
-          </button>
+          <Button size="lg" icon="play" className="w-full" onClick={startWithParams}>
+            {t('common.start')}
+          </Button>
         </div>
       </Sheet>
+    </div>
+  );
+}
+
+function Goal({ label, value, target, pct }: { label: string; value: string; target: string; pct: number }) {
+  const done = pct >= 1;
+  return (
+    <div className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4">
+      <p className="flex items-center justify-between text-[13px] text-earth-muted">
+        {label}
+        {done && <Icon name="check" size={16} className="text-success" />}
+      </p>
+      <p className="mt-1 text-[24px] font-semibold tabular-nums leading-none">
+        {value}
+        <span className="text-[14px] font-normal text-earth-muted"> / {target}</span>
+      </p>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+        <span className={`block h-full rounded-full ${done ? 'bg-success' : 'bg-info'}`} style={{ width: `${Math.min(100, pct * 100)}%` }} />
+      </div>
     </div>
   );
 }

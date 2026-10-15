@@ -37,8 +37,9 @@ export function clientNoteRoute(n: NoteLink): string {
 
 /**
  * The user tapped a note / notification: arm the scroll-to-highlight focus and,
- * for a dated note on a day-scoped screen, show that day (DayNav then shows the
- * date with a "Today" button to go back). Returns the route to navigate to.
+ * for a dated note on a day-scoped screen, show that day (the screen's day
+ * switcher then says which day is shown, with "Back to today"). Returns the
+ * route to navigate to.
  */
 export function openClientNote(n: NoteLink): string {
   if (n.entityType && n.entityId) useFocus.getState().focusEntity({ entityType: n.entityType, entityId: n.entityId });

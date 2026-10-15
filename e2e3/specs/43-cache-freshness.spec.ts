@@ -54,7 +54,9 @@ test("coach edits the client's workout plan → client tab shows it on refocus (
     const client = await as('clientA');
     await client.page.goto('/workout');
     await ready(client.page);
-    await expect(client.page.getByRole('heading', { name: 'Push Day' })).toBeVisible({ timeout: 15_000 });
+    // B2: plan days are rows on Train (only the up-next day is a heading, and an earlier spec may already have trained today).
+    const dayRow = client.page.getByTestId('train-day-d1');
+    await expect(dayRow).toContainText('Push Day', { timeout: 15_000 });
     await shot(client.page, testInfo, 'client-before');
 
     const coach = await as('coachA');
@@ -66,7 +68,7 @@ test("coach edits the client's workout plan → client tab shows it on refocus (
     await expect.poll(async () => (await db.findOne<{ days: { title: string }[] }>('clientWorkoutPlans', { _id: 'e2e-client-a' }))?.days?.[0]?.title).toBe('Pull Day E2E');
     await shot(coach.page, testInfo, 'coach-saved');
 
-    const r = await timeToVisible(client.page, testInfo, 'workout-plan', () => client.page.getByRole('heading', { name: 'Pull Day E2E' }).isVisible());
+    const r = await timeToVisible(client.page, testInfo, 'workout-plan', () => dayRow.filter({ hasText: 'Pull Day E2E' }).isVisible());
     await shot(client.page, testInfo, 'client-after');
     expect(r.navigations, 'refresh must not be a page reload').toBe(0);
     expect(r.ms, 'fresh on refocus').toBeGreaterThanOrEqual(0);

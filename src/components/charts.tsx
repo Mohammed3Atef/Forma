@@ -9,6 +9,8 @@ import { formatDate } from '@/lib/format';
 const COPPER = colors.brandOrange;
 const TRACK = 'rgba(255,238,228,0.16)';
 const SUBTLE = 'rgba(255,238,228,0.4)';
+/** Text on charts (ticks, values): ≥ 4.5:1 on the card surface (B2.8 / axe color-contrast). Lines and grids keep SUBTLE. */
+const LABEL = 'rgba(255,238,228,0.66)';
 
 /** `date` (ISO `YYYY-MM-DD`) is optional per-datum — when every point has one, the x-axis is spaced by real elapsed time and shows real date ticks instead of even index spacing. */
 export interface BarDatum {
@@ -66,7 +68,7 @@ export function BarChart({
   const hasAny = data.length > 0 && data.some((d) => d.value !== 0);
   if (!hasAny) {
     return (
-      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height, color: SUBTLE }}>
+      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height, color: LABEL }}>
         {emptyLabel}
       </div>
     );
@@ -112,7 +114,7 @@ export function BarChart({
               onFocus={() => setHover(i)}
               onBlur={() => setHover((h2) => (h2 === i ? null : h2))}
             >
-              <div className="font-mono text-[9px]" style={{ color: SUBTLE }}>
+              <div className="font-mono text-[9px]" style={{ color: LABEL }}>
                 {d.value ? format(d.value) : ''}
               </div>
               <div
@@ -121,7 +123,7 @@ export function BarChart({
               />
               <div
                 className="font-mono text-[9.5px] tracking-[0.04em]"
-                style={{ color: isNow ? COPPER : SUBTLE }}
+                style={{ color: isNow ? COPPER : LABEL }}
               >
                 {d.label}
               </div>
@@ -162,7 +164,7 @@ export function LineChart({
     return (
       <div
         className="flex items-center justify-center px-4 text-center font-mono text-xs"
-        style={{ height, color: SUBTLE }}
+        style={{ height, color: LABEL }}
       >
         {emptyLabel}
       </div>
@@ -307,7 +309,7 @@ export function DonutChart({ data, centerLabel, size = 130, emptyLabel = 'Not en
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height: size, color: SUBTLE }}>
+      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height: size, color: LABEL }}>
         {emptyLabel}
       </div>
     );

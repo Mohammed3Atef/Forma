@@ -99,12 +99,12 @@ export function ClientSubscriptionSection() {
               <p className="text-[13px] text-earth-muted">{t('subscription.requestDatesHint')}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label">{t('subscription.from')}</label>
-                  <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  <label className="label" htmlFor="freeze-from">{t('subscription.from')}</label>
+                  <input id="freeze-from" type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">{t('subscription.until')}</label>
-                  <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+                  <label className="label" htmlFor="freeze-until">{t('subscription.until')}</label>
+                  <input id="freeze-until" type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
                 </div>
               </div>
               <div>

@@ -61,13 +61,17 @@ const PARENTS: [pattern: string, parent: string][] = [
   ['/admin/coaches/:id', '/admin/coaches'],
   ['/admin/clients/:id', '/admin/members'],
   ['/admin/:section', '/admin'],
-  // client
+  // client (B2 IA: Today · Train · Nutrition · Progress · Coach, You via the avatar)
   ['/workout/routine/:id', '/workout'],
-  ['/workout/exercise/:id', '/workout/library'],
-  ['/workout/library', '/workout'],
+  ['/workout/exercise/:id', '/workout'],
   ['/workout/session', '/workout'],
+  ['/cardio', '/workout'],
+  ['/history', '/workout'],
   ['/progress/measurements', '/progress'],
   ['/check-in/:id', '/check-ins'],
+  ['/check-ins', '/messages'],
+  ['/coach-notes', '/messages'],
+  ['/assessment', '/check-ins'],
   ['/settings/subscription', '/settings'],
   ['/:section', '/'],
 ];

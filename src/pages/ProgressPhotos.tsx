@@ -4,10 +4,13 @@ import type { PhotoPose, ProgressPhoto } from '@/types';
 import { usePhotos } from '@/stores/photoStore';
 import { Icon } from '@/components/Icon';
 import { EntityNotes } from '@/components/EntityNotes';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { confirmDelete, alertDialog } from '@/stores/dialogStore';
+import { Button } from '@/components/ui/Button';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { SegmentedControl } from '@/components/ui/Tabs';
+import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { viewImages } from '@/stores/mediaViewerStore';
+import { formatDate } from '@/lib/format';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -41,7 +44,7 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
     return (
       <div className={`flex flex-col items-center justify-center gap-1 bg-surface-raised text-earth-subtle ${className}`}>
         <Icon name="image" size={20} />
-        <span className="text-[10px]">{t(`progress.${photo.pose}`)}</span>
+        <span className="text-[11px]">{t(`progress.${photo.pose}`)}</span>
       </div>
     );
   }
@@ -51,7 +54,7 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
     return (
       <span className="relative block">
         <img src={src} alt={photo.pose} loading="lazy" className={className} onClick={onView ? () => onView(src) : undefined} />
-        <span className="absolute bottom-1 start-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9.5px] text-warn" data-testid="photo-not-uploaded">
+        <span className="absolute bottom-1.5 start-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[11px] text-warn" data-testid="photo-not-uploaded">
           {t('trust.upload.notUploaded')}
         </span>
       </span>
@@ -61,12 +64,15 @@ function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; classNam
 }
 
 /**
- * The real content of the Progress Photos experience (capture, compare, dated
- * gallery) — no header; it is the Progress screen's Photos tab
- * (`/progress?tab=photos`).
+ * Progress › Body › Photos (B2.5). Capture by pose, compare two dates, the
+ * dated gallery. Upload honesty is unchanged (B0): only a server-acknowledged
+ * upload says "Saved"; a photo still only on this device is marked so.
+ * Removing a photo takes it out of the gallery and the coach's view; it does
+ * NOT claim the stored file is erased (MD-03 is still open).
  */
 export function ProgressPhotosBody() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const photos = usePhotos((s) => s.photos);
   const load = usePhotos((s) => s.load);
   const add = usePhotos((s) => s.add);
@@ -101,8 +107,7 @@ export function ProgressPhotosBody() {
     if (dates.length && !dateB) setDateB(dates[0]);
   }, [dates, dateA, dateB]);
 
-  const photoFor = (date: string, p: PhotoPose) =>
-    photos.find((ph) => ph.date === date && ph.pose === p) ?? null;
+  const photoFor = (date: string, p: PhotoPose) => photos.find((ph) => ph.date === date && ph.pose === p) ?? null;
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -130,46 +135,55 @@ export function ProgressPhotosBody() {
     input.click();
   };
 
+  const removePhoto = async (ph: ProgressPhoto) => {
+    const ok = await confirmDialog({ title: t('progress.removePhotoTitle'), message: t('progress.removePhotoBody'), confirmLabel: t('progress.removePhoto'), cancelLabel: t('common.cancel'), danger: true });
+    if (ok) void remove(ph.id);
+  };
+
+  const dateSelect = (value: string, onChange: (v: string) => void, label: string) => (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className="input min-h-ui-hit flex-1 py-1 text-[14px]">
+      {dates.map((d) => (
+        <option key={d} value={d}>
+          {formatDate(d, lang, 'medium')}
+        </option>
+      ))}
+    </select>
+  );
+
   return (
     <div className="space-y-4">
       {/* Capture */}
-      <div className="card-featured">
-        <div className="mb-3 flex gap-1.5">
-          {POSES.map((p) => (
-            <button key={p} type="button" onClick={() => setPose(p)} className={`chip flex-1 justify-center py-2 ${pose === p ? 'chip-on' : ''}`}>
-              {t(`progress.${p}`)}
-            </button>
-          ))}
-        </div>
+      <div className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4">
+        <SegmentedControl<PhotoPose> className="seg-quiet" label={t('progress.pose')} value={pose} onChange={setPose} options={POSES.map((p) => ({ value: p, label: t(`progress.${p}`) }))} />
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e)} />
-        <p className="mb-3 text-sm text-earth-muted">
-          {t('progress.addPhoto')} — {t(`progress.${pose}`)}
-        </p>
+        <p className="mb-3 mt-3 text-[13px] text-earth-muted">{t('progress.photoHint', { pose: t(`progress.${pose}`) })}</p>
         <div className="flex gap-2">
-          <button type="button" disabled={busy} onClick={() => pickPhoto(false)} className="btn-primary flex-1 disabled:opacity-40">
-            <Icon name="image" size={18} /> {t('progress.gallery')}
-          </button>
-          <button type="button" disabled={busy} onClick={() => pickPhoto(true)} className="btn-secondary flex-1 disabled:opacity-40">
-            <Icon name="camera" size={18} /> {t('progress.camera')}
-          </button>
+          <Button variant="secondary" icon="image" className="flex-1" disabled={busy} onClick={() => pickPhoto(false)}>
+            {t('progress.gallery')}
+          </Button>
+          <Button variant="secondary" icon="camera" className="flex-1" disabled={busy} onClick={() => pickPhoto(true)}>
+            {t('progress.camera')}
+          </Button>
         </div>
-        {busy && <p className="mt-2 text-center text-xs text-earth-muted">{t('upload.uploading')}</p>}
+        {busy && (
+          <p className="mt-2 text-center text-[13px] text-earth-muted" role="status">
+            {t('upload.uploading')}
+          </p>
+        )}
       </div>
 
-      <button type="button" onClick={() => setCompare((v) => !v)} className="btn-ghost w-full" disabled={dates.length < 2}>
-        <Icon name="columns" size={18} /> {t('progress.compare')}
-      </button>
+      {dates.length >= 2 && (
+        <Button variant="ghost" icon="columns" className="w-full" aria-pressed={compare} onClick={() => setCompare((v) => !v)}>
+          {t('progress.compare')}
+        </Button>
+      )}
 
       {/* Compare view */}
       {compare && dates.length >= 2 && (
-        <div className="card space-y-3">
+        <div className="space-y-3 rounded-ui-surface border border-white/[0.07] bg-surface-card p-4" data-testid="photo-compare">
           <div className="flex gap-2">
-            <select value={dateA} onChange={(e) => setDateA(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
-              {dates.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select value={dateB} onChange={(e) => setDateB(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
-              {dates.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
+            {dateSelect(dateA, setDateA, t('progress.compareFrom'))}
+            {dateSelect(dateB, setDateB, t('progress.compareTo'))}
           </div>
           {POSES.map((p) => {
             const a = photoFor(dateA, p);
@@ -177,10 +191,10 @@ export function ProgressPhotosBody() {
             if (!a && !b) return null;
             return (
               <div key={p}>
-                <p className="mb-1 text-xs uppercase text-earth-muted">{t(`progress.${p}`)}</p>
+                <p className="mb-1 text-[13px] text-earth-muted">{t(`progress.${p}`)}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
-                  {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-xl bg-surface-raised" />}
+                  {a ? <PhotoImg photo={a} className="aspect-[3/4] w-full rounded-ui-control object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-ui-control bg-surface-raised" />}
+                  {b ? <PhotoImg photo={b} className="aspect-[3/4] w-full rounded-ui-control object-cover" onView={(url) => viewImages(url)} /> : <div className="aspect-[3/4] rounded-ui-control bg-surface-raised" />}
                 </div>
               </div>
             );
@@ -190,16 +204,20 @@ export function ProgressPhotosBody() {
 
       {/* Gallery by date */}
       {byDate.map(([date, items]) => (
-        <div key={date} className="card">
-          <p className="ui-label mb-2">{date}</p>
-          <div className="grid grid-cols-3 gap-2">
+        <div key={date}>
+          <p className="mb-2 text-[13px] font-medium text-earth-muted">{formatDate(date, lang, 'weekdayShort')}</p>
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
             {items.map((ph) => (
               <div key={ph.id} className="relative">
-                <PhotoImg photo={ph} className="aspect-[3/4] w-full rounded-xl object-cover" onView={(url) => viewImages(url)} />
-                <span className="absolute bottom-1 start-1 rounded bg-black/60 px-1 text-[10px]">{t(`progress.${ph.pose}`)}</span>
-                <button type="button" onClick={async () => { if (await confirmDelete()) void remove(ph.id); }} className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-danger" aria-label={t('common.delete')}>
-                  <Icon name="close" size={14} />
-                </button>
+                <PhotoImg photo={ph} className="aspect-[3/4] w-full cursor-zoom-in rounded-ui-control object-cover" onView={(url) => viewImages(url)} />
+                <span className="pointer-events-none absolute bottom-1.5 end-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[11px]">{t(`progress.${ph.pose}`)}</span>
+                <div className="absolute end-1 top-1 rounded-full bg-black/55">
+                  <ActionMenu
+                    size="sm"
+                    label={t('progress.photoOptions', { pose: t(`progress.${ph.pose}`) })}
+                    items={[{ key: 'remove', label: t('progress.removePhoto'), icon: 'trash', danger: true, onSelect: () => void removePhoto(ph) }]}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -209,7 +227,7 @@ export function ProgressPhotosBody() {
         </div>
       ))}
 
-      {byDate.length === 0 && <EmptyState icon="camera" title={t('progressPhotos.emptyTitle')} message={t('progressPhotos.emptyMessage')} />}
+      {byDate.length === 0 && <p className="text-[14px] text-earth-muted">{t('progressPhotos.emptyMessage')}</p>}
     </div>
   );
 }

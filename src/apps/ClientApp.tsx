@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AppShell } from '@/components/AppShell';
+import { ClientShell } from '@/components/client/ClientShell';
+import { SiteIconSet } from '@/components/client/siteIcons';
 import { SubscriptionGate } from '@/components/SubscriptionGate';
 import { ClientNotesProvider } from '@/components/ClientNotesProvider';
 import { Onboarding } from '@/components/Onboarding';
@@ -30,10 +31,9 @@ import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 // lazy-load their own heavy routes; a client now only downloads the page(s)
 // they actually visit.
 const AssessmentWizard = lazy(() => import('@/pages/onboarding/AssessmentWizard').then((m) => ({ default: m.AssessmentWizard })));
-const CoachInbox = lazy(() => import('@/pages/CoachInbox').then((m) => ({ default: m.CoachInbox })));
+const CoachUpdates = lazy(() => import('@/pages/CoachUpdates').then((m) => ({ default: m.CoachUpdates })));
 const Workout = lazy(() => import('@/pages/Workout').then((m) => ({ default: m.Workout })));
 const RoutineDetail = lazy(() => import('@/pages/RoutineDetail').then((m) => ({ default: m.RoutineDetail })));
-const ExerciseLibrary = lazy(() => import('@/pages/ExerciseLibrary').then((m) => ({ default: m.ExerciseLibrary })));
 const ExerciseDetail = lazy(() => import('@/pages/ExerciseDetail').then((m) => ({ default: m.ExerciseDetail })));
 const WorkoutSession = lazy(() => import('@/pages/WorkoutSession').then((m) => ({ default: m.WorkoutSession })));
 const Nutrition = lazy(() => import('@/pages/Nutrition').then((m) => ({ default: m.Nutrition })));
@@ -43,7 +43,6 @@ const History = lazy(() => import('@/pages/History').then((m) => ({ default: m.H
 const Measurements = lazy(() => import('@/pages/Measurements').then((m) => ({ default: m.Measurements })));
 const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })));
 const ClientSubscriptionPage = lazy(() => import('@/pages/ClientSubscriptionPage').then((m) => ({ default: m.ClientSubscriptionPage })));
-const Notifications = lazy(() => import('@/pages/Notifications').then((m) => ({ default: m.Notifications })));
 const CheckIn = lazy(() => import('@/pages/CheckIn').then((m) => ({ default: m.CheckIn })));
 const CheckInHistory = lazy(() => import('@/pages/CheckInHistory').then((m) => ({ default: m.CheckInHistory })));
 const MyAssessment = lazy(() => import('@/pages/MyAssessment').then((m) => ({ default: m.MyAssessment })));
@@ -66,7 +65,10 @@ export function ClientApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ClientGate />
+      {/* The approved website glyphs for every client screen (B2 / doc 17). */}
+      <SiteIconSet>
+        <ClientGate />
+      </SiteIconSet>
     </QueryClientProvider>
   );
 }
@@ -150,25 +152,28 @@ function ClientGate() {
       <Onboarding />
       <Suspense fallback={<div className="px-5 pt-6"><LoadingState variant="cards" count={4} /></div>}>
         <Routes>
-          <Route path="/" element={<AppShell showDayNav><SubscriptionGate><Home /></SubscriptionGate></AppShell>} />
-          <Route path="/coach-notes" element={<AppShell><CoachInbox /></AppShell>} />
-          <Route path="/notifications" element={<AppShell><Notifications /></AppShell>} />
-          <Route path="/check-in/:id" element={<AppShell><CheckIn /></AppShell>} />
-          <Route path="/check-ins" element={<AppShell><CheckInHistory /></AppShell>} />
-          <Route path="/assessment" element={<AppShell><MyAssessment /></AppShell>} />
-          <Route path="/messages" element={<AppShell><Messages /></AppShell>} />
-          <Route path="/workout" element={<AppShell><SubscriptionGate><Workout /></SubscriptionGate></AppShell>} />
-          <Route path="/workout/routine/:dayId" element={<AppShell><SubscriptionGate><RoutineDetail /></SubscriptionGate></AppShell>} />
-          <Route path="/workout/library" element={<AppShell><ExerciseLibrary /></AppShell>} />
-          <Route path="/workout/exercise/:exId" element={<AppShell><ExerciseDetail /></AppShell>} />
-          <Route path="/workout/session" element={<AppShell hideNav><SubscriptionGate><WorkoutSession /></SubscriptionGate></AppShell>} />
-          <Route path="/nutrition" element={<AppShell showDayNav><SubscriptionGate><Nutrition /></SubscriptionGate></AppShell>} />
-          <Route path="/cardio" element={<AppShell showDayNav><SubscriptionGate><Cardio /></SubscriptionGate></AppShell>} />
-          <Route path="/progress" element={<AppShell><Progress /></AppShell>} />
-          <Route path="/history" element={<AppShell><History /></AppShell>} />
-          <Route path="/progress/measurements" element={<AppShell showDayNav><Measurements /></AppShell>} />
-          <Route path="/settings" element={<AppShell><Settings /></AppShell>} />
-          <Route path="/settings/subscription" element={<AppShell><ClientSubscriptionPage /></AppShell>} />
+          {/* B2 client IA (doc 16): five tabs + You. URLs kept wherever they already
+              point at the right place; the two retired pages redirect. Tab
+              membership, Back and task-flow chrome come from config/clientNav. */}
+          <Route path="/" element={<ClientShell><SubscriptionGate><Home /></SubscriptionGate></ClientShell>} />
+          <Route path="/workout" element={<ClientShell><SubscriptionGate><Workout /></SubscriptionGate></ClientShell>} />
+          <Route path="/workout/routine/:dayId" element={<ClientShell><SubscriptionGate><RoutineDetail /></SubscriptionGate></ClientShell>} />
+          <Route path="/workout/exercise/:exId" element={<ClientShell><ExerciseDetail /></ClientShell>} />
+          <Route path="/workout/session" element={<ClientShell><SubscriptionGate><WorkoutSession /></SubscriptionGate></ClientShell>} />
+          <Route path="/workout/library" element={<Navigate to="/workout" replace />} />
+          <Route path="/cardio" element={<ClientShell><SubscriptionGate><Cardio /></SubscriptionGate></ClientShell>} />
+          <Route path="/history" element={<ClientShell><History /></ClientShell>} />
+          <Route path="/nutrition" element={<ClientShell><SubscriptionGate><Nutrition /></SubscriptionGate></ClientShell>} />
+          <Route path="/progress" element={<ClientShell><Progress /></ClientShell>} />
+          <Route path="/progress/measurements" element={<ClientShell><Measurements /></ClientShell>} />
+          <Route path="/messages" element={<ClientShell><Messages /></ClientShell>} />
+          <Route path="/coach-notes" element={<ClientShell><CoachUpdates /></ClientShell>} />
+          <Route path="/notifications" element={<Navigate to="/coach-notes" replace />} />
+          <Route path="/check-ins" element={<ClientShell><CheckInHistory /></ClientShell>} />
+          <Route path="/check-in/:id" element={<ClientShell><CheckIn /></ClientShell>} />
+          <Route path="/assessment" element={<ClientShell><MyAssessment /></ClientShell>} />
+          <Route path="/settings" element={<ClientShell><Settings /></ClientShell>} />
+          <Route path="/settings/subscription" element={<ClientShell><ClientSubscriptionPage /></ClientShell>} />
           {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
           <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />
           <Route path="/reset/:token" element={<SignedInInterstitial kind="reset" />} />

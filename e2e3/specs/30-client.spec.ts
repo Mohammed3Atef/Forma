@@ -11,7 +11,8 @@ import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng
 type SetLog = { setIndex: number; type: string; weightKg: number | null; actualReps: number | null; done: boolean };
 type WorkoutLog = { id: string; dayId: string; startedAt: number | null; finished: boolean; exercises: { exerciseId: string; sets: SetLog[] }[] };
 
-const setRows = (page: Page) => page.locator('section.card li').filter({ has: page.getByRole('button', { name: 'Done' }) });
+// B2.3: set rows are tagged (`set-row`) — the card markup is no longer `section.card li`.
+const setRows = (page: Page) => page.getByTestId('set-row');
 
 test.describe('client journeys', () => {
   test.afterAll(async () => {
@@ -37,8 +38,8 @@ test.describe('client journeys', () => {
     await expect(page).toHaveURL(/\/workout\/session$/);
     await expect(page.getByText('Exercise 1 of 2')).toBeVisible();
     await expect(page.getByText('C Bench Press').first()).toBeVisible();
-    // Begin the timer (first real "record" action).
-    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    // B2.3 / CL-18: "Start this workout" already began the timer — no second Start in the session.
+    await expect(page.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
 
     // 2 working sets, warmupSetCount 0 → exactly 2 rows.
@@ -148,12 +149,13 @@ test.describe('client journeys', () => {
     const { page } = await as('clientA');
     await page.goto('/nutrition');
     await ready(page);
-    const meal = page.locator('section.card').filter({ hasText: 'C Breakfast' });
-    await expect(meal).toBeVisible();
+    // B2.4: meals are tagged sections (`meal-<id>`) whose eaten state is an attribute, not a class.
+    const meal = page.getByTestId('meal-c-meal-1');
+    await expect(meal).toContainText('C Breakfast');
     await meal.getByRole('button', { name: 'Mark eaten' }).click();
-    await expect(meal).toHaveClass(/border-success/);
+    await expect(meal).toHaveAttribute('data-eaten', 'true');
 
-    await meal.getByRole('button', { name: '+ Add food' }).click();
+    await meal.getByRole('button', { name: 'Add food' }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();
     const search = sheet.getByLabel('Search a food database…');
@@ -199,7 +201,7 @@ test.describe('client journeys', () => {
     await page.reload();
     await ready(page);
     await expect(meal.getByText(`+ ${firstName}`)).toBeVisible();
-    await expect(meal).toHaveClass(/border-success/);
+    await expect(meal).toHaveAttribute('data-eaten', 'true');
     expect(await bodyText(page)).not.toMatch(/NaN/);
     await shot(page, testInfo, '04-after-reload');
 
@@ -255,19 +257,19 @@ test.describe('client journeys', () => {
     await ready(page);
     await page.getByRole('button', { name: 'Log activity' }).click();
     const sheet = page.getByRole('dialog');
-    await sheet.getByRole('button', { name: 'Running' }).click();
+    await sheet.getByRole('radio', { name: 'Running' }).click(); // B2.3: the type picker is a radiogroup
     await sheet.locator('input[placeholder="10000"]').fill('4321');
     await sheet.locator('input[placeholder="40"]').fill('25');
     await sheet.getByRole('button', { name: 'Save' }).click();
     await expect(sheet).toHaveCount(0);
-    const row = page.locator('li.card').filter({ hasText: 'Running' });
-    await expect(row).toContainText('25min');
+    const row = page.getByTestId('cardio-entry').filter({ hasText: 'Running' });
+    await expect(row).toContainText('25 min');
     await expect(row).toContainText('4,321');
     await shot(page, testInfo, '01-cardio-logged');
     await page.waitForTimeout(600);
     await page.reload();
     await ready(page);
-    await expect(page.locator('li.card').filter({ hasText: 'Running' })).toContainText('25min');
+    await expect(page.getByTestId('cardio-entry').filter({ hasText: 'Running' })).toContainText('25 min');
     const rec = await pollDb(
       () => db.findOne<SyncRec<{ type: string; durationSec: number; steps: number }>>('syncRecords', { clientId: CLIENT_A, collection: 'cardioLogs' }),
       (r) => !!r,

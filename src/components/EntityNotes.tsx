@@ -107,10 +107,13 @@ export function EntityNotes({
       {mine.map((n) => (
         <div
           key={n.id}
-          className="flex items-start gap-1.5 rounded-lg border border-brand/25 bg-brand/5 px-2.5 py-1.5 text-[12.5px] text-earth-muted"
+          className="flex items-start gap-2 border-s-2 border-brand/50 py-0.5 ps-2.5 text-[14px] leading-snug text-earth"
         >
-          <Icon name="info" size={13} className="mt-0.5 shrink-0 text-brand" />
-          <span className="min-w-0 flex-1 whitespace-pre-wrap">{n.body}</span>
+          {/* B2: an inline "coach says" line, not a nested box (doc 17 card rules). */}
+          <span className="min-w-0 flex-1 whitespace-pre-wrap">
+            <span className="me-1.5 text-[12px] font-semibold text-brand-hover">{t("notes.coachSays")}</span>
+            {n.body}
+          </span>
           {onAdd && <NoteVisibilityBadge visibility={n.visibility} />}
         </div>
       ))}

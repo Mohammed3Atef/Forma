@@ -1,5 +1,5 @@
 /** Minimal inline icon set (stroke-based, inherits currentColor). */
-import type { SVGProps } from 'react';
+import { createContext, useContext, type ReactNode, type SVGProps } from 'react';
 
 type IconName =
   | 'cloud'
@@ -45,9 +45,29 @@ type IconName =
   | 'mic'
   | 'globe'
   | 'shield'
-  | 'columns';
+  | 'columns'
+  // Glyphs that exist only in the approved website set (B2): rendered through
+  // the glyph context below — client screens run inside it.
+  | 'trash'
+  | 'send'
+  | 'dots'
+  | 'alert'
+  | 'logout'
+  | 'lock'
+  | 'mail'
+  | 'phone'
+  | 'clock'
+  | 'arrowR'
+  | 'heart'
+  | 'star'
+  | 'note'
+  | 'file'
+  | 'users'
+  | 'copy'
+  | 'chevU'
+  | 'clip';
 
-const PATHS: Record<IconName, string> = {
+const PATHS: Partial<Record<IconName, string>> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v10h14V10',
   dumbbell: 'M6.5 6.5 17.5 17.5M3 9l3-3 3 3-3 3zM15 15l3-3 3 3-3 3zM9 6l9 9',
   meal: 'M4 3v7a3 3 0 0 0 3 3v8M7 3v6M10 3v6M19 3c-1.5 0-3 2-3 5s1.5 4 3 4v9',
@@ -133,7 +153,17 @@ interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
  * Decorative by default (`aria-hidden`) — icons convey meaning through their
  * surrounding control, so action buttons carry the `aria-label`, not the icon.
  */
+/**
+ * Glyph set switch (B2 / doc 17 "Icon: adopt the website set"). A provider
+ * supplies the website glyphs (1.75 stroke) for a subtree — the client app —
+ * without the glyph data entering the shared entry bundle or changing the
+ * coach/admin screens before B3. Returns null for a name it doesn't cover.
+ */
+export type IconGlyphRenderer = (name: IconName) => ReactNode | null;
+export const IconGlyphContext = createContext<IconGlyphRenderer | null>(null);
+
 export function Icon({ name, size = 24, tone, className, mirror, ...rest }: IconProps) {
+  const glyph = useContext(IconGlyphContext)?.(name) ?? null;
   const px = typeof size === 'number' ? size : ICON_SIZES[size];
   const flip = mirror ?? MIRROR_IN_RTL.has(name);
   const cls = [tone ? ICON_TONES[tone] : '', flip ? 'rtl:-scale-x-100' : '', className].filter(Boolean).join(' ');
@@ -144,14 +174,14 @@ export function Icon({ name, size = 24, tone, className, mirror, ...rest }: Icon
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={glyph ? 1.75 : 2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       className={cls || undefined}
       {...rest}
     >
-      <path d={PATHS[name]} />
+      {glyph ?? <path d={PATHS[name] ?? ''} />}
     </svg>
   );
 }
