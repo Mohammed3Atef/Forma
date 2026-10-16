@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { TRPCError } from '@trpc/server';
 import type { AuthedUser } from '../../_trpc/context.js';
-import { authorizeThreadAccess } from '../../messages/_data.js';
+import { resolveThreadViewer } from '../../messages/_data.js';
 import { MediaError } from './bunny.js';
 
 /**
@@ -34,6 +34,8 @@ export interface UploadMeta {
   name?: string;
   clientId?: string;
   checkInId?: string;
+  /** B3.0.1: for a `message` attachment, the conversation (coach id) it was composed in. */
+  coachId?: string;
 }
 
 export interface UploadTarget {
@@ -126,6 +128,7 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
 
   let folder: string;
   let allowedKinds: readonly MediaKind[];
+  let threadViewer: Awaited<ReturnType<typeof resolveThreadViewer>> | null = null;
   switch (category) {
     case 'avatar':
       folder = `Forma/${ownerId}/avatar`;
@@ -153,7 +156,7 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
     case 'message': {
       const clientId = assertId(meta.clientId, 'client id');
       try {
-        await authorizeThreadAccess(user, clientId);
+        threadViewer = await resolveThreadViewer(user, clientId);
       } catch (e) {
         if (e instanceof TRPCError) throw new MediaError(403, 'forbidden', 'Not a participant in this thread');
         throw e;
@@ -173,6 +176,14 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   const limit = limitFor(category, kind);
   if (!Number.isFinite(meta.size) || meta.size <= 0) throw new MediaError(400, 'badRequest', 'Empty upload');
   if (meta.size > limit) throw new MediaError(413, tooLargeCode(kind), 'File is too large');
+
+  // B3.0.1 / B3-S14: a client's attachment goes to the CURRENT coach's
+  // conversation only — none when they have no coach, and never for a
+  // conversation that has since closed (a queued upload after a transfer).
+  // Checked after the type / size policy so those answers are unchanged.
+  if (threadViewer?.kind === 'client' && (!threadViewer.currentCoachId || (meta.coachId && meta.coachId !== threadViewer.currentCoachId))) {
+    throw new MediaError(403, 'forbidden', 'This conversation is closed');
+  }
 
   const safeName = (meta.name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200) || `${randomKey()}.${ext}`;
   return { path: `${folder}/${randomKey()}.${ext}`, mimeType, kind, name: safeName, size: meta.size, category };

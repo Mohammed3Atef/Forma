@@ -1,4 +1,4 @@
-import { Collection } from 'mongodb';
+import type { Collection, Filter } from 'mongodb';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '../_lib/mongodb.js';
 import { hasPermission } from '../_lib/rbac.js';
@@ -30,7 +30,14 @@ export type MessageCategory = 'message' | 'announcement' | 'offer' | 'reminder' 
 export interface MessageDoc {
   _id: string;
   clientId: string;
-  /** Denormalized assigned-coach id at send time (best-effort; may be absent). */
+  /**
+   * The CONVERSATION the message belongs to: the coach's own id when a coach
+   * sends, the client's current coach when the client (or an admin) sends.
+   * B3.0.1 / B3-S14 (owner R-4): a coach only ever sees their own
+   * conversation. Absent on legacy messages (pre-Mongo, or sent while the
+   * client had no coach) — those are never shown to a coach unless the coach
+   * wrote them.
+   */
   coachId?: string;
   fromUserId: string;
   fromRole: Role;
@@ -141,8 +148,53 @@ export async function getAssignedCoachId(clientId: string): Promise<string | und
  * every route can just call this and move on.
  */
 export async function authorizeThreadAccess(user: AuthedUser, clientId: string): Promise<void> {
-  if (user.id === clientId) return;
-  if (hasPermission(user.role, user.accountStatus, user.permissions, 'clients.writeAll')) return;
-  if (user.role === 'coach' && (await isAssignedCoach(user.id, clientId))) return;
+  await resolveThreadViewer(user, clientId);
+}
+
+/**
+ * How the caller sees a client's thread (B3.0.1 / B3-S14, owner R-4 Option C):
+ *  - coach  — only their OWN conversation (`coachId == me`), and only while
+ *             their relationship is active;
+ *  - client — the whole thread; only the CURRENT coach's conversation is
+ *             writable, earlier conversations are read-only history;
+ *  - admin  — (`clients.writeAll`) the whole thread, including legacy
+ *             messages with no conversation (the documented fallback).
+ */
+export type ThreadViewer =
+  | { kind: 'coach'; coachId: string }
+  | { kind: 'client'; currentCoachId: string | undefined }
+  | { kind: 'admin'; currentCoachId: string | undefined };
+
+/** Same rule as `authorizeThreadAccess`, returning the viewer. Throws FORBIDDEN for anyone else. */
+export async function resolveThreadViewer(user: AuthedUser, clientId: string): Promise<ThreadViewer> {
+  if (user.id === clientId) return { kind: 'client', currentCoachId: await getAssignedCoachId(clientId) };
+  if (hasPermission(user.role, user.accountStatus, user.permissions, 'clients.writeAll')) return { kind: 'admin', currentCoachId: await getAssignedCoachId(clientId) };
+  if (user.role === 'coach' && (await isAssignedCoach(user.id, clientId))) return { kind: 'coach', coachId: user.id };
   throw new TRPCError({ code: 'FORBIDDEN' });
+}
+
+/**
+ * The messages a coach may see: their own conversation, plus legacy messages
+ * (no `coachId`) they wrote themselves — never a legacy message from the
+ * client, whose addressee cannot be proven.
+ */
+export function coachConversationFilter(coachId: string): Filter<MessageDoc> {
+  return { $or: [{ coachId }, { coachId: { $exists: false }, fromUserId: coachId }] };
+}
+
+/** Extra filter applied to every read of the thread for this viewer. */
+export function viewerFilter(v: ThreadViewer): Filter<MessageDoc> {
+  return v.kind === 'coach' ? coachConversationFilter(v.coachId) : {};
+}
+
+/** The message is in the conversation this viewer may WRITE to (react / edit / delete). */
+export function inWritableConversation(v: ThreadViewer, m: Pick<MessageDoc, 'coachId' | 'fromUserId'>): boolean {
+  if (v.kind === 'coach') return m.coachId === v.coachId || (m.coachId == null && m.fromUserId === v.coachId);
+  if (v.kind === 'client') return !!v.currentCoachId && m.coachId === v.currentCoachId;
+  return true;
+}
+
+/** The viewer may SEE the message at all (coaches: own conversation only). */
+export function visibleToViewer(v: ThreadViewer, m: Pick<MessageDoc, 'coachId' | 'fromUserId'>): boolean {
+  return v.kind !== 'coach' || inWritableConversation(v, m);
 }

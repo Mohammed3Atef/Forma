@@ -70,7 +70,11 @@ test('invite → anonymous claim → coach roster updates without reload', async
   await anonPage.goto(`/invite/${code}`);
   await expect(anonPage.getByTestId('invite-form')).toBeVisible();
   await expect(anonPage.getByTestId('invite-coach-name')).toContainText('Coach Pro');
-  await expect(anonPage.getByTestId('invite-email')).toHaveValue(email);
+  // B3.0.1 / B3-S03: the public lookup no longer returns the invitee's address — the claim
+  // screen shows a masked hint (read-only) and the server claims with the invite's own email.
+  await expect(anonPage.getByTestId('invite-email')).toHaveValue(`${email.charAt(0)}•••@e2e.test`);
+  await expect(anonPage.getByTestId('invite-email')).toHaveAttribute('readonly', '');
+  await expect(anonPage.getByTestId('invite-phone')).toHaveValue('');
   await anonPage.getByTestId('invite-phone').fill('+201555000111');
   await anonPage.getByTestId('invite-password').fill('Invite-Pass-2026!');
   await anonPage.getByTestId('invite-confirm').fill('Invite-Pass-2026!');
@@ -375,5 +379,11 @@ test('restore seed state (clientFree unassigned, coachPro empty)', async ({ db }
   await db.updateOne('users', { _id: FREE }, { $unset: { assignedCoachId: '' } });
   if (inv) await db.updateOne('users', { _id: inv._id }, { $unset: { assignedCoachId: '' } });
   await db.updateOne('coachPlans', { _id: PRO }, { $set: { activeClientCount: 0 } });
+  // The coach content this file created for clientFree goes too: later specs (80 Journey A)
+  // rely on the seeded "no coach, no plan" client. (Found in the B3.0.1 full run; the same
+  // failure reproduces on the B2 commit be3e357 — a test-isolation gap, not product behaviour.)
+  for (const collection of ['clientWorkoutPlans', 'clientNutritionPlans', 'clientCardioPlans']) await db.deleteMany(collection, { _id: FREE });
+  for (const collection of ['coachNotes', 'checkIns', 'planVersions', 'notifications']) await db.deleteMany(collection, { clientId: FREE });
   expect(await db.count('coachClients', { coachId: PRO, status: 'active' })).toBe(0);
+  expect(await db.count('clientWorkoutPlans', { _id: FREE })).toBe(0);
 });

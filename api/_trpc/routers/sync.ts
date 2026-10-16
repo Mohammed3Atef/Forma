@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, roleProcedureNoActive } from '../trpc.js';
-import { isSyncCollection, MAX_RECORDS_PER_PUSH, SYNC_SCHEMA_VERSION, validatePushedRecord, type RejectReason } from '../../sync/_contract.js';
+import { activityDay, isSyncCollection, MAX_RECORDS_PER_PUSH, SUBSCRIPTION_GATED, SYNC_SCHEMA_VERSION, validatePushedRecord, type RejectReason } from '../../sync/_contract.js';
+import { coachClientsCol } from '../../coach-clients/_data.js';
+import { unauthorizedDay } from '../../coach-clients/_subscriptionRules.js';
 import { recordId, singletonId, syncDeletionsCol, syncRecordsCol, syncSingletonsCol, type SyncRecordDoc } from '../../sync/_data.js';
 
 /** The server's copy of a record, returned when a device's write can't be applied on top of it. */
@@ -80,11 +82,29 @@ export const syncRouter = router({
       // Records that break the contract are refused ONE BY ONE (B1.7 / PWA-13):
       // the rest of the batch still applies, and the device learns why.
       const rejected: { id: string; reason: RejectReason }[] = [];
+      // B3.0.1 / B3-S06 (owner R-6): workout, nutrition and cardio logs are
+      // refused only when their ACTIVITY DAY falls, in every time zone, inside
+      // a period the stored subscription data proves was read-only (lapsed,
+      // cancelled, ended or frozen while the client had a coach). In-term work
+      // synced late is accepted; unprovable history is never guessed. The
+      // device keeps a refused record and retries it on later passes.
+      const rels = SUBSCRIPTION_GATED.has(collection)
+        ? await (await coachClientsCol())
+            .find({ clientId: ctx.user.id }, { projection: { status: 1, createdAt: 1, endedAt: 1, subscription: 1, subscriptionHistory: 1, subscriptionEvents: 1 } })
+            .toArray()
+        : [];
       for (const raw of input.records) {
         const reason = validatePushedRecord(collection, { ...raw, updatedAt: raw.updatedAt as number });
         if (reason) {
           rejected.push({ id: raw.id, reason });
           continue;
+        }
+        if (rels.length > 0) {
+          const day = activityDay(collection, raw);
+          if (day && unauthorizedDay(rels, day)) {
+            rejected.push({ id: raw.id, reason: 'SUBSCRIPTION_READ_ONLY' });
+            continue;
+          }
         }
         const rec = { ...raw, updatedAt: raw.updatedAt as number };
         const _id = recordId(ctx.user.id, input.collection, rec.id);

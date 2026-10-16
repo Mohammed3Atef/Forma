@@ -56,7 +56,7 @@ vi.mock('@/services/trpc', () => ({
 import { closeAccountScope, openAccountScope } from '../localScope';
 import { getDataSource } from '../dataSource';
 import { SyncEngine } from './SyncEngine';
-import { readRejected, validatePulledRecord } from './contract';
+import { countRejectedFor, readRejected, SUBSCRIPTION_READ_ONLY, validatePulledRecord } from './contract';
 
 const DAY = '2026-10-05';
 
@@ -118,5 +118,21 @@ describe('the engine never imports corrupt state, and reports what the server re
     await new SyncEngine('client-1').sync();
     warn.mockRestore();
     expect(await readRejected()).toEqual({});
+  });
+
+  it('B3.0.1: a log refused as SUBSCRIPTION_READ_ONLY is kept, counted apart, pushed again every pass, and accepted once the term covers it', async () => {
+    await getDataSource().workoutLogs.put({ id: DAY, date: DAY, startedAt: 1, finished: true, exercises: [], updatedAt: 5, dirty: true } as never);
+    refuse = { [DAY]: SUBSCRIPTION_READ_ONLY };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await new SyncEngine('client-1').sync();
+    expect(countRejectedFor(await readRejected(), SUBSCRIPTION_READ_ONLY)).toBe(1);
+    expect((await getDataSource().workoutLogs.get(DAY))?.dirty).toBe(true);
+    await new SyncEngine('client-1').sync(); // retried, still refused — never dropped
+    expect(pushed.filter((p) => p.collection === 'workoutLogs')).toHaveLength(2);
+    refuse = {}; // the coach extended / renewed over that day
+    await new SyncEngine('client-1').sync();
+    warn.mockRestore();
+    expect(await readRejected()).toEqual({});
+    expect((await getDataSource().workoutLogs.get(DAY))?.dirty).toBe(false);
   });
 });

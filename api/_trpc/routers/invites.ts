@@ -12,6 +12,19 @@ import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import { DEFAULT_TTL_MS, buildClaimSubscription, generateInviteCode, invitesCol, isClaimable, normalizeCode } from '../../coach-clients/_handlers/invites-data.js';
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
 import { sendClientInviteEmail, sendWelcomeEmail } from '../../_lib/email.js';
+import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
+
+/** B3.0.1 / B3-S03: per-IP limits on the two public invite procedures (codes are ~40-bit random; this stops scraping). */
+const LOOKUP_MAX = 30;
+const CLAIM_MAX = 10;
+const INVITE_WINDOW_MS = 10 * 60 * 1000;
+
+/** `m•••@gmail.com` — enough for the invitee to recognise their address, useless to anyone else. */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '•••';
+  return `${local.charAt(0)}•••@${domain}`;
+}
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
@@ -139,13 +152,28 @@ export const invitesRouter = router({
       return created;
     }),
 
-  /** PUBLIC (pre-auth) lookup for the claim screen. The code is the capability — no list/enumerate procedure exists. */
-  getByCode: publicProcedure.input(z.object({ code: z.string().min(1) })).query(async ({ input }) => {
+  /**
+   * PUBLIC (pre-auth) lookup for the claim screen. The code is the capability — no list/enumerate procedure exists.
+   * B3.0.1 / B3-S03: returns ONLY what the claim screen needs — never the invitee's email or phone, the
+   * coach id, the price / subscription template, the creator or claim fields. Rate-limited per IP.
+   */
+  getByCode: publicProcedure.input(z.object({ code: z.string().min(1) })).query(async ({ ctx, input }) => {
+    await enforceRateLimit('invites.getByCode', getClientIp(ctx.req), LOOKUP_MAX, INVITE_WINDOW_MS);
     const code = normalizeCode(input.code);
     const col = await invitesCol();
     const invite = await col.findOne({ _id: code });
     if (!invite) throw new TRPCError({ code: 'NOT_FOUND', message: 'Invite not found' });
-    return { ...invite, claimable: isClaimable(invite) };
+    const email = invite.email?.trim();
+    return {
+      _id: invite._id,
+      status: invite.status,
+      claimable: isClaimable(invite),
+      expiresAt: invite.expiresAt ?? null,
+      ...(invite.coachName ? { coachName: invite.coachName } : {}),
+      ...(invite.displayName ? { displayName: invite.displayName } : {}),
+      hasEmail: !!email,
+      ...(email ? { emailHint: maskEmail(email) } : {}),
+    };
   }),
 
   /** The owning coach (or an admin with `coaches.assign`) revokes a pending invite. Soft-revoke only — never deletes the doc. */
@@ -181,6 +209,7 @@ export const invitesRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await enforceRateLimit('invites.claim', getClientIp(ctx.req), CLAIM_MAX, INVITE_WINDOW_MS);
       const code = normalizeCode(input.code);
       const invites = await invitesCol();
       const invite = await invites.findOne({ _id: code });

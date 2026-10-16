@@ -143,7 +143,8 @@ describe('mediaApi — single-shot uploads', () => {
       [413, { error: 'tooLarge' }, 'tooLarge'],
       [415, { error: 'badType' }, 'badType'],
       [503, { error: 'notConfigured' }, 'notConfigured'],
-      [403, { error: 'forbidden', message: 'Not a participant in this thread' }, 'failed'],
+      // B3.0.1: a 403 is a refusal for this account / conversation — permanent, never retried as "failed".
+      [403, { error: 'forbidden', message: 'Not a participant in this thread' }, 'forbidden'],
       [500, undefined, 'failed'],
     ];
     for (const [status, json, code] of cases) {
@@ -223,7 +224,7 @@ describe('mediaApi — chunked uploads (> 4 MiB)', () => {
     const { uploadFile } = await api();
     const file = new File([new Uint8Array(5 * MB)], 'big.mp4', { type: 'video/mp4' });
     script = [{ status: 403, json: { error: 'forbidden' } }];
-    await expect(uploadFile(file, { category: 'exercise' })).rejects.toMatchObject({ code: 'failed' });
+    await expect(uploadFile(file, { category: 'exercise' })).rejects.toMatchObject({ code: 'forbidden' });
     expect(sent).toHaveLength(0);
 
     script = [{ status: 200, json: { uploadId: 'u-2', chunkSize: 4 * MB, totalChunks: 2 } }, { status: 410, json: { error: 'expired' } }];

@@ -83,6 +83,7 @@ function metaFromQuery(q: URLSearchParams, mimeType: string, size: number): Uplo
     name: str(q.get('name')),
     clientId: str(q.get('clientId')),
     checkInId: str(q.get('checkInId')),
+    coachId: str(q.get('coachId')),
   };
 }
 
@@ -112,6 +113,7 @@ async function init(req: VercelRequest, res: VercelResponse, user: AuthedUser): 
     name: str(body.name),
     clientId: str(body.clientId),
     checkInId: str(body.checkInId),
+    coachId: str(body.coachId),
   });
   const totalChunks = Math.ceil(target.size / CHUNK_BYTES);
   const now = Date.now();

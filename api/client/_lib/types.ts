@@ -66,8 +66,18 @@ export interface ClientProfileDoc {
   clientId: string;
   profile?: ClientProfileFields;
   assessment?: ClientAssessmentFields;
-  /** Coach-only notes; stored OUTSIDE `assessment` so no client-bound read can include them (B0 / CO-02). */
-  privateNotes?: { assessment?: string; updatedAt?: number; updatedBy?: string };
+  /**
+   * Coach-only notes; stored OUTSIDE `assessment` so no client-bound read can include them (B0 / CO-02).
+   * B3.0.1 / B3-S02: one private note PER AUTHOR (`assessmentByAuthor[authorId]`) so a new coach can
+   * neither read nor overwrite an earlier coach's note. `assessment` / `updatedBy` / `updatedAt` are the
+   * legacy single note (kept as written; superseded by its author's first new write).
+   */
+  privateNotes?: {
+    assessment?: string;
+    updatedAt?: number;
+    updatedBy?: string;
+    assessmentByAuthor?: Record<string, { text: string; updatedAt: number }>;
+  };
   updatedAt: number;
 }
 
@@ -256,6 +266,8 @@ export interface AppNotificationDoc {
   route?: string;
   /** coach_note only: set when the note was explicitly shared with the client (its excerpt may be shown). */
   noteVisibility?: 'client';
+  /** B3.0.1: for a coach-bound notification, the coach it is FOR (the client's coach when it was raised). */
+  coachId?: string;
   /** DONE: the task this asked for was completed (see notifications-data.ts). */
   resolvedAt?: number | null;
   seenAt?: number | null;

@@ -4,10 +4,13 @@ import { getDb, withDbTransaction } from '../_lib/mongodb.js';
 import { TRPCError } from '@trpc/server';
 import type { UserDoc } from '../_lib/types.js';
 import { addMonths, capError, buildSubscription, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
+import { CommercialReason } from '../_lib/commercialReason.js';
+import { SUBSCRIPTION_RULE_MESSAGES, applyExtend, applyFreeze, applyUnfreeze, isBackdatedRenewal, snapshotOf, type SubscriptionRuleReason } from './_subscriptionRules.js';
 import type {
   ClientSubscriptionInput,
   CoachClientDoc,
   SubscriptionDoc,
+  SubscriptionEventDoc,
   SubscriptionPeriodDoc,
   SubscriptionStatus,
   TransferMode,
@@ -42,11 +45,44 @@ export type SubscriptionAction =
   | { op: 'cancel' }
   | { op: 'extend'; days: number };
 
-export async function updateSubscription(coachId: string, clientId: string, action: SubscriptionAction): Promise<CoachClientDoc> {
+/**
+ * Who is changing the subscription (B3.0.1). `requireActive`: the owning
+ * coach may only change a relationship that is still active (B3-S05); an
+ * admin with `clients.writeAll` may correct an ended one (owner R-2), which
+ * the router audits.
+ */
+export interface SubscriptionChangeOptions {
+  actorRole: 'coach' | 'admin';
+  requireActive: boolean;
+}
+
+export interface SubscriptionChangeResult {
+  doc: CoachClientDoc;
+  before: SubscriptionDoc | null;
+  event: SubscriptionEventDoc;
+}
+
+/** Keep the audit trail bounded (newest last). */
+const MAX_SUBSCRIPTION_EVENTS = 200;
+
+function ruleError(reason: SubscriptionRuleReason): TRPCError {
+  return new TRPCError({ code: 'CONFLICT', message: SUBSCRIPTION_RULE_MESSAGES[reason], cause: new CommercialReason(reason) });
+}
+
+export async function updateSubscription(
+  coachId: string,
+  clientId: string,
+  action: SubscriptionAction,
+  opts: SubscriptionChangeOptions = { actorRole: 'coach', requireActive: true },
+): Promise<SubscriptionChangeResult> {
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
   if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
+  // B3-S05: a former coach can no longer change the record of a client who left.
+  if (opts.requireActive && existing.status !== 'active') {
+    throw new TRPCError({ code: 'CONFLICT', message: 'This client is no longer yours', cause: new CommercialReason('RELATIONSHIP_ENDED') });
+  }
   const now = Date.now();
   const cur: SubscriptionDoc = existing.subscription ?? { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
 
@@ -60,6 +96,8 @@ export async function updateSubscription(coachId: string, clientId: string, acti
         status: 'active',
         frozenFrom: null,
         frozenUntil: null,
+        // A renewal starts unfrozen; a scheduled freeze ends with the old term (S07 §0.6).
+        freezeCredit: null,
         updatedAt: now,
         ...(typeof action.price === 'number' ? { price: action.price } : {}),
         ...(action.currency ? { currency: action.currency } : {}),
@@ -76,21 +114,32 @@ export async function updateSubscription(coachId: string, clientId: string, acti
     case 'setPrice':
       next = { ...cur, price: action.price, ...(action.currency ? { currency: action.currency } : {}), updatedAt: now };
       break;
-    case 'freeze':
-      next = { ...cur, status: 'frozen', frozenFrom: action.from, frozenUntil: action.until, ...(action.note ? { note: action.note } : {}), updatedAt: now };
+    case 'freeze': {
+      // B3-S07 (F-C): scheduled, compensated, finite, inside the term.
+      const r = applyFreeze(existing.subscription, action.from, action.until, action.note, now);
+      if (!r.ok) throw ruleError(r.reason);
+      next = r.next;
       break;
-    case 'unfreeze':
-      next = { ...cur, status: 'active', frozenFrom: null, frozenUntil: null, updatedAt: now };
+    }
+    case 'unfreeze': {
+      const r = applyUnfreeze(existing.subscription, now);
+      if (!r.ok) throw ruleError(r.reason);
+      next = r.next;
       break;
+    }
     case 'end':
       next = { ...cur, status: 'ended', endAt: now, updatedAt: now };
       break;
     case 'cancel':
       next = { ...cur, status: 'cancelled', cancelledAt: now, updatedAt: now };
       break;
-    case 'extend':
-      next = { ...cur, endAt: cur.endAt + action.days * SUB_DAY, updatedAt: now };
+    case 'extend': {
+      // B3-S07 (E2): max(now, end) + days; terminal terms need a renewal.
+      const r = applyExtend(existing.subscription, action.days, now);
+      if (!r.ok) throw ruleError(r.reason);
+      next = r.next;
       break;
+    }
   }
 
   // B0 / CO-15: a term change (renewal / new term) ARCHIVES the outgoing term
@@ -98,12 +147,39 @@ export async function updateSubscription(coachId: string, clientId: string, acti
   // every previous term. Price edits, freezes and extensions change the
   // current term and are not archived. Atomic with the update itself.
   const archive = action.op === 'setTerm' && existing.subscription ? archivedTerm(existing.subscription, now) : null;
-  await col.updateOne({ _id: id }, { $set: { subscription: next, updatedAt: now }, ...(archive ? { $push: { subscriptionHistory: archive } } : {}) });
+  // B3.0.1: every change leaves an auditable event in the same write.
+  const event: SubscriptionEventDoc = {
+    at: now,
+    op: action.op,
+    actorRole: opts.actorRole,
+    before: existing.subscription ? snapshotOf(existing.subscription) : null,
+    after: snapshotOf(next),
+    ...(action.op === 'setTerm' && isBackdatedRenewal(existing.subscription, action.startAt, now) ? { backdated: true as const } : {}),
+  };
+  // Compare-and-set on the term we read: two concurrent changes (e.g. a freeze
+  // and an extension) must not both apply their date arithmetic to the same
+  // stale copy.
+  const filter = existing.subscription ? { _id: id, 'subscription.updatedAt': existing.subscription.updatedAt } : { _id: id, subscription: { $exists: false } };
+  const written = await col.updateOne(filter, {
+    $set: { subscription: next, updatedAt: now },
+    $push: {
+      ...(archive ? { subscriptionHistory: archive } : {}),
+      subscriptionEvents: { $each: [event], $slice: -MAX_SUBSCRIPTION_EVENTS },
+    },
+  });
+  if (written.matchedCount === 0) {
+    throw new TRPCError({ code: 'CONFLICT', message: 'The subscription changed meanwhile — reload and try again', cause: new CommercialReason('SUBSCRIPTION_CHANGED') });
+  }
   return {
-    ...existing,
-    subscription: next,
-    ...(archive ? { subscriptionHistory: [...(existing.subscriptionHistory ?? []), archive] } : {}),
-    updatedAt: now,
+    doc: {
+      ...existing,
+      subscription: next,
+      ...(archive ? { subscriptionHistory: [...(existing.subscriptionHistory ?? []), archive] } : {}),
+      subscriptionEvents: [...(existing.subscriptionEvents ?? []), event].slice(-MAX_SUBSCRIPTION_EVENTS),
+      updatedAt: now,
+    },
+    before: existing.subscription ?? null,
+    event,
   };
 }
 

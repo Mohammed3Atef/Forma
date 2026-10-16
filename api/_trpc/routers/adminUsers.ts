@@ -236,12 +236,13 @@ export const adminUsersRouter = router({
    * client can load their coach's card and a coach can load a client's.
    *
    * The FULL profile (email/phone/socials/flags) is returned only to the user
-   * themself, a `users.read` holder, or someone who has (or had) a coaching
-   * relationship with the target — either direction, any status, so a
-   * client's timeline still resolves a previous coach. Anyone else (e.g. a
-   * coach looking at the other coach named on a transfer request) gets the
-   * same shape with every contact/control field blanked: a name card, not a
-   * directory entry.
+   * themself, a `users.read` holder, or someone with an ACTIVE coaching
+   * relationship with the target, either direction (B3.0.1 / B3-S01b: a
+   * former coach no longer keeps a client's contact details, nor a former
+   * client the coach's). Anyone else — a former coach or client, or a coach
+   * looking at the other coach named on a transfer request — gets the same
+   * shape with every contact/control field blanked: a name card (name and
+   * photo, so a timeline still names a previous coach), not a directory entry.
    */
   get: protectedProcedure.input(z.object({ id: z.string().trim().min(1) })).query(async ({ ctx, input }) => {
     const users = await usersCol();
@@ -251,7 +252,7 @@ export const adminUsersRouter = router({
     let full = u.id === target._id || hasPermission(u.role, u.accountStatus, u.permissions, 'users.read');
     if (!full) {
       const rels = await coachClientsCol();
-      const related = await rels.findOne({ $or: [{ _id: `${u.id}__${target._id}` }, { _id: `${target._id}__${u.id}` }] }, { projection: { _id: 1 } });
+      const related = await rels.findOne({ _id: { $in: [`${u.id}__${target._id}`, `${target._id}__${u.id}`] }, status: 'active' }, { projection: { _id: 1 } });
       full = !!related;
     }
     const pub = toPublicUser(target);

@@ -6,6 +6,9 @@ import { clientProfilesCol } from '../../client/_lib/db.js';
 import { notify } from '../../client/_lib/notify.js';
 import { resolveNotifications } from '../../messages/_handlers/notifications-data.js';
 import { usersCol } from '../../_lib/mongodb.js';
+import { coachClientsCol } from '../../coach-clients/_data.js';
+import { writeAudit } from '../../admin/_lib/audit.js';
+import type { AuthedUser } from '../context.js';
 import type { AssessmentStatus, ClientAssessmentFields, ClientProfileDoc, ClientProfileFields } from '../../client/_lib/types.js';
 
 const ProfileFieldsSchema = z.object({
@@ -69,18 +72,55 @@ const DraftBody = z.object({
 
 /**
  * B0 / CO-02: the coach's review notes are PRIVATE. They live in
- * `privateNotes.assessment`, outside the client-written `assessment` object,
- * and every assessment read returned to a client has `coachNotes` removed —
- * including legacy docs that still carry `assessment.coachNotes` (treated as
- * private). Coaches/admins get the private note back as `coachNotes`.
+ * `privateNotes`, outside the client-written `assessment` object, and every
+ * assessment read returned to a client has `coachNotes` removed — including
+ * legacy docs that still carry `assessment.coachNotes` (treated as private).
+ *
+ * B3.0.1 / B3-S02 (owner O-16): the note is AUTHOR-private. A coach gets back
+ * (as `coachNotes`, same response shape) only their own note:
+ *  - their entry in `privateNotes.assessmentByAuthor`, else
+ *  - the legacy single note when its recorded author (`updatedBy`) is them, or
+ *    when it has no author and the client has never had another coach.
+ * An admin (oversight) gets the current coach's note (else the legacy one) —
+ * audited whenever it is someone else's (owner R-1).
  */
-function assessmentForViewer(doc: ClientProfileDoc | null | undefined, viewer: { id: string; role: string }): ClientAssessmentFields | null {
+async function assessmentForViewer(doc: ClientProfileDoc | null | undefined, viewer: AuthedUser): Promise<ClientAssessmentFields | null> {
   const a = doc?.assessment;
   if (!a) return null;
-  const { coachNotes: legacy, ...rest } = a;
+  const { coachNotes: legacyInline, ...rest } = a;
   if (viewer.role === 'client' || viewer.id === doc?.clientId || viewer.id === doc?._id) return rest as ClientAssessmentFields;
-  const notes = doc?.privateNotes?.assessment ?? legacy;
+  const notes = await privateNoteFor(doc!, legacyInline, viewer);
   return (notes != null ? { ...rest, coachNotes: notes } : rest) as ClientAssessmentFields;
+}
+
+async function privateNoteFor(doc: ClientProfileDoc, legacyInline: string | undefined, viewer: AuthedUser): Promise<string | undefined> {
+  const byAuthor = doc.privateNotes?.assessmentByAuthor ?? {};
+  const legacy = doc.privateNotes?.assessment ?? legacyInline;
+  const legacyBy = doc.privateNotes?.assessment != null ? doc.privateNotes.updatedBy : undefined;
+  const clientId = doc.clientId ?? doc._id;
+  if (viewer.role === 'coach') {
+    const own = byAuthor[viewer.id];
+    if (own) return own.text;
+    if (legacy == null) return undefined;
+    if (legacyBy) return legacyBy === viewer.id ? legacy : undefined;
+    const others = await (await coachClientsCol()).countDocuments({ clientId, coachId: { $ne: viewer.id } });
+    return others === 0 ? legacy : undefined;
+  }
+  // Admin oversight: the current coach's note, else the admin's own, else the legacy note.
+  const current = await (await coachClientsCol()).findOne({ clientId, status: 'active' }, { projection: { coachId: 1 } });
+  const fromCurrent = current ? byAuthor[current.coachId] : undefined;
+  const pick = fromCurrent ?? byAuthor[viewer.id];
+  const text = pick?.text ?? legacy;
+  if (text != null && !(pick && pick === byAuthor[viewer.id])) {
+    await writeAudit(viewer, 'assessment.readPrivateNote', clientId, { author: fromCurrent ? 'currentCoach' : 'legacy' });
+  }
+  return text;
+}
+
+/** Author ids become a Mongo field name — refuse anything that could address another path. */
+function authorKey(id: string): string {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Unsupported author id' });
+  return id;
 }
 
 /**
@@ -93,7 +133,7 @@ export const assessmentRouter = router({
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const doc = await (await clientProfilesCol()).findOne({ _id: clientId });
-    return assessmentForViewer(doc, ctx.user);
+    return await assessmentForViewer(doc, ctx.user);
   }),
 
   /** Client saves an in-progress draft (does not touch profile/main). */
@@ -111,7 +151,7 @@ export const assessmentRouter = router({
       }
       await col.updateOne({ _id: clientId }, { $set: set }, { upsert: true });
       const updated = await col.findOne({ _id: clientId });
-      return assessmentForViewer(updated, ctx.user);
+      return await assessmentForViewer(updated, ctx.user);
     }),
 
   /** Submits the assessment AND the derived fitness profile atomically; syncs displayName; notifies the coach. */
@@ -173,10 +213,15 @@ export const assessmentRouter = router({
       await notify({ clientId, forRole: 'coach', type: 'assessment_submitted', route: `/coach/client/${clientId}/assessment`, createdBy: clientId });
 
       const updated = await col.findOne({ _id: clientId });
-      return assessmentForViewer(updated, ctx.user);
+      return await assessmentForViewer(updated, ctx.user);
     }),
 
-  /** Coach records PRIVATE review notes (never returned to the client). */
+  /**
+   * Coach records PRIVATE review notes (never returned to the client).
+   * B3.0.1 / B3-S02: written to the caller's OWN entry — never over another
+   * author's note. The caller's legacy single note (if they wrote it) is
+   * superseded and removed; anyone else's legacy note is kept untouched.
+   */
   setCoachNotes: authedProcedure
     .input(z.object({ clientId: z.string().optional(), coachNotes: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -184,13 +229,22 @@ export const assessmentRouter = router({
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await clientProfilesCol();
       const now = Date.now();
-      await col.updateOne(
-        { _id: clientId },
-        { $set: { clientId, updatedAt: now, 'privateNotes.assessment': input.coachNotes, 'privateNotes.updatedAt': now, 'privateNotes.updatedBy': ctx.user.id }, $unset: { 'assessment.coachNotes': '' } },
-        { upsert: true },
-      );
+      const existing = await col.findOne({ _id: clientId });
+      const set: Record<string, unknown> = { clientId, updatedAt: now, [`privateNotes.assessmentByAuthor.${authorKey(ctx.user.id)}`]: { text: input.coachNotes, updatedAt: now } };
+      const unset: Record<string, ''> = {};
+      // A pre-B0 inline note is moved (never deleted) into the legacy private slot, author unknown.
+      if (existing?.assessment?.coachNotes != null) {
+        if (existing.privateNotes?.assessment == null) set['privateNotes.assessment'] = existing.assessment.coachNotes;
+        unset['assessment.coachNotes'] = '';
+      }
+      if (existing?.privateNotes?.assessment != null && existing.privateNotes.updatedBy === ctx.user.id) {
+        unset['privateNotes.assessment'] = '';
+        unset['privateNotes.updatedBy'] = '';
+        unset['privateNotes.updatedAt'] = '';
+      }
+      await col.updateOne({ _id: clientId }, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) }, { upsert: true });
       const updated = await col.findOne({ _id: clientId });
-      return assessmentForViewer(updated, ctx.user);
+      return await assessmentForViewer(updated, ctx.user);
     }),
 
   /** Coach marks the assessment reviewed (locks further client edits until reset). */
@@ -207,7 +261,7 @@ export const assessmentRouter = router({
     await notify({ clientId, forRole: 'client', type: 'assessment_reviewed', route: '/coach-notes', createdBy: ctx.user.id });
     await resolveNotifications({ clientId, forRole: 'coach', type: 'assessment_submitted' });
     const updated = await col.findOne({ _id: clientId });
-    return assessmentForViewer(updated, ctx.user);
+    return await assessmentForViewer(updated, ctx.user);
   }),
 
   /** Coach re-opens the assessment so the client can edit + resubmit. */
@@ -222,6 +276,6 @@ export const assessmentRouter = router({
       { upsert: true },
     );
     const updated = await col.findOne({ _id: clientId });
-    return assessmentForViewer(updated, ctx.user);
+    return await assessmentForViewer(updated, ctx.user);
   }),
 });

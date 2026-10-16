@@ -43,7 +43,21 @@ export function validatePulledRecord(collection: SyncCollection, rec: { id?: unk
 
 // ---- records the server refused (they stay on the device; the status says so) ----
 
+/**
+ * B3.0.1 / B3-S06: the server refused a workout / nutrition / cardio log
+ * because its DAY was not covered by the coaching subscription (after it
+ * ended, or inside a freeze). Not a broken record: it stays on the device and
+ * is pushed again every pass, so it syncs once the coach extends or renews
+ * over that date. Mirrors `api/sync/_contract.ts` `RejectReason`.
+ */
+export const SUBSCRIPTION_READ_ONLY = 'SUBSCRIPTION_READ_ONLY';
+
 type RejectedMap = Record<string, string>; // `${collection}/${id}` → reason
+
+/** How many refused records were refused for `reason`. */
+export function countRejectedFor(map: RejectedMap, reason: string): number {
+  return Object.values(map).filter((r) => r === reason).length;
+}
 const REJECTED_KEY = 'syncRejected';
 
 export async function readRejected(): Promise<RejectedMap> {

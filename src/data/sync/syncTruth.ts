@@ -4,7 +4,7 @@ import type { Repository } from '@/data/repositories';
 import { currentLocalOwner } from '@/data/localScope';
 import { onLocalChange } from '@/data/localChanges';
 import { listTombstones } from './tombstones';
-import { readRejected, SYNC_COLLECTIONS } from './contract';
+import { countRejectedFor, readRejected, SUBSCRIPTION_READ_ONLY, SYNC_COLLECTIONS } from './contract';
 import type { OutboxOp } from '@/data/outbox/outbox';
 
 /**
@@ -89,8 +89,10 @@ export function localWriteLabel(state: 'saving' | 'saved' | 'failed'): 'trust.sy
 interface PendingState {
   pendingLocal: number;
   rejected: number;
+  /** Of `rejected`: logs dated outside the coaching subscription (B3.0.1) — explained separately. */
+  rejectedReadOnly: number;
 }
-export const usePendingSync = create<PendingState>(() => ({ pendingLocal: 0, rejected: 0 }));
+export const usePendingSync = create<PendingState>(() => ({ pendingLocal: 0, rejected: 0, rejectedReadOnly: 0 }));
 
 /** Unsynced records + pending deletions in the OPEN account's database (conflicts counted separately). */
 export async function countUnsyncedLocal(): Promise<number> {
@@ -113,13 +115,13 @@ export function refreshPendingSync(delayMs = 250): void {
     const owner = currentLocalOwner();
     const gen = ++generation;
     if (!owner) {
-      usePendingSync.setState({ pendingLocal: 0, rejected: 0 });
+      usePendingSync.setState({ pendingLocal: 0, rejected: 0, rejectedReadOnly: 0 });
       return;
     }
     void Promise.all([countUnsyncedLocal(), readRejected()])
       .then(([pendingLocal, rejected]) => {
         if (gen !== generation || currentLocalOwner() !== owner) return; // switched meanwhile
-        usePendingSync.setState({ pendingLocal, rejected: Object.keys(rejected).length });
+        usePendingSync.setState({ pendingLocal, rejected: Object.keys(rejected).length, rejectedReadOnly: countRejectedFor(rejected, SUBSCRIPTION_READ_ONLY) });
       })
       .catch(() => undefined);
   }, delayMs);

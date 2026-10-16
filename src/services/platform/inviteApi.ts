@@ -1,5 +1,5 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
-import type { BillingCycle, SignupInvite, SubscriptionStatus } from '@/types';
+import type { BillingCycle, PublicInvite, SignupInvite, SubscriptionStatus } from '@/types';
 
 /**
  * Client invitations — now backed by `/api/invites/*` (Mongo `signupInvites`
@@ -96,11 +96,23 @@ export async function createInvite(coachId: string, input: CreateInviteInput = {
   return fromApiDoc(doc);
 }
 
-/** Read one invite by code (public pre-auth lookup; the code is the capability). */
-export async function getInvite(code: string): Promise<SignupInvite | null> {
+/**
+ * Read one invite by code (public pre-auth lookup; the code is the capability).
+ * B3.0.1 / B3-S03: only the claim-screen fields come back — see `PublicInvite`.
+ */
+export async function getInvite(code: string): Promise<PublicInvite | null> {
   try {
     const doc = await trpc.invites.getByCode.query({ code: code.trim().toUpperCase() });
-    return fromApiDoc(doc);
+    return {
+      code: doc._id,
+      status: doc.status,
+      claimable: doc.claimable,
+      expiresAt: doc.expiresAt,
+      ...(doc.coachName ? { coachName: doc.coachName } : {}),
+      ...(doc.displayName ? { displayName: doc.displayName } : {}),
+      hasEmail: doc.hasEmail,
+      ...(doc.emailHint ? { emailHint: doc.emailHint } : {}),
+    };
   } catch (e) {
     if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;
@@ -119,7 +131,7 @@ export async function revokeInvite(code: string): Promise<void> {
 }
 
 /** True when an invite is currently claimable. */
-export function isClaimable(invite: SignupInvite | null, now = Date.now()): boolean {
+export function isClaimable(invite: Pick<SignupInvite, 'status' | 'expiresAt'> | null, now = Date.now()): boolean {
   if (!invite) return false;
   if (invite.status !== 'pending') return false;
   if (invite.expiresAt != null && invite.expiresAt <= now) return false;

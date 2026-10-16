@@ -10,10 +10,17 @@ export const DAY = 86_400_000;
 export const WEEK = 7 * DAY;
 
 /**
- * Effective subscription state folding in the current date: a term past `endAt`
- * is `ended`... actually `expired` (trial/active term lapsed); a freeze whose
- * `frozenUntil` hasn't passed is `frozen`; otherwise `active`/`trial`. Returns
- * `none` when there is no subscription at all.
+ * Effective subscription state folding in the current date: a trial/active
+ * term past `endAt` is `expired`; a freeze in force is `frozen`; otherwise
+ * `active`/`trial`. Returns `none` when there is no subscription at all.
+ *
+ * Freezes (B3.0.1 / B3-S07, owner-approved F-C): a freeze written since
+ * B3.0.1 carries `freezeCredit` and is SCHEDULED — frozen only while
+ * `frozenFrom <= now < frozenUntil`. A freeze stored before B3.0.1 (no
+ * `freezeCredit`) keeps its original meaning — frozen from acceptance until
+ * `frozenUntil` (or indefinitely) — because existing records are never
+ * migrated silently. KEEP IDENTICAL to `src/lib/subscription.ts` (shared test
+ * vector: `src/lib/subscriptionParity.test.ts`).
  */
 export function effectiveSubscriptionStatus(
   sub: Subscription | null | undefined,
@@ -24,7 +31,13 @@ export function effectiveSubscriptionStatus(
   if (sub.status === 'ended') return 'ended';
   if (sub.status === 'expired') return 'expired';
   if (sub.status === 'pending') return 'pending';
-  if (sub.status === 'frozen' && (sub.frozenUntil == null || now < sub.frozenUntil)) return 'frozen';
+  if (sub.status === 'frozen') {
+    if (sub.freezeCredit != null) {
+      if (sub.frozenFrom != null && sub.frozenUntil != null && now >= sub.frozenFrom && now < sub.frozenUntil) return 'frozen';
+    } else if (sub.frozenUntil == null || now < sub.frozenUntil) {
+      return 'frozen';
+    }
+  }
   if (now >= sub.endAt) return 'expired';
   return sub.status === 'trial' ? 'trial' : 'active';
 }

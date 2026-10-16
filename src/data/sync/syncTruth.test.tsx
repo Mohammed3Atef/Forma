@@ -60,7 +60,7 @@ describe('deriveSyncTruth (B1.7 / PWA-11)', () => {
 describe('<SyncStatus> (the one indicator)', () => {
   beforeEach(() => {
     useCloud.setState({ user: { uid: 'c1' }, syncing: false, lastSync: Date.now() - 60_000, error: null, syncNow: vi.fn(async () => undefined) } as never);
-    usePendingSync.setState({ pendingLocal: 0, rejected: 0 });
+    usePendingSync.setState({ pendingLocal: 0, rejected: 0, rejectedReadOnly: 0 });
     useSyncConflicts.setState({ conflicts: [] });
     useOutbox.setState({ ops: [], progress: {} });
   });
@@ -83,6 +83,20 @@ describe('<SyncStatus> (the one indicator)', () => {
     render(<SyncStatus />);
     fireEvent.click(screen.getByRole('button'));
     expect(syncNow).toHaveBeenCalledWith(true);
+  });
+
+  it('B3.0.1: logs refused for SUBSCRIPTION_READ_ONLY are explained (kept on the device, sync once covered)', () => {
+    usePendingSync.setState({ pendingLocal: 2, rejected: 2, rejectedReadOnly: 2 });
+    render(<SyncStatus variant="detail" />);
+    expect(screen.getByTestId('sync-status')).toHaveAttribute('data-sync-state', 'failed');
+    expect(screen.getByTestId('sync-readonly-detail')).toHaveTextContent('2 entries are dated outside your coaching subscription');
+    expect(screen.getByTestId('sync-readonly-detail')).toHaveTextContent('stay on this device');
+  });
+
+  it('other refusals do not show the subscription explanation', () => {
+    usePendingSync.setState({ pendingLocal: 1, rejected: 1, rejectedReadOnly: 0 });
+    render(<SyncStatus variant="detail" />);
+    expect(screen.queryByTestId('sync-readonly-detail')).toBeNull();
   });
 
   it('the detail view states what is pending, with a real plural', () => {

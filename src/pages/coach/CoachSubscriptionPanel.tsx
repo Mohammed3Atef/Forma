@@ -21,7 +21,7 @@ import {
 } from '@/services/platform/coachClientsApi';
 import { getClientFreezeRequest, resolveFreezeRequest } from '@/services/platform/coachApi';
 import { listCoachPlans } from '@/services/platform/coachPlansApi';
-import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
+import { effectiveSubscriptionStatus, freezePending, freezeScheduled, isBackdatedRenewal, subscriptionDaysLeft, unfreezeEndAt } from '@/lib/subscription';
 import { parseDecimal, parseNumber } from '@/lib/utils';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
@@ -105,10 +105,12 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: succeed(t('subscription.cancel')), onError: onErr(t('subscription.cancel')) });
   const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: succeed(t('subscription.extend')), onError: onErr(t('subscription.extend')) });
   const decide = useMutation({
-    mutationFn: ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) =>
-      resolveFreezeRequest(clientId, coachId, outcome, note).then(async () => {
-        if (outcome === 'accepted') await freezeSubscription(coachId, clientId, from, until, note);
-      }),
+    // B3.0.1: accepting applies the freeze FIRST — the request is marked accepted
+    // only when the freeze itself was accepted (dates in the term, not in the past).
+    mutationFn: async ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) => {
+      if (outcome === 'accepted') await freezeSubscription(coachId, clientId, from, until, note);
+      await resolveFreezeRequest(clientId, coachId, outcome, note);
+    },
     onSuccess: succeed(t('subscription.pauseTitle')),
     onError: onErr(t('subscription.pauseTitle')),
   });
@@ -206,8 +208,10 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
                   <p className="text-[13px]">{sub.months ?? '—'}</p>
                 </div>
               </div>
-              {sub.status === 'frozen' && sub.frozenUntil && (
-                <p className="text-[12px] text-warn">{t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}</p>
+              {freezeScheduled(sub) ? (
+                <p className="text-[12px] text-warn" data-testid="sub-freeze-scheduled">{t('subscription.freezeScheduled', { from: toDate(sub.frozenFrom), until: toDate(sub.frozenUntil) })}</p>
+              ) : (
+                status === 'frozen' && sub.frozenUntil && <p className="text-[12px] text-warn">{t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}</p>
               )}
             </>
           ) : (
@@ -223,12 +227,12 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
           {sub && (
             <div className="flex flex-wrap gap-2">
               <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>
-              {status === 'frozen' ? (
-                <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreeze'), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
+              {freezePending(sub) ? (
+                <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreezeEnd', { date: toDate(unfreezeEndAt(sub)) }), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
               ) : status === 'active' ? (
                 <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
               ) : null}
-              {(status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && (
+              {(sub.status === 'active' || sub.status === 'trial' || sub.status === 'frozen') && (
                 <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => void doExtend(30)}>{t('subscription.extend')}</button>
               )}
             </div>
@@ -297,7 +301,12 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         currency={sub?.currency || coachCurrency}
         pending={setTerm.isPending}
         error={setTerm.isError}
-        onSave={(start, term, price, planName) => setTerm.mutate({ start, term, price, planName })}
+        onSave={async (start, term, price, planName) => {
+          // B3.0.1 (owner): a renewal back-dated over unpaid time is confirmed explicitly — it lets
+          // the client's blocked logs from those days sync. The server flags it in the audit event.
+          if (isBackdatedRenewal(sub, toMs(start)) && !(await confirmDialog({ title: t('subscription.backdatedTitle'), message: t('subscription.confirmBackdated', { date: start }), confirmLabel: t('common.yes'), cancelLabel: t('common.no') }))) return;
+          setTerm.mutate({ start, term, price, planName });
+        }}
       />
 
       {/* Freeze sheet */}
@@ -305,7 +314,8 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         open={sheet === 'freeze'}
         onClose={() => setSheet(null)}
         pending={freeze.isPending}
-        error={freeze.isError}
+        error={freeze.isError ? commercialErrorMessage(freeze.error, t) : null}
+        maxDate={sub ? toDate(sub.endAt) : undefined}
         onSave={(from, until, note) => freeze.mutate({ from, until, note })}
       />
 
@@ -377,7 +387,7 @@ function PriceSheet({ open, onClose, initialPrice, initialCurrency, pending, err
             <input className="input" data-testid="price-currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
           </div>
         </div>
-        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
+        {error && <p role="alert" className="text-sm text-danger" data-testid="freeze-error">{error}</p>}
         <SubmitButton type="button" fullWidth data-testid="price-save" disabled={!(parseNumber(price) >= 0) || price.trim() === ''} pending={pending} onClick={() => onSave(parseNumber(price), currency.trim())}>
           {t('common.save')}
         </SubmitButton>
@@ -489,7 +499,7 @@ function SetTermSheet({
   );
 }
 
-function FreezeSheet({ open, onClose, pending, error, onSave }: { open: boolean; onClose: () => void; pending: boolean; error: boolean; onSave: (from: string, until: string, note: string) => void }) {
+function FreezeSheet({ open, onClose, pending, error, maxDate, onSave }: { open: boolean; onClose: () => void; pending: boolean; error: string | null; maxDate?: string; onSave: (from: string, until: string, note: string) => void }) {
   const { t } = useTranslation();
   const [from, setFrom] = useState(todayStr());
   const [until, setUntil] = useState('');
@@ -500,11 +510,11 @@ function FreezeSheet({ open, onClose, pending, error, onSave }: { open: boolean;
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="label">{t('subscription.from')}</label>
-            <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <input type="date" className="input" data-testid="freeze-from" min={todayStr()} max={maxDate} value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div>
             <label className="label">{t('subscription.until')}</label>
-            <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+            <input type="date" className="input" data-testid="freeze-until" min={from || todayStr()} max={maxDate} value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
         </div>
         <TextAreaField label={t('field.notes')} className="min-h-16" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />

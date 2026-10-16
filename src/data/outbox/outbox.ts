@@ -66,7 +66,7 @@ export interface OutboxOp<P = unknown> {
   attemptCount: number;
   lastAttemptAt?: number;
   nextAttemptAt?: number;
-  lastError?: { kind: ErrorKind; code?: string };
+  lastError?: { kind: ErrorKind; code?: string; /** Server reason code (B3.0.1), e.g. CONVERSATION_CLOSED. */ reason?: string };
   serverAcknowledgedAt?: number;
   /** The server's response (e.g. the created message). */
   result?: unknown;
@@ -387,7 +387,7 @@ async function attempt(op0: OutboxOp): Promise<void> {
     op = {
       ...op,
       status,
-      lastError: { kind: c.kind, code: c.code },
+      lastError: { kind: c.kind, code: c.code, ...(c.reason ? { reason: c.reason } : {}) },
       nextAttemptAt: status === 'failed_retryable' ? Date.now() + backoffMs(op.attemptCount, c.kind) : undefined,
       updatedAt: Date.now(),
     };

@@ -68,6 +68,12 @@ export function SyncStatus({ variant = 'inline', className = '' }: { variant?: '
       <span className="min-w-0">
         <span className={`block t-label ${look.tone}`}>{label}</span>
         {detailLine && <span className="block t-caption text-ui-muted">{detailLine}</span>}
+        {/* B3.0.1: logs refused because their day was outside the coaching subscription — say why, and that they are kept. */}
+        {s.failedReadOnly > 0 && (
+          <span className="block t-caption text-ui-muted" data-testid="sync-readonly-detail">
+            {t('trust.syncState.readOnlyDetail', { count: s.failedReadOnly })}
+          </span>
+        )}
       </span>
     </div>
   );

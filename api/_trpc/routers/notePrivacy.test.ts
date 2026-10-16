@@ -138,7 +138,8 @@ describe('assessment review notes are private (CO-02)', () => {
     await asCoach.assessment.setCoachNotes({ clientId: 'client-1', coachNotes: PRIVATE_TEXT });
     const raw = await (await getDb()).collection('clientProfiles').findOne({ _id: 'client-1' } as never);
     expect(raw?.assessment).not.toHaveProperty('coachNotes');
-    expect(raw?.privateNotes?.assessment).toBe(PRIVATE_TEXT);
+    // B3.0.1 / B3-S02: one private note per author (a later coach can neither read nor overwrite it).
+    expect(raw?.privateNotes?.assessmentByAuthor?.['coach-1']?.text).toBe(PRIVATE_TEXT);
   });
 
   it('a legacy note stored inside the assessment is still hidden from the client and kept for the coach', async () => {

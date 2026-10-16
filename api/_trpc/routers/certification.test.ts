@@ -291,12 +291,12 @@ describe('tenant isolation', () => {
     expect((await caller(a).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
   });
 
-  it('adminUsers.get returns contact details only to self / related users / users.read holders — a name card to everyone else', async () => {
+  it('adminUsers.get returns contact details only to self / ACTIVELY related users / users.read holders — a name card to everyone else', async () => {
     const coachA = await insertUser({ _id: 'coachA', role: 'coach', phone: '111' });
     const coachB = await insertUser({ _id: 'coachB', role: 'coach', phone: '222' });
     const client = await insertUser({ _id: 'client', role: 'client', phone: '333' });
     const admin = await insertUser({ _id: 'admin', role: 'admin' });
-    await assign(coachA._id, client._id, 'ended'); // even an ENDED relationship keeps the two mutually visible
+    await assign(coachA._id, client._id); // an ACTIVE relationship: the two see each other's contacts
 
     const unrelated = await caller(coachB).adminUsers.get({ id: coachA._id });
     expect(unrelated.displayName).toBe(coachA.displayName);
@@ -308,6 +308,14 @@ describe('tenant isolation', () => {
     expect((await caller(client).adminUsers.get({ id: coachB._id })).phone).toBeUndefined();
     expect((await caller(admin).adminUsers.get({ id: coachB._id })).phone).toBe('222');
     expect((await caller(coachB).adminUsers.get({ id: coachB._id })).phone).toBe('222');
+
+    // B3.0.1 / B3-S01b (owner O-16): once the relationship ENDS, neither side keeps the other's contacts — a name card only.
+    await (await getDb()).collection('coachClients').updateOne({ _id: `${coachA._id}__${client._id}` } as never, { $set: { status: 'ended' } });
+    const formerClient = await caller(coachA).adminUsers.get({ id: client._id });
+    expect(formerClient.displayName).toBe(client.displayName);
+    expect(formerClient.phone).toBeUndefined();
+    expect(formerClient.email).toBe('');
+    expect((await caller(client).adminUsers.get({ id: coachA._id })).phone).toBeUndefined();
   });
 });
 
@@ -381,6 +389,8 @@ describe('idempotency and races', () => {
 
   it('messages.send: an empty message (no text, no attachment) is rejected server-side', async () => {
     const client = await insertUser({ _id: 'client', role: 'client' });
+    await insertUser({ _id: 'coach', role: 'coach' });
+    await assign('coach', client._id); // B3.0.1: a client message goes to their coach's conversation
     await expect(caller(client).messages.send({ clientId: client._id, text: '   ' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     expect(await code(caller(client).messages.send({ clientId: client._id, text: '', attachment: { url: 'https://x/y.png', kind: 'image' } }))).toBe('OK');
   });

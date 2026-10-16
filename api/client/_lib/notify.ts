@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { notificationsCol } from './db.js';
+import { coachClientsCol, notificationsCol } from './db.js';
 import type { AppNotificationDoc, NoteEntityType, NoteScreen, NotificationType } from './types.js';
 
 /** Port of `notificationsApi.notify()` — same shape, now writing to Mongo. */
@@ -52,5 +52,11 @@ async function insertNotification(input: NotifyInput): Promise<void> {
   if (input.entityId) doc.entityId = input.entityId;
   if (input.route) doc.route = input.route;
   if (input.noteVisibility) doc.noteVisibility = input.noteVisibility;
+  // B3.0.1 / B3-S14: a coach-bound notification belongs to the client's coach
+  // at the moment it is raised — a later coach never sees it.
+  if (input.forRole === 'coach') {
+    const rel = await (await coachClientsCol()).findOne({ clientId: input.clientId, status: 'active' }, { projection: { coachId: 1 } });
+    if (rel?.coachId) doc.coachId = rel.coachId;
+  }
   await col.insertOne(doc);
 }

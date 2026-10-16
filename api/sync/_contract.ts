@@ -34,7 +34,23 @@ export function isSyncCollection(name: string): name is SyncCollection {
   return (SYNC_COLLECTIONS as readonly string[]).includes(name);
 }
 
-export type RejectReason = 'BAD_ID' | 'ID_MISMATCH' | 'BAD_DATE' | 'BAD_UPDATED_AT' | 'TOO_LARGE' | 'UNSUPPORTED_VERSION';
+/**
+ * Why a pushed record was refused. `SUBSCRIPTION_READ_ONLY` (B3.0.1 / B3-S06,
+ * owner R-6) is not a contract error: the record is well-formed but dated in a
+ * period the client's coaching subscription did not cover (see
+ * `api/coach-clients/_subscriptionRules.ts`). Like every rejection, the device
+ * keeps the record and retries it on later passes.
+ */
+export type RejectReason = 'BAD_ID' | 'ID_MISMATCH' | 'BAD_DATE' | 'BAD_UPDATED_AT' | 'TOO_LARGE' | 'UNSUPPORTED_VERSION' | 'SUBSCRIPTION_READ_ONLY';
+
+/** Logs gated by the coaching subscription (read-only blocks exactly these in the app). */
+export const SUBSCRIPTION_GATED: ReadonlySet<string> = new Set(['workoutLogs', 'nutritionLogs', 'cardioLogs']);
+
+/** The calendar day a gated log is FOR (never its arrival time): the id of a day-keyed log, `data.date` of a cardio log. */
+export function activityDay(collection: string, rec: { id: string; data: Record<string, unknown> }): string | null {
+  if (DAY_KEYED.has(collection)) return rec.id;
+  return typeof rec.data.date === 'string' ? rec.data.date : null;
+}
 
 function validDay(d: unknown): boolean {
   if (typeof d !== 'string' || !DAY_RE.test(d)) return false;

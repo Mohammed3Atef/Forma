@@ -27,6 +27,13 @@ const keyOf = localKeyOf;
 
 export interface MessageSendPayload {
   clientId: string;
+  /**
+   * B3.0.1 / B3-S14: the conversation (coach id) the message was written in.
+   * Sent with every retry, so after a transfer the server refuses it
+   * (CONVERSATION_CLOSED) instead of delivering it to the new coach. Absent
+   * on ops queued by an older build (the server then uses the current coach).
+   */
+  coachId?: string;
   text: string;
   category?: MessageCategory;
   attachment?: { blobKey: string; kind: AttachmentKind; name: string; mimeType: string; size: number; downscale?: boolean };
@@ -48,14 +55,14 @@ registerOutboxHandler('message.send', async (op, ctx) => {
       const blob = await blobStore.get(p.attachment.blobKey);
       if (!blob) throw new OutboxPermanentError('BLOB_MISSING');
       const file = await prepareAttachment(blob, p.attachment);
-      const up = await uploadFile(file, { category: 'message', clientId: p.clientId }, { name: p.attachment.name, signal: ctx.signal, onProgress: (pct) => ctx.progress(pct / 100) });
+      const up = await uploadFile(file, { category: 'message', clientId: p.clientId, ...(p.coachId ? { coachId: p.coachId } : {}) }, { name: p.attachment.name, signal: ctx.signal, onProgress: (pct) => ctx.progress(pct / 100) });
       media = { url: up.url, kind: up.kind, name: up.name, size: up.size, mimeType: up.mimeType };
       await ctx.setMedia('attachment', media);
     }
     attachment = { url: media.url, kind: (media.kind ?? p.attachment.kind) as MessageAttachment['kind'], name: media.name, size: media.size, mimeType: media.mimeType };
   }
   // The op id IS the server's idempotency key: a retry after a lost response returns the same message.
-  return sendMessage(p.clientId, { id: op.userId, role: 'client' }, p.text, { category: p.category, attachment, clientMsgId: op.operationId });
+  return sendMessage(p.clientId, { id: op.userId, role: 'client' }, p.text, { category: p.category, attachment, clientMsgId: op.operationId, coachId: p.coachId });
 });
 
 /**
@@ -65,6 +72,8 @@ registerOutboxHandler('message.send', async (op, ctx) => {
  */
 export async function queueMessage(input: {
   clientId: string;
+  /** The conversation it is written in (the coach's own id, or the client's current coach). */
+  coachId?: string;
   text: string;
   category?: MessageCategory;
   attachment?: { file: File; kind: AttachmentKind; downscale?: boolean };
@@ -90,7 +99,7 @@ export async function queueMessage(input: {
     operationId,
     type: 'message.send',
     scope: `thread:${input.clientId}`,
-    payload: { clientId: input.clientId, text: input.text, category: input.category, attachment },
+    payload: { clientId: input.clientId, ...(input.coachId ? { coachId: input.coachId } : {}), text: input.text, category: input.category, attachment },
     blobKeys,
     dependencyIds: input.dependsOn ? [input.dependsOn] : undefined,
   });

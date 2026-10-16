@@ -12,6 +12,8 @@ export interface SyncState {
   conflicts: number;
   /** Items the server refused + outbox sends that need the user. */
   failed: number;
+  /** Of `failed`: logs refused because their day was outside the coaching subscription (B3.0.1). */
+  failedReadOnly: number;
   lastSync: number | null;
   online: boolean;
   /** Start a sync pass now (client role; no-op otherwise). */
@@ -28,6 +30,7 @@ export function useSyncState(): SyncState {
   const syncNowFn = useCloud((s) => s.syncNow);
   const pendingLocal = usePendingSync((s) => s.pendingLocal);
   const rejected = usePendingSync((s) => s.rejected);
+  const rejectedReadOnly = usePendingSync((s) => s.rejectedReadOnly);
   const conflicts = useSyncConflicts((s) => s.conflicts.length);
   const ops = useOutbox((s) => s.ops);
   const outbox = useMemo(() => outboxCounts(ops), [ops]);
@@ -37,6 +40,7 @@ export function useSyncState(): SyncState {
     pending: pendingLocal + outbox.pending + outbox.sending,
     conflicts,
     failed: rejected + outbox.failed,
+    failedReadOnly: rejectedReadOnly,
     lastSync,
     online,
     syncNow: () => {

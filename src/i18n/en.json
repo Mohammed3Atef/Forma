@@ -377,7 +377,11 @@
       "update": "Update"
     },
     "composerLabel": "Message",
-    "editLabel": "Edit message"
+    "editLabel": "Edit message",
+    "earlierConversations": "Earlier conversations · read-only",
+    "conversationClosed": "Not sent — this conversation has ended.",
+    "noActiveCoach": "Not sent — you don't have a coach right now.",
+    "accountNotActive": "Not sent — your account isn't active."
   },
   "home": {
     "steps": "Steps",
@@ -1390,7 +1394,8 @@
     "notConfigured": "Photo upload isn't configured.",
     "cropTitle": "Adjust photo",
     "zoom": "Zoom",
-    "avatarHint": "Tap the photo to change it · drag & zoom to crop."
+    "avatarHint": "Tap the photo to change it · drag & zoom to crop.",
+    "forbidden": "This upload isn't allowed right now."
   },
   "adminMedia": {
     "title": "Images",
@@ -1491,7 +1496,11 @@
     "editDatesHint": "Adjust the freeze dates before accepting.",
     "setByCoach": "Set by your coach — message them for term or price changes.",
     "pauseTitle": "Pause your subscription",
-    "historyTitle": "History"
+    "historyTitle": "History",
+    "freezeScheduled": "Freeze scheduled: {{from}} → {{until}}",
+    "confirmUnfreezeEnd": "Resume this client's subscription now? Unused frozen days are taken off (today counts as frozen). The term will end on {{date}}.",
+    "backdatedTitle": "Start in the past?",
+    "confirmBackdated": "This term starts on {{date}}, before today. Workouts, meals and cardio your client logged from {{date}} until now — including entries that were blocked because the subscription had ended — will sync to their record. Continue?"
   },
   "coachView": {
     "viewAsClient": "Viewing as client",
@@ -2178,7 +2187,17 @@
       "CAPACITY_REQUEST_PENDING": "A request for this add-on is already awaiting payment confirmation.",
       "SUBSCRIPTION_REQUEST_PENDING": "A subscription request is already awaiting payment confirmation.",
       "CAPACITY_PACKAGE_UNAVAILABLE": "This capacity add-on is no longer available.",
-      "REQUEST_ALREADY_RESOLVED": "This request was already resolved or has expired."
+      "REQUEST_ALREADY_RESOLVED": "This request was already resolved or has expired.",
+      "RENEWAL_REQUIRED": "This term has ended — use Renew to start a new one.",
+      "FREEZE_NOT_ALLOWED": "Only a running, paid term that isn't already frozen can be frozen.",
+      "FREEZE_INVALID_WINDOW": "Pick a freeze that starts today or later and ends after it starts.",
+      "FREEZE_OUT_OF_TERM": "The freeze must fit inside the current term.",
+      "NOT_FROZEN": "This subscription isn't frozen.",
+      "RELATIONSHIP_ENDED": "This client is no longer yours.",
+      "SUBSCRIPTION_CHANGED": "The subscription changed meanwhile — reload and try again.",
+      "ACCOUNT_NOT_ACTIVE": "Your account isn't active.",
+      "CONVERSATION_CLOSED": "This conversation has ended.",
+      "NO_ACTIVE_COACH": "You don't have a coach right now."
     },
     "hist": {
       "subscription_confirmed": "Subscription confirmed",
@@ -2507,7 +2526,9 @@
       "failedDetail_other": "{{count}} changes couldn't sync — they stay on this device.",
       "pending_one": "{{count}} change not synced yet",
       "pending_other": "{{count}} changes not synced yet",
-      "lastSynced": "Last synced {{when}}"
+      "lastSynced": "Last synced {{when}}",
+      "readOnlyDetail_one": "{{count}} entry is dated outside your coaching subscription (after it ended or during a pause). It stays on this device and syncs once your coach extends or renews over that date.",
+      "readOnlyDetail_other": "{{count}} entries are dated outside your coaching subscription (after it ended or during a pause). They stay on this device and sync once your coach extends or renews over those dates."
     }
   },
   "i18nField": {

@@ -21,7 +21,8 @@ import { trpc } from '@/services/trpc';
  * server-side; the pre-checks here only exist for instant feedback.
  */
 
-export type UploadErrorCode = 'notConfigured' | 'badType' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'failed' | 'cancelled';
+/** `forbidden` (B3.0.1): the server refused this upload for this account / conversation — retrying cannot help. */
+export type UploadErrorCode = 'notConfigured' | 'badType' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'forbidden' | 'failed' | 'cancelled';
 
 export class UploadError extends Error {
   code: UploadErrorCode;
@@ -40,7 +41,7 @@ export interface UploadResult {
 export type UploadTarget =
   | { category: 'avatar' | 'progress' | 'assessment' | 'exercise' }
   | { category: 'checkin'; checkInId: string }
-  | { category: 'message'; clientId: string };
+  | { category: 'message'; clientId: string; /** B3.0.1: the conversation the attachment was composed in. */ coachId?: string };
 
 export interface UploadOptions {
   /** Display name to keep with the file (defaults to `File.name`). */
@@ -183,13 +184,17 @@ function assertOk(r: RawResponse): Record<string, unknown> {
   if (r.status === 413 && code.startsWith('tooLarge')) throw new UploadError(code as UploadErrorCode, message);
   if (r.status === 415) throw new UploadError('badType', message);
   if (r.status === 503) throw new UploadError('notConfigured', message);
+  if (r.status === 403) throw new UploadError('forbidden', message);
   throw new UploadError('failed', message);
 }
 
 function targetParams(target: UploadTarget): Record<string, string> {
   const p: Record<string, string> = { category: target.category };
   if (target.category === 'checkin') p.checkInId = target.checkInId;
-  if (target.category === 'message') p.clientId = target.clientId;
+  if (target.category === 'message') {
+    p.clientId = target.clientId;
+    if (target.coachId) p.coachId = target.coachId;
+  }
   return p;
 }
 

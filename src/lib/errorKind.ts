@@ -25,6 +25,8 @@ export interface ClassifiedError {
   kind: ErrorKind;
   /** tRPC error code / upload error code when known (never shown to users). */
   code?: string;
+  /** The server's stable machine reason (`error.data.reason`, e.g. CONVERSATION_CLOSED) when it sent one. */
+  reason?: string;
   /** True when the same request may succeed later without the user changing anything. */
   retryable: boolean;
 }
@@ -63,9 +65,10 @@ export function classifyError(e: unknown): ClassifiedError {
   if (isTimeout(e)) return { kind: 'timeout', retryable: true };
   if (isAbort(e)) return { kind: 'cancelled', retryable: false };
 
-  const err = e as { name?: string; data?: { code?: string; httpStatus?: number } | null; cause?: unknown };
+  const err = e as { name?: string; data?: { code?: string; httpStatus?: number; reason?: unknown } | null; cause?: unknown };
   if (e instanceof TRPCClientError || (err && typeof err === 'object' && err.name === 'TRPCClientError')) {
     const code = err.data?.code;
+    const reason = typeof err.data?.reason === 'string' ? err.data.reason : undefined;
     if (!code) {
       // No tRPC payload: the request never produced a JSON answer. A deadline
       // shows up as a TimeoutError cause; everything else (TypeError: Failed
@@ -78,7 +81,7 @@ export function classifyError(e: unknown): ClassifiedError {
     if (code === 'TOO_MANY_REQUESTS') return { kind: 'rate_limited', code, retryable: true };
     if (code === 'TIMEOUT') return { kind: 'timeout', code, retryable: true };
     if (SERVER_TRPC.has(code)) return { kind: 'server', code, retryable: true };
-    if (PERMANENT_TRPC.has(code)) return { kind: 'permanent', code, retryable: false };
+    if (PERMANENT_TRPC.has(code)) return { kind: 'permanent', code, retryable: false, ...(reason ? { reason } : {}) };
     const status = err.data?.httpStatus ?? 0;
     if (status >= 500) return { kind: 'server', code, retryable: true };
     return { kind: 'permanent', code, retryable: false };

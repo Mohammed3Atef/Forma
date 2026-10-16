@@ -4,8 +4,9 @@ import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
 import { assignExistingClient, endRelationship, transferClientWithMode, updateSubscription, type SubscriptionAction } from '../../coach-clients/_service.js';
-import type { ClientSubscriptionInput } from '../../coach-clients/_types.js';
+import type { ClientSubscriptionInput, CoachClientDoc } from '../../coach-clients/_types.js';
 import { usersCol } from '../../_lib/mongodb.js';
+import { writeAudit } from '../../admin/_lib/audit.js';
 import { toPublicUser } from '../../_lib/types.js';
 import { syncRecordsCol } from '../../sync/_data.js';
 import { clientProfilesCol, checkInsCol } from '../../client/_lib/db.js';
@@ -18,6 +19,16 @@ function assessmentStatusOf(a: ClientAssessmentFields | undefined): 'not_started
 }
 
 const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * B3.0.1 / B3-S01: another coach's relationship as the ACTIVE coach may see
+ * it — the timeline facts only (who, when, how it ended). No subscription,
+ * price, history, invite code or creator. Same document shape, fields omitted.
+ */
+function timelineOnly(r: CoachClientDoc): CoachClientDoc {
+  const { _id, coachId, clientId, status, createdAt, endedAt, endReason, mode, updatedAt } = r;
+  return { _id, coachId, clientId, status, createdAt, updatedAt, ...(endedAt != null ? { endedAt } : {}), ...(endReason ? { endReason } : {}), ...(mode ? { mode } : {}) } as CoachClientDoc;
+}
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
@@ -62,7 +73,10 @@ function parseId(id: string): { coachId: string; clientId: string } {
 export const coachClientsRouter = router({
   /**
    * `?coachId=` : that coach's relationships (self, or `users.read`), filtered by `status` (default `active`).
-   * `?clientId=`: that client's full history, newest first (self, their assigned coach, or `users.read`).
+   * `?clientId=`: that client's history, newest first. Full for the client themself and `users.read`.
+   *               B3.0.1 / B3-S01: a coach with an ACTIVE relationship gets their own records in full
+   *               and other coaches' as timeline facts only; a former coach gets only their own
+   *               records; anyone else FORBIDDEN.
    * neither     : "my own" list — a coach's active roster, or a client's own coaching history.
    */
   list: authedProcedure
@@ -79,10 +93,12 @@ export const coachClientsRouter = router({
 
       if (input.clientId) {
         const all = await col.find({ clientId: input.clientId }).sort({ createdAt: -1 }).toArray();
-        if (ctx.user.id !== input.clientId && !canReadAll && !all.some((r) => r.coachId === ctx.user.id)) {
-          throw new TRPCError({ code: 'FORBIDDEN' });
-        }
-        return all;
+        if (ctx.user.id === input.clientId || canReadAll) return all;
+        const own = all.filter((r) => r.coachId === ctx.user.id);
+        if (own.length === 0) throw new TRPCError({ code: 'FORBIDDEN' });
+        const isActiveCoach = ctx.user.role === 'coach' && own.some((r) => r.status === 'active');
+        if (!isActiveCoach) return own; // a former coach keeps only their own business record
+        return all.map((r) => (r.coachId === ctx.user.id ? r : timelineOnly(r)));
       }
 
       if (input.coachId) {
@@ -223,7 +239,13 @@ export const coachClientsRouter = router({
       return endRelationship(coachId, clientId, ctx.user.id, endReason);
     }),
 
-  /** The owning coach (or an admin with `clients.writeAll`) mutates an EXISTING relationship's subscription in place. */
+  /**
+   * The owning coach (or an admin with `clients.writeAll`) mutates an EXISTING
+   * relationship's subscription in place. B3.0.1: the owning coach only while
+   * the relationship is ACTIVE (B3-S05 → CONFLICT `RELATIONSHIP_ENDED`); an
+   * admin may correct any relationship, and every admin change is audited
+   * (owner R-2). Extend / Freeze / Unfreeze follow the approved S07 rules.
+   */
   updateSubscription: protectedProcedure
     .input(z.object({ id: z.string().min(1), sub: SubscriptionActionSchema }))
     .mutation(async ({ ctx, input }) => {
@@ -231,7 +253,17 @@ export const coachClientsRouter = router({
       const isOwningCoach = ctx.user.role === 'coach' && coachId === ctx.user.id;
       const canWriteAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll');
       if (!isOwningCoach && !canWriteAll) throw new TRPCError({ code: 'FORBIDDEN' });
-      return updateSubscription(coachId, clientId, input.sub as SubscriptionAction);
+      const actorRole = isOwningCoach ? 'coach' : 'admin';
+      const res = await updateSubscription(coachId, clientId, input.sub as SubscriptionAction, { actorRole, requireActive: isOwningCoach });
+      if (actorRole === 'admin') {
+        await writeAudit(ctx.user, `subscription.${input.sub.op}`, clientId, {
+          relationshipId: input.id,
+          relationshipStatus: res.doc.status,
+          before: res.event.before,
+          after: res.event.after,
+        });
+      }
+      return res.doc;
     }),
 
   /** Admin-only reassignment (`coaches.assign`; `clients.writeAll` additionally required for `mode: 'fresh_start'`). */

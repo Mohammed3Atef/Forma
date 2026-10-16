@@ -84,7 +84,7 @@ const CATEGORY: Record<MessageCategory, { bubble: string; flash: string }> = {
   update: { bubble: "border border-info/60 bg-info/15 text-white", flash: `${colors.info}80` },
 };
 
-type ActionTarget = { message: Message; mine: boolean; editable: boolean };
+type ActionTarget = { message: Message; mine: boolean; editable: boolean; /** In an earlier coach's conversation (read-only, B3.0.1). */ history: boolean };
 
 /**
  * Canonical 1:1 chat thread — shared by the coach and client screens. ONE layout
@@ -99,12 +99,21 @@ export function MessageThread({
   meId,
   meRole,
   peer,
+  conversationCoachId,
 }: {
   clientId: string;
   meId: string;
   meRole: Role;
   /** The other party, for theirs-message avatars + accessibility. */
   peer?: { name?: string; photoUrl?: string };
+  /**
+   * CLIENT only (B3.0.1 / B3-S14): the current coach — the conversation new
+   * messages go to. Messages from any other conversation are an earlier
+   * coach's: shown apart, read-only. `null` = no coach right now (history
+   * only, no composer). Omit for coach / admin views (the server already
+   * returns only their own conversation).
+   */
+  conversationCoachId?: string | null;
 }) {
   const { t, i18n } = useTranslation();
   const uploadsEnabled = useUploadConfigured();
@@ -180,6 +189,15 @@ export function MessageThread({
     const ids = new Set(messages.map((m) => m.id));
     return [...olderPages.filter((m) => !ids.has(m.id)), ...messages, ...justSent.filter((m) => !ids.has(m.id))];
   }, [messages, olderPages, justSent]);
+
+  // B3.0.1 / B3-S14: the conversation this thread writes to, and the
+  // client's earlier-coach history (read-only, shown apart).
+  const conversation = meRole === "coach" ? meId : (conversationCoachId ?? undefined);
+  const historyOnly = meRole === "client" && conversationCoachId === null;
+  const isHistory = useCallback((m: Message) => meRole === "client" && conversationCoachId !== undefined && m.coachId !== conversationCoachId, [meRole, conversationCoachId]);
+  const historyMsgs = useMemo(() => combined.filter(isHistory), [combined, isHistory]);
+  const currentMsgs = useMemo(() => (historyMsgs.length ? combined.filter((m) => !isHistory(m)) : combined), [combined, historyMsgs.length, isHistory]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const pending = useMemo(() => {
     const delivered = new Set(combined.map((m) => m.clientMsgId).filter(Boolean));
@@ -425,12 +443,12 @@ export function MessageThread({
     try {
       let attachmentOpId: string | undefined;
       if (attachment) {
-        const op = await queueMessage({ clientId, text: "", attachment: { file: attachment.file, kind: attachment.kind, downscale: attachment.downscale } });
+        const op = await queueMessage({ clientId, coachId: conversation, text: "", attachment: { file: attachment.file, kind: attachment.kind, downscale: attachment.downscale } });
         attachmentOpId = op.operationId;
         if (attachment.previewUrl) setPreviews((p) => ({ ...p, [op.operationId]: attachment.previewUrl! })); // handed over, not revoked
         void reportFirstUploadFailure(op.operationId, attachment.file, attachment.kind);
       }
-      if (text) await queueMessage({ clientId, text, dependsOn: attachmentOpId });
+      if (text) await queueMessage({ clientId, coachId: conversation, text, dependsOn: attachmentOpId });
       setBody("");
       setDraft(null);
       stick.current = true;
@@ -454,8 +472,7 @@ export function MessageThread({
     const op = await waitForFirstAttempt(opId);
     if (!op || (op.status !== "failed_permanent" && op.status !== "failed_retryable")) return;
     if (op.status === "failed_permanent") {
-      const code = op.lastError?.code;
-      const reason = code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : t("upload.failed");
+      const reason = refusalText(op) ?? t("upload.failed");
       if (await discardOutbox(opId)) {
         dropPreview(opId);
         setDraft((cur) => cur ?? { file, kind, previewUrl: kind === "image" || kind === "audio" || kind === "video" ? URL.createObjectURL(file) : undefined, downscale: kind === "image" && file.type !== "image/svg+xml" });
@@ -464,6 +481,17 @@ export function MessageThread({
       return;
     }
     await alertDialog({ title: t("messages.title"), message: `${t("upload.failed")} ${t("trust.outbox.keptRetrying")}` });
+  };
+
+  /** Why the server refused a queued send, in words (B3.0.1 reasons + upload codes); null = generic. */
+  const refusalText = (op: OutboxOp): string | null => {
+    const reason = op.lastError?.reason;
+    if (reason === "CONVERSATION_CLOSED") return t("messages.conversationClosed");
+    if (reason === "NO_ACTIVE_COACH") return t("messages.noActiveCoach");
+    if (reason === "ACCOUNT_NOT_ACTIVE") return t("messages.accountNotActive");
+    const code = op.lastError?.code;
+    if (code === "forbidden") return t("upload.forbidden");
+    return code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : null;
   };
 
   const retryPending = (op: OutboxOp) => void retryOutbox(op.operationId);
@@ -592,10 +620,11 @@ export function MessageThread({
     (m: Message) => {
       if (m.deletedAt) return;
       const mine = m.fromRole === meRole;
-      const editable = mine && Date.now() - m.createdAt < MESSAGE_EDIT_WINDOW_MS;
-      setActionsFor({ message: m, mine, editable });
+      const history = isHistory(m);
+      const editable = !history && mine && Date.now() - m.createdAt < MESSAGE_EDIT_WINDOW_MS;
+      setActionsFor({ message: m, mine, editable, history });
     },
-    [meRole],
+    [meRole, isHistory],
   );
 
   // Shared by the mobile bottom sheet (long-press) and the desktop floating
@@ -603,6 +632,7 @@ export function MessageThread({
   // scoped to `target.message` alone.
   const renderActionsContent = (target: ActionTarget) => (
     <div className="space-y-3">
+      {!target.history && (
       <div className="flex justify-center gap-1.5" data-testid="reaction-picker">
         {MESSAGE_REACTIONS.map((emoji) => (
           <button
@@ -619,6 +649,7 @@ export function MessageThread({
           </button>
         ))}
       </div>
+      )}
       <div className="space-y-1">
         {target.editable && (
           <button type="button" data-testid="action-edit" className="row w-full text-start" onClick={() => openEdit(target.message)}>
@@ -664,6 +695,50 @@ export function MessageThread({
     </div>
   );
 
+  // Grouping only ever changes SPACING and whether the trailing avatar
+  // repeats — every bubble is still keyed by its own `m.id` and every
+  // reaction/3-dot/edit/delete/long-press action closes over that exact
+  // message, never a "run" of messages. Earlier-conversation rows (B3.0.1)
+  // carry no current-coach avatar: they were not written by this coach.
+  const renderRows = (list: Message[], history: boolean) =>
+    list.map((m, i) => {
+      const mine = m.fromRole === meRole;
+      const prev = list[i - 1];
+      const next = list[i + 1];
+      const GROUP_WINDOW_MS = 5 * 60 * 1000;
+      const closeToPrev = !!prev && !prev.deletedAt && prev.fromRole === m.fromRole && m.createdAt - prev.createdAt < GROUP_WINDOW_MS;
+      const closeToNext = !!next && !m.deletedAt && next.fromRole === m.fromRole && next.createdAt - m.createdAt < GROUP_WINDOW_MS;
+      const isLastOfGroup = !closeToNext;
+      const isFirstOfGroup = !closeToPrev;
+      const curDay = new Date(m.createdAt).toDateString();
+      const isNewDay = !prev || new Date(prev.createdAt).toDateString() !== curDay;
+      const topGap = isNewDay ? "mt-1" : isFirstOfGroup ? "mt-5" : "mt-2";
+      return (
+        <MessageRow
+          key={m.id}
+          m={m}
+          mine={mine}
+          topGap={topGap}
+          isLastOfGroup={isLastOfGroup}
+          isNewDay={isNewDay}
+          peerName={history ? undefined : peer?.name}
+          peerPhotoUrl={history ? undefined : peer?.photoUrl}
+          isEditing={editingId === m.id}
+          editText={editText}
+          onEditTextChange={setEditText}
+          onSubmitEdit={submitEdit}
+          onCancelEdit={cancelEdit}
+          editRef={editRef}
+          onOpenActions={openActions}
+          bubbleRefs={bubbleRefs}
+          onMediaLoad={onMediaLoad}
+        />
+      );
+    });
+
+  // A client with no coach right now: only their earlier conversations, read-only — nothing at all when there are none.
+  if (historyOnly && (loading || loadError || combined.length === 0)) return null;
+
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="message-thread">
       {/* Sunken warm-charcoal canvas, distinct from the elevated header above and the composer below. */}
@@ -701,52 +776,33 @@ export function MessageThread({
                 {loadingOlder ? t("auth.working") : t("messages.loadOlder")}
               </button>
             )}
-            {combined.map((m, i) => {
-              const mine = m.fromRole === meRole;
-              const prev = combined[i - 1];
-              const next = combined[i + 1];
-              // Grouping only ever changes SPACING and whether the trailing avatar
-              // repeats — every bubble below is still keyed by its own `m.id` and
-              // every reaction/3-dot/edit/delete/long-press action closes over
-              // that exact message, never a "run" of messages.
-              const GROUP_WINDOW_MS = 5 * 60 * 1000;
-              const closeToPrev = !!prev && !prev.deletedAt && prev.fromRole === m.fromRole && m.createdAt - prev.createdAt < GROUP_WINDOW_MS;
-              const closeToNext = !!next && !m.deletedAt && next.fromRole === m.fromRole && next.createdAt - m.createdAt < GROUP_WINDOW_MS;
-              const isLastOfGroup = !closeToNext;
-              const isFirstOfGroup = !closeToPrev;
-              const curDay = new Date(m.createdAt).toDateString();
-              const isNewDay = !prev || new Date(prev.createdAt).toDateString() !== curDay;
-              const topGap = isNewDay ? "mt-1" : isFirstOfGroup ? "mt-5" : "mt-2";
-              return (
-                <MessageRow
-                  key={m.id}
-                  m={m}
-                  mine={mine}
-                  topGap={topGap}
-                  isLastOfGroup={isLastOfGroup}
-                  isNewDay={isNewDay}
-                  peerName={peer?.name}
-                  peerPhotoUrl={peer?.photoUrl}
-                  isEditing={editingId === m.id}
-                  editText={editText}
-                  onEditTextChange={setEditText}
-                  onSubmitEdit={submitEdit}
-                  onCancelEdit={cancelEdit}
-                  editRef={editRef}
-                  onOpenActions={openActions}
-                  bubbleRefs={bubbleRefs}
-                  onMediaLoad={onMediaLoad}
-                />
-              );
-            })}
+            {historyMsgs.length > 0 && (
+              <section className="mb-3 border-b border-line-soft pb-3" data-testid="message-history" aria-label={t("messages.earlierConversations")}>
+                {historyOnly ? (
+                  <p className="px-2 pb-1 text-center text-[12px] text-earth-subtle">{t("messages.earlierConversations")}</p>
+                ) : (
+                  <button
+                    type="button"
+                    data-testid="message-history-toggle"
+                    aria-expanded={historyOpen}
+                    onClick={() => setHistoryOpen((o) => !o)}
+                    className="mx-auto flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[12px] text-earth-subtle hover:bg-surface-hover"
+                  >
+                    <Icon name={historyOpen ? "chevronDown" : "chevron"} size={14} />
+                    {t("messages.earlierConversations")} · {historyMsgs.length}
+                  </button>
+                )}
+                {(historyOnly || historyOpen) && renderRows(historyMsgs, true)}
+              </section>
+            )}
+            {renderRows(currentMsgs, false)}
             {pending.map((op) => {
               const p = pendingPayload(op);
               const preview = previews[op.operationId];
               const uploading = !!p.attachment && !op.media?.attachment && op.status === "sending";
               const pct = outboxProgress[op.operationId];
               const failed = op.status === "failed_permanent";
-              const code = op.lastError?.code;
-              const uploadReason = failed && code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : null;
+              const uploadReason = failed ? refusalText(op) : null;
               return (
                 <div key={op.operationId} className="mt-2 flex items-end justify-end gap-2" data-testid="message-bubble-pending" data-outbox-status={op.status}>
                   <div className="flex min-w-0 max-w-[85%] flex-col items-end">
@@ -800,6 +856,7 @@ export function MessageThread({
       {/* Composer — in-flow at the bottom of the full-height column. The extra
           bottom padding respects the home-indicator/gesture-bar safe area on
           notched phones instead of the composer sitting flush against it. */}
+      {!historyOnly && (
       <div className="shrink-0 border-t border-line bg-surface-card px-2 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-2.5">
         {voice.state === "recording" ? (
           <div className="flex items-center gap-2" data-testid="voice-recording">
@@ -906,6 +963,7 @@ export function MessageThread({
           </div>
         )}
       </div>
+      )}
 
       {/* Message action menu — mobile long-press (`onContextMenu`) opens this
           bottom sheet; desktop hover 3-dot instead opens the collision-aware

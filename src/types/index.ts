@@ -342,6 +342,22 @@ export interface AdminCoachCommercial {
 
 export type SignupInviteStatus = 'pending' | 'claimed' | 'revoked';
 
+/**
+ * What the PUBLIC claim screen may learn about an invite (B3.0.1 / B3-S03):
+ * no invitee email or phone, no coach id, no price. `emailHint` is masked
+ * (`m•••@gmail.com`); the server uses the invite's real email on claim.
+ */
+export interface PublicInvite {
+  code: string;
+  status: SignupInviteStatus;
+  claimable: boolean;
+  expiresAt?: number | null;
+  coachName?: string;
+  displayName?: string;
+  hasEmail: boolean;
+  emailHint?: string;
+}
+
 export interface SignupInvite {
   code: string; // == doc id
   coachId: string;
@@ -507,6 +523,8 @@ export interface Subscription {
   status: SubscriptionStatus;
   frozenFrom?: number | null;
   frozenUntil?: number | null;
+  /** B3.0.1: compensation (ms) a scheduled freeze added to `endAt`; absent on freezes stored before B3.0.1. */
+  freezeCredit?: number | null;
   note?: string; // coach note (e.g. why frozen)
   updatedAt: number;
 }
@@ -806,6 +824,8 @@ export const MESSAGE_EDIT_WINDOW_MS = 2 * 60 * 1000;
 export interface Message {
   id: string;
   clientId: string;
+  /** The conversation (coach id) it belongs to — B3.0.1 / B3-S14. Absent on legacy messages. */
+  coachId?: string;
   fromUserId: string;
   fromRole: Role;
   body: string;

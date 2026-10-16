@@ -143,7 +143,7 @@ export async function sendMessage(
   clientId: string,
   _from: { id: string; role: Role },
   body: string,
-  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment; clientMsgId?: string },
+  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment; clientMsgId?: string; /** B3.0.1: the conversation it was written in. */ coachId?: string },
 ): Promise<Message> {
   // `_from` is unused: the backend derives the sender's id + role from the
   // authenticated session, not the request body. Kept so this signature (and
@@ -154,6 +154,7 @@ export async function sendMessage(
     ...(opts?.category ? { category: opts.category } : {}),
     ...(opts?.attachment ? { attachment: opts.attachment } : {}),
     ...(opts?.clientMsgId ? { clientMsgId: opts.clientMsgId } : {}),
+    ...(opts?.coachId ? { coachId: opts.coachId } : {}),
   });
   return withBroadcastFlag(doc as Message);
 }

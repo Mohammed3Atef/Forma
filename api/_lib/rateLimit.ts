@@ -29,7 +29,7 @@ async function rateLimitsCol(): Promise<Collection<RateLimitDoc>> {
 
 /** Best-effort client IP from Vercel's forwarded-for header; falls back to the socket address, then a constant so callers never crash on it. */
 export function getClientIp(req: VercelRequest): string {
-  const fwd = req.headers['x-forwarded-for'];
+  const fwd = req.headers?.['x-forwarded-for'];
   const first = Array.isArray(fwd) ? fwd[0] : fwd;
   const ip = first?.split(',')[0]?.trim();
   return ip || req.socket?.remoteAddress || 'unknown';
