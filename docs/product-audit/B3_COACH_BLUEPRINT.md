@@ -1,6 +1,6 @@
 # B3 — Coach blueprint (B3.0)
 
-> **Status (2026-10-17): approved by the owner with the decisions recorded in §13.** The security & ownership checkpoint **B3.0.1** (`B3.0.1_SECURITY_OWNERSHIP_PLAN.md`, B3-S07 rules in `B3_SUBSCRIPTION_EXTEND_FREEZE_DECISION.md`) is **implemented and verified, awaiting owner review** (`B3_IMPLEMENTATION_LOG.md`). The coach UI rebuild (B3.1+) has not started.
+> **Status (2026-10-17): approved by the owner with the decisions recorded in §13.** The security & ownership checkpoint **B3.0.1** (`B3.0.1_SECURITY_OWNERSHIP_PLAN.md`, B3-S07 rules in `B3_SUBSCRIPTION_EXTEND_FREEZE_DECISION.md`) was approved and committed locally (`56b8365`). **B3.1 (Coach shell) is implemented and verified locally, awaiting owner review** — `B3_IMPLEMENTATION_LOG.md` §B3.1, `B3_COACH_ROUTE_MIGRATION.md`, `B3_VISUAL_QA.md`. B3.2+ has not started.
 > Scope: the coach experience. The client (B2), Super Admin, the marketing website, public authentication and legal pages are not redesigned.
 > Sources: the Phase A audit (`00`–`18`, removal candidates), the B0 / B1 / B2 reports, and a code + server reconnaissance done for this blueprint (route map, feature inventory, API contracts). Facts marked **verified** were checked in the code for this document; facts marked **reported** come from the recon and must be re-checked before anything is built on them.
 > §13 lists every decision that needs the owner. Nothing in §13 is assumed.

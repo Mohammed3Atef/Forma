@@ -1042,7 +1042,8 @@
       "exercises": "Exercises",
       "foods": "Foods",
       "groups": "Food groups",
-      "supplements": "Supplements"
+      "supplements": "Supplements",
+      "programs": "Programs"
     },
     "exercise": "Exercise",
     "newExercise": "New exercise",
@@ -2702,5 +2703,43 @@
     "removeFailedTitle": "Signed out, but some data stayed on this device",
     "removeFailedBody": "Close other Forma tabs and try again after signing in.",
     "signingOut": "Signing out…"
+  },
+  "coachNav": {
+    "today": "Today",
+    "clients": "Clients",
+    "messages": "Messages",
+    "library": "Library",
+    "me": "Me",
+    "primary": "Coach navigation",
+    "openMessages": "Open messages"
+  },
+  "coachMe": {
+    "business": "Business",
+    "revenue": "Revenue & renewals",
+    "revenueMeta": "Collected, due and lapsed this month",
+    "packages": "Client packages",
+    "packagesMeta": "The terms and prices you offer",
+    "reports": "Reports & exports",
+    "reportsMeta": "Client, subscription and revenue CSVs",
+    "forma": "Forma",
+    "formaSubscription": "Forma subscription",
+    "planState": {
+      "trial": "Free trial",
+      "trialDays_one": "Free trial · {{count}} day left",
+      "trialDays_other": "Free trial · {{count}} days left",
+      "active": "Active",
+      "expired": "Ended — renew to keep coaching",
+      "suspended": "Suspended",
+      "none": "No subscription yet"
+    },
+    "coaching": "Coaching",
+    "checkins": "Check-ins",
+    "assessments": "Assessments",
+    "adherence": "Adherence",
+    "account": "Account",
+    "accountRow": "Account & preferences",
+    "accountMeta": "Profile, language, password",
+    "help": "Help & support",
+    "helpMeta": "Chat with the Forma team on WhatsApp"
   }
 }

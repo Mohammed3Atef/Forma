@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ClientShell } from '@/components/client/ClientShell';
-import { SiteIconSet } from '@/components/client/siteIcons';
+import { SiteIconSet } from '@/components/shared/siteIcons';
 import { SubscriptionGate } from '@/components/SubscriptionGate';
 import { ClientNotesProvider } from '@/components/ClientNotesProvider';
 import { Onboarding } from '@/components/Onboarding';

@@ -26,6 +26,7 @@ const targets: { name: string; role: Role | null; path: string }[] = [
   { name: 'login', role: null, path: '/login' },
   { name: 'client-home', role: 'clientA', path: '/' },
   { name: 'coach-dashboard', role: 'coachA', path: '/coach/dashboard' },
+  { name: 'coach-me', role: 'coachA', path: '/coach/me' }, // B3.1: the Me hub
   { name: 'admin-accounts', role: 'super', path: '/admin/accounts' },
 ];
 
@@ -135,12 +136,13 @@ test('keyboard: Ctrl+K palette opens; arrows move selection; Enter navigates', a
   await expect(input).toHaveCount(0);
 });
 
-test('coach sidebar + top bar: every icon button / link has an accessible name', async ({ as }, testInfo) => {
+test('coach rail + header: every icon button / link has an accessible name', async ({ as }, testInfo) => {
   const { page } = await as('coachA');
   await page.goto('/coach/dashboard');
   await ready(page);
   const nameless = await page.evaluate(() => {
-    const roots = [document.querySelector('[data-testid="coach-sidebar"]'), document.querySelector('[data-testid="global-search"]')?.closest('header, div')].filter(Boolean) as Element[];
+    // B3.1: the coach's rail and the one app header (search, sync, bell, Me).
+    const roots = [document.querySelector('[data-testid="coach-rail"]'), document.querySelector('[data-testid="app-header"]')].filter(Boolean) as Element[];
     const out: string[] = [];
     for (const root of roots)
       for (const el of Array.from(root.querySelectorAll('button, a[href]'))) {

@@ -24,6 +24,8 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
       { path: '/coach/client/e2e-client-a', name: 'coach-client-workspace' },
       { path: '/coach/messages/e2e-client-a', name: 'coach-thread' },
       { path: '/coach/plan', name: 'coach-my-plan' },
+      { path: '/coach/library', name: 'coach-library' },
+      { path: '/coach/me', name: 'coach-me' },
     ],
   },
   super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }, { path: '/admin/plans', name: 'admin-forma-plan' }, { path: '/admin/plans?tab=packages', name: 'admin-capacity-packages' }, { path: '/admin/plans?tab=requests', name: 'admin-payment-requests' }, { path: '/admin/coaches/e2e-coach-pro', name: 'admin-coach-capacity' }] },
@@ -31,7 +33,8 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
 const NAV_KEYS = {
   // B2: Today · Train · Nutrition · Progress · Coach (You behind the avatar).
   client: ['today', 'train', 'nutrition', 'progress', 'coach'],
-  coach: ['coachDashboard', 'coachClients', 'coachMessages', 'coachRevenue'],
+  // B3.1: Today · Clients · Messages · Library (Me behind the avatar / rail footer).
+  coach: ['today', 'clients', 'messages', 'library'],
   super: ['adminOverview', 'adminAccounts', 'adminCoaches'],
 };
 
@@ -44,7 +47,8 @@ async function settle(page: Page) {
 async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
   const w = page.viewportSize()!.width;
   const bottom = page.getByTestId('bottom-nav');
-  const side = page.getByTestId('coach-sidebar');
+  // B3.1: the coach has its own rail (`coach-rail`); the admin keeps the old sidebar.
+  const side = page.getByTestId(kind === 'coach' ? 'coach-rail' : 'coach-sidebar');
   if (kind === 'client') {
     const rail = page.getByTestId('client-rail');
     if (w < 1024) {
@@ -69,7 +73,7 @@ async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
 /** Nav labels whose text is cut (overflow hidden + scrollWidth > clientWidth). */
 async function clippedNav(page: Page) {
   return page.evaluate(() =>
-    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *, [data-testid="client-rail"] a *'))
+    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *, [data-testid="client-rail"] a *, [data-testid="coach-rail"] a *'))
       .filter((el) => {
         const e = el as HTMLElement;
         if (!e.textContent?.trim() || e.children.length > 0 || e.offsetParent === null) return false;
@@ -89,7 +93,7 @@ async function navLabels(page: Page, kind: 'client' | 'coach' | 'super') {
     const r = page.getByTestId(`rail-${k}`); // B2 client side rail (≥ 1024 px)
     if (await b.isVisible().catch(() => false)) out[k] = ((await b.innerText()).trim() || (await b.getAttribute('aria-label')) || '').trim();
     else if (await s.isVisible().catch(() => false)) out[k] = ((await s.getAttribute('title')) || (await s.innerText())).trim();
-    else if (await r.isVisible().catch(() => false)) out[k] = (await r.innerText()).trim().split(/\r?\n/)[0].trim();
+    else if (await r.isVisible().catch(() => false)) out[k] = (await r.innerText()).trim().split(/\r?\n/)[0].trim() || ((await r.getAttribute('aria-label')) ?? '').trim(); // collapsed coach rail: icon + accessible name
   }
   return out;
 }
@@ -212,7 +216,7 @@ export function defineLayoutTests() {
           await shot(page, testInfo, `${p.name}-ar`, true);
           const dir = await page.evaluate(() => document.documentElement.dir);
           const labels = await navLabels(page, kind);
-          const leaked = Object.entries(labels).filter(([k, v]) => v === tr(en, `nav.${k}`));
+          const leaked = Object.entries(labels).filter(([k, v]) => v === tr(en, `${kind === 'coach' ? 'coachNav' : 'nav'}.${k}`));
           const r: Record<string, unknown> = { dir, overflow: await overflow(page), labels, leaked, clipped: await clippedNav(page) };
           if (p.path === '/progress') {
             await expect.poll(() => page.locator('main div.relative[dir="ltr"] ul.sr-only li').count(), { timeout: 15_000 }).toBeGreaterThan(1).catch(() => undefined);
@@ -268,7 +272,7 @@ export function defineLayoutTests() {
         await settle(page);
         await shot(page, testInfo, `${kind}-ar-eg`, true);
         const labels = await navLabels(page, kind);
-        res[kind] = { dir: await page.evaluate(() => document.documentElement.dir), lang: await page.evaluate(() => document.documentElement.lang), labels, overflow: await overflow(page), leaked: Object.entries(labels).filter(([k, v]) => v === tr(en, `nav.${k}`)) };
+        res[kind] = { dir: await page.evaluate(() => document.documentElement.dir), lang: await page.evaluate(() => document.documentElement.lang), labels, overflow: await overflow(page), leaked: Object.entries(labels).filter(([k, v]) => v === tr(en, `${kind === 'coach' ? 'coachNav' : 'nav'}.${k}`)) };
       } finally {
         await switchLanguage(page, kind, 'en').catch(() => undefined);
         if (kind === 'client') await restoreClientLocale(db);

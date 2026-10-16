@@ -56,7 +56,15 @@ const PARENTS: [pattern: string, parent: string][] = [
   ['/coach/templates/:id/edit', '/coach/templates/:id'],
   ['/coach/templates/new', '/coach/templates'],
   ['/coach/templates/:id', '/coach/templates'],
-  ['/coach/:section', '/coach'],
+  // B3.1 coach IA: Library › Programs; Me (Business, Forma subscription,
+  // Account) → Me → Today; every other section → Today.
+  ['/coach/templates', '/coach/library'],
+  ['/coach/plan', '/coach/me'],
+  ['/coach/settings', '/coach/me'],
+  ['/coach/revenue', '/coach/me'],
+  ['/coach/reports', '/coach/me'],
+  ['/coach/subscription-plans', '/coach/me'],
+  ['/coach/:section', '/coach/dashboard'],
   // admin
   ['/admin/coaches/:id', '/admin/coaches'],
   ['/admin/clients/:id', '/admin/members'],

@@ -1,5 +1,4 @@
 import type { IconName } from '@/components/Icon';
-import type { Role } from '@/types';
 
 /** One bottom-nav tab. `key` resolves to the i18n key `nav.<key>`. */
 export interface NavItem {
@@ -73,70 +72,6 @@ export const CLIENT_MENU: NavGroup[] = [
     items: [
       { to: '/settings/subscription', icon: 'shield', key: 'subscription' },
       { to: '/settings', icon: 'user', key: 'settings' },
-    ],
-  },
-];
-
-/**
- * Coach bottom bar (mobile) — matches the design's exact tab set: Dashboard /
- * Clients / Inbox / Revenue ("Business"). The design's 5th tab ("More") isn't
- * a separate destination here — the brand bar's hamburger menu (present for
- * every role) already opens the full grouped destination list (COACH_SIDEBAR),
- * same as the client shell.
- */
-export const COACH_NAV: NavItem[] = [
-  { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
-  { to: '/coach/clients', icon: 'user', key: 'coachClients' },
-  { to: '/coach/messages', icon: 'chat', key: 'coachMessages' },
-  { to: '/coach/revenue', icon: 'bolt', key: 'coachRevenue' },
-];
-
-/**
- * Every coach destination, grouped exactly like the design's nav rail (Today /
- * Coaching / Content / Business) — used for the desktop sidebar AND the mobile
- * "Navigate" menu sheet. Real destinations beyond the design's 8-item rail
- * (Assessments, Adherence, Client Plans, My Plan) are folded into the group
- * they naturally belong with, plus a trailing "You" group for account/settings
- * (the design reaches these via its own account chrome, which this app doesn't
- * have yet — a bottom group is the real equivalent).
- */
-export const COACH_SIDEBAR: NavGroup[] = [
-  {
-    group: 'groupToday',
-    items: [
-      { to: '/coach/dashboard', icon: 'home', key: 'coachDashboard' },
-      { to: '/coach/messages', icon: 'chat', key: 'coachMessages' },
-    ],
-  },
-  {
-    group: 'groupCoaching',
-    items: [
-      { to: '/coach/clients', icon: 'user', key: 'coachClients' },
-      { to: '/coach/checkins', icon: 'check', key: 'coachCheckins' },
-      { to: '/coach/assessments', icon: 'list', key: 'coachAssessments' },
-      { to: '/coach/adherence', icon: 'target', key: 'coachAdherence' },
-    ],
-  },
-  {
-    group: 'groupContent',
-    items: [
-      { to: '/coach/templates', icon: 'list', key: 'coachTemplates' },
-      { to: '/coach/library', icon: 'dumbbell', key: 'coachLibrary' },
-    ],
-  },
-  {
-    group: 'groupBusiness',
-    items: [
-      { to: '/coach/revenue', icon: 'bolt', key: 'coachRevenue' },
-      { to: '/coach/reports', icon: 'chart', key: 'coachReports' },
-      { to: '/coach/subscription-plans', icon: 'calendar', key: 'coachSubscriptionPlans' },
-    ],
-  },
-  {
-    group: 'groupYou',
-    items: [
-      { to: '/coach/plan', icon: 'shield', key: 'coachPlan' },
-      { to: '/coach/settings', icon: 'settings', key: 'coachSettings' },
     ],
   },
 ];
@@ -223,10 +158,3 @@ export const SUPER_ADMIN_SIDEBAR: NavGroup[] = [
   { group: 'groupGovern', items: [...ADMIN_GROUP_GOVERN_ITEMS, { to: '/admin/media', icon: 'image', key: 'adminImages' }] },
   ADMIN_GROUP_YOU,
 ];
-
-export const NAV: Record<Role, NavItem[]> = {
-  client: CLIENT_NAV,
-  coach: COACH_NAV,
-  admin: ADMIN_NAV,
-  super_admin: SUPER_ADMIN_NAV,
-};

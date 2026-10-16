@@ -74,8 +74,10 @@ export function fullAssessment(name: string, now = Date.now()) {
  * without `networkidle` (background polling under load can keep the network
  * busy for a long time; the marker is the real readiness signal).
  */
-export async function appReady(page: Page, marker = 'coach-sidebar') {
-  await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: 45_000 });
+export async function appReady(page: Page, marker?: string) {
+  // Default: the role's navigation is up — the coach rail (B3.1) or the admin sidebar.
+  const target = marker ? page.getByTestId(marker).first() : page.locator('[data-testid="coach-rail"]:visible, [data-testid="coach-sidebar"]:visible').first();
+  await expect(target).toBeVisible({ timeout: 45_000 });
   await expect(page.getByTestId('login-email')).toHaveCount(0);
 }
 

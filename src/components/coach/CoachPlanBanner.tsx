@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Banner } from '@/components/ui/Banner';
@@ -8,6 +7,7 @@ import { getMyPlanRequests, isActionable } from '@/services/platform/coachPlanRe
 import { capacityOf } from '@/services/platform/coachPlanApi';
 import { useCoachPlan } from './CoachPlanProvider';
 import { useSession } from '@/services/auth/sessionStore';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
 
 /**
  * App-wide coach notices, all pointing to My Plan:
@@ -20,7 +20,8 @@ import { useSession } from '@/services/auth/sessionStore';
 export function CoachPlanBanner() {
   const { plan, state, daysLeft } = useCoachPlan();
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // The banner sits above every coach screen — its CTA must not drop an editor's work (NAV-K05).
+  const navigate = useGuardedNav();
   const uid = useSession((s) => s.uid);
   const reqQ = useQuery({ queryKey: ['coachPlanRequests', 'mine', uid], queryFn: getMyPlanRequests, refetchInterval: 60_000 });
   const openReqs = (reqQ.data ?? []).filter(isActionable);

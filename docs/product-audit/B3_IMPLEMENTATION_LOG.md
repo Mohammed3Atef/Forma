@@ -127,3 +127,86 @@ Tests added for 2–3: `subscriptionParity.test.ts` (+2), `b301Subscription.test
 8. **Admin read audits are best-effort** (`writeAudit` never blocks the read); the subscription audit trail is also written atomically on the relationship (`subscriptionEvents`).
 9. **Production still runs RC2** (R-7): nothing here is deployed; installed RC2 clients will show generic messages for the new refusals after a deploy.
 10. **Physical-device checks** (R-01…R-26) are unchanged and still open; nothing here was verified on a real device.
+
+---
+
+## B3.1 — Coach shell (2026-10-17)
+
+**Scope (owner, 2026-10-17):** the Coach Shell only — Today · Clients · Messages · Library + a Me entry, desktop rail, mobile tabs, route migration, semantic Back, deep links, unsaved-changes protection, RTL / a11y, visual QA. Design references: the marketing site's identity and the B2 client (not the legacy coach UI).
+**Not changed:** the Client App (one import path only, §1.8), the marketing site, auth / legal pages, the Admin shell, every API / server rule (B3.0.1 untouched), and the B3.2+ screens inside the shell. No commit, push, deploy or data change. Under the owner's clean-launch direction (2026-10-17) nothing in B3.1 depends on, migrates or deletes existing data.
+Route table, semantic parents, Back ownership and selector changes: **`B3_COACH_ROUTE_MIGRATION.md`**. Screenshots and findings: **`B3_VISUAL_QA.md` §B3.1**.
+
+### 1. What changed
+
+1. **`CoachShell`** (`src/components/coach/CoachShell.tsx`, new) replaces `ResponsiveShell` for the coach. It is built from the B2 client's primitives (`AppHeader`, `TabBar`, `SideRail`), not the legacy `DesktopTopBar` / `BrandBar` / `SidebarNav`:
+   - < 768 px: header (wordmark on destinations, Back on sub-pages) + 4 tabs; the avatar in the header opens **Me**;
+   - 768–1023 px: a **72 px icon rail** (brand mark, icons with `aria-label` + `title`, compact unread badge, Me avatar at the foot); no tab bar;
+   - ≥ 1024 px: the **240 px labelled rail** (wordmark, labels, Me with the coach's name);
+   - header end: ⌘K search (≥ 768), sync status, notifications bell (transitional until B3.2, O-5), Me avatar (phones);
+   - kept from `ResponsiveShell` on purpose: the single banner region (C12 / C23), the phone bottom padding the chat composer cancels, full-bleed pages; `--desktop-topbar-h: 3.5rem` so sticky detail panels clear the 56 px header.
+2. **One navigation model** (`src/config/coachNav.ts`, new): the four destinations, the area of every coach route (`coachTabFor`, `coachAreaFor`), destination roots (`isCoachRoot`), screens that draw their own Back (`coachPageOwnsBack`) and therefore never get a second one from the shell (`coachShellShowsBack`). Clients is lit inside a client (NAV-K11); Library for templates; Today for check-ins, assessments and notifications.
+3. **Me hub** (`/coach/me`, `src/pages/coach/CoachMe.tsx`, new): Business (Revenue & renewals, Client packages, Reports & exports), Forma (subscription with the live trial / plan state), Coaching (Check-ins, Assessments, Adherence — transitional until B3.2 / B3.3), Account (Account & preferences, Help & support via WhatsApp — replaces the floating button), Sign out (confirmed).
+4. **Routes** (`src/apps/CoachApp.tsx`): `/coach` → `/coach/dashboard` on every breakpoint (was Clients on phones — IA-K01); `/coach/me` added; every other URL unchanged, so stored notification targets and bookmarks keep working.
+5. **Semantic parents** (`src/lib/navContract.ts`): templates → Library; plan / settings / revenue / reports / subscription-plans → Me; Me and every other `/coach/<section>` → Today (was `/coach`, a redirect). With in-app history, Back stays real history (B1 contract).
+6. **Unsaved-changes guard on every shell exit:** tabs, rail and rail Me through `onNavigate` → `confirmLeave()`; header avatar and shell Back (`useBack`) through `confirmLeave()`; the bell, every ⌘K command, the plan banner and notification toasts through `useGuardedNav` (NAV-K05, shell part).
+7. **⌘K** (`CommandHost.tsx`): indexes the whole roster on a cold start (the dashboard query, fetched only while the palette is open for a coach); "Send broadcast" (which only opened the inbox) is now "Open messages"; a "Me" command (DT-08, partly).
+8. **Icons:** the coach app renders inside `SiteIconSet` (the website icon set the B2 client uses). `siteIcons.tsx` moved from `components/client/` to `components/shared/`; `ClientApp.tsx` changes only that import.
+9. **`SideRail`** (`components/ui/TabBar.tsx`): new `testId` and `collapsible` props; the client's defaults (`client-rail`, never collapsed) are unchanged.
+10. **Library:** a "Programs" segment links to `/coach/templates` (until Library › Programs lands in B3.7).
+11. **Removed from the coach:** `COACH_NAV` / `COACH_SIDEBAR` / `NAV` (`config/nav.ts`), the coach branch of `NavMenuSheet`, `CoachIndex`, the floating WhatsApp button, the grouped sidebar, the ☰ menu. The admin shell still uses `ResponsiveShell`, `SidebarNav`, `BrandBar`, `NavMenuSheet` and `WhatsAppFab` — no dead code was left.
+12. **i18n:** `coachNav` and `coachMe` in `en`, `ar`, `ar-eg` (plurals for trial days).
+
+### 2. Contracts
+
+- B0 / B1 / B2 contracts (blueprint §2 C1–C25): the client's code paths are untouched; the full unit / API and e2e3 suites below cover them. C12 / C23 (one banner region, composer padding) are kept in the new shell; C3 (per-coach editor drafts) is what protects work on a hardware / browser Back.
+- B3.0.1: no API, server or rule change.
+- Two coach behaviours changed by design and their tests updated (§T): the coach's header avatar opens **Me** (was Settings), and `/coach` opens Today on phones (was Clients).
+
+### 3. Tests
+
+| Test | What it proves |
+|---|---|
+| `src/config/coachNav.test.tsx` (new, 4) | four destinations in order; the lit destination for 22 routes; roots without Back; no second Back on screens that own one; semantic parents |
+| `src/components/coach/CoachShell.test.tsx` (new, 4) | tabs + rail, Clients lit inside a client, unread badge; Back ownership; a dirty editor stays on Cancel (tab, rail, Me) and leaves on Leave |
+| `src/lib/navContract.test.tsx` (updated) | the new coach parents |
+| `src/config/nav.test.tsx` (updated) | the coach case removed with `COACH_NAV` |
+| `e2e3/specs/46-a11y.spec.ts` (+1 target) | axe sweep of the Me hub (`/coach/me`) |
+| `e2e3/specs/85-b3-coach.spec.ts` (new, 7) | phone IA (4 tabs, Me, `/coach` → Today, NAV-K11, no ☰ / WhatsApp); tablet 72 px rail with accessible names, desktop 240 px rail; 7 cold deep links light their destination and Back goes up the IA; ⌘K on a cold `/coach/me` finds the client and opens it inside the shell (DT-08); dirty editor: rail Today, rail Me, bell and a ⌘K command all ask and Cancel keeps the edit; Arabic rail on the right with a mirrored Back; the 48-shot visual matrix with overflow / `dir` / translation assertions |
+
+**§T — test changes forced by the new shell** (selector table in the route-migration doc §6): spec 20 (`coach-rail`, `rail-clients`), spec 23 (`rail-clients`; the avatar test now walks `rail-me` → `/coach/me`), spec 46 (accessible-name roots `coach-rail` + `app-header`), `_b-helpers.appReady` (accepts `coach-rail`), `_d-layout` (coach nav keys, rail, `/coach/library` and `/coach/me` in the layout sweep, `aria-label` fallback for the collapsed rail).
+
+### 4. Verification (final code, 2026-10-17)
+
+| Gate | Result |
+|---|---|
+| Typecheck `tsc -b --noEmit` | **PASS** (exit 0) |
+| Architecture boundaries `scripts/check-boundaries.mjs` | **PASS** |
+| Unit + API `vitest run` | **PASS — 650 / 650 tests in 78 files** (B3.0.1: 643 in 76; +8 new, −1 removed with `COACH_NAV`) |
+| Production build `npm run build` | **PASS** — entry `index` 461.54 kB / 149.72 kB gzip (B3.0.1: 460.10 / 149.20; +0.52 kB gzip = navigation strings), `CoachApp` 63.69 / 17.50 (was 63.15 / 17.73), `ClientApp` 38.82 / 12.22 (was 44.91 / 13.89 — the website icon set now sits in a shared 8.99 kB chunk used by both apps), precache 172 entries (unchanged) |
+| Browser — full e2e3 suite, all projects (chromium 1440 / 1280 / 1024, tablet 768, mobile 430 / 390, webkit-iphone) | **PASS — 238 passed + 1 skipped of 239** in 40.0 min (the skip is the pre-existing Google sign-in case; B3.0.1 had 232 + spec 81's review test; +6 for spec 85) |
+| Browser — after the full run (two test additions only, no app change) | 85 (now 7 tests, + the ⌘K cold-roster case) and 46 (+ the Me hub axe target): **18 / 18** |
+| Accessibility — axe (WCAG 2.1 A / AA) | coach dashboard and Me hub: **0 violations of any impact**; accessible names on every rail / header control (spec 46) |
+| Visual QA | 48 shots, 390 / 768 / 1024 / 1440 × EN / AR: **0 px overflow, correct `dir` and translated navigation on every shot** — `B3_VISUAL_QA.md` |
+| Physical devices | **Not run** (none available) |
+
+### 5. Backlog outcome (B3.1-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | NAV-K11 (+ IA-K01 from the IA audit, not a backlog entry) |
+| **Mitigated** — shell part done, the rest named for a later milestone | NAV-K02 → B3.4 / B3.5 · NAV-K05 → B3.4 / B3.5 (in-page links) · VS-07, VS-13, DT-07, RM-33 → B3.2–B3.8 · VS-14 → B3.2 / B3.4 / B3.7 · DT-08 → B3.7 (New exercise / food commands) · JR-08 → B3.4 / B3.5 · RM-48, DT-10 → admin shell (B5, outside B3) |
+| **Moved** to the milestone that owns the screen | CO-29, NAV-K09 → B3.4 · NAV-K06 → B3.5 · NAV-K07 → B3.6 · DT-11 → B3.3 · CO-33, NT-10 → B3.2 · RM-30 → B3.2 / B3.6 · AX-05 → B3.2–B3.8 |
+| **Needs a product decision** | RM-79 — the PWA manifest shortcuts are one list for every role: remove them, or keep client-only shortcuts? |
+| Already closed earlier (folded) | CO-28, VS-12 (→ JR-08) · CO-30 (→ CO-04, B0) · NT-12 (→ CL-38, B2) · RM-34 (B2) |
+
+### 6. Known limits and risks
+
+1. **Browser / hardware Back cannot be intercepted** (`BrowserRouter`, no data router) — unchanged B1 limit; the editors' per-coach drafts keep the work and `beforeunload` covers reload / close.
+2. **In-page links still skip the guard** (History chip, client-cap link, template editor) until B3.4 / B3.5 rebuild those screens.
+3. **The bell stays until B3.2** (O-5), so messages are still signalled twice (CO-33 / RM-30).
+4. **Workspace and editors keep their own header and Back** until B3.4 / B3.5; on phones the shell header's start slot is empty on those screens.
+5. **Transitional rows in Me** (Check-ins, Assessments → Today in B3.2; Adherence → Clients sort in B3.3) and Business pages at their old URLs until `/coach/business` (B3.8).
+6. **Admin still has the old chrome**, including the WhatsApp button (RM-48 / DT-10 admin part).
+7. Visual QA used the standard e2e3 seed and Chromium emulation only; no physical-device evidence.
+
+**Status: implemented and verified locally — awaiting owner review. No B3.1 commit without approval; B3.2 not started.**

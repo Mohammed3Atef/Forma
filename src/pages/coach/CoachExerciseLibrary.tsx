@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
@@ -65,7 +66,12 @@ export function CoachExerciseLibrary() {
   return (
     <>
       <TopBar testId="coach-library" title={t('coachLib.title')} eyebrow={t('nav.groupContent')} />
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
+        {/* B3.1: Programs (workout templates) live under Library now that the sidebar is gone;
+            the segment opens the existing templates screen until B3.7 merges them in place. */}
+        <Link to="/coach/templates" data-testid="lib-tab-programs" className="chip">
+          {t('coachLib.tabs.programs')}
+        </Link>
         {(['exercises', 'foods', 'groups', 'supplements'] as Tab[]).map((tb) => (
           <button key={tb} type="button" data-testid={`lib-tab-${tb}`} onClick={() => setTab(tb)} className={`chip ${tab === tb ? 'chip-on' : ''}`}>
             {t(`coachLib.tabs.${tb}`)}

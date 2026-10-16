@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/services/auth/sessionStore';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -20,7 +21,8 @@ import type { AppNotification } from '@/types';
  */
 export function useNotificationToasts() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // A toast tap is a navigation like any other: through the unsaved-changes guard (NAV-K05).
+  const navigate = useGuardedNav();
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid) ?? '';
   const coachId = useSession((s) => s.account?.assignedCoachId);

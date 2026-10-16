@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useNotificationToasts } from '@/hooks/useNotificationToasts';
 import { Icon } from './Icon';
 
@@ -11,7 +11,8 @@ import { Icon } from './Icon';
  */
 export function NotificationBell({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // Through the unsaved-changes guard: opening the feed must never drop an editor's work (NAV-K05).
+  const navigate = useGuardedNav();
   const { unread, isAdmin, isCoach } = useNotificationToasts();
   const to = isCoach ? '/coach/notifications' : isAdmin ? '/admin/notifications' : '/notifications';
   return (

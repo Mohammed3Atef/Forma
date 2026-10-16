@@ -17,7 +17,16 @@ describe('navigation contract (B1.10)', () => {
     expect(coach('/coach/messages/c1')).toBe('/coach/messages');
     expect(coach('/coach/templates/t1/edit')).toBe('/coach/templates/t1');
     expect(coach('/coach/templates/t1')).toBe('/coach/templates');
-    expect(coach('/coach/clients')).toBe('/coach');
+    // B3.1 coach IA: sections go up to Today; Me pages to Me; Programs to Library.
+    expect(coach('/coach/clients')).toBe('/coach/dashboard');
+    expect(coach('/coach/checkins')).toBe('/coach/dashboard');
+    expect(coach('/coach/me')).toBe('/coach/dashboard');
+    expect(coach('/coach/plan')).toBe('/coach/me');
+    expect(coach('/coach/settings')).toBe('/coach/me');
+    expect(coach('/coach/revenue')).toBe('/coach/me');
+    expect(coach('/coach/reports')).toBe('/coach/me');
+    expect(coach('/coach/subscription-plans')).toBe('/coach/me');
+    expect(coach('/coach/templates')).toBe('/coach/library');
     expect(coach('/coach')).toBe('/coach');
     const client = (p: string) => semanticParent(p, 'client');
     expect(client('/workout/routine/d1')).toBe('/workout');

@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useGuardedNav } from '@/hooks/useGuardedNav';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
 import { CommandPalette, type CommandItem } from '@/components/ui/CommandPalette';
 import { useCommandStore } from '@/stores/commandStore';
 import { useSession } from '@/services/auth/sessionStore';
@@ -17,13 +18,17 @@ import type { CoachAdminData } from '@/services/platform/adminCoachesApi';
  */
 export function CommandHost() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  // Every command goes through the unsaved-changes guard (NAV-K05 / DT-08): ⌘K must never drop an editor's work.
+  const navigate = useGuardedNav();
   const qc = useQueryClient();
   const open = useCommandStore((s) => s.open);
   const hide = useCommandStore((s) => s.hide);
   const toggle = useCommandStore((s) => s.toggle);
   const role = useSession((s) => s.account?.role);
   const coachId = useSession((s) => s.account?.id ?? '');
+  // DT-08: the client search covers the whole roster even on a cold start
+  // (the same cached query the dashboard and Clients use — no extra fan-out).
+  const roster = useQuery({ ...coachDashboardQuery(coachId), enabled: open && role === 'coach' && !!coachId });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,11 +55,13 @@ export function CommandHost() {
         { id: 'c-open-library', label: t('coachDash.openLibrary'), icon: 'dumbbell', group: cmd, always: true, run: go('/coach/library') },
         { id: 'c-create-exercise', label: t('coachLib.newExercise'), icon: 'plus', group: cmd, always: true, run: go('/coach/library?tab=exercises') },
         { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods') },
-        { id: 'c-broadcast', label: t('coachDash.sendBroadcast'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
+        // Honest labels (DT-08): this opens the inbox — broadcasting is a step inside it.
+        { id: 'c-messages', label: t('coachNav.openMessages'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
         { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/assessments') },
         { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/reports') },
+        { id: 'c-me', label: t('coachNav.me'), icon: 'user', group: cmd, always: true, run: go('/coach/me') },
       );
-      qc.getQueryData<CoachDashboard>(['coachDashboard', coachId])?.clients.forEach((r) =>
+      (roster.data ?? qc.getQueryData<CoachDashboard>(['coachDashboard', coachId]))?.clients.forEach((r) =>
         ents.push({ id: `cl-${r.client.id}`, label: r.client.displayName || r.client.email, icon: 'user', group: t('coach.clients'), keywords: r.client.email, run: go(`/coach/client/${r.client.id}`) }),
       );
       qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.forEach((e) =>
@@ -88,7 +95,7 @@ export function CommandHost() {
       }
     }
     return [...cmds, ...ents];
-  }, [open, role, coachId, qc, navigate, t]);
+  }, [open, role, coachId, qc, navigate, t, roster.data]);
 
   return <CommandPalette open={open} onClose={hide} items={items} />;
 }

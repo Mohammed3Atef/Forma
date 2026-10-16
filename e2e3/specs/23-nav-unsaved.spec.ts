@@ -38,12 +38,12 @@ async function makeDirty(page: Page, suffix: string) {
 
 const guard = (page: Page) => page.getByTestId('confirm-dialog').filter({ hasText: 'Discard changes?' });
 
-test('unsaved guard: sidebar item → Cancel keeps edits → Leave discards and navigates', async ({ as }, testInfo) => {
+test('unsaved guard: rail item → Cancel keeps edits → Leave discards and navigates', async ({ as }, testInfo) => {
   const { page } = await as('coachA');
   await openCleanEditor(page);
   await makeDirty(page, 'sidebar');
 
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(guard(page)).toBeVisible();
   await shot(page, testInfo, '01-sidebar-guard');
   await confirmNo(page);
@@ -51,7 +51,7 @@ test('unsaved guard: sidebar item → Cancel keeps edits → Leave discards and 
   await expect(page.getByTestId('workout-plan-name')).toHaveValue(`${BASE_NAME} sidebar`);
   await expect(page.getByTestId('workout-unsaved')).toBeVisible();
 
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(guard(page)).toBeVisible();
   await confirmYes(page);
   await expect(page).toHaveURL(/\/coach\/clients$/);
@@ -65,19 +65,20 @@ test('unsaved guard: sidebar item → Cancel keeps edits → Leave discards and 
   await expect(page.getByTestId('workout-unsaved')).toHaveCount(0);
 });
 
-test('unsaved guard: top-bar avatar → Cancel stays → Leave goes to settings', async ({ as, env }) => {
+test('unsaved guard: the account entry (rail Me) → Cancel stays → Leave goes to Me', async ({ as, env }) => {
   const { page } = await as('coachA');
   await openCleanEditor(page);
   await makeDirty(page, 'avatar');
-  const avatar = page.getByRole('banner').getByRole('button', { name: 'Coach Amira' });
-  await avatar.click();
+  // B3.1: the account entry is the rail's Me (the old top-bar avatar → Settings is gone).
+  const me = page.getByTestId('rail-me');
+  await me.click();
   await expect(guard(page)).toBeVisible();
   await confirmNo(page);
   await expect(page).toHaveURL(new RegExp(`${EDITOR}$`));
   await expect(page.getByTestId('workout-plan-name')).toHaveValue(`${BASE_NAME} avatar`);
-  await avatar.click();
+  await me.click();
   await confirmYes(page);
-  await expect(page).toHaveURL(/\/coach\/settings$/);
+  await expect(page).toHaveURL(/\/coach\/me$/);
   expect(env.accounts.coachA.email).toBeTruthy();
 });
 
@@ -164,7 +165,7 @@ test('unsaved guard: after Save, navigating does not warn', async ({ as }, testI
   await makeDirty(page, 'saved');
   await page.getByTestId('workout-save').click();
   await expect(page.getByTestId('workout-saved')).toBeVisible();
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(page).toHaveURL(/\/coach\/clients$/);
   await expect(page.getByTestId('confirm-dialog')).toHaveCount(0);
   await shot(page, testInfo, '01-no-warning');

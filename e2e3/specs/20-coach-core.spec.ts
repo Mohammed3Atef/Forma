@@ -41,10 +41,10 @@ test('invite → anonymous claim → coach roster updates without reload', async
   test.setTimeout(150_000);
   const { page } = await as('coachPro');
   await page.goto('/coach/dashboard');
-  await appReady(page, 'coach-sidebar');
+  await appReady(page, 'coach-rail');
   await shot(page, testInfo, '01-dashboard');
 
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(page).toHaveURL(/\/coach\/clients$/);
   await expect(page.getByTestId('coach-clients')).toBeVisible();
 
@@ -358,7 +358,7 @@ test('release the invited client → roster drops it, counter decremented', asyn
   await shot(page, testInfo, '01-release-confirm');
   await page.getByTestId('release-confirm').click();
   await expect(page).toHaveURL(/\/coach(\/dashboard)?$/);
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(page.getByTestId('coach-desktop-clients').getByText(state.invitedEmail!)).toHaveCount(0);
   await expect(page.getByTestId('coach-desktop-clients').getByText('client.free@e2e.test')).toBeVisible();
   await expect(page.getByTestId('coach-client-usage')).toContainText('1 / 25 clients used');

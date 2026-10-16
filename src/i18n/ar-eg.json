@@ -1074,7 +1074,8 @@
       "exercises": "التمارين",
       "foods": "الأطعمة",
       "groups": "مجموعات الأطعمة",
-      "supplements": "المكملات"
+      "supplements": "المكملات",
+      "programs": "البرامج"
     },
     "exercise": "تمرين",
     "newExercise": "تمرين جديد",
@@ -2794,5 +2795,47 @@
     "removeFailedTitle": "اتعمل تسجيل خروج، بس شوية بيانات فضلت على الجهاز",
     "removeFailedBody": "اقفل تابات Forma التانية وجرّب تاني بعد ما تسجّل دخول.",
     "signingOut": "بنعمل تسجيل خروج…"
+  },
+  "coachNav": {
+    "today": "النهارده",
+    "clients": "العملاء",
+    "messages": "الرسايل",
+    "library": "المكتبة",
+    "me": "حسابي",
+    "primary": "تنقّل الكوتش",
+    "openMessages": "افتح الرسايل"
+  },
+  "coachMe": {
+    "business": "الشغل",
+    "revenue": "الإيرادات والتجديدات",
+    "revenueMeta": "اللي اتحصّل واللي مستحق واللي خلص الشهر ده",
+    "packages": "باقات العملاء",
+    "packagesMeta": "المدد والأسعار اللي بتقدّمها",
+    "reports": "التقارير والتصدير",
+    "reportsMeta": "ملفات CSV للعملاء والاشتراكات والإيرادات",
+    "forma": "فورما",
+    "formaSubscription": "اشتراك فورما",
+    "planState": {
+      "trial": "تجربة مجانية",
+      "trialDays_zero": "تجربة مجانية · الأيام خلصت",
+      "trialDays_one": "تجربة مجانية · فاضل يوم",
+      "trialDays_two": "تجربة مجانية · فاضل يومين",
+      "trialDays_few": "تجربة مجانية · فاضل {{count}} أيام",
+      "trialDays_many": "تجربة مجانية · فاضل {{count}} يوم",
+      "trialDays_other": "تجربة مجانية · فاضل {{count}} يوم",
+      "active": "شغّال",
+      "expired": "خلص — جدّد عشان تكمّل تدريب",
+      "suspended": "موقوف",
+      "none": "مفيش اشتراك لسه"
+    },
+    "coaching": "التدريب",
+    "checkins": "المتابعات الأسبوعية",
+    "assessments": "التقييمات",
+    "adherence": "الالتزام",
+    "account": "الحساب",
+    "accountRow": "الحساب والتفضيلات",
+    "accountMeta": "البروفايل واللغة والباسورد",
+    "help": "المساعدة والدعم",
+    "helpMeta": "كلّم فريق فورما على واتساب"
   }
 }

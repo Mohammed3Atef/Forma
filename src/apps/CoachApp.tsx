@@ -1,21 +1,21 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ResponsiveShell } from '@/components/shell/ResponsiveShell';
+import { CoachShell } from '@/components/coach/CoachShell';
 import { CommandHost } from '@/components/CommandHost';
+import { SiteIconSet } from '@/components/shared/siteIcons';
 import { CoachPlanProvider, CoachPlanGate } from '@/components/coach/CoachPlanProvider';
 import { CoachClientWorkspaceLayout } from '@/components/coach/CoachClientWorkspaceLayout';
 import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { BannerHost } from '@/components/BannerHost';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { COACH_NAV, COACH_SIDEBAR } from '@/config/nav';
-import { useIsTabletUp } from '@/hooks/useMediaQuery';
 import { queryClient } from '@/services/platform/queryClient';
 // Eager: the landing list (mobile index) + lightweight shared pages.
 import { CoachClients } from '@/pages/coach/CoachClients';
 import { RoleAccount } from '@/pages/RoleAccount';
 import { Notifications } from '@/pages/Notifications';
 import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
+import { CoachMe } from '@/pages/coach/CoachMe';
 
 // Heavy coach route pages are lazy so the coach bundle stays small — the
 // PlanBuilder editors in particular only load when an editor is opened.
@@ -46,25 +46,15 @@ const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) =>
 const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOverview').then((m) => ({ default: m.CoachCheckInsOverview })));
 
 /**
- * `/coach` landing: dashboard on tablet/desktop, clients list on mobile. Always
- * a redirect (never rendered inline at `/coach`) so the bottom-nav tab for the
- * screen actually showing is highlighted and back-fallbacks land on a real tab.
- */
-function CoachIndex() {
-  const tabletUp = useIsTabletUp();
-  return <Navigate to={tabletUp ? '/coach/dashboard' : '/coach/clients'} replace />;
-}
-
-/**
- * Coach portal shell. Responsive: mobile keeps the bottom-nav experience;
- * tablet/desktop get a sidebar + dashboard (see ResponsiveShell). Online
- * platform reads run through React Query; client detail is a drill-down route.
+ * Coach portal (B3.1): one `CoachShell` for every width — Today · Clients ·
+ * Messages · Library, Me behind the avatar. `/coach` always opens Today
+ * (`/coach/dashboard`) on every breakpoint (IA-K01); the URL itself stays the
+ * same so stored links, the login landing and notifications keep working.
+ * Online platform reads run through React Query; a client is a drill-down.
  */
 export function CoachApp() {
   const shell = (node: ReactNode) => (
-    <ResponsiveShell
-      navItems={COACH_NAV}
-      sidebarItems={COACH_SIDEBAR}
+    <CoachShell
       banners={
         <>
           <CoachPlanBanner />
@@ -73,17 +63,19 @@ export function CoachApp() {
       }
     >
       {node}
-    </ResponsiveShell>
+    </CoachShell>
   );
   // Write/edit surfaces are soft-gated: when the coach's plan has lapsed they
   // show a "renew to edit" notice instead of the editor (viewing stays open).
   const gated = (node: ReactNode) => shell(<CoachPlanGate>{node}</CoachPlanGate>);
   return (
     <QueryClientProvider client={queryClient}>
+      <SiteIconSet>
       <CoachPlanProvider>
       <Suspense fallback={<div className="px-5 pt-6 md:px-6"><LoadingState variant="cards" count={4} /></div>}>
       <Routes>
-        <Route path="/coach" element={shell(<CoachIndex />)} />
+        <Route path="/coach" element={<Navigate to="/coach/dashboard" replace />} />
+        <Route path="/coach/me" element={shell(<CoachMe />)} />
         <Route path="/coach/dashboard" element={shell(<CoachDashboard />)} />
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
         <Route path="/coach/assessments" element={shell(<CoachAssessments />)} />
@@ -132,6 +124,7 @@ export function CoachApp() {
       </Suspense>
       <CommandHost />
       </CoachPlanProvider>
+      </SiteIconSet>
     </QueryClientProvider>
   );
 }
