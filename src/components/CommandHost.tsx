@@ -2,12 +2,11 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { coachDashboardQuery } from '@/services/platform/coachDashboardApi';
+import { listMyClients } from '@/services/platform/coachApi';
 import { CommandPalette, type CommandItem } from '@/components/ui/CommandPalette';
 import { useCommandStore } from '@/stores/commandStore';
 import { useSession } from '@/services/auth/sessionStore';
 import type { Exercise, LibraryFood, WorkoutTemplate } from '@/types';
-import type { CoachDashboard } from '@/services/platform/coachDashboardApi';
 import type { CoachAdminData } from '@/services/platform/adminCoachesApi';
 
 /**
@@ -26,9 +25,9 @@ export function CommandHost() {
   const toggle = useCommandStore((s) => s.toggle);
   const role = useSession((s) => s.account?.role);
   const coachId = useSession((s) => s.account?.id ?? '');
-  // DT-08: the client search covers the whole roster even on a cold start
-  // (the same cached query the dashboard and Clients use — no extra fan-out).
-  const roster = useQuery({ ...coachDashboardQuery(coachId), enabled: open && role === 'coach' && !!coachId });
+  // DT-08: the client search covers the whole roster even on a cold start — the same light
+  // roster query Today and Clients share (B3.3; it used to load the six-call dashboard).
+  const roster = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: open && role === 'coach' && !!coachId });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,8 +60,8 @@ export function CommandHost() {
         { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/reports') },
         { id: 'c-me', label: t('coachNav.me'), icon: 'user', group: cmd, always: true, run: go('/coach/me') },
       );
-      (roster.data ?? qc.getQueryData<CoachDashboard>(['coachDashboard', coachId]))?.clients.forEach((r) =>
-        ents.push({ id: `cl-${r.client.id}`, label: r.client.displayName || r.client.email, icon: 'user', group: t('coach.clients'), keywords: r.client.email, run: go(`/coach/client/${r.client.id}`) }),
+      roster.data?.forEach((c) =>
+        ents.push({ id: `cl-${c.id}`, label: c.displayName || c.email, icon: 'user', group: t('coach.clients'), keywords: c.email, run: go(`/coach/client/${c.id}`) }),
       );
       qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.forEach((e) =>
         ents.push({ id: `ex-${e.id}`, label: e.name, icon: 'dumbbell', group: t('coachLib.tabs.exercises'), keywords: `${e.targetMuscle} ${e.category ?? ''}`, run: go('/coach/library?tab=exercises') }),

@@ -41,7 +41,8 @@ export const transfersRouter = router({
     if (input.type === 'incoming') {
       return col.find({ fromCoachId: ctx.user.id, status: 'pending' }).sort({ requestedAt: -1 }).toArray();
     }
-    return col.find({ toCoachId: ctx.user.id }).sort({ requestedAt: -1 }).toArray();
+    // B3.3 / CO-03: the requesting coach is never told who currently coaches the client.
+    return (await col.find({ toCoachId: ctx.user.id }, { projection: { fromCoachId: 0 } }).sort({ requestedAt: -1 }).toArray()) as Omit<ClientTransferRequestDoc, 'fromCoachId'>[];
   }),
 
   /**
@@ -89,7 +90,9 @@ export const transfersRouter = router({
         ...(input.subscriptionHandling ? { subscriptionHandling: input.subscriptionHandling } : {}),
       };
       await col.updateOne({ _id: id }, { $set: doc }, { upsert: true });
-      return doc;
+      // B3.3 / CO-03: never echo the current coach back to the requester.
+      const { fromCoachId: _current, ...visible } = doc;
+      return visible;
     }),
 
   /**

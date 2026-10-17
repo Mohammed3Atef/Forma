@@ -187,7 +187,10 @@ export const invitesRouter = router({
       hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'coaches.assign');
     if (!canManage) throw new TRPCError({ code: 'FORBIDDEN' });
     if (invite.status === 'claimed') throw new TRPCError({ code: 'CONFLICT', message: 'Cannot revoke an invite that has already been claimed' });
-    await col.updateOne({ _id: code }, { $set: { status: 'revoked' } });
+    // B3.3: compare-and-set — a claim landing between the read and this write must never be overwritten to "revoked"
+    // (the client's account and relationship already exist by then).
+    const res = await col.updateOne({ _id: code, status: { $ne: 'claimed' } }, { $set: { status: 'revoked' } });
+    if (res.matchedCount === 0) throw new TRPCError({ code: 'CONFLICT', message: 'Cannot revoke an invite that has already been claimed' });
     return { ...invite, status: 'revoked' as const };
   }),
 

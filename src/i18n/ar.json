@@ -895,7 +895,6 @@
   },
   "coach": {
     "clients": "المتدربون",
-    "adherence": "الالتزام",
     "messages": "الرسائل",
     "client": "متدرب",
     "searchClients": "ابحث عن متدربين",
@@ -903,8 +902,6 @@
     "noClientsTitle": "لا يوجد متدربون بعد",
     "clientsLoadFailed": "تعذّر تحميل عملائك. تحقّق من الاتصال وحاول مرة أخرى.",
     "noClientsMessage": "أضف أول متدرب لك للبدء في إسناد الخطط وتتبع التقدم.",
-    "noClientsFilteredTitle": "لا يوجد متدربون مطابقون",
-    "noClientsFilteredMessage": "جرّب كلمة بحث مختلفة أو ألغِ فلتر الحالة.",
     "recentWorkouts": "تمارين (7 أيام)",
     "lastWeight": "آخر وزن",
     "notes": "ملاحظات",
@@ -1291,18 +1288,14 @@
     "avgWorkoutsLabel": "متوسط التمارين / أسبوع",
     "needsAttention": "يحتاج انتباه",
     "recentActivity": "النشاط الأخير",
-    "added": "تاريخ الإضافة",
     "addClient": "إضافة متدرب",
     "createTemplate": "إنشاء قالب",
     "openLibrary": "فتح المكتبة",
     "reviewAssessments": "مراجعة التقييمات",
     "lastActive": "آخر نشاط {{date}}",
     "noActivity": "لا يوجد نشاط بعد",
-    "neverActive": "لا يوجد نشاط بعد",
     "workoutsThisWeek": "{{n}} هذا الأسبوع",
-    "open": "فتح",
     "noClients": "لا يوجد متدربون بعد.",
-    "noClientsCheckinsMessage": "أضف متدربًا للبدء في طلب المتابعات الأسبوعية.",
     "reportsTitle": "التقارير",
     "missedCheckins": "مراجعات معلّقة",
     "ranking": "ترتيب الالتزام",
@@ -1311,15 +1304,9 @@
     "message": "مراسلة",
     "openWorkspace": "فتح مساحة العمل",
     "review": "مراجعة",
-    "reasonCheckin": "متابعة بانتظار مراجعتك",
-    "checkinsSub": "{{review}} بحاجة للمراجعة · {{requested}} بانتظار العميل",
     "planCapacity": "{{used}} من {{cap}} عملاء",
     "atCapacity": "وصلت إلى سعة العملاء — أضف سعة عملاء لاستقبال المزيد.",
-    "upgradePlan": "إضافة سعة عملاء",
-    "sendReminders": "إرسال تذكيرات ({{n}})",
-    "sendRemindersTitle": "إرسال تذكيرات",
-    "confirmSendReminders": "طلب متابعة هذا الأسبوع من {{n}} متدرب لم يقدّمها بعد؟",
-    "remindersSent": "تم إرسال التذكيرات إلى {{n}} متدرب"
+    "upgradePlan": "إضافة سعة عملاء"
   },
   "coachSettings": {
     "substitutions": "التبديلات",
@@ -1573,13 +1560,7 @@
       "reviewed": "تمت المراجعة"
     },
     "none": "لم تبدأ",
-    "noneYet": "لا متابعات بعد",
-    "startReview": "مراجعة ({{n}})",
     "sectionNeedsReview": "بحاجة إلى مراجعة",
-    "sectionAwaiting": "في انتظار المتدرب",
-    "sectionReviewed": "تمت مراجعتها",
-    "sectionNotRequested": "لم تُطلب بعد",
-    "overdue": "متأخرة",
     "queueProgress": "{{n}} من {{total}}",
     "vsLastCheckin": "مقارنة بمتابعة {{date}}",
     "skipForNow": "تخطّي الآن",
@@ -1600,7 +1581,8 @@
     "back": "رجوع",
     "continue": "متابعة",
     "noFeedbackTitle": "تأكيد المراجعة دون ملاحظات؟",
-    "noFeedbackMessage": "سيرى العميل أنك راجعت متابعته، لكن دون رسالة منك."
+    "noFeedbackMessage": "سيرى العميل أنك راجعت متابعته، لكن دون رسالة منك.",
+    "weekTaken": "طلب المدرب السابق متابعة هذا الأسبوع بالفعل. يمكنك طلب متابعة الأسبوع القادم."
   },
   "clientCoach": {
     "loadFailed": "تعذّر تحميل خطتك من المدرب. تحقّق من الاتصال وحاول مرة أخرى.",
@@ -2486,18 +2468,6 @@
       "now": "تحديث الآن",
       "later": "لاحقًا"
     },
-    "clients": {
-      "state": {
-        "active": "نشط",
-        "trial": "تجربة",
-        "frozen": "متوقف مؤقتًا",
-        "expiring": "ينتهي قريبًا",
-        "expired": "منتهٍ",
-        "pending": "قيد الانتظار",
-        "none": "بلا اشتراك"
-      },
-      "expiringIn": "ينتهي خلال {{n}} يوم"
-    },
     "subscription": {
       "loadFailed": "تعذّر تحميل اشتراك هذا العميل.",
       "endsOn": "ينتهي في {{date}}",
@@ -2796,9 +2766,6 @@
       "suspended": "موقوف",
       "none": "لا يوجد اشتراك بعد"
     },
-    "coaching": "التدريب",
-    "checkins": "المتابعات الأسبوعية",
-    "adherence": "الالتزام",
     "account": "الحساب",
     "accountRow": "الحساب والتفضيلات",
     "accountMeta": "الملف الشخصي واللغة وكلمة المرور",
@@ -2987,5 +2954,177 @@
       "inactive_many": "لا تمارين منذ {{count}} يومًا · آخر تمرين {{date}}",
       "inactive_other": "لا تمارين منذ {{count}} يوم · آخر تمرين {{date}}"
     }
+  },
+  "coachClients": {
+    "title": "العملاء",
+    "add": "إضافة عميل",
+    "search": "ابحث بالاسم أو البريد أو الهاتف",
+    "filters": "تصفية وترتيب",
+    "clear": "مسح عوامل التصفية",
+    "noMatchTitle": "لا يوجد عملاء مطابقون",
+    "noMatchMessage": "جرّب بحثًا آخر أو امسح عوامل التصفية.",
+    "loadMore": "عرض المزيد",
+    "partial": "تعذّر تحميل بعض التفاصيل — تظهر بالشكل «—».",
+    "stale": "تعذّر التحديث — تُعرض آخر قائمة محمّلة.",
+    "offline": "أنت غير متصل — تُعرض آخر قائمة محمّلة.",
+    "task": {
+      "all": "الكل",
+      "needs": "بانتظارك",
+      "checkin": "متابعات للمراجعة",
+      "renewal": "تجديدات مستحقة",
+      "lapsed": "منتهية",
+      "checkins": "المتابعات الأسبوعية"
+    },
+    "state": {
+      "active": "نشط",
+      "trial": "تجربة",
+      "expiring": "قارب على الانتهاء",
+      "paused": "موقوف مؤقتًا",
+      "expired": "منتهٍ",
+      "pending": "قيد الانتظار",
+      "none": "بلا باقة"
+    },
+    "account": {
+      "pending": "الحساب قيد الانتظار",
+      "suspended": "الحساب مجمّد",
+      "disabled": "الحساب محذوف"
+    },
+    "group": {
+      "state": "الباقة",
+      "checkin": "المتابعة الأسبوعية (هذا الأسبوع)",
+      "plan": "الخطط",
+      "sort": "الترتيب حسب",
+      "any": "الكل"
+    },
+    "checkin": {
+      "review": "للمراجعة",
+      "awaiting": "بانتظار العميل",
+      "overdue": "متأخرة",
+      "done": "تمّت هذا الأسبوع",
+      "notRequested": "لم تُطلب هذا الأسبوع"
+    },
+    "plan": {
+      "noWorkout": "بلا خطة تدريب",
+      "noNutrition": "بلا خطة تغذية"
+    },
+    "sort": {
+      "needs": "بانتظارك أولًا",
+      "name": "الاسم",
+      "lastWorkout": "آخر تمرين",
+      "daysLeft": "الأيام المتبقية",
+      "workouts": "التمارين (7 أيام)"
+    },
+    "sortDir": {
+      "asc": "تصاعدي",
+      "desc": "تنازلي"
+    },
+    "col": {
+      "client": "العميل",
+      "next": "الإجراء التالي",
+      "lastWorkout": "آخر تمرين",
+      "workouts": "التمارين (7 أيام)",
+      "package": "الباقة",
+      "actions": "إجراءات"
+    },
+    "activity": {
+      "today": "تمرّن اليوم",
+      "yesterday": "آخر تمرين أمس",
+      "never": "لم يُسجَّل أي تمرين بعد",
+      "days_zero": "تمرّن اليوم",
+      "days_one": "آخر تمرين منذ يوم",
+      "days_two": "آخر تمرين منذ يومين",
+      "days_few": "آخر تمرين منذ {{count}} أيام",
+      "days_many": "آخر تمرين منذ {{count}} يومًا",
+      "days_other": "آخر تمرين منذ {{count}} يوم"
+    },
+    "activityShort": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "never": "لا يوجد بعد",
+      "days_zero": "اليوم",
+      "days_one": "منذ يوم",
+      "days_two": "منذ يومين",
+      "days_few": "منذ {{count}} أيام",
+      "days_many": "منذ {{count}} يومًا",
+      "days_other": "منذ {{count}} يوم"
+    },
+    "menu": {
+      "label": "إجراءات {{name}}",
+      "open": "فتح ملف العميل",
+      "message": "مراسلة",
+      "subscription": "الباقة والدفع",
+      "checkins": "المتابعات"
+    },
+    "checkins": {
+      "title": "المتابعات الأسبوعية",
+      "week": "أسبوع {{date}}",
+      "reviewAll": "راجِع بالترتيب",
+      "requestConfirmTitle": "طلب متابعة هذا الأسبوع؟",
+      "requestFailed": "لم يُرسَل {{failed}} من {{total}} طلبًا. أعد المحاولة للباقي.",
+      "eligibleNote": "يُرسَل الطلب فقط للعملاء الذين لديهم باقة سارية وحساب نشط.",
+      "empty": "لا أحد في هذه المجموعة.",
+      "loadFailed": "تعذّر تحميل المتابعات.",
+      "requestWeek_zero": "طلب متابعة هذا الأسبوع",
+      "requestWeek_one": "طلب متابعة هذا الأسبوع (1)",
+      "requestWeek_two": "طلب متابعة هذا الأسبوع (2)",
+      "requestWeek_few": "طلب متابعة هذا الأسبوع ({{count}})",
+      "requestWeek_many": "طلب متابعة هذا الأسبوع ({{count}})",
+      "requestWeek_other": "طلب متابعة هذا الأسبوع ({{count}})",
+      "requestConfirm_zero": "لا عملاء للطلب.",
+      "requestConfirm_one": "إرسال طلب متابعة هذا الأسبوع لعميل واحد؟",
+      "requestConfirm_two": "إرسال طلب متابعة هذا الأسبوع لعميلين؟",
+      "requestConfirm_few": "إرسال طلب متابعة هذا الأسبوع إلى {{count}} عملاء؟",
+      "requestConfirm_many": "إرسال طلب متابعة هذا الأسبوع إلى {{count}} عميلًا؟",
+      "requestConfirm_other": "إرسال طلب متابعة هذا الأسبوع إلى {{count}} عميل؟",
+      "requested_zero": "لم يُرسَل أي طلب",
+      "requested_one": "طُلبت المتابعة من عميل واحد",
+      "requested_two": "طُلبت المتابعة من عميلين",
+      "requested_few": "طُلبت المتابعة من {{count}} عملاء",
+      "requested_many": "طُلبت المتابعة من {{count}} عميلًا",
+      "requested_other": "طُلبت المتابعة من {{count}} عميل",
+      "requestTaken_zero": "لا يوجد عميل لديه متابعة هذا الأسبوع من مدرب سابق.",
+      "requestTaken_one": "عميل واحد لديه متابعة هذا الأسبوع من مدربه السابق — اطلبها الأسبوع القادم.",
+      "requestTaken_two": "عميلان لديهما متابعة هذا الأسبوع من مدربهما السابق — اطلبها الأسبوع القادم.",
+      "requestTaken_few": "{{count}} عملاء لديهم متابعة هذا الأسبوع من مدربهم السابق — اطلبها الأسبوع القادم.",
+      "requestTaken_many": "{{count}} عميلًا لديهم متابعة هذا الأسبوع من مدربهم السابق — اطلبها الأسبوع القادم.",
+      "requestTaken_other": "{{count}} عميل لديهم متابعة هذا الأسبوع من مدربهم السابق — اطلبها الأسبوع القادم."
+    },
+    "outgoing": {
+      "title": "طلبات النقل التي أرسلتها",
+      "status": {
+        "pending": "بانتظار مدرّبه الحالي",
+        "accepted": "مقبول",
+        "rejected": "مرفوض",
+        "cancelled": "ملغى"
+      },
+      "cancel": "إلغاء الطلب",
+      "cancelConfirm": "إلغاء طلبك لتدريب {{name}}؟",
+      "cancelled": "أُلغي الطلب",
+      "requested": "أُرسل في {{date}}"
+    },
+    "count_zero": "لا عملاء",
+    "count_one": "عميل واحد",
+    "count_two": "عميلان",
+    "count_few": "{{count}} عملاء",
+    "count_many": "{{count}} عميلًا",
+    "count_other": "{{count}} عميل",
+    "daysLeft_zero": "لا أيام متبقية",
+    "daysLeft_one": "يوم متبقٍ",
+    "daysLeft_two": "يومان متبقيان",
+    "daysLeft_few": "{{count}} أيام متبقية",
+    "daysLeft_many": "{{count}} يومًا متبقيًا",
+    "daysLeft_other": "{{count}} يوم متبقٍ",
+    "filtersOn_zero": "تصفية وترتيب",
+    "filtersOn_one": "تصفية وترتيب · {{count}}",
+    "filtersOn_two": "تصفية وترتيب · {{count}}",
+    "filtersOn_few": "تصفية وترتيب · {{count}}",
+    "filtersOn_many": "تصفية وترتيب · {{count}}",
+    "filtersOn_other": "تصفية وترتيب · {{count}}",
+    "endsIn_zero": "ينتهي اليوم",
+    "endsIn_one": "ينتهي خلال يوم",
+    "endsIn_two": "ينتهي خلال يومين",
+    "endsIn_few": "ينتهي خلال {{count}} أيام",
+    "endsIn_many": "ينتهي خلال {{count}} يومًا",
+    "endsIn_other": "ينتهي خلال {{count}} يوم"
   }
 }

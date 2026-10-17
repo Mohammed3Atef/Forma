@@ -14,7 +14,7 @@ describe('coach destinations', () => {
       ['/coach/dashboard', 'today'],
       ['/coach/dashboard?tab=clients', 'today'],
       ['/coach/dashboard?focus=checkin', 'today'],
-      ['/coach/checkins', 'today'],
+      ['/coach/clients?view=checkins', 'clients'],
       // B3.2: these two redirect to Today before rendering, so they light nothing themselves.
       ['/coach/assessments', null],
       ['/coach/notifications', null],
@@ -24,7 +24,10 @@ describe('coach destinations', () => {
       ['/coach/client/c1/workout', 'clients'],
       ['/coach/client/c1/view/progress', 'clients'],
       ['/coach/client/c1/versions/workout', 'clients'],
-      ['/coach/adherence', 'clients'],
+      ['/coach/clients?sort=workouts', 'clients'],
+      // B3.3: these two redirect into Clients before rendering.
+      ['/coach/checkins', null],
+      ['/coach/adherence', null],
       ['/coach/messages', 'messages'],
       ['/coach/messages/c1', 'messages'],
       ['/coach/library', 'library'],
@@ -53,7 +56,7 @@ describe('coach destinations', () => {
       expect(coachPageOwnsBack(own), own).toBe(true);
       expect(coachShellShowsBack(own), own).toBe(false);
     }
-    for (const sub of ['/coach/plan', '/coach/settings', '/coach/revenue', '/coach/reports', '/coach/subscription-plans', '/coach/checkins', '/coach/adherence', '/coach/templates']) {
+    for (const sub of ['/coach/plan', '/coach/settings', '/coach/revenue', '/coach/reports', '/coach/subscription-plans', '/coach/templates']) {
       expect(coachShellShowsBack(sub), sub).toBe(true);
     }
   });
@@ -62,6 +65,6 @@ describe('coach destinations', () => {
     expect(semanticParent('/coach/plan', 'coach')).toBe('/coach/me');
     expect(semanticParent('/coach/me', 'coach')).toBe('/coach/dashboard');
     expect(semanticParent('/coach/templates', 'coach')).toBe('/coach/library');
-    expect(semanticParent('/coach/checkins', 'coach')).toBe('/coach/dashboard');
+    expect(semanticParent('/coach/reports', 'coach')).toBe('/coach/me');
   });
 });

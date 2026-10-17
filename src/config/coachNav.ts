@@ -32,12 +32,10 @@ export const COACH_ME = '/coach/me';
 /** Route prefix → destination, most specific first. Unlisted coach paths light nothing. */
 const AREA_OF: [prefix: string, area: CoachTab | 'me'][] = [
   ['/coach/dashboard', 'today'],
-  // Check-in management (bulk request, awaiting / overdue) until B3.3; reviews are on Today.
-  // (`/coach/assessments` and `/coach/notifications` redirect to Today since B3.2.)
-  ['/coach/checkins', 'today'],
+  // (`/coach/assessments` and `/coach/notifications` redirect to Today since B3.2;
+  // `/coach/checkins` and `/coach/adherence` redirect into Clients since B3.3.)
   ['/coach/clients', 'clients'],
   ['/coach/client', 'clients'],
-  ['/coach/adherence', 'clients'], // until B3.3 makes it a Clients sort
   ['/coach/messages', 'messages'],
   ['/coach/library', 'library'],
   ['/coach/templates', 'library'], // Library › Programs (B3.7)

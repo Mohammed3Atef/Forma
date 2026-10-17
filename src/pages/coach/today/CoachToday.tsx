@@ -19,7 +19,7 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { formatDate, formatTime } from '@/lib/format';
 import { today as todayKey } from '@/lib/utils';
 import { buildTodayQueue, parseFocus, SECTION_OF, TODAY_KINDS, TODAY_SECTIONS, type TodayItem, type TodayKind, type TodaySection } from '@/lib/coachToday';
-import { useTodaySources } from './useTodaySources';
+import { useCoachSources } from '@/hooks/useCoachSources';
 import { SECTION_ICON, TodayRow, useTodayReason, type TodayPerson } from './TodayRow';
 import { TodayDetail } from './TodayDetail';
 
@@ -47,7 +47,7 @@ export function CoachToday() {
   const [params, setParams] = useSearchParams();
   const focus = parseFocus(params.get('focus'));
 
-  const { sources, updatedAt, refreshing, refresh } = useTodaySources(coachId);
+  const { sources, updatedAt, refreshing, refresh } = useCoachSources(coachId);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);

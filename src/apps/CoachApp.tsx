@@ -10,8 +10,7 @@ import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { BannerHost } from '@/components/BannerHost';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { queryClient } from '@/services/platform/queryClient';
-// Eager: the landing list (mobile index) + lightweight shared pages.
-import { CoachClients } from '@/pages/coach/CoachClients';
+// Eager: lightweight shared pages (Clients is no longer the landing — Today is, since B3.1).
 import { RoleAccount } from '@/pages/RoleAccount';
 import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 import { CoachMe } from '@/pages/coach/CoachMe';
@@ -19,6 +18,8 @@ import { CoachMe } from '@/pages/coach/CoachMe';
 // Heavy coach route pages are lazy so the coach bundle stays small — the
 // PlanBuilder editors in particular only load when an editor is opened.
 const CoachToday = lazy(() => import('@/pages/coach/today/CoachToday').then((m) => ({ default: m.CoachToday })));
+// B3.3: the directory shares the queue code with Today; lazy keeps both out of the shell chunk.
+const CoachClients = lazy(() => import('@/pages/coach/CoachClients').then((m) => ({ default: m.CoachClients })));
 const CoachClientDetail = lazy(() => import('@/pages/coach/CoachClientDetail').then((m) => ({ default: m.CoachClientDetail })));
 const CoachViewLayout = lazy(() => import('@/pages/coach/CoachViewLayout').then((m) => ({ default: m.CoachViewLayout })));
 const CoachCheckIns = lazy(() => import('@/pages/coach/CoachCheckIns').then((m) => ({ default: m.CoachCheckIns })));
@@ -34,14 +35,12 @@ const CoachWorkoutTemplateEditor = lazy(() => import('@/pages/coach/CoachWorkout
 const CoachTemplatePreview = lazy(() => import('@/pages/coach/CoachTemplatePreview').then((m) => ({ default: m.CoachTemplatePreview })));
 const CoachExerciseLibrary = lazy(() => import('@/pages/coach/CoachExerciseLibrary').then((m) => ({ default: m.CoachExerciseLibrary })));
 const PlanVersionHistory = lazy(() => import('@/pages/coach/PlanVersionHistory').then((m) => ({ default: m.PlanVersionHistory })));
-const CoachAdherence = lazy(() => import('@/pages/coach/CoachAdherence').then((m) => ({ default: m.CoachAdherence })));
 const CoachMessages = lazy(() => import('@/pages/coach/CoachMessages').then((m) => ({ default: m.CoachMessages })));
 const CoachMessageThread = lazy(() => import('@/pages/coach/CoachMessageThread').then((m) => ({ default: m.CoachMessageThread })));
 const CoachClientNotes = lazy(() => import('@/pages/coach/CoachClientNotes').then((m) => ({ default: m.CoachClientNotes })));
 const CoachClientSubscriptionTab = lazy(() => import('@/pages/coach/CoachClientSubscriptionTab').then((m) => ({ default: m.CoachClientSubscriptionTab })));
 const CoachClientHistory = lazy(() => import('@/pages/coach/CoachClientHistory').then((m) => ({ default: m.CoachClientHistory })));
 const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) => ({ default: m.CoachRevenue })));
-const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOverview').then((m) => ({ default: m.CoachCheckInsOverview })));
 
 /**
  * Coach portal (B3.1): one `CoachShell` for every width — Today · Clients ·
@@ -52,8 +51,8 @@ const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOver
  *
  * B3.2: `/coach/dashboard` is Today (the queue). The assessments list and the
  * coach notification feed fold into it (blueprint §5.3, O-5) and redirect;
- * `/coach/checkins` stays (bulk "request this week" + awaiting / overdue
- * overview) until Clients takes its filters in B3.3.
+ * B3.3: the weekly check-ins page and the adherence ranking live in Clients
+ * (`?view=checkins`, `?sort=workouts`); their old URLs redirect there.
  */
 export function CoachApp() {
   const shell = (node: ReactNode) => (
@@ -82,7 +81,7 @@ export function CoachApp() {
         <Route path="/coach/dashboard" element={shell(<CoachToday />)} />
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
         <Route path="/coach/assessments" element={<Navigate to="/coach/dashboard?focus=assessments" replace />} />
-        <Route path="/coach/checkins" element={shell(<CoachCheckInsOverview />)} />
+        <Route path="/coach/checkins" element={<Navigate to="/coach/clients?view=checkins" replace />} />
         <Route path="/coach/reports" element={shell(<CoachReports />)} />
         <Route path="/coach/revenue" element={shell(<CoachRevenue />)} />
         <Route path="/coach/plan" element={shell(<CoachPlan />)} />
@@ -114,7 +113,7 @@ export function CoachApp() {
         <Route path="/coach/templates/new" element={gated(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/templates/:templateId/edit" element={gated(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/templates/:templateId" element={shell(<CoachTemplatePreview />)} />
-        <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
+        <Route path="/coach/adherence" element={<Navigate to="/coach/clients?sort=workouts" replace />} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
         <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
         <Route path="/coach/notifications" element={<Navigate to="/coach/dashboard" replace />} />

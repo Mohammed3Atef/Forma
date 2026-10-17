@@ -13,10 +13,9 @@ import { whatsappUrl } from '@/lib/contact';
  * footer from 768 px. It replaces the ☰ menu's long tail and the WhatsApp
  * floating button (Help & support lives here — RM-34, RM-48).
  *
- * Until their own milestones land, the coaching tools that leave the main
- * navigation stay reachable from here, so nothing disappears: check-in
- * management (bulk request, awaiting / overdue) and adherence, until Clients
- * takes them in B3.3. Assessments to review are on Today since B3.2.
+ * The coaching tools that once lived here moved to their destinations:
+ * assessments to review → Today (B3.2); weekly check-ins and the workout
+ * ranking → Clients (B3.3, `?view=checkins`, `?sort=workouts`).
  */
 export function CoachMe() {
   const { t } = useTranslation();
@@ -54,13 +53,6 @@ export function CoachMe() {
       <Section title={t('coachMe.forma')}>
         <ListGroup>
           <ListRow to="/coach/plan" testId="me-forma" leading={<IconTile icon="shield" tone={state === 'expired' || state === 'suspended' ? 'warn' : 'success'} />} title={t('coachMe.formaSubscription')} meta={planMeta} chevron />
-        </ListGroup>
-      </Section>
-
-      <Section title={t('coachMe.coaching')}>
-        <ListGroup>
-          <ListRow to="/coach/checkins" testId="me-checkins" leading={<IconTile icon="check" />} title={t('coachMe.checkins')} chevron />
-          <ListRow to="/coach/adherence" testId="me-adherence" leading={<IconTile icon="target" />} title={t('coachMe.adherence')} chevron />
         </ListGroup>
       </Section>
 

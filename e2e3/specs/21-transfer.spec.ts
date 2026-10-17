@@ -85,14 +85,14 @@ test('transfer: coachB requests clientA → coachA approves → client moves', a
   await expectToast(a, 'Approved — the client is now released.');
   await expect(a.getByTestId('confirm-dialog')).toHaveCount(0);
   await expect(a.getByTestId('incoming-transfer-row')).toHaveCount(0);
-  await expect(a.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toHaveCount(0);
+  await expect(a.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toHaveCount(0);
   await expect(a.getByTestId('coach-client-usage')).toContainText('0 / 2 clients used');
   await shot(a, testInfo, '04-coachA-roster');
 
   // coachB sees clientA (fresh navigation to the roster).
   await b.goto('/coach/clients');
   await appReady(b, 'coach-desktop-clients');
-  await expect(b.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toBeVisible({ timeout: 20_000 });
+  await expect(b.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(b.getByTestId('coach-client-usage')).toContainText('2 / 2 clients used');
   await shot(b, testInfo, '05-coachB-roster');
 
@@ -130,7 +130,7 @@ test('transfer failure: destination at cap → error shown, nothing moves, reque
   await alert.getByTestId('confirm-accept').click();
   // Request still offered (pending), client still on coachA's roster.
   await expect(a.getByTestId('incoming-transfer-row').filter({ hasText: 'Client Aya' })).toBeVisible();
-  await expect(a.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toBeVisible();
+  await expect(a.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toBeVisible();
   await shot(a, testInfo, '03-coachA-unchanged');
 
   const active = await db.find<Rel>('coachClients', { clientId: CA, status: 'active' });

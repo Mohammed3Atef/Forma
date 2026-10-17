@@ -1,6 +1,6 @@
 # B3.2 — Coach Today: queue criteria
 
-> The rules behind every item, count and state on the coach's Today screen (`/coach/dashboard`). Code: `src/lib/coachToday.ts` (`buildTodayQueue`, pure, unit-tested in `coachToday.test.ts`), screen `src/pages/coach/today/`, data `useTodaySources.ts`, server field `coachClients.dashboardSummaries.hasWorkoutPlan / hasNutritionPlan` (owner O-7).
+> The rules behind every item, count and state on the coach's Today screen (`/coach/dashboard`). Code: `src/lib/coachToday.ts` (`buildTodayQueue`, pure, unit-tested in `coachToday.test.ts`), screen `src/pages/coach/today/`, data `src/hooks/useCoachSources.ts` (B3.3: shared with Clients; was `today/useTodaySources.ts`), server field `coachClients.dashboardSummaries.hasWorkoutPlan / hasNutritionPlan` (owner O-7).
 > Blueprint §6.1, owner brief 2026-10-17, decisions O-5 (no coach bell), O-6 (banner policy), O-7 (plan fields), O-20 (inactivity rule).
 
 ## 1. Principles
@@ -16,9 +16,9 @@
 | Source | Procedure (cache key) | Authorization | Refresh |
 |---|---|---|---|
 | Roster | `coachClients.listMyClientUsers` (`myClients`) | self (or `users.read`) | 60 s while Today is open, on focus, and on Refresh |
-| Relationships / subscriptions | `coachClients.list({status:'all'})` (`coachRelationships`) | self | 60 s |
+| Relationships / subscriptions | `coachClients.list({status:'active', view:'summary'})` (`coachRelationships`). B3.3: active relationships only, without the audit trail | self | 60 s |
 | Summaries | `coachClients.dashboardSummaries` (`coachDashboardSummaries`), plus the **O-7** plan fields | self | 60 s |
-| Check-ins | `checkIns.listForCoachClients` (`coachCheckInSummaries`) | self | 60 s |
+| Check-ins | `checkIns.listForCoachClients` (`coachCheckInSummaries`). B3.3: the server returns only this coach's check-ins (the rule in §3) | self | 60 s |
 | Incoming transfers | `transfers.list({type:'incoming'})` (`incomingTransferRequests`) | self | 60 s |
 | Conversations | `messages.coachThreadsSummary`, via the app's shared 20 s poller (the same one behind the Messages badge, so no second poll) | self; per-coach conversation (R-4, server-side) | 20 s |
 | Freeze requests (**B32-P1**) | `subscriptionRequest.pendingForCoach` (`coachFreezeRequests`): the canonical request documents, every page read (cursor on requested-at + client, ≤ 200 per page) | self (or `users.read`); only the caller's **active** clients; only requests made **since that relationship began** (never a previous coach's, never an earlier stint's) | 60 s, and right after a decision on the client's Subscription page |
@@ -85,7 +85,7 @@ Priorities follow blueprint §6.1. Sections run top to bottom in this order.
 2. **Check-ins:** only the latest and the previous check-in are returned per client. A third waiting week (rare) is not counted, though the client's check-ins page shows it.
 3. **Day boundaries:** "No workout in 7 days" compares the client's local workout date with the coach's local date, so it can be up to a day off across time zones.
 4. **"Last workout"** includes workouts from before this coach (the client's history). A client added under a week ago is never flagged.
-5. **Partial failures are batch-sized:** tRPC batches the sources into one request, so one failing procedure usually fails the whole batch and the screen shows the roster error. Retry recovers.
+5. **Partial failures:** tRPC answers each procedure in a batch separately, so a server error in one source blanks only its kinds (verified in B3.3, e2e3 87). A network or gateway failure fails every source in that request, so the usual failure is the roster error. Retry recovers.
 6. **Plan freshness:** a plan assigned two days ago counts as a plan, so a client can be flagged "no workout in 7 days" right after a long gap even if the plan is new. The rule does not know when the plan was assigned.
 
 ## 8. Proposed follow-ups (need approval; not implemented)
@@ -93,5 +93,5 @@ Priorities follow blueprint §6.1. Sections run top to bottom in this order.
 | ID | Proposal | Why |
 |---|---|---|
 | B32-P1 | ~~Complete freeze requests beyond the newest 50 notifications~~ | **Done** (owner-approved): `subscriptionRequest.pendingForCoach`, read-only, server-scoped, paginated — not a notification filter |
-| B32-P2 | Scope `dashboardSummaries.toReview` to check-ins requested by this coach (as Today already does) | Clients / ⌘K still show "Check-in awaiting review" for a previous coach's check-in |
+| B32-P2 | ~~Scope `dashboardSummaries.toReview` to check-ins requested by this coach~~ | **Done in B3.3** (owner brief): `toReview` and `checkIns.listForCoachClients` are this coach's only — see `B3_CLIENTS_DIRECTORY.md` §11 |
 | B32-P3 | Optional role-aware PWA shortcuts (per-role manifest) | RM-79 removed the role-agnostic ones; an enhancement, not a launch item |

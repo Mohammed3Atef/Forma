@@ -110,7 +110,10 @@ export async function getCoachDashboard(coachId: string): Promise<CoachDashboard
     const lastActivity = s?.lastActivity ?? null;
     const assess = s?.assessment ?? 'not_started';
     const toReview = s?.toReview ?? false;
-    const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || workouts7d === 0 || toReview;
+    // B3.3: only real, current-coach work — a check-in to review (server-scoped to this coach) or an
+    // assessment to review. "No workout this week" is no longer a flag on its own (CO-06: frozen,
+    // expired, brand-new and nutrition-only clients were all marked); Today owns inactivity, with its rules.
+    const needsAttention = assess === 'submitted' || assess === 'updated_after_review' || toReview;
     // Prefer the client's assessment name ONLY over a missing / email-prefix
     // fallback display name — a name the client set themselves (Settings →
     // account) must win, or the roster keeps showing the old name forever.

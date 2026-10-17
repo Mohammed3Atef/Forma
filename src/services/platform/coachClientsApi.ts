@@ -60,6 +60,16 @@ export async function listAllRelationshipsForCoach(coachId: string): Promise<Coa
   return docs.map(fromApiDoc);
 }
 
+/**
+ * B3.3: the coach's ACTIVE relationships without the audit trail, archived
+ * terms or invite code (`view: 'summary'`) — what Today and Clients need,
+ * small enough to refresh every minute on a large roster.
+ */
+export async function listActiveRelationshipsSummary(coachId: string): Promise<CoachClientRelationship[]> {
+  const docs = await trpc.coachClients.list.query({ coachId, status: 'active', view: 'summary' });
+  return docs.map(fromApiDoc);
+}
+
 /** Assigns a client to a coach (idempotent on the deterministic id). */
 export async function assignClientToCoach(coachId: string, clientId: string, _createdBy: string): Promise<void> {
   await trpc.coachClients.assign.mutate({

@@ -123,3 +123,72 @@ Checked on every shot: one summary line that tells the truth (count / caught up 
 ### 5. Close-out recheck (owner follow-ups, 2026-10-17)
 
 After B32-P1 (freeze requests from their canonical documents) and NT-10 (announcement dismissals), Today was rechecked at phone, tablet and desktop in English and Arabic, from the close-out full run (`e2e-out/b32-close2/b32-visual/`, 18 / 18, 0 px overflow, correct `dir`). The only visible change is the freeze row's evidence, which now names the requested dates ("Asked to freeze 18 October – 25 October: …", asserted in spec 86). Announcements look exactly as before; only their dismissal memory changed.
+
+---
+
+## B3.3 — Clients directory (2026-10-17)
+
+**Scope reviewed:** the Clients screen at every width the brief names, in English, Arabic and Egyptian Arabic, and at roster sizes 0, 1, 25 and 210:
+- the list, the desktop table, the Filter & sort sheet and the weekly check-ins view;
+- states: empty, no match, partial, roster error, offline.
+
+Fixtures: coachPro with no clients; coachB with its one seeded client; an isolated mixed roster of 25 on coachPro (one client per package / check-in / plan / activity state, a frozen account, an unread message, a client taken over from another coach); 210 clients for the many-clients layouts. See spec 87.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/87-b3-clients.spec.ts
+```
+
+The spec writes `e2e-out/<run>/b33-visual/<view>-<width>-<lang>.png` (full page) with `b33-empty.json`, `b33-mixed.json` and `b33-many.json` (overflow, `dir`). It fails on any horizontal overflow or wrong direction. Other spec-87 tests attach state shots: mixed 1440, Arabic 1440, offline 390, outgoing transfers, weekly check-ins before the bulk request, 210 clients at 1440.
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440, plus 1280 in the table test |
+| Languages | English · Arabic · Egyptian Arabic (390, 1440) |
+| Views | list / table (mixed 25: all widths × EN / AR, + AR-EG 390 / 1440); weekly check-ins (390 / 1440 × EN / AR); Filter & sort sheet (390 × EN / AR); empty (390 / 1440 × EN / AR); 210 clients (390 / 1440 EN) |
+
+Reference run: `e2e-out/b33-full-a/b33-visual/` (the final full suite; the same 26 shots were reviewed by eye from `e2e-out/b33-s87-e/`).
+
+**Result:** 26 / 26 shots, **0 px horizontal overflow, correct `dir` on every shot**. The table also has no inner overflow at 1024 / 1280 / 1440. axe (WCAG 2.1 A / AA) on the phone list, the filter sheet, the desktop table and the weekly check-ins view in EN and AR: **0 violations** (after the fixes below).
+
+Checked on every shot:
+- rows read name · reason (exactly Today's wording) or last workout · package;
+- no email or phone anywhere in the list;
+- the package pill and the account pill are never confused;
+- "—" for unknown;
+- the table's columns are in priority order, with Workouts (7d) folding under Last workout below 1280 px;
+- Arabic mirrors (name column on the right, menu on the left, chevrons inline-end), and Arabic plurals read correctly ("ينتهي خلال 3 أيام", "منذ يومين");
+- the client's own English words stay readable inside Arabic text.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| C1 | The red `bad` pill (Expired, Frozen account, Declined transfer) failed AA contrast (~4.1:1) | all widths, EN + AR (axe) | **Fixed on these screens**: AA-safe `danger.text` token (#FF6B62, ≥ 5:1). The shared style is B3.9 (B33-R1: it also changes client and admin screens) |
+| C2 | The Filter button had no accessible name on phones (icon only) | 360–430 (axe) | **Fixed**: it is labelled "Filter & sort", or "Filter & sort · N" when filters are on |
+| C3 | The count inside the selected chip was dimmed below AA | all widths (axe) | **Fixed**: no dimming |
+| C4 | "Last workout" was cut off in the table ("Worked out tod…", "Last workou…") | 1024 / 1440 | **Fixed**: short forms in the table ("Today", "6 days ago", "None yet"); the list keeps the full sentence |
+| C5 | Package pills ("ENDS IN 3D", "NO PACKAGE") wrapped onto two lines | 1024 | **Fixed**: rebalanced widths (package 19 % below 1280 px) and pills that never wrap |
+| C6 | The Add button dropped onto its own line under the title | 360–430 | **Fixed**: the header no longer wraps; the button stays on the title row |
+| C7 | The search placeholder was cut mid-word | phones | **Shortened** ("Search name, email, phone"). It still clips at 360 px; the field's accessible name is the full sentence |
+| C8 | Clear / Done of the filter sheet were cut off by the sheet's bottom edge | 390, EN + AR | **Fixed**: pinned in the sheet footer |
+| C9 | Two-column tablet list: only the first row had a divider | 768, EN + AR | **Fixed**: `divide-y-0` also zeroed the rows' own bottom border; borders are now set explicitly, with a column divider and none under the last row |
+| C10 | "Ends in 3 day" in Arabic (an older string without plural forms) | AR / AR-EG | **Fixed**: a new pluralised string |
+| C11 | Long names were truncated in the 1024 table without a way to read them | 1024 | **Fixed**: a tooltip with the full name |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| The shared `bad` pill colour on client and admin screens (C1) | B3.9 |
+| The check-in summary's notes in Arabic (shared component, B32-R1) | B3.9 RTL polish |
+| Chips keep the app's mono chip face (as on Today) | B3.9 visual polish |
+| The client switcher sheet still shows the old "Needs attention" pill | B3.4 |
+
+### 5. Not covered
+
+Physical devices (iOS Safari, Android Chrome, installed PWA), screen readers beyond axe, and real data volumes beyond the 210-client fixture.

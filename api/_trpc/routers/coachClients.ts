@@ -85,11 +85,18 @@ export const coachClientsRouter = router({
         coachId: z.string().trim().min(1).optional(),
         clientId: z.string().trim().min(1).optional(),
         status: z.enum(['active', 'ended', 'pending', 'all']).optional(),
+        /**
+         * B3.3 (additive): `summary` leaves out the audit trail (`subscriptionEvents`, up to 200 per
+         * relationship), the archived terms and the invite code — a roster screen needs the current
+         * term only, and a 100-client roster otherwise ships megabytes on every refresh. Default `full`.
+         */
+        view: z.enum(['full', 'summary']).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
       const col = await coachClientsCol();
+      const projection = input.view === 'summary' ? { subscriptionEvents: 0, subscriptionHistory: 0, inviteCode: 0 } : undefined;
 
       if (input.clientId) {
         const all = await col.find({ clientId: input.clientId }).sort({ createdAt: -1 }).toArray();
@@ -106,13 +113,13 @@ export const coachClientsRouter = router({
         const filter: Record<string, unknown> = { coachId: input.coachId };
         if (input.status && input.status !== 'all') filter.status = input.status;
         else if (!input.status) filter.status = 'active';
-        return col.find(filter).sort({ createdAt: -1 }).toArray();
+        return col.find(filter, { projection }).sort({ createdAt: -1 }).toArray();
       }
 
       if (ctx.user.role === 'coach') {
         const filter: Record<string, unknown> = { coachId: ctx.user.id };
         filter.status = input.status && input.status !== 'all' ? input.status : 'active';
-        return col.find(filter).sort({ createdAt: -1 }).toArray();
+        return col.find(filter, { projection }).sort({ createdAt: -1 }).toArray();
       }
       if (ctx.user.role === 'client') {
         return col.find({ clientId: ctx.user.id }).sort({ createdAt: -1 }).toArray();
@@ -160,6 +167,12 @@ export const coachClientsRouter = router({
    * client's plan has content (≥ 1 training day / ≥ 1 meal). A saved plan with
    * no days or meals counts as no plan. Two more bounded queries on `_id`
    * (one plan document per client); only the array sizes leave the database.
+   *
+   * B3.3 (owner, 2026-10-17): `toReview` is THIS coach's work only — a
+   * submitted check-in this coach requested (`coachId`), or a legacy one
+   * without `coachId` submitted after this relationship began. A previous
+   * coach's check-in on a transferred client no longer flags the client for
+   * the new coach (same rule as Today's `isMyCheckIn`, `src/lib/coachToday.ts`).
    */
   dashboardSummaries: authedProcedure
     .input(z.object({ coachId: z.string().trim().min(1).optional() }))
@@ -168,9 +181,10 @@ export const coachClientsRouter = router({
       const coachId = input.coachId ?? ctx.user.id;
       if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
       const relCol = await coachClientsCol();
-      const rels = await relCol.find({ coachId, status: 'active' }).toArray();
+      const rels = await relCol.find({ coachId, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).toArray();
       const clientIds = [...new Set(rels.map((r) => r.clientId))];
       if (clientIds.length === 0) return [];
+      const relStart = new Map(rels.map((r) => [r.clientId, Number(r.createdAt ?? 0)]));
 
       const since = cutoff(7);
       const syncCol = await syncRecordsCol();
@@ -180,7 +194,7 @@ export const coachClientsRouter = router({
       const nutritionPlans = await clientNutritionPlansCol();
       const sizeOf = (field: string) => ({ $cond: [{ $isArray: `$${field}` }, { $size: `$${field}` }, 0] });
 
-      const [workoutRows, profileDocs, submittedClientIds, workoutPlanRows, nutritionPlanRows] = await Promise.all([
+      const [workoutRows, profileDocs, submittedCheckIns, workoutPlanRows, nutritionPlanRows] = await Promise.all([
         syncCol
           .aggregate<{ _id: string; workouts7d: number; lastActivity: string | null }>([
             { $match: { clientId: { $in: clientIds }, collection: 'workoutLogs', 'data.finished': true } },
@@ -188,14 +202,20 @@ export const coachClientsRouter = router({
           ])
           .toArray(),
         profilesCol.find({ _id: { $in: clientIds } }).toArray(),
-        checkinsCol.distinct('clientId', { clientId: { $in: clientIds }, status: 'submitted' }),
+        checkinsCol
+          .find({ clientId: { $in: clientIds }, status: 'submitted' }, { projection: { clientId: 1, coachId: 1, submittedAt: 1, createdAt: 1 } })
+          .toArray(),
         workoutPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('days') } }]).toArray(),
         nutritionPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('meals') } }]).toArray(),
       ]);
 
       const workoutByClient = new Map(workoutRows.map((r) => [r._id, r]));
       const profileByClient = new Map(profileDocs.map((d) => [d.clientId, d]));
-      const toReviewSet = new Set(submittedClientIds);
+      const toReviewSet = new Set(
+        submittedCheckIns
+          .filter((c) => (c.coachId ? c.coachId === coachId : (c.submittedAt ?? c.createdAt ?? 0) >= (relStart.get(c.clientId) ?? 0)))
+          .map((c) => c.clientId),
+      );
       const withWorkoutPlan = new Set(workoutPlanRows.filter((r) => r.n > 0).map((r) => r._id));
       const withNutritionPlan = new Set(nutritionPlanRows.filter((r) => r.n > 0).map((r) => r._id));
 

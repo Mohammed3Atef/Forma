@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { listMyClients, listClientDashboardSummaries, listPendingFreezeRequests } from '@/services/platform/coachApi';
-import { listAllRelationshipsForCoach } from '@/services/platform/coachClientsApi';
+import { listActiveRelationshipsSummary } from '@/services/platform/coachClientsApi';
 import { listCheckInsForCoachClients } from '@/services/platform/checkInApi';
 import { refreshCoachThreadsSummary, subscribeCoachThreadsSummary, type CoachThreadSummary } from '@/services/platform/messagesApi';
-import { incomingTransfersQuery } from '@/components/coach/TransferRequestCard';
+import { incomingTransfersQuery } from '@/services/platform/transferApi';
 import type { SourceState, TodaySources } from '@/lib/coachToday';
 
 /**
- * Everything Today reads (B3.2), as separate sources so one failure only
+ * Everything Today (B3.2) and Clients (B3.3) read about the coach's roster, as separate sources so one failure only
  * blanks the kinds that need it (`KIND_SOURCES`). Query keys are the ones the
  * other coach screens already use, so caches are shared, not duplicated.
  * Threads come from the app-wide shared poller (20 s) — Today adds no second
@@ -43,7 +43,7 @@ function useCoachThreads(coachId: string): { state: SourceState<CoachThreadSumma
   return { state: { data: rows, error: failed }, updatedAt };
 }
 
-export interface TodayData {
+export interface CoachSourcesData {
   sources: TodaySources;
   /** Oldest successful load among the timed sources (for "Updated hh:mm"); 0 until all have loaded once. */
   updatedAt: number;
@@ -51,10 +51,11 @@ export interface TodayData {
   refresh: () => void;
 }
 
-export function useTodaySources(coachId: string): TodayData {
+export function useCoachSources(coachId: string): CoachSourcesData {
   const live = { enabled: !!coachId, staleTime: TODAY_STALE_MS, refetchInterval: TODAY_REFRESH_MS } as const;
   const roster = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), ...live });
-  const relationships = useQuery({ queryKey: ['coachRelationships', coachId], queryFn: () => listAllRelationshipsForCoach(coachId), ...live });
+  // Active relationships only, without the audit trail (`view: 'summary'`, B3.3) — the roster screens need the current term.
+  const relationships = useQuery({ queryKey: ['coachRelationships', coachId], queryFn: () => listActiveRelationshipsSummary(coachId), ...live });
   const summaries = useQuery({ queryKey: ['coachDashboardSummaries', coachId], queryFn: () => listClientDashboardSummaries(coachId), ...live });
   const checkIns = useQuery({ queryKey: ['coachCheckInSummaries', coachId], queryFn: () => listCheckInsForCoachClients(coachId), ...live });
   const transfers = useQuery({ ...incomingTransfersQuery(coachId), staleTime: TODAY_STALE_MS, refetchInterval: TODAY_REFRESH_MS });

@@ -63,6 +63,10 @@ export interface TodayClient {
 export interface TodaySummary {
   clientId: string;
   lastActivity: string | null;
+  /** Finished workouts in the last 7 days (used by Clients, B3.3). */
+  workouts7d?: number;
+  /** The assessment's full name (a better display name than an email prefix). */
+  fullName?: string | null;
   assessment: 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review';
   hasWorkoutPlan?: boolean;
   hasNutritionPlan?: boolean;

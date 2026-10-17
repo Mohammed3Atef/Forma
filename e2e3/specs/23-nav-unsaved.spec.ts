@@ -179,8 +179,9 @@ test('history: Clients → client → workout tab → notes tab → back arrow; 
   const { page } = await as('coachA');
   await page.goto('/coach/clients');
   await appReady(page, 'coach-desktop-clients');
-  const row = page.getByTestId('coach-desktop-clients').getByTestId('data-row').filter({ hasText: env.accounts.clientA.email });
-  await row.getByRole('button', { name: 'Open' }).click();
+  // B3.3: the client's name is the row's link (rows show no contact details).
+  const row = page.getByTestId('coach-desktop-clients').locator(`[data-testid="client-table-row"][data-client-id="${env.accounts.clientA.id}"]`);
+  await row.getByTestId('client-open').click();
   await expect(page).toHaveURL(new RegExp(`/coach/client/${CA}$`));
   await page.getByTestId('workspace-tab-workout').click();
   await expect(page).toHaveURL(new RegExp(`/coach/client/${CA}/workout$`));

@@ -99,13 +99,15 @@ test('invite → anonymous claim → coach roster updates without reload', async
   //     is covered). Recorded: React Query v5 listens for visibilitychange only.
   await page.waitForTimeout(61_000); // let the 60 s staleTime lapse so a focus refetch is allowed
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  const seenOnWindowFocus = await table.getByText(email).waitFor({ timeout: 4_000 }).then(() => true).catch(() => false);
+  // B3.3: rows show no contact details — find the client by id.
+  const invitedRow = table.locator(`[data-client-id="${newUser!._id}"]`);
+  const seenOnWindowFocus = await invitedRow.waitFor({ timeout: 4_000 }).then(() => true).catch(() => false);
   testInfo.annotations.push({ type: 'window-focus-refetch', description: String(seenOnWindowFocus) });
   // (b) Tab becomes visible again (real tab switch → bubbling visibilitychange).
   let seenAfterMs = -1;
   await expect(async () => {
     await refocus(page);
-    await expect(table.getByText(email)).toBeVisible({ timeout: 2_000 });
+    await expect(invitedRow).toBeVisible({ timeout: 2_000 });
     seenAfterMs = Date.now() - t0;
   }).toPass({ timeout: 15_000, intervals: [1_000, 2_000] });
   testInfo.annotations.push({ type: 'roster-refresh-ms', description: String(seenAfterMs) });
@@ -133,7 +135,7 @@ test('Add Existing: search clientFree by email → Assign to me', async ({ as, d
   await shot(page, testInfo, '01-existing-detail');
   await page.getByTestId('existing-assign').click();
   await expectToast(page, 'Add client');
-  await expect(page.getByTestId('coach-desktop-clients').getByText(env.accounts.clientFree.email)).toBeVisible();
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await shot(page, testInfo, '02-roster-has-free');
 
   const u = await db.findOne<{ assignedCoachId?: string }>('users', { _id: FREE });
@@ -359,8 +361,8 @@ test('release the invited client → roster drops it, counter decremented', asyn
   await page.getByTestId('release-confirm').click();
   await expect(page).toHaveURL(/\/coach(\/dashboard)?$/);
   await page.getByTestId('rail-clients').click();
-  await expect(page.getByTestId('coach-desktop-clients').getByText(state.invitedEmail!)).toHaveCount(0);
-  await expect(page.getByTestId('coach-desktop-clients').getByText('client.free@e2e.test')).toBeVisible();
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${state.invitedId}"]`)).toHaveCount(0);
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await expect(page.getByTestId('coach-client-usage')).toContainText('1 / 25 clients used');
   await shot(page, testInfo, '02-roster-after-release');
 

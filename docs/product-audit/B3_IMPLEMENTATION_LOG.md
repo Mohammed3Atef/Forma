@@ -348,4 +348,145 @@ Approved with three conditions before the B3.2 commit.
 | Visual recheck, Today (390 / 768 / 1024 / 1440 × EN / AR + all widths in the matrix) | 18 / 18 matrix shots, 0 px overflow, correct `dir` (`e2e-out/b32-close2/b32-visual/`); looked at 390 AR, 768 EN, 1024 AR, 1440 EN: unchanged apart from the freeze row now showing the requested dates |
 | Contracts | B0 / B1 / B2 / B3.0.1 / B3.1 suites all inside the full run above (incl. spec 33 / 60 composer, 61 trust, 70 foundation, 80 client, 81 security, 85 shell) |
 
-**Status: B3.2 closed with the owner's two follow-ups — committed locally as one B3.2 commit (not pushed). B3.3 follows.**
+**Status: B3.2 closed with the owner's follow-ups — committed locally as `739cc33` ("Phase B3.2: coach Today queue", 52 files; not pushed). B3.3 follows.**
+
+---
+
+## B3.3 — Clients directory (2026-10-17)
+
+**Owner brief (2026-10-17):** B3.2 approved on conditions (B32-P1, NT-10, keep `/coach/checkins` until B3.3, close B3.2 safely in one commit). Then B3.3, the premium Clients directory:
+- keep Add Existing Client, invitations and every supported client action;
+- work for 0, 1, 25, 100 and many clients;
+- scope the legacy Needs-attention / `toReview` logic strictly to the current coach;
+- define each status precisely, with no speculative risk, misleading flags or false inactive states;
+- meaningful filters and sorting, keep bulk weekly check-in requests and awaiting / overdue while migrating `/coach/checkins`, and keep old URLs working;
+- mobile-first list, practical tablet, dense desktop table without horizontal overflow;
+- honest states; EN / AR / AR-EG, RTL, keyboard; carry the remaining issues to their milestones.
+
+Stop for review: no commit, no B3.4, no push or deploy.
+**Rules of the directory:** `B3_CLIENTS_DIRECTORY.md` (sources, every state and filter, sorts, weekly check-ins, layouts, server changes, limits). **Not changed:** the client app, marketing, auth / legal, the admin shell. No production data or credentials touched; no database reset; isolated fixtures only (`e2e-dir-` ids, removed after each run).
+
+### 0. B3.2 close-out
+
+Committed locally as `739cc33` ("Phase B3.2: coach Today queue", 52 files) after a file-by-file review of the staged diff, not pushed. Left in the working tree as before: `B1_P1_TRIAGE.md`, `FORMA_CLEAN_LAUNCH_PLAN.md`, the backlog's REL-04 row, and the `ar-eg` wording change (متبعوتة → مبعوتة).
+
+### 1. What changed
+
+1. **Clients** (`src/pages/coach/CoachClients.tsx` + `src/pages/coach/clients/`): header with capacity and **Add client**; incoming transfer requests; search (name, email, phone; contact details are never shown in a row); task chips (All, Needs you, Check-ins to review, Renewals due, Lapsed, Weekly check-ins); a Filter & sort sheet; the desktop table; the phone / tablet list; the weekly check-ins view; "Your transfer requests". Every view is in the URL.
+2. **Model** `src/lib/coachDirectory.ts` (pure): package state, this week's check-in state, activity, plans, needs (Today's queue, `buildTodayQueue`, so "Needs you" is Today's list), filtering, sorting (unknown values last), bulk-request eligibility.
+3. **Shared data** `src/hooks/useCoachSources.ts` (moved from `today/useTodaySources.ts`): Today and Clients read the same queries. Relationships use the new `view: 'summary'` (active only, no audit trail).
+4. **Only this coach's work (server):** `dashboardSummaries.toReview` and `checkIns.listForCoachClients` count only check-ins this coach requested (legacy ones only when created after the relationship began). `checkIns.request` refuses a week a previous coach holds instead of returning that coach's check-in.
+5. **`/coach/checkins` → Clients › Weekly check-ins** (`?view=checkins`). Same groups (to review, overdue, awaiting, not requested, done), review in order with the shared form, and the bulk request, now only to clients with a running package and an active account, in batches of 10. A week held by a previous coach is reported as such, not as a failure to retry. **`/coach/adherence` → `?sort=workouts`.** Both pages and Me › Coaching are removed; the URLs redirect.
+6. **Add client:** the chooser + invite panel moved to `clients/AddClientSheet.tsx` (same test ids). **O-4:** closing the sheet no longer revokes uncopied links (CO-37). Revoking is compare-and-set on the server, so it never overwrites a claim.
+7. **"Your transfer requests"** (B3-C06): status and Cancel while pending. The server no longer tells the requester who coaches the client (`fromCoachId` omitted, CO-03).
+8. **⌘K** reads the light `myClients` roster (no dashboard load). The old `needsAttention` flag (still used by the client switcher) no longer marks "0 workouts this week" on its own (CO-06).
+9. **Accessibility found by axe:**
+   - the shared `bad` pill's red text is ~4.1:1 on its tint, so these screens use a new AA-safe token `danger.text` (#FF6B62); the shared style is B3.9 (B33-R1);
+   - the phone Filter button had no accessible name;
+   - chip counts were dimmed below AA.
+10. **Visual-QA fixes:**
+    - short "last workout" forms in the table ("6 days ago"; the header says "Last workout");
+    - rebalanced column widths and non-wrapping pills at 1024;
+    - the phone header keeps Add on the title row;
+    - a shorter search placeholder;
+    - the filter sheet's Clear / Done pinned in a footer;
+    - tablet two-column dividers (a `divide-y-0` conflict zeroed the row borders);
+    - names truncated in the table carry a tooltip.
+11. **Lazy route:** Clients was the only eager coach page (a leftover from when it was the phone landing). It is now lazy like Today, which keeps the shared queue code out of the shell chunk.
+12. **i18n:**
+    - a `coachClients` namespace in `en`, `ar`, `ar-eg` with full Arabic plurals (incl. "Ends in N days");
+    - `checkin.weekTaken`;
+    - 30 strings orphaned by the removed pages and the old list deleted, each confirmed unused in `src/` (`coachMe.coaching / checkins / adherence`, `coachDash.sendReminders…`, `checkin.section*`, `trust.clients.*`, …).
+
+### 2. API contract
+
+| Procedure | Before | After | Consumers |
+|---|---|---|---|
+| `coachClients.dashboardSummaries` | `toReview` = any submitted check-in of the client | `toReview` = a submitted check-in **this coach** requested (legacy: created after this relationship began). Same shape and authorization | Clients, ⌘K / switcher (`needsAttention`), Reports |
+| `checkIns.listForCoachClients` | latest + previous check-in of each active client, any coach | the same, from **this coach's** check-ins only | Today, Clients |
+| `checkIns.request` | an existing week was returned as-is | a coach asking for a week a previous coach holds gets `CONFLICT` `CHECKIN_WEEK_TAKEN`; own weeks stay idempotent; admins unchanged | Clients (bulk), the client's Check-ins page |
+| `coachClients.list` | full documents | optional `view: 'summary'` drops `subscriptionEvents`, `subscriptionHistory`, `inviteCode` (default unchanged) | Today, Clients |
+| `transfers.list({type:'outgoing'})`, `transfers.create` | returned `fromCoachId` | omitted (the incoming list keeps it) | Clients |
+| `invites.revoke` | unconditional `$set: revoked` | only while not `claimed`; otherwise `CONFLICT` | Add client |
+
+No schema change, no migration, no stored field. Authorization unchanged everywhere.
+
+### 3. Tests
+
+| Test | Proves |
+|---|---|
+| `src/lib/coachDirectory.test.ts` (new, 30) | every package state and boundary (7-day expiring, frozen, ended / cancelled, pending, none, unknown); check-in states incl. a previous coach's and legacy check-ins; activity / plans unknown vs none; filters, sorts (unknowns last, both directions), eligibility |
+| `src/pages/coach/CoachClients.test.tsx` (new, 9) | loading, error, offline, empty, no-match, partial; URL filters and sorts; `?new=1`; no contact details in rows |
+| `api/_trpc/routers/b33Directory.test.ts` (new, 7) | `toReview` across a hand-over and for legacy check-ins (also as admin); `listForCoachClients` never sends a previous coach's check-in; `request` refuses a previous coach's week (incl. legacy) but stays idempotent for its own; `list` summary view (size, authorization); outgoing transfers never carry `fromCoachId`; revoke never overwrites a claim |
+| `e2e3/specs/87-b3-clients.spec.ts` (new, 19) | 0 clients (EN / AR shots); 1 client (no contact details, search by email / phone, no-match); old URLs; O-4; outgoing transfers (payload has no current coach); the mixed 25 (every state; Needs you = Today; deep links, reload, Back; sorts; desktop 1024 / 1280 / 1440 with no overflow, keyboard, row menu; phone / tablet Show more; partial and roster failure; offline; Arabic; axe EN + AR on list, filters, table, check-ins; the visual matrix; weekly check-ins with the bulk request and the review queue, checked in the DB); **210 clients** (pages of 50, sorting across pages, Show more to 210, search, payload per client) |
+| Updated: `CoachToday.test.tsx`, `coachNav.test.tsx` | the moved data hook; the removed routes |
+
+**§T — spec changes forced by B3.3** (rows no longer show contact details; new table hooks; moved pages):
+- 20 / 21 / 23 find clients by `data-client-id` and open them by the name link;
+- 61 accepts "No package";
+- 85 drops the Me rows and deep-links `/coach/clients?view=checkins`.
+
+### 4. Verification (final code, 2026-10-17)
+
+| Gate | Result |
+|---|---|
+| Typecheck `tsc -b --noEmit` | **PASS** |
+| Boundaries | **PASS** |
+| Unit + API `vitest run` | **PASS — 747 / 747 in 85 files** (B3.2: 701 in 82; +46) |
+| Build | **PASS**. Entry 466.77 / 151.03 kB gzip (B3.2: 464.62 / 150.54; +0.49 kB gzip, the English strings). `CoachApp` **35.43 / 11.30** (B3.2: 63.33 / 17.56; the old Clients page left the shell chunk). New lazy `CoachClients` 47.66 / 13.79. `CoachToday` 17.01 / 5.84 (shared code now in a common chunk). `ClientApp` 38.92 / 12.23 (B3.2: 38.82 / 12.21): no client-app source changed (`git diff`); most likely Rollup re-assigning a module the deleted coach pages shared. Precache 173 entries |
+| Spec 87 alone | **19 / 19**, re-run after each fix found by the earlier runs (axe, visual QA, the 210-client fixture); the full run below covers the final code |
+| Full e2e3, all projects | **PASS — 277 passed + 1 skipped of 278** in 45.5 min on the final code (`e2e-out/b33-full-a`; the skip is the pre-existing Google sign-in case). Count: B3.2's 259 + 19 (spec 87). Includes every B0 / B1 / B2 / B3.0.1 / B3.1 / B3.2 suite (33 / 60 composer, 61 trust, 70 foundation, 80 client, 81 security, 85 shell, 86 Today) |
+| Accessibility (axe WCAG 2.1 A / AA) | Clients list and filters (390), table and weekly check-ins (1440), EN + AR: **0 violations** on all 8 scans (the first run found the three issues in §1.9; fixed) |
+| PWA (final build) | manifest parsed, no shortcuts, 0 installability errors; SW, offline reload, offline banner, deferred update **PASS** (known baseline page error, the analytics path); signed-in offline boot **PASS** |
+| Visual QA | 26 full-page shots, **0 px overflow, correct `dir`**; `B3_VISUAL_QA.md` §B3.3 |
+| Physical devices | **Not run** |
+
+### 5. Backlog outcome (B3.3-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | TB-01, CO-34, CO-37, RM-19, RM-47 (product call, for review), B32-P2, B3-C09 |
+| **Mitigated** | CO-06 (the client switcher → B3.4) · TB-08 (the shared DataTable → B3.7 / B3.8) · TB-07, DT-11 (other lists → B3.6–B3.8) · PF-07 (notes / targets keys → B3.4 / B3.5; no prod measurement yet) · RM-18 (Reports → B3.8) · CO-36 (other "plan" meanings → B3.8) · B3-C06 (transfer notifications → server decision) |
+| **Deferred (owner)** | RM-28: both add paths kept (O-3); one Add client entry, one sheet |
+| **Not done** | B3-S13 (stale fields on a re-assigned relationship: a server change outside the B3.3 scope → proposed with B3.4) |
+| **New** | B33-R1 shared pill contrast → B3.9 · B33-R2 mid-week hand-over week (owner decision) · B33-R3 check-in history across coaches in the workspace (owner decision, B3.4) · B33-R4 time-zone day boundaries → B3.9 |
+
+### 6. Known limits and risks
+
+1. **Mid-week hand-over:** the previous coach's request holds the week (one check-in per client per week). The new coach can ask from next week. The bulk request says so (B33-R2).
+2. **Workspace history:** the client's Check-ins page still lists check-ins a previous coach requested. Today and Clients no longer do. Whether a new coach should see that history is a product decision for B3.4 (B33-R3).
+3. **Day boundaries:** "last workout", inactivity and "this week" use the coach's local date against the client's local workout date (± 1 day across time zones) → B3.9 (B33-R4).
+4. **The client switcher** still shows the old "Needs attention" pill (now without the "0 workouts" trigger) → B3.4.
+5. **Paging is on the device:** the whole roster loads once (bounded queries, the first batch is about 1.1 KB per client — 227 KB for 210 clients — and the first rows show in 1.4 s on the dev stack). Server-side paging only if rosters grow far beyond that.
+6. **Shared `bad` pill contrast** stays below AA on the client and admin screens until B3.9 (B33-R1).
+7. **Bidi in the shared check-in summary** (B32-R1) → B3.9. **Editor navigation guards** (NAV-K02 / NAV-K05) → B3.4 / B3.5. **Physical-device certification** and **MD-01 / 02 / 03** remain release blockers.
+8. Visual QA used isolated fixtures and Chromium emulation; no physical devices.
+
+### 7. Owner decisions requested
+
+1. **Server changes beyond the approved `toReview` fix** (all privacy or integrity, additive or narrower, tested in `b33Directory.test.ts`):
+   - `listForCoachClients` scoping;
+   - `checkIns.request` refusing a previous coach's week;
+   - `list` summary view;
+   - outgoing transfers without `fromCoachId`;
+   - compare-and-set revoke.
+
+   Keep or revert each.
+2. **RM-47:** the account state shows only when it blocks the client (Pending / Frozen / Trashed), never as a filter. Confirm.
+3. **B33-R3:** does a new coach see the client's check-ins from previous coaches in the workspace (B3.4)?
+4. **B33-R2:** should a new coach be able to take over the previous coach's unsubmitted request for the hand-over week (a server change)?
+5. **B33-R1:** fix the shared `bad` pill colour in B3.9 (a small visual change on the client and admin screens too)?
+
+**Environment:** drive C: is effectively full (0.08 GB free at close-out). Every test run used the temp directory on D: (`e2e-out/.tmp`); C: was not touched. Scratch databases of finished runs are pruned after each run.
+
+### 8. Owner review (2026-10-18) — decisions
+
+1. **All five server changes kept** (§7.1): check-in summaries scoped to the current coach; a previous coach's week never returned; the optional `view: 'summary'` (full-view consumers unchanged); outgoing transfers without the current coach's identity (server-side); compare-and-set revoke.
+2. **Account status approved** as shown only when it blocks access, with no account filter, and worded as the account so it is never confused with a paused package: the pill now reads **Account pending / Account frozen / Account trashed** ("Paused" is the package). Spec 87 asserts "Account frozen".
+3. **B33-R3 → B3.4:** a new coach must not see check-ins owned by a previous coach (answers, photos, feedback, comments), enforced on the server across every workspace consumer. The client keeps their own history; super-admin under the existing audited policy.
+4. **B33-R2 → B3.4:** the incoming coach may request the same training week as a **new record of their own**, never taking over, exposing or touching the old one; no duplicates; legacy records handled conservatively; stop and ask if a migration would be needed.
+5. **B33-R1 → B3.9** (approved): fix the shared red pill token / component to AA with client and admin visual regressions; open until verified.
+
+**Close-out verification (the code being committed, 2026-10-18):** typecheck PASS · boundaries PASS · unit + API **747 / 747** in 85 files · build PASS (entry 466.86 / 151.06 kB gzip; `CoachClients` 47.72 / 13.81; `CoachApp` 35.43 / 11.31; `ClientApp` 38.92 / 12.24; precache 173) · targeted e2e3 on 1440 (00, 20, 21, 23, 61, 85, 86, 87) **81 / 81**. The full suite (277 passed + 1 skipped of 278, §4) ran on the same code before the account-pill wording change, the only change since.
+
+**Status: B3.3 approved — closed with one local checkpoint commit. B3.4 follows.**

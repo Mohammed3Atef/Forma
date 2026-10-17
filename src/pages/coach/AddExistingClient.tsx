@@ -244,6 +244,7 @@ function ClientResultDetail({
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
       showToast({ title: t('coach.addClient'), variant: 'success' });
       onDone();
     },
@@ -252,12 +253,19 @@ function ClientResultDetail({
 
   const request = useMutation({
     mutationFn: () => submitTransferRequest({ toCoachId: meId, clientId: c.id, reason }),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }); showToast({ title: t('transferReq.pending'), variant: 'success' }); },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] });
+      void qc.invalidateQueries({ queryKey: ['outgoingTransferRequests', meId] });
+      showToast({ title: t('transferReq.pending'), variant: 'success' });
+    },
     onError: (e) => void alertDialog({ title: t('transferReq.request'), message: commercialErrorMessage(e, t) }),
   });
   const cancelReq = useMutation({
     mutationFn: () => cancelTransferRequest(meId, c.id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] });
+      void qc.invalidateQueries({ queryKey: ['outgoingTransferRequests', meId] });
+    },
     onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
   // A coach who somehow lands on their own client can release them straight from here.
@@ -267,6 +275,7 @@ function ClientResultDetail({
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
       showToast({ title: t('common.removed'), variant: 'success' });
       onDone();
     },

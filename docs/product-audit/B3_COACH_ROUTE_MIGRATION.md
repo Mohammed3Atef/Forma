@@ -23,10 +23,10 @@ Removed from the coach (still used by the admin shell): the ☰ menu sheet, the 
 | `/coach/dashboard` | Today | same URL; content becomes the queue (`?tab=*` ignored, `?focus=<kind>` filters) | B3.2 | **Done (B3.2)** |
 | `/coach/me` | Me hub | **new** route | B3.1 | **Done** |
 | `/coach/assessments` | Today (assessments) | redirect `/coach/dashboard?focus=assessments` | B3.2 | **Done (B3.2)**; Me row and list page removed |
-| `/coach/checkins` | Clients (check-in filters + bulk request) | B3.3 replaces it, then the URL redirects there | B3.2 → **B3.3** | **Kept — owner-approved 2026-10-17**: it holds the bulk "request this week's check-ins" and the awaiting / overdue view, which Today does not replace. It is removed only when B3.3 ships a working replacement; the URL keeps working (redirect) after that. Reviews happen on Today (shared `CheckInReviewForm`) |
-| `/coach/adherence` | Clients sorted by activity | redirect `/coach/clients?sort=activity` | B3.3 | Page kept; Me › Coaching; lights **Clients** |
+| `/coach/checkins` | Clients › Weekly check-ins | redirect `/coach/clients?view=checkins` (history replaced) | B3.2 → **B3.3** | **Done (B3.3)**. Kept through B3.2 (owner-approved 2026-10-17) until the replacement shipped: the same groups (to review, overdue, awaiting, not requested, done), review in order, and the bulk "request this week's check-in" (now only to eligible clients). Page and Me row removed; the URL keeps working |
+| `/coach/adherence` | Clients sorted by workouts (7 days) | redirect `/coach/clients?sort=workouts` | B3.3 | **Done (B3.3)**; page and Me › Coaching section removed |
 | `/coach/notifications` | Today | redirect (O-5) | B3.2 | **Done (B3.2)**; admin keeps `/admin/notifications` |
-| `/coach/clients` (`?new=1`, `?q=`) | Clients | same URL | — | Tab |
+| `/coach/clients` (`?new=1`, `?q=`) | Clients directory | same URL; B3.3 adds `?task=` `?state=` `?checkin=` `?plan=` `?sort=` `?dir=` `?view=checkins` (`B3_CLIENTS_DIRECTORY.md`) | B3.3 | **Done (B3.3)** |
 | `/coach/client/:id` (+ every workspace section) | Client › Summary · Plan · Progress · Profile | same URLs; new `…/plan`, `…/progress`, `…/profile` | B3.4 | Unchanged; lights **Clients** (NAV-K11) |
 | `…/workout`, `…/nutrition`, `…/cardio` | editors (task flows) | same URLs | B3.5 | Unchanged |
 | `…/view`, `…/view/:tab` | Client › Progress | redirect `…/progress?view=:tab` | B3.4 | Unchanged |
@@ -59,7 +59,7 @@ With in-app history, Back is real history (B1 contract); the parent is only used
 | Screen | Back owner |
 |---|---|
 | Destinations and the Me hub | none |
-| Me pages (`/plan`, `/settings`, `/revenue`, `/reports`, `/subscription-plans`), `/coach/templates`, the tools in Me › Coaching | the shell header (`shell-back`) |
+| Me pages (`/plan`, `/settings`, `/revenue`, `/reports`, `/subscription-plans`), `/coach/templates` | the shell header (`shell-back`) |
 | Client workspace + editors, message thread, template preview / editor, Notifications | the page itself (rebuilt with one header in B3.4–B3.7); the shell adds none |
 
 ## 5. Unsaved-changes guard — every exit
@@ -83,3 +83,14 @@ Tab bar, rail, rail Me, header avatar, shell Back and every ⌘K command go thro
 | `me-assessments` | none (Today `?focus=assessments`) | 85 |
 | `coach-plan-banner` "term ending" on every screen | on Today only (O-6); blocking banners (lapsed, over capacity) stay app-wide | 60 now uses the over-capacity banner for the composer-reachability check |
 | dashboard tabs / cards / `coach-dash-*` | Today: `coach-today`, `today-item[data-kind]`, `today-summary`, `today-chip-*`, `today-panel`, `today-detail`, `today-kind-error`, `today-stale`, `today-all-clear`, `today-new-coach` | 86, 42 (+ Today error case) |
+
+## 8. B3.3 changes
+
+| Old | New | Specs |
+|---|---|---|
+| `/coach/checkins` page, `me-checkins` | `/coach/clients?view=checkins` (`checkins-view`, `checkins-group-<state>`, `checkins-row`, `start-review-queue`, `review-queue-panel`, `checkins-request-week`) | 85 (cold deep link now lights Clients), 87 |
+| `/coach/adherence` page, `me-adherence` | `/coach/clients?sort=workouts` | 85, 87 |
+| desktop rows `data-row` with email / phone and an **Open** button | `client-table-row[data-client-id]`; the name is the link (`client-open`); a row menu (`client-row-menu`); no contact details in rows | 20, 21, 23 |
+| phone rows (email shown) | `coach-client-row[data-client-id]` (name, reason, package; no contact details) | 87 |
+| package pill "No plan" | "No package" (`client-coaching-state`) | 61 |
+| — | `clients-task-*`, `clients-view-checkins`, `clients-filters-button` / `clients-filters`, `clients-sort-<key>` (`aria-sort`), `clients-load-more`, `pagination-*`, `clients-empty`, `clients-no-match`, `clients-partial`, `clients-stale`, `coach-clients-error`, `outgoing-transfers` | 87 |

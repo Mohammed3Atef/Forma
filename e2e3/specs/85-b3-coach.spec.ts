@@ -64,7 +64,7 @@ test.describe('B3.1 coach shell', () => {
     await expect(page).toHaveURL(/\/coach\/me$/);
     await expect(page.getByTestId('coach-me')).toBeVisible();
     // B3.2: assessments to review live on Today (no Me row).
-    for (const row of ['me-revenue', 'me-packages', 'me-reports', 'me-forma', 'me-checkins', 'me-adherence', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
+    for (const row of ['me-revenue', 'me-packages', 'me-reports', 'me-forma', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
     await expect(page.getByTestId('me-assessments')).toHaveCount(0);
     await expect(page.getByTestId('me-help')).toHaveAttribute('href', /wa\.me|whatsapp/);
     await expect(page.getByTestId('me-button')).toHaveAttribute('aria-current', 'page');
@@ -112,7 +112,7 @@ test.describe('B3.1 coach shell', () => {
       ['/coach/settings', 'rail-me', '/coach/me'],
       ['/coach/revenue', 'rail-me', '/coach/me'],
       ['/coach/templates', 'rail-library', '/coach/library'],
-      ['/coach/checkins', 'rail-today', '/coach/dashboard'],
+      ['/coach/clients?view=checkins', 'rail-clients', null], // B3.3: weekly check-ins live in Clients
       [`/coach/messages/${CA}`, 'rail-messages', null],
       [`/coach/client/${CA}/notes`, 'rail-clients', null],
     ];

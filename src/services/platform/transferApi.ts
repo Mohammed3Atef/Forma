@@ -26,7 +26,8 @@ import type { ClientSubscriptionInput } from './coachClientsApi';
 interface ClientTransferRequestApiDoc {
   _id: string;
   clientId: string;
-  fromCoachId: string;
+  /** Absent on the requester's own (outgoing) requests — B3.3 / CO-03. */
+  fromCoachId?: string;
   toCoachId: string;
   mode?: TransferMode;
   subscriptionHandling?: TransferSubHandling;
@@ -40,8 +41,8 @@ interface ClientTransferRequestApiDoc {
 }
 
 function fromApiDoc(doc: ClientTransferRequestApiDoc): ClientTransferRequest {
-  const { _id, ...rest } = doc;
-  return { id: _id, ...rest };
+  const { _id, fromCoachId, ...rest } = doc;
+  return { id: _id, fromCoachId: fromCoachId ?? '', ...rest };
 }
 
 export function transferReqId(toCoachId: string, clientId: string): string {
@@ -95,6 +96,11 @@ export async function listPendingTransferRequests(): Promise<ClientTransferReque
 export async function listIncomingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
   const docs = await trpc.transfers.list.query({ type: 'incoming' });
   return docs.map(fromApiDoc);
+}
+
+/** Query options shared by every screen that lists incoming requests (Clients, Today) — one cache. */
+export function incomingTransfersQuery(coachId: string) {
+  return { queryKey: ['incomingTransferRequests', coachId] as const, queryFn: () => listIncomingTransferRequests(coachId), enabled: !!coachId };
 }
 
 /** Requesting coach: the status of requests I have made. */

@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listMyClients } from '@/services/platform/coachApi';
-import { TransferRequestCard, incomingTransfersQuery } from './TransferRequestCard';
+import { incomingTransfersQuery } from '@/services/platform/transferApi';
+import { TransferRequestCard } from './TransferRequestCard';
 
 /**
  * Pending requests from OTHER coaches to take over MY clients (pull-based — the

@@ -863,7 +863,6 @@
   },
   "coach": {
     "clients": "Clients",
-    "adherence": "Adherence",
     "messages": "Messages",
     "client": "Client",
     "searchClients": "Search clients",
@@ -871,8 +870,6 @@
     "noClientsTitle": "No clients yet",
     "clientsLoadFailed": "Couldn’t load your clients. Check your connection and try again.",
     "noClientsMessage": "Add your first client to start assigning plans and tracking progress.",
-    "noClientsFilteredTitle": "No clients match",
-    "noClientsFilteredMessage": "Try a different search term or clear the status filter.",
     "recentWorkouts": "Workouts (7d)",
     "lastWeight": "Last weight",
     "notes": "Notes",
@@ -1259,18 +1256,14 @@
     "avgWorkoutsLabel": "Avg workouts / wk",
     "needsAttention": "Needs attention",
     "recentActivity": "Recent activity",
-    "added": "Added",
     "addClient": "Add client",
     "createTemplate": "Create template",
     "openLibrary": "Open library",
     "reviewAssessments": "Review assessments",
     "lastActive": "Last active {{date}}",
     "noActivity": "No activity yet",
-    "neverActive": "No activity yet",
     "workoutsThisWeek": "{{n}} this week",
-    "open": "Open",
     "noClients": "No clients yet.",
-    "noClientsCheckinsMessage": "Add a client to start requesting weekly check-ins.",
     "reportsTitle": "Reports",
     "missedCheckins": "Pending check-ins",
     "ranking": "Adherence ranking",
@@ -1281,13 +1274,7 @@
     "review": "Review",
     "planCapacity": "{{used}} of {{cap}} clients",
     "atCapacity": "At client capacity — add client capacity to take on more clients.",
-    "upgradePlan": "Add client capacity",
-    "reasonCheckin": "Check-in awaiting your review",
-    "checkinsSub": "{{review}} need review · {{requested}} awaiting the client",
-    "sendReminders": "Send reminders ({{n}})",
-    "sendRemindersTitle": "Send reminders",
-    "confirmSendReminders": "Request this week's check-in from {{n}} client(s) who don't have one yet?",
-    "remindersSent": "Reminders sent to {{n}} client(s)"
+    "upgradePlan": "Add client capacity"
   },
   "coachSettings": {
     "substitutions": "Substitutions",
@@ -1541,13 +1528,7 @@
       "reviewed": "Reviewed"
     },
     "none": "Not started",
-    "noneYet": "No check-ins yet",
-    "startReview": "Review ({{n}})",
     "sectionNeedsReview": "Needs review",
-    "sectionAwaiting": "Awaiting client",
-    "sectionReviewed": "Reviewed",
-    "sectionNotRequested": "Not yet requested",
-    "overdue": "Overdue",
     "queueProgress": "{{n}} of {{total}}",
     "vsLastCheckin": "vs. check-in from {{date}}",
     "skipForNow": "Skip for now",
@@ -1568,7 +1549,8 @@
     "back": "Back",
     "continue": "Continue",
     "noFeedbackTitle": "Mark reviewed without feedback?",
-    "noFeedbackMessage": "Your client will see that you reviewed their check-in, but no message from you."
+    "noFeedbackMessage": "Your client will see that you reviewed their check-in, but no message from you.",
+    "weekTaken": "This week's check-in was already requested by the client's previous coach. You can request next week's."
   },
   "clientCoach": {
     "loadFailed": "Couldn’t load your plan from your coach. Check your connection and try again.",
@@ -2454,18 +2436,6 @@
       "now": "Update now",
       "later": "Later"
     },
-    "clients": {
-      "state": {
-        "active": "Active",
-        "trial": "Trial",
-        "frozen": "Paused",
-        "expiring": "Expiring",
-        "expired": "Expired",
-        "pending": "Pending",
-        "none": "No plan"
-      },
-      "expiringIn": "Ends in {{n}}d"
-    },
     "subscription": {
       "loadFailed": "Couldn't load this client's subscription.",
       "endsOn": "Ends {{date}}",
@@ -2700,9 +2670,6 @@
       "suspended": "Suspended",
       "none": "No subscription yet"
     },
-    "coaching": "Coaching",
-    "checkins": "Check-ins",
-    "adherence": "Adherence",
     "account": "Account",
     "accountRow": "Account & preferences",
     "accountMeta": "Profile, language, password",
@@ -2827,5 +2794,137 @@
       "inactive_one": "No workout in {{count}} day · last on {{date}}",
       "inactive_other": "No workout in {{count}} days · last on {{date}}"
     }
+  },
+  "coachClients": {
+    "title": "Clients",
+    "add": "Add client",
+    "search": "Search name, email, phone",
+    "filters": "Filter & sort",
+    "clear": "Clear filters",
+    "noMatchTitle": "No clients match",
+    "noMatchMessage": "Try another search, or clear the filters.",
+    "loadMore": "Show more",
+    "partial": "Some details couldn't load — they show as “—”.",
+    "stale": "Couldn't refresh — showing the last loaded list.",
+    "offline": "You're offline — showing the last loaded list.",
+    "task": {
+      "all": "All",
+      "needs": "Needs you",
+      "checkin": "Check-ins to review",
+      "renewal": "Renewals due",
+      "lapsed": "Lapsed",
+      "checkins": "Weekly check-ins"
+    },
+    "state": {
+      "active": "Active",
+      "trial": "Trial",
+      "expiring": "Expiring",
+      "paused": "Paused",
+      "expired": "Expired",
+      "pending": "Pending",
+      "none": "No package"
+    },
+    "account": {
+      "pending": "Account pending",
+      "suspended": "Account frozen",
+      "disabled": "Account trashed"
+    },
+    "group": {
+      "state": "Package",
+      "checkin": "Weekly check-in (this week)",
+      "plan": "Plans",
+      "sort": "Sort by",
+      "any": "Any"
+    },
+    "checkin": {
+      "review": "To review",
+      "awaiting": "Awaiting client",
+      "overdue": "Overdue",
+      "done": "Done this week",
+      "notRequested": "Not requested this week"
+    },
+    "plan": {
+      "noWorkout": "No training plan",
+      "noNutrition": "No nutrition plan"
+    },
+    "sort": {
+      "needs": "Needs you first",
+      "name": "Name",
+      "lastWorkout": "Last workout",
+      "daysLeft": "Days left",
+      "workouts": "Workouts (7 days)"
+    },
+    "sortDir": {
+      "asc": "ascending",
+      "desc": "descending"
+    },
+    "col": {
+      "client": "Client",
+      "next": "Next action",
+      "lastWorkout": "Last workout",
+      "workouts": "Workouts (7d)",
+      "package": "Package",
+      "actions": "Actions"
+    },
+    "activity": {
+      "today": "Worked out today",
+      "yesterday": "Last workout yesterday",
+      "never": "No workout logged yet",
+      "days_one": "Last workout {{count}} day ago",
+      "days_other": "Last workout {{count}} days ago"
+    },
+    "activityShort": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "never": "None yet",
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
+    },
+    "menu": {
+      "label": "Actions for {{name}}",
+      "open": "Open client",
+      "message": "Message",
+      "subscription": "Package & billing",
+      "checkins": "Check-ins"
+    },
+    "checkins": {
+      "title": "Weekly check-ins",
+      "week": "Week of {{date}}",
+      "reviewAll": "Review in order",
+      "requestConfirmTitle": "Request this week's check-in?",
+      "requestFailed": "{{failed}} of {{total}} requests didn't go through. Try again for the rest.",
+      "eligibleNote": "Only clients with a running package and an active account are asked.",
+      "empty": "Nobody in this group.",
+      "loadFailed": "Couldn't load check-ins.",
+      "requestWeek_one": "Request this week's check-in ({{count}})",
+      "requestWeek_other": "Request this week's check-in ({{count}})",
+      "requestConfirm_one": "Send this week's check-in request to {{count}} client?",
+      "requestConfirm_other": "Send this week's check-in request to {{count}} clients?",
+      "requested_one": "Check-in requested from {{count}} client",
+      "requested_other": "Check-in requested from {{count}} clients",
+      "requestTaken_one": "{{count}} client already has this week's check-in from their previous coach — ask again next week.",
+      "requestTaken_other": "{{count}} clients already have this week's check-in from their previous coach — ask again next week."
+    },
+    "outgoing": {
+      "title": "Your transfer requests",
+      "status": {
+        "pending": "Waiting for their current coach",
+        "accepted": "Accepted",
+        "rejected": "Declined",
+        "cancelled": "Cancelled"
+      },
+      "cancel": "Cancel request",
+      "cancelConfirm": "Cancel your request to coach {{name}}?",
+      "cancelled": "Request cancelled",
+      "requested": "Requested {{date}}"
+    },
+    "count_one": "{{count}} client",
+    "count_other": "{{count}} clients",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "filtersOn_one": "Filter & sort · {{count}}",
+    "filtersOn_other": "Filter & sort · {{count}}",
+    "endsIn_one": "Ends in {{count}}d",
+    "endsIn_other": "Ends in {{count}}d"
   }
 }

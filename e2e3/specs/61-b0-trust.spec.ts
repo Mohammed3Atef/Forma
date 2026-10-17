@@ -334,7 +334,7 @@ test('coach: renewal is prefilled with the current price and archives the previo
 
     await page.goto('/coach/clients');
     await expect(page.getByTestId('client-coaching-state').first()).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId('client-coaching-state').first()).toHaveText(/active|trial|paused|expir|no plan|pending/i);
+    await expect(page.getByTestId('client-coaching-state').first()).toHaveText(/active|trial|paused|expir|ends in|no package|pending/i); // B3.3: "No plan" → "No package" (CO-36)
     await shot(page, testInfo, '15-client-list-coaching-state');
   } finally {
     if (before) await db.updateOne('coachClients', { _id: relId }, { $set: { subscription: before.subscription, subscriptionHistory: before.subscriptionHistory ?? [] } });

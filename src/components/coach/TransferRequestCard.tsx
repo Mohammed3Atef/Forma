@@ -2,15 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { fetchUser } from '@/services/platform/accountsApi';
-import { listIncomingTransferRequests, resolveTransferRequest } from '@/services/platform/transferApi';
+import { resolveTransferRequest } from '@/services/platform/transferApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { ClientTransferRequest } from '@/types';
-
-/** Pending requests from OTHER coaches to take over MY clients (pull-only — no notification exists for them). */
-export function incomingTransfersQuery(coachId: string) {
-  return { queryKey: ['incomingTransferRequests', coachId] as const, queryFn: () => listIncomingTransferRequests(coachId), enabled: !!coachId };
-}
 
 /**
  * One incoming transfer request with its decision (B3.2: shared by Clients'

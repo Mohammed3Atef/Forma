@@ -91,7 +91,11 @@ const config: Config = {
           DEFAULT: '#3FB27F', // single "ok" green — text/border/tint and solid fills alike
           light: '#3FB27F',
         },
-        danger: '#F0483E', // unchanged — already matched the new spec's --bad
+        danger: {
+          DEFAULT: '#F0483E', // unchanged — already matched the new spec's --bad
+          // B3.3: danger TEXT on a danger tint (status pills) — #F0483E reads ~4.1:1 there, this ≥ 5:1 (WCAG AA).
+          text: '#FF6B62',
+        },
         warn: '#F5A623', // unchanged — already matched the new spec's --warn
         info: '#5B8DEF', // informational blue (distinct from brand orange)
         // Data-differentiation accents (macro breakdowns, chart series) — sparing use

@@ -16,7 +16,7 @@ const h = vi.hoisted(() => ({
   online: true,
   review: vi.fn(async () => undefined),
 }));
-vi.mock('./useTodaySources', () => ({ useTodaySources: () => h.data }));
+vi.mock('@/hooks/useCoachSources', () => ({ useCoachSources: () => h.data }));
 vi.mock('@/hooks/useMediaQuery', () => ({ useIsDesktop: () => h.desktop, useIsTabletUp: () => h.desktop, useMediaQuery: () => h.desktop }));
 vi.mock('@/hooks/useOnlineStatus', () => ({ useOnlineStatus: () => h.online }));
 vi.mock('@/components/coach/ClientContextPanel', () => ({ ClientContextPanel: () => null }));

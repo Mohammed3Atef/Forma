@@ -13,6 +13,16 @@ function checkInId(clientId: string, weekStart: string): string {
 }
 
 /**
+ * B3.3: a check-in is this coach's when the coach requested it (`coachId`), or — legacy, no
+ * `coachId` — it was created after the coach's active relationship with the client began.
+ */
+async function isCoachsCheckIn(doc: WeeklyCheckInDoc, coachId: string, clientId: string): Promise<boolean> {
+  if (doc.coachId) return doc.coachId === coachId;
+  const rel = await (await coachClientsCol()).findOne({ coachId, clientId, status: 'active' }, { projection: { createdAt: 1 } });
+  return !!rel && (doc.submittedAt ?? doc.createdAt ?? 0) >= Number(rel.createdAt ?? 0);
+}
+
+/**
  * Weekly check-ins — coach-owned (creates the request + reviews), but a
  * dedicated rule ALSO lets the client update their OWN doc while it's still
  * `status: 'requested'` (the one-time submit). No client delete.
@@ -38,6 +48,12 @@ export const checkInsRouter = router({
    * status, submitted values) to render the row + the review queue, so it
    * doesn't fit `coachClients.dashboardSummaries`' coarse boolean shape —
    * it gets its own batched endpoint instead of forcing a shared one.
+   *
+   * B3.3 (owner, 2026-10-17): only THIS coach's check-ins — ones this coach
+   * requested (`coachId`), or legacy ones without `coachId` created after
+   * this relationship began (the `toReview` rule in `dashboardSummaries`). A
+   * previous coach's check-ins on a transferred client never reach the new
+   * coach's Today / Clients (they used to be sent and hidden client-side).
    */
   listForCoachClients: authedProcedure
     .input(z.object({ coachId: z.string().trim().min(1).optional() }))
@@ -49,9 +65,11 @@ export const checkInsRouter = router({
       const rels = await relCol.find({ coachId, status: 'active' }).toArray();
       const clientIds = [...new Set(rels.map((r) => r.clientId))];
       if (clientIds.length === 0) return [];
+      const relStart = new Map(rels.map((r) => [r.clientId, Number(r.createdAt ?? 0)]));
 
       const col = await checkInsCol();
-      const docs = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1 }).toArray();
+      const found = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1 }).toArray();
+      const docs = found.filter((d) => (d.coachId ? d.coachId === coachId : (d.submittedAt ?? d.createdAt ?? 0) >= (relStart.get(d.clientId) ?? 0)));
       const byClient = new Map<string, WeeklyCheckInDoc[]>();
       for (const d of docs) {
         const arr = byClient.get(d.clientId);
@@ -75,7 +93,14 @@ export const checkInsRouter = router({
       const col = await checkInsCol();
       const _id = checkInId(clientId, input.weekStart);
       const existing = await col.findOne({ _id });
-      if (existing) return existing;
+      if (existing) {
+        // B3.3: a week a previous coach already holds (a mid-week hand-over) is not this coach's —
+        // refuse it rather than hand back that coach's check-in (the `listForCoachClients` rule).
+        if (ctx.user.role === 'coach' && !(await isCoachsCheckIn(existing, ctx.user.id, clientId))) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'CHECKIN_WEEK_TAKEN' });
+        }
+        return existing;
+      }
       const now = Date.now();
       // A coach's own id is never taken from input (it's already proven by
       // `canWriteCoachOwned` above); only an admin acting on a client's behalf
