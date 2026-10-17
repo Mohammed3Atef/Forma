@@ -63,7 +63,9 @@ test.describe('B3.1 coach shell', () => {
     await page.getByTestId('me-button').click();
     await expect(page).toHaveURL(/\/coach\/me$/);
     await expect(page.getByTestId('coach-me')).toBeVisible();
-    for (const row of ['me-revenue', 'me-packages', 'me-reports', 'me-forma', 'me-checkins', 'me-assessments', 'me-adherence', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
+    // B3.2: assessments to review live on Today (no Me row).
+    for (const row of ['me-revenue', 'me-packages', 'me-reports', 'me-forma', 'me-checkins', 'me-adherence', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
+    await expect(page.getByTestId('me-assessments')).toHaveCount(0);
     await expect(page.getByTestId('me-help')).toHaveAttribute('href', /wa\.me|whatsapp/);
     await expect(page.getByTestId('me-button')).toHaveAttribute('aria-current', 'page');
     await shot(page, testInfo, '02-phone-me');
@@ -141,7 +143,7 @@ test.describe('B3.1 coach shell', () => {
     await expect(page.getByTestId('rail-clients')).toHaveAttribute('aria-current', 'page');
   });
 
-  test('a dirty editor: every shell exit (tab, rail, Me, bell, ⌘K) asks first and Cancel keeps the edit', async ({ as, audit }, testInfo) => {
+  test('a dirty editor: every shell exit (tab, rail, Me, ⌘K) asks first and Cancel keeps the edit', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachA', sized(1440));
     await page.goto(`/coach/client/${CA}/workout`);
@@ -156,7 +158,7 @@ test.describe('B3.1 coach shell', () => {
     const exits: [string, () => Promise<void>][] = [
       ['rail Today', () => page.getByTestId('rail-today').click()],
       ['rail Me', () => page.getByTestId('rail-me').click()],
-      ['bell', () => page.getByTestId('notifications-bell').click()],
+      // (B3.2: the coach has no bell — O-5.)
       [
         '⌘K command',
         async () => {

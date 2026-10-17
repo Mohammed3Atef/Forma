@@ -210,3 +210,142 @@ Route table, semantic parents, Back ownership and selector changes: **`B3_COACH_
 7. Visual QA used the standard e2e3 seed and Chromium emulation only; no physical-device evidence.
 
 **Status: implemented and verified locally — awaiting owner review. No B3.1 commit without approval; B3.2 not started.**
+
+---
+
+## B3.2 — Coach Today queue (2026-10-17)
+
+**Owner brief (2026-10-17):** B3.1 approved. (1) One local B3.1 commit of only the reviewed work; (2) remove the role-agnostic PWA shortcuts (RM-79); (3) build B3.2, a genuinely actionable Coach Today, grounded in real authorized data, with honest loading / empty / offline / stale / error states, the bell / message duplication resolved without losing useful notifications, EN / AR / Egyptian Arabic, RTL, accessibility, 360–1440 px. No commit of B3.2, push or deploy without approval; stop for review before B3.3.
+**Rules of the queue:** `B3_TODAY_QUEUE.md` (sources, criteria per item, states, limits). **Not changed:** the client app, marketing, auth / legal, the super-admin / admin experience (admin keeps its bell and Notifications page), B3.0.1 server rules. No production data or credentials touched.
+
+### 0. Owner decisions 1 and 2
+
+1. **B3.1 committed locally as `cdba889`** ("Phase B3.1: coach shell", 33 files), not pushed. The staged diff was checked file by file. Left out: `B1_P1_TRIAGE.md` and `FORMA_CLEAN_LAUNCH_PLAN.md` (owner), the REL-04 row of the backlog (it points at the excluded plan; the committed backlog was regenerated without it), and an `ar-eg` wording change (check-in status "submitted": متبعوتة → مبعوتة) that B3.1 did not make. All of these stay in the working tree.
+2. **RM-79: the manifest has no `shortcuts`** (`vite.config.ts`; the comment records why). `e2e3/pwa/pwa-check.mjs` now also records the manifest as Chromium parses it, plus Chromium's own installability verdict. The tool fix found while doing this: a second DevTools session left attached cancels Playwright's offline emulation, so the session is detached right after the check (the first runs falsely showed "offline banner: false"; the app was fine).
+
+### 1. What changed
+
+1. **Today** (`src/pages/coach/today/`, `/coach/dashboard`) replaces the dashboard. Who · why (with evidence) · one action, in five sections: To review, Requests, Unread messages, Subscriptions, Coaching. Plus a summary ("N things need you"), kind chips (`?focus=`), "Updated hh:mm · Refresh", Forma notices, the onboarding checklist (first clients only) and Coming up. Desktop ≥ 1024 has two panes (queue + the selected item's panel, **J / K**). On phones a check-in opens a review sheet and a transfer opens a decision sheet; every other row opens its exact route.
+2. **Queue derivation** `src/lib/coachToday.ts`: a pure function over seven sources with per-kind availability, so a failure never reads as "nothing to do". The criteria table is `B3_TODAY_QUEUE.md` §3. Notable rules:
+   - check-ins only if requested by this coach (a transferred client's old check-in is not queued);
+   - "lapsed" excludes cancelled / ended terms;
+   - "needs a plan" only after the assessment is reviewed and with neither plan;
+   - "no workout in 7 days" (O-20) only with a training plan, a running term, an active account and ≥ 7 days on the roster;
+   - plan-based items are omitted (never guessed) if the server lacks the O-7 fields.
+3. **Data** `useTodaySources.ts`: separate queries on the keys other screens already use. Threads and the notification feed come from the existing shared pollers. The thread poller gained an optional error listener and an immediate `refreshCoachThreadsSummary` (`messagesApi.ts`), so Today can tell "no unread" from "couldn't load" without a second poll.
+4. **Server, O-7 (additive):** `coachClients.dashboardSummaries` returns `hasWorkoutPlan` / `hasNutritionPlan`, true when the client's plan has ≥ 1 day / ≥ 1 meal. These are two bounded aggregations on `_id`, and only array sizes leave the database. No schema change, no stored field, no migration. Older clients ignore the fields; Today omits plan-based items without them.
+5. **Shared review / decision components:** `CheckInReviewForm` + `CheckInComparison` (`components/coach/CheckInReview.tsx`) now serve both Today and the check-ins page (the review UI is no longer built twice, RM-19); empty feedback asks before marking reviewed (CO-13). `TransferRequestCard` (`components/coach/TransferRequestCard.tsx`) serves Today and the Clients incoming strip. The strip no longer makes one user lookup per request for the client's name (it comes from the roster), and Approve is no longer the primary style (blueprint §6.1).
+6. **Bell → Today (O-5):** the coach shell has no bell and mounts the notification toasts itself (the bell was their only mount). `/coach/notifications` → Today. Admin is unchanged.
+7. **Routes:** `/coach/assessments` → `/coach/dashboard?focus=assessments` (list page deleted). `/coach/checkins` is **kept** (bulk "request this week", awaiting / overdue) until B3.3, a recorded deviation from blueprint §5.3. Me › Coaching drops Assessments. ⌘K "Review assessments" opens Today filtered.
+8. **Banners (O-6):** "paid term ends within 5 days" and "plan request awaiting payment" now show on Today only. Lapsed / suspended and over-capacity stay app-wide. The trial card sits on Today.
+9. **Removed after verifying importers:** `CoachDashboard`, `dashboard/{Overview,Clients,Engagement,Content}Panel`, `dashboard/parts`, `ui/QuickActions`, `CoachAssessments`; 34 unused `coachDash.*` strings and `coachMe.assessments` (each confirmed unused in `src/`). Admin's own `OverviewPanel`, `AnalyticsPanel` / `ReportsPanel` (Revenue / Reports) and `coachDashboardQuery` (Clients, ⌘K, switcher, Revenue, Reports) stay.
+10. **i18n:** a `coachToday` namespace in `en`, `ar`, `ar-eg` with full Arabic plural forms (zero / one / two / few / many / other). The client's own words are bidi-isolated (U+2068 / U+2069) so English text can't reorder the Arabic sentence.
+
+### 2. API contract
+
+| Procedure | Before | After | Consumers |
+|---|---|---|---|
+| `coachClients.dashboardSummaries` | `{ clientId, workouts7d, lastActivity, assessment, fullName, toReview }[]` | **+** `hasWorkoutPlan: boolean`, `hasNutritionPlan: boolean` (same authorization, same roster, same order) | Today (new fields); Clients, Adherence, Revenue / Reports, ⌘K (unchanged use) |
+
+No other server change. B32-P1 and B32-P2 in `B3_TODAY_QUEUE.md` §8 are proposals, not implemented.
+
+### 3. Tests
+
+| Test | Proves |
+|---|---|
+| `src/lib/coachToday.test.ts` (new, 25) | every criterion and boundary: per-coach check-ins (incl. legacy), 7-day / 30-day edges, frozen / cancelled / ended exclusions, O-7 omission on older servers, O-20 inactivity, one row per client per kind, ordering, focus, a 40-client roster, failed / loading / stale sources never "empty" |
+| `src/pages/coach/today/CoachToday.test.tsx` (new, 13) | each screen state (loading, error, offline, new coach, all clear only when trustworthy, partial, stale, offline-cached); exact routes; the phone review sheet incl. the empty-feedback confirm; desktop panel + J / K; chips and `?focus` (incl. the legacy name); section cap |
+| `api/.../coachClients.test.ts` (+1) | O-7 through the real save path: a full plan, an empty saved plan, a malformed legacy field, no plan, another coach's client never included, other coach FORBIDDEN |
+| `CoachShell.test.tsx`, `coachNav.test.tsx` (updated) | no bell, toasts mounted; the redirected routes light nothing |
+| `e2e3/specs/86-b3-today.spec.ts` (new, 13) | new coach; no bell + redirects; O-6; the busy-coach fixture (every kind with evidence, another coach's data never shown); axe on queue / sheet / panel EN + AR; every row's exact place; review in place (DB shows reviewed + feedback); desktop panel + J / K + transfer decided (DB shows rejected); freshness via Refresh; failing backend → Retry; offline; Arabic; the 18-shot visual matrix |
+| `e2e3/specs/42-errors.spec.ts` (+1 screen) | Today without its roster is an error with Retry, never "all caught up" |
+
+**§T — changes forced by B3.2:**
+- spec 85: the guard test drops the bell exit (no bell), and Me no longer lists Assessments;
+- spec 60: the composer-reachability check uses the app-wide over-capacity banner, since "term ending" is Today-only under O-6 (same geometry assertions);
+- `pwa-check.mjs`: manifest + installability step, with the DevTools session detached afterwards.
+
+### 4. Verification (final code, 2026-10-17)
+
+| Gate | Result |
+|---|---|
+| Typecheck `tsc -b --noEmit` | **PASS** |
+| Boundaries | **PASS** |
+| Unit + API `vitest run` | **PASS — 689 / 689 in 80 files** (B3.1: 650 in 78; +39) |
+| Build | **PASS** — entry 464.55 / 150.52 kB gzip (B3.1: 461.54 / 149.72; +0.80 kB gzip = the eager English strings); `CoachToday` chunk 27.16 / 9.01; `CoachApp` 63.33 / 17.56; `ClientApp` unchanged 38.82 / 12.22; precache 172 entries |
+| Targeted e2e3 (1440: 00, 10, 20, 23, 42, 46, 85, 86) | **73 passed + 1 skipped** (the Google sign-in case) |
+| Full e2e3, all projects | **PASS — 254 passed + 1 skipped of 255** in 42.1 min on the final code (the skip is the pre-existing Google sign-in case). Count: B3.1's 239 + its two review additions (⌘K cold roster, Me axe) = 241, + 13 (spec 86) + 1 (spec 42 Today). An earlier full run gave the same result before the last Today panel-width fix (§B3_VISUAL_QA T5); every gate was re-run after it |
+| Accessibility (axe WCAG 2.1 A / AA) | Today (coachA) **0**; Me **0**; busy queue, review sheet and desktop panel, EN + AR **0 / 0 / 0 / 0 / 0 / 0** |
+| PWA (RM-79) | manifest parsed with **no errors and no shortcuts**; name, start URL, standalone, 3 icons unchanged; **0 installability errors**; SW, offline reload, offline banner, deferred update **PASS**; signed-in offline boot **PASS**. Re-run on the final build with the same result. Tool note: the offline-boot runner must start the isolated stack in a fresh directory; reusing one fails `MongoMemoryReplSet` start-up (a harness issue, not the app) |
+| Visual QA | 18 full-page shots (busy: 360 / 390 / 430 / 768 / 1024 / 1440 × EN / AR, + `ar-eg` 390 / 1440; all-clear 390 / 1440 × EN / AR) — **0 px overflow, correct `dir`**; `B3_VISUAL_QA.md` §B3.2 |
+| Physical devices | **Not run** |
+
+### 5. Backlog outcome (B3.2-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | CO-05, JR-02 (+ DT-02 folded), CO-17, RM-17, RM-41, CO-33, RM-79 |
+| **Mitigated** | CO-06 (Clients / switcher flags → B3.3 / B3.4) · CO-13 (per-client page → B3.4) · RM-19 (check-ins page stays → B3.3) · CD-09 (RoleAccount → B3.8) · B3-S12 (server types: a server decision) · RM-30 (coach side) |
+| **Not done — needs owner OK** | NT-10: persisting announcement dismissals also changes the client home (B2 behaviour) → B3.9 |
+
+**Certification:** no B3 certification report exists yet (blueprint: B3.9). The B2 client certification is unaffected; the client app did not change. B0 / B1 / B2 contracts stay green through the full suites above; the B0 composer-reachability contract (C12 / C23) is still tested in spec 60, now with the over-capacity banner.
+
+### 6. Known limits and risks
+
+1. **Freeze requests** come from the coach's newest-50 notification feed. An old pending request can drop out of that window behind newer message notifications. It stays on the client's Subscription page. The real fix is B32-P1, an additive server filter that needs approval.
+2. **Clients / ⌘K / the client switcher** still use the old `needsAttention` flag and `toReview` (any coach's submitted check-in) until B3.3 / B3.4. Today does not.
+3. **`/coach/checkins` stays** (owner-visible deviation, §1.7).
+4. **Time zones:** inactivity compares the client's workout date with the coach's local date (± 1 day).
+5. **Batched failures:** one failing procedure fails its tRPC batch, so the usual failure is the roster error with Retry. Per-section error lines appear when a single source fails (unit-tested).
+6. **Bidi in the shared check-in summary:** the client's notes show trailing punctuation on the wrong side in Arabic (an existing component also used by the client; not changed under "preserve B2"). Tracked for B3.9 RTL polish.
+7. Visual QA used fixtures on the isolated stack and Chromium emulation; no physical devices.
+
+**Status (first pass):** implemented and verified locally, then reviewed by the owner (conditional approval, §7).
+
+### 7. Owner review (2026-10-17) — conditional approval and the follow-ups it required
+
+Approved with three conditions before the B3.2 commit.
+
+**B32-P1 — pending freeze requests no longer depend on notifications.**
+- **Server (additive, read-only):** `subscriptionRequest.pendingForCoach` (`api/_trpc/routers/clientCheckIns.ts`) returns every `pending` request document among the caller's **active** clients, only if it was made after that relationship began. A previous coach's request, or one from an earlier stint, is never exposed.
+  - Authorization: self or `users.read`, the same rule as the coach's other roster summaries; a suspended coach keeps read-only access (R-3).
+  - Cursor-paginated on (requestedAt, clientId), ≤ 200 per page. One document per client, so no duplicates.
+  - The freeze apply / decide / cancel paths, their audit events and their concurrency rules are unchanged.
+- **Client:** `listPendingFreezeRequests` reads every page. Today's freeze kind now depends on roster + `freezeRequests`, and Today no longer reads the notification feed at all (toasts still do).
+- **Invalidation:** the Subscription page invalidates `coachFreezeRequests` and `coachRelationships` after any decision or term change, so the queue updates immediately.
+- **Evidence:**
+  - `b32FreezeRequests.test.ts` (5): still listed after 60 newer notifications, while the feed itself has lost it; leaves on reject / cancel / accept / relationship end; never another coach's or a pre-hand-over request; a 250-client roster pages completely with ties and no duplicates; a suspended coach reads.
+  - e2e3 86: 60 newer notifications → still on Today with its dates → rejected on the Subscription page → gone from Today; the DB shows `rejected`.
+
+**NT-10 — announcement dismissals.**
+- `src/lib/bannerDismissals.ts` + `BannerHost`: a dismissal is stored per signed-in user (`localStorage`, the same per-account pattern as the toast baseline) and per announcement **content version** (a hash of title, body, link and style). Toggling dates or active doesn't change the version.
+- A dismissed informational announcement stays away across launches; a new or edited one shows. A `warning` announcement is dismissed for the session only.
+- Critical plan, payment and account notices are not announcements and have no dismiss. Same look for coach and client.
+- **Evidence:**
+  - `BannerHost.test.tsx` (6): coach and client across a relaunch; edited and new announcements; warning returns next launch; account switch on one device; offline relaunch.
+  - e2e3 86 (3): coach Today and client home, dismiss → new tab (a new session) → still hidden → admin edits → shown; warning returns.
+  - Spec 13 (admin announcement lifecycle) still passes.
+
+**`/coach/checkins` kept until B3.3** (owner-approved). It holds the bulk weekly request and the awaiting / overdue view; it is removed only once B3.3 ships the replacement, and the URL keeps working.
+
+**Environment finding during close-out (not the app):**
+- Drive C: is full (~0.3 GB free), so the in-memory MongoDB refused to start for the unit tests ("available disk space … less than required minimum"). It looked like 20 failing coach-plan tests.
+- Fix: test runs now use a temp directory on D: (`e2e-out/.tmp`, gitignored), and 144 scratch databases of finished e2e3 runs (`e2e-out/*/mongo-data`, ~20 GB) were removed. Reports, screenshots and visual-QA folders cited as evidence were kept.
+- The owner's C: drive was not touched.
+
+**Final verification (the code being committed):**
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | PASS / PASS |
+| Unit + API | **701 / 701 in 82 files** (+12 since §4: 5 freeze-request API, 6 BannerHost, 1 queue rule) |
+| Build | PASS — entry 464.62 / 150.54 kB gzip; `CoachToday` 27.38 / 9.05; `CoachApp` 63.33 / 17.56; `ClientApp` 38.82 / 12.21 (unchanged); precache 172 entries |
+| Full e2e3, all projects | **258 passed + 1 skipped of 259** (41.9 min; the skip is the Google sign-in case). The first close-out run had 256 passed + 2 failed:
+  - NT-10 client test: the client account was in Arabic at that point (another spec's Arabic session synced its language back after its own restore — a pre-existing harness race), so the button was "إغلاق", not "Dismiss". The test now matches the label in all three locales and passes 3 / 3.
+  - Spec 31 "load older" scroll anchoring: a timing flake under full-suite load. It passes 3 / 3 on its own, passed in both earlier B3.2 full runs, and B3.2 touched no thread code.
+  The clean re-run above is the evidence of record |
+| PWA + signed-in offline boot (final build) | manifest parsed, no shortcuts, 0 installability errors; SW, offline reload, offline banner, deferred update **PASS**; signed-in offline boot **PASS** |
+| Visual recheck, Today (390 / 768 / 1024 / 1440 × EN / AR + all widths in the matrix) | 18 / 18 matrix shots, 0 px overflow, correct `dir` (`e2e-out/b32-close2/b32-visual/`); looked at 390 AR, 768 EN, 1024 AR, 1440 EN: unchanged apart from the freeze row now showing the requested dates |
+| Contracts | B0 / B1 / B2 / B3.0.1 / B3.1 suites all inside the full run above (incl. spec 33 / 60 composer, 61 trust, 70 foundation, 80 client, 81 security, 85 shell) |
+
+**Status: B3.2 closed with the owner's two follow-ups — committed locally as one B3.2 commit (not pushed). B3.3 follows.**

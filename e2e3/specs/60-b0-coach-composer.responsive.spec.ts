@@ -6,6 +6,10 @@ import { test, expect, ready, shot } from '../fixtures';
  * bottom nav when a plan banner renders above the thread (the client fix,
  * cf3a5d9, was never applied to the coach thread). Runs on every responsive
  * project (1280/1024/768/430/390), in English and Arabic (RTL).
+ *
+ * B3.2 (owner O-6): "term ending" is now a notice on Today only, so the
+ * banner that sits above the thread here is the over-capacity one — still
+ * app-wide because it blocks work. Same guarantee, same geometry checks.
  */
 test.describe.configure({ timeout: 180_000 });
 
@@ -28,17 +32,17 @@ async function setCoachLocale(page: Page, locale: 'en' | 'ar') {
 }
 
 for (const locale of ['en', 'ar'] as const) {
-  test(`coach thread with the "term ending" banner: composer reachable and sends (${locale})`, async ({ as, db, env }, testInfo) => {
+  test(`coach thread with an app-wide plan banner: composer reachable and sends (${locale})`, async ({ as, db, env }, testInfo) => {
     const coachId = env.accounts.coachA.id;
-    const before = await db.findOne<{ plan: string; endsAt: number }>('coachPlans', { _id: coachId });
+    const before = await db.findOne<{ activeClientCount?: number }>('coachPlans', { _id: coachId });
     try {
-      // An active (paid) Forma term ending in 3 days — the audit's BV-14 scenario.
-      await db.updateOne('coachPlans', { _id: coachId }, { $set: { plan: 'forma', endsAt: Date.now() + 3 * 86_400_000 } });
+      // Over capacity (3 active on a 2-client plan, e.g. an add-on expired) — a banner on every screen (BV-14 geometry).
+      await db.updateOne('coachPlans', { _id: coachId }, { $set: { activeClientCount: 3 } });
       const { page } = await as('coachA');
       if (locale === 'ar') await setCoachLocale(page, 'ar');
       await page.goto(`/coach/messages/${env.accounts.clientA.id}`);
       await ready(page);
-      await expect(page.getByTestId('coach-plan-banner')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('coach-capacity-banner')).toBeVisible({ timeout: 20_000 });
       await expect(page.getByTestId('coach-thread')).toBeVisible();
       // Let the banner settle, then the column re-measures.
       await page.waitForTimeout(300);
@@ -58,7 +62,7 @@ for (const locale of ['en', 'ar'] as const) {
         await setCoachLocale(page, 'en');
       }
     } finally {
-      if (before) await db.updateOne('coachPlans', { _id: coachId }, { $set: { plan: before.plan, endsAt: before.endsAt } });
+      if (before) await db.updateOne('coachPlans', { _id: coachId }, { $set: { activeClientCount: before.activeClientCount ?? 1 } });
     }
   });
 }

@@ -7,24 +7,25 @@
 
 | Destination | URL | Phone (< 768) | Tablet (768–1023) | Desktop (≥ 1024) |
 |---|---|---|---|---|
-| **Today** | `/coach/dashboard` (today's dashboard screen until B3.2) | tab | collapsed rail | labelled rail |
+| **Today** | `/coach/dashboard` — the queue since B3.2 (`B3_TODAY_QUEUE.md`) | tab | collapsed rail | labelled rail |
 | **Clients** | `/coach/clients` | tab | rail | rail |
 | **Messages** | `/coach/messages` (unread badge) | tab | rail | rail |
 | **Library** | `/coach/library` (+ "Programs" segment → templates) | tab | rail | rail |
 | **Me** | `/coach/me` (**new**) | avatar in the header | avatar at the rail's foot | avatar + name at the rail's foot |
 
-Removed from the coach (still used by the admin shell): the ☰ menu sheet, the old bottom bar (Dashboard · Clients · Messages · Revenue), the grouped sidebar, the floating WhatsApp button (Help & support is in Me). The notifications bell **stays in the header until Today's queue lands in B3.2** (O-5), and it now honours the unsaved-changes guard.
+Removed from the coach (still used by the admin shell): the ☰ menu sheet, the old bottom bar (Dashboard · Clients · Messages · Revenue), the grouped sidebar, the floating WhatsApp button (Help & support is in Me), and — **B3.2 (O-5)** — the notifications bell: Today carries the coach's task notifications, Messages its own unread badge; notification toasts still run from the shell.
 
 ## 2. Route table
 
 | Old | New | Handling | Milestone | B3.1 status |
 |---|---|---|---|---|
 | `/coach` | Today | redirect to `/coach/dashboard` on **every** breakpoint (was Clients on phones — IA-K01) | B3.1 | **Done** |
-| `/coach/dashboard` | Today | same URL; content becomes the queue | B3.2 | URL unchanged; Today tab |
+| `/coach/dashboard` | Today | same URL; content becomes the queue (`?tab=*` ignored, `?focus=<kind>` filters) | B3.2 | **Done (B3.2)** |
 | `/coach/me` | Me hub | **new** route | B3.1 | **Done** |
-| `/coach/assessments`, `/coach/checkins` | Today (filtered queue) | redirect `/coach/dashboard?focus=…` | B3.2 | Pages kept; reachable from Me › Coaching; light **Today** |
+| `/coach/assessments` | Today (assessments) | redirect `/coach/dashboard?focus=assessments` | B3.2 | **Done (B3.2)**; Me row and list page removed |
+| `/coach/checkins` | Clients (check-in filters + bulk request) | B3.3 replaces it, then the URL redirects there | B3.2 → **B3.3** | **Kept — owner-approved 2026-10-17**: it holds the bulk "request this week's check-ins" and the awaiting / overdue view, which Today does not replace. It is removed only when B3.3 ships a working replacement; the URL keeps working (redirect) after that. Reviews happen on Today (shared `CheckInReviewForm`) |
 | `/coach/adherence` | Clients sorted by activity | redirect `/coach/clients?sort=activity` | B3.3 | Page kept; Me › Coaching; lights **Clients** |
-| `/coach/notifications` | Today | redirect (O-5) | B3.2 | Page kept (the bell opens it); lights **Today** |
+| `/coach/notifications` | Today | redirect (O-5) | B3.2 | **Done (B3.2)**; admin keeps `/admin/notifications` |
 | `/coach/clients` (`?new=1`, `?q=`) | Clients | same URL | — | Tab |
 | `/coach/client/:id` (+ every workspace section) | Client › Summary · Plan · Progress · Profile | same URLs; new `…/plan`, `…/progress`, `…/profile` | B3.4 | Unchanged; lights **Clients** (NAV-K11) |
 | `…/workout`, `…/nutrition`, `…/cardio` | editors (task flows) | same URLs | B3.5 | Unchanged |
@@ -63,7 +64,7 @@ With in-app history, Back is real history (B1 contract); the parent is only used
 
 ## 5. Unsaved-changes guard — every exit
 
-Tab bar, rail, rail Me, header avatar, shell Back, notifications bell and every ⌘K command go through `confirmLeave()`. A browser / hardware Back cannot be intercepted with the app's `BrowserRouter` (no data router) — the editors' per-coach drafts (C3) keep the work, and `beforeunload` covers reload / close (B1 known limit, unchanged).
+Tab bar, rail, rail Me, header avatar, shell Back and every ⌘K command go through `confirmLeave()` (the bell left with B3.2). A browser / hardware Back cannot be intercepted with the app's `BrowserRouter` (no data router) — the editors' per-coach drafts (C3) keep the work, and `beforeunload` covers reload / close (B1 known limit, unchanged).
 
 ## 6. Test selector changes (B3.1)
 
@@ -73,3 +74,12 @@ Tab bar, rail, rail Me, header avatar, shell Back, notifications bell and every 
 | `sidebar-coachClients` | `rail-clients` | 20, 23 |
 | coach nav keys `coachDashboard / coachClients / coachMessages / coachRevenue` | `today / clients / messages / library` (`nav-*` tabs, `rail-*` rail) | `_d-layout` |
 | header avatar → `/coach/settings` (`getByRole(banner)` "Coach Amira") | `rail-me` / `me-button` → `/coach/me` | 23 |
+
+## 7. B3.2 changes
+
+| Old | New | Specs |
+|---|---|---|
+| `notifications-bell` (coach) | none — Today + Messages badge; toasts from the shell | 85 (guard test drops the bell exit), 86 |
+| `me-assessments` | none (Today `?focus=assessments`) | 85 |
+| `coach-plan-banner` "term ending" on every screen | on Today only (O-6); blocking banners (lapsed, over capacity) stay app-wide | 60 now uses the over-capacity banner for the composer-reachability check |
+| dashboard tabs / cards / `coach-dash-*` | Today: `coach-today`, `today-item[data-kind]`, `today-summary`, `today-chip-*`, `today-panel`, `today-detail`, `today-kind-error`, `today-stale`, `today-all-clear`, `today-new-coach` | 86, 42 (+ Today error case) |

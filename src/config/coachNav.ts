@@ -32,9 +32,9 @@ export const COACH_ME = '/coach/me';
 /** Route prefix → destination, most specific first. Unlisted coach paths light nothing. */
 const AREA_OF: [prefix: string, area: CoachTab | 'me'][] = [
   ['/coach/dashboard', 'today'],
-  ['/coach/checkins', 'today'], // until B3.2 folds them into Today's queue
-  ['/coach/assessments', 'today'],
-  ['/coach/notifications', 'today'],
+  // Check-in management (bulk request, awaiting / overdue) until B3.3; reviews are on Today.
+  // (`/coach/assessments` and `/coach/notifications` redirect to Today since B3.2.)
+  ['/coach/checkins', 'today'],
   ['/coach/clients', 'clients'],
   ['/coach/client', 'clients'],
   ['/coach/adherence', 'clients'], // until B3.3 makes it a Clients sort
@@ -74,17 +74,16 @@ export function isCoachRoot(pathname: string): boolean {
 
 /**
  * Screens that still draw their own Back inside the page (the client
- * workspace header and its editors, a message thread, template screens,
- * the shared Notifications page). The shell adds no second Back there; those
- * screens are rebuilt with one header in B3.4 – B3.7.
+ * workspace header and its editors, a message thread, template screens).
+ * The shell adds no second Back there; those screens are rebuilt with one
+ * header in B3.4 – B3.7.
  */
 export function coachPageOwnsBack(pathname: string): boolean {
   const path = pathname.split(/[?#]/)[0].replace(/\/+$/, '');
   return (
     under(path, '/coach/client') ||
     /^\/coach\/messages\/[^/]+$/.test(path) ||
-    /^\/coach\/templates\/[^/]+(\/edit)?$/.test(path) ||
-    path === '/coach/notifications'
+    /^\/coach\/templates\/[^/]+(\/edit)?$/.test(path)
   );
 }
 

@@ -89,6 +89,15 @@ const screens: { name: string; role: Role; path: string; procs: string[]; empty:
     recovered: async (p) => expect(p.getByText('Client Aya').first()).toBeVisible(),
   },
   {
+    // B3.2: Today without its roster is an error with Retry — never "all caught up" or a welcome.
+    name: 'coach-today',
+    role: 'coachA',
+    path: '/coach/dashboard',
+    procs: ['coachClients.listMyClientUsers'],
+    empty: [/You're all caught up/, /^Welcome/],
+    recovered: async (p) => expect(p.getByTestId('today-summary')).toBeVisible(),
+  },
+  {
     name: 'coach-clients',
     role: 'coachA',
     path: '/coach/clients',

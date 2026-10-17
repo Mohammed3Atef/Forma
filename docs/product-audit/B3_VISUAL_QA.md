@@ -72,3 +72,54 @@ No shell defect remained after V1 / V2.
 - Physical devices (R-01…R-26 checklist unchanged).
 - A realistic coach data set (many clients, unread threads, long names). B3.1 only changes chrome, which the standard seed exercises; B3.2+ screens will need a coach visual seed comparable to B2's `e2e3/visual/seed-client.mjs`.
 - Egyptian Arabic (`ar-eg`) was not captured separately; its `coachNav` / `coachMe` strings are complete and share the RTL layout with `ar`.
+
+---
+
+## B3.2 — Coach Today (2026-10-17)
+
+**Scope reviewed:** the Today screen in every state, at every width the brief names, in English, Arabic and Egyptian Arabic. Fixtures: a busy coachPro roster (one client per queue kind, six unread conversations, plus records that must not show) and an all-clear roster (a single client whose package ends in ~15 days). See spec 86.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/86-b3-today.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b32-visual/<state>-<width>-<lang>.png` (full page) and `shots.json` (overflow, `dir`). It fails on any horizontal overflow or wrong direction. The other spec-86 tests attach state shots: new coach, review sheet, transfer panel, failing backend, offline, Arabic desktop.
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 |
+| Languages | English · Arabic · Egyptian Arabic (390, 1440) |
+| States | busy queue (14 items, 9 kinds), all clear (+ Coming up), plus state shots: new coach, review sheet, transfer panel, failing backend, offline |
+
+Reference run: `e2e-out/b32-final/b32-visual/` (the final full suite). Note the matrix runs after the spec's review and transfer tests, so its busy shots show 12 items; the 14-item state (check-in and transfer included) is the attached `today-busy-1440` shot.
+
+**Result:** 18 / 18 matrix shots, **0 px horizontal overflow, correct `dir` on every shot**. axe (WCAG 2.1 A / AA) on the busy queue, the review sheet and the desktop panel in EN and AR: **0 violations**.
+
+Checked on every shot: one summary line that tells the truth (count / caught up / partial / stale); rows read who · reason with evidence · one action label; section order To review → Requests → Unread messages → Subscriptions → Coaching → Coming up; "Show N more" past 5 rows; the desktop panel is sticky beside the queue; Arabic mirrors (avatar at the inline start, action at the inline end, chevrons inline-end); the client's own English words stay readable inside Arabic sentences.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| T1 | Nine kind chips wrapped onto 3–5 lines before the queue | phones (360–430), EN + AR | **Fixed**: one horizontally scrolling line under 768 px (scrollbar hidden, no page overflow); wraps from 768 px |
+| T2 | "You're all caught up" said twice (summary line and card) | all-clear, all widths | **Fixed**: the card says it once; the summary line stays empty in that state |
+| T3 | The client's English words reordered the Arabic sentence (quotes and "?" jumped) | message previews, freeze / transfer reasons, AR / AR-EG | **Fixed**: the client's text is bidi-isolated (U+2068 / U+2069). An English quote wrapping across lines still reads end-of-line on the left, which is correct RTL behaviour |
+| T4 | With nothing queued on desktop, the checklist spanned the full width while the all-clear card was centred | all-clear 1440 | **Fixed**: one reading column (header included) whenever there is no two-pane view |
+| T5 | At 1024 px the labelled rail leaves ~720 px; the side panel got ~280 px (name truncated, reason over four lines) | busy 1024, EN + AR | **Fixed**: 1024–1279 px split the panes evenly (each about a phone sheet wide); "Open client" became a text link under the reason |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| The check-in summary's notes show trailing punctuation on the wrong side in Arabic (shared component, also used by the client) | B3.9 RTL polish |
+| Chips use the app's mono chip style (the same as the Clients filters) | B3.9 visual polish, if the design system changes the chip face |
+| "Coming up" lists at most 5 terms with no "show more" (it is informational; the full list is in Me › Business) | B3.8 |
+
+### 5. Close-out recheck (owner follow-ups, 2026-10-17)
+
+After B32-P1 (freeze requests from their canonical documents) and NT-10 (announcement dismissals), Today was rechecked at phone, tablet and desktop in English and Arabic, from the close-out full run (`e2e-out/b32-close2/b32-visual/`, 18 / 18, 0 px overflow, correct `dir`). The only visible change is the freeze row's evidence, which now names the requested dates ("Asked to freeze 18 October – 25 October: …", asserted in spec 86). Announcements look exactly as before; only their dismissal memory changed.

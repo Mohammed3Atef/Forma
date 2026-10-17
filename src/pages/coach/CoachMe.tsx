@@ -14,8 +14,9 @@ import { whatsappUrl } from '@/lib/contact';
  * floating button (Help & support lives here — RM-34, RM-48).
  *
  * Until their own milestones land, the coaching tools that leave the main
- * navigation (check-ins, assessments, adherence — folded into Today and
- * Clients in B3.2 / B3.3) stay reachable from here, so nothing disappears.
+ * navigation stay reachable from here, so nothing disappears: check-in
+ * management (bulk request, awaiting / overdue) and adherence, until Clients
+ * takes them in B3.3. Assessments to review are on Today since B3.2.
  */
 export function CoachMe() {
   const { t } = useTranslation();
@@ -59,7 +60,6 @@ export function CoachMe() {
       <Section title={t('coachMe.coaching')}>
         <ListGroup>
           <ListRow to="/coach/checkins" testId="me-checkins" leading={<IconTile icon="check" />} title={t('coachMe.checkins')} chevron />
-          <ListRow to="/coach/assessments" testId="me-assessments" leading={<IconTile icon="list" />} title={t('coachMe.assessments')} chevron />
           <ListRow to="/coach/adherence" testId="me-adherence" leading={<IconTile icon="target" />} title={t('coachMe.adherence')} chevron />
         </ListGroup>
       </Section>

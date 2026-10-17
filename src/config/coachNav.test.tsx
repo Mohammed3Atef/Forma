@@ -13,9 +13,11 @@ describe('coach destinations', () => {
     const cases: [string, string | null][] = [
       ['/coach/dashboard', 'today'],
       ['/coach/dashboard?tab=clients', 'today'],
+      ['/coach/dashboard?focus=checkin', 'today'],
       ['/coach/checkins', 'today'],
-      ['/coach/assessments', 'today'],
-      ['/coach/notifications', 'today'],
+      // B3.2: these two redirect to Today before rendering, so they light nothing themselves.
+      ['/coach/assessments', null],
+      ['/coach/notifications', null],
       ['/coach/clients', 'clients'],
       ['/coach/clients?new=1', 'clients'],
       ['/coach/client/c1', 'clients'],
@@ -47,11 +49,11 @@ describe('coach destinations', () => {
       expect(isCoachRoot(root)).toBe(true);
       expect(coachShellShowsBack(root)).toBe(false);
     }
-    for (const own of ['/coach/client/c1', '/coach/client/c1/workout', '/coach/messages/c1', '/coach/templates/t1', '/coach/templates/new', '/coach/templates/t1/edit', '/coach/notifications']) {
+    for (const own of ['/coach/client/c1', '/coach/client/c1/workout', '/coach/messages/c1', '/coach/templates/t1', '/coach/templates/new', '/coach/templates/t1/edit']) {
       expect(coachPageOwnsBack(own), own).toBe(true);
       expect(coachShellShowsBack(own), own).toBe(false);
     }
-    for (const sub of ['/coach/plan', '/coach/settings', '/coach/revenue', '/coach/reports', '/coach/subscription-plans', '/coach/checkins', '/coach/assessments', '/coach/adherence', '/coach/templates']) {
+    for (const sub of ['/coach/plan', '/coach/settings', '/coach/revenue', '/coach/reports', '/coach/subscription-plans', '/coach/checkins', '/coach/adherence', '/coach/templates']) {
       expect(coachShellShowsBack(sub), sub).toBe(true);
     }
   });

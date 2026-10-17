@@ -9,7 +9,7 @@ import { usersCol } from '../../_lib/mongodb.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
 import { toPublicUser } from '../../_lib/types.js';
 import { syncRecordsCol } from '../../sync/_data.js';
-import { clientProfilesCol, checkInsCol } from '../../client/_lib/db.js';
+import { clientProfilesCol, checkInsCol, clientWorkoutPlansCol, clientNutritionPlansCol } from '../../client/_lib/db.js';
 import type { ClientAssessmentFields } from '../../client/_lib/types.js';
 
 /** Mirrors `assessmentStatus()` in `src/lib/assessment.ts` — keep in sync. */
@@ -155,6 +155,11 @@ export const coachClientsRouter = router({
    * AND `CoachAssessments` (assessment) — one summary, three screens, per the
    * performance closeout's "don't build three near-identical endpoints" ask.
    * Same authorization as `listMyClientUsers`.
+   *
+   * B3.2 (owner O-7, additive): `hasWorkoutPlan` / `hasNutritionPlan` — the
+   * client's plan has content (≥ 1 training day / ≥ 1 meal). A saved plan with
+   * no days or meals counts as no plan. Two more bounded queries on `_id`
+   * (one plan document per client); only the array sizes leave the database.
    */
   dashboardSummaries: authedProcedure
     .input(z.object({ coachId: z.string().trim().min(1).optional() }))
@@ -171,8 +176,11 @@ export const coachClientsRouter = router({
       const syncCol = await syncRecordsCol();
       const profilesCol = await clientProfilesCol();
       const checkinsCol = await checkInsCol();
+      const workoutPlans = await clientWorkoutPlansCol();
+      const nutritionPlans = await clientNutritionPlansCol();
+      const sizeOf = (field: string) => ({ $cond: [{ $isArray: `$${field}` }, { $size: `$${field}` }, 0] });
 
-      const [workoutRows, profileDocs, submittedClientIds] = await Promise.all([
+      const [workoutRows, profileDocs, submittedClientIds, workoutPlanRows, nutritionPlanRows] = await Promise.all([
         syncCol
           .aggregate<{ _id: string; workouts7d: number; lastActivity: string | null }>([
             { $match: { clientId: { $in: clientIds }, collection: 'workoutLogs', 'data.finished': true } },
@@ -181,11 +189,15 @@ export const coachClientsRouter = router({
           .toArray(),
         profilesCol.find({ _id: { $in: clientIds } }).toArray(),
         checkinsCol.distinct('clientId', { clientId: { $in: clientIds }, status: 'submitted' }),
+        workoutPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('days') } }]).toArray(),
+        nutritionPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('meals') } }]).toArray(),
       ]);
 
       const workoutByClient = new Map(workoutRows.map((r) => [r._id, r]));
       const profileByClient = new Map(profileDocs.map((d) => [d.clientId, d]));
       const toReviewSet = new Set(submittedClientIds);
+      const withWorkoutPlan = new Set(workoutPlanRows.filter((r) => r.n > 0).map((r) => r._id));
+      const withNutritionPlan = new Set(nutritionPlanRows.filter((r) => r.n > 0).map((r) => r._id));
 
       return clientIds.map((clientId) => {
         const w = workoutByClient.get(clientId);
@@ -198,6 +210,8 @@ export const coachClientsRouter = router({
           assessment: assessmentStatusOf(profile?.assessment),
           fullName,
           toReview: toReviewSet.has(clientId),
+          hasWorkoutPlan: withWorkoutPlan.has(clientId),
+          hasNutritionPlan: withNutritionPlan.has(clientId),
         };
       });
     }),

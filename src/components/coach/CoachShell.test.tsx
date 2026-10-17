@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 vi.mock('@/hooks/useCoachMessageUnread', () => ({ useCoachMessageUnread: () => 3 }));
-vi.mock('@/components/NotificationBell', () => ({ NotificationBell: () => <span data-testid="bell-stub" /> }));
+const toasts = vi.hoisted(() => vi.fn(() => ({ items: [], unread: 0, loading: false, isAdmin: false, isCoach: true })));
+vi.mock('@/hooks/useNotificationToasts', () => ({ useNotificationToasts: toasts }));
 
 import { useSession } from '@/services/auth/sessionStore';
 import { setNavGuard } from '@/stores/navGuardStore';
@@ -59,6 +60,9 @@ describe('CoachShell', () => {
     expect(screen.queryByTestId('nav-menu-button')).toBeNull();
     expect(screen.queryByTestId('whatsapp-fab')).toBeNull();
     expect(screen.queryByTestId('coach-sidebar')).toBeNull();
+    // B3.2 (O-5): no bell — Today carries coach events — but the shell still runs the notification toasts.
+    expect(screen.queryByTestId('notifications-bell')).toBeNull();
+    expect(toasts).toHaveBeenCalled();
   });
 
   it('roots carry no Back; a Me page gets the shell Back; a page with its own Back gets none', () => {

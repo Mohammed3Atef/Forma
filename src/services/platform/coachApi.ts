@@ -54,6 +54,13 @@ export interface ClientDashboardSummary {
   assessment: 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review';
   fullName: string | null;
   toReview: boolean;
+  /**
+   * B3.2 (O-7): the client's training / nutrition plan has content (≥ 1 day /
+   * ≥ 1 meal). Optional — a server without the field must make Today omit
+   * the plan-based items, never guess.
+   */
+  hasWorkoutPlan?: boolean;
+  hasNutritionPlan?: boolean;
 }
 
 /**
@@ -97,6 +104,32 @@ export async function resetAssessment(clientId: string): Promise<void> {
 export async function getClientFreezeRequest(clientId: string): Promise<FreezeRequest | null> {
   const doc = await trpc.subscriptionRequest.get.query({ clientId });
   return doc ? withId<FreezeRequest>(doc, 'current') : null;
+}
+
+/** A pending freeze request as Today lists it (B3.2 / B32-P1). */
+export interface PendingFreezeRequest {
+  clientId: string;
+  from: number | null;
+  until: number | null;
+  reason: string;
+  requestedAt: number;
+}
+
+/**
+ * Every pending freeze request among the coach's active clients, from the
+ * canonical request documents (server-scoped to the current relationship).
+ * Walks every page — bounded requests, never a silently truncated list.
+ */
+export async function listPendingFreezeRequests(coachId: string): Promise<PendingFreezeRequest[]> {
+  const out: PendingFreezeRequest[] = [];
+  let cursor: { requestedAt: number; clientId: string } | undefined;
+  for (let page = 0; page < 1000; page += 1) {
+    const res = await trpc.subscriptionRequest.pendingForCoach.query({ coachId, cursor, limit: 200 });
+    out.push(...res.items);
+    if (!res.nextCursor) return out;
+    cursor = res.nextCursor;
+  }
+  throw new Error('pendingForCoach: too many pages');
 }
 
 /** Coach records the decision on a client's freeze request (applying the freeze is done separately). The backend notifies the client. */

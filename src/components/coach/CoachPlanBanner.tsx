@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +17,10 @@ import { useGuardedNav } from '@/hooks/useGuardedNav';
  *  - warn:   over client capacity (e.g. an add-on expired) — existing clients stay
  *  - info:   a request is awaiting payment confirmation
  * None of these change what the coach is entitled to; they only explain it.
+ *
+ * B3.2 (owner O-6): only notices that block work stay app-wide (lapsed /
+ * suspended, over capacity). "Ending soon" and "request awaiting payment"
+ * are information — they show on Today only (CO-30).
  */
 export function CoachPlanBanner() {
   const { plan, state, daysLeft } = useCoachPlan();
@@ -23,18 +28,20 @@ export function CoachPlanBanner() {
   // The banner sits above every coach screen — its CTA must not drop an editor's work (NAV-K05).
   const navigate = useGuardedNav();
   const uid = useSession((s) => s.uid);
+  const { pathname } = useLocation();
+  const onToday = pathname === '/coach' || pathname === '/coach/dashboard';
   const reqQ = useQuery({ queryKey: ['coachPlanRequests', 'mine', uid], queryFn: getMyPlanRequests, refetchInterval: 60_000 });
   const openReqs = (reqQ.data ?? []).filter(isActionable);
   const cap = capacityOf(plan);
 
   const lapsed = state === 'expired' || state === 'suspended';
-  const endingSoon = state === 'active' && daysLeft != null && daysLeft <= 5;
+  const endingSoon = onToday && state === 'active' && daysLeft != null && daysLeft <= 5;
   const overCap = !lapsed && cap.over > 0;
 
   // Three banner-region slots (B1.4): the region shows the most important one.
   const showPlan = useBannerSlot('coach-plan', lapsed ? BANNER_PRIORITY.coachPlanLapsed : BANNER_PRIORITY.coachPlanEnding, lapsed || endingSoon);
   const showCap = useBannerSlot('coach-capacity', BANNER_PRIORITY.coachOverCapacity, overCap);
-  const showReq = useBannerSlot('coach-plan-request', BANNER_PRIORITY.coachPlanRequest, openReqs.length > 0);
+  const showReq = useBannerSlot('coach-plan-request', BANNER_PRIORITY.coachPlanRequest, onToday && openReqs.length > 0);
 
   const go = () => navigate('/coach/plan');
   const banner = (tone: 'danger' | 'warning' | 'brand', icon: 'info' | 'timer' | 'user' | 'bolt', text: string, cta: string, testId: string) => (

@@ -88,6 +88,9 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     // Dashboard sub pills / renewals / revenue are derived from the same relationship.
     void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
     void qc.invalidateQueries({ queryKey: ['mySubscription'] });
+    // Today (B3.2): a decided freeze request and a renewed / changed term leave or change the queue at once.
+    void qc.invalidateQueries({ queryKey: ['coachFreezeRequests', coachId] });
+    void qc.invalidateQueries({ queryKey: ['coachRelationships', coachId] });
   };
   const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: commercialErrorMessage(e, t) });
   const succeed = (title: string) => () => {

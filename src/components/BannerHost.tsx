@@ -4,6 +4,7 @@ import { Banner as BannerView } from '@/components/ui/Banner';
 import { BANNER_PRIORITY, useBannerSlot } from '@/stores/bannerRegionStore';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchBannersForViewer, type Banner, type BannerPlacement, type BannerStyle } from '@/services/platform/bannersApi';
+import { announcementVersion, loadDismissals, rememberDismissal } from '@/lib/bannerDismissals';
 
 const TONE: Record<BannerStyle, 'info' | 'success' | 'warning' | 'brand'> = {
   info: 'info',
@@ -18,40 +19,25 @@ const PLACEMENT_ROUTES: Partial<Record<BannerPlacement, string[]>> = {
   coach_dashboard: ['/coach', '/coach/dashboard'],
 };
 
-const DISMISSED_KEY = 'forma:dismissedBanners';
-
-function loadDismissed(): Set<string> {
-  try {
-    const raw = sessionStorage.getItem(DISMISSED_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveDismissed(ids: Set<string>) {
-  try {
-    sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
-  } catch {
-    /* storage unavailable (private mode, quota) — dismissal just won't survive a reload */
-  }
-}
-
 /**
  * Renders active, in-window, audience-matched announcements on the client home /
  * coach dashboard, as the lowest-priority slot of the shell's banner region
  * (B1.4). Admins never see marketing banners (placement null). Fetches
- * directly rather than via react-query. Dismissals persist in `sessionStorage`
- * (survive a refresh within the same tab, clear on a fresh session) — a plain
- * in-memory Set previously reset on every reload, so a dismissed banner kept
- * coming back.
+ * directly rather than via react-query.
+ *
+ * Dismissals (NT-10, `lib/bannerDismissals`): per signed-in user and per
+ * announcement version — a dismissed informational announcement stays away
+ * across launches until its content changes; a `warning` one is dismissed
+ * for this session only. Same look as before.
  */
 export function BannerHost() {
   const role = useSession((s) => s.account?.role);
   const uid = useSession((s) => s.uid);
   const createdAt = useSession((s) => s.account?.createdAt ?? 0);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed);
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissals(uid));
+  // Account switch on this device: the other user's dismissals, never the previous one's.
+  useEffect(() => setDismissed(loadDismissals(uid)), [uid]);
 
   const placement: BannerPlacement | null = role === 'client' ? 'client_home' : role === 'coach' ? 'coach_dashboard' : null;
   const { pathname } = useLocation();
@@ -69,14 +55,13 @@ export function BannerHost() {
     return () => { active = false; };
   }, [role, placement, uid, createdAt]);
 
-  const shown = useMemo(() => banners.filter((b) => !dismissed.has(b.id)), [banners, dismissed]);
+  const shown = useMemo(() => banners.filter((b) => !dismissed.has(announcementVersion(b))), [banners, dismissed]);
   const show = useBannerSlot('announcement', BANNER_PRIORITY.announcement, onPlacementRoute && shown.length > 0);
   if (!show || !placement || shown.length === 0) return null;
 
-  const dismiss = (id: string) => {
-    const next = new Set(dismissed).add(id);
-    setDismissed(next);
-    saveDismissed(next);
+  const dismiss = (b: Banner) => {
+    rememberDismissal(uid, b);
+    setDismissed(new Set(dismissed).add(announcementVersion(b)));
   };
 
   return (
@@ -87,7 +72,7 @@ export function BannerHost() {
           tone={TONE[b.style]}
           testId="app-banner"
           title={b.title}
-          onDismiss={() => dismiss(b.id)}
+          onDismiss={() => dismiss(b)}
           action={
             // http(s) only at render too — covers banners stored before the server-side check.
             b.ctaLabel && b.ctaHref && /^https?:\/\//i.test(b.ctaHref) ? (

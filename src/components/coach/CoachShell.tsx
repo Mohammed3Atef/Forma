@@ -9,9 +9,9 @@ import { SyncStatus } from '@/components/ui/SyncStatus';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Avatar } from '@/components/Avatar';
-import { NotificationBell } from '@/components/NotificationBell';
 import { useBack } from '@/hooks/useBack';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
+import { useNotificationToasts } from '@/hooks/useNotificationToasts';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCommandStore } from '@/stores/commandStore';
 import { useLayoutStore } from '@/stores/layoutStore';
@@ -29,10 +29,14 @@ import { COACH_ME, COACH_TABS, coachAreaFor, coachShellShowsBack, coachTabFor, i
  * Kept from `ResponsiveShell` on purpose (contracts C12 / C23): the one banner
  * region, main's bottom padding `bottomnav-h + 2.5rem` on phones (the chat
  * composer cancels exactly that), full-bleed pages on wide screens.
- * Every exit from here — tab, rail, Me, avatar, Back, the bell, ⌘K — goes
+ * Every exit from here — tab, rail, Me, avatar, Back, ⌘K — goes
  * through the unsaved-changes guard (NAV-K05).
  *
- * The notifications bell stays until Today's queue replaces it in B3.2 (O-5).
+ * B3.2 (O-5): no notifications bell — Today is where coach events become
+ * work (check-ins, assessments, freeze requests), and Messages keeps its own
+ * unread badge, so nothing is signalled twice. The shell still runs the
+ * notification toasts (formerly mounted only by the bell): a new check-in or
+ * message still pops up wherever the coach is.
  */
 export function CoachShell({ banners, children }: { banners?: ReactNode; children: ReactNode }) {
   const { t } = useTranslation();
@@ -41,6 +45,7 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
   const account = useSession((s) => s.account);
   const goBack = useBack();
   const unread = useCoachMessageUnread();
+  useNotificationToasts();
   const openSearch = useCommandStore((s) => s.show);
   const fullBleed = useLayoutStore((s) => s.fullBleed);
 
@@ -123,7 +128,6 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
           <>
             <GlobalSearch onOpen={openSearch} className="hidden w-64 md:flex lg:w-72" />
             <SyncStatus />
-            <NotificationBell />
             <span className="md:hidden">{meButton}</span>
           </>
         }

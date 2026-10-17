@@ -286,40 +286,70 @@ export async function coachThreadsSummary(coachId: string): Promise<CoachThreadS
 interface SummaryMuxEntry {
   timer: ReturnType<typeof setInterval>;
   listeners: Set<(rows: CoachThreadSummary[]) => void>;
+  errorListeners: Set<(failed: boolean) => void>;
   lastRows: CoachThreadSummary[] | null;
+  /** The latest tick failed (cleared by the next success). */
+  failed: boolean;
+  poll: () => Promise<void>;
 }
 const summaryMux = new Map<string, SummaryMuxEntry>();
 
-/** Polling version of `coachThreadsSummary` — one interval, one request per tick, shared across every subscriber for the same coach. */
-export function subscribeCoachThreadsSummary(coachId: string, cb: (rows: CoachThreadSummary[]) => void, intervalMs = BADGE_POLL_MS): () => void {
+/**
+ * Polling version of `coachThreadsSummary` — one interval, one request per tick, shared across every subscriber for the same coach.
+ * `onError` (B3.2, optional) hears whether the latest tick failed, so a screen can tell "no unread" from "couldn't load".
+ */
+export function subscribeCoachThreadsSummary(
+  coachId: string,
+  cb: (rows: CoachThreadSummary[]) => void,
+  intervalMs = BADGE_POLL_MS,
+  onError?: (failed: boolean) => void,
+): () => void {
   let entry = summaryMux.get(coachId);
   if (!entry) {
     const listeners = new Set<(rows: CoachThreadSummary[]) => void>();
-    const newEntry: SummaryMuxEntry = { listeners, lastRows: null, timer: null as unknown as ReturnType<typeof setInterval> };
+    const newEntry: SummaryMuxEntry = { listeners, errorListeners: new Set(), lastRows: null, failed: false, poll: async () => undefined, timer: null as unknown as ReturnType<typeof setInterval> };
+    const setFailed = (failed: boolean) => {
+      if (newEntry.failed === failed) return;
+      newEntry.failed = failed;
+      newEntry.errorListeners.forEach((l) => l(failed));
+    };
     const poll = async () => {
       if (isTabHidden()) return;
       try {
         const rows = await coachThreadsSummary(coachId);
         newEntry.lastRows = rows;
+        setFailed(false);
         newEntry.listeners.forEach((l) => l(rows));
       } catch {
         // Transient network/API error — keep the last known state, retry next tick.
+        setFailed(true);
       }
     };
+    newEntry.poll = poll;
     newEntry.timer = setInterval(() => void poll(), intervalMs);
     entry = newEntry;
     summaryMux.set(coachId, entry);
     void poll();
   }
   entry.listeners.add(cb);
+  if (onError) {
+    entry.errorListeners.add(onError);
+    if (entry.failed) onError(true);
+  }
   if (entry.lastRows) cb(entry.lastRows);
   return () => {
     entry!.listeners.delete(cb);
+    if (onError) entry!.errorListeners.delete(onError);
     if (entry!.listeners.size === 0) {
       clearInterval(entry!.timer);
       summaryMux.delete(coachId);
     }
   };
+}
+
+/** Run the shared summary poll now (a screen's Refresh / Retry); no-op when nothing subscribes. */
+export function refreshCoachThreadsSummary(coachId: string): Promise<void> {
+  return summaryMux.get(coachId)?.poll() ?? Promise.resolve();
 }
 
 /** Total unread messages addressed to the coach across all their client threads. */

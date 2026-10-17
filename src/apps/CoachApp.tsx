@@ -13,18 +13,16 @@ import { queryClient } from '@/services/platform/queryClient';
 // Eager: the landing list (mobile index) + lightweight shared pages.
 import { CoachClients } from '@/pages/coach/CoachClients';
 import { RoleAccount } from '@/pages/RoleAccount';
-import { Notifications } from '@/pages/Notifications';
 import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 import { CoachMe } from '@/pages/coach/CoachMe';
 
 // Heavy coach route pages are lazy so the coach bundle stays small — the
 // PlanBuilder editors in particular only load when an editor is opened.
-const CoachDashboard = lazy(() => import('@/pages/coach/CoachDashboard').then((m) => ({ default: m.CoachDashboard })));
+const CoachToday = lazy(() => import('@/pages/coach/today/CoachToday').then((m) => ({ default: m.CoachToday })));
 const CoachClientDetail = lazy(() => import('@/pages/coach/CoachClientDetail').then((m) => ({ default: m.CoachClientDetail })));
 const CoachViewLayout = lazy(() => import('@/pages/coach/CoachViewLayout').then((m) => ({ default: m.CoachViewLayout })));
 const CoachCheckIns = lazy(() => import('@/pages/coach/CoachCheckIns').then((m) => ({ default: m.CoachCheckIns })));
 const CoachClientAssessment = lazy(() => import('@/pages/coach/CoachClientAssessment').then((m) => ({ default: m.CoachClientAssessment })));
-const CoachAssessments = lazy(() => import('@/pages/coach/CoachAssessments').then((m) => ({ default: m.CoachAssessments })));
 const CoachReports = lazy(() => import('@/pages/coach/CoachReports').then((m) => ({ default: m.CoachReports })));
 const CoachPlan = lazy(() => import('@/pages/coach/CoachPlan').then((m) => ({ default: m.CoachPlan })));
 const CoachSubscriptionPlans = lazy(() => import('@/pages/coach/CoachSubscriptionPlans').then((m) => ({ default: m.CoachSubscriptionPlans })));
@@ -51,6 +49,11 @@ const CoachCheckInsOverview = lazy(() => import('@/pages/coach/CoachCheckInsOver
  * (`/coach/dashboard`) on every breakpoint (IA-K01); the URL itself stays the
  * same so stored links, the login landing and notifications keep working.
  * Online platform reads run through React Query; a client is a drill-down.
+ *
+ * B3.2: `/coach/dashboard` is Today (the queue). The assessments list and the
+ * coach notification feed fold into it (blueprint §5.3, O-5) and redirect;
+ * `/coach/checkins` stays (bulk "request this week" + awaiting / overdue
+ * overview) until Clients takes its filters in B3.3.
  */
 export function CoachApp() {
   const shell = (node: ReactNode) => (
@@ -76,9 +79,9 @@ export function CoachApp() {
       <Routes>
         <Route path="/coach" element={<Navigate to="/coach/dashboard" replace />} />
         <Route path="/coach/me" element={shell(<CoachMe />)} />
-        <Route path="/coach/dashboard" element={shell(<CoachDashboard />)} />
+        <Route path="/coach/dashboard" element={shell(<CoachToday />)} />
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
-        <Route path="/coach/assessments" element={shell(<CoachAssessments />)} />
+        <Route path="/coach/assessments" element={<Navigate to="/coach/dashboard?focus=assessments" replace />} />
         <Route path="/coach/checkins" element={shell(<CoachCheckInsOverview />)} />
         <Route path="/coach/reports" element={shell(<CoachReports />)} />
         <Route path="/coach/revenue" element={shell(<CoachRevenue />)} />
@@ -114,7 +117,7 @@ export function CoachApp() {
         <Route path="/coach/adherence" element={shell(<CoachAdherence />)} />
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
         <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
-        <Route path="/coach/notifications" element={shell(<Notifications />)} />
+        <Route path="/coach/notifications" element={<Navigate to="/coach/dashboard" replace />} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
         {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}
         <Route path="/invite/:code" element={<SignedInInterstitial kind="invite" />} />

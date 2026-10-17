@@ -69,10 +69,10 @@ export default defineConfig({
           { src: 'landing_page/hero-dashboard.png', sizes: '1536x1024', type: 'image/png', form_factor: 'wide', label: 'Coach dashboard' },
           { src: 'landing_page/showcase-mobile.png', sizes: '1536x1024', type: 'image/png', label: 'Forma on your phone' },
         ],
-        shortcuts: [
-          { name: 'Dashboard', url: '/coach', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
-          { name: 'Today', url: '/workout', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
-        ],
+        // No `shortcuts` (owner decision RM-79, B3.2): one static list cannot fit
+        // every role — a client's install offered "Dashboard" (/coach) and a
+        // coach's offered "Today" (/workout). Role-aware shortcuts would need a
+        // per-role manifest; tracked as an optional enhancement, not a launch item.
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

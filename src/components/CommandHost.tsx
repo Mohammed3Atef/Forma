@@ -57,7 +57,7 @@ export function CommandHost() {
         { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods') },
         // Honest labels (DT-08): this opens the inbox — broadcasting is a step inside it.
         { id: 'c-messages', label: t('coachNav.openMessages'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
-        { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/assessments') },
+        { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/dashboard?focus=assessments') },
         { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/reports') },
         { id: 'c-me', label: t('coachNav.me'), icon: 'user', group: cmd, always: true, run: go('/coach/me') },
       );

@@ -6,15 +6,12 @@ import { TopBar } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
-import { TextAreaField } from '@/components/ui/Field';
-import { SubmitButton } from '@/components/ui/SubmitButton';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { CheckInSummary } from '@/components/CheckInSummary';
-import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
+import { CheckInReviewForm } from '@/components/coach/CheckInReview';
 import { useSession } from '@/services/auth/sessionStore';
 import { listMyClients } from '@/services/platform/coachApi';
-import { listCheckInsForCoachClients, requestCheckIn, reviewCheckIn } from '@/services/platform/checkInApi';
+import { listCheckInsForCoachClients, requestCheckIn } from '@/services/platform/checkInApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { Pill, type PillTone } from '@/components/ui/Pill';
@@ -79,26 +76,15 @@ export function CoachCheckInsOverview() {
   // eventually moves that client out of the `submitted` bucket for real.
   const [queueOpen, setQueueOpen] = useState(false);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
-  const [feedback, setFeedback] = useState('');
   const queue = rows.filter((r) => r.status === 'submitted' && !reviewedIds.has(r.client.id));
   const current = queueOpen ? queue[0] ?? null : null;
-  const review = useMutation({
-    mutationFn: () => reviewCheckIn(current!.client.id, current!.latest!.weekStart, feedback),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['checkIns', current!.client.id] });
-      void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
-      showToast({ title: t('checkin.reviewed'), variant: 'success' });
-      setReviewedIds((prev) => new Set(prev).add(current!.client.id));
-      setFeedback('');
-      if (queue.length <= 1) setQueueOpen(false);
-    },
-    onError: (e) => void alertDialog({ title: t('checkin.reviewed'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
-  });
+  // B3.2: the review itself is the shared `CheckInReviewForm` (also on Today).
+  const advance = (clientId: string) => {
+    setReviewedIds((prev) => new Set(prev).add(clientId));
+    if (queue.length <= 1) setQueueOpen(false);
+  };
   const startQueue = () => {
     setReviewedIds(new Set());
-    setFeedback('');
     setQueueOpen(true);
   };
 
@@ -202,34 +188,16 @@ export function CoachCheckInsOverview() {
             <p className="text-[12px] text-earth-subtle" data-testid="review-queue-progress">
               {t('checkin.queueProgress', { n: reviewedIds.size + 1, total: reviewedIds.size + queue.length })}
             </p>
-            <ClientContextPanel clientId={current.client.id} />
-            <div>
-              <p className="mb-1 text-[12px] uppercase tracking-wide text-earth-subtle">{shortDate(current.latest.weekStart, i18n.language)}</p>
-              <CheckInSummary checkIn={current.latest} />
-            </div>
-            {current.previous && (
-              <div className="rounded-xl border border-line-soft p-3 text-[13px]">
-                <p className="mb-1 font-medium">{t('checkin.vsLastCheckin', { date: shortDate(current.previous.weekStart, i18n.language) })}</p>
-                <div className="flex flex-wrap gap-4">
-                  {current.latest.currentWeight != null && current.previous.currentWeight != null && (
-                    <span>{t('checkin.weight')}: {current.previous.currentWeight}{t('common.kg')} → {current.latest.currentWeight}{t('common.kg')} ({current.latest.currentWeight - current.previous.currentWeight > 0 ? '+' : ''}{(current.latest.currentWeight - current.previous.currentWeight).toFixed(1)})</span>
-                  )}
-                  {current.latest.adherenceTraining != null && current.previous.adherenceTraining != null && (
-                    <span>{t('checkin.trainingAdherence')}: {current.previous.adherenceTraining}% → {current.latest.adherenceTraining}%</span>
-                  )}
-                </div>
-              </div>
-            )}
-            <TextAreaField label={t('checkin.coachFeedback')} className="min-h-24" data-testid="review-feedback" placeholder={t('checkin.coachFeedback')} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
-            <p className="mt-1 text-[12px] text-earth-muted">{t('trust.checkin.feedbackVisible')}</p>
-            <div className="flex gap-2">
-              <button type="button" className="btn-ghost flex-1" data-testid="review-skip" onClick={() => setReviewedIds((prev) => new Set(prev).add(current.client.id))}>
-                {t('checkin.skipForNow')}
-              </button>
-              <SubmitButton type="button" className="flex-1" data-testid="review-mark-next" pending={review.isPending} onClick={() => review.mutate()}>
-                {queue.length > 1 ? t('checkin.markReviewedNext') : t('checkin.markReviewed')}
-              </SubmitButton>
-            </div>
+            <CheckInReviewForm
+              key={current.client.id}
+              clientId={current.client.id}
+              coachId={coachId}
+              checkIn={current.latest}
+              previous={current.previous}
+              onReviewed={() => advance(current.client.id)}
+              onSkip={() => advance(current.client.id)}
+              primaryLabel={queue.length > 1 ? t('checkin.markReviewedNext') : t('checkin.markReviewed')}
+            />
           </div>
         )}
       </Sheet>

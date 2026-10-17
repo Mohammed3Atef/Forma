@@ -238,6 +238,49 @@ export const subscriptionRequestRouter = router({
     return (await subscriptionRequestsCol()).findOne({ _id: clientId });
   }),
 
+  /**
+   * B3.2 / B32-P1 (owner, 2026-10-17) — every PENDING freeze request among
+   * the caller's ACTIVE clients, read from the canonical request documents
+   * (never the notification feed, whose newest-50 window lost old requests).
+   * A request belongs to the current relationship only if it was made after
+   * that relationship began, so one raised under a previous coach — or an
+   * earlier stint with this coach — is never exposed. Read-only; same
+   * self-or-`users.read` rule as the coach's other roster summaries.
+   * Cursor-paginated on (requestedAt, clientId): bounded pages, nothing
+   * silently dropped. One request document per client, so no duplicates.
+   */
+  pendingForCoach: authedProcedure
+    .input(
+      z
+        .object({
+          coachId: z.string().trim().min(1).optional(),
+          cursor: z.object({ requestedAt: z.number(), clientId: z.string().min(1) }).optional(),
+          limit: z.number().int().min(1).max(200).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const coachId = input?.coachId ?? ctx.user.id;
+      const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
+      if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
+      const limit = input?.limit ?? 100;
+      const rels = await (await coachClientsCol()).find({ coachId, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).toArray();
+      if (rels.length === 0) return { items: [], nextCursor: null };
+      const filter: Record<string, unknown> = {
+        status: 'pending',
+        $or: rels.map((r) => ({ _id: r.clientId, requestedAt: { $gte: Number(r.createdAt ?? 0) } })),
+      };
+      const c = input?.cursor;
+      if (c) filter.$and = [{ $or: [{ requestedAt: { $gt: c.requestedAt } }, { requestedAt: c.requestedAt, _id: { $gt: c.clientId } }] }];
+      const docs = await (await subscriptionRequestsCol()).find(filter).sort({ requestedAt: 1, _id: 1 }).limit(limit + 1).toArray();
+      const page = docs.slice(0, limit);
+      const last = page[page.length - 1];
+      return {
+        items: page.map((d) => ({ clientId: d.clientId, from: d.from ?? null, until: d.until ?? null, reason: d.reason, requestedAt: d.requestedAt })),
+        nextCursor: docs.length > limit && last ? { requestedAt: last.requestedAt, clientId: last._id } : null,
+      };
+    }),
+
   /** Client creates/resubmits. */
   submit: authedProcedure
     .input(z.object({ clientId: z.string().optional(), from: z.number().nullable().optional(), until: z.number().nullable().optional(), reason: z.string().trim().min(1) }))
