@@ -48,7 +48,8 @@ export function CoachWorkoutEditor() {
 
   // Goes through the same guard, prefers real back over always landing on the
   // overview tab, and only clears the draft once the exit is actually confirmed.
-  const exit = useBack(`/coach/client/${clientId}`, ed.discardDraft);
+  // B3.4: an editor opened cold goes back to the client's Plan (its semantic parent).
+  const exit = useBack(`/coach/client/${clientId}/plan`, ed.discardDraft);
 
   if (!plan) {
     return (

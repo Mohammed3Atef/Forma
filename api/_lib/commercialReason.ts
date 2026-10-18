@@ -25,7 +25,10 @@ export type CommercialReasonCode =
   | 'FREEZE_NOT_ALLOWED'
   | 'FREEZE_INVALID_WINDOW'
   | 'FREEZE_OUT_OF_TERM'
-  | 'NOT_FROZEN';
+  | 'NOT_FROZEN'
+  // B3.4 compatibility gate
+  | 'CHECKIN_STALE' // the check-in is a previous coach's request left open — nobody's to answer now
+  | 'CHECKIN_AMBIGUOUS'; // a submission by week alone (an older app) while the week has two open requests
 
 export class CommercialReason extends Error {
   readonly reason: CommercialReasonCode | string;

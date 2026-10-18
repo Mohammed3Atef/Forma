@@ -55,6 +55,9 @@ describe('notification deep links land where the action is (B1.9 / NAV-K03)', ()
 
   it('client: check-ins open the check-in, messages the inbox, anchored notes their screen', () => {
     expect(notificationTarget(n({ type: 'checkin_requested', forRole: 'client', entityId: '2026-10-05' }), 'client')).toBe('/check-in/2026-10-05');
+    // B3.4: a second coach's record of the same week is named by its key — its link never opens the week's first record.
+    expect(notificationTarget(n({ type: 'checkin_requested', forRole: 'client', entityId: '2026-10-05__coach-b' }), 'client')).toBe('/check-in/2026-10-05__coach-b');
+    expect(notificationTarget(n({ type: 'checkin_reviewed', forRole: 'client', entityId: '2026-10-05__coach-b' }), 'client')).toBe('/check-in/2026-10-05__coach-b');
     expect(notificationTarget(n({ type: 'message_received', forRole: 'client' }), 'client')).toBe('/messages');
     expect(notificationTarget(n({ type: 'targets_updated', forRole: 'client', screen: 'nutrition' }), 'client')).toBe('/nutrition');
   });

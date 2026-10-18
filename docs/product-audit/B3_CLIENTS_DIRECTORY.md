@@ -135,7 +135,7 @@ Unknown values always sort last, in either direction. Ties fall back to the name
 |---|---|---|
 | `toReview` is this coach's work only (owner-approved) | `coachClients.dashboardSummaries` | a previous coach's submitted check-in flagged the transferred client for the new coach (B32-P2) |
 | This coach's check-ins only | `checkIns.listForCoachClients` | the same rule for the records themselves: a previous coach's check-ins (notes, weights) were sent to the new coach and hidden client-side |
-| A previous coach's week is not returned | `checkIns.request` | asking for a week that a previous coach already holds answered with that coach's check-in; it is now refused (`CONFLICT`) and counted as failed |
+| A previous coach's week is not returned | `checkIns.request` | asking for a week that a previous coach already holds answered with that coach's check-in. B3.3 refused it (`CONFLICT`); **B3.4 (owner decision)** creates the incoming coach's own record of that week instead (`week__coachId`), leaving the previous coach's untouched — see `B3_IMPLEMENTATION_LOG.md` §B3.4 |
 | `view: 'summary'` (optional input) | `coachClients.list` | the roster screens need the current term only; the audit trail grew with every subscription change |
 | Outgoing requests omit `fromCoachId` | `transfers.list({type:'outgoing'})`, `transfers.create` | the requester must not learn who coaches the client (CO-03) |
 | Revoke is compare-and-set | `invites.revoke` | a revoke racing a claim overwrote `claimed` with `revoked` |
@@ -153,7 +153,7 @@ Authorization is unchanged everywhere. Evidence: `api/_trpc/routers/b33Directory
 
 ## 13. Known limits (documented, not hidden)
 
-1. **One check-in per client per week.** When a previous coach already requested this week (a mid-week hand-over), the new coach can't request the same week. The bulk request reports it as not sent. Next week works normally.
+1. ~~**One check-in per client per week.**~~ Resolved in B3.4 (owner decision): after a mid-week hand-over the new coach's request for that week creates a record of their own; the bulk request sends it like any other.
 2. **Day boundaries:** "last workout", "No workout in N days" and "this week" use the coach's local date against the client's local workout date, so they can be a day off across time zones (carried to B3.9).
 3. **Last workout** includes workouts from before this coach (the client's history).
 4. **Check-ins:** only the latest and the previous check-in per client are read (as on Today). A third waiting week is counted once.

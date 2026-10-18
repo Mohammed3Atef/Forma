@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { TopBar } from '@/components/TopBar';
@@ -105,13 +105,17 @@ export function CheckIn() {
       if (first?.status === 'failed_permanent') {
         // The server refused it (not a connection problem): back to the answers, with the error (B0 behaviour).
         await discardOutbox(op.operationId);
-        throw new Error(first.lastError?.code ?? 'refused');
+        throw new Error(first.lastError?.reason ?? first.lastError?.code ?? 'refused');
       }
       return 'queued'; // offline / retrying — sent automatically
     },
     onSuccess: (outcome) => {
       if (outcome === 'sent') delivered();
       else showToast({ title: t('trust.checkin.queuedToast'), variant: 'info' });
+    },
+    // The request closed meanwhile (the client changed coaches, B3.4): reload it — it now reads as closed.
+    onError: (e) => {
+      if (e instanceof Error && e.message === 'CHECKIN_STALE') void qc.invalidateQueries({ queryKey: ['checkIn', uid, id] });
     },
     onSettled: () => {
       submittingRef.current = false;
@@ -127,7 +131,8 @@ export function CheckIn() {
     [id, uid],
   );
 
-  const wizard = !!q.data && q.data.status === 'requested' && !done && !queued;
+  const closed = !!q.data?.closed && q.data.status === 'requested';
+  const wizard = !!q.data && q.data.status === 'requested' && !closed && !done && !queued;
   // Autosave every answer / step change while the check-in is open.
   useEffect(() => {
     if (wizard && dirty) writeDraft(uid, id, { form, step });
@@ -196,6 +201,26 @@ export function CheckIn() {
       <div className="anim-rise">
         <TopBar title={t('checkin.title')} onBack={leave} />
         <p className="py-8 text-center text-sm text-earth-muted">{t('checkin.notFound')}</p>
+      </div>
+    );
+  }
+
+  // B3.4: a previous coach's request left open can't be answered any more — say so; the answers
+  // stay on this device (never discarded, never sent to another check-in).
+  if (closed) {
+    return (
+      <div className="anim-rise space-y-4">
+        <TopBar title={t('checkin.title')} eyebrow={`${shortDate(checkIn.weekStart, i18n.language)} – ${shortDate(checkIn.weekEnd, i18n.language)}`} onBack={leave} />
+        <div className="card space-y-3" data-testid="checkin-closed" role="status">
+          <p className="font-semibold">{t('trust.checkin.closedTitle')}</p>
+          <p className="text-sm text-earth-muted">{t('trust.checkin.closedBody')}</p>
+          {(saved || queued) && <p className="text-sm text-earth-muted" data-testid="checkin-closed-kept">{t('trust.checkin.closedKept')}</p>}
+          {/* Shown, never moved: the client can re-enter them in their current coach's check-in. */}
+          {saved && <CheckInSummary checkIn={{ ...checkIn, ...saved.form, progressPhotos: {} }} />}
+          <Link to="/check-ins" className="btn-primary" data-testid="checkin-closed-history">
+            {t('trust.checkin.closedOpen')}
+          </Link>
+        </div>
       </div>
     );
   }

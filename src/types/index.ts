@@ -592,6 +592,11 @@ export interface CoachClientRelationship {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  /**
+   * B3.4 / B3-S13: earlier stints of the same coach ⇄ client pair, archived when the client
+   * returned (oldest first). Another coach sees their facts only (dates, how they ended).
+   */
+  previousStints?: (Omit<CoachClientRelationship, 'id' | 'coachId' | 'clientId' | 'previousStints' | 'createdBy'> & { createdBy?: string; archivedAt: number })[];
 }
 
 /** How a transfer treats the previous coach's plans/content. */
@@ -776,7 +781,7 @@ export type CheckInStatus = 'requested' | 'submitted' | 'reviewed';
  * feedback (`reviewed`). Online read (React Query) — not in the local SyncEngine.
  */
 export interface WeeklyCheckIn {
-  id: string; // == weekStart (YYYY-MM-DD, Monday)
+  id: string; // the record key: weekStart, or `weekStart__coachId` for a second coach's record of that week (B3.4)
   clientId: string;
   coachId: string;
   weekStart: string; // YYYY-MM-DD (Mon)
@@ -793,6 +798,8 @@ export interface WeeklyCheckIn {
   notes?: string;
   progressPhotos: { front?: string; side?: string; back?: string }; // Bunny CDN urls
   coachFeedback?: string;
+  /** B3.4 (client reads only): a previous coach's request left open — it can no longer be answered. */
+  closed?: boolean;
   createdAt: number;
   updatedAt: number;
 }

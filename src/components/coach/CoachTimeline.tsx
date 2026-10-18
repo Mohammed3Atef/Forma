@@ -42,7 +42,12 @@ export function CoachTimeline({ clientId, compact = false }: { clientId: string;
 
   const rows = q.data ?? [];
   const current = rows.find((r) => r.rel.status === 'active') ?? null;
-  const previous = rows.filter((r) => r.rel.status !== 'active');
+  // B3.4 / B3-S13: a returning client's earlier stints with the same coach are archived on that
+  // relationship — each is its own row (when it ran, how it ended), newest first.
+  const previous: Row[] = [
+    ...rows.filter((r) => r.rel.status !== 'active'),
+    ...rows.flatMap((r) => (r.rel.previousStints ?? []).map((s) => ({ rel: { ...r.rel, ...s, id: `${r.rel.id}#${s.archivedAt}` } as CoachClientRelationship, coachName: r.coachName }))),
+  ].sort((a, b) => b.rel.createdAt - a.rel.createdAt);
 
   if (q.isLoading) return <p className="py-2 text-sm text-earth-muted">{t('auth.working')}</p>;
   if (rows.length === 0) return <p className="py-2 text-sm text-earth-muted" data-testid="timeline-empty">{t('timeline.none')}</p>;

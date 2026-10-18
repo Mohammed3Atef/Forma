@@ -6,20 +6,102 @@ import { checkInsCol, coachClientsCol, measurementLogsCol, subscriptionRequestsC
 import { notify } from '../../client/_lib/notify.js';
 import { resolveNotifications } from '../../messages/_handlers/notifications-data.js';
 import { hasPermission } from '../../_lib/rbac.js';
+import { CommercialReason } from '../../_lib/commercialReason.js';
 import type { FreezeRequestDoc, MeasurementLogDoc, WeeklyCheckInDoc } from '../../client/_lib/types.js';
 
-function checkInId(clientId: string, weekStart: string): string {
-  return `${clientId}__${weekStart}`;
+/**
+ * A check-in's key within its client: the training week (`2026-10-17`) — one record per week, as
+ * always — or, B3.4, `week__coachId` for a second coach's own record of the same week after a
+ * mid-week hand-over (the first record keeps the plain week). The `_id` is `clientId__key`.
+ */
+function checkInId(clientId: string, key: string): string {
+  return `${clientId}__${key}`;
 }
+function keyOf(doc: Pick<WeeklyCheckInDoc, '_id' | 'clientId'>): string {
+  const prefix = `${doc.clientId}__`;
+  return doc._id.startsWith(prefix) ? doc._id.slice(prefix.length) : doc._id;
+}
+const weekOfKey = (key: string) => key.split('__')[0];
 
 /**
- * B3.3: a check-in is this coach's when the coach requested it (`coachId`), or — legacy, no
- * `coachId` — it was created after the coach's active relationship with the client began.
+ * B3.3 / B3.4 ownership: a check-in is a coach's when that coach requested it (`coachId`), or —
+ * legacy, no `coachId` — it was created after the coach's current relationship began. Never
+ * invented: a legacy record from before the relationship belongs to nobody the coach can see.
  */
-async function isCoachsCheckIn(doc: WeeklyCheckInDoc, coachId: string, clientId: string): Promise<boolean> {
+function ownedBy(doc: WeeklyCheckInDoc, coachId: string, relationshipStart: number | null): boolean {
   if (doc.coachId) return doc.coachId === coachId;
+  return relationshipStart != null && (doc.submittedAt ?? doc.createdAt ?? 0) >= relationshipStart;
+}
+async function relationshipStartOf(coachId: string, clientId: string): Promise<number | null> {
   const rel = await (await coachClientsCol()).findOne({ coachId, clientId, status: 'active' }, { projection: { createdAt: 1 } });
-  return !!rel && (doc.submittedAt ?? doc.createdAt ?? 0) >= Number(rel.createdAt ?? 0);
+  return rel ? Number(rel.createdAt ?? 0) : null;
+}
+/** The coach currently coaching the client (the active relationship), or null. */
+async function currentCoachOf(clientId: string): Promise<string | null> {
+  const rel = await (await coachClientsCol()).findOne({ clientId, status: 'active' }, { projection: { coachId: 1 } });
+  return rel?.coachId ?? null;
+}
+/** Every record of one training week for a client, newest first (one; two after a mid-week hand-over). */
+async function weekDocs(clientId: string, week: string): Promise<WeeklyCheckInDoc[]> {
+  return (await checkInsCol()).find({ clientId, weekStart: week }).sort({ createdAt: -1 }).toArray();
+}
+/** The calling coach's own record of that week (the key's suffix is ignored — ownership decides). */
+async function ownWeekDoc(clientId: string, key: string, coachId: string): Promise<WeeklyCheckInDoc | null> {
+  const start = await relationshipStartOf(coachId, clientId);
+  return (await weekDocs(clientId, weekOfKey(key))).find((d) => ownedBy(d, coachId, start)) ?? null;
+}
+/**
+ * B3.4: a request a previous coach left open is no longer actionable for the client — their
+ * current coach can't see it. (Legacy requests without `coachId` are left as they were.)
+ */
+function staleForClient(doc: WeeklyCheckInDoc, currentCoachId: string | null): boolean {
+  return doc.status === 'requested' && !!doc.coachId && doc.coachId !== currentCoachId;
+}
+/**
+ * Two client generations (B3.4 compatibility gate, owner 2026-10-18):
+ *  - a client that says `byKey` (this release on) names the record exactly — `week` for a week's
+ *    first record, `week__coachId` for a second coach's record of the same week;
+ *  - an older app (RC2 … B3.3) addresses check-ins by WEEK alone and shows one per week. It is
+ *    served the week's record that is actionable for it — the current coach's when there is one —
+ *    so its list, its screen and its submission all name the same record.
+ * A `week__coachId` key (from a notification link) is exact for both.
+ */
+async function clientDoc(clientId: string, key: string, byKey: boolean): Promise<(WeeklyCheckInDoc & { closed?: true }) | null> {
+  const exact = await (await checkInsCol()).findOne({ _id: checkInId(clientId, key) });
+  if (!byKey && !key.includes('__')) return weekRecordForOldApp(clientId, key, await currentCoachOf(clientId));
+  // A previous coach's request left open (an old notification link, a draft) reads as closed — this
+  // release says so instead of opening answers that could never be sent.
+  return exact && staleForClient(exact, await currentCoachOf(clientId)) ? { ...exact, closed: true } : exact;
+}
+/** The one record an older app sees for a week: the current coach's, else the week's first record, else the newest — never a previous coach's open request. */
+async function weekRecordForOldApp(clientId: string, week: string, current: string | null): Promise<WeeklyCheckInDoc | null> {
+  const visible = (await weekDocs(clientId, week)).filter((d) => !staleForClient(d, current));
+  return visible.find((d) => !!current && d.coachId === current) ?? visible.find((d) => d._id === checkInId(clientId, week)) ?? visible[0] ?? null;
+}
+/**
+ * The record an older app's submission (or one it queued offline) by week alone is for: the week's
+ * only open request. Refused, never redirected (owner, 2026-10-18), when the answers could be meant
+ * for another record — two open requests (`ambiguous`), or a previous coach's request left open
+ * (`stale`: it may be answers composed before the hand-over, or for the new coach's request). The
+ * app keeps the answers; the new coach's request stays answerable from its notification link and
+ * after the app updates.
+ */
+async function openRecordForOldApp(clientId: string, week: string): Promise<WeeklyCheckInDoc | 'ambiguous' | 'stale' | null> {
+  const current = await currentCoachOf(clientId);
+  const open = (await weekDocs(clientId, week)).filter((d) => d.status === 'requested');
+  const live = open.filter((d) => !staleForClient(d, current));
+  if (live.length > 1 || (live.length === 1 && open.length > 1)) return 'ambiguous';
+  if (live.length === 0 && open.length > 0) return 'stale';
+  return live[0] ?? null;
+}
+async function insertOrNull(doc: WeeklyCheckInDoc): Promise<WeeklyCheckInDoc | null> {
+  try {
+    await (await checkInsCol()).insertOne(doc);
+    return doc;
+  } catch (e) {
+    if ((e as { code?: number }).code === 11000) return null; // the key is taken (a concurrent request, or another coach's week)
+    throw e;
+  }
 }
 
 /**
@@ -28,16 +110,47 @@ async function isCoachsCheckIn(doc: WeeklyCheckInDoc, coachId: string, clientId:
  * `status: 'requested'` (the one-time submit). No client delete.
  */
 export const checkInsRouter = router({
-  get: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).query(async ({ ctx, input }) => {
+  /**
+   * `weekStart` is the check-in's key (the week, or `week__coachId`, B3.4). B3.4 (owner, 2026-10-18):
+   * a coach only ever gets their OWN record of that week — never a previous coach's (answers,
+   * photos, feedback); the client gets their record (see `clientDoc`); an admin with
+   * `users.read` reads the exact record, as before.
+   */
+  get: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string(), byKey: z.boolean().optional() })).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
+    if (ctx.user.id === clientId) return clientDoc(clientId, input.weekStart, input.byKey === true);
+    if (ctx.user.role === 'coach') return ownWeekDoc(clientId, input.weekStart, ctx.user.id);
     return (await checkInsCol()).findOne({ _id: checkInId(clientId, input.weekStart) });
   }),
 
-  list: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
+  /**
+   * Newest week first. B3.4: a coach gets only their own check-ins (B33-R3 — never a previous
+   * coach's); the client gets their whole history except requests a previous coach left open
+   * (not actionable); an admin with `users.read` gets everything.
+   */
+  list: authedProcedure.input(z.object({ clientId: z.string().optional(), byKey: z.boolean().optional() }).optional()).query(async ({ ctx, input }) => {
     const clientId = resolveClientId(input?.clientId, ctx.user);
     if (!(await canReadClientData(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
-    return (await checkInsCol()).find({ clientId }).sort({ weekStart: -1 }).toArray();
+    const all = await (await checkInsCol()).find({ clientId }).sort({ weekStart: -1, createdAt: -1 }).toArray();
+    if (ctx.user.id === clientId) {
+      const current = await currentCoachOf(clientId);
+      const visible = all.filter((d) => !staleForClient(d, current));
+      if (input?.byKey) return visible;
+      // An older app keys its list by week: one record per week — the one it would open (`weekRecordForOldApp`).
+      const byWeek = new Map<string, WeeklyCheckInDoc>();
+      for (const d of visible) {
+        const have = byWeek.get(d.weekStart);
+        const preferred = (x: WeeklyCheckInDoc) => (current && x.coachId === current ? 2 : x._id === checkInId(clientId, x.weekStart) ? 1 : 0);
+        if (!have || preferred(d) > preferred(have)) byWeek.set(d.weekStart, d);
+      }
+      return visible.filter((d) => byWeek.get(d.weekStart) === d);
+    }
+    if (ctx.user.role === 'coach') {
+      const start = await relationshipStartOf(ctx.user.id, clientId);
+      return all.filter((d) => ownedBy(d, ctx.user.id, start));
+    }
+    return all;
   }),
 
   /**
@@ -68,8 +181,8 @@ export const checkInsRouter = router({
       const relStart = new Map(rels.map((r) => [r.clientId, Number(r.createdAt ?? 0)]));
 
       const col = await checkInsCol();
-      const found = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1 }).toArray();
-      const docs = found.filter((d) => (d.coachId ? d.coachId === coachId : (d.submittedAt ?? d.createdAt ?? 0) >= (relStart.get(d.clientId) ?? 0)));
+      const found = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1, createdAt: -1 }).toArray();
+      const docs = found.filter((d) => ownedBy(d, coachId, relStart.get(d.clientId) ?? null));
       const byClient = new Map<string, WeeklyCheckInDoc[]>();
       for (const d of docs) {
         const arr = byClient.get(d.clientId);
@@ -84,42 +197,62 @@ export const checkInsRouter = router({
       });
     }),
 
-  /** Idempotent: one doc per week. */
+  /**
+   * Idempotent per coach and week. B3.4 (owner, 2026-10-18): after a mid-week hand-over the
+   * incoming coach gets a NEW record of their own for the same week (`week__coachId`) — the
+   * previous coach's record is never reassigned, returned or touched. A repeat (or a concurrent)
+   * request by the same coach returns that coach's one record; the `_id` makes a duplicate
+   * impossible. An admin acting for a client keeps the old behaviour (one record per week).
+   */
   request: authedProcedure
     .input(z.object({ clientId: z.string().optional(), weekStart: z.string(), weekEnd: z.string(), coachId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
-      const col = await checkInsCol();
-      const _id = checkInId(clientId, input.weekStart);
-      const existing = await col.findOne({ _id });
-      if (existing) {
-        // B3.3: a week a previous coach already holds (a mid-week hand-over) is not this coach's —
-        // refuse it rather than hand back that coach's check-in (the `listForCoachClients` rule).
-        if (ctx.user.role === 'coach' && !(await isCoachsCheckIn(existing, ctx.user.id, clientId))) {
-          throw new TRPCError({ code: 'CONFLICT', message: 'CHECKIN_WEEK_TAKEN' });
-        }
-        return existing;
-      }
+      const week = weekOfKey(input.weekStart);
       const now = Date.now();
       // A coach's own id is never taken from input (it's already proven by
       // `canWriteCoachOwned` above); only an admin acting on a client's behalf
       // may name the coach the check-in belongs to.
       const coachId = ctx.user.role === 'coach' ? ctx.user.id : (input.coachId ?? '');
-      const checkIn: WeeklyCheckInDoc = {
-        _id,
+      const record = (key: string): WeeklyCheckInDoc => ({
+        _id: checkInId(clientId, key),
         clientId,
         coachId,
-        weekStart: input.weekStart,
+        weekStart: week,
         weekEnd: input.weekEnd,
         status: 'requested',
         progressPhotos: {},
         createdAt: now,
         updatedAt: now,
-      };
-      await col.insertOne(checkIn);
-      await notify({ clientId, forRole: 'client', type: 'checkin_requested', entityType: 'checkin', entityId: input.weekStart, route: `/check-in/${input.weekStart}`, createdBy: ctx.user.id });
-      return checkIn;
+      });
+
+      let created: WeeklyCheckInDoc | null;
+      if (ctx.user.role !== 'coach') {
+        const existing = await (await checkInsCol()).findOne({ _id: checkInId(clientId, week) });
+        if (existing) return existing;
+        created = await insertOrNull(record(week));
+        if (!created) return (await (await checkInsCol()).findOne({ _id: checkInId(clientId, week) }))!;
+      } else {
+        const own = await ownWeekDoc(clientId, week, coachId);
+        if (own) return own;
+        // The week's first record keeps the plain key; if it is taken — by a previous coach, or by
+        // this coach a moment ago — check whose it is before making this coach's own record.
+        created = await insertOrNull(record(week));
+        if (!created) {
+          const mine = await ownWeekDoc(clientId, week, coachId);
+          if (mine) return mine;
+          created = await insertOrNull(record(`${week}__${coachId}`));
+          if (!created) {
+            const again = await ownWeekDoc(clientId, week, coachId);
+            if (again) return again;
+            throw new TRPCError({ code: 'CONFLICT', message: 'Check-in request conflict' });
+          }
+        }
+      }
+      const key = keyOf(created);
+      await notify({ clientId, forRole: 'client', type: 'checkin_requested', entityType: 'checkin', entityId: key, route: `/check-in/${key}`, createdBy: ctx.user.id });
+      return created;
     }),
 
   /** Client submits their OWN check-in, once, while it's still 'requested'. */
@@ -138,14 +271,37 @@ export const checkInsRouter = router({
         progressPhotos: z.object({ front: z.string().optional(), side: z.string().optional(), back: z.string().optional() }).optional(),
         /** Client-generated operation id (B1.6 outbox): a replay of the same submission returns it instead of failing. */
         opId: z.string().trim().min(1).max(100).optional(),
+        /** B3.4: `weekStart` is the record key (set by this release on; older apps and their queued submissions omit it). */
+        byKey: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
       const col = await checkInsCol();
-      const _id = checkInId(clientId, input.weekStart);
-      const existing = await col.findOne({ _id });
+      let existing: WeeklyCheckInDoc | null;
+      if (ctx.user.id !== clientId || input.byKey || input.weekStart.includes('__')) {
+        existing = await col.findOne({ _id: checkInId(clientId, input.weekStart) });
+      } else {
+        // An older app, or a submission it queued offline before updating. A replay of a submission that
+        // already landed returns that record (B1.6 idempotency comes first); otherwise the week's single open request.
+        const replayed = input.opId ? ((await weekDocs(clientId, input.weekStart)).find((d) => d.submitOpId === input.opId) ?? null) : null;
+        if (replayed) {
+          existing = replayed;
+        } else {
+          const open = await openRecordForOldApp(clientId, input.weekStart);
+          if (open === 'ambiguous') throw new TRPCError({ code: 'CONFLICT', message: 'CHECKIN_AMBIGUOUS', cause: new CommercialReason('CHECKIN_AMBIGUOUS') });
+          if (open === 'stale') throw new TRPCError({ code: 'CONFLICT', message: 'CHECKIN_STALE', cause: new CommercialReason('CHECKIN_STALE') });
+          existing = open ?? (await weekRecordForOldApp(clientId, input.weekStart, await currentCoachOf(clientId)));
+        }
+      }
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
+      // A previous coach's request left open is nobody's to answer now (no coach would see it): refused
+      // for every client generation — the answers stay on the device (B3.4 compatibility gate).
+      if (ctx.user.id === clientId && existing.status === 'requested' && staleForClient(existing, await currentCoachOf(clientId))) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'CHECKIN_STALE', cause: new CommercialReason('CHECKIN_STALE') });
+      }
+      const _id = existing._id;
+      const key = keyOf(existing);
       const own = ctx.user.accountStatus === 'active' && ctx.user.id === clientId;
       // Idempotent replay: the device never saw the answer to its own earlier submit.
       if (own && input.opId && existing.status !== 'requested' && existing.submitOpId === input.opId) return existing;
@@ -172,32 +328,41 @@ export const checkInsRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const updated = await col.findOne({ _id });
-      await notify({ clientId, forRole: 'coach', type: 'checkin_submitted', entityType: 'checkin', entityId: input.weekStart, route: `/coach/client/${clientId}/checkins`, createdBy: clientId });
+      // The coach-bound notice goes to the client's current coach (B3.0.1) — only when this record is
+      // theirs: a previous coach's late answer is the client's history, not the new coach's task (B3.4).
+      if (!existing.coachId || existing.coachId === (await currentCoachOf(clientId))) {
+        await notify({ clientId, forRole: 'coach', type: 'checkin_submitted', entityType: 'checkin', entityId: key, route: `/coach/client/${clientId}/checkins`, createdBy: clientId });
+      }
       // The request is done — it must not stay unread or replay (B0 / NT-03).
-      await resolveNotifications({ clientId, forRole: 'client', type: 'checkin_requested', entityId: input.weekStart });
+      await resolveNotifications({ clientId, forRole: 'client', type: 'checkin_requested', entityId: key });
       return updated;
     }),
 
-  /** Coach reviews a submitted check-in with feedback. */
+  /** Coach reviews a submitted check-in with feedback. B3.4: only their own record (a previous coach's is never touched). */
   review: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string(), feedback: z.string() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await checkInsCol();
     const now = Date.now();
-    const _id = checkInId(clientId, input.weekStart);
+    const target = ctx.user.role === 'coach' ? await ownWeekDoc(clientId, input.weekStart, ctx.user.id) : await col.findOne({ _id: checkInId(clientId, input.weekStart) });
+    if (!target) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
+    const _id = target._id;
+    const key = keyOf(target);
     await col.updateOne({ _id }, { $set: { status: 'reviewed', reviewedAt: now, coachFeedback: input.feedback.trim(), updatedAt: now } });
     const updated = await col.findOne({ _id });
     if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
-    await notify({ clientId, forRole: 'client', type: 'checkin_reviewed', body: input.feedback.trim().slice(0, 140), entityType: 'checkin', entityId: input.weekStart, route: `/check-in/${input.weekStart}`, createdBy: ctx.user.id });
-    await resolveNotifications({ clientId, forRole: 'coach', type: 'checkin_submitted', entityId: input.weekStart });
+    await notify({ clientId, forRole: 'client', type: 'checkin_reviewed', body: input.feedback.trim().slice(0, 140), entityType: 'checkin', entityId: key, route: `/check-in/${key}`, createdBy: ctx.user.id });
+    await resolveNotifications({ clientId, forRole: 'coach', type: 'checkin_submitted', entityId: key });
     return updated;
   }),
 
-  /** Coach/admin only (no client delete rule). */
+  /** Coach/admin only (no client delete rule). B3.4: a coach deletes only their own record. */
   delete: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
-    await (await checkInsCol()).deleteOne({ _id: checkInId(clientId, input.weekStart) });
+    const col = await checkInsCol();
+    const target = ctx.user.role === 'coach' ? await ownWeekDoc(clientId, input.weekStart, ctx.user.id) : await col.findOne({ _id: checkInId(clientId, input.weekStart) });
+    if (target) await col.deleteOne({ _id: target._id });
   }),
 });
 

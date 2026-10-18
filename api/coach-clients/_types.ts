@@ -112,7 +112,17 @@ export interface CoachClientDoc {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  /**
+   * B3.4 / B3-S13: earlier stints of this same coach ⇄ client pair (the document id is
+   * `coachId__clientId`, so a client who returns to a coach reuses it). When a relationship is
+   * re-activated, the whole previous stint — dates, how it ended, its term, archived terms and
+   * audit trail — moves here and the active document starts clean. Oldest first.
+   */
+  previousStints?: PreviousStintDoc[];
 }
+
+/** One archived stint of a re-activated relationship (B3-S13). Every field of the stint as it ended. */
+export type PreviousStintDoc = Omit<CoachClientDoc, '_id' | 'coachId' | 'clientId' | 'previousStints'> & { archivedAt: number };
 
 /**
  * The subscription term a coach/admin picks when assigning an existing client

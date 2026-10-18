@@ -47,5 +47,9 @@ export function useCoachClientHeader(clientId: string) {
     assessment: assessment.data ?? null,
     currentWeightKg,
     isLoading: user.isLoading || assessment.isLoading,
+    // B3.4 workspace header: the client's account (blocking states, contact) and this coach's relationship.
+    user: user.data ?? null,
+    relationship: rel.data ?? null,
+    relationshipState: rel.isError ? ('error' as const) : rel.isPending ? ('loading' as const) : ('ready' as const),
   };
 }

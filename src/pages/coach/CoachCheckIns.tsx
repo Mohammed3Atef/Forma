@@ -47,8 +47,7 @@ export function CoachCheckIns() {
       invalidate();
       showToast({ title: t('checkin.request'), variant: 'success' });
     },
-    // B3.3: the server refuses a week the client's previous coach already holds (CHECKIN_WEEK_TAKEN).
-    onError: (e) => void alertDialog({ title: t('checkin.request'), message: e instanceof Error ? (e.message === 'CHECKIN_WEEK_TAKEN' ? t('checkin.weekTaken') : e.message) : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('checkin.request'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
 
   return (

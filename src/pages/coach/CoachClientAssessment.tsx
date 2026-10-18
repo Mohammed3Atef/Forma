@@ -49,7 +49,16 @@ export function CoachClientAssessment() {
   };
   const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
   const saveNotes = useMutation({ mutationFn: () => setAssessmentCoachNotes(clientId, notes.trim()), onSuccess: invalidate, onError: onErr(t('assessment.title')) });
-  const review = useMutation({ mutationFn: () => markAssessmentReviewed(clientId, reviewerId), onSuccess: invalidate, onError: onErr(t('assessment.title')) });
+  // B3.4 (CO-38): marking reviewed also keeps a changed private note — no separate save step to forget.
+  const notesDirty = notes.trim() !== (q.data?.coachNotes ?? '').trim();
+  const review = useMutation({
+    mutationFn: async () => {
+      if (notesDirty) await setAssessmentCoachNotes(clientId, notes.trim());
+      await markAssessmentReviewed(clientId, reviewerId);
+    },
+    onSuccess: invalidate,
+    onError: onErr(t('assessment.title')),
+  });
   const reopen = useMutation({ mutationFn: () => resetAssessment(clientId), onSuccess: invalidate, onError: onErr(t('assessment.reset')) });
 
   const doReset = async () => {
@@ -75,13 +84,15 @@ export function CoachClientAssessment() {
       {q.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : (
-        <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-6">
-          <div className="min-w-0">
+        // B3.4 (CO-38): on phones the review (private note + Mark reviewed) comes before the long answers;
+        // on desktop it sits beside them. Building plans comes after the answers.
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-6">
+          <div className="order-2 min-w-0 lg:order-none lg:row-span-2">
             <AssessmentView assessment={q.data ?? null} />
           </div>
 
           {hasData && (
-            <div className="mt-5 space-y-5 lg:mt-0">
+            <div className="order-1 space-y-5 lg:order-none">
               {/* Coach review notes */}
               <section>
                 <h2 className="h2 mb-1">{t('trust.assessment.privateNotesTitle')}</h2>
@@ -97,7 +108,7 @@ export function CoachClientAssessment() {
                   type="button"
                   data-testid="assessment-save-notes"
                   className="btn-ghost mt-2 w-full disabled:opacity-40"
-                  disabled={saveNotes.isPending || notes.trim() === (q.data?.coachNotes ?? '').trim()}
+                  disabled={saveNotes.isPending || !notesDirty}
                   onClick={() => saveNotes.mutate()}
                 >
                   {t('common.save')}
@@ -121,7 +132,11 @@ export function CoachClientAssessment() {
                   </span>
                 )}
               </div>
+            </div>
+          )}
 
+          {hasData && (
+            <div className="order-3 lg:order-none">
               {/* Build plans from the assessment */}
               <section>
                 <h2 className="h2 mb-2">{t('assessment.buildPlan')}</h2>

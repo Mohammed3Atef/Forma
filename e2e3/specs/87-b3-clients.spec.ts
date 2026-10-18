@@ -95,8 +95,6 @@ const MIXED: ClientFixture[] = [...Object.values(M), ...PLAIN];
 const NEEDS = [M.review, M.expiring, M.expired, M.noPlan, M.message, M.inactive].map((c) => c.id);
 /** Running package + active account + nothing asked this week by this coach. */
 const ELIGIBLE = [M.trial, M.expiring, M.noPlan, M.noNutrition, M.handover, M.message, M.inactive, M.newbie, ...PLAIN].map((c) => c.id);
-/** …of whom the server refuses Dina's week: her previous coach already holds it (CHECKIN_WEEK_TAKEN). */
-const SENT = ELIGIBLE.filter((id) => id !== M.handover.id);
 const INELIGIBLE = [M.paused, M.expired, M.none, M.pending, M.suspended].map((c) => c.id);
 
 // ---- 210 clients ------------------------------------------------------------------
@@ -708,18 +706,16 @@ test.describe('B3.3 Clients — a mixed roster of 25', () => {
     await request.click();
     await expect(page.getByTestId('confirm-dialog')).toContainText(`${ELIGIBLE.length} clients`);
     await confirmYes(page);
-    await expect(page.getByText(`Check-in requested from ${SENT.length} clients`)).toBeVisible();
-    // Dina's week is held by her previous coach: said plainly, not counted as sent, not a "try again".
-    const told = page.getByTestId('confirm-dialog');
-    await expect(told).toContainText("1 client already has this week's check-in from their previous coach");
-    await expect(told).not.toContainText("didn't go through");
-    await told.getByTestId('confirm-accept').click();
-    await expect.poll(() => db.count('checkIns', { clientId: { $in: SENT }, weekStart: w0, coachId: COACH, status: 'requested' })).toBe(SENT.length);
+    await expect(page.getByText(`Check-in requested from ${ELIGIBLE.length} clients`)).toBeVisible();
+    await expect.poll(() => db.count('checkIns', { clientId: { $in: ELIGIBLE }, weekStart: w0, coachId: COACH, status: 'requested' })).toBe(ELIGIBLE.length);
+    // B3.4 (owner decision): Dina's week was held by her previous coach — this coach gets a record of their own;
+    // the previous coach's is left exactly as it was.
+    expect(await db.findOne('checkIns', { _id: `${M.handover.id}__${w0}__${COACH}` })).toMatchObject({ coachId: COACH, status: 'requested' });
     expect(await db.findOne('checkIns', { _id: `${M.handover.id}__${w0}` }), "the previous coach's week is left as it was").toMatchObject({ coachId: 'e2e-coach-b', status: 'requested' });
     expect(await db.count('checkIns', { clientId: { $in: INELIGIBLE }, weekStart: w0 }), 'paused / expired / no package / pending / frozen account are never asked').toBe(0);
-    await expect(group('awaiting')).toHaveCount(SENT.length + 1);
-    await expect(group('notRequested')).toHaveCount(INELIGIBLE.length + 1);
-    await expect(request).toContainText('(1)');
+    await expect(group('awaiting')).toHaveCount(ELIGIBLE.length + 1);
+    await expect(group('notRequested')).toHaveCount(INELIGIBLE.length);
+    await expect(request).toBeDisabled();
 
     await page.getByTestId('start-review-queue').click();
     const panel = page.getByTestId('review-queue-panel');

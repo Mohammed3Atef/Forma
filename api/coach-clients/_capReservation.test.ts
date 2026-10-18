@@ -235,10 +235,10 @@ describe('failure after the reservation', () => {
     await givePlan(coach._id, 1);
     const asCoach = appRouter.createCaller(ctxFor(authed(coach)));
 
-    // First `updateOne` after the reservation is the relationship upsert.
-    const original = Collection.prototype.updateOne;
+    // The relationship write after the reservation (B3.4 / B3-S13: a compare-and-set `replaceOne`, was an `updateOne` upsert).
+    const original = Collection.prototype.replaceOne;
     let armed = true;
-    vi.spyOn(Collection.prototype, 'updateOne').mockImplementation(function (this: Collection, ...args: Parameters<typeof original>) {
+    vi.spyOn(Collection.prototype, 'replaceOne').mockImplementation(function (this: Collection, ...args: Parameters<typeof original>) {
       if (armed && this.collectionName === 'coachClients') {
         armed = false;
         return Promise.reject(new Error('simulated write failure'));

@@ -114,7 +114,13 @@ export function ackedMessage(op: OutboxOp): Message | null {
 
 export interface CheckInSubmitPayload {
   clientId: string;
+  /** The check-in's record key — the week, or `week__coachId` for a second coach's record of that week (B3.4). */
   weekStart: string;
+  /**
+   * Set by this release on: `weekStart` is a record key. Submissions queued by older builds lack it
+   * and carry a plain week, which the server resolves the way those builds meant (never guessing).
+   */
+  byKey?: boolean;
   /** Answers; `progressPhotos` values may be `local:<blobKey>` until uploaded. */
   form: CheckInSubmission;
 }
@@ -142,7 +148,7 @@ registerOutboxHandler('checkin.submit', async (op, ctx) => {
     }
     photos[pose] = media.url;
   }
-  await submitCheckIn(p.clientId, p.weekStart, { ...p.form, progressPhotos: photos }, op.operationId);
+  await submitCheckIn(p.clientId, p.weekStart, { ...p.form, progressPhotos: photos }, op.operationId, p.byKey === true);
   return { weekStart: p.weekStart };
 });
 
@@ -154,7 +160,7 @@ export async function queueCheckInSubmit(input: CheckInSubmitPayload): Promise<O
     type: 'checkin.submit',
     scope: `checkin:${input.weekStart}`,
     dedupeKey: `checkin:${input.weekStart}`,
-    payload: input,
+    payload: { ...input, byKey: true },
     blobKeys,
   });
 }

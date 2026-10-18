@@ -870,7 +870,6 @@
     "noClientsTitle": "No clients yet",
     "clientsLoadFailed": "Couldn’t load your clients. Check your connection and try again.",
     "noClientsMessage": "Add your first client to start assigning plans and tracking progress.",
-    "recentWorkouts": "Workouts (7d)",
     "lastWeight": "Last weight",
     "notes": "Notes",
     "plans": "Plans",
@@ -894,12 +893,10 @@
     "announcementPlaceholder": "Write an announcement…",
     "addClient": "Add client",
     "noPlanAssigned": "No plan assigned — tap to create",
-    "manage": "Manage plan",
     "planEdit": "Assigned — tap to edit"
   },
   "activity": {
     "title": "Client activity",
-    "view": "View activity",
     "prevDay": "Previous day",
     "nextDay": "Next day",
     "session": "Session",
@@ -1254,14 +1251,11 @@
     "pendingAssessments": "Pending assessments",
     "adherence": "Avg adherence",
     "avgWorkoutsLabel": "Avg workouts / wk",
-    "needsAttention": "Needs attention",
     "recentActivity": "Recent activity",
     "addClient": "Add client",
     "createTemplate": "Create template",
     "openLibrary": "Open library",
     "reviewAssessments": "Review assessments",
-    "lastActive": "Last active {{date}}",
-    "noActivity": "No activity yet",
     "workoutsThisWeek": "{{n}} this week",
     "noClients": "No clients yet.",
     "reportsTitle": "Reports",
@@ -1271,7 +1265,6 @@
     "selectConversation": "Select a conversation",
     "message": "Message",
     "openWorkspace": "Open workspace",
-    "review": "Review",
     "planCapacity": "{{used}} of {{cap}} clients",
     "atCapacity": "At client capacity — add client capacity to take on more clients.",
     "upgradePlan": "Add client capacity"
@@ -1454,20 +1447,14 @@
     "freezeScheduled": "Freeze scheduled: {{from}} → {{until}}",
     "confirmUnfreezeEnd": "Resume this client's subscription now? Unused frozen days are taken off (today counts as frozen). The term will end on {{date}}.",
     "backdatedTitle": "Start in the past?",
-    "confirmBackdated": "This term starts on {{date}}, before today. Workouts, meals and cardio your client logged from {{date}} until now — including entries that were blocked because the subscription had ended — will sync to their record. Continue?"
+    "confirmBackdated": "This term starts on {{date}}, before today. Workouts, meals and cardio your client logged from {{date}} until now — including entries that were blocked because the subscription had ended — will sync to their record. Continue?",
+    "moreActions": "More package actions",
+    "endPackage": "End package now",
+    "cancelPackage": "Cancel package"
   },
   "coachView": {
-    "viewAsClient": "Viewing as client",
     "photoNotUploaded": "Not uploaded",
-    "noProgress": "No progress data yet.",
-    "tabs": {
-      "activity": "Activity",
-      "nutrition": "Nutrition",
-      "cardio": "Cardio",
-      "measurements": "Measurements",
-      "photos": "Photos",
-      "progress": "Progress"
-    }
+    "noProgress": "No progress data yet."
   },
   "notes": {
     "addNote": "Add note",
@@ -1549,8 +1536,7 @@
     "back": "Back",
     "continue": "Continue",
     "noFeedbackTitle": "Mark reviewed without feedback?",
-    "noFeedbackMessage": "Your client will see that you reviewed their check-in, but no message from you.",
-    "weekTaken": "This week's check-in was already requested by the client's previous coach. You can request next week's."
+    "noFeedbackMessage": "Your client will see that you reviewed their check-in, but no message from you."
   },
   "clientCoach": {
     "loadFailed": "Couldn’t load your plan from your coach. Check your connection and try again.",
@@ -2017,19 +2003,122 @@
       "overview": "Overview",
       "workout": "Workout",
       "nutrition": "Nutrition",
-      "cardio": "Cardio",
-      "progress": "Progress",
-      "assessments": "Assessments",
-      "checkins": "Check-ins",
-      "messages": "Messages",
-      "notes": "Notes",
-      "subscription": "Subscription",
-      "history": "History",
-      "more": "More"
+      "checkins": "Check-ins"
     },
     "editPlan": "Edit plan",
     "switchClient": "Switch client",
-    "current": "Current"
+    "current": "Current",
+    "section": {
+      "summary": "Summary",
+      "plan": "Plan",
+      "progress": "Progress",
+      "profile": "Profile"
+    },
+    "sections": "Client sections",
+    "switchClientFor": "Switch client (now {{name}})",
+    "more": "More actions for {{name}}",
+    "call": "Call",
+    "release": {
+      "action": "Release client",
+      "title": "Release {{name}}?",
+      "body": "They leave your roster today and your package with them ends. Their Forma account, history and progress stay safe, your private notes stay private, and another coach can take them on later.",
+      "confirm": "Release client",
+      "done": "{{name}} was released",
+      "failedTitle": "Couldn't release this client"
+    },
+    "notOnRoster": {
+      "title": "This client isn't on your roster",
+      "body": "They may have been released or moved to another coach. Their workspace is only open to their current coach.",
+      "cta": "Go to Clients"
+    },
+    "summary": {
+      "needsTitle": "Needs you",
+      "nothing": "Nothing is waiting on you for this client.",
+      "couldNotLoad": "Some of this couldn't load.",
+      "requestCheckin": "Request this week's check-in",
+      "checkinRequested": "Check-in requested",
+      "trainingTitle": "Training",
+      "seeProgress": "Progress",
+      "thisWeek": "This week",
+      "ofPlanned": "{{done}} of {{planned}}",
+      "last7": "Last 7 days",
+      "last28": "Last 28 days",
+      "lastWorkout": "Last workout {{date}}",
+      "noWorkout28": "No workout logged in the last 8 weeks",
+      "noTrainingPlan": "no training plan",
+      "bodyTitle": "Body",
+      "seeBody": "Body",
+      "latestWeight": "Weight · {{date}}",
+      "weightChange": "{{delta}} kg since {{date}}",
+      "noWeight": "No weigh-ins yet.",
+      "openPlan": "Open plan",
+      "seeCheckins": "All check-ins",
+      "latestNote": "Latest note",
+      "allNotes": "All notes"
+    },
+    "plan": {
+      "updated": "Updated {{when}}",
+      "loadFailed": "Couldn't load this plan.",
+      "edit": "Edit",
+      "history": "History",
+      "build": "Build",
+      "fromTemplate": "From a template",
+      "empty": {
+        "workout": "No training plan yet.",
+        "nutrition": "No nutrition plan yet.",
+        "cardio": "No cardio sessions yet."
+      },
+      "noWorkout": "No training plan",
+      "noNutrition": "No nutrition plan",
+      "noCardio": "No cardio",
+      "workoutLine_one": "{{name}} · {{count}} day",
+      "workoutLine_other": "{{name}} · {{count}} days",
+      "nutritionLine_one": "{{kcal}} kcal · {{count}} meal",
+      "nutritionLine_other": "{{kcal}} kcal · {{count}} meals",
+      "cardioLine_one": "{{count}} cardio session",
+      "cardioLine_other": "{{count}} cardio sessions",
+      "days_one": "{{count}} training day",
+      "days_other": "{{count}} training days",
+      "meals_one": "{{count}} meal",
+      "meals_other": "{{count}} meals",
+      "sessions_one": "{{count}} session",
+      "sessions_other": "{{count}} sessions"
+    },
+    "progress": {
+      "view": {
+        "week": "Week",
+        "nutrition": "Nutrition",
+        "cardio": "Cardio",
+        "body": "Body",
+        "photos": "Photos",
+        "checkins": "Check-ins"
+      },
+      "prevWeek": "Previous week",
+      "nextWeek": "Next week",
+      "thisWeek": "This week",
+      "weekOf": "Week of {{date}}",
+      "loadFailed": "Couldn't load this week.",
+      "weekWorkoutsOfPlan": "{{done}} of {{planned}} planned workouts",
+      "workoutDone": "Workout done",
+      "noWorkout": "No workout",
+      "mealsShort": "Meals {{eaten}}/{{planned}}",
+      "cardioShort": "Cardio {{min}} min",
+      "weekWorkouts_one": "{{count}} workout this week",
+      "weekWorkouts_other": "{{count}} workouts this week",
+      "compareFrom": "Compare from",
+      "compareTo": "Compare to"
+    },
+    "profile": {
+      "record": "Record",
+      "submittedOn": "Submitted {{date}}",
+      "package": "Package & billing",
+      "withYouSince": "With you since {{date}}",
+      "contact": "Contact",
+      "notesCount_one": "{{count}} note",
+      "notesCount_other": "{{count}} notes",
+      "earlierCoaches_one": "{{count}} earlier coaching",
+      "earlierCoaches_other": "{{count}} earlier coachings"
+    }
   },
   "forma": {
     "inviteUnavailable": "This coach can't take on new clients right now. Please contact your coach — your invite stays valid.",
@@ -2365,7 +2454,11 @@
       "queuedFailed": "Your check-in couldn't be sent. Retry, or edit your answers.",
       "editAnswers": "Edit answers",
       "queuedToast": "Check-in saved — it will be sent automatically",
-      "photoKeptLocal": "Saved on this device — it uploads when you submit."
+      "photoKeptLocal": "Saved on this device — it uploads when you submit.",
+      "closedTitle": "This check-in has closed",
+      "closedBody": "Your previous coach asked for it before you changed coaches, so it can no longer be sent. Your current coach's check-ins are in your check-in history.",
+      "closedKept": "Your answers are still saved on this device.",
+      "closedOpen": "Open check-ins"
     },
     "existing": {
       "addExistingDesc": "Already has a Forma account. Find them by their exact email or phone.",
@@ -2901,9 +2994,7 @@
       "requestConfirm_one": "Send this week's check-in request to {{count}} client?",
       "requestConfirm_other": "Send this week's check-in request to {{count}} clients?",
       "requested_one": "Check-in requested from {{count}} client",
-      "requested_other": "Check-in requested from {{count}} clients",
-      "requestTaken_one": "{{count}} client already has this week's check-in from their previous coach — ask again next week.",
-      "requestTaken_other": "{{count}} clients already have this week's check-in from their previous coach — ask again next week."
+      "requested_other": "Check-in requested from {{count}} clients"
     },
     "outgoing": {
       "title": "Your transfer requests",

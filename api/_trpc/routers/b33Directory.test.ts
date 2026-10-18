@@ -121,8 +121,8 @@ describe('checkIns.listForCoachClients — the current coach\'s check-ins only (
   });
 });
 
-describe('checkIns.request — never hands back a previous coach\'s check-in (B3.3)', () => {
-  it('a week the previous coach holds is refused (CONFLICT); the coach\'s own week is idempotent; an admin keeps the old behaviour', async () => {
+describe('checkIns.request — never hands back a previous coach\'s check-in (B3.3; B3.4 owner decision)', () => {
+  it('the incoming coach gets a record of their own for the hand-over week, never the previous coach\'s; an admin keeps the old behaviour', async () => {
     const a = await insertUser({ _id: 'coach-a', role: 'coach' });
     const b = await insertUser({ _id: 'coach-b', role: 'coach' });
     const admin = await insertUser({ _id: 'admin-1', role: 'super_admin' });
@@ -136,22 +136,13 @@ describe('checkIns.request — never hands back a previous coach\'s check-in (B3
     await tick();
     await caller(b).coachClients.assign({ clientId: x._id, subscription: { status: 'active', months: 1 } });
 
-    await expect(caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-05', weekEnd: '2026-09-11' })).rejects.toMatchObject({ code: 'CONFLICT', message: 'CHECKIN_WEEK_TAKEN' });
+    // B3.3 refused this week (CHECKIN_WEEK_TAKEN); B3.4 (owner, 2026-10-18) gives B a record of their own.
+    const own = await caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-05', weekEnd: '2026-09-11' });
+    expect(own).toMatchObject({ _id: `${x._id}__2026-09-05__${b._id}`, coachId: b._id, status: 'requested' });
+    expect(JSON.stringify(own)).not.toContain('For coach A');
     const db = await getDb();
     expect(await db.collection('checkIns').findOne({ _id: `${x._id}__2026-09-05` } as never)).toMatchObject({ coachId: a._id, status: 'submitted' });
-
-    const own = await caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-12', weekEnd: '2026-09-18' });
-    expect(own).toMatchObject({ coachId: b._id, status: 'requested' });
-    expect(await caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-12', weekEnd: '2026-09-18' })).toMatchObject({ _id: own._id, coachId: b._id });
-
-    // A legacy week (no coachId) from before B's relationship is not B's either; one created after it is.
-    const since = (await db.collection('coachClients').findOne({ _id: `${b._id}__${x._id}` } as never))!.createdAt as number;
-    await db.collection('checkIns').insertMany([
-      { _id: `${x._id}__2026-08-29`, clientId: x._id, weekStart: '2026-08-29', weekEnd: '2026-09-04', status: 'reviewed', submittedAt: since - 1000, progressPhotos: {}, createdAt: since - 2000, updatedAt: since - 1000 },
-      { _id: `${x._id}__2026-09-19`, clientId: x._id, weekStart: '2026-09-19', weekEnd: '2026-09-25', status: 'requested', progressPhotos: {}, createdAt: since + 500, updatedAt: since + 500 },
-    ] as never[]);
-    await expect(caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-08-29', weekEnd: '2026-09-04' })).rejects.toMatchObject({ code: 'CONFLICT' });
-    expect(await caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-19', weekEnd: '2026-09-25' })).toMatchObject({ _id: `${x._id}__2026-09-19` });
+    expect(await caller(b).checkIns.request({ clientId: x._id, weekStart: '2026-09-05', weekEnd: '2026-09-11' })).toMatchObject({ _id: own._id });
     // An admin acting for a client still gets the stored week back (unchanged).
     expect(await caller(admin).checkIns.request({ clientId: x._id, weekStart: '2026-09-05', weekEnd: '2026-09-11', coachId: b._id })).toMatchObject({ coachId: a._id });
   });

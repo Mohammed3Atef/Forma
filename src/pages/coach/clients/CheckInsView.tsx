@@ -65,26 +65,16 @@ export function CheckInsView({ rows, known, coachId, weekStart, onRetry }: { row
     setSending(true);
     const weekEnd = addDays(weekStart, 6);
     let failed = 0;
-    // A week the client's previous coach already holds is refused (CHECKIN_WEEK_TAKEN) — not a failure to retry.
-    let taken = 0;
     for (let i = 0; i < eligible.length; i += BATCH) {
       const results = await Promise.allSettled(eligible.slice(i, i + BATCH).map((r) => requestCheckIn(coachId, r.id, weekStart, weekEnd)));
-      for (const x of results) {
-        if (x.status === 'fulfilled') continue;
-        if (x.reason instanceof Error && x.reason.message === 'CHECKIN_WEEK_TAKEN') taken += 1;
-        else failed += 1;
-      }
+      failed += results.filter((x) => x.status === 'rejected').length;
     }
     setSending(false);
     for (const r of eligible) void qc.invalidateQueries({ queryKey: ['checkIns', r.id] });
     void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
-    const sent = eligible.length - failed - taken;
+    const sent = eligible.length - failed;
     if (sent > 0) showToast({ title: t('coachClients.checkins.requested', { count: sent }), variant: 'success' });
-    const problems = [
-      ...(failed > 0 ? [t('coachClients.checkins.requestFailed', { failed, total: eligible.length })] : []),
-      ...(taken > 0 ? [t('coachClients.checkins.requestTaken', { count: taken })] : []),
-    ];
-    if (problems.length > 0) void alertDialog({ title: t('coachClients.checkins.title'), message: problems.join(' ') });
+    if (failed > 0) void alertDialog({ title: t('coachClients.checkins.title'), message: t('coachClients.checkins.requestFailed', { failed, total: eligible.length }) });
   };
 
   if (!known) return <ErrorState message={t('coachClients.checkins.loadFailed')} onRetry={onRetry} testId="checkins-view-error" />;

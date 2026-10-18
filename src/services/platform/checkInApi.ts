@@ -23,20 +23,28 @@ export interface CheckInSubmission {
   progressPhotos?: { front?: string; side?: string; back?: string };
 }
 
-/** Mongo's `_id` is `${clientId}__${weekStart}`; the frontend id IS the weekStart. */
+/**
+ * Mongo's `_id` is `${clientId}__${key}`; the frontend id IS the key — the week (`2026-10-17`)
+ * for every week's first record, as before, or `week__coachId` for the incoming coach's own
+ * record of a mid-week hand-over week (B3.4). Routes, drafts and the outbox use it as-is.
+ */
 function toCheckIn(doc: Record<string, unknown>): WeeklyCheckIn {
   const { _id, ...rest } = doc;
-  return { ...rest, id: rest.weekStart as string } as unknown as WeeklyCheckIn;
+  const prefix = `${String(rest.clientId)}__`;
+  const id = typeof _id === 'string' && _id.startsWith(prefix) ? _id.slice(prefix.length) : (rest.weekStart as string);
+  return { ...rest, id } as unknown as WeeklyCheckIn;
 }
 
+// `byKey` (B3.4): this app names records by key; the server serves older apps — which address a
+// week — differently, so the two generations can never mistake one same-week record for another.
 export async function getCheckIn(clientId: string, id: string): Promise<WeeklyCheckIn | null> {
-  const doc = await trpc.checkIns.get.query({ clientId, weekStart: id });
+  const doc = await trpc.checkIns.get.query({ clientId, weekStart: id, byKey: true });
   return doc ? toCheckIn(doc) : null;
 }
 
 /** All of a client's check-ins, newest week first. */
 export async function listCheckIns(clientId: string): Promise<WeeklyCheckIn[]> {
-  const list = await trpc.checkIns.list.query({ clientId });
+  const list = await trpc.checkIns.list.query({ clientId, byKey: true });
   return list.map((d) => toCheckIn(d));
 }
 
@@ -68,9 +76,10 @@ export async function listCheckInsForCoachClients(coachId: string): Promise<Coac
 }
 
 /**
- * Coach requests a check-in for a week. The backend is idempotent (one doc
- * per week, keyed by weekStart — won't clobber an already-requested/submitted/
- * reviewed week) and notifies the client itself.
+ * Coach requests a check-in for a week. The backend is idempotent per coach and
+ * week (won't clobber an already-requested / submitted / reviewed week; after a
+ * mid-week hand-over the incoming coach gets a record of their own — B3.4) and
+ * notifies the client itself.
  */
 export async function requestCheckIn(coachId: string, clientId: string, weekStart: string, weekEnd: string): Promise<void> {
   await trpc.checkIns.request.mutate({ clientId, weekStart, weekEnd, coachId });
@@ -80,8 +89,10 @@ export async function requestCheckIn(coachId: string, clientId: string, weekStar
  * Client submits their check-in (once, while status is still 'requested' — enforced server-side). The backend notifies the coach.
  * `opId` is the outbox operation id (B1.6): a replay of the same submission is idempotent.
  */
-export async function submitCheckIn(clientId: string, id: string, data: CheckInSubmission, opId?: string): Promise<void> {
-  await trpc.checkIns.submit.mutate({ clientId, weekStart: id, ...data, ...(opId ? { opId } : {}) });
+export async function submitCheckIn(clientId: string, id: string, data: CheckInSubmission, opId?: string, byKey = false): Promise<void> {
+  // `byKey` only when the caller knows `id` is a record key — a submission queued by an older build
+  // carries a week, and the server resolves it the way that build meant (B3.4 compatibility gate).
+  await trpc.checkIns.submit.mutate({ clientId, weekStart: id, ...data, ...(opId ? { opId } : {}), ...(byKey ? { byKey: true } : {}) });
 }
 
 /** Coach reviews a submitted check-in with feedback. The backend notifies the client. */

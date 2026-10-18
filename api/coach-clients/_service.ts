@@ -9,6 +9,7 @@ import { SUBSCRIPTION_RULE_MESSAGES, applyExtend, applyFreeze, applyUnfreeze, is
 import type {
   ClientSubscriptionInput,
   CoachClientDoc,
+  PreviousStintDoc,
   SubscriptionDoc,
   SubscriptionEventDoc,
   SubscriptionPeriodDoc,
@@ -27,6 +28,33 @@ import {
 import type { ArchivedClientDataDoc, ArchivedClientDataKind } from '../client/_lib/types.js';
 
 const SUB_DAY = 86_400_000;
+
+/** A term without its coach's commercial details (B3.4: what a kept subscription carries to another coach). */
+function termOnly(sub: SubscriptionDoc): SubscriptionDoc {
+  const { price: _p, currency: _c, planName: _n, billingCycle: _b, note: _note, ...term } = sub;
+  return term;
+}
+
+/**
+ * B3.4 / B3-S13: (re)activates the `coachId__clientId` relationship document. A first stint is
+ * a plain insert. A returning client's ENDED document is replaced by a clean active one, with
+ * the whole previous stint (dates, end reason, mode, term, archived terms, audit trail, invite
+ * code) moved into `previousStints` — nothing from an earlier stint survives on the active
+ * document, and nothing is lost. Compare-and-set on "not active", so two racing activations
+ * can never both win (the loser gets a duplicate-key error and the caller rolls back).
+ */
+async function activateRelationship(fresh: CoachClientDoc, now: number, session?: ClientSession): Promise<CoachClientDoc> {
+  const col = await coachClientsCol();
+  const prev = await col.findOne({ _id: fresh._id }, { session });
+  if (prev?.status === 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship already exists' });
+  let next: CoachClientDoc = fresh;
+  if (prev) {
+    const { _id, coachId: _c, clientId: _cl, previousStints, ...stint } = prev;
+    next = { ...fresh, previousStints: [...(previousStints ?? []), { ...stint, archivedAt: now } as PreviousStintDoc] };
+  }
+  await col.replaceOne({ _id: fresh._id, status: { $ne: 'active' } }, next, { upsert: true, session });
+  return next;
+}
 
 /**
  * In-place mutations of an EXISTING relationship's subscription — the piece
@@ -252,14 +280,16 @@ export async function assignExistingClient(
     createdAt: now,
     updatedAt: now,
   };
+  let saved: CoachClientDoc;
   try {
-    await col.updateOne({ _id: id }, { $set: rel }, { upsert: true });
+    // B3-S13: a returning client starts a clean stint; the previous one is archived, not merged.
+    saved = await activateRelationship(rel, now);
     await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: coachId, updatedAt: now } });
   } catch (e) {
     await releaseClientSlot(coachId).catch((err) => console.warn('[coach-clients] slot release after failed assign failed:', err));
     throw e;
   }
-  return rel;
+  return saved;
 }
 
 /**
@@ -416,7 +446,10 @@ export async function transferClientWithMode(
 
     let subscription: SubscriptionDoc | undefined;
     if (subscriptionHandling === 'keep') {
-      subscription = fromRel?.subscription;
+      // "Keep" keeps the client's TERM exactly (dates, months, status, freeze). B3.4 owner review: the previous
+      // coach's commercial details — price, currency, package name, billing cycle, their note — stay theirs and
+      // are not copied to another coach; the new coach sets their own price. (Same coach: unchanged.)
+      subscription = fromRel?.subscription && movingCoaches ? termOnly(fromRel.subscription) : fromRel?.subscription;
     } else if (subscriptionHandling === 'new') {
       subscription = buildSubscription(newSub ?? { status: mode === 'fresh_start' ? 'pending' : 'trial' }, now);
     } else {
@@ -436,7 +469,14 @@ export async function transferClientWithMode(
       updatedAt: now,
       ...(subscription ? { subscription } : {}),
     };
-    await col.updateOne({ _id: id }, { $set: rel }, { upsert: true, session });
+    let saved: CoachClientDoc = rel;
+    if (movingCoaches || !fromCoachId) {
+      // B3-S13: the destination stint starts clean; an earlier stint with this coach is archived.
+      saved = await activateRelationship(rel, now, session);
+    } else {
+      // Same coach (the relationship stays active): unchanged behaviour.
+      await col.updateOne({ _id: id }, { $set: rel }, { upsert: true, session });
+    }
 
     const db = await getDb();
     const users = db.collection<UserDoc>('users');
@@ -444,6 +484,6 @@ export async function transferClientWithMode(
 
     if (movingCoaches) await releaseClientSlot(fromCoachId!, session);
 
-    return rel;
+    return saved;
   });
 }

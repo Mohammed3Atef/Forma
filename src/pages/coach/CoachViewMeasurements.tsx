@@ -32,8 +32,15 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
   const dates = useMemo(() => logs.map((l) => l.date), [logs]);
   const [dateA, setDateA] = useState('');
   const [dateB, setDateB] = useState('');
-  const a = logs.find((l) => l.date === (dateA || dates[0]));
+  // B3.4 (TB-05): compare the latest entry with the one before it by default (it was the very first
+  // entry), and list every measured part — the coach's custom ones too, not a fixed set.
+  const defaultA = dates[dates.length - 2] ?? dates[0];
+  const a = logs.find((l) => l.date === (dateA || defaultA));
   const b = logs.find((l) => l.date === (dateB || dates[dates.length - 1]));
+  const keys = useMemo(() => {
+    const extra = [...new Set([...Object.keys(a?.values ?? {}), ...Object.keys(b?.values ?? {})])].filter((k) => !(MEASUREMENT_KEYS as readonly string[]).includes(k));
+    return [...MEASUREMENT_KEYS, ...extra];
+  }, [a, b]);
 
   return (
     <div className="space-y-4">
@@ -53,10 +60,10 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
         <div className="card">
           <h2 className="mb-2 font-bold">{t('measure.compare')}</h2>
           <div className="mb-3 flex gap-2">
-            <select value={dateA || dates[0]} onChange={(e) => setDateA(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
+            <select value={dateA || defaultA} onChange={(e) => setDateA(e.target.value)} aria-label={t('workspace.progress.compareFrom')} className="input h-10 flex-1 py-1 text-sm">
               {dates.map((d) => <option key={d} value={d}>{shortDate(d, i18n.language)}</option>)}
             </select>
-            <select value={dateB || dates[dates.length - 1]} onChange={(e) => setDateB(e.target.value)} className="input h-10 flex-1 py-1 text-sm">
+            <select value={dateB || dates[dates.length - 1]} onChange={(e) => setDateB(e.target.value)} aria-label={t('workspace.progress.compareTo')} className="input h-10 flex-1 py-1 text-sm">
               {dates.map((d) => <option key={d} value={d}>{shortDate(d, i18n.language)}</option>)}
             </select>
           </div>
@@ -67,7 +74,7 @@ export function CoachViewMeasurements({ clientId }: { clientId: string }) {
               <span className="w-12 text-right">B</span>
               <span className="w-14 text-right">Δ</span>
             </div>
-            {MEASUREMENT_KEYS.map((k) => {
+            {keys.map((k) => {
               const va = a?.values[k];
               const vb = b?.values[k];
               if (va == null && vb == null) return null;

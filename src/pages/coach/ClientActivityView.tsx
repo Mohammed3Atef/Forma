@@ -25,10 +25,13 @@ function shiftDay(key: string, delta: number): string {
  * weight × reps, nutrition, cardio, water, weight, checklist). Shared by the
  * coach (View activity) and admin (client details) — read-only; no editing.
  */
-export function ClientActivityView({ clientId }: { clientId: string }) {
+export function ClientActivityView({ clientId, date: controlledDate, onDateChange }: { clientId: string; date?: string; onDateChange?: (date: string) => void }) {
   const { t, i18n } = useTranslation();
   const todayKey = today();
-  const [date, setDate] = useState(todayKey);
+  // B3.4: Progress › Day drives the date from the URL (optional; the admin view keeps its own state).
+  const [ownDate, setOwnDate] = useState(todayKey);
+  const date = controlledDate ?? ownDate;
+  const setDate = (next: string) => (onDateChange ? onDateChange(next) : setOwnDate(next));
 
   const day = useQuery({ queryKey: ['clientDay', clientId, date], queryFn: () => fetchClientDay(clientId, date), enabled: !!clientId });
   const wPlan = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });

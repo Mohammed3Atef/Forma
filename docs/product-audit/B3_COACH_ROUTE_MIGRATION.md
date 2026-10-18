@@ -27,9 +27,9 @@ Removed from the coach (still used by the admin shell): the ☰ menu sheet, the 
 | `/coach/adherence` | Clients sorted by workouts (7 days) | redirect `/coach/clients?sort=workouts` | B3.3 | **Done (B3.3)**; page and Me › Coaching section removed |
 | `/coach/notifications` | Today | redirect (O-5) | B3.2 | **Done (B3.2)**; admin keeps `/admin/notifications` |
 | `/coach/clients` (`?new=1`, `?q=`) | Clients directory | same URL; B3.3 adds `?task=` `?state=` `?checkin=` `?plan=` `?sort=` `?dir=` `?view=checkins` (`B3_CLIENTS_DIRECTORY.md`) | B3.3 | **Done (B3.3)** |
-| `/coach/client/:id` (+ every workspace section) | Client › Summary · Plan · Progress · Profile | same URLs; new `…/plan`, `…/progress`, `…/profile` | B3.4 | Unchanged; lights **Clients** (NAV-K11) |
-| `…/workout`, `…/nutrition`, `…/cardio` | editors (task flows) | same URLs | B3.5 | Unchanged |
-| `…/view`, `…/view/:tab` | Client › Progress | redirect `…/progress?view=:tab` | B3.4 | Unchanged |
+| `/coach/client/:id` (+ every workspace section) | Client › Summary · Plan · Progress · Profile | same URLs; new `…/plan`, `…/progress`, `…/profile`; `…/assessment` `…/notes` `…/subscription` `…/history` are Profile sections, `…/checkins` is Progress › Check-ins | B3.4 | **Done (B3.4)**; lights **Clients** (NAV-K11) |
+| `…/workout`, `…/nutrition`, `…/cardio` | editors (task flows) | same URLs; B3.4 draws no workspace chrome around them (one Back → Plan) | B3.5 | Unchanged inside (B3.5) |
+| `…/view`, `…/view/:tab` | Client › Progress | redirect `…/progress?view=` (activity → `day`, measurements / progress → `body`, nutrition, cardio, photos) | B3.4 | **Done (B3.4)**; the "view as client" page is removed |
 | `…/versions/:kind` | editor History sheet | redirect `…/:kind?history=1` | B3.5 | Unchanged |
 | `/coach/messages`, `/coach/messages/:clientId` | Messages | same URLs | B3.6 | Tab |
 | `/coach/library?tab=…` | Library | same URL; `?tab=programs` added | B3.7 | Tab; "Programs" segment links to `/coach/templates` |
@@ -45,8 +45,12 @@ Every stored notification target keeps resolving: `/coach/client/:id/checkins`, 
 
 | From | Up to | Since |
 |---|---|---|
-| `/coach/client/:id/<section>` (incl. `view`, `versions`) | `/coach/client/:id` | B1 |
-| `/coach/client/:id` | `/coach/clients` | B1 (NAV-K08 refinement in B3.4) |
+| `/coach/client/:id/workout · nutrition · cardio` | `/coach/client/:id/plan` | B3.4 |
+| `/coach/client/:id/assessment · notes · subscription · history` | `/coach/client/:id/profile` | B3.4 |
+| `/coach/client/:id/checkins`, `…/view`, `…/view/:tab` | `/coach/client/:id/progress` | B3.4 |
+| `/coach/client/:id/versions/:kind` | `/coach/client/:id/:kind` (its editor) | B3.4 |
+| `/coach/client/:id/plan · progress · profile` | `/coach/client/:id` (Summary) | B3.4 |
+| `/coach/client/:id` | `/coach/clients` | B1 (B3.4: sections replace history, so with in-app history Back returns to the opener — NAV-K08) |
 | `/coach/messages/:id` | `/coach/messages` | B1 |
 | `/coach/templates/:id/edit` → `/coach/templates/:id` → `/coach/templates` | **`/coach/library`** | B3.1 |
 | `/coach/plan`, `/coach/settings`, `/coach/revenue`, `/coach/reports`, `/coach/subscription-plans` | **`/coach/me`** | B3.1 |
@@ -60,7 +64,8 @@ With in-app history, Back is real history (B1 contract); the parent is only used
 |---|---|
 | Destinations and the Me hub | none |
 | Me pages (`/plan`, `/settings`, `/revenue`, `/reports`, `/subscription-plans`), `/coach/templates` | the shell header (`shell-back`) |
-| Client workspace + editors, message thread, template preview / editor, Notifications | the page itself (rebuilt with one header in B3.4–B3.7); the shell adds none |
+| Client workspace | its header's Back (`workspace-back`, B3.4) |
+| Plan editors, message thread, template preview / editor | the page itself (editors: one Back, no workspace chrome since B3.4; rebuilt in B3.5–B3.7); the shell adds none |
 
 ## 5. Unsaved-changes guard — every exit
 
@@ -94,3 +99,17 @@ Tab bar, rail, rail Me, header avatar, shell Back and every ⌘K command go thro
 | phone rows (email shown) | `coach-client-row[data-client-id]` (name, reason, package; no contact details) | 87 |
 | package pill "No plan" | "No package" (`client-coaching-state`) | 61 |
 | — | `clients-task-*`, `clients-view-checkins`, `clients-filters-button` / `clients-filters`, `clients-sort-<key>` (`aria-sort`), `clients-load-more`, `pagination-*`, `clients-empty`, `clients-no-match`, `clients-partial`, `clients-stale`, `coach-clients-error`, `outgoing-transfers` | 87 |
+
+## 9. B3.4 changes
+
+| Old | New | Specs |
+|---|---|---|
+| 11-tab rail `workspace-tab-<overview…history>`, `workspace-tab-more` / `workspace-more-sheet` | four sections `workspace-tab-summary · plan · progress · profile` (`aria-current`) | 23, 88 |
+| Overview `coach-client-detail` with stat tiles, `coach-manage` sheet, `coach-view-activity`, `coach-message-client`, `coach-view-assessment`, `coach-view-checkins` | Summary (root keeps `coach-client-detail`): `summary-needs` / `summary-item[data-kind]`, `summary-training`, `summary-body`, `summary-plan`, `summary-checkins`, `summary-note`, `summary-request-checkin` | 23, 88 |
+| header back = first sibling of `workspace-switch-trigger`; header "Edit plan" | `workspace-back`; `workspace-message`; `workspace-more` (Call, Switch, `workspace-release`); Summary "Edit plan" opens Plan | 20, 23, 88 |
+| `coach-release-client` → `release-confirm` | `workspace-more` → `workspace-release` → the danger `confirm-dialog`; lands on `/coach/clients` | 20, 88 |
+| "view as client" `coach-view`, `coach-view-tab-*` | Progress `workspace-progress[data-view]`, `progress-view-*`, `progress-week`, `progress-day[data-date]`, `progress-back-week` | 88 |
+| subscription chips `sub-set-price`, `sub-extend`, `sub-end`, `sub-cancel` | same ids inside `sub-more` ("More package actions"); `sub-set-term`, `sub-freeze`, `sub-unfreeze` stay visible | 20, 88 |
+| — | Plan `plan-card-<kind>[data-state]`, `plan-edit-*`, `plan-history-*`, `plan-build-*`; Profile `profile-assessment · notes · subscription · history · contact`, `profile-back`; `workspace-not-on-roster`; switcher `switcher-client-row[data-client-id]`, `switcher-needs` | 88 |
+
+**Client check-in links (B3.4 owner review, 2026-10-18).** A check-in's route id is its record key: `/check-in/<week>` for a week's first record (every existing link, draft and outbox key unchanged) and `/check-in/<week>__<coachId>` for the incoming coach's own record of a hand-over week (its notification carries that route). This release sends `byKey: true`, so `/check-in/<week>` opens exactly the week's first record; a previous coach's request left open there reads as closed (`checkin-closed`, `checkin-closed-kept`, `checkin-closed-history`) instead of a wizard that can't be sent. Older apps (RC2, B3.3) keep addressing the week and are served the week's actionable record (`B3_IMPLEMENTATION_LOG.md` §B3.4.8). Specs: 88, `e2e3/pwa/b34-checkin-compat.mjs`.

@@ -100,7 +100,8 @@ export function CoachNutritionEditor() {
 
 
 
-  const exit = useBack(`/coach/client/${clientId}`, ed.discardDraft);
+  // B3.4: an editor opened cold goes back to the client's Plan (its semantic parent).
+  const exit = useBack(`/coach/client/${clientId}/plan`, ed.discardDraft);
 
   // Keep the desktop pane-b selection valid as meals are added/removed.
   useEffect(() => {

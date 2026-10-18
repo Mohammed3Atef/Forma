@@ -490,3 +490,281 @@ No schema change, no migration, no stored field. Authorization unchanged everywh
 **Close-out verification (the code being committed, 2026-10-18):** typecheck PASS · boundaries PASS · unit + API **747 / 747** in 85 files · build PASS (entry 466.86 / 151.06 kB gzip; `CoachClients` 47.72 / 13.81; `CoachApp` 35.43 / 11.31; `ClientApp` 38.92 / 12.24; precache 173) · targeted e2e3 on 1440 (00, 20, 21, 23, 61, 85, 86, 87) **81 / 81**. The full suite (277 passed + 1 skipped of 278, §4) ran on the same code before the account-pill wording change, the only change since.
 
 **Status: B3.3 approved — closed with one local checkpoint commit. B3.4 follows.**
+
+---
+
+## B3.4 — Client workspace (2026-10-18)
+
+**Owner brief (2026-10-18):** B3.3 reviewed. The decisions:
+1. keep all five B3.3 server changes;
+2. account status shown only when it blocks access, never confusable with a paused package;
+3. a new coach must not see a previous coach's check-ins — server-enforced on every workspace path;
+4. the incoming coach may request the hand-over week as a new record of their own — stop if a migration would be needed;
+5. the shared red pill fix goes to B3.9;
+6. close B3.3 in one local commit.
+
+Then B3.4 only: Summary · Plan · Progress · Profile. Its requirements:
+- check-in ownership and the mid-week rule;
+- scoped "Needs attention" in the switcher;
+- transferred / re-assigned clients (B3-S13);
+- every existing workflow preserved, private notes and per-author assessment privacy kept, unsaved edits protected;
+- exact deep links, old routes compatible;
+- no fake numbers;
+- no B3.5 editor redesign.
+
+Stop for review: no commit, no B3.5, no push or deploy.
+
+**Not changed:** the client app's screens (one data-layer line, §1.2), marketing, auth / legal, admin. No production data or credentials touched; no database reset; isolated fixtures only (`e2e-ws-` ids, removed after each run).
+
+### 0. B3.3 close-out
+
+- Account pill renamed per decision 2 ("Account pending / frozen / trashed").
+- Gates on the final code: typecheck / boundaries PASS, unit + API 747 / 747, build PASS, targeted e2e3 81 / 81.
+- Committed locally as `28035b6` ("Phase B3.3: coach Clients directory", 50 files; not pushed) after a file-by-file review of the staged diff.
+- Left unstaged and unchanged: `B1_P1_TRIAGE.md`, `FORMA_CLEAN_LAUNCH_PLAN.md`, the backlog's REL-04 lines (the committed backlog was generated without them) and the `ar-eg` wording hunk (staged copy reverted, working copy kept).
+
+### 1. What changed
+
+**1.1 Check-in ownership (decision 3) — server.** `api/_trpc/routers/clientCheckIns.ts`.
+- A coach reads, reviews and deletes **only their own** check-ins on every path: `get`, `list`, `review`, `delete`, and `listForCoachClients` (since B3.3).
+- "Own" means the coach requested it (`coachId`), or — legacy, no `coachId` — it was created after that coach's current relationship began. Legacy records are never given an owner: one from before the relationship belongs to nobody that coach can see.
+- **Client:** keeps their whole history. Only a request a previous coach left open (not actionable) is left out of their list.
+- **Admin** (`users.read`): unchanged, full access.
+- Other coach-side readers were checked: Today / Clients / switcher read the scoped summaries; notifications are coach-scoped since B3.0.1, and a previous coach's late answer no longer notifies the new coach; Reports only count this coach's check-ins to review (scoped since B3.3), and no export carries check-in content. Media (check-in photos) is reachable only through the records, and MD-02 (public CDN URLs) stays the release blocker it was.
+
+**1.2 Mid-week hand-over (decision 4) — server, additive, no migration.** One record per client per week stays the rule (`_id = clientId__week`). When a different coach already holds the week, the incoming coach's request creates **their own** record, `clientId__week__coachId`.
+- **Old record:** never reassigned, returned, reviewed, cancelled or edited.
+- **No duplicates:** a repeat or concurrent request returns the coach's one record, because the `_id` is unique; a duplicate-key race re-reads ownership before choosing the key.
+- **Client side:** the client-facing id is the record's key. It is still the week for every first record, so every existing link, draft and outbox key is unchanged. `checkInApi.toCheckIn` reads it from `_id`; that is the one client-app line.
+- **Older app versions:** superseded after the owner review — two client generations, told apart by `byKey` (§8.1).
+- **Notifications** carry the key (`/check-in/week__coachId`).
+- B3.3's `CHECKIN_WEEK_TAKEN` refusal and its wording are gone.
+- The schema, indexes (`clientId_weekStart`, `coachId`), the B1.6 idempotent submit (`submitOpId`) and the status compare-and-set are unchanged.
+
+**1.3 B3-S13 — clean re-activation.** `api/coach-clients/_service.ts`: re-activating a relationship that ended (assign back, or a transfer back) now replaces the document with a clean active one, compare-and-set on "not active".
+- The whole previous stint — dates, how it ended, mode, term, archived terms, audit trail, invite code — moves into `previousStints`. Nothing from an earlier stint survives on the active document, and nothing is lost.
+- Another coach sees stint facts only (timeline); the summary view leaves stints out; the coaching history shows each stint as its own row.
+- Two racing activations: exactly one wins, and the loser's capacity slot is returned.
+
+**1.4 The workspace** (`src/components/coach/CoachClientWorkspaceLayout.tsx`, `src/pages/coach/workspace/`, pure rules `src/lib/coachWorkspace.ts`):
+- **Header** (one, compact): Back · the client (opens the switcher) · package pill + days left · **Account …** pill when blocked · Message (icon on phones, named everywhere) · More (Call, Switch client, **Release** — destructive, confirmed with its consequences, error shown, lands on Clients with history replaced). A client not on this coach's roster gets a clear state with a way to Clients.
+- **Sections:** Summary · Plan · Progress · Profile. Switching replaces history, so Back returns to the opener (NAV-K08). Every link goes through the unsaved-changes guard.
+- **Summary:**
+  - **Needs you:** exactly Today's items for this client; a waiting check-in is reviewed in place.
+  - **Training:** this week against the plan (the client app's own rule), last 7 / 28 days, last workout.
+  - **Body:** latest weigh-in and the change since a dated earlier weigh-in.
+  - **Plan**, this coach's **check-in state**, and the **latest note**.
+  - **Actions:** Edit plan, and Request this week's check-in when eligible.
+  - A failed source says so, with Retry; nothing reads as zero.
+- **Plan:** a card per plan (training, nutrition with its targets, cardio): what it holds, when it changed, Edit, History. A missing plan offers Build (training also "From a template"); a failed read is an error, never "no plan" (C1). Editors open as full-screen tasks without workspace chrome (one Back), and Back lands on Plan.
+- **Progress** (`?view=`), replacing the retired "view as client" layout (RM-20 / CO-20):
+  - **Week:** seven real days — workout with the plan day's name, meals eaten of planned, cardio minutes; tap a day for its full log; previous weeks back to 8.
+  - **Nutrition, Cardio, Photos:** the existing views.
+  - **Body:** weight trend, plus measurements with the coach entry kept; compare now defaults to the latest two entries and includes custom parts (TB-05).
+  - **Check-ins:** this coach's only.
+  - Anchored notes on every view. `…/checkins` (a notification target) opens Check-ins.
+- **Profile:** Assessment, Notes (author-private, B3.0.1), Package & billing, Coaching history (with archived stints), Contact (tel / mailto, LTR-isolated). The sections keep their URLs, with a "‹ Profile" way back.
+- **Package actions** (CO-14-R / RM-26): one primary (Set term / Renew), Freeze / Unfreeze beside it, everything else in "More package actions" (Set price, Extend, **End package**, **Cancel package** — the terminal ones apart and confirmed).
+- **Assessment** (CO-38, partial): on phones the review comes before the long answers, and Mark reviewed keeps a changed private note.
+- **Switcher** (CO-06): the shared roster sources and Today's rules — a client is marked only when Today has work for them, and the row says why; switching keeps the section.
+- **Old routes:** `…/view`, `…/view/:tab` redirect to the matching Progress view; every other workspace URL is unchanged. Semantic parents: editor → Plan, Profile section → Profile, check-ins → Progress, section → Summary, Summary → Clients.
+- **Removed** after verifying importers: `CoachClientDetail.tsx`, `CoachViewLayout.tsx`; 22 strings they and the old tab rail used.
+- **Lazy routes:** the layout and each section are lazy (the shell chunk shrank, §4).
+
+### 2. API contract
+
+| Procedure | Before | After |
+|---|---|---|
+| `checkIns.get / list / review / delete` (coach) | any check-in of an assigned client | only the coach's own (the key's week resolves to the coach's record) |
+| `checkIns.list / get` (client) | every record, the week as the key | with `byKey` (this release): every record except a previous coach's open request, exact by key; a previous coach's open request read by key is flagged `closed`. Without `byKey` (older apps): one record per week — the current coach's, else the week's first (§8.1) |
+| `checkIns.request` (coach) | B3.3: `CONFLICT CHECKIN_WEEK_TAKEN` when another coach held the week | a new record `week__coachId` of the coach's own; idempotent and race-safe; admin unchanged |
+| `checkIns.submit` | the plain-week record | with `byKey`: the record named by the key. Without (older apps, their queued submissions): the week's single open request; `CONFLICT` `CHECKIN_AMBIGUOUS` / `CHECKIN_STALE` (also `data.reason`) instead of guessing; a client submission into a previous coach's open request is refused for every generation; the coach notice only when the record is the current coach's (§8.1) |
+| `coachClients.transfer` (`keep`) | copied the previous coach's whole package to the new coach | carries the term only — the previous coach's price, plan name, billing cycle and note stay in their ended record (§8.1) |
+| `coachClients.assign`, transfer accept | `$set` over an ended document (stale fields survived) | clean active document, previous stint in `previousStints`; compare-and-set |
+| `coachClients.list` | — | summary view also leaves out `previousStints`; other coaches' records carry stint facts only |
+
+No schema migration, no index change, no stored-data rewrite. Authorization unchanged everywhere except the narrowing above.
+
+### 3. Tests
+
+| Test | Proves |
+|---|---|
+| `api/_trpc/routers/b34CheckInOwnership.test.ts` (new, 10) | A → transfer → B requests week W as a distinct record; A's record byte-for-byte untouched; B can't read / review / delete A's (by week or by A's key); A can't read B's; 6 concurrent requests → one record (also for a first-time week); the client sees one actionable request (B's) and an old app's plain-week submit lands on B's, replayed idempotently; coach notice to B about B's record; A's reviewed week stays in the client's history and never reaches B (answers, photos, feedback); A returning sees only A's; legacy records before / after the relationship; admin full access, unrelated coach FORBIDDEN; B3-S13: assign back starts clean with the stint archived whole, A → B → A transfer, stint facts only to another coach, summary view without stints, racing assigns → one activation, slot returned |
+| `b33Directory.test.ts` (updated) | B3.3's request test now asserts the B3.4 decision (own record, never A's; admin unchanged) |
+| `_capReservation.test.ts` (updated) | the failed-relationship-write case now fails the compare-and-set `replaceOne` (was `updateOne`) — slot still returned |
+| `src/lib/coachWorkspace.test.ts` (new, 8) | section of every URL (editors chrome-less), same place for another client, legacy view redirects, week stats (the client app's rule, 7 / 28-day windows, in-progress not counted), weight trend, week rows (unknown days are "—") |
+| `navContract.test.tsx` (updated) | the new semantic parents and section navigation |
+| `e2e3/specs/88-b3-workspace.spec.ts` (new, 13) | not-on-roster state; Summary numbers from fixture logs and a check-in reviewed in place (DB); sections replace history, cold deep links, old URLs; Plan → editor (one Back) → Plan; Progress week → day → back, body, check-ins; the transferred client (no previous-coach content in any response, own record created, coach B's untouched, timeline facts only); trial / paused / expired / frozen-account / incomplete-assessment; package actions; switcher; release; Arabic; axe EN + AR at 390 / 1440 on five pages; the 34-shot matrix |
+
+**§T — spec changes forced by B3.4:**
+- 20: Extend opens from "More package actions"; Release from the header More, confirmed via the dialog, landing on Clients;
+- 23: the workspace tabs became sections; the editor has one Back (no workspace header), the shell rail is the second guarded exit, and leaving lands on Plan; a Profile section's cold Back goes to Profile.
+- 87: the bulk weekly request now gives the hand-over client this coach's own record for the week (owner decision 4), so all eligible clients are asked; the previous coach's record is asserted untouched.
+
+### 4. Verification (final code)
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 765 / 765 in 87 files** (B3.3: 747 in 85; +18) |
+| Build | **PASS**. Entry 469.23 / 151.81 kB gzip (B3.3: 466.86 / 151.06; +0.75 kB gzip, the new strings). `CoachApp` **24.06 / 7.99** (B3.3: 35.43 / 11.31 — the workspace layout and sections are lazy). Workspace chunks: layout 8.47 / 3.35, Summary 10.85 / 3.40, Plan 4.00 / 1.49, Progress 28.74 / 8.40, Profile 4.21 / 1.80. `CoachClients` 41.83 / 11.99. `CoachToday` 17.16 / 5.90. `ClientApp` 39.02 / 12.27 (B3.3: 38.92 / 12.24 — the check-in id line, §1.2). Precache 184 entries |
+| Full e2e3, all projects | **PASS — 290 passed + 1 skipped of 291** in 48.7 min on the final code (`e2e-out/b34-full-b`; the skip is the long-standing Google sign-in case). Count: B3.3's 278 + 13 (spec 88). An earlier full run had 283 passed + 1 skipped + 7 failed: six were one bug, arrows double-flipped in Arabic (visual QA W10, fixed); the seventh was spec 87 asserting the B3.3 behaviour that decision 4 replaced (updated, §T). The targeted re-run (44 / 45 at every width, 87, 88) gave 86 / 86 before the final full run |
+| Spec 88 alone | 13 / 13 |
+| Accessibility (axe WCAG 2.1 A / AA) | Summary, Plan, Progress, Profile, package actions × EN / AR × 390 / 1440 (20 scans): **0 violations** |
+| PWA (final build) | manifest parsed, no shortcuts, 0 installability errors; SW, offline reload, offline banner, deferred update **PASS** (known baseline page error from the analytics path); signed-in offline boot **PASS** |
+| Visual QA | 34 full-page shots, **0 px overflow, correct `dir`**; `B3_VISUAL_QA.md` §B3.4 |
+| Physical devices | **Not run** |
+
+### 5. Backlog outcome (B3.4-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | CO-06, CO-08, CO-09, CO-14-R, CO-20, CO-29, CO-40, RM-20, RM-26, RM-35, RM-43, CD-05, CD-07, VS-09, NAV-K08, NAV-K09, B3-S13, B33-R2, B33-R3 |
+| **Mitigated** | CO-13, CO-38, TB-05, PF-22 (→ B3.9) · NAV-K02, NAV-K05, JR-08, PF-07 (→ B3.5) · VS-14 (→ B3.7) |
+| **Moved** | B2-R03 → B3.9 (shared with the client app) · RM-83 → B5 (server data model) |
+| **Unchanged** | OD-NOTES (owner decision) |
+| **New** | B34-R1 legacy plans open "unsaved" in the editor (→ B3.5) · B34-R2 Progress reads 8 weeks of logs (→ B5) |
+
+### 6. Known limits and risks
+
+1. **Older app versions after the mid-week rule:** measured against the actual RC2 and B3.3 builds in the owner review — nothing misrouted or lost; the three things an older app can't do in a hand-over week are listed in §8.5 (B34-R4).
+2. **Editors on legacy plans** report "Unsaved changes" as soon as they open (B34-R1, B3.5).
+3. **Progress covers 8 weeks** from bounded log reads (B34-R2); older days show "—".
+4. **Check-in history across a coach's own stints:** a coach who gets a client back sees their own earlier check-ins (they own them); never another coach's.
+5. **Not built in B3.4:** an assessment highlights summary (CO-38), the per-client check-ins layout (CO-13), date-ranged logs.
+6. **Carried:** the shared red pill (B33-R1) and check-in bidi (B32-R1) → B3.9; time-zone day boundaries (B33-R4) → B3.9; editor guards and draft behaviour (NAV-K02 / K05) → B3.5; physical-device certification and MD-01 / 02 / 03 remain release blockers.
+
+### 7. Owner decisions requested (answered in §8)
+
+1. Keep the client-app data-layer line (§1.2: the check-in id is the record's key) — the only client change in B3.4.
+2. The `previousStints` archive (B3-S13): keep the whole earlier stint (term, prices, audit trail) on the relationship document, visible in full to that coach and to admins, and as facts only to other coaches?
+3. Older-app compatibility (§6.1): acceptable until the PWA update reaches every device, or force an update before release?
+4. OD-NOTES (still open from B0): may a coach share assessment feedback with the client?
+
+**Environment:** drive C: is effectively full; every run used `D:\Gym\e2e-out\.tmp`.
+
+**Status (before the review): B3.4 implemented and verified locally — not committed. Stopped for the owner's review; B3.5 not started.**
+
+### 8. Owner review (2026-10-18) — compatibility and privacy gate
+
+**Owner decisions:**
+1. Check-in identity approved, with focused regression tests for same-week records of different owners.
+2. Archived stints approved with privacy boundaries: a coach keeps their own commercial records; other coaches get timeline facts only; history never reopens a live workspace; admin audit preserved. No business-model change, no data migration.
+3. Older-app compatibility is a **release gate**: a matrix against the actual previous builds; backward-compatible server preferred; never discard pending offline data, force a destructive reload or redirect a submission; no forced-update policy without separate approval.
+4. Assessment feedback: product decision approved, implementation deferred to the backlog with a proposed milestone.
+5. Close B3.4 in one local commit (owner edits preserved), then B3.5.
+
+**8.1 What changed after the review**
+
+*Server* (`api/_trpc/routers/clientCheckIns.ts`). Two client generations, told apart by `byKey` — sent by this release on `get`, `list` and `submit`, and recorded on the submissions it queues:
+- **This release:** the key names the record exactly. The client's list holds every record except a previous coach's open request.
+- **Older apps** (RC2, B3.3, and submissions they queued before updating) address a week:
+  - they get one record per week: the current coach's when there is one, else the week's first, never a previous coach's open request — so the list, the screen and the submission name the same record;
+  - a submission by week goes only to the week's **single open request**;
+  - two open requests → refused (`CONFLICT`, `CHECKIN_AMBIGUOUS`); the only open one a previous coach's → refused (`CHECKIN_STALE`). Refused, never redirected;
+  - a replay of an already delivered submission (same op id) is found first and returns it.
+- **Every generation:** a client submission into a previous coach's open request is refused (`CHECKIN_STALE`). A `week__coachId` key (notification links) is exact for both.
+- A client reading a previous coach's open request **by key** gets it flagged `closed` (nothing else changes).
+- The refusals carry `error.data.reason` (`CommercialReason`, two new codes); the message is unchanged, so older apps show their usual error.
+
+*Client:*
+- `checkInApi`: `byKey: true` on `get` / `list`; `submit` sends it only when told. The outbox handler tells it for submissions queued by this release (payload `byKey: true`), never for ones queued by B3.3 — those are resolved the way B3.3 meant them.
+- `CheckIn`: a closed request reads "This check-in has closed" — why, "Your answers are still saved on this device" with the saved answers read-only, and Open check-ins. No wizard, no leave guard; nothing moved, sent or discarded. A refusal with `CHECKIN_STALE` reloads into that state. 4 strings × EN / AR / AR-EG.
+- `WeeklyCheckIn.id` documented as the record key; `closed?` added (client reads only).
+
+*Privacy fix found by the new tests* (`api/coach-clients/_service.ts`): a transfer that keeps the term copied the previous coach's **price, plan name, billing cycle and package note** into the new coach's relationship. It now carries the term only (status, dates, freeze state); the previous coach's commercial details stay in their own ended record. **Visible change:** after such a transfer the new coach sets their own price.
+
+**8.2 Same-week identity — verified**
+
+| Concern | Mechanism | Test |
+|---|---|---|
+| Record vs calendar week | `_id = clientId__key`; key = week or `week__coachId`; `weekStart` stays the week | `checkInApi.test.tsx` (two records of one week: distinct ids, same week) |
+| Drafts | `forma.checkinDraft.v1.<uid>.<key>` | `CheckIn.test.tsx` — the week's draft never fills or is overwritten by the second coach's record |
+| Offline outbox | scope / dedupe `checkin:<key>`; `byKey` on this release's ops | `CheckIn.test.tsx` — two offline submissions stay two operations, each to its own record; an op without `byKey` is sent as its week |
+| Cached state | React Query `['checkIn', uid, key]` | same |
+| Notifications | `entityId` / route = key; resolved by key | `b34CompatPrivacy.test.ts` (B's resolved, A's not); `notificationTaxonomy.test.tsx` |
+| Deep links | `/check-in/<key>`; old `/check-in/<week>` links | matrix S1, S2 (§8.4) |
+| Retries | `submitOpId` replay before open-request resolution | `b34CompatPrivacy.test.ts`, `b34CheckInOwnership.test.ts`; matrix S1 (3 taps → 1 request) |
+| Client history | keeps previous coaches' completed records | `b34CheckInOwnership.test.ts`; matrix S1 |
+| Coach queries | ownership on every path | `b34CheckInOwnership.test.ts`, `b34CompatPrivacy.test.ts` |
+
+**8.3 Archived stints — who sees what** (`b34CompatPrivacy.test.ts`)
+
+| Viewer | Gets |
+|---|---|
+| Active coach | their relationship, archived stints in full (prices, audit trail) |
+| Former coach (ended, transferred away) | their own records, read-only; the live client is closed — profile, workout logs, plan, notes, check-ins, assessment: `FORBIDDEN` |
+| Re-assigned coach (a third coach) | no previous coach's price, private notes, private assessment note, check-ins, subscription history or invite code; the client's own assessment answers, yes |
+| Suspended active coach | read-only access to their own records |
+| Unrelated coach | `FORBIDDEN` |
+| Admin | everything; reading a coach's private assessment note stays audited |
+
+**8.4 Older clients — compatibility matrix.** `e2e3/pwa/b34-checkin-compat.mjs` runs the actual builds, each a production bundle with its own service worker, against one isolated stack with the new API:
+- **RC2** `cf3a5d9` — the build live in production;
+- **B3.3** `28035b6` — the first with drafts and the offline outbox;
+- this build.
+
+Result: **81 / 81 checks pass**, 0 page errors (`e2e-out/b34-compat-4/matrix.json`, screenshots alongside). Locally the Vercel analytics script is stubbed; without that it falls back to `index.html`, the known baseline error.
+
+| Scenario | RC2 / B3.3 (older) | This build |
+|---|---|---|
+| S1 — A's week completed, B asks again | Home → `/check-in/W` opens B's request; history one row per week (B's); A's old link opens B's request; B's link opens B's; submit → **B's record**, A's reviewed record unchanged; 3 taps → 1 request | Home → `/check-in/W__B`; history both records; A's old link → A's reviewed summary with A's feedback; submit → B's |
+| S2 — A's request left open, B's new | Home opens B's request; **submit by week refused** — both records untouched, error shown, answers kept (B3.3 also in its draft); B's notification link → submit lands on **B's** | Home → B's key; A's old link → closed notice; submit → B's |
+| S3 — B3.3 submission queued offline, app updated before delivery | (a) same coach: the new build shows it queued and **delivers it itself** to A's record, by week as queued, once the kept backoff runs out (27 s); the draft cleared only then. (b) hand-over and B's request meanwhile: the new build **sends it and the server refuses it** — nothing written to either record; closed notice with the saved answers; Home shows B's request | — |
+| S4 — B3.3 queued, B3.3 delivers after a hand-over | refused; A's record untouched; shown unsent with Retry / Edit answers; answers kept | — |
+| S5 — B3.3 draft, app updated mid-check-in | (a) same coach: the new build reopens the check-in **with the draft**. (b) hand-over meanwhile: closed notice with the draft shown; nothing sent | — |
+| S6 — RC2 mid-check-in, app updated | RC2 reloads into the new build when backgrounded (its existing rule); the check-in reopens and submits to A. Typed answers are not carried — RC2 never saved them, the same as any RC2 reload | — |
+| S7 — no hand-over (baseline) | Home → `/check-in/W`, submit → A's record, coach notified once | same |
+
+**8.5 What an older app can't do** (documented as B34-R4; no forced update):
+1. **History in a hand-over week:** one record per week (the current coach's). The previous coach's completed record of that week reappears after the update.
+2. **Two open requests in one week:** submitting from Home or history (by week) is refused with the app's generic error, and the answers stay. The new coach's notification link works, and after the update Home works.
+3. **Answers written for the previous coach's request** (draft or queued) are never moved to the new request. After the update the closed notice shows them read-only, so they can be re-entered.
+
+No server rule can do better without guessing which request the answers were meant for; the owner's rule is refusal over redirection. The previous coach's request notification stays in the client's feed and opens the closed notice.
+
+**Update mechanism (proposal — nothing implemented):** both older builds already update themselves.
+- RC2 checks every minute and on focus, and reloads into a new version when the app goes to the background.
+- B3.3 and later show the update control and apply at a safe point (never mid-check-in).
+
+So an installed app reaches this release at its next use. The restricted cases need a mid-week hand-over, a second request and an app not yet updated. **Proposed: no forced update.** If a guarantee is wanted, the safe option is a minimum-version refusal on check-in submission only, which older apps show as an error with the answers kept. It needs owner approval and is not built.
+
+**8.6 Assessment feedback** → backlog **B34-R3** (P2, proposed **B5**: O-19 keeps new assessment-feedback features out of B3). The contract:
+- private notes are never published or copied;
+- a separate client-visible field or snapshot, published by an explicit coach action;
+- server authorization and coach ownership; publication audited;
+- clients read only published feedback;
+- transfers expose no previous coach's private notes.
+
+OD-NOTES is marked decided.
+
+**8.7 Tests added or changed**
+
+| Test | Proves |
+|---|---|
+| `api/_trpc/routers/b34CompatPrivacy.test.ts` (new, 8) | Both generations in the common hand-over (ids, lists, exact keys, idempotent retries); the double-open week (refused by week, both untouched, B's link works for both, B's notification resolved and A's not, A's link reads `closed`, `data.reason`); answers queued for A refused; no hand-over unchanged; stints (own in full, others facts); former coach: own records, no live data; third coach: no prices / notes / private assessment note / check-ins; unrelated, suspended, admin |
+| `b34CheckInOwnership.test.ts` (updated) | client calls made by key, as this release makes them |
+| `src/services/platform/checkInApi.test.tsx` (new, 4) | key-not-week ids; `byKey` on get / list; submit sends `byKey` only when told |
+| `src/pages/CheckIn.test.tsx` (+5) | drafts per record; two offline submissions → two operations by key; a B3.3-queued op sent as its week; closed state (answers shown, no wizard, no guard, draft kept); refusal → closed, nothing left queued |
+| `notificationTaxonomy.test.tsx` (+2 assertions) | a second coach's record's notification opens `/check-in/W__coachId` |
+| `e2e3/specs/88-b3-workspace.spec.ts` (+1, now 14) | the transferred client opens the previous coach's left-open request: closed notice with the saved answers, EN + AR at 390, `dir`, no overflow, axe 0, B's record untouched |
+| `e2e3/pwa/b34-checkin-compat.mjs` (new) | the matrix in §8.4 |
+
+**8.8 Verification after the review**
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 782 / 782 in 89 files** (+17) |
+| Build | **PASS**. Entry 469.52 / 151.90 kB gzip (+0.09 kB gzip, the closed-notice strings); `CheckIn` 13.25 / 4.31; `ClientApp` 39.02 / 12.27; `CoachApp` 24.06 / 7.99; precache 184 entries |
+| Compatibility matrix (RC2 + B3.3 + this build) | **81 / 81** |
+| PWA (final build) | manifest, installability, SW, offline reload, offline banner, deferred update into the new build **PASS** (the known analytics-path page error); signed-in offline boot **PASS** |
+| Full e2e3, all projects | **290 passed + 1 skipped + 1 failed of 292** in 48.2 min (`e2e-out/b34-full-c`; B3.4's 291 + the new spec-88 test). The one failure was that new test: its fixture client had no client profile, so the client app opened first-run setup over the page (the closed notice itself had rendered — page snapshot). Fixed in the test (the client gets a profile for the run, removed afterwards); spec 88 re-run **14 / 14** (`e2e-out/b34-88-c`) |
+| Physical devices | **Not run** |
+
+**8.9 Backlog:**
+- B33-R2, B33-R3 and B3-S13 cite the new evidence.
+- **New:** B34-R3 assessment feedback (proposed B5) · B34-R4 older-app limits (Mitigated, release hardening, owner to confirm) · B34-R5 `messagesApi.test.ts` (B1.13) sits outside both Vitest projects and never runs (→ B3.6).
+- OD-NOTES decided.
+
+**Status: B3.4 closed after the owner review — committed locally (not pushed). B3.5 next.**

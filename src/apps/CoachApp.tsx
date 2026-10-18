@@ -1,15 +1,15 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { CoachShell } from '@/components/coach/CoachShell';
 import { CommandHost } from '@/components/CommandHost';
 import { SiteIconSet } from '@/components/shared/siteIcons';
 import { CoachPlanProvider, CoachPlanGate } from '@/components/coach/CoachPlanProvider';
-import { CoachClientWorkspaceLayout } from '@/components/coach/CoachClientWorkspaceLayout';
 import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { BannerHost } from '@/components/BannerHost';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { queryClient } from '@/services/platform/queryClient';
+import { legacyViewTarget } from '@/lib/coachWorkspace';
 // Eager: lightweight shared pages (Clients is no longer the landing — Today is, since B3.1).
 import { RoleAccount } from '@/pages/RoleAccount';
 import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
@@ -20,9 +20,13 @@ import { CoachMe } from '@/pages/coach/CoachMe';
 const CoachToday = lazy(() => import('@/pages/coach/today/CoachToday').then((m) => ({ default: m.CoachToday })));
 // B3.3: the directory shares the queue code with Today; lazy keeps both out of the shell chunk.
 const CoachClients = lazy(() => import('@/pages/coach/CoachClients').then((m) => ({ default: m.CoachClients })));
-const CoachClientDetail = lazy(() => import('@/pages/coach/CoachClientDetail').then((m) => ({ default: m.CoachClientDetail })));
-const CoachViewLayout = lazy(() => import('@/pages/coach/CoachViewLayout').then((m) => ({ default: m.CoachViewLayout })));
-const CoachCheckIns = lazy(() => import('@/pages/coach/CoachCheckIns').then((m) => ({ default: m.CoachCheckIns })));
+// B3.4 client workspace: Summary · Plan · Progress · Profile.
+const CoachClientWorkspaceLayout = lazy(() => import('@/components/coach/CoachClientWorkspaceLayout').then((m) => ({ default: m.CoachClientWorkspaceLayout })));
+const WorkspaceSummary = lazy(() => import('@/pages/coach/workspace/WorkspaceSummary').then((m) => ({ default: m.WorkspaceSummary })));
+const WorkspacePlan = lazy(() => import('@/pages/coach/workspace/WorkspacePlan').then((m) => ({ default: m.WorkspacePlan })));
+const WorkspaceProgress = lazy(() => import('@/pages/coach/workspace/WorkspaceProgress').then((m) => ({ default: m.WorkspaceProgress })));
+const WorkspaceProfile = lazy(() => import('@/pages/coach/workspace/WorkspaceProfile').then((m) => ({ default: m.WorkspaceProfile })));
+const ProfileSection = lazy(() => import('@/pages/coach/workspace/WorkspaceProfile').then((m) => ({ default: m.ProfileSection })));
 const CoachClientAssessment = lazy(() => import('@/pages/coach/CoachClientAssessment').then((m) => ({ default: m.CoachClientAssessment })));
 const CoachReports = lazy(() => import('@/pages/coach/CoachReports').then((m) => ({ default: m.CoachReports })));
 const CoachPlan = lazy(() => import('@/pages/coach/CoachPlan').then((m) => ({ default: m.CoachPlan })));
@@ -87,26 +91,27 @@ export function CoachApp() {
         <Route path="/coach/plan" element={shell(<CoachPlan />)} />
         <Route path="/coach/subscription-plans" element={shell(<CoachSubscriptionPlans />)} />
 
-        {/* Persistent client workspace — pinned header + tab rail (see
-            CoachClientWorkspaceLayout); each child is an existing page's own
-            content, just trimmed of its duplicate header. */}
+        {/* B3.4 client workspace (blueprint §6.3): one header + Summary · Plan · Progress · Profile.
+            Profile's sections and Progress › Check-ins keep the URLs stored notifications point at;
+            the plan editors render without workspace chrome (full-screen tasks, B3.5 rebuilds them). */}
         <Route path="/coach/client/:clientId" element={shell(<CoachClientWorkspaceLayout />)}>
-          <Route index element={<CoachClientDetail />} />
-          <Route path="assessment" element={<CoachClientAssessment />} />
-          <Route path="checkins" element={<CoachCheckIns />} />
+          <Route index element={<WorkspaceSummary />} />
+          <Route path="plan" element={<WorkspacePlan />} />
+          <Route path="progress" element={<WorkspaceProgress />} />
+          <Route path="checkins" element={<WorkspaceProgress forcedView="checkins" />} />
+          <Route path="profile" element={<WorkspaceProfile />} />
+          <Route path="assessment" element={<ProfileSection><CoachClientAssessment /></ProfileSection>} />
+          <Route path="notes" element={<ProfileSection><CoachClientNotes /></ProfileSection>} />
+          <Route path="subscription" element={<ProfileSection><CoachClientSubscriptionTab /></ProfileSection>} />
+          <Route path="history" element={<ProfileSection><CoachClientHistory /></ProfileSection>} />
           <Route path="workout" element={<CoachPlanGate><CoachWorkoutEditor /></CoachPlanGate>} />
           <Route path="nutrition" element={<CoachPlanGate><CoachNutritionEditor /></CoachPlanGate>} />
           <Route path="cardio" element={<CoachPlanGate><CoachCardioEditor /></CoachPlanGate>} />
-          <Route path="notes" element={<CoachClientNotes />} />
-          <Route path="subscription" element={<CoachClientSubscriptionTab />} />
-          <Route path="history" element={<CoachClientHistory />} />
         </Route>
-        {/* Kept outside the workspace shell: a deep-link-only legacy detail
-            view, and the "view as client" impersonation screen (its own
-            internal tab rail — Progress is the workspace's escape hatch into
-            this), plus plan version history (reached from within the editors). */}
-        <Route path="/coach/client/:clientId/view" element={shell(<CoachViewLayout />)} />
-        <Route path="/coach/client/:clientId/view/:tab" element={shell(<CoachViewLayout />)} />
+        {/* The retired "view as client" pages live in Progress now (RM-20); their URLs redirect. */}
+        <Route path="/coach/client/:clientId/view" element={<LegacyViewRedirect />} />
+        <Route path="/coach/client/:clientId/view/:tab" element={<LegacyViewRedirect />} />
+        {/* Plan version history (from the editors; becomes a sheet in B3.5). */}
         <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />
         <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
         <Route path="/coach/templates" element={shell(<CoachTemplates />)} />
@@ -129,4 +134,10 @@ export function CoachApp() {
       </SiteIconSet>
     </QueryClientProvider>
   );
+}
+
+/** `…/view`, `…/view/:tab` (the retired "view as client" pages) → the matching Progress view (B3.4). */
+function LegacyViewRedirect() {
+  const { clientId = '', tab } = useParams();
+  return <Navigate to={legacyViewTarget(clientId, tab)} replace />;
 }

@@ -27,6 +27,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { useCan } from '@/services/auth/permissions';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { AccountStatus, UserRecord } from '@/types';
 
 const SUB_TONE: Record<string, PillTone> = {
@@ -155,7 +156,7 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     setStatus.mutate(s);
   };
   const doEnd = async () => {
-    if (await confirmDialog({ title: t('subscription.end'), message: t('subscription.confirmEnd'), danger: true })) end.mutate();
+    if (await confirmDialog({ title: t('subscription.endPackage'), message: t('subscription.confirmEnd'), danger: true })) end.mutate();
   };
   const doExtend = async (days: number) => {
     const base = sub?.endAt && sub.endAt > Date.now() ? sub.endAt : Date.now();
@@ -226,28 +227,33 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
             {isRenew ? t('subscription.renew') : t('subscription.setTerm')}
           </button>
 
-          {/* Secondary actions */}
+          {/* B3.4 (CO-14-R / RM-26): one primary action above; Freeze / Unfreeze is the only other
+              action in view; price, extend and the two terminal actions live in "More package
+              actions", the terminal ones apart and confirmed with their consequences. */}
           {sub && (
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>
+            <div className="flex flex-wrap items-center gap-2">
               {freezePending(sub) ? (
-                <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreezeEnd', { date: toDate(unfreezeEndAt(sub)) }), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
+                <button type="button" className="btn-secondary btn-sm" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreezeEnd', { date: toDate(unfreezeEndAt(sub)) }), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
               ) : status === 'active' ? (
-                <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
+                <button type="button" className="btn-secondary btn-sm" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
               ) : null}
-              {(sub.status === 'active' || sub.status === 'trial' || sub.status === 'frozen') && (
-                <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => void doExtend(30)}>{t('subscription.extend')}</button>
-              )}
-            </div>
-          )}
-
-          {/* Destructive actions — separated so they're not one tap away from routine ones. */}
-          {sub && status !== 'ended' && (
-            <div className="flex flex-wrap gap-2 border-t border-line-soft pt-3">
-              <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-end" disabled={end.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doEnd()}>{t('subscription.end')}</button>
-              {(status === 'active' || status === 'trial') && (
-                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-cancel" disabled={cancel.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>
-              )}
+              <ActionMenu
+                label={t('subscription.moreActions')}
+                icon="dots"
+                testId="sub-more"
+                items={[
+                  { key: 'price', label: t('subscription.setPrice'), icon: 'edit', testId: 'sub-set-price', onSelect: () => setSheet('price') },
+                  ...(sub.status === 'active' || sub.status === 'trial' || sub.status === 'frozen'
+                    ? [{ key: 'extend', label: t('subscription.extend'), icon: 'calendar' as const, testId: 'sub-extend', disabled: extend.isPending, onSelect: () => void doExtend(30) }]
+                    : []),
+                  ...(status !== 'ended'
+                    ? [{ key: 'end', label: t('subscription.endPackage'), icon: 'logout' as const, danger: true, testId: 'sub-end', disabled: end.isPending || !online, onSelect: () => void doEnd() }]
+                    : []),
+                  ...(status === 'active' || status === 'trial'
+                    ? [{ key: 'cancel', label: t('subscription.cancelPackage'), icon: 'logout' as const, danger: true, testId: 'sub-cancel', disabled: cancel.isPending || !online, onSelect: async () => { if (await confirmDialog({ title: t('subscription.cancelPackage'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); } }]
+                    : []),
+                ]}
+              />
             </div>
           )}
 

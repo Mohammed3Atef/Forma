@@ -1,213 +1,199 @@
 import { useState } from 'react';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
-import { Icon, type IconName } from '@/components/Icon';
-import { Sheet } from '@/components/Sheet';
+import { Icon } from '@/components/Icon';
+import { ActionMenu, type ActionMenuItem } from '@/components/ui/ActionMenu';
 import { Pill } from '@/components/ui/Pill';
-import { useCoachClientHeader, SUB_TONE } from '@/hooks/useCoachClientHeader';
+import { ClientSwitcherSheet } from '@/components/coach/ClientSwitcherSheet';
+import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useBack } from '@/hooks/useBack';
 import { useGuardedNav } from '@/hooks/useGuardedNav';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { ClientSwitcherSheet } from '@/components/coach/ClientSwitcherSheet';
-
-interface WorkspaceTab {
-  key: string;
-  labelKey: string;
-  icon: IconName;
-}
-
-const TABS: WorkspaceTab[] = [
-  { key: 'overview', labelKey: 'workspace.tabs.overview', icon: 'home' },
-  { key: 'workout', labelKey: 'workspace.tabs.workout', icon: 'dumbbell' },
-  { key: 'nutrition', labelKey: 'workspace.tabs.nutrition', icon: 'meal' },
-  { key: 'cardio', labelKey: 'workspace.tabs.cardio', icon: 'activity' },
-  { key: 'progress', labelKey: 'workspace.tabs.progress', icon: 'chart' },
-  { key: 'assessments', labelKey: 'workspace.tabs.assessments', icon: 'list' },
-  { key: 'checkins', labelKey: 'workspace.tabs.checkins', icon: 'check' },
-  { key: 'messages', labelKey: 'workspace.tabs.messages', icon: 'chat' },
-  { key: 'notes', labelKey: 'workspace.tabs.notes', icon: 'edit' },
-  { key: 'subscription', labelKey: 'workspace.tabs.subscription', icon: 'shield' },
-  { key: 'history', labelKey: 'workspace.tabs.history', icon: 'rotate' },
-];
-
-// Mobile keeps only the 4 highest-traffic tabs visible; everything else moves
-// into the "More" sheet instead of an unusable 11-item horizontal-scroll rail.
-const MOBILE_PRIMARY = ['overview', 'workout', 'nutrition', 'progress'];
-const MOBILE_MORE = TABS.filter((tb) => !MOBILE_PRIMARY.includes(tb.key));
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useSession } from '@/services/auth/sessionStore';
+import { releaseClient } from '@/services/platform/coachClientsApi';
+import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { showToast } from '@/stores/toastStore';
+import { clientStateOf } from '@/lib/coachDirectory';
+import { semanticParent } from '@/lib/navContract';
+import { samePlaceFor, sectionOf, sectionPath, WORKSPACE_SECTIONS, type WorkspaceSection } from '@/lib/coachWorkspace';
+import { STATE_TONE, toneText } from '@/pages/coach/clients/parts';
 
 /**
- * Two of the 11 tabs are intentional escape hatches to already-complete,
- * separately-owned screens rather than embedded content — Progress reuses the
- * existing "view as client" progress tab, Messages reuses the real coach
- * inbox thread view. Navigating to either unmounts this layout; the other 9
- * render inside the persistent shell below via `<Outlet/>`.
+ * How a section opens (B3.4): the four sections REPLACE the history entry, so Back always returns
+ * to where the client was opened from — Today, Clients or Messages — never to another section
+ * (NAV-K08). Editors and the thread push (they are tasks you come back from).
  */
-function tabPath(clientId: string, key: string): string {
-  switch (key) {
-    case 'overview':
-      return `/coach/client/${clientId}`;
-    case 'assessments':
-      return `/coach/client/${clientId}/assessment`;
-    case 'progress':
-      return `/coach/client/${clientId}/view/progress`;
-    case 'messages':
-      return `/coach/messages/${clientId}`;
-    default:
-      return `/coach/client/${clientId}/${key}`;
-  }
+export function workspaceSectionNav(clientId: string, section: WorkspaceSection): { to: string; replace: boolean } {
+  return { to: sectionPath(clientId, section), replace: true };
 }
+
+const SECTION_ICON = { summary: 'home', plan: 'list', progress: 'chart', profile: 'user' } as const;
 
 /**
- * How a tab opens (B1.10 / NAV-K01). Tabs inside the workspace REPLACE the
- * entry, so switching tabs doesn't pile up history; the two escape hatches
- * (Progress, Messages) leave this shell, so they PUSH — Back then returns to
- * the workspace instead of skipping past it to the clients list.
- */
-export function workspaceTabNav(clientId: string, key: string): { to: string; replace: boolean } {
-  return { to: tabPath(clientId, key), replace: key !== 'progress' && key !== 'messages' };
-}
-
-/** Which tab key the current pathname corresponds to, for this client — used both to highlight the active tab and to preserve it when switching clients. */
-function activeTabKey(pathname: string, clientId: string): string {
-  const hit = TABS.find((tb) => {
-    const to = tabPath(clientId, tb.key);
-    return tb.key === 'overview' ? pathname === to : pathname.startsWith(to);
-  });
-  return hit?.key ?? 'overview';
-}
-
-/**
- * The coach's persistent client workspace: a pinned header (back, avatar,
- * name, subscription-status pill, goal/renewal line, Message/Edit-plan
- * actions) + an 11-tab rail, matching the design's `workspace()`/`wsBody()`
- * exactly. A layout route — the 8+ existing per-client pages keep their own
- * data-fetching/mutations untouched and render via `<Outlet/>` below; only
- * their own duplicate headers were trimmed (see each page for details).
+ * The coach's client workspace (B3.4 / blueprint §6.3): one compact header — Back · the client
+ * (opens the switcher) · package and account state · Message · More (Call, Switch client,
+ * Release) — and four sections: Summary · Plan · Progress · Profile. The plan editors are
+ * full-screen task flows with their own header (one Back — NAV-K02), so the workspace draws
+ * nothing around them. A client who is not (or no longer) on this coach's roster gets a clear
+ * state instead of a page of failed reads (NAV-K09).
  */
 export function CoachClientWorkspaceLayout() {
   const { t } = useTranslation();
   const navigate = useGuardedNav();
-  const { pathname } = useLocation();
+  const qc = useQueryClient();
+  const online = useOnlineStatus();
+  const { pathname, search } = useLocation();
   const { clientId = '' } = useParams();
-  // With no in-app history (deep link / refresh): a sub-tab falls back to this
-  // client's overview, the overview itself to the clients list.
-  const overviewPath = `/coach/client/${clientId}`;
-  const goBack = useBack(pathname.replace(/\/$/, '') === overviewPath ? '/coach/clients' : overviewPath);
-  const { name, photoUrl, goal, subStatus, daysLeft } = useCoachClientHeader(clientId);
-  const isDesktop = useIsDesktop();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const coachId = useSession((s) => s.account?.id) ?? '';
+  const section = sectionOf(pathname, clientId);
+  const goBack = useBack(semanticParent(pathname, 'coach'));
+  const header = useCoachClientHeader(clientId);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const currentTab = activeTabKey(pathname, clientId);
 
-  const switchTo = (nextClientId: string) => {
-    setSwitcherOpen(false);
-    // Stay on the equivalent tab — a coach switching from A's Workout tab
-    // expects to land on B's Workout tab, not back at the overview.
-    navigate(tabPath(nextClientId, currentTab), { replace: true });
+  const rel = header.relationship;
+  const onRoster = header.relationshipState !== 'ready' || (rel?.status === 'active' && rel.coachId === coachId);
+  const state = rel?.status === 'active' ? clientStateOf(rel, Date.now()) : null;
+  const acct = header.user?.accountStatus;
+  const blocked = acct && acct !== 'active' ? acct : null;
+  const name = header.name || t('coach.client');
+
+  const release = useMutation({
+    mutationFn: () => releaseClient(coachId, clientId, coachId),
+    onSuccess: () => {
+      for (const key of ['myClients', 'coachRelationships', 'coachDashboardSummaries', 'coachCheckInSummaries', 'coachDashboard', 'coachFreezeRequests']) {
+        void qc.invalidateQueries({ queryKey: [key, coachId] });
+      }
+      void qc.invalidateQueries({ queryKey: ['relationship', coachId, clientId] });
+      showToast({ title: t('workspace.release.done', { name }), variant: 'success' });
+      // The workspace is gone for this coach: replace it, so Back never lands on a dead page (NAV-K09).
+      navigate('/coach/clients', { replace: true });
+    },
+    onError: (e) => void alertDialog({ title: t('workspace.release.failedTitle'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+  });
+  const askRelease = async () => {
+    const ok = await confirmDialog({
+      title: t('workspace.release.title', { name }),
+      message: t('workspace.release.body'),
+      confirmLabel: t('workspace.release.confirm'),
+      danger: true,
+    });
+    if (ok) release.mutate();
   };
 
-  const subLine = [
-    goal ? t(`settings.goals.${goal}`) : null,
-    daysLeft != null ? t('subscription.daysLeft', { n: daysLeft }) : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  // Editors are task flows: no workspace chrome (one Back, the editor's — NAV-K02).
+  if (section === 'editor') return <Outlet />;
+
+  const menu: ActionMenuItem[] = [
+    ...(header.user?.phone ? [{ key: 'call', label: t('workspace.call'), icon: 'phone' as const, testId: 'workspace-call', onSelect: () => window.open(`tel:${header.user!.phone}`, '_self') }] : []),
+    { key: 'switch', label: t('workspace.switchClient'), icon: 'users', testId: 'workspace-switch', onSelect: () => setSwitcherOpen(true) },
+    ...(onRoster && rel?.status === 'active'
+      ? [{ key: 'release', label: t('workspace.release.action'), icon: 'logout' as const, danger: true, disabled: !online || release.isPending, testId: 'workspace-release', onSelect: () => void askRelease() }]
+      : []),
+  ];
 
   return (
-    <div className="-mt-1">
-      <div className="border-b border-line pb-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <button type="button" onClick={goBack} className="icon-btn h-9 w-9 shrink-0" aria-label={t('common.back')}>
-              <Icon name="chevronLeft" size={18} />
-            </button>
-            <button type="button" className="flex min-w-0 items-center gap-3 text-start" data-testid="workspace-switch-trigger" onClick={() => setSwitcherOpen(true)} aria-label={t('workspace.switchClient')}>
-              <Avatar name={name} photoUrl={photoUrl} size="md" />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate font-display text-lg font-semibold">{name || t('coach.client')}</h1>
-                  <Pill tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
-                  <Icon name="chevronDown" size={14} className="shrink-0 text-earth-subtle" />
-                </div>
-                {subLine && <p className="truncate text-[12.5px] text-earth-subtle">{subLine}</p>}
-              </div>
-            </button>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button type="button" className="btn-secondary btn-sm" onClick={() => navigate(`/coach/messages/${clientId}`)}>
-              <Icon name="chat" size={14} /> <span className="sr-only sm:not-sr-only">{t('coachDash.message')}</span>
-            </button>
-            <button type="button" className="btn-primary btn-sm" onClick={() => navigate(`/coach/client/${clientId}/workout`)}>
-              <Icon name="edit" size={14} /> <span className="sr-only sm:not-sr-only">{t('workspace.editPlan')}</span>
-            </button>
-          </div>
+    <div className="-mt-1" data-testid="coach-workspace" data-section={section}>
+      <header className="border-b border-line">
+        <div className="flex items-center gap-2 pb-3">
+          <button type="button" onClick={goBack} className="icon-btn h-11 w-11 shrink-0" aria-label={t('common.back')} data-testid="workspace-back">
+            <Icon name="chevronLeft" size={20} />
+          </button>
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-ui-control py-1 text-start hover:bg-white/[0.03]"
+            data-testid="workspace-switch-trigger"
+            aria-label={t('workspace.switchClientFor', { name })}
+            onClick={() => setSwitcherOpen(true)}
+          >
+            {/* Below 430 px the name needs the room (Back · name · Message · More). */}
+            <span className="hidden shrink-0 min-[430px]:block">
+              <Avatar name={name} photoUrl={header.photoUrl} size="md" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <h1 className="truncate font-display text-lg font-semibold" data-testid="workspace-client-name">{name}</h1>
+                <Icon name="chevronDown" size={14} className="shrink-0 text-earth-subtle" />
+              </span>
+              <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                {state ? (
+                  <Pill tone={STATE_TONE[state.state]} className={toneText(STATE_TONE[state.state])} testId="workspace-package">
+                    {state.state === 'expiring' && state.daysLeft != null ? t('coachClients.endsIn', { count: state.daysLeft }) : t(`coachClients.state.${state.state}`)}
+                  </Pill>
+                ) : null}
+                {state && state.daysLeft != null && state.state !== 'expiring' ? <span className="text-[12px] text-earth-subtle">{t('coachClients.daysLeft', { count: state.daysLeft })}</span> : null}
+                {blocked ? (
+                  <Pill tone={blocked === 'pending' ? 'warn' : 'bad'} className={blocked === 'pending' ? '' : 'text-danger-text'} testId="workspace-account">
+                    {t(`coachClients.account.${blocked}`, { defaultValue: t(`subscription.acct.${blocked}`) })}
+                  </Pill>
+                ) : null}
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="btn-secondary btn-sm h-11 w-11 shrink-0 !px-0 sm:w-auto sm:!px-4"
+            data-testid="workspace-message"
+            aria-label={t('coachDash.message')}
+            onClick={() => navigate(`/coach/messages/${encodeURIComponent(clientId)}`)}
+          >
+            <Icon name="chat" size={16} /> <span className="hidden sm:inline">{t('coachDash.message')}</span>
+          </button>
+          <ActionMenu label={t('workspace.more', { name })} testId="workspace-more" items={menu} />
         </div>
-        <div className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(isDesktop ? TABS : TABS.filter((tb) => MOBILE_PRIMARY.includes(tb.key))).map((tb) => {
-            const to = tabPath(clientId, tb.key);
-            const active = tb.key === 'overview' ? pathname === to : pathname.startsWith(to);
+
+        <nav className="-mb-px grid grid-cols-4 md:max-w-xl" aria-label={t('workspace.sections')}>
+          {WORKSPACE_SECTIONS.map((s) => {
+            const active = section === s;
+            const nav = workspaceSectionNav(clientId, s);
             return (
-              <button
-                key={tb.key}
-                type="button"
-                data-testid={`workspace-tab-${tb.key}`}
-                onClick={() => {
-                  const nav = workspaceTabNav(clientId, tb.key);
+              <Link
+                key={s}
+                to={nav.to}
+                replace={nav.replace}
+                data-testid={`workspace-tab-${s}`}
+                aria-current={active ? 'page' : undefined}
+                onClick={(e) => {
+                  // Every exit goes through the unsaved-changes guard (C4).
+                  e.preventDefault();
                   navigate(nav.to, { replace: nav.replace });
                 }}
-                className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
-                  active ? 'text-white' : 'text-earth-subtle hover:text-earth'
-                }`}
+                className={`relative flex min-h-11 items-center justify-center gap-1.5 px-1 text-[13px] font-medium transition-colors ${active ? 'text-earth' : 'text-earth-subtle hover:text-earth'}`}
               >
-                {t(tb.labelKey)}
+                <Icon name={SECTION_ICON[s]} size={15} className="hidden sm:block" />
+                {t(`workspace.section.${s}`)}
                 {active && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gradient-brand" />}
-              </button>
+              </Link>
             );
           })}
-          {!isDesktop && (
-            <button
-              type="button"
-              data-testid="workspace-tab-more"
-              onClick={() => setMoreOpen(true)}
-              className={`relative shrink-0 whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
-                MOBILE_MORE.some((tb) => tb.key === currentTab) ? 'text-white' : 'text-earth-subtle hover:text-earth'
-              }`}
-            >
-              {t('workspace.tabs.more')}
-              {MOBILE_MORE.some((tb) => tb.key === currentTab) && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gradient-brand" />}
-            </button>
-          )}
-        </div>
-      </div>
+        </nav>
+      </header>
+
       <div className="pt-4">
-        <Outlet />
+        {onRoster ? (
+          <Outlet />
+        ) : (
+          <div className="card mx-auto mt-6 max-w-md space-y-3 text-center" role="status" data-testid="workspace-not-on-roster">
+            <p className="font-semibold">{t('workspace.notOnRoster.title')}</p>
+            <p className="text-[14px] text-earth-muted">{t('workspace.notOnRoster.body')}</p>
+            <button type="button" className="btn-primary w-full" onClick={() => navigate('/coach/clients', { replace: true })}>
+              {t('workspace.notOnRoster.cta')}
+            </button>
+          </div>
+        )}
       </div>
 
-      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} size="sm" title={t('workspace.tabs.more')}>
-        <div className="space-y-1" data-testid="workspace-more-sheet">
-          {MOBILE_MORE.map((tb) => {
-            const active = tb.key === currentTab;
-            return (
-              <button
-                key={tb.key}
-                type="button"
-                data-testid={`workspace-more-${tb.key}`}
-                className={`row w-full text-start ${active ? 'bg-brand/10' : ''}`}
-                onClick={() => {
-                  setMoreOpen(false);
-                  const nav = workspaceTabNav(clientId, tb.key);
-                  navigate(nav.to, { replace: nav.replace });
-                }}
-              >
-                <Icon name={tb.icon} size={18} className="text-earth-muted" />
-                <span className="min-w-0 flex-1">{t(tb.labelKey)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </Sheet>
-      <ClientSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} currentClientId={clientId} onSelect={switchTo} />
+      <ClientSwitcherSheet
+        open={switcherOpen}
+        onClose={() => setSwitcherOpen(false)}
+        currentClientId={clientId}
+        onSelect={(next) => {
+          setSwitcherOpen(false);
+          // Same section for the other client (blueprint §6.3); guarded like every exit.
+          navigate(samePlaceFor(pathname, clientId, next, search), { replace: true });
+        }}
+      />
     </div>
   );
 }

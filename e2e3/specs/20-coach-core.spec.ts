@@ -308,7 +308,8 @@ test('workspace: subscription extend / freeze / unfreeze update without reload',
   const renews = page.getByTestId('coach-subscription').locator('p.font-mono.font-medium').first();
   const renewBefore = await renews.textContent();
 
-  // Extend 30 days — confirm dialog.
+  // Extend 30 days — confirm dialog. (B3.4 / CO-14-R: Extend lives in "More package actions".)
+  await page.getByTestId('sub-more').click();
   await page.getByTestId('sub-extend').click();
   await expect(page.getByTestId('confirm-dialog')).toContainText('30');
   await confirmYes(page);
@@ -353,14 +354,15 @@ test('release the invited client → roster drops it, counter decremented', asyn
   const state = { invitedId: inv!._id, invitedEmail: inv!.email };
   const { page } = await as('coachPro');
   await page.goto(`/coach/client/${state.invitedId}`);
-  await appReady(page, 'coach-manage');
-  await page.getByTestId('coach-manage').click();
-  await page.getByTestId('coach-release-client').click();
-  await expect(page.getByText('Release this client?')).toBeVisible();
+  // B3.4 (CO-40 / VS-09): Release is in the workspace header's More menu — destructive, confirmed with its consequences.
+  await appReady(page, 'workspace-more');
+  await page.getByTestId('workspace-more').click();
+  await page.getByTestId('workspace-release').click();
+  await expect(page.getByTestId('confirm-dialog')).toContainText('history and progress stay safe');
   await shot(page, testInfo, '01-release-confirm');
-  await page.getByTestId('release-confirm').click();
-  await expect(page).toHaveURL(/\/coach(\/dashboard)?$/);
-  await page.getByTestId('rail-clients').click();
+  await confirmYes(page);
+  // The dead workspace is replaced: Clients.
+  await expect(page).toHaveURL(/\/coach\/clients$/);
   await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${state.invitedId}"]`)).toHaveCount(0);
   await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await expect(page.getByTestId('coach-client-usage')).toContainText('1 / 25 clients used');

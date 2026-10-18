@@ -3,16 +3,24 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { isRolePath, roleSpaceOf, safeRolePath, semanticParent } from './navContract';
 import { backTarget, useBack } from '@/hooks/useBack';
-import { workspaceTabNav } from '@/components/coach/CoachClientWorkspaceLayout';
+import { workspaceSectionNav } from '@/components/coach/CoachClientWorkspaceLayout';
 import { useSession } from '@/services/auth/sessionStore';
 import type { UserRecord } from '@/types';
 
 describe('navigation contract (B1.10)', () => {
   it('semantic parents: every screen has an "up"', () => {
     const coach = (p: string) => semanticParent(p, 'coach');
-    expect(coach('/coach/client/c1/checkins')).toBe('/coach/client/c1');
-    expect(coach('/coach/client/c1/view/progress')).toBe('/coach/client/c1');
-    expect(coach('/coach/client/c1/versions/workout')).toBe('/coach/client/c1');
+    // B3.4 workspace: editors → Plan, Profile sections → Profile, check-ins / old "view as client" → Progress, sections → Summary.
+    expect(coach('/coach/client/c1/checkins')).toBe('/coach/client/c1/progress');
+    expect(coach('/coach/client/c1/view/progress')).toBe('/coach/client/c1/progress');
+    expect(coach('/coach/client/c1/view')).toBe('/coach/client/c1/progress');
+    expect(coach('/coach/client/c1/versions/workout')).toBe('/coach/client/c1/workout');
+    expect(coach('/coach/client/c1/workout')).toBe('/coach/client/c1/plan');
+    expect(coach('/coach/client/c1/assessment')).toBe('/coach/client/c1/profile');
+    expect(coach('/coach/client/c1/subscription')).toBe('/coach/client/c1/profile');
+    expect(coach('/coach/client/c1/plan')).toBe('/coach/client/c1');
+    expect(coach('/coach/client/c1/progress')).toBe('/coach/client/c1');
+    expect(coach('/coach/client/c1/profile')).toBe('/coach/client/c1');
     expect(coach('/coach/client/c1')).toBe('/coach/clients');
     expect(coach('/coach/messages/c1')).toBe('/coach/messages');
     expect(coach('/coach/templates/t1/edit')).toBe('/coach/templates/t1');
@@ -68,10 +76,11 @@ describe('navigation contract (B1.10)', () => {
     expect(backTarget(at('/coach/messages/c1'), 'coach', '/coach/clients')).toBe('/coach/clients'); // caller fallback
   });
 
-  it('workspace: in-shell tabs replace; Progress and Messages push so Back returns to the workspace (NAV-K01)', () => {
-    expect(workspaceTabNav('c1', 'workout')).toEqual({ to: '/coach/client/c1/workout', replace: true });
-    expect(workspaceTabNav('c1', 'messages')).toEqual({ to: '/coach/messages/c1', replace: false });
-    expect(workspaceTabNav('c1', 'progress')).toEqual({ to: '/coach/client/c1/view/progress', replace: false });
+  it('workspace (B3.4): the four sections replace history, so Back returns to where the client was opened from (NAV-K08)', () => {
+    expect(workspaceSectionNav('c1', 'summary')).toEqual({ to: '/coach/client/c1', replace: true });
+    expect(workspaceSectionNav('c1', 'plan')).toEqual({ to: '/coach/client/c1/plan', replace: true });
+    expect(workspaceSectionNav('c1', 'progress')).toEqual({ to: '/coach/client/c1/progress', replace: true });
+    expect(workspaceSectionNav('c1', 'profile')).toEqual({ to: '/coach/client/c1/profile', replace: true });
   });
 });
 
@@ -100,7 +109,7 @@ describe('useBack (B1.10)', () => {
       </MemoryRouter>,
     );
     await act(async () => fireEvent.click(screen.getByText('back')));
-    expect(screen.getByTestId('where').textContent).toBe('/coach/client/c1');
+    expect(screen.getByTestId('where').textContent).toBe('/coach/client/c1/progress');
   });
 
   it('after an in-app navigation, Back returns to where the user was', async () => {

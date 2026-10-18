@@ -66,7 +66,8 @@ export function CoachCardioEditor() {
   }, [isDesktop, plan, editing]);
 
 
-  const exit = useBack(`/coach/client/${clientId}`, ed.discardDraft);
+  // B3.4: an editor opened cold goes back to the client's Plan (its semantic parent).
+  const exit = useBack(`/coach/client/${clientId}/plan`, ed.discardDraft);
 
   if (!plan) {
     return (

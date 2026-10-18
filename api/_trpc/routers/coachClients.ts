@@ -27,7 +27,9 @@ const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOS
  */
 function timelineOnly(r: CoachClientDoc): CoachClientDoc {
   const { _id, coachId, clientId, status, createdAt, endedAt, endReason, mode, updatedAt } = r;
-  return { _id, coachId, clientId, status, createdAt, updatedAt, ...(endedAt != null ? { endedAt } : {}), ...(endReason ? { endReason } : {}), ...(mode ? { mode } : {}) } as CoachClientDoc;
+  // B3.4 / B3-S13: earlier stints of the same pair — their facts only, like the stint itself.
+  const stints = (r.previousStints ?? []).map((p) => ({ status: p.status, createdAt: p.createdAt, updatedAt: p.updatedAt, archivedAt: p.archivedAt, ...(p.endedAt != null ? { endedAt: p.endedAt } : {}), ...(p.endReason ? { endReason: p.endReason } : {}), ...(p.mode ? { mode: p.mode } : {}) }));
+  return { _id, coachId, clientId, status, createdAt, updatedAt, ...(endedAt != null ? { endedAt } : {}), ...(endReason ? { endReason } : {}), ...(mode ? { mode } : {}), ...(stints.length ? { previousStints: stints } : {}) } as CoachClientDoc;
 }
 
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
@@ -96,7 +98,8 @@ export const coachClientsRouter = router({
     .query(async ({ ctx, input }) => {
       const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
       const col = await coachClientsCol();
-      const projection = input.view === 'summary' ? { subscriptionEvents: 0, subscriptionHistory: 0, inviteCode: 0 } : undefined;
+      // B3.4: archived stints (B3-S13) are history too — not part of the summary.
+      const projection = input.view === 'summary' ? { subscriptionEvents: 0, subscriptionHistory: 0, inviteCode: 0, previousStints: 0 } : undefined;
 
       if (input.clientId) {
         const all = await col.find({ clientId: input.clientId }).sort({ createdAt: -1 }).toArray();

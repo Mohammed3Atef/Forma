@@ -46,11 +46,19 @@ export function safeRolePath(path: unknown, space: RoleSpace, fallback: string =
  * Ordered most-specific first; `:id` captures one segment.
  */
 const PARENTS: [pattern: string, parent: string][] = [
-  // coach — client workspace and its satellites
-  ['/coach/client/:id/versions/:kind', '/coach/client/:id'],
-  ['/coach/client/:id/view/:tab', '/coach/client/:id'],
-  ['/coach/client/:id/view', '/coach/client/:id'],
-  ['/coach/client/:id/:tab', '/coach/client/:id'],
+  // coach — client workspace (B3.4: Summary · Plan · Progress · Profile) and its satellites
+  ['/coach/client/:id/versions/:kind', '/coach/client/:id/:kind'],
+  ['/coach/client/:id/view/:tab', '/coach/client/:id/progress'],
+  ['/coach/client/:id/view', '/coach/client/:id/progress'],
+  ['/coach/client/:id/workout', '/coach/client/:id/plan'],
+  ['/coach/client/:id/nutrition', '/coach/client/:id/plan'],
+  ['/coach/client/:id/cardio', '/coach/client/:id/plan'],
+  ['/coach/client/:id/checkins', '/coach/client/:id/progress'],
+  ['/coach/client/:id/assessment', '/coach/client/:id/profile'],
+  ['/coach/client/:id/notes', '/coach/client/:id/profile'],
+  ['/coach/client/:id/subscription', '/coach/client/:id/profile'],
+  ['/coach/client/:id/history', '/coach/client/:id/profile'],
+  ['/coach/client/:id/:section', '/coach/client/:id'],
   ['/coach/client/:id', '/coach/clients'],
   ['/coach/messages/:id', '/coach/messages'],
   ['/coach/templates/:id/edit', '/coach/templates/:id'],

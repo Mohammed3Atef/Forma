@@ -192,3 +192,83 @@ Checked on every shot:
 ### 5. Not covered
 
 Physical devices (iOS Safari, Android Chrome, installed PWA), screen readers beyond axe, and real data volumes beyond the 210-client fixture.
+
+---
+
+## B3.4 — Client workspace (2026-10-18)
+
+**Scope reviewed:**
+- the workspace header;
+- Summary, Plan, Progress (week, day, body, check-ins) and Profile (with a section);
+- package actions, the switcher, the not-on-roster state;
+- English, Arabic and Egyptian Arabic, 360–1440 px.
+
+Fixtures on coachPro: an active client with a full month of logs, plans, weigh-ins, check-ins and a note; trial / paused / expired / frozen-account / incomplete-assessment clients; a client transferred from coachB mid-week. See spec 88.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/88-b3-workspace.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b34-visual/<section>-<width>-<lang>.png` (full page) and `shots.json` (overflow, `dir`), and fails on any horizontal overflow or wrong direction. Other spec-88 tests attach state shots: Summary 1440, Arabic Summary 1440, Plan 390, Progress week 1440, package actions 390, the transferred client's history.
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 |
+| Languages | English · Arabic · Egyptian Arabic (390, 1440) |
+| Screens | all four sections at 390 and 1440 (EN, AR); Summary and Progress at 360 / 430 / 768 / 1024 (EN, AR); Summary in AR-EG at 390 / 1440 |
+
+Reference run: `e2e-out/b34-full-b/b34-visual/` (the final full suite); the shots were reviewed by eye across the runs while fixing (§3).
+
+**Result:** 34 / 34 shots, **0 px horizontal overflow, correct `dir` on every shot**. axe (WCAG 2.1 A / AA) on Summary, Plan, Progress, Profile and package actions, EN + AR, 390 and 1440 (20 scans): **0 violations**.
+
+Checked on every shot:
+- one header (Back · client · package / account · Message · More);
+- one tab bar; one orange primary per view;
+- numbers say their window;
+- Arabic mirrors (Back on the right, chevrons inline-end) with Arabic plurals ("3 أيام تدريب", "3 وجبات");
+- the client's own English text keeps its direction.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| W1 | The name was cut ("Nadia H…", "… Hassan") — the Message pill and the avatar took the row | phones, EN + AR | Message is a 44 px icon button below 640 px (named for screen readers); the avatar hides below 430 px |
+| W2 | Summary repeated the header's Message | all widths | Removed; Summary keeps Edit plan and Request this week's check-in |
+| W3 | Numbers in the monospace face: "2 of 3" spaced out; in Arabic "2 مـن 3" | Summary, EN + AR | The UI face with tabular figures |
+| W4 | The weight change showed its minus on the wrong side in Arabic ("1.4- كجم") | Summary AR | The signed number is isolated left-to-right |
+| W5 | An English note's full stop jumped to the start in Arabic | Summary AR | The note is `dir="auto"` |
+| W6 | The nutrition targets line was scrambled in Arabic ("kcal · P 160 … 2,100") | Plan AR | The macro line is an LTR-isolated run |
+| W7 | Every Plan card had an orange Edit — three primaries on one view | Plan | Card actions are secondary (blueprint §7: one orange primary per view) |
+| W8 | The four tabs stretched across ~1,100 px | desktop | The tab bar is capped at a readable width |
+| W9 | The email row used the chat icon | Profile | A mail icon |
+| W10 | Back, the week arrows and row chevrons pointed the wrong way in Arabic: they had an extra `rtl:rotate-180` on top of the icons' own mirroring (found by the layout spec's "back chevron mirrored" check at every width) | AR / AR-EG, all widths | Removed; the icons mirror themselves (B1.8) |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| Progress › Check-ins keeps the per-client page's look ("Request" first, its own title) — reviewing in place is on Summary (CO-13) | B3.9 |
+| The Nutrition, Cardio, Photos and day views keep their B1 look inside Progress | B3.9 |
+| The plan editors (B34-R1: a legacy plan opens "unsaved") | B3.5 |
+| The shared red pill on client / admin screens (B33-R1) and check-in bidi (B32-R1) | B3.9 |
+
+### 5. Not covered
+
+Physical devices, screen readers beyond axe, and clients with years of logs (Progress reads 8 weeks — B34-R2).
+
+### 6. Owner review addition — the client's closed check-in (2026-10-18)
+
+One new client state: a previous coach's request left open, opened from an old notification link or a saved draft, reads **"This check-in has closed"**. It explains why, says the answers are still saved on this device, shows them read-only (stats grid + notes, the existing summary component) and offers **Open check-ins** as the single primary. No wizard, no leave guard.
+
+| Check | Result |
+|---|---|
+| Spec 88 "the transferred client …" (EN + AR, 390) | text and saved answers present; `dir` ltr / rtl; **0 px overflow**; axe **0 violations** (both languages); shots `client-closed-checkin-en-390`, `client-closed-checkin-ar-390` |
+| Compatibility runner (390, EN) | `e2e-out/b34-compat-4/S2-new-closed.png`, `S3-b-new-closed.png`, `S5-b-closed.png` — the same state reached after a hand-over, after an update with a queued B3.3 submission, and after an update with a B3.3 draft |
+| Older builds, for reference | `S2-rc2-refused.png` / `S2-b33-refused.png` — RC2 shows its generic "Something went wrong." with the answers still on screen; B3.3 its "wasn't sent — your answers are kept" |
+
+Reviewed by eye: one primary, the date range in the eyebrow, the notes kept in the client's own direction (the existing summary component, `whitespace-pre-wrap`), Arabic copy in both registers (AR formal, AR-EG colloquial).
