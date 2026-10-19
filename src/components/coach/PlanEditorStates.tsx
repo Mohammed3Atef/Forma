@@ -16,11 +16,14 @@ export function PlanEditorGate({
   kind,
   onRetry,
   onCreate,
+  onFromTemplate,
 }: {
   status: Exclude<PlanEditorStatus, 'ready'>;
   kind: PlanVersionKind;
   onRetry: () => void;
   onCreate: () => void;
+  /** B3.5: "Start from a template" beside Create (training). */
+  onFromTemplate?: () => void;
 }) {
   const { t } = useTranslation();
   if (status === 'loading') return <LoadingState variant="list" count={4} label={t('trust.planEditor.loading')} />;
@@ -32,9 +35,16 @@ export function PlanEditorGate({
         title={t(`trust.planEditor.emptyTitle.${kind}`)}
         message={t('trust.planEditor.emptyBody')}
         action={
-          <button type="button" className="btn-primary" data-testid="plan-editor-create" onClick={onCreate}>
-            <Icon name="plus" size={16} /> {t('trust.planEditor.create')}
-          </button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button type="button" className="btn-primary" data-testid="plan-editor-create" onClick={onCreate}>
+              <Icon name="plus" size={16} /> {t('trust.planEditor.create')}
+            </button>
+            {onFromTemplate && (
+              <button type="button" className="btn-secondary" data-testid="plan-editor-from-template" onClick={onFromTemplate}>
+                <Icon name="list" size={16} /> {t('trust.planEditor.fromTemplate')}
+              </button>
+            )}
+          </div>
         }
       />
     );

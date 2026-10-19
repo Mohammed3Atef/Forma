@@ -10,6 +10,7 @@ import { Pill } from '@/components/ui/Pill';
 import { useBack } from '@/hooks/useBack';
 import type { CardioPlan, MealPlan, PlanVersion, PlanVersionKind, WorkoutPlan } from '@/types';
 import { formatDate } from '@/lib/format';
+import { summarizePlan as summarize } from '@/components/coach/editor/PlanHistorySheet';
 
 type AnyPlan = WorkoutPlan | MealPlan | CardioPlan;
 const KINDS: PlanVersionKind[] = ['workout', 'nutrition', 'cardio'];
@@ -18,28 +19,14 @@ function isKind(v: string): v is PlanVersionKind {
   return (KINDS as string[]).includes(v);
 }
 
-/** A short, kind-specific summary line for the compare view. */
-function summarize(kind: PlanVersionKind, plan: AnyPlan | null | undefined, t: (k: string, o?: Record<string, unknown>) => string): string {
-  if (!plan) return t('planVersions.noPlan');
-  if (kind === 'workout') {
-    const p = plan as WorkoutPlan;
-    return `${t('coachEditor.dayCount', { n: p.days.length })} · ${t('coachEditor.exerciseCount', { n: Object.keys(p.exercises ?? {}).length })}`;
-  }
-  if (kind === 'nutrition') {
-    const p = plan as MealPlan;
-    return `${p.targets?.calories ?? 0} kcal · P${p.targets?.protein ?? 0} · ${t('planVersions.mealCount', { n: p.meals?.length ?? 0 })}`;
-  }
-  const p = plan as CardioPlan;
-  return t('planVersions.sessionCount', { n: p.sessions?.length ?? 0 });
-}
-
 /** Coach view of a plan's version history: list, compare summary, and restore. */
 export function PlanVersionHistory() {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const { clientId = '', kind: kindParam = 'workout' } = useParams();
   const kind: PlanVersionKind = isKind(kindParam) ? kindParam : 'workout';
-  const goBack = useBack(`/coach/client/${clientId}`);
+  // NAV-K10 (B3.5): a cold link goes back to the plan's editor — its semantic parent (navContract).
+  const goBack = useBack(`/coach/client/${clientId}/${kind}`);
 
   const versions = useQuery({ queryKey: ['planVersions', clientId, kind], queryFn: () => listVersions(clientId, kind), enabled: !!clientId });
   const current = useQuery<AnyPlan | null>({

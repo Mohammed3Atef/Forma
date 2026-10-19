@@ -28,7 +28,9 @@ export type CommercialReasonCode =
   | 'NOT_FROZEN'
   // B3.4 compatibility gate
   | 'CHECKIN_STALE' // the check-in is a previous coach's request left open — nobody's to answer now
-  | 'CHECKIN_AMBIGUOUS'; // a submission by week alone (an older app) while the week has two open requests
+  | 'CHECKIN_AMBIGUOUS' // a submission by week alone (an older app) while the week has two open requests
+  // B3.5
+  | 'TARGETS_CONFLICT'; // a daily target changed since the editor read it (per-field compare-and-set)
 
 export class CommercialReason extends Error {
   readonly reason: CommercialReasonCode | string;

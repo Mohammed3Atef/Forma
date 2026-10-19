@@ -8,6 +8,7 @@ import { coachNotesCol, coachTargetsCol } from '../../client/_lib/db.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
 import { notify } from '../../client/_lib/notify.js';
+import { CommercialReason } from '../../_lib/commercialReason.js';
 import type { CoachNoteDoc, CoachTargetsDoc } from '../../client/_lib/types.js';
 
 const NoteScreenEnum = z.enum(['nutrition', 'workout', 'cardio', 'progress', 'measurements', 'photos']);
@@ -154,6 +155,10 @@ async function assertNoteAuthor(user: Parameters<typeof canWriteCoachOwned>[0], 
   throw new TRPCError({ code: 'FORBIDDEN', message: 'Only the author can change this note' });
 }
 
+const TARGET_FIELDS = ['waterMl', 'steps', 'cardioMin', 'calories', 'protein'] as const;
+const TargetValue = z.number().finite().min(0).max(1_000_000).nullable().optional();
+const TargetValuesSchema = z.object({ waterMl: TargetValue, steps: TargetValue, cardioMin: TargetValue, calories: TargetValue, protein: TargetValue }).strict();
+
 /** The singleton `coachTargets` doc — coach-owned: client read-only, only the assigned coach / admin(clients.writeAll) may write. */
 export const coachTargetsRouter = router({
   get: authedProcedure.input(z.object({ clientId: z.string().optional() }).optional()).query(async ({ ctx, input }) => {
@@ -185,5 +190,55 @@ export const coachTargetsRouter = router({
       await (await coachTargetsCol()).replaceOne({ _id: clientId }, clean, { upsert: true });
       await notify({ clientId, forRole: 'client', type: 'targets_updated', screen: 'nutrition', route: '/nutrition', createdBy: ctx.user.id });
       return clean;
+    }),
+
+  /**
+   * B3.5 (B35-R2): change some targets with optimistic concurrency, per field. For each field in
+   * `patch` the caller sends, in `expected`, the value it was editing from (`null` = not set). The
+   * write lands only if those fields still hold those values — checked and written in one atomic
+   * update — so a stale editor (another tab, another device) can never overwrite a newer save, and
+   * a change to a different target (water, calories, protein) never conflicts. Fields not in the
+   * patch are kept; `null` in the patch clears a target. A mismatch is `CONFLICT` with reason
+   * `TARGETS_CONFLICT` and nothing is written. Authorization and the client notice are `set`'s.
+   * `set` (whole-document replace) stays for compatibility; no client build calls it.
+   */
+  update: authedProcedure
+    .input(z.object({ clientId: z.string().optional(), patch: TargetValuesSchema, expected: TargetValuesSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const clientId = resolveClientId(input.clientId, ctx.user);
+      if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
+      const keys = TARGET_FIELDS.filter((k) => input.patch[k] !== undefined);
+      if (keys.length === 0) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Nothing to change' });
+      for (const k of keys) if (input.expected[k] === undefined) throw new TRPCError({ code: 'BAD_REQUEST', message: `expected.${k} is required` });
+      const now = Date.now();
+      const col = await coachTargetsCol();
+      const filter: Record<string, unknown> = { _id: clientId };
+      for (const k of keys) filter[k] = input.expected[k] ?? null; // `null` matches "not set"
+      const $set: Record<string, unknown> = { updatedBy: ctx.user.id, updatedAt: now };
+      const $unset: Record<string, ''> = {};
+      for (const k of keys) {
+        const v = input.patch[k];
+        if (v === null) $unset[k] = '';
+        else $set[k] = v;
+      }
+      const conflict = () => new TRPCError({ code: 'CONFLICT', message: 'TARGETS_CONFLICT', cause: new CommercialReason('TARGETS_CONFLICT') });
+      let saved: CoachTargetsDoc | null = await col.findOneAndUpdate(filter as Filter<CoachTargetsDoc>, { $set, ...(Object.keys($unset).length ? { $unset } : {}) }, { returnDocument: 'after' });
+      if (!saved) {
+        // No match: either the targets changed since the editor read them, or there is no document
+        // yet — which is only a create when the editor expected every field it changes to be unset.
+        const exists = await col.countDocuments({ _id: clientId }, { limit: 1 });
+        if (exists || keys.some((k) => input.expected[k] != null)) throw conflict();
+        const doc: CoachTargetsDoc = { _id: clientId, clientId, updatedBy: ctx.user.id, updatedAt: now };
+        for (const k of keys) if (input.patch[k] != null) doc[k] = input.patch[k] as number;
+        try {
+          await col.insertOne(doc);
+        } catch (e) {
+          if ((e as { code?: number }).code === 11000) throw conflict(); // created by someone else a moment ago
+          throw e;
+        }
+        saved = doc;
+      }
+      await notify({ clientId, forRole: 'client', type: 'targets_updated', screen: 'nutrition', route: '/nutrition', createdBy: ctx.user.id });
+      return saved;
     }),
 });

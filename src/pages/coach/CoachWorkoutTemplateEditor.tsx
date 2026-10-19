@@ -1,20 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { pickFreshDraft } from '@/lib/draft';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import localforage from 'localforage';
-import { TopBar } from '@/components/TopBar';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { TextInput } from '@/components/ui/Field';
-import { SubmitButton } from '@/components/ui/SubmitButton';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { SelectField, TextInput } from '@/components/ui/Field';
 import { showToast } from '@/stores/toastStore';
-import { PlanBuilder } from '@/components/workout/PlanBuilder';
+import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
+import { TrainingBuilder } from '@/components/coach/editor/TrainingBuilder';
 import { useSession } from '@/services/auth/sessionStore';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
+import { confirmLeave } from '@/stores/navGuardStore';
 import { uid } from '@/lib/utils';
+import { normalizeWorkoutBody, serializeWorkoutBody } from '@/lib/workoutPlanModel';
 import { getWorkoutTemplate, saveWorkoutTemplate } from '@/services/platform/coachAssetsApi';
-import { confirmDialog } from '@/stores/dialogStore';
-import type { Exercise, SplitType, WorkoutDay, WorkoutGoal, WorkoutTemplate } from '@/types';
+import type { SplitType, WorkoutGoal, WorkoutTemplate } from '@/types';
 
 const draftStore = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
 const GOALS: WorkoutGoal[] = ['hypertrophy', 'fat_loss', 'strength', 'beginner', 'advanced', 'custom'];
@@ -25,14 +28,22 @@ function blankTemplate(coachId: string): WorkoutTemplate {
   return { id: uid('wtpl'), coachId, name: '', goal: 'hypertrophy', splitType: 'ppl', days: [], exercises: {}, createdAt: now, updatedAt: now };
 }
 
+/**
+ * A coach's workout template (B3.5): the plan editors' builder and frame, the shared unsaved-changes
+ * guard on every exit (B3-C01, NAV-K05) and a draft per coach and template. A template that fails
+ * to load is an error with Retry — never a blank template to fill in (C1). Templates stay
+ * last-write-wins (O-13). Save and Back replace the editor in history, so Back from the preview
+ * never returns into it (NAV-K04).
+ */
 export function CoachWorkoutTemplateEditor() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { templateId = 'new' } = useParams();
   const coachId = useSession((s) => s.account?.id ?? '');
+  const isDesktop = useIsDesktop();
   const isNew = templateId === 'new';
-  const draftKey = `workoutTemplateDraft:${templateId}`;
+  const draftKey = `workoutTemplateDraft:${coachId}:${templateId}`;
 
   const query = useQuery({
     queryKey: ['workoutTemplate', coachId, templateId],
@@ -40,104 +51,104 @@ export function CoachWorkoutTemplateEditor() {
     enabled: !isNew && !!coachId,
   });
   const [tpl, setTpl] = useState<WorkoutTemplate | null>(null);
-  // Baseline = the last SAVED template (JSON). Dirty is COMPUTED by comparing the
-  // current draft to it — so a leftover draft that matches the saved template is
-  // NOT "dirty" (fixes the false "unsaved changes" prompt), while a draft with
-  // real edits still warns on exit.
+  const [dayId, setDayId] = useState<string | null>(null);
+  const selectDay = useCallback((id: string | null) => setDayId(id), []);
+  // Baseline = the saved template in the editor's working shape; a restored draft is a real edit.
   const baselineRef = useRef<string>('');
 
+  const missing = !isNew && query.isSuccess && !query.data;
   useEffect(() => {
-    if (tpl !== null || (!isNew && query.isLoading)) return;
+    if (tpl !== null || !coachId || (!isNew && !query.data)) return;
+    const savedTpl = isNew ? blankTemplate(coachId) : query.data!;
     void draftStore.getItem<WorkoutTemplate>(draftKey).then((draft) => {
-      const base = isNew ? blankTemplate(coachId) : query.data ?? blankTemplate(coachId);
-      const initial = (isNew ? draft : pickFreshDraft(draft, query.data)) ?? base; // stale drafts (server changed since) are discarded — see lib/draft.ts
-      // Baseline = the state we actually open with (draft OR saved) — so opening
-      // is NEVER dirty; the prompt fires only after a real edit.
-      baselineRef.current = JSON.stringify(initial);
-      setTpl(initial);
+      const saved = normalizeWorkoutBody(savedTpl);
+      baselineRef.current = JSON.stringify(saved);
+      const fresh = draft ? (isNew ? draft : pickFreshDraft(draft, savedTpl)) : null; // stale drafts are dropped (lib/draft.ts)
+      setTpl(fresh ? normalizeWorkoutBody(fresh) : saved);
     });
-  }, [isNew, query.isLoading, query.data, tpl, draftKey, coachId]);
+  }, [isNew, query.data, tpl, draftKey, coachId]);
 
   const dirty = tpl !== null && JSON.stringify(tpl) !== baselineRef.current;
-
   useEffect(() => {
     if (tpl && dirty) void draftStore.setItem(draftKey, tpl);
   }, [tpl, dirty, draftKey]);
+  const discardDraft = useCallback(() => void draftStore.removeItem(draftKey), [draftKey]);
+  useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, discardDraft);
 
   const save = useMutation({
-    mutationFn: () => saveWorkoutTemplate(tpl!),
+    mutationFn: () => saveWorkoutTemplate(serializeWorkoutBody(tpl!)),
     onSuccess: async () => {
       await draftStore.removeItem(draftKey);
       baselineRef.current = JSON.stringify(tpl);
       void qc.invalidateQueries({ queryKey: ['workoutTemplates', coachId] });
       void qc.invalidateQueries({ queryKey: ['workoutTemplate', coachId, tpl!.id] });
       showToast({ title: t('common.saved'), variant: 'success' });
-      navigate(`/coach/templates/${tpl!.id}`); // back to the read-only preview
+      navigate(`/coach/templates/${tpl!.id}`, { replace: true }); // the read-only preview, in place of the editor
     },
   });
 
   const exit = async () => {
-    if (dirty && !(await confirmDialog({ title: t('coachEditor.unsavedTitle'), message: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave'), danger: true }))) return;
-    await draftStore.removeItem(draftKey); // never leave a stale/discarded draft behind
-    navigate(isNew ? '/coach/templates' : `/coach/templates/${templateId}`);
+    if (!isDesktop && dayId && tpl) {
+      setDayId(null);
+      return;
+    }
+    if (!(await confirmLeave())) return; // the shared guard (Leave discards the draft)
+    navigate(isNew ? '/coach/templates' : `/coach/templates/${templateId}`, { replace: true });
   };
 
+  const title = t('workoutTemplate.editorTitle');
   if (!tpl) {
     return (
-      <>
-        <TopBar testId="coach-template-editor" title={t('workoutTemplate.editorTitle')} eyebrow={t('platform.coachPortal')} onBack={() => void exit()} />
-        <LoadingState variant="list" count={4} />
-      </>
+      <PlanEditorShell testId="coach-template-editor" prefix="template" title={title} onBack={() => void exit()}>
+        {!isNew && query.isError ? (
+          <ErrorState message={t('workoutTemplate.loadFailed')} onRetry={() => void query.refetch()} testId="template-load-error" />
+        ) : missing ? (
+          <p className="py-10 text-center text-sm text-earth-muted" data-testid="template-not-found">
+            {t('workoutTemplate.notFound')}
+          </p>
+        ) : (
+          <LoadingState variant="list" count={4} />
+        )}
+      </PlanEditorShell>
     );
   }
 
   const patch = (p: Partial<WorkoutTemplate>) => setTpl((cur) => (cur ? { ...cur, ...p } : cur));
-  const change = (days: WorkoutDay[], exercises: Record<string, Exercise>) => patch({ days, exercises });
-
-  const header = (
+  const details = (
     <div className="space-y-3">
-      {save.isError && <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{(save.error as Error)?.message || t('coachEditor.saveFailed')}</p>}
-      <TextInput label={t('field.name')} data-testid="template-name" value={tpl.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t('workoutTemplate.namePlaceholder')} />
-      <div>
-        <div className="label mb-1.5">{t('workoutTemplate.goal')}</div>
-        <div className="flex flex-wrap gap-2">
+      <TextInput label={t('field.name')} data-testid="template-name" value={tpl.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t('workoutTemplate.namePlaceholder')} dir="auto" />
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField label={t('workoutTemplate.goal')} data-testid="template-goal" value={tpl.goal} onChange={(e) => patch({ goal: e.target.value as WorkoutGoal })}>
           {GOALS.map((g) => (
-            <button key={g} type="button" className={`chip ${tpl.goal === g ? 'chip-on' : ''}`} onClick={() => patch({ goal: g })}>
+            <option key={g} value={g}>
               {t(`workoutTemplate.goals.${g}`)}
-            </button>
+            </option>
           ))}
-        </div>
-      </div>
-      <div>
-        <div className="label mb-1.5">{t('workoutTemplate.split')}</div>
-        <div className="flex flex-wrap gap-2">
+        </SelectField>
+        <SelectField label={t('workoutTemplate.split')} data-testid="template-split" value={tpl.splitType} onChange={(e) => patch({ splitType: e.target.value as SplitType })}>
           {SPLITS.map((s) => (
-            <button key={s} type="button" className={`chip ${tpl.splitType === s ? 'chip-on' : ''}`} onClick={() => patch({ splitType: s })}>
+            <option key={s} value={s}>
               {t(`workoutTemplate.splits.${s}`)}
-            </button>
+            </option>
           ))}
-        </div>
+        </SelectField>
       </div>
-      {dirty && <p className="text-[12px] text-warn">{t('coachEditor.unsavedIndicator')}</p>}
     </div>
   );
 
   return (
-    <>
-      <TopBar
-        testId="coach-template-editor"
-        title={t('workoutTemplate.editorTitle')}
-        eyebrow={t('platform.coachPortal')}
-        onBack={() => void exit()}
-        right={
-          <SubmitButton type="button" data-testid="template-save" pending={save.isPending} disabled={!tpl.name.trim()} className="h-[42px] px-4 text-xs" onClick={() => save.mutate()}>
-            {t('common.save')}
-          </SubmitButton>
-        }
-      />
+    <PlanEditorShell
+      testId="coach-template-editor"
+      prefix="template"
+      title={title}
+      onBack={() => void exit()}
+      state={{ saving: save.isPending, dirty, justSaved: false, conflict: false, saveFailed: save.isError, canSave: !save.isPending && tpl.name.trim().length > 0 }}
+      onSave={() => save.mutate()}
+      saveLabel={t('common.save')}
+    >
       <div data-testid="coach-desktop-plan-builder">
-        <PlanBuilder days={tpl.days} exercises={tpl.exercises} onChange={change} coachId={coachId} header={header} />
+        <TrainingBuilder body={tpl} onChange={(b) => patch({ days: b.days, exercises: b.exercises })} coachId={coachId} details={details} selectedDayId={dayId} onSelectDay={selectDay} />
       </div>
-    </>
+    </PlanEditorShell>
   );
 }

@@ -768,3 +768,198 @@ OD-NOTES is marked decided.
 - OD-NOTES decided.
 
 **Status: B3.4 closed after the owner review — committed locally (not pushed). B3.5 next.**
+
+## B3.5 — Plan editors (2026-10-18)
+
+**Owner brief (2026-10-18, with the B3.4 review):** Premium Plan Editors only.
+1. Fix B34-R1 first: an older training plan must not open "unsaved"; normalise it for editing without writing anything; keep version history, drafts and compare-and-set.
+2. Rebuild the training, nutrition and cardio editors for phones and a dense desktop.
+3. Preserve every field: RIR, tempo, notes, sets / reps, nutrition instructions, cardio and step targets where supported.
+4. Coach ownership with the client read-only; a failed load is never an empty plan; unsaved work protected (tabs, navigation, reload, browser Back, offline) as far as the architecture allows; version history and conflict resolution kept.
+5. No unapproved schema change, silent migration or destructive save.
+6. EN / AR / AR-EG, RTL, accessibility, 360–1440. B2 client, admin, marketing, auth and legal unchanged.
+
+Stop for review: no commit, no B3.6, no push or deploy.
+
+**Not changed:** no client-app screen, admin, marketing, auth / legal; the server, except one additive procedure added in the owner review (`coachTargets.update`, §8 — no schema, index or data change). Shared additions only: an `arrowDown` icon, the `typeLocalized` helper beside `applyLocalizedEdit` (unchanged), and a relative import in `lib/workoutPresets.ts`; the client bundle's `ClientApp` chunk is byte-identical. No production data touched; isolated fixtures only (`e2e-ed-` ids, removed after each run).
+
+### 1. What changed
+
+**1.1 B34-R1 — older plans open unchanged** (`src/lib/workoutPlanModel.ts`, `src/hooks/usePlanEditor.ts`).
+- The B1 builder migrated days without `sections` the moment it opened (random section id, a localised title) and reported that as an edit: the plan read "Unsaved changes", a draft was written, every exit asked, and update installs waited.
+- Now the editor works on a **normalised working copy taken before the baseline**: a flat day (`exerciseIds` only) or a `sections: []` day gets ONE implicit, untitled section whose id is derived from the day and encodes its stored shape. Opening changes nothing, twice the same.
+- On save a day that is still in that shape is written back **exactly as stored** (no `sections` key / `sections: []`); a day the coach gives named sections is stored with them (sections stay in the data model, O-8).
+- `usePlanEditor` gains `normalize` / `serialize` (applied to server data, drafts, saved responses and reloads), opens on a fresh read when a cached copy exists, reports a restored draft (`draftRestored`, with `revertToSaved`), and fails a save at once when offline instead of showing "Saving…" until reconnect. Load gate, `baseUpdatedAt` compare-and-set, overwrite re-read, version capture and per-coach drafts are unchanged (C1–C4).
+- The same model runs the template editor.
+
+**1.2 The editor frame** (`src/components/coach/editor/PlanEditorShell.tsx`, blueprint §6.4 shared rules).
+- Phones: a full-screen task (its own layer above the shell header and tabs, like the client check-in). Tablet / desktop: a page in the shell.
+- One header: the only Back, the title, the client's name, History, and a More menu.
+- A bottom bar with the save state (`saving · changed elsewhere · offline — kept on this device · not saved · unsaved · saved · all saved`) and Save. It sits outside the scrolling body, so it never covers an input, and on phones it is lifted above the on-screen keyboard (`useKeyboardInset`, Visual Viewport API; elsewhere it keeps its place).
+- Shared notices: changed elsewhere (load latest / keep mine), not saved, offline (Save disabled, "your changes are kept on this device"), restored draft (Discard).
+- **History as a sheet** (`PlanHistorySheet.tsx`, RM-39): save with a note, the versions, restore. Restore asks first — and says unsaved edits will be discarded — then the editor reloads the restored plan (B3-S10). The old `…/versions/:kind` route is behind the plan gate (B3-C02) and goes back to its editor (NAV-K10).
+- Before a plan exists the frame shows the B0 gate without any Save (C1); "No plan yet" adds **Start from a template** for training.
+
+**1.3 Training** (`src/components/coach/editor/TrainingBuilder.tsx`, `ExerciseProgrammingSheet.tsx`; replaces `PlanBuilder.tsx`, deleted).
+- Phones: two levels — the plan (name, template line, client context, days) and a day (title, focus, its exercises). The header Back steps from a day up to the plan. Desktop: the days as a tree on the left (the selected day's exercises listed under it), the selected day on the right as a dense table (exercise · sets × reps · rest · RIR · tempo · actions).
+- Sections: a day with only its untitled section shows no header; named sections (title + type: warm-up, working, mobility, finisher…) are groups. Unknown stored types are shown as "Workout" and never rewritten.
+- Rows: name, `sets × reps`, rest, RIR, tempo, a video mark; move up / down (through the whole day, crossing sections) and one options menu (move to section, duplicate, delete with confirmation). Days and sections move from their menus.
+- **Programming sheet** (B3-C03 / O-10, CO-26-R): name, presets, working and warm-up sets, reps, rest, **RIR**, **tempo**, notes EN + AR, progression notes, video (link or upload). Library metadata (muscle, category, equipment, tags) is edited only in the Library. Applying changes only the fields the coach changed; the library link logic is kept (a synced-field edit turns automatic updates off and says so; Update / Reconnect).
+- **Picker**: search, muscle and equipment filters, a media mark, "Recently used" (per coach, on this device), "Create a new exercise" as the last row; a library that fails to load is an error with Retry — not "your library is empty" (it was).
+- Save as template from the More menu; it saves the stored shape.
+
+**1.4 Nutrition** (`src/pages/coach/CoachNutritionEditor.tsx`, `src/lib/nutritionPlanModel.ts`).
+- Targets first (kcal, protein, carbs, fat, water) with **planned vs target as four rows** (planned / target, signed difference; foods without macros counted as incomplete, never as 0 kcal).
+- Meals collapsed to name · slot · foods · kcal (the first one open); open: bilingual label, slot as one select, foods with move up / down and a confirmed delete; meals move from their menu.
+- One food sheet: your foods, the food database search, name EN + AR, quantity, macros, approved alternatives, custom foods. Applying keeps every untouched field — the alternatives snapshot changes only when the coach picks another group or none (a group deleted from the library keeps the snapshot the client already has; before, it was silently dropped).
+- Supplements: name, dose EN + AR, timing EN + AR, move up / down, confirmed delete (it had none).
+- **Notes for the client** and **Drinks** (`generalNotes`, `beverageNotes`, O-10): bilingual rows, add / move / delete; blank rows are not saved.
+- Substitution policy as switches. Desktop: meals, supplements, notes left; targets, totals, policy right.
+- Found and fixed: the meal label trimmed itself on every keystroke, so a typed space vanished ("Big b" → "Bigb"). Live fields now use `typeLocalized` (no trim); the plan is trimmed when saved.
+
+**1.5 Cardio** (`src/pages/coach/CoachCardioEditor.tsx`, `src/services/platform/coachTargetsApi.ts`).
+- Sessions (type, duration, frequency, notes) with move up / down and a confirmed delete; desktop keeps the session form beside the list.
+- **Daily movement** (O-11, CO-19): steps per day and cardio minutes per day — the targets the client already sees. One Save: the plan through compare-and-set, then the changed targets through the server's per-field compare-and-set (`coachTargets.update`, owner review §8.1); both kept in local drafts (§8.2). A targets-only change does not create a plan version. A failed targets read disables only the targets.
+- Session notes stay one text (the model and the client app store a string; a bilingual field is a data-model change — B35-R1).
+
+**1.6 Templates** (`src/pages/coach/CoachWorkoutTemplateEditor.tsx`): the same builder and frame; the shared guard on every exit and a draft per coach and template (B3-C01); a failed load is an error, a missing template "not found" (it used to open a blank template that would save as a new one); Save and Back replace the editor in history (NAV-K04). Templates stay last-write-wins (O-13).
+
+**1.7 Robustness**: each editor normalises missing lists, labels, names and doses in the working copy only (older / malformed stored data opens instead of crashing; nothing is invented or written until Save).
+
+**1.8 Strings**: 107 keys in English and 119 in Arabic and Egyptian Arabic (all six Arabic plural forms); 15 keys the old builder used are removed; the cardio hint no longer promises a Targets screen. The client's own text in rows is isolated (`<bdi>`), so English names keep their place in Arabic rows.
+
+### 2. Data and API contract
+
+| | Before | After |
+|---|---|---|
+| Training plan read → editor | days without sections migrated on open (random id), plan "unsaved" | normalised copy before the baseline; nothing changes until Save |
+| Training plan save | the migrated shape | days still in their stored shape written back exactly; named sections stored as sections; `exerciseIds` = sections flattened |
+| Exercise edit | the B1 form (no RIR / tempo; muscle / category / tags editable here) | programming fields incl. RIR / tempo; untouched fields kept exactly |
+| Food edit | the item rebuilt (a deleted group dropped its alternatives) | untouched fields kept; alternatives change only on a new choice |
+| Daily targets | not settable by coaches | `coachTargets.update`: changed fields + the values they were edited from, one atomic compare-and-set (owner review §8.1) |
+| Template open | failed load → blank template | error / not found |
+
+No schema migration, no index change, no stored-data rewrite. Authorization unchanged (plans and targets: assigned coach / admin write, client read-only — `planSafety.test.ts`).
+
+### 3. Tests
+
+| Test | Proves |
+|---|---|
+| `src/lib/workoutPlanModel.test.ts` (new, 8) | flat / `sections: []` days round-trip byte-for-byte and deterministically; sectioned days pass through; unknown kinds; new days stay flat; named sections; moves cross sections; remove / duplicate keep `exerciseIds` in sync and ids stable; malformed data |
+| `src/lib/nutritionPlanModel.test.ts` (new, 6) | real totals and incomplete foods; untouched food edits are identity; group change / none / deleted group; new food; blank notes; malformed plans |
+| `src/pages/coach/CoachWorkoutEditor.test.tsx` (+5, now 8) | B34-R1 (opens clean, no guard, a name-only save keeps the days and exercises); RIR / tempo applied with every other field kept; phones: Back steps up a level; restored draft + Discard; offline: Save disabled, bar says kept |
+| `src/pages/coach/CoachNutritionEditor.test.tsx` (new, 4) | opens clean with four total rows; untouched food apply is a no-op; bilingual label / dose / notes, reorder, every other field saved as it was; typed spaces kept; blank notes and confirmed supplement delete |
+| `src/pages/coach/CoachCardioEditor.test.tsx` (new, 2) | targets-only change saves the targets, not a plan version; sessions reorder and keep their fields; a failed targets read never blocks the plan |
+| `src/services/platform/coachTargetsApi.test.tsx` (new, 3) | only changed fields are sent, with their edited-from values; the conflict refusal is recognised; reads (owner review) |
+| `src/hooks/useKeyboardInset.test.tsx` (new, 2) | the inset the on-screen keyboard covers (scrolled or not); 0 when closed, for browser-chrome jitter, or without the Visual Viewport API |
+| `e2e3/specs/89-b3-editors.spec.ts` (new, 12) | the B34-R1 plan in the browser (DB untouched); training round-trip in the DB (sections, order, RIR / tempo / notes AR / progression, untouched exercise and day byte-for-byte, `weeklyVolume`, meta); phones full-screen task + Back; nutrition round-trip; cardio + targets merge + client notified; reload / offline / browser Back with drafts; History (note, restore with unsaved edits); no plan yet + picker; templates (not found, guard, history replace); Arabic; axe EN + AR × 390 / 1440 on the three editors and two sheets; the visual matrix |
+
+**§T — spec changes forced by B3.5:**
+- 22: the day shows its sections directly (no section level) — `openSection` asserts the section instead of clicking into it; exercise rows are opened by `builder-exercise-open` (the row's move / options buttons are named after the exercise too); the video mark is `ex-row-video` (was the 🎬 character).
+
+### 4. Verification (before the owner review — final results in §8.4)
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 812 / 812 in 95 files** (B3.4: 782 in 89; +30; final run after the last fixes). One earlier full run reported a teardown error in `coachAssets.test.ts` with every test passing; it passed alone (23 / 23) and in the next full run |
+| Build | **PASS**. Entry 472.99 / 152.95 kB gzip (B3.4: 469.52 / 151.90; +1.05 kB gzip — the new strings). `ClientApp` 39.02 / 12.27 (byte-identical). `CoachApp` 24.24 / 8.05. Editor chunks (lazy): `TrainingBuilder` 26.86 / 7.98, `CoachNutritionEditor` 25.13 / 7.31, `CoachCardioEditor` 10.79 / 3.85, `CoachWorkoutEditor` 5.59 / 2.46, `CoachWorkoutTemplateEditor` 4.34 / 2.02, `PlanHistorySheet` 3.97 / 1.68. Precache 186 entries |
+| Full e2e3, all projects | **PASS — 303 passed + 1 skipped of 304** in 51.8 min (`e2e-out/b35-full-a`; the skip is the long-standing Google sign-in case). Count: B3.4's 292 + spec 89 (12). Before it: the editor-related specs 20 / 22 / 23 / 43 / 61 / 85 / 88 — 62 / 62 on the rebuild |
+| Spec 89 alone | 12 / 12 (`e2e-out/b35-89-d`, after the last visual fix E5 — a select's padding, CSS only) |
+| Accessibility (axe WCAG 2.1 A / AA) | training, programming sheet, nutrition, food sheet, cardio × EN / AR × 390 / 1440 (20 scans): **0 violations** |
+| PWA (production build) | manifest, installability, SW, offline reload, offline banner, deferred update into the new build **PASS** (the known analytics-path page error); signed-in offline boot **PASS** |
+| Visual QA | 39 full-page shots, **0 px overflow, correct `dir`**; `B3_VISUAL_QA.md` §B3.5 |
+| Physical devices | **Not run** |
+
+### 5. Backlog outcome (B3.5-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | B34-R1, CO-25, CO-10, JR-07, CO-12, TB-03, DT-04, B3-C01, B3-C02, B3-C03, B3-C05, B3-S10, RM-39, NAV-K02, NAV-K04, NAV-K05, NAV-K10, TS-05, CO-41, JR-08 |
+| **Mitigated** | B3-C04 (cardio notes → B35-R1) · CO-19, RM-67, PF-07, PF-12, RTL-06, RTL-10, CD-08 (→ B3.9) · CO-39, CO-26-R, IA-K07 (→ B3.7) · NAV-K06, RM-11 (→ B5) |
+| **Moved** | TS-04 → B3.7 (library sync) · RM-88 → B5 |
+| **New** | B35-R1 bilingual cardio notes (approved, B5) · B35-R2 targets without CAS, B35-R3 target edits not drafted (both fixed in the owner review, §8) · B35-R4 old migration drafts restore once |
+
+### 6. Known limits and risks
+
+1. **Browser / hardware Back** is not blocked (BrowserRouter; levels and sheets are not history entries — NAV-K06). Work is never lost: the draft is restored with a notice on return.
+2. **Daily targets** — fixed in the owner review (§8): per-field compare-and-set and local drafts.
+3. **Cardio notes** stay one language until B5 (B35-R1, approved).
+4. **The keyboard lift** uses the Visual Viewport API; it is verified by unit logic and layout, not on physical devices.
+5. **Old drafts** from the previous builder's migration restore once as unsaved (with Discard) — B35-R4; a clean launch has none.
+6. **Templates** stay last-write-wins (O-13).
+7. **Physical devices**, screen readers beyond axe, and very large plans (hundreds of exercises in a day) are not covered.
+
+### 7. Owner decisions requested (answered in §8)
+
+1. B35-R1: make cardio session notes bilingual (a data-model change touching the client Cardio screen) — now, later, or not?
+2. The visible changes for review: older plans open clean; the programming sheet no longer edits library metadata (CO-26-R); daily steps / cardio minutes are set in the cardio editor and the client is notified when they change; nutrition meals start collapsed (the first open).
+
+**Status (before the review): B3.5 implemented and verified locally — not committed. Stopped for the owner's review; B3.6 not started.**
+
+### 8. Owner review (2026-10-19) — data-integrity fixes before the commit
+
+**Owner decisions:**
+1. **B35-R1, bilingual cardio notes:** yes, deferred to **B5** (model, API and the client's Cardio screen together). The notes behave as before in B3.5.
+2. **The exercise sheet:** approved — canonical library metadata is edited only in the Library; a coach's programming and notes stay editable in the plan.
+3. **Nutrition meals collapsed, the first open:** approved; keyboard access, focus and screen-reader labels kept.
+4. **Browser Back:** accepted for now, provided drafts restore reliably and the coach is told; the missing guard (NAV-K06) stays in the backlog.
+5. **B35-R2 and B35-R3** had to be fixed before the commit.
+
+**8.1 B35-R2 — daily-target concurrency.**
+- *What exists:* one `coachTargets` document per client (water, steps, cardio minutes, calories, protein); the client app reads it (`clientSync`). Writers: `coachTargets.set` (whole-document replace, no concurrency check; no client build calls it — RC2 and B3.3 only read targets) and a fresh-start transfer (archives the document, then deletes it).
+- *Change — the smallest backward-compatible server change:* a new procedure, **`coachTargets.update`**: a **per-field compare-and-set**. The editor sends only the fields it changed and, for each, the value it had when the edit started. The server applies them in ONE atomic `findOneAndUpdate` filtered on those values. On a mismatch nothing is written: `CONFLICT`, reason `TARGETS_CONFLICT`.
+  - Fields not in the change are never touched, and a change to them (water, calories, protein) never conflicts — no document-wide conflicts for unrelated data.
+  - Created only when the editor expected every changed field to be unset and there is no document; two editors creating at once → one wins, the other conflicts.
+  - Same authorization as `set` (`canWriteCoachOwned`: the client's assigned active coach, or `clients.writeAll`), the same client notice. Targets writes were never audited; that is unchanged. No schema, index or data change. `set` is kept unchanged for compatibility.
+- *Detected:* another tab or device, a write through `set`, and a fresh-start transfer clearing the targets.
+- *In the cardio editor:* "The daily targets changed somewhere else" with a table of **yours** vs **saved now**, then **Keep mine** (retries from the saved values — still compare-and-set) or **Use the saved ones**. The bar says "Not saved — changed elsewhere". The edits and their draft stay until resolved.
+
+**8.2 B35-R3 — daily targets in the draft (and drafts made before a change elsewhere).**
+- Target edits have their own draft beside the plan's: `targetsDraft:<coach>:<client>`, holding the values and the values they were edited from (`useDailyTargetsEditor`).
+- It is written on every change and survives navigation, reload, browser Back and offline. It is cleared only by a successful save, "Use the saved ones", "Discard them", or a confirmed "Leave" — **never by a failed or conflicted save**.
+- A restored draft is announced. When the server changed since, the notice says so and saving is checked against the old values (a conflict) — **newer data is never overwritten automatically**.
+- **Plan drafts follow the same rule now.** A draft records the revision it was edited from (`{ v: 2, plan, base }`). Before, a draft older than the server copy was ignored and later overwritten — the coach's work was silently lost. Now it is restored on its own base and announced as stale; saving it hits the plan's compare-and-set (keep mine / load latest). Drafts written before this change (a bare plan) are still read — not migrated, not deleted. Contract C3 is refined accordingly.
+- Keys are per coach and per client: no cross-client or cross-account leakage.
+- Templates (no compare-and-set, O-13) keep the previous rule: a draft older than the saved template is not restored.
+
+**8.3 Tests added in the review**
+
+| Test | Proves |
+|---|---|
+| `api/_trpc/routers/b35TargetsConcurrency.test.ts` (new, 6) | create only when unset (the second creator conflicts); two tabs from the same values → exactly one save lands, the other `TARGETS_CONFLICT`, and the loser can retry from the new values; a water change meanwhile never conflicts and untouched targets are kept; clearing one target; the client notice; targets cleared by a fresh-start transfer → conflict, nothing recreated; a `set` write is detected; authorization (client, unrelated coach refused; admin allowed) and bad input |
+| `src/pages/coach/CoachCardioEditor.test.tsx` (now 8) | only changed fields sent, with their edited-from values; conflict panel (mine vs saved) keeps the draft, Keep mine retries from the saved values; Use the saved ones drops the draft; a failed save keeps it; leaving and returning restores it; a draft made before a change is stale — Save conflicts, Discard returns to the saved values; drafts are per client and coach |
+| `src/pages/coach/CoachWorkoutEditor.test.tsx` (now 12) | a plan draft made before a change is restored on its own base, announced as stale, Save is refused (conflict) and the draft stays; an older bare-plan draft is still read; Discard bases the next save on the current revision; no cross-client / cross-coach draft |
+| `e2e3/specs/89-b3-editors.spec.ts` (now 15) | two coach tabs on the targets (conflict shown with both values, DB never overwritten, keep mine / use the saved ones, water untouched); target drafts through reload, browser Back and offline, cleared on save, Discard; a plan draft made before another tab saved → stale, conflict, keep mine, the other version kept in History |
+
+**8.4 Verification (final code)**
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 828 / 828 in 96 files** (before the review: 812 in 95; +16 — targets concurrency 6, cardio editor +6, workout editor +4) |
+| Build | **PASS**. Entry 473.50 / 153.13 kB gzip (B3.4: 469.52 / 151.90). `ClientApp` 39.02 / 12.27 (same size as B3.4). `CoachApp` 24.24 / 8.05. Editors (lazy): `TrainingBuilder` 26.88 / 7.99, `CoachNutritionEditor` 25.15 / 7.32, `CoachCardioEditor` 14.24 / 4.92, `CoachWorkoutEditor` 5.61 / 2.47, `CoachWorkoutTemplateEditor` 4.47 / 2.08, `PlanHistorySheet` 3.97 / 1.68. Precache 186 entries |
+| Full e2e3, all projects | **PASS — 306 passed + 1 skipped of 307** in 49.7 min (`e2e-out/b35r-full-a`; the skip is the long-standing Google sign-in case). Count: B3.4's 292 + spec 89 (15) |
+| Spec 89 after the last test was added | **16 / 16** (`e2e-out/b35r-89-b`) — adds the targets conflict panel and the stale-draft notice, EN + AR at 390, axe 0 |
+| Focused | concurrency: two tabs, `set` writes, transfer clearing, creates (API 6 + e2e); drafts: reload, browser Back, offline, discard, stale, per client / coach (unit 12 + e2e 3); legacy plans (unit + e2e B34-R1, unchanged) |
+| Accessibility (axe WCAG 2.1 A / AA) | the editors and sheets × EN / AR × 390 / 1440 (20 scans) + the targets conflict panel with the stale notice × EN / AR at 390 (2 scans): **0 violations** |
+| Visual QA | 39 matrix shots, 0 px overflow, correct `dir` (unchanged layouts); the conflict panel and stale notice reviewed EN 1440 / AR 390; `B3_VISUAL_QA.md` §B3.5 |
+| PWA (production build) | manifest, installability, SW, offline reload, offline banner, deferred update **PASS** (the known analytics-path page error); signed-in offline boot **PASS** |
+| Physical devices | **Not run** |
+
+The stale-draft notice was worded more generally after the full run ("the saved version changed" — it covers targets too); a string-only change, unit suite re-run 828 / 828.
+
+**8.5 Backlog:**
+- B35-R2 and B35-R3 → **Fixed**.
+- B35-R1 → approved **B5** enhancement.
+- NAV-K06 (browser / hardware Back) stays **Mitigated** and visible (B5).
+- New **B35-R5**: retire `coachTargets.set` (no caller left) once no older build can run — B5.
+
+**8.6 Remaining limitations:**
+1. Browser / hardware Back is not blocked (NAV-K06); drafts restore with a notice.
+2. Cardio session notes stay one language until B5 (B35-R1).
+3. Templates stay last-write-wins (O-13).
+4. The keyboard lift and everything else are not verified on physical devices.
+5. `coachTargets.set` remains, unconditional, for compatibility (no caller; B35-R5).
+
+**Status: B3.5 closed after the owner review — committed locally (not pushed). B3.6 not started.**

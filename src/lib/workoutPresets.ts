@@ -1,4 +1,4 @@
-import { uid } from '@/lib/utils';
+import { uid } from './utils';
 import type { Exercise, SectionKind } from '@/types';
 
 /** Quick set/rep/rest presets the coach can apply to an exercise. */

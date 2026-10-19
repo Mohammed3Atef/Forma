@@ -24,6 +24,17 @@ export function applyLocalizedEdit(orig: LocalizedText | undefined | null, value
   return { ...prev, [edited]: v, [other]: otherWasCopy ? v : prev[other] } as LocalizedText;
 }
 
+/**
+ * The same rule while typing in a live field (B3.5): the value is not trimmed, so a space can be
+ * typed (trimming on every keystroke turned "Big b" into "Bigb"). Trim when saving.
+ */
+export function typeLocalized(orig: LocalizedText | undefined | null, value: string, edited: TextLang): LocalizedText {
+  const prev: LocalizedText = { en: orig?.en ?? '', ar: orig?.ar ?? '' };
+  const other = otherLang(edited);
+  const otherWasCopy = !prev[other].trim() || prev[other].trim() === prev[edited].trim();
+  return { ...prev, [edited]: value, [other]: otherWasCopy ? value : prev[other] } as LocalizedText;
+}
+
 /** Both languages set explicitly (a form that shows both fields). */
 export function setLocalized(en: string, ar: string): LocalizedText {
   return { en: en.trim(), ar: ar.trim() };

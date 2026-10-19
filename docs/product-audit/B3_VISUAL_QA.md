@@ -272,3 +272,74 @@ One new client state: a previous coach's request left open, opened from an old n
 | Older builds, for reference | `S2-rc2-refused.png` / `S2-b33-refused.png` — RC2 shows its generic "Something went wrong." with the answers still on screen; B3.3 its "wasn't sent — your answers are kept" |
 
 Reviewed by eye: one primary, the date range in the eyebrow, the notes kept in the client's own direction (the existing summary component, `whitespace-pre-wrap`), Arabic copy in both registers (AR formal, AR-EG colloquial).
+
+## B3.5 — Plan editors (2026-10-18)
+
+**Scope reviewed:**
+- the training editor (plan level, a day, the desktop day table, the programming sheet, the picker);
+- the nutrition editor (targets, planned vs target, meals, food sheet, supplements, notes, policy);
+- the cardio editor (daily movement, sessions, the session form);
+- English, Arabic and Egyptian Arabic, 360–1440 px.
+
+Fixtures on coachPro (`e2e-ed-` ids): a client with an older training plan (a flat day and a `sections: []` day, exercises with RIR / tempo / Arabic notes / video / library link), a nutrition plan with alternatives, supplements and drinks notes, a cardio plan and daily targets; a client with no plan. See spec 89.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/89-b3-editors.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b35-visual/<editor>-<width>-<lang>.png` (full page; phones also `…-day`) and `shots.json` (overflow, `dir`), and fails on any horizontal overflow or wrong direction. Note: full-page captures stitch the desktop save bar where it was when captured — in use it is pinned to the bottom of the window.
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 |
+| Languages | English · Arabic · Egyptian Arabic (training, 390 / 1440) |
+| Screens | the three editors at 390 and 1440 (EN, AR); training (plan + day) and nutrition at 360 / 430 / 768 / 1024 (EN, AR) |
+
+**Result:** 39 shots, **0 px horizontal overflow, correct `dir` on every shot** (`e2e-out/b35-full-a/b35-visual/`, the final full run; E5 re-checked in `e2e-out/b35-89-d`). axe (WCAG 2.1 A / AA) on the three editors plus the programming and food sheets, EN + AR, 390 and 1440 (20 scans): **0 violations**.
+
+Checked on every shot:
+- one header (Back · title · client · History · More) and one bottom bar (state + Save) — the only orange primary;
+- phones: the editor covers the shell (no tab bar under it); the bar sits above the content;
+- desktop: no empty right pane (first day / meals / session form);
+- numbers: `sets × reps`, tempo and signed differences are left-to-right runs; units and macro letters translated in Arabic;
+- the client's own text (exercise, meal, food, supplement names) keeps its direction and its place in Arabic rows.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| E1 | English names in Arabic rows (client name, meals, foods, supplements, exercises) sat at the left edge — `dir="auto"` made the whole row block left-to-right | AR, all editors | display text is an isolated `<bdi>` inside a row that keeps the page direction; inputs keep `dir="auto"` |
+| E2 | The warm-up count read backwards in Arabic ("إحماء + 4 × 5 2") — it was inside the left-to-right run | AR, training rows | the warm-up count is its own phrase; only `sets × reps` is the left-to-right run |
+| E3 | Desktop table: "2 wu + 4 × 5" ran into the Rest column; the Rest column repeated "rest" in every cell | training 1024 / 1440 | column widths set; Rest cells show "180s" |
+| E4 | Phone rows ran the details together ("3 × 8-10 90s rest RIR 1") | training 390 | middle dots between the details |
+| E5 | The section-type select clipped its label in Arabic ("تمرين" lost its descenders) | AR 390 | a minimum width and no vertical padding on the select |
+| E6 | Planned vs target was a sideways-scrolling table (TB-03) | nutrition phones | four rows |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| The template preview page and Library chips | B3.7 |
+| The shared red pill (B33-R1) and check-in bidi (B32-R1) on client / admin screens | B3.9 |
+
+### 5. Not covered
+
+Physical devices (including the on-screen-keyboard lift), screen readers beyond axe, days with hundreds of exercises.
+
+### 6. Owner review addition (2026-10-19) — daily-targets conflict and stale drafts
+
+Two new states, both in spec 89:
+- **The daily-targets conflict** (cardio editor): a warning panel under the targets — "The daily targets changed somewhere else", a short explanation, a small table (target · **yours** · **saved now**), then **Keep mine** (tonal) and **Use the saved ones** (ghost). The bar says "Not saved — changed elsewhere"; Save stays the one orange primary.
+- **The stale-draft notice**: the restored-draft line says the saved version changed since and that saving will ask; **Discard them** beside it.
+
+| Check | Result |
+|---|---|
+| Conflict panel + stale notice, EN and AR at 390 (`targets-conflict-en-390`, `targets-conflict-ar-390`) | 0 px overflow; `dir` ltr / rtl; axe **0 violations**; numbers are plain digits in their own cells; the table's row headers are the target names |
+| Conflict panel, EN 1440 (`targets-conflict-1440`) | the panel stays inside the targets card; the session form beside it is unchanged |
+
+Reviewed by eye: the Arabic table reads right to left (target · yours · saved now), the buttons keep their order (Keep mine first), and nothing else on the screen moves when the panel appears.

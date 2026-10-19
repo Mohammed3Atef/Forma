@@ -104,12 +104,14 @@ async function editLibrary(page: Page, from: string, to: string, video: string) 
   await expectToast(page, 'Saved');
 }
 
-/** In an open PlanBuilder: day card → "Main" section. */
+/** In an open training editor: the first day — its sections are shown in the day (B3.5: no section level). */
 async function openSection(page: Page) {
   await page.getByTestId('builder-day-card').first().click();
-  await page.getByTestId('builder-day').getByRole('button', { name: /Main/ }).click();
-  await expect(page.getByTestId('builder-section')).toBeVisible();
+  await expect(page.getByTestId('builder-section').first()).toBeVisible();
+  await expect(page.getByTestId('section-title').first()).toHaveValue('Main');
 }
+/** An exercise row's open button (B3.5: its move / options buttons are named after the exercise too). */
+const exerciseRow = (scope: ReturnType<Page['getByTestId']>, name: string) => scope.getByTestId('builder-exercise-open').filter({ hasText: name });
 
 test('library sync: template follows library identity/media, keeps programming; client plan only on "Update from library"; override + reconnect', async ({ as, db }, testInfo) => {
   const { page } = await as('coachA');
@@ -151,7 +153,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.getByTestId('picker-lib-item').filter({ hasText: base }).click();
   await page.getByTestId('picker-add-selected').click();
   const section = page.getByTestId('builder-section');
-  await section.getByRole('button', { name: new RegExp(base) }).click();
+  await exerciseRow(section, base).click();
   await expect(page.getByText('Linked to library')).toBeVisible();
   await page.getByTestId('ex-working-sets').fill('5');
   await page.getByTestId('ex-reps').fill('5');
@@ -182,7 +184,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await openSection(page);
   await expect(page.getByTestId('builder-section')).toContainText(v2name);
   await expect(page.getByTestId('builder-section')).toContainText('5 × 5');
-  await expect(page.getByTestId('builder-section')).toContainText('🎬');
+  await expect(page.getByTestId('builder-section').getByTestId('ex-row-video')).toHaveCount(1);
   await shot(page, testInfo, '03-template-follows-library');
 
   // 4) Assign the template to clientA.
@@ -209,7 +211,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   const sec = page.getByTestId('builder-section');
   await expect(sec).toContainText(v2name);
   await shot(page, testInfo, '05-client-plan-before-update');
-  await sec.getByRole('button', { name: new RegExp(v2name) }).click();
+  await exerciseRow(sec, v2name).click();
   await page.getByRole('button', { name: 'Update from library' }).click();
   await expect(sec).toContainText(v3name);
   await expect(sec).toContainText('5 × 5');
@@ -227,7 +229,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(v3name) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), v3name).click();
   const custom = `${base} (my cue)`;
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-save').click();
@@ -248,7 +250,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(custom.replace(/[()]/g, '\\$&')) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), custom).click();
   await expect(page.getByText('Custom override — automatic library updates are disabled for this exercise')).toBeVisible();
   await page.getByRole('button', { name: 'Reconnect to library' }).click();
   await expect(page.getByTestId('builder-section')).toContainText(v4name);
@@ -287,7 +289,7 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.getByTestId('picker-add-selected').click();
   // Override a synced field (name) → sync off, link kept.
   const custom = `${base} custom`;
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(base) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), base).click();
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-working-sets').fill('4');
   await page.getByTestId('ex-save').click();
@@ -308,7 +310,7 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(custom) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), custom).click();
   await expect(page.getByText('Custom override — automatic library updates are disabled for this exercise')).toBeVisible();
   await page.getByRole('button', { name: 'Reconnect to library' }).click();
   await expect(page.getByTestId('builder-section')).toContainText(`${base} L2`);

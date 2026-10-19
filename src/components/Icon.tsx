@@ -35,6 +35,7 @@ type IconName =
   | 'trophy'
   | 'bolt'
   | 'arrowUp'
+  | 'arrowDown'
   | 'search'
   | 'ruler'
   | 'list'
@@ -101,6 +102,7 @@ const PATHS: Partial<Record<IconName, string>> = {
   trophy: 'M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 19h6M10 14.5V19M14 14.5V19',
   bolt: 'M13 3 4 14h7l-1 7 9-11h-7z',
   arrowUp: 'M12 20V5M6 11l6-6 6 6',
+  arrowDown: 'M12 4v15M6 13l6 6 6-6',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   ruler: 'M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4',
   list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
@@ -136,7 +138,7 @@ export type IconTone = keyof typeof ICON_TONES;
  * Glyphs whose MEANING has a direction (B1.8 / RTL-08): they mirror in
  * right-to-left layouts by themselves, so call sites never hand-flip them.
  * `chevron` = forward / next / open, `chevronLeft` = back / previous.
- * Media glyphs (play) and vertical ones (chevronDown, arrowUp) never mirror.
+ * Media glyphs (play) and vertical ones (chevronDown, arrowUp, arrowDown) never mirror.
  */
 const MIRROR_IN_RTL: ReadonlySet<IconName> = new Set<IconName>(['chevron', 'chevronLeft']);
 

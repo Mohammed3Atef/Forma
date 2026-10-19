@@ -113,3 +113,21 @@ Tab bar, rail, rail Me, header avatar, shell Back and every ⌘K command go thro
 | — | Plan `plan-card-<kind>[data-state]`, `plan-edit-*`, `plan-history-*`, `plan-build-*`; Profile `profile-assessment · notes · subscription · history · contact`, `profile-back`; `workspace-not-on-roster`; switcher `switcher-client-row[data-client-id]`, `switcher-needs` | 88 |
 
 **Client check-in links (B3.4 owner review, 2026-10-18).** A check-in's route id is its record key: `/check-in/<week>` for a week's first record (every existing link, draft and outbox key unchanged) and `/check-in/<week>__<coachId>` for the incoming coach's own record of a hand-over week (its notification carries that route). This release sends `byKey: true`, so `/check-in/<week>` opens exactly the week's first record; a previous coach's request left open there reads as closed (`checkin-closed`, `checkin-closed-kept`, `checkin-closed-history`) instead of a wizard that can't be sent. Older apps (RC2, B3.3) keep addressing the week and are served the week's actionable record (`B3_IMPLEMENTATION_LOG.md` §B3.4.8). Specs: 88, `e2e3/pwa/b34-checkin-compat.mjs`.
+
+## 10. B3.5 changes
+
+Routes are unchanged (the editors keep `…/workout`, `…/nutrition`, `…/cardio`, `/coach/templates/:id/edit`). `…/versions/:kind` is now behind the plan gate (B3-C02) and its cold Back goes to its editor (NAV-K10); the editors open history as a sheet.
+
+| Old | New | Specs |
+|---|---|---|
+| `TopBar` per editor (`coach-workout-editor` etc. on the bar) | the editor frame's header keeps `coach-<kind>-editor` (with its Back), adds `plan-editor-client`, `version-history` (now opens a sheet), `<prefix>-more` | 23, 85, 88, 89 |
+| status lines `<prefix>-saving / -unsaved / -saved` above the form; Save in the top bar | the same ids in the bottom bar `plan-editor-bar`, plus `-clean`, `-offline`, `-failed`, `-conflict`; Save `<prefix>-save` in the bar | 20, 23, 61, 85, 89 |
+| `version-save-new` → sheet → `version-reason` / `version-save-confirm` | the History sheet `plan-history-sheet` holds `version-reason` / `version-save-confirm`, `version-row`, `version-restore-<n>` | 89 |
+| PlanBuilder levels: `builder-day` → section button → `builder-section`; `🎬` text | the day shows its sections: `builder-section[data-section-id]` with `section-title`, `section-kind`, `section-menu`; rows `builder-exercise-row` / `builder-exercise-open`, video `ex-row-video`; `builder-day[data-day-id]`, `day-menu`, desktop `builder-day-tree` | 20, 22, 43, 89 |
+| `ExerciseForm` for plan exercises | `exercise-programming` with `ex-name`, `ex-working-sets`, `ex-warmup-sets`, `ex-reps`, `ex-rest`, `ex-rir`, `ex-tempo`, `ex-notes`, `ex-notes-ar`, `ex-progression`, `ex-video`, `ex-save` | 22, 89 |
+| picker | adds `picker-muscle`, `picker-equipment`, `picker-recent`, `picker-media`, `picker-error`; `picker-quick-create` is the last row | 20, 22, 89 |
+| nutrition chips / table | `nutrition-totals`, `nutrition-total-<k>`, `nutrition-meal[data-meal-id]` / `nutrition-meal-toggle` / `meal-menu`, `meal-label` / `meal-label-ar`, `meal-slot`, `nutrition-food-row`, `nutrition-supp-row`, `supp-form` (`supp-name`, `supp-dose`, `supp-dose-ar`, `supp-timing`, `supp-timing-ar`, `supp-save`), `generalNotes-*` / `beverageNotes-*`; `policy-<k>` are switches | 20, 89 |
+| cardio | `cardio-targets` (`cardio-target-steps`, `cardio-target-minutes`), `cardio-session-row`; `cardio-type-<type>` are radios | 20, 89 |
+| template editor | `template-goal`, `template-split` (selects), `template-not-found`, `template-load-error` | 22, 89 |
+
+**Owner review additions (2026-10-19):** `cardio-targets-conflict` with `cardio-targets-mine-<steps|cardioMin>`, `cardio-targets-theirs-<…>`, `cardio-targets-keep-mine`, `cardio-targets-use-theirs`; the bar's `cardio-conflict` also covers a targets conflict; `plan-editor-draft-restored` carries `[data-stale]` when the restored draft was made before the saved version changed. Spec 89.

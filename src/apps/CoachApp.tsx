@@ -16,7 +16,7 @@ import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
 import { CoachMe } from '@/pages/coach/CoachMe';
 
 // Heavy coach route pages are lazy so the coach bundle stays small — the
-// PlanBuilder editors in particular only load when an editor is opened.
+// The plan editors in particular only load when an editor is opened.
 const CoachToday = lazy(() => import('@/pages/coach/today/CoachToday').then((m) => ({ default: m.CoachToday })));
 // B3.3: the directory shares the queue code with Today; lazy keeps both out of the shell chunk.
 const CoachClients = lazy(() => import('@/pages/coach/CoachClients').then((m) => ({ default: m.CoachClients })));
@@ -112,7 +112,8 @@ export function CoachApp() {
         <Route path="/coach/client/:clientId/view" element={<LegacyViewRedirect />} />
         <Route path="/coach/client/:clientId/view/:tab" element={<LegacyViewRedirect />} />
         {/* Plan version history (from the editors; becomes a sheet in B3.5). */}
-        <Route path="/coach/client/:clientId/versions/:kind" element={shell(<PlanVersionHistory />)} />
+        {/* B3-C02: restoring a version is editing — the same plan gate as the editors (the editors' History sheet is the usual way in). */}
+        <Route path="/coach/client/:clientId/versions/:kind" element={gated(<PlanVersionHistory />)} />
         <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
         <Route path="/coach/templates" element={shell(<CoachTemplates />)} />
         <Route path="/coach/templates/new" element={gated(<CoachWorkoutTemplateEditor />)} />
