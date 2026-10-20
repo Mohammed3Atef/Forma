@@ -411,3 +411,68 @@ Physical devices (the real keyboard, home indicators, iOS WebM playback — R-17
 | Read receipt | `18-seen-after-client-read` (1440) | "Seen" only on the newest own message, only after the client opened the conversation; older own messages carry no status |
 
 Both new broadcast lines are plural-aware in Arabic (six forms) and keep the warning card's layout; spec 90's axe test covers the sheet (EN / AR, 390 / 1440).
+
+## B3.7 — Coach Library (2026-10-20)
+
+**Scope reviewed:**
+- the Library: the four segments, Foods › Swap groups, Supplements — lists (phones / tablets) and tables (≥ 1024), search, filters (inline / the phone "Filter & sort" sheet), Select mode, paging / Show more, the first-run panel, the template-sync notice, offline;
+- read-first details: exercise (video, image, "No demo yet", a link that can't play, the source credit), food, swap group, supplement; the forms (the metadata-first exercise form, food, swap group with its checklist, supplement);
+- "Use in a client plan": the client picker and the editors' "Add to which day / meal?" prompt;
+- a program read-first (`/coach/templates/:id`) and its builder;
+- English, Arabic and Egyptian Arabic, 360–1440 px.
+
+Fixtures on coachPro (`e2e-lib-` ids): 215 exercises (210 generated across 5 muscles × 5 equipment, every 7th with a video; four demo cases — video, image, nothing, a Drive link credited to wger), a bilingual food, a seeded-shape template (flat days), a client with a training plan (a flat day and a sectioned day) and a nutrition plan; plus a brand-new coach for the first run. See spec 92.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/92-b3-library.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b37-visual/{programs,exercises,foods,groups,supplements,detail,program,prompt}-<width>-<lang>.png` (full page) and `b37-library.json` (overflow, `dir`), and fails on any horizontal overflow or wrong direction. The other tests attach their own shots (first run 360 / 390 EN + AR / 1440, starter exercises, demo rows, the broken-link detail, Journey I, the program read-first, the TS-04 notice, offline, the CO-26-R form, Arabic 390 / 1440).
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 (the 200+ rows test also 1280) |
+| Languages | English · Arabic · Egyptian Arabic (390 / 1440, plus foods / groups / supplements at 390) |
+| Screens | Programs, Exercises, Foods, Swap groups and Supplements at every width; an exercise detail, a program read-first and the editor's "Add to which day?" prompt at 390 and 1440; plus the test shots listed in §1 |
+
+**Result:** 85 matrix shots (programs 14, exercises 14, foods 13, swap groups 13, supplements 13, detail 6, program 6, prompt 6; EN 36 · AR 36 · AR-EG 13), **0 px horizontal overflow and the right `dir` on every shot** — in the certification of the final tree (`e2e-out/b37-cert-r2/b37-visual/`, 2026-10-21, after the B37-R2 fix), the one before it (`e2e-out/b37-cert-final/b37-visual/`), the certification run before it (`e2e-out/b37-cert-full2/b37-visual/`) and the run before L10 (`e2e-out/b37-92-e/`). axe (WCAG 2.1 A / AA) on Programs, Exercises, an exercise detail, "Use in a client plan", swap groups, the editor prompt and a program read-first — EN + AR, 390 and 1440: **0 violations** after L6. No horizontal scroll from 360 to 1440 with 215 exercises (table from 1024, list below).
+
+
+Checked on every shot:
+- the four segment labels are whole at every width and language (EN "Supplements" at 360 included); the active one is underlined; the search has its own full-width row;
+- rows: the name is the open control, one line of facts, the demo badge (Video / Image / "No demo yet") — no checkbox or ✕ on rows outside Select mode; desktop headers are real column names;
+- the detail's primary action ("Use in a client plan") on its own row, Edit and Delete under it; nothing cramped at 360;
+- Arabic: the table's first column on the right, chevrons and the sort indicator mirrored, English names in Arabic rows keep their direction (`<bdi>`), food names in the reader's language; Egyptian Arabic copy fits the same layouts.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| L1 | "Supplements" was cut to "Suppleme…" — four equal tabs at 360–390 | EN, phones | segment tabs take their labels' widths (`flex: 1 1 auto`); a test checks every label at 360 / 390, EN + AR |
+| L2 | "Use in a client plan" wrapped to three lines next to Edit and Delete | detail sheets, 390 | the primary action has its own full-width row; Edit and Delete below |
+| L3 | Filters, the sort and Select took four rows before the first item | phones | one "Filter & sort" button (with the number of active filters) opens a sheet; count and Select share the row |
+| L9 | Long exercise names were cut by a trailing "No demo yet" | phones | on phones "No demo yet" leads the facts line; a video / image stays an icon at the end |
+| L10 | The Foods · Swap groups switch used the orange gradient (B2 keeps it for the one primary action) | Foods | the quiet segmented style (neutral "on") |
+| L4 | An empty segment showed a search and a sort above the starter offer | first run | an empty list shows no search, sort or Select (the B3.3 rule) |
+| L5 | The starter panel's icon column and a wrapped "Add the starter library" button | first run, 390 | no icon column below 640 px; the actions are full width on phones |
+| L6 | axe `definition-list` on the exercise detail (rows were divs inside a `dl`) | detail, EN / AR | plain container |
+| L7 | A seeded template (flat days) read "No exercises yet" in the read-first view | program read-first | the view reads days the way the builder does (`normalizeWorkoutBody`); unit test + spec 92 |
+| L8 | The header's description took three lines on phones | 390 | shown from 640 px |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| Most starter exercises have no demo; wger videos are mostly HEVC; images are unprocessed originals (EX-01 / 02 / 17 / 18) — the Library is honest about it, it does not fix the content | B4 |
+| Exercise names are one language; muscle / equipment vocabularies are raw source values (EX-09 / 12) | B4 |
+| Search has no synonyms or Arabic aliases ("dumbbell incline press" does not find "Incline dumbbell press") | B4 (EX-14 / EX-15 rest) |
+| The pill `Tabs` on one admin page (AdminPlans) | B5 (admin shell) |
+
+### 5. Not covered
+
+Physical devices; screen readers beyond axe and the roles / names checked in tests; video playback inside the detail sheet (the e2e stack has no reachable video host — the player's own states are covered by the B0 video tests).

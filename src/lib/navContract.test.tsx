@@ -24,7 +24,9 @@ describe('navigation contract (B1.10)', () => {
     expect(coach('/coach/client/c1')).toBe('/coach/clients');
     expect(coach('/coach/messages/c1')).toBe('/coach/messages');
     expect(coach('/coach/templates/t1/edit')).toBe('/coach/templates/t1');
-    expect(coach('/coach/templates/t1')).toBe('/coach/templates');
+    // B3.7 (RM-27): Templates is Library › Programs — a program goes up to that segment.
+    expect(coach('/coach/templates/t1')).toBe('/coach/library?tab=programs');
+    expect(coach('/coach/templates/new')).toBe('/coach/library?tab=programs');
     // B3.1 coach IA: sections go up to Today; Me pages to Me; Programs to Library.
     expect(coach('/coach/clients')).toBe('/coach/dashboard');
     expect(coach('/coach/checkins')).toBe('/coach/dashboard');
@@ -34,7 +36,7 @@ describe('navigation contract (B1.10)', () => {
     expect(coach('/coach/revenue')).toBe('/coach/me');
     expect(coach('/coach/reports')).toBe('/coach/me');
     expect(coach('/coach/subscription-plans')).toBe('/coach/me');
-    expect(coach('/coach/templates')).toBe('/coach/library');
+    expect(coach('/coach/templates')).toBe('/coach/library?tab=programs');
     expect(coach('/coach')).toBe('/coach');
     const client = (p: string) => semanticParent(p, 'client');
     expect(client('/workout/routine/d1')).toBe('/workout');

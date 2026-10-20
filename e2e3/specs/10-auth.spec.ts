@@ -121,16 +121,35 @@ test.describe('auth', () => {
     await testInfo.attach('non-refresh-http.json', { body: JSON.stringify(otherHttp, null, 2), contentType: 'application/json' });
   });
 
-  test('login rate limit: 11 bad attempts for one email → friendly error, page usable', async ({ anon }, testInfo) => {
+  test('login rate limit: 11 bad attempts for one email → friendly error, page usable', async ({ anon, db }, testInfo) => {
+    // The real limiter (api/_lib/rateLimit.ts) counts per fixed 15-minute window aligned to the epoch
+    // (LOGIN_WINDOW_MS in api/_trpc/routers/auth.ts). Eleven attempts that straddle a boundary are split
+    // across two windows and never trip it, so start only when the current window has room for the whole
+    // sequence; otherwise wait for the next one. The test's own budget grows by exactly that wait.
+    const WINDOW_MS = 15 * 60 * 1000;
+    const NEEDED_MS = 120_000;
+    const left = WINDOW_MS - (Date.now() % WINDOW_MS);
+    if (left < NEEDED_MS) {
+      test.setTimeout(testInfo.timeout + left + 1_000);
+      await new Promise((r) => setTimeout(r, left + 1_000));
+    }
+    const windowStart = Math.floor(Date.now() / WINDOW_MS) * WINDOW_MS;
     const { context: _c679, page } = await anon(); await noHmr(_c679);
     const email = `nobody.${Date.now()}@ratelimit.invalid`;
     await page.goto('/login');
     for (let i = 1; i <= 11; i++) {
+      const res = page.waitForResponse((r) => r.url().includes('auth.login') && r.request().method() === 'POST');
       await uiLogin(page, email, `Bad-Pass-${i}!`);
+      expect((await res).status(), `attempt ${i}`).toBe(i <= 10 ? 401 : 429);
       await expect(page.getByTestId('login-error')).toBeVisible();
       await expect(page.getByTestId('login-submit')).toBeEnabled();
+      if (i <= 10) await expect(page.getByTestId('login-error')).toHaveText('Invalid email or password.');
     }
     await expect(page.getByTestId('login-error')).toHaveText('Too many attempts — please wait a bit and try again.');
+    // Every attempt was counted server-side in one window, keyed by IP + email.
+    const counted = await db.find<{ _id: string; count: number }>('rateLimits', { windowStart });
+    const mine = counted.filter((d) => d._id.startsWith('auth.login:') && d._id.endsWith(`:${email}:${windowStart}`));
+    expect(mine.map((d) => d.count)).toEqual([11]);
     await snap(page, testInfo, 'rate-limited');
     // Page still usable: the form is interactive and another account can still sign in.
     await page.getByTestId('login-email').fill('');

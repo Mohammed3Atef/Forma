@@ -283,14 +283,13 @@
     "noResults": "No results"
   },
   "starter": {
-    "load": "Load starter library",
+    "load": "Add the starter library",
     "loading": "Loading…",
-    "confirm": "This adds a full starter set — exercises, foods, food groups, supplements and workout templates — all editable or removable later. Continue?",
+    "confirm": "This copies the starter set into your library: starter workout programs, about 900 exercises (most without a demo video yet), common foods with swap groups, and supplements. Running it again only adds what's missing. Everything stays editable.",
     "loadedTitle": "Starter library added",
-    "loaded": "Added {{exercises}} exercises, {{foods}} foods, {{groups}} food groups, {{supplements}} supplements and {{templates}} templates.",
-    "loadedWithErrors": "Some categories failed and can be retried by loading again: {{categories}}.",
-    "emptyTitle": "Start with a ready-made library",
-    "emptyHint": "Load 900+ exercises (many with video), common foods, food-alternative groups, supplements and starter templates — then make them your own."
+    "loaded": "Added {{exercises}} exercises, {{foods}} foods, {{groups}} swap groups, {{supplements}} supplements and {{templates}} programs.",
+    "loadedWithErrors": "Some parts didn't load ({{categories}}). Add the starter library again to retry — nothing is duplicated.",
+    "confirmCta": "Add it"
   },
   "imageViewer": {
     "close": "Close"
@@ -1159,23 +1158,16 @@
     "targetsUseTheirs": "Use the saved ones"
   },
   "coachLib": {
-    "loadStarter": "Load starter library",
     "title": "Library",
     "tabs": {
       "exercises": "Exercises",
       "foods": "Foods",
-      "groups": "Food groups",
       "supplements": "Supplements",
       "programs": "Programs"
     },
     "exercise": "Exercise",
     "newExercise": "New exercise",
     "search": "Search exercises",
-    "category": "Category (e.g. Compound)",
-    "equipment": "Equipment (e.g. Barbell)",
-    "muscle": "Muscle",
-    "allMuscles": "All muscles",
-    "setsReps": "Sets / reps",
     "tags": "Tags",
     "tagsPlaceholder": "Add a tag and press Enter",
     "noMeta": "No details",
@@ -1183,7 +1175,6 @@
     "empty": "Create your first exercise",
     "templatesUpdated": "{{n}} template updated",
     "templatesUpdated_other": "{{n}} templates updated",
-    "templateSyncFailed": "Exercise saved, but updating templates failed — tap to retry",
     "linkedToLibrary": "Linked to library",
     "customOverride": "Custom override — automatic library updates are disabled for this exercise",
     "updateFromLibrary": "Update from library",
@@ -1197,7 +1188,6 @@
     "newFood": "New food",
     "food": "Food",
     "serving": "Serving size (e.g. 100 g)",
-    "empty": "Create your first food",
     "groupsHint": "Groups of interchangeable foods clients may swap between.",
     "newGroup": "New group",
     "group": "Food group",
@@ -1207,13 +1197,11 @@
     "untitledGroup": "Untitled group",
     "foodCount": "{{n}} foods",
     "noGroups": "No food groups yet",
-    "noGroupsMessage": "Group interchangeable foods so clients can swap between them.",
     "addFoodsFirst": "Add foods to your library first, then come back to build a group."
   },
   "coachSupps": {
     "search": "Search supplements",
-    "newSupp": "New supplement",
-    "empty": "Add your first supplement"
+    "newSupp": "New supplement"
   },
   "nutritionSub": {
     "swap": "Swap food",
@@ -1405,8 +1393,6 @@
     "requireCoachApproval": "Flag custom swaps for review"
   },
   "workoutTemplate": {
-    "title": "Workout templates",
-    "new": "New template",
     "untitled": "Untitled template",
     "editorTitle": "Template",
     "namePlaceholder": "Template name (e.g. PPL Hypertrophy)",
@@ -1416,7 +1402,6 @@
     "assign": "Assign to client",
     "assignHint": "Assigning snapshots this template into the client's plan. Later edits to either are independent.",
     "confirmAssign": "Assign \"{{template}}\" to {{name}}? This replaces their current workout plan — the existing one is saved as a version first.",
-    "empty": "No templates yet — create one to reuse across clients",
     "goals": {
       "hypertrophy": "Hypertrophy",
       "fat_loss": "Fat loss",
@@ -3193,5 +3178,140 @@
     "unconfirmedCount_one": "{{count}} not confirmed — may have arrived",
     "unconfirmedCount_other": "{{count}} not confirmed — may have arrived",
     "retryNote": "Retry sends only to these clients. Anyone this broadcast already reached won’t get a second copy."
+  },
+  "library": {
+    "subtitle": "Your programs, exercises, foods and supplements — ready to use in any client's plan.",
+    "sections": "Library sections",
+    "more": "More library actions",
+    "newProgram": "New program",
+    "select": "Select",
+    "selectPage": "Select all on this page",
+    "selectItem": "Select {{name}}",
+    "itemActions": "Actions for {{name}}",
+    "deleteItem": "Delete {{name}}",
+    "sortBy": "Sort by",
+    "sortAsc": "{{name}}, ascending",
+    "sortDesc": "{{name}}, descending",
+    "showMore": "Show more ({{n}})",
+    "loadFailed": "This part of your library couldn't be loaded.",
+    "noMatch": "Nothing matches",
+    "noMatchHint": "Try another word or clear the filters.",
+    "planLapsed": "Renew your Forma plan to make changes.",
+    "defaults": "Defaults when added to a plan",
+    "source": "Source:",
+    "bulkPartial": "{{ok}} deleted; {{failed}} couldn't be deleted. Try those again.",
+    "duplicated": "Program duplicated",
+    "anyGoal": "Any goal",
+    "searchPrograms": "Search programs",
+    "searchGroups": "Search swap groups",
+    "pickedCount": "{{n}} picked",
+    "untitledSupplement": "Untitled supplement",
+    "editExercise": "Edit exercise",
+    "editFood": "Edit food",
+    "editGroup": "Edit swap group",
+    "editSupplement": "Edit supplement",
+    "foodsView": "Foods or swap groups",
+    "views": {
+      "foods": "Foods",
+      "groups": "Swap groups"
+    },
+    "countOf": "{{n}} of {{total}}",
+    "count": {
+      "exercises_one": "{{count}} exercise",
+      "exercises_other": "{{count}} exercises",
+      "foods_one": "{{count}} food",
+      "foods_other": "{{count}} foods",
+      "groups_one": "{{count}} swap group",
+      "groups_other": "{{count}} swap groups",
+      "supplements_one": "{{count}} supplement",
+      "supplements_other": "{{count}} supplements",
+      "programs_one": "{{count}} program",
+      "programs_other": "{{count}} programs"
+    },
+    "caption": {
+      "exercises": "Your exercises",
+      "foods": "Your foods",
+      "groups": "Your swap groups",
+      "supplements": "Your supplements",
+      "programs": "Your workout programs"
+    },
+    "col": {
+      "exercise": "Exercise",
+      "muscle": "Muscle",
+      "equipment": "Equipment",
+      "demo": "Demo",
+      "defaults": "Default sets",
+      "food": "Food",
+      "serving": "Serving",
+      "calories": "Calories",
+      "group": "Swap group",
+      "foods": "Foods",
+      "includes": "Includes",
+      "supplement": "Supplement",
+      "program": "Program",
+      "days": "Days",
+      "updated": "Updated"
+    },
+    "filter": {
+      "hasVideo": "Has video"
+    },
+    "demo": {
+      "video": "Video",
+      "image": "Image",
+      "none": "No demo yet",
+      "noneHint": "Add a video link when you edit this exercise."
+    },
+    "starter": {
+      "title": "Start with the starter library",
+      "body": "One tap copies a ready-made set into your library, so you can build plans right away. Everything stays yours to edit or delete.",
+      "includes": {
+        "programs": "Starter workout programs",
+        "exercises": "About 900 exercises from the open wger database",
+        "foods": "Common foods, with swap groups",
+        "supplements": "Common supplements"
+      },
+      "honesty": "Most starter exercises don't have a demo video yet — each one says so."
+    },
+    "use": {
+      "action": "Use in a client plan",
+      "title": "Use “{{name}}” in a client plan",
+      "hintExercise": "Choose a client. Their training plan opens with this exercise added — nothing is saved until you save the plan.",
+      "hintFood": "Choose a client. Their nutrition plan opens with this food added — nothing is saved until you save the plan."
+    },
+    "add": {
+      "exerciseTitle": "Add “{{name}}”",
+      "exerciseHint": "Choose the day. It's added as an unsaved change — save the plan to keep it.",
+      "newDay": "New day",
+      "exerciseMissing": "This exercise is no longer in your library, so nothing was added.",
+      "loadFailed": "The item couldn't be loaded, so nothing was added. Try again from the Library.",
+      "foodTitle": "Add “{{name}}”",
+      "foodHint": "Choose the meal. It's added as an unsaved change — save the plan to keep it.",
+      "newMeal": "New meal",
+      "foodMissing": "This food is no longer in your library, so nothing was added.",
+      "foodsInMeal_one": "{{count}} food",
+      "foodsInMeal_other": "{{count}} foods"
+    },
+    "sync": {
+      "one": "“{{name}}” was saved, but its templates weren't updated",
+      "many": "{{n}} exercises were saved, but their templates weren't updated",
+      "body": "Templates keep the old details until this works.",
+      "stillFailing": "Still not updated. Check your connection and try again."
+    },
+    "program": {
+      "label": "Workout program",
+      "noDays": "This program has no days yet. Edit it to add some.",
+      "draftPending": "You have unsaved changes to this program from earlier.",
+      "continueEditing": "Continue editing",
+      "editTitle": "Edit program"
+    },
+    "form": {
+      "about": "About the exercise",
+      "equipmentHint": "e.g. Barbell",
+      "categoryHint": "e.g. Compound",
+      "demo": "Demo",
+      "demoHint": "A YouTube link or a link to a video file. Clients see it only when it can play.",
+      "defaultsHint": "Where a plan starts when you add this exercise. Each plan can change them."
+    },
+    "filters": "Filter & sort"
   }
 }

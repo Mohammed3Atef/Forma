@@ -218,10 +218,13 @@ test('workspace: nutrition plan saves and survives reload', async ({ as, db }, t
   await shot(page, testInfo, '01-nutrition-built');
   await page.getByTestId('nutrition-save').click();
   await expect(page.getByTestId('nutrition-saved')).toBeVisible();
-  const doc = await db.findOne<{ name: string; targets: { calories: number }; meals: { items: { name: { en: string } }[] }[] }>('clientNutritionPlans', { _id: FREE });
+  const doc = await db.findOne<{ name: string; targets: { calories: number }; meals: { label: { en: string; ar: string }; items: { name: { en: string } }[] }[] }>('clientNutritionPlans', { _id: FREE });
   expect(doc?.name).toBe(name);
   expect(doc?.targets?.calories).toBe(2100);
   expect(doc?.meals.flatMap((m) => m.items.map((i) => i.name.en))).toContain('E2E Oats');
+  // The added meal's generated name is stored in both languages (B37-R2).
+  const n = doc!.meals.length;
+  expect(doc!.meals[n - 1].label).toEqual({ en: `Meal ${n}`, ar: `وجبة ${n}` });
 
   await page.reload();
   await appReady(page, 'nutrition-plan-name');

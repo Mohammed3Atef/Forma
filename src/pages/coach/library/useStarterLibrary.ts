@@ -1,21 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/Icon';
 import { useSession } from '@/services/auth/sessionStore';
 import { seedStarterLibrary } from '@/services/platform/starterLibraryApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 
-const KEYS = ['exerciseLibrary', 'foods', 'foodGroups', 'supplements', 'workoutTemplates', 'coachDashboard'];
+const KEYS = ['exerciseLibrary', 'foods', 'foodGroups', 'supplements', 'workoutTemplates', 'coachDashboard', 'coachTemplatesCount'];
 
 /**
- * Seeds the comprehensive starter library for a new coach. Idempotent (seed-*
- * ids overwrite). Surfaced from empty states + the onboarding checklist.
+ * "Add the starter library": copies the starter set (exercises, foods, swap groups, supplements,
+ * workout programs) into this coach's library in one server call. Idempotent — stable ids, so
+ * running it again only fills in what is missing and never duplicates. The coach confirms first
+ * and gets the result (with any category that failed) in a dialog. The per-coach copy stays until
+ * B4 decides the shared catalog (EX-07).
  */
-export function LoadStarterLibraryButton({ className = '', variant = 'primary' }: { className?: string; variant?: 'primary' | 'ghost' }) {
+export function useStarterLibrary() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const coachId = useSession((s) => s.account?.id ?? '');
-
   const mut = useMutation({
     mutationFn: () => seedStarterLibrary(coachId),
     onSuccess: (res) => {
@@ -29,22 +30,9 @@ export function LoadStarterLibraryButton({ className = '', variant = 'primary' }
     },
     onError: () => void alertDialog({ title: t('starter.load'), message: t('common.errorGeneric') }),
   });
-
   const run = async () => {
     if (!coachId || mut.isPending) return;
-    if (await confirmDialog({ title: t('starter.load'), message: t('starter.confirm') })) mut.mutate();
+    if (await confirmDialog({ title: t('starter.load'), message: t('starter.confirm'), confirmLabel: t('starter.confirmCta') })) mut.mutate();
   };
-
-  return (
-    <button
-      type="button"
-      data-testid="load-starter-library"
-      disabled={mut.isPending || !coachId}
-      onClick={() => void run()}
-      className={`${variant === 'ghost' ? 'btn-ghost' : 'btn-primary'} disabled:opacity-50 ${className}`}
-    >
-      <Icon name="download" size={16} />
-      {mut.isPending ? t('starter.loading') : t('starter.load')}
-    </button>
-  );
+  return { run, pending: mut.isPending };
 }

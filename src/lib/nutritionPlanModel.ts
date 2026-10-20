@@ -1,3 +1,4 @@
+import { typeLocalized } from './localizedText';
 import type { FoodItem, LocalizedText, Macros, Meal, MealPlan } from '../types';
 
 /**
@@ -66,6 +67,31 @@ export function applyFoodEdit(orig: FoodItem | null, id: string, e: FoodEdit, ne
   if (e.allowCustom) next.allowCustomSubstitution = true;
   else delete next.allowCustomSubstitution;
   return next;
+}
+
+/**
+ * The name a new meal gets ("Add meal", and "New meal" from the Library hand-off): "Meal N" and
+ * "وجبة N" (Arabic and Egyptian Arabic read `ar`), whatever language the coach's app is in. Stored
+ * data, not UI copy — the words are the `coachEditor.meal` strings (pinned by a test). B37-R2: it
+ * used to be written to `en` only, in the UI language.
+ */
+export const GENERATED_MEAL_NAME = { en: 'Meal', ar: 'وجبة' } as const;
+export const generatedMealLabel = (n: number): LocalizedText => ({ en: `${GENERATED_MEAL_NAME.en} ${n}`, ar: `${GENERATED_MEAL_NAME.ar} ${n}` });
+
+/** Still exactly a generated name in both languages — nobody has named this meal yet. */
+export function isGeneratedMealLabel(label: LocalizedText | null | undefined): boolean {
+  const en = label?.en ?? '';
+  const n = en.startsWith(`${GENERATED_MEAL_NAME.en} `) ? en.slice(GENERATED_MEAL_NAME.en.length + 1) : '';
+  return /^\d+$/.test(n) && label?.ar === `${GENERATED_MEAL_NAME.ar} ${n}`;
+}
+
+/**
+ * Typing a meal's name in its main field. A generated name is a placeholder: the first typed name
+ * replaces it in both languages (as before B37-R2, when a new meal's Arabic was empty). Otherwise
+ * the B1.8 rule — a real translation is kept.
+ */
+export function typeMealLabel(orig: LocalizedText, value: string): LocalizedText {
+  return isGeneratedMealLabel(orig) ? { ...orig, en: value, ar: value } : typeLocalized(orig, value, 'en');
 }
 
 /** Bilingual note lists (general / beverage notes): blank rows are dropped on save. */

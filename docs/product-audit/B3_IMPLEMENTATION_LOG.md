@@ -966,6 +966,8 @@ The stale-draft notice was worded more generally after the full run ("the saved 
 
 ## B3.6 — Coach Messages (2026-10-19)
 
+> **Authoritative result: §9.7** — certified green on the exact final tree (full e2e3 327 passed / 0 failed / 0 flaky / 1 approved skip of 328; unit + API 875 / 875) and committed locally by the owner as `8450dd8` on 2026-10-20 (not pushed). §4 and §9.6 are earlier runs, kept as history.
+
 **Owner brief (2026-10-19, after the B3.5 commit 1588321):** Messages only — a premium coach inbox → conversation → reply → back to the inbox, built for 30+ active conversations, on the existing engine. Protected: server-side authorization and relationship checks, coach-scoped history (R-4 Option C), the client's read-only earlier conversations, no send to an ended / transferred / unauthorized relationship, suspended accounts read-only (O-17), the durable outbox and idempotent sends, no cross-account leakage, honest offline / upload states, unread counts and notification links, no duplicate polling. A message queued before a transfer must not be redirected. MD-01 / 02 / 03 stay launch blockers: no new public-URL path, no optimistic upload success. No client-app, website, auth / legal, admin, editor or subscription redesign; no second messaging state machine. Stop for review: no commit, no B3.7, no push or deploy.
 
 **Not changed:** the messaging router's contracts (one verified bug fixed, §2), the outbox and its `message.send` handler, idempotency, the 5 s thread poll and the shared 20 s summary poll (no new poller), media upload paths and URLs, the client app's screens. The client's `Messages` page passes nothing new to the shared engine, so its presentation is unchanged; it does get the engine's correctness fixes (§1.4). No production data touched; isolated fixtures only (`e2e-msg-` ids, removed after each run).
@@ -1050,7 +1052,7 @@ No schema, index, data, notification or media change. Authorization is unchanged
 | `e2e3/specs/91-b3-coach-thread.touch.spec.ts` (new; mobile-390, mobile-430, WebKit iPhone) | full-screen conversation, composer the hit target, tap to send, long-press menu, Back |
 | Updated: 60 (C12 re-certified: split pane ≥ 768, full-screen on phones), 23 (messages history: split selection, Open client), `_d-layout` (the Back chevron is checked where a Back exists) | |
 
-### 4. Verification (final code)
+### 4. Verification (first full run — superseded by §9.7)
 
 | Gate | Result |
 |---|---|
@@ -1075,7 +1077,7 @@ No schema, index, data, notification or media change. Authorization is unchanged
 | **Fixed** | B3-C08, CO-27, DT-01, MS-09, MS-10, NAV-K07, B34-R5; new **B36-R1** (attachment URL) |
 | **Mitigated** — the coach side done, the rest later | MS-03, MS-04, MS-05, MS-07, MS-08, MS-11, MS-12, MS-13, MS-16, AX-09 (B5: the client's conversation, in-thread events, media dimensions / in-app files / viewer Back, an "up to here" read) |
 | **Still open** | R-17 — the physical-device check on the B3 build (release gate) |
-| **New** | B36-R1 (fixed) · B36-R2 read "up to here" (API) · B36-R3 summary unread with a missing `seenAt` · B36-R4 no rate limit on `messages.send` · B36-R5 broadcast durability · B36-R6 a lost-answer retry after the relationship ended · B36-R7 client conversation parity — all B5 |
+| **New** | Fixed in B3.6: B36-R1 attachment URLs http(s) only · B36-R8 Sent / Seen recorded only for the addressee. Open, B5: B36-R2 read "up to here" (API) · B36-R3 summary unread with a missing `seenAt` · B36-R4 no rate limit on `messages.send` (P1, launch blocker) · B36-R5 broadcast durability · B36-R6 a lost-answer retry after the relationship ended · B36-R7 client conversation parity · B36-R9 third-party requests on every page · B36-R10 the request deadline ends at response headers |
 
 ### 6. Known limits and risks
 
@@ -1148,7 +1150,7 @@ The failing tests' traces were re-read for the browser's own network error codes
 | One live app context at a time in spec 90's matrix / axe tests | `e2e3/specs/90-b3-messages.spec.ts` |
 | Backlog: B36-R2 / R4 / R5 / R7 decisions, B36-R8 (fixed), B36-R9 (new); blueprint C11 | backlog, `B3_COACH_BLUEPRINT.md` |
 
-**9.6 Final verification (exact final tree).**
+**9.6 First certification attempt (exact final tree) — not green; superseded by §9.7.**
 
 | Gate | Result |
 |---|---|
@@ -1177,4 +1179,214 @@ The failing tests' traces were re-read for the browser's own network error codes
 
 The earlier failures (§9.1, §9.6) are therefore attributed to the machine's state at the time (memory pressure with a desktop browser running, a Wi-Fi drop, standby), not to the code; their evidence stays in `e2e-out/b36-full-a`, `b36-cert-full` and `b36-cert-diag`. B36-R9 (third-party requests on every page) and B36-R10 (the request deadline ends at response headers) remain tracked.
 
-**Status: B3.6 certified — full e2e3 suite green on the exact final tree. Not committed: awaiting the owner's explicit authorization. B3.7 not started.**
+**Status: B3.6 certified — full e2e3 suite green on the exact final tree (§9.7). Committed locally by the owner as `8450dd8` on 2026-10-20 (not pushed).**
+
+---
+
+## B3.7 — Coach Library (2026-10-20)
+
+**Owner brief (2026-10-20, after the B3.6 commit `8450dd8`):** the Library — Programs · Exercises · Foods (swap groups inside) · Supplements; responsive search, filters, sorting, paging and an explicit Select mode; truthful media (a video only when it can play, attribution when present, "No demo yet" otherwise); an understandable first-run starter library; the Library → template sync result kept visible with Retry; ⌘K "New exercise / New food" opening the real forms; old routes and deep links kept; EN / AR / AR-EG, RTL, accessibility, offline, phones. No new media assets, paid APIs or third-party exercise content; nothing coupled to the current wger media format or the per-coach starter copy (a future owned "Forma 3D Exercise Library" replaces them in B4+). Stop before commit.
+
+**Owner decisions (2026-10-20):**
+1. **RM-27** — remove the template preview; templates open read-first in the existing editor with an explicit Edit; old URLs redirect.
+2. **Use in a client plan (exercise)** — choose a client, then that client's existing training editor opens with the exercise added as an **unsaved** change (B3.5 save, draft and conflict handling; never a silent write).
+3. **Foods** — the same flow into the client's nutrition editor; no nutrition templates.
+4. **CO-26-R** — reorder the existing exercise form metadata-first; no new fields, schema or backend work.
+5. **TB-08** — a small reusable table / list foundation for the Library only; no refactor of other screens; within the performance budget.
+6. Still deferred: O-9 nutrition templates (B5), O-13 template conflicts, EX-07 global catalog (B4), PF-11 payload (B4), MD-01 / 02 / 03 media (launch blockers unchanged).
+7. Apply the four B3.6 documentation corrections first — done: the §B3.6 authoritative pointer to §9.7, the §4 and §9.6 headings, the §5 "New" row, the final status line, and the blueprint status.
+
+**Not changed:** the API (no router, schema, index or data change — the starter seeding, exercise sync, saves and bulk deletes are the existing procedures); the plan editors' save / compare-and-set / draft / conflict logic (the hand-off only edits the working plan); media upload paths and URLs; the client app (`ClientApp` chunk byte-identical in size to B3.6); the admin `DataTable`; nutrition templates. No production data touched; isolated fixtures only (`e2e-lib-` ids and a test-created coach, removed after each run).
+
+### 1. What changed
+
+**1.1 One Library, four segments** (`src/pages/coach/library/CoachLibrary.tsx`; rules in pure `src/lib/libraryModel.ts`).
+- Segments **Programs · Exercises · Foods · Supplements** as in-page tabs (`components/ui/SectionTabs`: underline, widths follow the labels so none is cut, one tab stop with arrow keys — mirrored in right-to-left — and Home / End, a `tabpanel`); Foods has **Foods · Swap groups** as a quiet `SegmentedControl`. Programs opens first (the blueprint order) — which also means opening the Library no longer downloads the exercise list.
+- Everything about a list is in the URL (`?tab`, `?view=groups`, `?q`, `?muscle`, `?equipment`, `?video=1`, `?goal`, `?sort`, `?dir`): a reload, Back from a program and deep links restore it; the old `?tab=groups` is rewritten to Foods › Swap groups. One-shot intents `?new=1` (⌘K, DT-08) and `?open=<id>` (⌘K search) are read once and removed.
+- Each segment is its own lazy chunk; detail views, forms, swap groups, the client picker, the first-run panel and the sync notice load only when used (§4).
+- Header: the title, one primary "New …" that follows the segment (program, exercise, food, swap group, supplement) and a menu with "Add the starter library" (always available — idempotent).
+- Writes are disabled with the reason when the coach's Forma plan has lapsed or the device is offline (reading stays open); a template's own page is readable while lapsed.
+
+**1.2 Lists (TB-04, TB-08)** — `components/library/LibraryCollection` (new, Library-only):
+- desktop (≥ 1024) a table with **real column names**, sortable headers (`aria-sort`), column priority (low-priority columns fold below 1280 instead of scrolling sideways), the row name as its open button and a row menu (Use in a client plan · Edit · Duplicate · Delete); pages of 50;
+- phones and tablets a list (name, one line of facts, the demo state) with "Show more" in steps of 30;
+- **bulk actions only in Select mode** (`Select` → checkboxes; a tap selects instead of opening; Delete asks first and reports a partial failure honestly — it used to be silent);
+- the search has its own full-width row; filters inline on desktop, one "Filter & sort" sheet on phones; a live count ("12 of 215"); an empty list shows no search or Select (nothing to search yet — the B3.3 rule); a failed load says so with Retry (never "empty"); offline without data says offline.
+
+**1.3 Exercises** (`ExercisesSegment.tsx`): search by name, muscle (also its translated label), equipment and tags, Arabic spelled loosely (diacritics; alef, ya and ta-marbuta forms); filters muscle (labels in the UI language), equipment and **Has video**; sorts Exercise · Muscle · Equipment · Demo. Every item opens **read-first** (`ExerciseView`: the demo, metadata, the defaults a plan starts from, instructions in the reader's language, tags, the source) with **Use in a client plan**, Edit and Delete.
+
+**1.4 Honest media (B0 rule, ready for an owned catalog)** — `src/lib/libraryMedia.ts` decides what an exercise can show; the screens never read `videoUrl` / `imageUrl` themselves:
+- `video` only for a link Forma can play (YouTube, an https video file); a file in a codec this device can't decode is reported by the player;
+- `image` when there is no playable video but an image;
+- `none` → **"No demo yet"** (row, column and detail placeholder); a stored link that can't play (Drive, Vimeo, non-https) is flagged and explained, never offered as a video;
+- attribution from a provider table (`wger` → "wger.de · CC BY-SA"); an unknown provider shows its name. A later owned catalog changes this module, not the screens.
+
+**1.5 First run (CO-23, EX-08, EX-23)** — an empty segment shows one panel: what the starter library is (programs, about 900 exercises from the open wger database, common foods with swap groups, supplements), that **most exercises have no demo video yet**, that it is a copy the coach owns, and **Add the starter library** next to "New …". The confirmation and the result dialog are the same from every entry point; running it again only fills in what is missing (stable ids). The "900+ exercises (many with video)" copy is removed.
+
+**1.6 Foods and swap groups** (`FoodsSegment.tsx`, `SwapGroupsView.tsx`): foods show in the reader's language (both are searched), open read-first (serving, macros, the other-language name) with **Use in a client plan**, Edit and Delete; the food form keeps the B1.8 bilingual rule (an English edit never overwrites a real Arabic name) and takes Arabic digits. Swap groups keep their data and saves; their form's foods are a searchable checklist with the picked ones first (it was a wall of chips); a group keeps its creation time on edit.
+
+**1.7 Supplements** (`SupplementsSegment.tsx`): name, dose and timing in both languages (the Arabic is kept unless edited — the nutrition editor's rule, B3-C04); read-first, then Edit or Delete.
+
+**1.8 Programs and templates read-first (RM-27, CO-39)** — `ProgramsSegment.tsx` lists the workout templates (goal filter; sorts Program · Goal · Days · Updated). The **Templates list and the preview page are removed**: `/coach/templates` redirects to Library › Programs; `/coach/templates/:id` is the template's editor screen in **read-first** mode (`TemplateReadView`: every day, named section and exercise with its programming and a video mark; older flat days are read the way the builder reads them) with an explicit **Edit**, **Use in a client plan** (the existing assign — the client's current plan is kept as a version), Duplicate (opens the copy) and Delete. Unsaved edits from an earlier visit are announced ("Continue editing"). Edit, Save and Back replace history, so Back from a program returns to the Library and never into the builder. `git grep --untracked "CoachTemplatePreview|CoachExerciseLibrary|LoadStarterLibraryButton|pages/coach/CoachTemplates|coach-template-preview" -- src e2e3 api` finds nothing.
+
+**1.9 Use in a client plan (Journey I; owner decisions 2–3)** — `src/lib/libraryHandoff.ts`, `components/coach/ClientPickList`, `components/coach/editor/LibraryAddPrompt`, `hooks/useHandoffParam`:
+- from an exercise or food: choose a client (the roster query Today, Clients and ⌘K share; loading and failure are explicit) → that client's **existing** training / nutrition editor opens (`?addExercise=` / `?addFood=`, read once and removed);
+- once the plan has loaded, the editor asks **where**: a day (or one of its named sections) / a meal, or a new day / meal; Cancel adds nothing; an item that no longer exists says so and adds nothing;
+- the item goes into the **working plan only** — "Unsaved changes", the draft, the guard, Save with compare-and-set and the conflict banner are the editor's own (B3.5); nothing is written until Save;
+- the copy is exactly what the editors' own pickers make: an exercise via `pickFromLibrary` (a new plan id, `libraryExerciseId` with sync on, every field and both languages); a food via the food sheet's library pick (both languages, serving, macros; no library-only fields). Untouched days keep their stored shape.
+
+**1.10 Template sync result (TS-04)** — a failed Library → template sync after an exercise save is a **persistent notice** on the Library (any segment, `role="alert"`), kept per coach on the device (`data/librarySyncIssues.ts`) and so still there after a reload; **Retry** re-saves the exercise as it is on the server now (the server's propagation is idempotent and re-asserts the current values) and clears on success; Dismiss is explicit. A successful sync keeps its single toast ("Saved · 2 templates updated").
+
+**1.11 ⌘K (DT-08)** — "New exercise" / "New food" open the creation form itself; searched exercises and foods open read-first (`?open=`); programs open read-first.
+
+**1.12 Exercise form (CO-26-R)** — the Library's form (also the picker's quick-create) is grouped metadata-first: **About the exercise** (name, muscle, equipment, category, tags) · **Demo** (video link / upload with the honesty check) · **Instructions** (EN / AR) · **Defaults when added to a plan** (presets, sets, reps, rest, progression). Same fields; numbers take Arabic digits (`NumericField`); the B1.8 rules (untouched fields kept exactly, no silent detach, the Arabic kept) are unchanged.
+
+### 2. API contract
+
+No change. Calls used: `coachAssets.*.list / get / save / delete` (exercises, foods, foodGroups, supplements, workoutTemplates), `seedStarterLibrary`, `assignWorkoutTemplate`, the coach's roster, and the plan editors' existing reads and compare-and-set saves.
+
+### 3. Tests
+
+| File | What it pins |
+|---|---|
+| `src/lib/libraryModel.test.ts` (new, 11) | the URL (Programs default, the old `?tab=groups`, defaults not written, unknown values fall back, a "most first" sort starts descending); search (case, Arabic diacritics / letter forms, the translated muscle label, tags, both food languages, group foods, supplement dose); filters combine; "Has video" excludes a Drive link; natural name sort; the demo sort; options |
+| `src/lib/libraryMedia.test.ts` (new, 4) | video only when playable (YouTube, an https file; a `.MOV` is a video the player may report as undecodable); a link that can't play is image-or-none and flagged; https-only images; "Has video" and the demo sort use one rule; attribution for wger, an unknown provider, none |
+| `src/lib/libraryHandoff.test.ts` (new, 7) | Journey I integrity: targets (a plain day once, a sectioned day per section); the added exercise equals `pickFromLibrary` (a new id, the library link, every field, both languages), `exerciseIds` in step, nothing duplicated, the input untouched, an untouched flat day stored flat; a named section / a new day; the editor URL; the food item equals the food sheet's library pick; a meal / a new meal; sync notices recorded once and cleared by a success |
+| `src/pages/coach/library/CoachLibrary.test.tsx` (new, 12) | Programs first; the honest first-run panel (no "many with video"); `?tab=groups`; tabs (one tab stop, arrow keys, Home); a program row opens `/coach/templates/:id`; demo badges per row and the source credit; "Has video" in the URL and the count; real column names and `aria-sort`; bulk only in Select mode; **TS-04** (a failed sync → a persistent notice that survives leaving; Retry re-saves the server copy and clears it); `?new=1` and `?open=` consumed once; "Use in a client plan" → the client's editor URL, nothing saved; phones: 30, then Show more |
+| `src/pages/coach/CoachWorkoutTemplateEditor.test.tsx` (new, 5) | read-first: every day, section and exercise with its programming, no inputs, no Save; Edit replaces into the builder; an earlier draft is announced ("Continue editing"); not found; a lapsed plan = readable, not editable; Duplicate opens the copy; Delete asks, then Library › Programs |
+| `src/pages/coach/CoachWorkoutEditor.test.tsx` (+2) | `?addExercise=`: asks for the day, adds a library-linked copy as an unsaved change, Save sends it with the usual compare-and-set and the other day unchanged; a new day; Cancel; a missing exercise adds nothing and says so |
+| `src/components/coach/AssignTemplate.test.tsx` (new, 4 — owner final pass, §8.1) | a program is assigned only after a confirmation that names the program and the client and says the current plan is kept as a version; Cancel saves nothing; Assign saves once with `replaceExisting` and a version reason; all three languages name both |
+| `src/lib/nutritionPlanModel.test.ts` (+3 — B37-R2, §9.2) | a new meal's name in both languages, equal to the bundles' "Meal" strings; what counts as an untouched generated name; a typed name replaces it in both languages, never a real translation |
+| `src/pages/coach/CoachNutritionEditor.test.tsx` (+2, and +7 for B37-R2 — §9.2) | `?addFood=`: asks for the meal, adds the food in both languages as an unsaved change, Save keeps every other item and the targets; a new meal; a missing food |
+| `src/lib/navContract.test.tsx`, `src/config/coachNav.test.tsx` (changed) | `/coach/templates`, `/coach/templates/:id` and `/new` go up to `/coach/library?tab=programs` |
+| `e2e3/specs/92-b3-library.spec.ts` (new, 15) | first run (a coach created by the test: the honest panel EN / AR at 360 / 390 / 1440, labels never cut, no search on an empty list, add, adding again duplicates nothing, then a full-width search at 360 / 1440); **TB-04** with 210 rows (headers, sort + `aria-sort`, pages of 50, equipment / video filters, a reload keeps the view, no overflow at 360 / 390 / 430 / 768 / 1024 / 1280 / 1440, Show more); media honesty (Video / Image / No demo yet, a Drive link explained and never a player, the source credit); **Journey I** for an exercise and a food (Library → client → where → unsaved → Save → the stored copy checked field by field: bilingual, linked, nothing duplicated, the other day unchanged; Back returns to the Library as it was left); **RM-27 / CO-39** (the redirect, read-first with the exercises of flat days, an explicit Edit, Save + Back never loop, a cold deep link, Use in a client plan, not found); **TS-04** (a forced failed-sync answer → a persistent notice with `role=alert`, still there after 6 s and a reload; Retry re-saves; the notice goes); **DT-08** (⌘K New exercise / New food open the forms; a searched exercise opens read-first); Select mode on a phone; swap groups inside Foods (the old URL, the checklist, the saved foods); **CO-26-R** (the group order; a default edited, every other field and the Arabic kept); offline + payload (Programs downloads no exercise list; Exercises once; writes off offline); Arabic 390 / 1440; axe (14 scans); the visual matrix |
+| Specs changed (guarantees unchanged, §7) | 22, 40, 85, 89; owner final pass (§8): 10 (deterministic across rate-limit windows, stronger per-attempt and server checks), 51 (clicks after `load` + web fonts), 92 RM-27 (the assign confirmation and Cancel); B37-R2 (§9): 20 (the stored name of a meal added in the browser) |
+| Harness | `e2e3/fixtures.ts`: `as()` also accepts `{ id, label }` — an account a spec inserted itself (the first-run coach) |
+
+### 4. Verification (first certification — the final results are in §8.4)
+
+| Gate | Result (the reviewed tree) |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 918 / 918 in 106 files** (B3.6: 875 in 101; +43: 39 in five new files, +2 training editor, +2 nutrition editor) |
+| Build | **PASS.** Entry 480.43 / 155.20 kB gzip (B3.6: 476.73 / 154.07 — the new English strings ship in the entry, as in earlier phases). `ClientApp` 39.02 / 12.28 — identical to B3.6. `CoachApp` 23.78 / 8.01 (24.06 / 8.02). Library: shell 19.95 / 7.50 · Programs 5.83 / 2.37 · Exercises 11.28 / 4.26 · Foods 11.88 / 4.33 · Supplements 7.47 / 2.95 · Swap groups 8.80 / 3.38 · table / list 4.42 / 1.66; on demand: exercise detail 3.08, exercise form 6.51, client picker 3.23, first-run panel 2.38, sync notice 1.96. Template screen (read-first + builder) 11.33 / 4.21 (B3.6: editor 4.51 + preview page 6.02). Precache 197 entries |
+| Budget (blueprint §9: Library 28.5 KB, each screen ≤ +20 % → 34.2 KB) | **Largest Library chunk 19.95 KB ✓** (B3.6: 28.37). A first visit with every Library chunk it needs: Programs 30.2 · Supplements 31.8 · Exercises 35.7 · Foods 36.2 KB raw (B3.6, any tab: 34.6 incl. the exercise form); gzip 11.5–13.5 KB (B3.6: 8.9) — §6.5. Library payload (PF-11): not worse — opening the Library (Programs) downloads no exercise list; Exercises downloads it once (spec 92) |
+| PWA (production build) / signed-in offline boot | **PASS** (0 installability errors; the known `_vercel/insights` page error) / **PASS** |
+| **Full e2e3, all projects** (`e2e-out/b37-cert-full2`, 2.2 h including a 56-minute standby) | **339 passed, 3 failed, 0 flaky, 1 skipped of 343** (B3.6's 328 + spec 92's 15). The skip is the approved Google sign-in case. **None of the three failures is a Library spec or B3.7 code** — below |
+| The 3 failures | spec 10 "login rate limit" ran 21:29:50 → 21:30:15, across the limiter's fixed 15-minute window boundary at 21:30, so its 11 attempts were counted in two windows (a clock-dependent test — B37-R4); spec 90 "unread … divider" ran 22:20:38 → 22:21:07 and **the laptop entered Modern Standby at 22:20:47** (event log; Wi-Fi off 22:21 → 23:16, power unplugged); spec 51 "legal: TOC highlights the section in view" (22:01) — no network or page error in its trace, a scroll-observer timing check (B37-R5). No auth, messaging or website code changed in B3.7. **Root causes and fixes: §8.3** |
+| Isolated re-run of specs 10, 51, 90 (`e2e-out/b37-cert-diag`) | **33 passed, 1 skipped, 0 failed** |
+| Library and touched specs in the full run | **92 15 / 15**; 22 4 / 4; 40 15 / 15; 85 7 / 7; 89 16 / 16; 23 9 / 9; 46 11 / 11; 31 11 / 11; layout 9 / 9 at 1440 / 1280 / 1024 / 768 / 430 / 390; 47 3 / 3 (polling budget) |
+| Accessibility (axe WCAG 2.1 A / AA) | spec 92: 14 scans — Programs, Exercises, an exercise detail and "Use in a client plan" × EN / AR × 390 / 1440, plus swap groups, the editor's "Add to which day?" prompt and a program read-first × EN / AR at 1440: **0 violations** |
+| Visual QA | **85 matrix shots, 0 px overflow, correct `dir`** (`e2e-out/b37-cert-full2/b37-visual/`); `B3_VISUAL_QA.md` §B3.7 |
+| Physical devices | **Not run** — R-17 stays open |
+
+**The first certification attempt (`e2e-out/b37-cert-full`, 19:28 → 20:31) is not usable, for environmental reasons (evidence kept):**
+- the laptop's power source changed at 19:46 (unplugged) and Wi-Fi was down from 19:46:51 to 20:08:32 (WLAN AutoConfig events 8003 / 8002 / 8001). With no network adapter connected Chrome reports "offline" even on loopback, so the app correctly disabled writes ("You're offline — reconnect to do this.") and paused its queries — 8 failures in specs 42, 43, 44, 46, 50 in that window;
+- at 20:28 a disk cleanup on the machine removed Playwright's browsers from `AppData\Local\ms-playwright` (WebKit gone; Chromium's `icudtl.dat` and most of its files gone) and the session's scratch folder — the browser crashed and the remaining 110 tests failed at launch (`Executable doesn't exist`, `Invalid file descriptor to ICU data`). The owner approved reinstalling them (`npx playwright install chromium-headless-shell webkit`);
+- its offline-boot step failed before testing (the helper's in-memory MongoDB did not start); it passed in the second attempt;
+- one earlier failure (spec 31 "load older", 19:41, client conversation code untouched by B3.7) passed 11 / 11 in the second attempt.
+
+During development, spec 92's visual matrix once stalled when the dev server stopped answering its own module requests for 13.5 minutes under memory pressure (0.8 GB free, 86 % commit); it passed alone (2 / 2) and in both full runs. Machine conditions throughout: 0.6–2.9 GB free RAM, 80–93 % commit, 28–41 desktop Chrome processes, a VM running, partly on battery.
+
+### 5. Backlog outcome (B3.7-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | CO-23 · CO-26-R · CO-39 · DT-08 · EX-23 · RM-27 · TB-04 · TS-04 |
+| **Mitigated** — the B3 part is done; the rest is named | EX-08 (the catalog available by default is EX-07, B4) · EX-15 (synonyms / Arabic aliases, a virtualised list, the payload — B4) · TB-08 (Packages adopt it in B3.8; the admin `DataTable` is unchanged on purpose) · VS-14 (one admin page keeps the pill tabs — B5) |
+| **Unchanged, noted** | PF-11 (B4): not worse — opening the Library downloads no exercise list until Exercises is opened · EX-19 (B4): the coach Library now credits the source · JR-06 / CO-24 / EX-14 (B4) · MD-01 / 02 / 03 (launch blockers, untouched) · O-9 / O-13 / EX-07 (deferred) · B36-R4 (P1, launch blocker) and B36-R9 / R10 / R2 / R5 / R7 as recorded |
+| **New** | B37-R1 a time-dependent server test assertion (P3, B5) · B37-R2 a generated new-meal label stored in `label.en` (P3, B5) · B37-R3 template-sync notices are per device (P3, B5) · B37-R4 the login rate-limit e2e test depends on the clock (P3, B5) · B37-R5 the website TOC e2e test is timing-sensitive (P3, B5). **Final pass (§8):** B37-R4 fixed in the test; B37-R5 reclassified — a real website defect (stale contents highlight after a layout shift), deferred to B5 by the owner. **Before the commit (§9):** B37-R2 fixed |
+
+### 6. Known limits and risks
+
+1. **Template-sync failures in the browser test are simulated**: the e2e stack cannot make the server's propagation fail, so spec 92 rewrites the save's answer to `failed`; the server-side sync and its idempotence are the existing (unchanged) code. The notice is per device (B37-R3).
+2. **Search quality is B4**: substring matching with loose Arabic spelling; no synonyms or Arabic aliases; exercise names are one language (EX-12); muscle / equipment values are the source's (EX-09).
+3. **Media is shown honestly, not fixed**: most starter exercises have no demo; wger videos are mostly HEVC (the player says so); images are hotlinked originals (EX-17 / 18). No new media, upload path or third-party content was added (MD-01 / 02 / 03 unchanged).
+4. **The exercise list is still one 835 KB download** when Exercises opens (PF-11, B4); Programs no longer triggers it.
+5. **Bundle** (§4): the Library's largest chunk shrank (28.37 → 19.95 KB), but the code needed for a first visit to Exercises / Foods is 35.7 / 36.2 KB raw (B3.6: 34.6) and gzip grew from 8.9 to 13.4–13.5 KB — the new filters, Select mode, read-first details, the hand-off and the sync notice.
+6. **"Use in a client plan" for a program** keeps the existing assign (it replaces the client's training plan, keeping the old one as a version) — not an unsaved edit like exercises and foods. It is confirmed before anything is written, now with direct tests (§8.1).
+7. **A new meal's generated label** is stored in `label.en` whatever the UI language (the editor's existing behaviour, kept for parity — B37-R2). No data was lost; an Arabic-UI coach's new meal stored Arabic in the English slot. **Fixed before the commit (owner-approved): both languages, both entry points (§9).**
+8. **Physical devices not run**; R-17 stays open.
+
+### 7. Selector and route changes
+
+`B3_COACH_ROUTE_MIGRATION.md` §12 (routes, semantic parents, every changed test id). Specs adapted: 22 (the Library opens on Programs; the starter result is a dialog everywhere; desktop tables for every segment; swap groups inside Foods), 40 (`?tab=exercises`), 85 (`lib-tab-programs` → `/coach/library?tab=programs`; `/coach/templates` redirects into a root, so no Back), 89 (Back after saving a template and "Start from a template" land on Library › Programs). The guarantees are unchanged.
+
+### 8. Owner final pass (2026-10-21)
+
+**Owner brief:** B3.7 provisionally accepted; one final certification pass before a local commit — (1) verify that "Use in a client plan" for a **program** confirms before replacing the client's workout plan and says the old plan is kept in version history (add the smallest correction and focused coverage only if missing; never turn it into an unsaved hand-off); (2) investigate B37-R2 and report before expanding scope; (3) make spec 10 deterministic across the limiter's window boundaries, confirm spec 90's cause, classify spec 51 — no longer timeouts, retries, weaker assertions or skips; (4) one complete e2e3 run on the final tree plus typecheck, unit / API, architecture, build, PWA and offline checks; (5) keep every B4 / B5 follow-up and launch blocker documented. No staging, commit or B3.8.
+
+**8.1 Program → "Use in a client plan" — already protected; coverage added.** Choosing a client opens a confirmation before anything is written: *Assign "{program}" to {client}? This replaces their current workout plan — the existing one is saved as a version first.* (the same meaning in AR and AR-EG). Cancel writes nothing; Assign saves once with `replaceExisting: true` and the version reason `Assigned template "…"`, and the server keeps the previous plan as a restorable version (`api/_trpc/routers/planSafety.test.ts`, "template assignment (replaceExisting) replaces deliberately and keeps the previous plan restorable"). The behaviour is unchanged. The confirmation itself had no direct test, so two were added:
+- `src/components/coach/AssignTemplate.test.tsx` (new, 4): the confirmation appears before any save, with the exact copy and an "Assign" button; Cancel saves nothing; Assign saves exactly once with `{ replaceExisting: true, versionReason: 'Assigned template "Upper Lower"' }` and the program's source metadata; EN / AR / AR-EG all name both the program and the client. A mutation check (assign on tap, no confirmation) fails 3 of the 4.
+- spec 92 "RM-27 / CO-39": in the browser the confirmation shows the full English text; Cancel closes it; the client's stored plan is byte-identical and the version count unchanged.
+
+**8.2 B37-R2 — generated meal labels (investigated; proposal approved by the owner and implemented in §9).**
+- *When:* only when a **new** meal is created — the editor's "Add meal" (B3.5) and "New meal" in the Library hand-off prompt (B3.7, a copy of the same line for parity). Both store `{ en: "<"Meal" in the UI language> N", ar: "" }`. Typed labels, existing meals, foods (both languages kept) and every other field are unaffected.
+- *Data loss:* **none** — nothing is overwritten; the Arabic slot is empty, not cleared, and `useLocalized` falls back, so nothing renders blank.
+- *Language correctness:* an **English-UI** coach's new meal reads "Meal 3" to Arabic and Egyptian-Arabic readers (translation fallback). An **Arabic / Egyptian-Arabic-UI** coach's new meal stores Arabic ("وجبة 3") in the **English** slot: English readers see Arabic, and the editor's English label field holds Arabic with the Arabic field empty (wrong-language storage). Digits are Latin in both.
+- *Proposed minimal fix (not implemented):* one shared helper for both entry points that fills both languages — "Meal N" from the English strings and "وجبة N" from the Arabic strings (loading the Arabic strings on demand for an English-UI coach) — with unit tests for both entry points under EN, AR and AR-EG; no migration (clean launch). B37-R2 stays Open (P3) until the owner decides.
+
+**8.3 The three non-Library failures.**
+
+*Spec 10 — login rate limit (B37-R4, fixed in the test).* The certification trace shows the cause exactly: attempts 1–7 reached the server before 18:30:00 UTC and 8–11 after it, so the limiter's fixed 15-minute window (`windowStart = floor(now / 15 min)`) counted 7 + 4 and never reached 11. The test now:
+- starts only when the current window has at least 120 s left, otherwise waits for the next window — and its own time budget grows by exactly that wait (no other timeout changed);
+- waits for each attempt's own answer and asserts HTTP 401 + "Invalid email or password." for attempts 1–10 and HTTP 429 + "Too many attempts — please wait a bit and try again." for the 11th (before, attempts 2–10 only re-checked an error that was already on screen);
+- asserts the server's record: exactly one `rateLimits` document for this IP + email in that window, with `count` 11;
+- keeps the "page still usable" checks. The limiter, its limits and its keys are unchanged.
+
+*Spec 90 — unread divider (environmental, unchanged).* Every failed request in its trace is `net::ERR_NETWORK_IO_SUSPENDED` — Chromium's error while the system suspends, raised even for `127.0.0.1` — starting 22:20:47 local, the second the System log records the Modern Standby entry; Wi-Fi was off 22:21 → 23:16. Messages code and the test are unchanged; it passed in the isolated re-run and in every other run.
+
+*Spec 51 — legal contents highlight (B37-R5, reclassified: a test-synchronization trigger exposing a real website defect).*
+- The trace: the test clicked "05" 0.85 s **before** the Poppins regular face finished loading (500 / 600 arrived 50–125 ms after the click), i.e. during the web-font swap. The failure screenshot: "04" highlighted, §5's top at 268 px instead of 184 (100 px `scroll-margin` + 84 px `scroll-padding`) — 84 px short.
+- The mechanism, reproduced deterministically (no timing; temporary probe, removed): §5 inside the observer band → "05" highlighted; 84 px of growth above §5 (what the font swap does) → §4's end re-enters the band → "04"; the scroll finishes at the stale target → §5 at 268 px, "04" still highlighted 3 s later. The page highlights the last section that *entered* the band and never re-checks, and a smooth scroll's target is fixed when it starts.
+- Font measurement (probe, removed): the swap moves §5 down **85 px** at 1440 (2368 → 2453 px from the top of the document with the fallback font vs the web fonts). With the font stylesheet and the font files each delayed 1.5 s, the contents list is on screen while six faces are still loading; after `load` + `document.fonts.ready` none is (Poppins 400 / 600 / 700 loaded).
+- Earlier probes (font files delayed 1.5 s; CPU throttled × 4 and × 8; 14 runs) never reproduced it — the swap has to land in a window of a few frames, which happens only under the full suite's load (it also failed once in B3.6's first full run).
+- **Test change:** before the click the test waits for the page's `load` event and `document.fonts.ready` (the Google Fonts stylesheet and the faces the page uses have arrived or failed — no new network dependency; offline it proceeds with the fallback font). The click, the highlight assertion and the in-viewport assertion are unchanged; no timeout, retry or skip.
+- **Website defect (B37-R5, open, P3, not changed — website code is outside B3.7):** proposed fix — on each observer callback compute the active section from geometry (the last section whose top is above the band's lower edge), plus the reproduction above as its regression test. Self-hosting the fonts (B36-R9) would remove this trigger, not the rule.
+
+**8.4 Certification before the B37-R2 fix (2026-10-21, `e2e-out/b37-cert-final`, one complete run, 00:17 → 01:21; the final tree's run is §9.3).** Before the run: on AC power and online, 2.1 GB RAM free (82 % commit), C: 21.2 GB and D: 25.4 GB free, Playwright's browsers intact. The run held a keep-awake request, and its scripts and test temp files were on D: (Windows Storage Sense is on — "during low free disk space", temporary files — and was left as it is; no system setting was changed).
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 922 / 922 in 107 files** (+4: `AssignTemplate.test.tsx`) |
+| Build | **PASS** — sizes identical to §4 (entry 480.43 / 155.20 kB gzip; `ClientApp` 39.02 / 12.28; `CoachApp` 23.78 / 8.01; Library shell 19.95 / 7.50); precache 197 entries |
+| PWA / signed-in offline boot | **PASS** (0 installability or manifest errors; the known `_vercel/insights` page error) / **PASS** |
+| **Full e2e3, all projects** | **342 passed, 0 failed, 0 flaky, 1 skipped of 343 — one complete run (59.4 min).** The skip is the approved Google sign-in case. Spec 10's rate-limit test 12.5 s (its window had room); spec 51 passed; spec 90 3 / 3 incl. the unread divider; spec 92 15 / 15 |
+| Spec 10 at a window boundary | started 100 s before 00:15:00 → waited for the new window → **passed** (2.0 min; `e2e-out/b37-final-boundary`) |
+| Visual QA | **85 matrix shots, 0 px overflow, `dir` ltr / rtl correct** (`e2e-out/b37-cert-final/b37-visual/`) |
+| Machine during the run | no standby, power-source or Wi-Fi event in the System / WLAN logs; on AC and online at every sample; memory tight — free RAM down to 0.07 GB at 00:53 (96 % commit) with other applications open; no test failed |
+| Physical devices | **Not run** — R-17 stays open |
+
+### 9. Owner-approved fix before the commit — B37-R2 generated meal names (2026-10-21)
+
+**Owner decision (2026-10-21):** B3.7 accepted functionally with the §8.4 results; one correctness fix approved before the local commit — B37-R2 via the proposed shared helper (both languages whatever the coach's language; English "Meal N", Arabic and Egyptian Arabic "وجبة N"; both entry points; custom names preserved; existing meals not overwritten; no migration or schema change; regression tests for both entry points and every locale; fixed only after verification). B37-R5 stays deferred to B5 (no website change; the deterministic spec 51 test kept). Program assignment behaviour and its new tests stay as they are. Stop before the commit.
+
+**9.1 Change** (`src/lib/nutritionPlanModel.ts`, `src/pages/coach/CoachNutritionEditor.tsx`):
+- `generatedMealLabel(n)` → `{ en: "Meal n", ar: "وجبة n" }` — the only source of a new meal's name, used by **Add meal** and by **New meal** in the Library hand-off prompt (both number it `meals + 1`, as before). The words are stored data, not UI copy, so they do not depend on the coach's language; a test pins them to the `coachEditor.meal` strings of all three bundles.
+- `typeMealLabel(label, value)` for the meal's main name field: while a meal still has its untouched generated pair (`isGeneratedMealLabel`), the first typed name replaces it in **both** languages — exactly what happened before, when a new meal's Arabic slot was empty. Any other label follows the unchanged B1.8 rule (a real translation is kept). Without this, "Breakfast" typed over "Meal 2" would have left Arabic readers with "وجبة 2".
+- Nothing else changed: existing meals, custom names, foods, the Arabic field, saving and conflict handling are untouched; no stored data is rewritten (a label already stored keeps its value until the coach edits it); no migration, schema or API change. A coach who types exactly "Meal 3" in English and "وجبة 3" in Arabic is indistinguishable from a generated name — typing a new English name then also replaces the Arabic, as a copy would.
+
+**9.2 Tests**
+- `src/lib/nutritionPlanModel.test.ts` (+3): both languages for a new meal and the words equal to the `coachEditor.meal` strings in `en.json`, `ar.json` and `ar-eg.json`; only an untouched pair with the same number counts as generated (the old `en`-only shape, a changed Arabic, a different number and custom names do not); typed names replace a generated pair in both languages and never a real translation.
+- `src/pages/coach/CoachNutritionEditor.test.tsx` (+7): **Add meal** and **New meal from the Library** under **EN, AR and AR-EG** (each test first checks the app is in that language — "Add meal" / "إضافة وجبة" / "ضيف وجبة") save `{ en: "Meal 2", ar: "وجبة 2" }` with the existing meal byte-identical and the library food in both languages; a typed name replaces the generated one in both languages while the existing meal's own Arabic ("فطور") is kept.
+- Mutation checks: the previous label code fails all 6 locale tests; the new names without the typing rule fail the typed-name test (Arabic stayed "وجبة 2").
+- `e2e3/specs/20-coach-core.spec.ts` "workspace: nutrition plan saves and survives reload" (+1 assertion): the meal added in the browser is stored as `{ en: "Meal N", ar: "وجبة N" }` (spec 20: 12 / 12).
+
+**9.3 Verification** — the exact final tree, `e2e-out/b37-cert-r2`, 01:45 → 02:48. Before the run: on AC power (100 %) and online, 4.6 GB RAM free (80 % commit), C: 30.5 GB and D: 24.2 GB free, the e2e ports free, Playwright's browsers intact; the run held a keep-awake request; Storage Sense left as it is — no system setting changed, nothing deleted.
+
+| Gate | Result |
+|---|---|
+| Focused, before the full run | model rules 9 / 9; nutrition editor 13 / 13; spec 20 12 / 12; specs 89 (nutrition, Arabic, visual matrix) and 92 (Journey I food, CO-26-R, Arabic, visual matrix) 7 / 7 at 1440 |
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 932 / 932 in 107 files** (+10 over §8.4) |
+| Build | **PASS** — entry 480.43 / 155.20 kB gzip, `ClientApp` 39.02 / 12.28 and `CoachApp` 23.78 / 8.02 (unchanged); Library shell 19.95 / 7.51; nutrition editor 24.42 / 7.15 (24.48 / 7.16 before); precache 197 entries |
+| PWA / signed-in offline boot | **PASS** (0 installability or manifest errors; the known `_vercel/insights` page error) / **PASS** |
+| **Full e2e3, all projects** | **342 passed, 0 failed, 0 flaky, 1 skipped of 343 — one complete run (58.6 min).** The skip is the approved Google sign-in case. Spec 20 12 / 12 (incl. the stored meal names); 89 16 / 16; 92 15 / 15; 22 4 / 4; 40 15 / 15; specs 10, 51 and 90 passed |
+| Visual QA | **85 matrix shots, 0 px overflow, `dir` ltr / rtl correct** (`e2e-out/b37-cert-r2/b37-visual/`) |
+| Machine during the run | no standby, power-source or Wi-Fi event in the System / WLAN logs; on AC and online at every sample; free RAM ≥ 1.86 GB |
+| Physical devices | **Not run** — R-17 stays open |
+
+**9.4 Backlog:** **B37-R2 → Fixed** (closed with the tests above). B37-R5 stays **Open for B5** by the owner's decision (no website change; spec 51 keeps its deterministic synchronization). Counts: Open 208 · Mitigated 60 · Needs Verification 31 · Deferred 8 · Fixed 171 (478 entries).
+
+**Status: B3.7 implemented and certified locally on the final tree — full e2e3 342 / 343 in one complete run (0 failed, 0 flaky, the approved skip); unit / API 932 / 932; typecheck, boundaries, build, PWA and offline boot green (§9.3). Program assignment is confirmed before it replaces a plan (§8.1); B37-R2 fixed (§9); B37-R5 deferred to B5. Not committed — awaiting the owner's approval.**

@@ -32,8 +32,8 @@ Removed from the coach (still used by the admin shell): the ☰ menu sheet, the 
 | `…/view`, `…/view/:tab` | Client › Progress | redirect `…/progress?view=` (activity → `day`, measurements / progress → `body`, nutrition, cardio, photos) | B3.4 | **Done (B3.4)**; the "view as client" page is removed |
 | `…/versions/:kind` | editor History sheet | redirect `…/:kind?history=1` | B3.5 | Unchanged |
 | `/coach/messages`, `/coach/messages/:clientId` | Messages | same URLs | B3.6 | Tab |
-| `/coach/library?tab=…` | Library | same URL; `?tab=programs` added | B3.7 | Tab; "Programs" segment links to `/coach/templates` |
-| `/coach/templates`, `/:id`, `/new`, `/:id/edit` | Library › Programs | list → `/coach/library?tab=programs`; editor URLs kept | B3.7 | Pages kept; light **Library**; Back → Library |
+| `/coach/library?tab=…` | Library | same URL; `?tab=programs` added (and the default); `?tab=groups` → Foods › Swap groups | B3.7 | **Done (B3.7)** — §12 |
+| `/coach/templates`, `/:id`, `/new`, `/:id/edit` | Library › Programs | list → `/coach/library?tab=programs`; editor URLs kept; `/:id` opens the template read-first (RM-27) | B3.7 | **Done (B3.7)**; the list and preview pages are removed; light **Library** |
 | `/coach/revenue`, `/coach/reports` | Me › Business | **new** `/coach/business`, old URLs redirect | B3.8 | Pages kept; Me › Business rows |
 | `/coach/subscription-plans` | Me › Business › Packages | redirect `/coach/business?tab=packages` | B3.8 | Page kept; Me › Client packages |
 | `/coach/plan` | Me › Forma subscription | same URL | — | Me › Forma subscription |
@@ -52,7 +52,7 @@ Every stored notification target keeps resolving: `/coach/client/:id/checkins`, 
 | `/coach/client/:id/plan · progress · profile` | `/coach/client/:id` (Summary) | B3.4 |
 | `/coach/client/:id` | `/coach/clients` | B1 (B3.4: sections replace history, so with in-app history Back returns to the opener — NAV-K08) |
 | `/coach/messages/:id` | `/coach/messages` | B1 |
-| `/coach/templates/:id/edit` → `/coach/templates/:id` → `/coach/templates` | **`/coach/library`** | B3.1 |
+| `/coach/templates/:id/edit` → `/coach/templates/:id` → **`/coach/library?tab=programs`** (`/coach/templates` and `/new` too) | Library › Programs | B3.1; B3.7 (the segment) |
 | `/coach/plan`, `/coach/settings`, `/coach/revenue`, `/coach/reports`, `/coach/subscription-plans` | **`/coach/me`** | B3.1 |
 | `/coach/me` and every other `/coach/<section>` | **`/coach/dashboard`** (Today) | B3.1 (was `/coach`, a redirect) |
 
@@ -154,3 +154,34 @@ URLs are unchanged (`/coach/messages`, `/coach/messages/:clientId`; every notifi
 | engine | adds `unread-divider`, `message-composer`, `composer-count`, `composer-offline`, `thread-access-ended`, `thread-not-assigned`, `attachment-unavailable`, `voice-note` / `voice-note-toggle` / `voice-note-unplayable`; the action sheet / menu has `role="menu"` | 31, 32, 90, 91 |
 
 **Certification additions (2026-10-20):** the broadcast result adds `broadcast-not-sent` (refused, nothing stored) and `broadcast-unconfirmed` (no answer, may have arrived); rows of `broadcast-failed-list` carry `data-failure` (`notAssigned` / `accountNotActive` / `rejected` / `unknown`). Spec 90.
+
+
+## 12. B3.7 changes
+
+Templates is **Library › Programs**; the separate preview page is gone (RM-27, owner decision 2026-10-20). Every old URL keeps working:
+
+| URL | Now | Handling |
+|---|---|---|
+| `/coach/library` | Library, **Programs** first (Programs · Exercises · Foods · Supplements) | same URL; `?tab=programs\|exercises\|foods\|supplements`; Foods adds `?view=groups` (swap groups); the list's own state is in the URL: `?q=` `?muscle=` `?equipment=` `?video=1` `?goal=` `?sort=` `?dir=` |
+| `/coach/library?tab=groups` (swap groups had their own tab) | Foods › Swap groups | rewritten in place (replace) to `?tab=foods&view=groups` |
+| `/coach/library?…&new=1` | the segment's creation form opens once | ⌘K "New exercise" / "New food" (DT-08); the parameter is removed at once (replace) |
+| `/coach/library?…&open=<id>` | that exercise / food / supplement opens read-first | ⌘K search results; removed at once |
+| `/coach/templates` | Library › Programs | redirect `/coach/library?tab=programs` (replace) |
+| `/coach/templates/:id` | the template **read-first** in its editor screen (the whole program; Edit, Use in a client plan, Duplicate, Delete) | same URL, readable while the coach's Forma plan has lapsed (writes disabled) |
+| `/coach/templates/:id/edit`, `/coach/templates/new` (and `/new/edit`) | the builder (B3.5) | same URLs, behind the plan gate; Edit and Save **replace** the history entry, so Back from a program goes to the Library and never into the builder (NAV-K04) |
+| `/coach/client/:id/workout?addExercise=<id>`, `…/nutrition?addFood=<id>` | **new** — "Use in a client plan": the client's existing editor asks for the day / meal and adds the item as an unsaved change | the parameter is read once and removed (replace); nothing is saved until Save |
+
+**Semantic parents:** `/coach/templates/:id` and `/coach/templates/new` → `/coach/library?tab=programs` (was `/coach/templates`); `/coach/templates` → `/coach/library?tab=programs` (was `/coach/library`); `/coach/templates/:id/edit` → `/coach/templates/:id` (unchanged). The Library is a root (no Back); the template screens still draw their own Back (`coachPageOwnsBack`). "Start from a template" (empty Plan in the workspace and in the training editor) goes to `/coach/library?tab=programs`.
+
+| Old | New | Specs |
+|---|---|---|
+| `TopBar` `coach-library`; chips `lib-tab-programs` (a link to `/coach/templates`), `lib-tab-exercises \| foods \| groups \| supplements` | page `coach-library[data-segment]` with its own header; segment tabs `lib-tab-programs \| exercises \| foods \| supplements` (`role="tab"`, one tab stop, arrow keys); Foods › `lib-foods-view-foods \| -groups` (radios) | 22, 85, 92 |
+| `lib-load-starter` next to the search; `load-starter-library` in empty states; result: a toast (Library) or a dialog (Templates) | `lib-more` → `lib-load-starter`; the first-run panel `lib-starter` → `load-starter-library`; both confirm, then report in the same dialog | 22, 92 |
+| `lib-new` / `food-new` / `group-new` / `supp-new` (+ icons beside each search), `template-new` (Templates top bar) | one header button whose id follows the segment: `template-new`, `lib-new`, `food-new`, `group-new`, `supp-new` | 22, 40, 92 |
+| tables `coach-desktop-library`, `coach-desktop-foods` (`data-row`, a checkbox + ✕ on every row); cards `group-item`, `supp-item`, `template-card` | desktop tables `coach-desktop-templates \| library \| foods \| groups \| supplements` (`data-row[data-id]`, `row-open`, `row-menu` → `row-use`, `row-edit`, `row-duplicate`, `row-delete`; sortable headers `sort-<key>` with `aria-sort`); phones / tablets `lib-list-<segment>` with rows `template-card`, `lib-item`, `food-item`, `group-item`, `supp-item`; `lib-show-more` | 22, 92 |
+| `row-select` / `select-all` / `bulk-delete` always visible | only after `lib-select` (Select mode); then `row-select`, `select-all` (desktop), `bulk-action-bar` / `bulk-delete` | 92 |
+| searches `lib-search`, `food-search`, `supp-search`, `template-search`; muscle chips `lib-muscle-<m>` | same search ids (plus `group-search`); filters `lib-filter-muscle`, `lib-filter-equipment`, `lib-filter-video`, `lib-filter-goal` (desktop inline; phones `lib-filters` → `lib-filters-sheet` with `lib-sort`); `lib-count`, `lib-clear` | 92 |
+| exercise view `exercise-view` + `exercise-view-edit`; foods opened straight into their form | every item opens read-first: `exercise-detail` (`exercise-view`, `exercise-use`, `exercise-view-edit`, `exercise-delete`), `food-view` (`food-use`, `food-view-edit`, `food-delete`), `group-view`, `supp-view`; demo `demo-video \| demo-image \| demo-none`, `demo-image-view`, `demo-placeholder`, `attribution` | 22, 92 |
+| template preview `coach-template-preview`, `template-preview`, `template-preview-days`, `template-edit / -assign / -duplicate / -delete` | the editor screen `coach-template-editor` read-first: `template-preview` (`template-read-day`, `template-read-exercise`), `template-edit`, `template-assign`, `template-more` → `template-duplicate` / `template-delete`, `template-draft-pending` | 22, 89, 92 |
+| — | "Use in a client plan": `use-in-plan` (`use-client-search`, `use-client-client`); in the editors `library-add` (`library-add-target`, `library-add-new`, `library-add-cancel`, `library-add-missing`) | 92 |
+| — | template sync notice `lib-sync-issue` (`lib-sync-retry`, dismiss) | 92 |

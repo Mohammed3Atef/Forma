@@ -245,7 +245,7 @@ test('check-in photo: coach requests (UI) → client completes with a photo; bad
 });
 
 async function openNewExercise(page: Page) {
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises'); // B3.7: the Library opens on Programs
   await ready(page);
   await page.getByTestId('lib-new').click();
   await expect(page.getByTestId('exercise-form')).toBeVisible();

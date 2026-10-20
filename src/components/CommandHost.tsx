@@ -52,8 +52,9 @@ export function CommandHost() {
         { id: 'c-add-client', label: t('coachDash.addClient'), icon: 'plus', group: cmd, always: true, run: go('/coach/clients?new=1') },
         { id: 'c-create-template', label: t('coachDash.createTemplate'), icon: 'list', group: cmd, always: true, run: go('/coach/templates/new') },
         { id: 'c-open-library', label: t('coachDash.openLibrary'), icon: 'dumbbell', group: cmd, always: true, run: go('/coach/library') },
-        { id: 'c-create-exercise', label: t('coachLib.newExercise'), icon: 'plus', group: cmd, always: true, run: go('/coach/library?tab=exercises') },
-        { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods') },
+        // B3.7 / DT-08: "New exercise / New food" open the creation form itself, not just the tab.
+        { id: 'c-create-exercise', label: t('coachLib.newExercise'), icon: 'plus', group: cmd, always: true, run: go('/coach/library?tab=exercises&new=1') },
+        { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods&new=1') },
         // Honest labels (DT-08): this opens the inbox — broadcasting is a step inside it.
         { id: 'c-messages', label: t('coachNav.openMessages'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
         { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/dashboard?focus=assessments') },
@@ -64,13 +65,13 @@ export function CommandHost() {
         ents.push({ id: `cl-${c.id}`, label: c.displayName || c.email, icon: 'user', group: t('coach.clients'), keywords: c.email, run: go(`/coach/client/${c.id}`) }),
       );
       qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.forEach((e) =>
-        ents.push({ id: `ex-${e.id}`, label: e.name, icon: 'dumbbell', group: t('coachLib.tabs.exercises'), keywords: `${e.targetMuscle} ${e.category ?? ''}`, run: go('/coach/library?tab=exercises') }),
+        ents.push({ id: `ex-${e.id}`, label: e.name, icon: 'dumbbell', group: t('coachLib.tabs.exercises'), keywords: `${e.targetMuscle} ${e.category ?? ''}`, run: go(`/coach/library?tab=exercises&open=${encodeURIComponent(e.id)}`) }),
       );
       qc.getQueryData<LibraryFood[]>(['foods', coachId])?.forEach((f) =>
-        ents.push({ id: `fd-${f.id}`, label: f.name.en, icon: 'meal', group: t('coachLib.tabs.foods'), run: go('/coach/library?tab=foods') }),
+        ents.push({ id: `fd-${f.id}`, label: f.name.en, icon: 'meal', group: t('coachLib.tabs.foods'), keywords: f.name.ar ?? '', run: go(`/coach/library?tab=foods&open=${encodeURIComponent(f.id)}`) }),
       );
       qc.getQueryData<WorkoutTemplate[]>(['workoutTemplates', coachId])?.forEach((tp) =>
-        ents.push({ id: `tp-${tp.id}`, label: tp.name, icon: 'list', group: t('coachDash.templates'), run: go(`/coach/templates/${tp.id}`) }),
+        ents.push({ id: `tp-${tp.id}`, label: tp.name, icon: 'list', group: t('coachLib.tabs.programs'), run: go(`/coach/templates/${encodeURIComponent(tp.id)}`) }),
       );
     } else if (role === 'admin' || role === 'super_admin') {
       const isSuper = role === 'super_admin';

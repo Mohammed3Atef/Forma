@@ -336,7 +336,7 @@ test.describe('B3.5 plan editors', () => {
     await expect(page.getByTestId('plan-editor-empty')).toBeVisible();
     await expect(page.getByTestId('workout-save')).toHaveCount(0);
     await page.getByTestId('plan-editor-from-template').click();
-    await expect(page).toHaveURL(/\/coach\/templates$/);
+    await expect(page).toHaveURL(/\/coach\/library\?tab=programs$/); // B3.7: the templates are Library › Programs
     await openEditor(page, 'workout', C.fresh.id);
     await page.getByTestId('plan-editor-create').click();
     await page.getByTestId('builder-add-day').click();
@@ -386,7 +386,7 @@ test.describe('B3.5 plan editors', () => {
     await page.getByTestId('template-save').click();
     await expect(page).toHaveURL(/\/coach\/templates\/(?!new$)[^/]+$/);
     await page.goBack();
-    await expect(page).toHaveURL(/\/coach\/templates$/); // never back into the editor (NAV-K04)
+    await expect(page).toHaveURL(/\/coach\/library\?tab=programs$/); // never back into the editor (NAV-K04); B3.7: the old list URL is Library › Programs
     expect(await db.count('coachWorkoutTemplates', { name: 'E2E-ED Template' })).toBe(1);
   });
 

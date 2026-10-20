@@ -34,10 +34,9 @@ const CoachSubscriptionPlans = lazy(() => import('@/pages/coach/CoachSubscriptio
 const CoachWorkoutEditor = lazy(() => import('@/pages/coach/CoachWorkoutEditor').then((m) => ({ default: m.CoachWorkoutEditor })));
 const CoachNutritionEditor = lazy(() => import('@/pages/coach/CoachNutritionEditor').then((m) => ({ default: m.CoachNutritionEditor })));
 const CoachCardioEditor = lazy(() => import('@/pages/coach/CoachCardioEditor').then((m) => ({ default: m.CoachCardioEditor })));
-const CoachTemplates = lazy(() => import('@/pages/coach/CoachTemplates').then((m) => ({ default: m.CoachTemplates })));
+// B3.7 Library: Programs · Exercises · Foods · Supplements; a template opens read-first in its editor (RM-27).
 const CoachWorkoutTemplateEditor = lazy(() => import('@/pages/coach/CoachWorkoutTemplateEditor').then((m) => ({ default: m.CoachWorkoutTemplateEditor })));
-const CoachTemplatePreview = lazy(() => import('@/pages/coach/CoachTemplatePreview').then((m) => ({ default: m.CoachTemplatePreview })));
-const CoachExerciseLibrary = lazy(() => import('@/pages/coach/CoachExerciseLibrary').then((m) => ({ default: m.CoachExerciseLibrary })));
+const CoachLibrary = lazy(() => import('@/pages/coach/library/CoachLibrary').then((m) => ({ default: m.CoachLibrary })));
 const PlanVersionHistory = lazy(() => import('@/pages/coach/PlanVersionHistory').then((m) => ({ default: m.PlanVersionHistory })));
 const CoachMessages = lazy(() => import('@/pages/coach/CoachMessages').then((m) => ({ default: m.CoachMessages })));
 const CoachClientNotes = lazy(() => import('@/pages/coach/CoachClientNotes').then((m) => ({ default: m.CoachClientNotes })));
@@ -113,11 +112,13 @@ export function CoachApp() {
         {/* Plan version history (from the editors; becomes a sheet in B3.5). */}
         {/* B3-C02: restoring a version is editing — the same plan gate as the editors (the editors' History sheet is the usual way in). */}
         <Route path="/coach/client/:clientId/versions/:kind" element={gated(<PlanVersionHistory />)} />
-        <Route path="/coach/library" element={shell(<CoachExerciseLibrary />)} />
-        <Route path="/coach/templates" element={shell(<CoachTemplates />)} />
+        <Route path="/coach/library" element={shell(<CoachLibrary />)} />
+        {/* B3.7: Templates is Library › Programs; the list URL redirects, the editor URLs stay.
+            A template's own URL opens it read-first (viewing stays open when the coach's plan has lapsed). */}
+        <Route path="/coach/templates" element={<Navigate to="/coach/library?tab=programs" replace />} />
         <Route path="/coach/templates/new" element={gated(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/templates/:templateId/edit" element={gated(<CoachWorkoutTemplateEditor />)} />
-        <Route path="/coach/templates/:templateId" element={shell(<CoachTemplatePreview />)} />
+        <Route path="/coach/templates/:templateId" element={shell(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/adherence" element={<Navigate to="/coach/clients?sort=workouts" replace />} />
         {/* B3.6: one screen — the selection is the URL (split view ≥ 768, full-screen thread on phones). */}
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />

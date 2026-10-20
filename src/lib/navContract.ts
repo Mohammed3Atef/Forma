@@ -61,12 +61,13 @@ const PARENTS: [pattern: string, parent: string][] = [
   ['/coach/client/:id/:section', '/coach/client/:id'],
   ['/coach/client/:id', '/coach/clients'],
   ['/coach/messages/:id', '/coach/messages'],
+  // B3.7: a program's builder → the program (read-first) → Library › Programs.
   ['/coach/templates/:id/edit', '/coach/templates/:id'],
-  ['/coach/templates/new', '/coach/templates'],
-  ['/coach/templates/:id', '/coach/templates'],
+  ['/coach/templates/new', '/coach/library?tab=programs'],
+  ['/coach/templates/:id', '/coach/library?tab=programs'],
   // B3.1 coach IA: Library › Programs; Me (Business, Forma subscription,
   // Account) → Me → Today; every other section → Today.
-  ['/coach/templates', '/coach/library'],
+  ['/coach/templates', '/coach/library?tab=programs'],
   ['/coach/plan', '/coach/me'],
   ['/coach/settings', '/coach/me'],
   ['/coach/revenue', '/coach/me'],

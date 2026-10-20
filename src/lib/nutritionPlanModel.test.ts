@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { applyFoodEdit, cleanNotes, mealCalories, normalizeMealPlan, plannedTotals, type FoodEdit } from './nutritionPlanModel';
+import { applyFoodEdit, cleanNotes, generatedMealLabel, isGeneratedMealLabel, mealCalories, normalizeMealPlan, plannedTotals, typeMealLabel, type FoodEdit } from './nutritionPlanModel';
+import en from '../i18n/en.json';
+import ar from '../i18n/ar.json';
+import arEg from '../i18n/ar-eg.json';
 import type { MealPlan } from '../types';
 import type { FoodItem } from '../types';
 
@@ -55,3 +58,29 @@ describe('older / malformed stored plans open instead of breaking', () => {
   });
 });
 
+describe('generated meal names (B37-R2)', () => {
+  it('a new meal is named in both languages; the words are the app’s own "Meal" strings', () => {
+    expect(generatedMealLabel(3)).toEqual({ en: 'Meal 3', ar: 'وجبة 3' });
+    expect(generatedMealLabel(3).en).toBe(`${en.coachEditor.meal} 3`);
+    expect(generatedMealLabel(3).ar).toBe(`${ar.coachEditor.meal} 3`);
+    expect(generatedMealLabel(3).ar).toBe(`${arEg.coachEditor.meal} 3`); // Egyptian Arabic reads the `ar` slot
+  });
+
+  it('only an untouched generated pair counts as generated', () => {
+    expect(isGeneratedMealLabel(generatedMealLabel(12))).toBe(true);
+    expect(isGeneratedMealLabel({ en: 'Meal 3', ar: '' })).toBe(false); // the old en-only shape
+    expect(isGeneratedMealLabel({ en: 'Meal 3', ar: 'وجبة 4' })).toBe(false);
+    expect(isGeneratedMealLabel({ en: 'Meal 3', ar: 'فطار' })).toBe(false);
+    expect(isGeneratedMealLabel({ en: 'Breakfast', ar: 'وجبة 3' })).toBe(false);
+    expect(isGeneratedMealLabel({ en: 'Meal three', ar: 'وجبة three' })).toBe(false);
+    expect(isGeneratedMealLabel(null)).toBe(false);
+  });
+
+  it('the first typed name replaces a generated one in both languages; a real translation is never replaced', () => {
+    expect(typeMealLabel(generatedMealLabel(2), 'B')).toEqual({ en: 'B', ar: 'B' });
+    expect(typeMealLabel({ en: 'B', ar: 'B' }, 'Breakfast')).toEqual({ en: 'Breakfast', ar: 'Breakfast' });
+    expect(typeMealLabel({ en: 'Breakfast', ar: 'فطور' }, 'Late breakfast')).toEqual({ en: 'Late breakfast', ar: 'فطور' });
+    // A generated name whose Arabic the coach changed is a real translation from then on.
+    expect(typeMealLabel({ en: 'Meal 2', ar: 'فطار' }, 'Lunch')).toEqual({ en: 'Lunch', ar: 'فطار' });
+  });
+});

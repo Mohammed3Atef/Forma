@@ -62,7 +62,7 @@ export function WorkspacePlan() {
             <div className="mt-auto flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" icon="plus" data-testid={`plan-build-${kind}`} onClick={() => navigate(`${base}/${kind}`)}>{t('workspace.plan.build')}</Button>
               {kind === 'workout' ? (
-                <Button size="sm" variant="ghost" icon="list" data-testid="plan-from-template" onClick={() => navigate('/coach/templates')}>{t('workspace.plan.fromTemplate')}</Button>
+                <Button size="sm" variant="ghost" icon="list" data-testid="plan-from-template" onClick={() => navigate('/coach/library?tab=programs')}>{t('workspace.plan.fromTemplate')}</Button>
               ) : null}
             </div>
           </>

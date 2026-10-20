@@ -56,8 +56,9 @@ test.describe('B3.1 coach shell', () => {
     await expect(page.getByTestId('nav-clients')).toHaveAttribute('aria-current', 'page'); // NAV-K11
     await page.getByTestId('nav-library').click();
     await expect(page).toHaveURL(/\/coach\/library$/);
+    await page.getByTestId('lib-tab-exercises').click();
     await page.getByTestId('lib-tab-programs').click();
-    await expect(page).toHaveURL(/\/coach\/templates$/);
+    await expect(page).toHaveURL(/\/coach\/library\?tab=programs$/); // B3.7: Programs is a Library segment
     await expect(page.getByTestId('nav-library')).toHaveAttribute('aria-current', 'page');
 
     await page.getByTestId('me-button').click();
@@ -111,7 +112,7 @@ test.describe('B3.1 coach shell', () => {
       ['/coach/plan', 'rail-me', '/coach/me'],
       ['/coach/settings', 'rail-me', '/coach/me'],
       ['/coach/revenue', 'rail-me', '/coach/me'],
-      ['/coach/templates', 'rail-library', '/coach/library'],
+      ['/coach/templates', 'rail-library', null], // B3.7: redirects to Library › Programs, a root (no Back)
       ['/coach/clients?view=checkins', 'rail-clients', null], // B3.3: weekly check-ins live in Clients
       [`/coach/messages/${CA}`, 'rail-messages', null],
       [`/coach/client/${CA}/notes`, 'rail-clients', null],

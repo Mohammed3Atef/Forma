@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { WorkoutPlan } from '@/types';
@@ -29,16 +29,21 @@ vi.mock('@/services/platform/planApi', async (orig) => ({
   saveClientWorkoutPlan: (id: string, p: WorkoutPlan, o: unknown) => saveClientWorkoutPlan(id, p, o),
 }));
 vi.mock('@/components/coach/ClientContextPanel', () => ({ ClientContextPanel: () => null }));
+const getExercise = vi.fn();
+vi.mock('@/services/platform/coachAssetsApi', async (orig) => ({
+  ...(await orig<typeof import('@/services/platform/coachAssetsApi')>()),
+  getExercise: (coachId: string, id: string) => getExercise(coachId, id),
+}));
 
 import { CoachWorkoutEditor } from './CoachWorkoutEditor';
 
 const serverPlan: WorkoutPlan = { id: 'wp1', name: '4-Day Upper/Lower', days: [], exercises: {}, updatedAt: 1000 };
 
-function renderEditor() {
+function renderEditor(path = '/coach/client/c1/workout') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/coach/client/c1/workout']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/coach/client/:clientId/workout" element={<CoachWorkoutEditor />} />
         </Routes>
@@ -234,3 +239,70 @@ describe('owner review — drafts made before the plan changed elsewhere (B35-R3
   });
 });
 
+describe('B3.7 — an exercise from the Library ("Use in a client plan")', () => {
+  const lib = { id: 'lib-bench', name: 'Bench press', targetMuscle: 'Chest', warmupSets: '1', warmupSetCount: 1, workingSets: 4, repRange: '6-8', rir: '', tempo: '', notes: { en: 'Pause on the chest', ar: 'توقف على الصدر' }, restSec: 150, videoId: null, videoUrl: 'https://cdn.test/b.mp4', tags: ['strength'] };
+  const twoDays: WorkoutPlan = {
+    id: 'wp1',
+    name: 'Strength',
+    days: [
+      { id: 'd1', dayIndex: 0, title: 'Upper', focus: '', exerciseIds: [] },
+      { id: 'd2', dayIndex: 1, title: 'Lower', focus: '', exerciseIds: [] },
+    ],
+    exercises: {},
+    updatedAt: 1000,
+  };
+  beforeEach(async () => {
+    await (await import('localforage')).default.createInstance({ name: 'gym-tracker', storeName: 'meta' }).clear();
+    getExercise.mockReset();
+    const { useSession } = await import('@/services/auth/sessionStore');
+    useSession.setState({ uid: 'coach-1', account: { id: 'coach-1', role: 'coach', accountStatus: 'active', displayName: 'C', email: 'c@x.test' } as never });
+  });
+
+  it('asks for the day, then adds a library-linked copy as an unsaved change — nothing is saved until Save', async () => {
+    getClientWorkoutPlan.mockResolvedValue(twoDays);
+    getExercise.mockResolvedValue(lib);
+    renderEditor('/coach/client/c1/workout?addExercise=lib-bench');
+    const prompt = await screen.findByTestId('library-add');
+    expect(screen.getByText('Add “Bench press”')).toBeInTheDocument();
+    const targets = within(prompt).getAllByTestId('library-add-target');
+    expect(targets.map((t) => t.textContent)).toEqual([expect.stringContaining('Upper'), expect.stringContaining('Lower')]);
+    fireEvent.click(targets[1]);
+    expect(await screen.findByText('Bench press')).toBeInTheDocument();
+    expect(screen.getByTestId('workout-unsaved')).toBeInTheDocument();
+    expect(saveClientWorkoutPlan).not.toHaveBeenCalled();
+
+    saveClientWorkoutPlan.mockImplementation(async (_id: string, p: WorkoutPlan) => ({ ...p, updatedAt: 2000 }));
+    fireEvent.click(screen.getByTestId('workout-save'));
+    await waitFor(() => expect(saveClientWorkoutPlan).toHaveBeenCalledTimes(1));
+    const sent = saveClientWorkoutPlan.mock.calls[0][1] as WorkoutPlan;
+    const added = Object.values(sent.exercises);
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ name: 'Bench press', notes: { en: 'Pause on the chest', ar: 'توقف على الصدر' }, videoUrl: 'https://cdn.test/b.mp4', workingSets: 4, libraryExerciseId: 'lib-bench', librarySyncEnabled: true });
+    expect(added[0].id).not.toBe('lib-bench');
+    expect(sent.days[1].exerciseIds).toEqual([added[0].id]);
+    expect(sent.days[0]).toEqual(twoDays.days[0]); // the other day keeps its stored shape
+    expect(saveClientWorkoutPlan.mock.calls[0][2]).toMatchObject({ baseUpdatedAt: 1000 }); // the usual compare-and-set
+  });
+
+  it('a new day, or Cancel; an exercise that is gone adds nothing and says so', async () => {
+    getClientWorkoutPlan.mockResolvedValue(twoDays);
+    getExercise.mockResolvedValue(lib);
+    const a = renderEditor('/coach/client/c1/workout?addExercise=lib-bench');
+    fireEvent.click(await screen.findByTestId('library-add-new'));
+    expect(await screen.findByText('Bench press')).toBeInTheDocument();
+    expect(screen.getByTestId('day-title')).toHaveValue('Day 3');
+    a.unmount();
+    await (await import('localforage')).default.createInstance({ name: 'gym-tracker', storeName: 'meta' }).clear();
+
+    const b = renderEditor('/coach/client/c1/workout?addExercise=lib-bench');
+    fireEvent.click(await screen.findByTestId('library-add-cancel'));
+    expect(await screen.findByTestId('workout-clean')).toBeInTheDocument();
+    b.unmount();
+
+    getExercise.mockRejectedValue(Object.assign(new Error('gone'), { data: { code: 'NOT_FOUND' } }));
+    renderEditor('/coach/client/c1/workout?addExercise=lib-gone');
+    expect(await screen.findByTestId('library-add-missing')).toHaveTextContent('no longer in your library');
+    expect(screen.queryAllByTestId('library-add-target')).toHaveLength(0);
+    expect(screen.getByTestId('workout-clean')).toBeInTheDocument();
+  });
+});

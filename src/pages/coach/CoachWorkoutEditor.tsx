@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
 import { TrainingBuilder } from '@/components/coach/editor/TrainingBuilder';
+import { LibraryAddPrompt } from '@/components/coach/editor/LibraryAddPrompt';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { Sheet } from '@/components/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -18,12 +19,16 @@ import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { uid } from '@/lib/utils';
-import { normalizeWorkoutBody, serializeWorkoutBody } from '@/lib/workoutPlanModel';
+import { knownKind, normalizeWorkoutBody, serializeWorkoutBody } from '@/lib/workoutPlanModel';
+import { ADD_EXERCISE_PARAM, addLibraryExercise, exerciseTargets } from '@/lib/libraryHandoff';
 import { getClientWorkoutPlan, saveClientWorkoutPlan } from '@/services/platform/planApi';
-import { saveClientPlanAsTemplate } from '@/services/platform/coachAssetsApi';
+import { getExercise, saveClientPlanAsTemplate } from '@/services/platform/coachAssetsApi';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
-import type { SplitType, WorkoutGoal, WorkoutPlan } from '@/types';
+import { useHandoffParam } from '@/hooks/useHandoffParam';
+import type { Exercise, SplitType, WorkoutGoal, WorkoutPlan } from '@/types';
+
+const notFound = (e: unknown) => (e as { data?: { code?: string } } | null)?.data?.code === 'NOT_FOUND';
 
 const GOALS: WorkoutGoal[] = ['hypertrophy', 'fat_loss', 'strength', 'beginner', 'advanced', 'custom'];
 const SPLITS: SplitType[] = ['ppl', 'upper_lower', 'full_body', 'bro_split', 'custom'];
@@ -62,6 +67,17 @@ export function CoachWorkoutEditor() {
   const [history, setHistory] = useState(false);
   const [dayId, setDayId] = useState<string | null>(null);
   const selectDay = useCallback((id: string | null) => setDayId(id), []);
+  // B3.7 "Use in a client plan": an exercise handed over from the Library, added only once the coach
+  // picks the day — as an unsaved change (the plan is saved, as always, by Save).
+  const qc = useQueryClient();
+  const [addId, clearAdd] = useHandoffParam(ADD_EXERCISE_PARAM);
+  const addQ = useQuery({
+    queryKey: ['exerciseLibraryItem', coachId, addId],
+    queryFn: async () => qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.find((e) => e.id === addId) ?? getExercise(coachId, addId!),
+    enabled: !!addId && !!coachId,
+    retry: (n, e) => !notFound(e) && n < 2,
+    staleTime: Infinity,
+  });
   useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, ed.discardDraft);
   // An editor opened cold goes back to the client's Plan (its semantic parent); the draft is only
   // cleared once leaving is confirmed.
@@ -73,7 +89,7 @@ export function CoachWorkoutEditor() {
   if (!plan) {
     return (
       <PlanEditorShell testId="coach-workout-editor" prefix="workout" title={title} subtitle={client.name} onBack={exit}>
-        {ed.status !== 'ready' && <PlanEditorGate status={ed.status} kind="workout" onRetry={ed.retry} onCreate={ed.startNew} onFromTemplate={() => navigate('/coach/templates')} />}
+        {ed.status !== 'ready' && <PlanEditorGate status={ed.status} kind="workout" onRetry={ed.retry} onCreate={ed.startNew} onFromTemplate={() => navigate('/coach/library?tab=programs')} />}
       </PlanEditorShell>
     );
   }
@@ -113,6 +129,34 @@ export function CoachWorkoutEditor() {
       menu={[{ key: 'template', label: t('coachEditor.saveAsTemplate'), icon: 'copy', testId: 'save-as-template', onSelect: () => setAsTemplate(true) }]}
     >
       <TrainingBuilder body={plan} onChange={(b) => setPlan((cur) => ({ ...cur, days: b.days, exercises: b.exercises }))} coachId={coachId} details={details} selectedDayId={dayId} onSelectDay={selectDay} />
+      <LibraryAddPrompt
+        open={!!addId && (addQ.isSuccess || addQ.isError)}
+        testId="library-add"
+        title={addQ.data ? t('library.add.exerciseTitle', { name: addQ.data.name }) : t('library.use.action')}
+        hint={t('library.add.exerciseHint', { name: client.name })}
+        newLabel={t('library.add.newDay')}
+        missing={addQ.isError ? t(notFound(addQ.error) ? 'library.add.exerciseMissing' : 'library.add.loadFailed') : null}
+        targets={exerciseTargets(plan).map((tg) => ({
+          key: JSON.stringify([tg.dayId, tg.sectionId]),
+          title: (
+            <bdi>
+              {tg.dayTitle || t('coachEditor.day')}
+              {tg.sectionTitle !== null ? ` › ${tg.sectionTitle || t(`coachEditor.sectionKinds.${knownKind(tg.sectionKind)}`)}` : ''}
+            </bdi>
+          ),
+          meta: t('coachEditor.exercisesCount', { count: tg.count }),
+        }))}
+        onCancel={clearAdd}
+        onPick={(key) => {
+          const ex = addQ.data;
+          if (!ex) return;
+          const target = key ? (([dayId, sectionId]) => ({ dayId, sectionId }))(JSON.parse(key) as [string, string]) : { newDayTitle: `${t('coachEditor.day')} ${plan.days.length + 1}` };
+          const res = addLibraryExercise(plan, target, ex);
+          setPlan((cur) => ({ ...cur, days: res.body.days, exercises: res.body.exercises }));
+          setDayId(res.dayId);
+          clearAdd();
+        }}
+      />
       <PlanHistorySheet
         open={history}
         onClose={() => setHistory(false)}

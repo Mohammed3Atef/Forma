@@ -64,7 +64,7 @@ describe('coach destinations', () => {
   it("the shell's Back from a cold deep link goes up the IA, never out of it", () => {
     expect(semanticParent('/coach/plan', 'coach')).toBe('/coach/me');
     expect(semanticParent('/coach/me', 'coach')).toBe('/coach/dashboard');
-    expect(semanticParent('/coach/templates', 'coach')).toBe('/coach/library');
+    expect(semanticParent('/coach/templates', 'coach')).toBe('/coach/library?tab=programs'); // B3.7: Library › Programs
     expect(semanticParent('/coach/reports', 'coach')).toBe('/coach/me');
   });
 });

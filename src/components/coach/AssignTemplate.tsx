@@ -1,15 +1,45 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
+import { Sheet } from '@/components/Sheet';
 import { SearchField } from '@/components/ui/Field';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { listMyClients } from '@/services/platform/coachApi';
 import { assignWorkoutTemplate } from '@/services/platform/coachAssetsApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import type { UserRecord, WorkoutTemplate } from '@/types';
 
 /**
- * Assign-to-client picker (shared by the templates list/preview). Snapshots the
- * template into the chosen client's plan; shows a per-row done check.
+ * "Use in a client plan" for a program — B3.7: from Library › Programs and the template's own page.
+ * The roster loads here; while it loads (or if it fails) the sheet says so instead of "no clients".
+ */
+export function AssignTemplateSheet({ template, coachId, onClose }: { template: WorkoutTemplate | null; coachId: string; onClose: () => void }) {
+  const { t } = useTranslation();
+  const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId && !!template });
+  return (
+    <Sheet open={!!template} onClose={onClose} size="md" title={template ? t('library.use.title', { name: template.name || t('workoutTemplate.untitled') }) : ''}>
+      {template ? (
+        clients.isLoading ? (
+          <div className="space-y-2" aria-busy="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-14 w-full rounded-ui-control" />
+            ))}
+          </div>
+        ) : clients.isError ? (
+          <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void clients.refetch()} testId="assign-clients-error" />
+        ) : (
+          <AssignTemplate template={template} clients={clients.data ?? []} assignedBy={coachId} onDone={onClose} />
+        )
+      ) : null}
+    </Sheet>
+  );
+}
+
+/**
+ * Assign-to-client picker. Snapshots the template into the chosen client's plan
+ * (the client's current plan is kept as a version first); shows a per-row done check.
  */
 export function AssignTemplate({
   template,

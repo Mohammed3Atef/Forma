@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
+import { LibraryAddPrompt } from '@/components/coach/editor/LibraryAddPrompt';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { Icon } from '@/components/Icon';
@@ -21,9 +22,11 @@ import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
+import { useHandoffParam } from '@/hooks/useHandoffParam';
+import { ADD_FOOD_PARAM, addLibraryFood, mealTargets } from '@/lib/libraryHandoff';
 import { uid } from '@/lib/utils';
 import { move } from '@/lib/workoutPlanModel';
-import { MACRO_KEYS, applyFoodEdit, cleanNotes, mealCalories, normalizeMealPlan, plannedTotals, type MacroKey } from '@/lib/nutritionPlanModel';
+import { MACRO_KEYS, applyFoodEdit, cleanNotes, generatedMealLabel, mealCalories, normalizeMealPlan, plannedTotals, typeMealLabel, type MacroKey } from '@/lib/nutritionPlanModel';
 import { applyLocalizedEdit, secondLanguageStale, setLocalized, typeLocalized } from '@/lib/localizedText';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
 import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
@@ -101,6 +104,10 @@ export function CoachNutritionEditor() {
   const { plan, setPlan, dirty, save } = ed;
   const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
   const lib = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
+  // B3.7 "Use in a client plan": a food handed over from the Library, added only once the coach picks
+  // the meal — as an unsaved change (Save keeps it, as always).
+  const [addFoodId, clearAddFood] = useHandoffParam(ADD_FOOD_PARAM);
+  const addFood = addFoodId ? lib.data?.find((f) => f.id === addFoodId) ?? null : null;
   const suppLib = useQuery({ queryKey: ['supplements', coachId], queryFn: () => listSupplements(coachId), enabled: !!coachId });
   // Meals are collapsed to name + kcal; the first one starts open (`undefined` = not chosen yet).
   const [openMealChoice, setOpenMealId] = useState<string | null | undefined>(undefined);
@@ -130,7 +137,7 @@ export function CoachNutritionEditor() {
 
   // ---- meals ----
   const addMeal = () => {
-    const m: Meal = { id: uid('meal'), slot: 'breakfast', label: { en: `${t('coachEditor.meal')} ${plan.meals.length + 1}`, ar: '' }, items: [] };
+    const m: Meal = { id: uid('meal'), slot: 'breakfast', label: generatedMealLabel(plan.meals.length + 1), items: [] };
     setPlan((p) => ({ ...p, meals: [...p.meals, m] }));
     setOpenMealId(m.id);
   };
@@ -321,7 +328,7 @@ export function CoachNutritionEditor() {
           <div className="space-y-3 border-t border-line-soft p-3">
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
               <div className="space-y-1">
-                <TextInput label={t('coachEditor.mealLabel')} data-testid="meal-label" value={m.label.en} onChange={(e) => patchMeal(m.id, { label: typeLocalized(m.label, e.target.value, 'en') })} />
+                <TextInput label={t('coachEditor.mealLabel')} data-testid="meal-label" value={m.label.en} onChange={(e) => patchMeal(m.id, { label: typeMealLabel(m.label, e.target.value) })} />
                 <SecondLanguageField lang="ar" testId="meal-label-ar" value={m.label.ar ?? ''} onChange={(v) => patchMeal(m.id, { label: { ...m.label, ar: v } })} />
               </div>
               <SelectField label={t('coachEditor.mealSlot')} data-testid="meal-slot" value={m.slot} onChange={(e) => patchMeal(m.id, { slot: e.target.value as MealSlot })}>
@@ -523,6 +530,24 @@ export function CoachNutritionEditor() {
         </div>
       )}
 
+      <LibraryAddPrompt
+        open={!!addFoodId && (lib.isSuccess || lib.isError)}
+        testId="library-add"
+        title={addFood ? t('library.add.foodTitle', { name: show(addFood.name, t('coachEditor.untitledFood')) }) : t('library.use.action')}
+        hint={t('library.add.foodHint', { name: client.name })}
+        newLabel={t('library.add.newMeal')}
+        missing={!addFood ? t(lib.isError ? 'library.add.loadFailed' : 'library.add.foodMissing') : null}
+        targets={mealTargets(plan).map((m) => ({ key: m.mealId, title: <bdi>{show(m.label, t('coachEditor.meal'))}</bdi>, meta: t('library.add.foodsInMeal', { count: m.count }) }))}
+        onCancel={clearAddFood}
+        onPick={(key) => {
+          if (!addFood) return;
+          const target = key ? { mealId: key } : { newMeal: { id: uid('meal'), slot: 'breakfast' as MealSlot, label: generatedMealLabel(plan.meals.length + 1) } };
+          const res = addLibraryFood(plan, target, addFood, () => uid('food'));
+          setPlan((cur) => ({ ...cur, meals: res.plan.meals }));
+          setOpenMealId(res.mealId);
+          clearAddFood();
+        }}
+      />
       <PlanHistorySheet
         open={history}
         onClose={() => setHistory(false)}

@@ -5,6 +5,12 @@ import { appReady, confirmYes, expectToast, fullAssessment, uniq } from './_b-he
 /**
  * Starter library (two coaches, idempotent re-run) and library → template →
  * client-plan sync semantics on coachA.
+ *
+ * B3.7 selector changes (guarantees unchanged): the Library opens on Programs, so exercises are
+ * `?tab=exercises`; "Add the starter library" is in the Library's menu (`lib-more`) or the
+ * first-run panel (`load-starter-library`) and reports its result in a dialog (both entry points
+ * now behave the same); `/coach/templates` is Library › Programs (a table on desktop); swap groups
+ * are inside Foods; supplements and groups are tables on desktop like the rest.
  */
 
 test.setTimeout(180_000);
@@ -23,20 +29,18 @@ test.beforeAll(async ({ db }) => {
 });
 
 test('starter library: coachA and coachB both load it; shared ids; idempotent re-run', async ({ as, db }, testInfo) => {
-  // coachA — from the Library page.
+  // coachA — from the Library's menu.
   const { page: a } = await as('coachA');
-  await a.goto('/coach/library');
-  await appReady(a, 'lib-load-starter');
-  await a.getByTestId('lib-load-starter').click();
-  await confirmYes(a);
-  await expectToast(a, 'Starter library added');
-  await expect(a.getByTestId('toast').filter({ hasText: /failed|Some categories/i })).toHaveCount(0);
+  await a.goto('/coach/library?tab=exercises');
+  await appReady(a, 'lib-more');
+  await loadStarterFromMenu(a);
   await expect(a.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
   await shot(a, testInfo, '01-coachA-exercises');
 
-  // coachB — from the Templates empty state (LoadStarterLibraryButton).
+  // coachB — from the first-run panel; the old Templates URL is Library › Programs.
   const { page: b } = await as('coachB');
   await b.goto('/coach/templates');
+  await expect(b).toHaveURL(/\/coach\/library\?tab=programs$/);
   await appReady(b, 'load-starter-library');
   await b.getByTestId('load-starter-library').click();
   await confirmYes(b);
@@ -46,19 +50,18 @@ test('starter library: coachA and coachB both load it; shared ids; idempotent re
   await expect(done).not.toContainText(/duplicate key|E11000/i);
   await shot(b, testInfo, '02-coachB-loaded-dialog');
   await done.getByTestId('confirm-accept').click();
-  await expect(b.getByTestId('template-card').first()).toBeVisible();
+  await expect(b.getByTestId('coach-desktop-templates').getByTestId('data-row').first()).toBeVisible();
   await shot(b, testInfo, '03-coachB-templates');
 
-  // Every tab populated (coachB, UI).
-  await b.goto('/coach/library');
-  await appReady(b, 'lib-tab-exercises');
+  // Every segment populated (coachB, UI).
+  await b.getByTestId('lib-tab-exercises').click();
   await expect(b.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
   await b.getByTestId('lib-tab-foods').click();
   await expect(b.getByTestId('coach-desktop-foods').getByTestId('data-row').first()).toBeVisible();
-  await b.getByTestId('lib-tab-groups').click();
-  await expect(b.getByTestId('group-item').first()).toBeVisible();
+  await b.getByTestId('lib-foods-view-groups').click();
+  await expect(b.getByTestId('coach-desktop-groups').getByTestId('data-row').first()).toBeVisible();
   await b.getByTestId('lib-tab-supplements').click();
-  await expect(b.getByTestId('supp-item').first()).toBeVisible();
+  await expect(b.getByTestId('coach-desktop-supplements').getByTestId('data-row').first()).toBeVisible();
   await shot(b, testInfo, '04-coachB-supplements');
 
   // DB: per-coach counts equal, same logical ids.
@@ -76,18 +79,27 @@ test('starter library: coachA and coachB both load it; shared ids; idempotent re
   expect(shared).toBe(idsB.length);
 
   // Re-run for coachA → idempotent.
-  await a.getByTestId('lib-load-starter').click();
-  await confirmYes(a);
-  await expect(a.getByTestId('toast').filter({ hasText: 'Starter library added' }).first()).toBeVisible();
+  await loadStarterFromMenu(a);
   await a.waitForTimeout(1_000);
   for (const c of COLS) expect(await db.count(c, { coachId: A }), `${c} unchanged after re-run`).toBe(counts[c][0]);
   await shot(a, testInfo, '05-coachA-rerun');
 });
 
+/** The Library's menu → "Add the starter library" → confirm → the result dialog (no failed category). */
+async function loadStarterFromMenu(page: Page) {
+  await page.getByTestId('lib-more').click();
+  await page.getByTestId('lib-load-starter').click();
+  await confirmYes(page);
+  const done = page.getByTestId('confirm-dialog');
+  await expect(done).toContainText('Starter library added', { timeout: 60_000 });
+  await expect(done).not.toContainText(/didn't load|failed|E11000/i);
+  await done.getByTestId('confirm-accept').click();
+}
+
 /* ---------------- library sync ---------------- */
 
 async function openLibraryEdit(page: Page, name: string) {
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-search');
   await page.getByTestId('lib-search').fill(name);
   await page.getByTestId('coach-desktop-library').getByTestId('data-row').filter({ hasText: name }).first().click();
@@ -119,7 +131,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   const v1 = 'https://cdn.example.test/v1.mp4';
 
   // 1) A library exercise (own, independent of the starter set).
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-new');
   await page.getByTestId('lib-new').click();
   await page.getByTestId('ex-name').fill(base);
@@ -267,7 +279,7 @@ test('library sync: template follows library identity/media, keeps programming; 
 test('library sync: override on a fresh (never-synced) template → not propagated → reconnect → propagates again', async ({ as, db }, testInfo) => {
   const { page } = await as('coachA');
   const base = uniq('E2E Fresh Lunge');
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-new');
   await page.getByTestId('lib-new').click();
   await page.getByTestId('ex-name').fill(base);

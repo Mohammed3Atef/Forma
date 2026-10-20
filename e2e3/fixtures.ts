@@ -8,7 +8,8 @@ import path from 'node:path';
  *  - `db`       scoped DB ops against the run's in-memory Mongo, via the env
  *               server's localhost control API (the mongodb driver can't load
  *               inside Playwright's test loader)
- *  - `as(role)` a FRESH browser context signed in as that seeded account. The
+ *  - `as(role)` a FRESH browser context signed in as that seeded account (or, B3.7,
+ *               `{ id, label }` — an account a spec inserted itself). The
  *               session is a real refresh token (hashed in `refreshTokens`,
  *               sent as the httpOnly `forma_rt` cookie) — exactly what a login
  *               produces — minted directly so dozens of contexts don't trip the
@@ -114,7 +115,7 @@ type Fixtures = {
   env: E2EEnv;
   db: Db;
   audit: { events: NetEvent[]; allow5xx: (re: RegExp) => void; allowPageError: (re: RegExp) => void; pending: Pending };
-  as: (role: Role, opts?: NewCtxOpts) => Promise<{ context: BrowserContext; page: Page }>;
+  as: (role: Role | { id: string; label: string }, opts?: NewCtxOpts) => Promise<{ context: BrowserContext; page: Page }>;
   anon: (opts?: NewCtxOpts) => Promise<{ context: BrowserContext; page: Page }>;
 };
 
@@ -150,8 +151,9 @@ export const test = base.extend<Fixtures>({
     await use(async (role, opts) => {
       const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: env.baseURL, ...(opts ?? {}) });
       opened.push(ctx);
-      attachAudit(ctx, role, audit.events, audit.pending);
-      const { raw } = await control<{ raw: string }>('session', { userId: env.accounts[role].id });
+      const who = typeof role === 'string' ? role : role.label;
+      attachAudit(ctx, who, audit.events, audit.pending);
+      const { raw } = await control<{ raw: string }>('session', { userId: typeof role === 'string' ? env.accounts[role].id : role.id });
       await ctx.addCookies([{ name: 'forma_rt', value: raw, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Strict' }]);
       return { context: ctx, page: await ctx.newPage() };
     });
