@@ -223,34 +223,35 @@ test('history: deep link to /notes in a fresh context → back arrow stays in-si
 });
 
 test('history: messages — workspace → thread → back; deep-linked thread → back → list; desktop list behaviour', async ({ as }, testInfo) => {
+  // B3.6: one Messages screen — at this width the inbox and the conversation sit side by side and the
+  // selection is the URL (DT-01); the thread's "Open client" goes back to the workspace it came from (NAV-K07).
   const { page } = await as('coachA');
-  // Desktop inbox list.
   await page.goto('/coach/messages');
   await appReady(page, 'coach-desktop-messages');
   await page.getByTestId('thread-row').filter({ hasText: 'Client Aya' }).click();
+  await expect(page).toHaveURL(new RegExp(`/coach/messages/${CA}$`));
   testInfo.annotations.push({ type: 'desktop-thread-row-url', description: page.url() });
   await shot(page, testInfo, '01-desktop-inbox-selected');
 
-  // Workspace Message → thread route → back arrow returns to the workspace.
+  // Workspace Message → the conversation → Open client returns to the workspace (history, not a new entry).
   await page.goto(`/coach/client/${CA}`);
   await appReady(page, 'coach-client-detail');
   await page.getByRole('button', { name: 'Message' }).first().click();
   await expect(page).toHaveURL(new RegExp(`/coach/messages/${CA}$`));
   await shot(page, testInfo, '02-thread');
-  await page.getByRole('button', { name: 'Back' }).first().click();
+  await page.getByTestId('thread-open-client').click();
   await expect(page).toHaveURL(new RegExp(`/coach/client/${CA}$`));
 
-  // Deep-linked thread (fresh context) → back → inbox list.
+  // Deep-linked conversation (fresh context): the split view with it selected; reload keeps it; the inbox is right there.
   const { page: fresh } = await as('coachA');
   await fresh.goto(`/coach/messages/${CA}`);
-  await appReady(fresh, 'topbar-title');
+  await appReady(fresh, 'thread-recipient');
   await fresh.reload();
-  await appReady(fresh, 'topbar-title');
+  await appReady(fresh, 'thread-recipient');
   await expect(fresh).toHaveURL(new RegExp(`/coach/messages/${CA}$`));
-  await fresh.getByRole('button', { name: 'Back' }).first().click();
-  await expect(fresh).toHaveURL(/\/coach\/messages$/);
   await expect(fresh.getByTestId('coach-desktop-messages')).toBeVisible();
-  await shot(fresh, testInfo, '03-deeplink-thread-back-to-list');
+  await expect(fresh.locator(`[data-testid="thread-row"][data-client-id="${CA}"]`)).toHaveAttribute('aria-current', 'true');
+  await shot(fresh, testInfo, '03-deeplink-thread-in-split');
 });
 
 test('restore seed state (clientA plan)', async ({ db }) => {

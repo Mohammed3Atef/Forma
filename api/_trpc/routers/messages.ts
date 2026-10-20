@@ -21,6 +21,7 @@ import {
   type ThreadViewer,
 } from '../../messages/_data.js';
 import { createNotification, feedFilter, notificationsCol } from '../../messages/_handlers/notifications-data.js';
+import type { Filter } from 'mongodb';
 
 const DEFAULT_PAGE_SIZE = 200;
 
@@ -65,8 +66,23 @@ async function loadOwnMessageWithinWindow(viewer: ThreadViewer, clientId: string
   return doc;
 }
 
+/**
+ * B3.6: the URL is rendered as a link, an image and a media source, so only a
+ * web address is accepted (any non-empty string was, e.g. a `javascript:`
+ * URL a hand-made request could plant). Real attachments are always the
+ * upload's https CDN URL; plain http is kept for local test stacks.
+ */
+const isWebUrl = (s: string): boolean => {
+  try {
+    const { protocol } = new URL(s);
+    return protocol === 'https:' || protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 const AttachmentSchema = z.object({
-  url: z.string().trim().min(1),
+  url: z.string().trim().min(1).refine(isWebUrl, { message: 'An attachment must be a web (https) URL' }),
   kind: z.enum(['image', 'video', 'audio', 'file']),
   name: z.string().trim().max(200).optional(),
   size: z.number().nonnegative().optional(),
@@ -283,11 +299,22 @@ export const messagesRouter = router({
       const viewer = await resolveThreadViewer(ctx.user, input.clientId);
       const now = Date.now();
 
-      const messages = await messagesCol();
-      const { modifiedCount } = await messages.updateMany(
-        { clientId: input.clientId, fromRole: { $ne: ctx.user.role }, seenAt: null, ...viewerFilter(viewer) },
-        { $set: { seenAt: now, updatedAt: now } },
-      );
+      // B3.6: a read receipt is recorded only by the message's ADDRESSEE — the
+      // client reads what the coach (or the platform) wrote, the coach reads what
+      // the client wrote; an admin reads the thread as an observer and records
+      // none. (It used to be "every message not from my role": an admin's read
+      // marked the coach's messages Seen, and a coach's read marked an admin's
+      // message to the client seen.)
+      const addressed: Filter<MessageDoc> | null =
+        viewer.kind === 'client' ? { fromRole: { $ne: 'client' } } : viewer.kind === 'coach' ? { fromRole: 'client' } : null;
+      let modifiedCount = 0;
+      if (addressed) {
+        const messages = await messagesCol();
+        ({ modifiedCount } = await messages.updateMany(
+          { clientId: input.clientId, ...addressed, seenAt: null, ...viewerFilter(viewer) },
+          { $set: { seenAt: now, updatedAt: now } },
+        ));
+      }
 
       try {
         const filter = await feedFilter(ctx.user);

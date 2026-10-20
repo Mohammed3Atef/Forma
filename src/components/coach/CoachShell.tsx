@@ -89,6 +89,7 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
         className="hidden md:flex"
         testId="coach-rail"
         collapsible
+        badgeTone="solid"
         items={items}
         label={t('coachNav.primary')}
         onNavigate={onNavigate}
@@ -137,7 +138,7 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
         {/* The shell stays up while a lazy screen loads (CL-06 for the coach). */}
         <Suspense fallback={<LoadingState variant="cards" count={4} />}>{children}</Suspense>
       </main>
-      <TabBar className="md:hidden" items={items} label={t('coachNav.primary')} onNavigate={onNavigate} />
+      <TabBar className="md:hidden" items={items} label={t('coachNav.primary')} onNavigate={onNavigate} badgeTone="solid" />
     </div>
   );
 }

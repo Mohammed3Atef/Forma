@@ -963,3 +963,218 @@ The stale-draft notice was worded more generally after the full run ("the saved 
 5. `coachTargets.set` remains, unconditional, for compatibility (no caller; B35-R5).
 
 **Status: B3.5 closed after the owner review — committed locally (not pushed). B3.6 not started.**
+
+## B3.6 — Coach Messages (2026-10-19)
+
+**Owner brief (2026-10-19, after the B3.5 commit 1588321):** Messages only — a premium coach inbox → conversation → reply → back to the inbox, built for 30+ active conversations, on the existing engine. Protected: server-side authorization and relationship checks, coach-scoped history (R-4 Option C), the client's read-only earlier conversations, no send to an ended / transferred / unauthorized relationship, suspended accounts read-only (O-17), the durable outbox and idempotent sends, no cross-account leakage, honest offline / upload states, unread counts and notification links, no duplicate polling. A message queued before a transfer must not be redirected. MD-01 / 02 / 03 stay launch blockers: no new public-URL path, no optimistic upload success. No client-app, website, auth / legal, admin, editor or subscription redesign; no second messaging state machine. Stop for review: no commit, no B3.7, no push or deploy.
+
+**Not changed:** the messaging router's contracts (one verified bug fixed, §2), the outbox and its `message.send` handler, idempotency, the 5 s thread poll and the shared 20 s summary poll (no new poller), media upload paths and URLs, the client app's screens. The client's `Messages` page passes nothing new to the shared engine, so its presentation is unchanged; it does get the engine's correctness fixes (§1.4). No production data touched; isolated fixtures only (`e2e-msg-` ids, removed after each run).
+
+### 1. What changed
+
+**1.1 One Messages screen; the selection is the URL** (`src/pages/coach/CoachMessages.tsx`, DT-01).
+- `/coach/messages` and `/coach/messages/:clientId` are the same screen. The old standalone thread page (`CoachMessageThread.tsx`) is gone.
+- **≥ 768 px:** the inbox and the conversation side by side, sized from their real top edge to the viewport bottom (`useFillToBottomNav`), so a banner above never pushes the composer away (C12). Selecting another conversation **replaces** the history entry (switching is not a history trail); the first selection from the bare inbox pushes. A reload, a deep link or a notification opens the same conversation selected.
+- **Phones:** the inbox, or the conversation as a **full-screen task** above the shell (own header and Back, no tab bar, ending at the top of the on-screen keyboard, one bottom safe area — MS-01 / MS-03). Back goes where you came from (history), from a cold link to the inbox.
+- The shell's "don't toast the open conversation" rule now also holds on the split view (the path is the conversation's).
+
+**1.2 Inbox** (`src/lib/coachInbox.ts`, `src/pages/coach/messages/InboxList.tsx`, `src/hooks/useCoachInbox.ts`; MS-09, CO-27).
+- One row per active client, **newest conversation first** (then clients without messages, by name), from the roster and the shared thread summary — no request of its own on a timer.
+- The name the coach knows them by (the Clients directory's rule, assessment name when the account name is the e-mail).
+- Previews: the text, **"You: …"** for the coach's own last message, **"Message deleted"**, the media kind (photo / video / voice / file), the broadcast type. Time: today's time, Yesterday, a weekday this week, a date (with the year when not this year).
+- Unread count per row (real number for screen readers, "99+" visually), a total in the header ("3 unread conversations" / "All read").
+- **Search** by name or e-mail; **All · Unread** (the Broadcasts filter is gone, blueprint §6.5). The open conversation never disappears because of a filter or a search.
+- Honest states: loading skeleton; the roster failing is an error with Retry (never "No clients"); the summary failing says "Couldn't refresh conversations — showing what was last loaded" (or "Couldn't load the latest messages" before the first answer) with Retry; no results / nothing unread each say so with Clear filters.
+- Reading a conversation refreshes the unread badges at once (the summary is re-polled after a successful mark-read) instead of up to 20 s later.
+
+**1.3 The conversation** (`src/pages/coach/messages/CoachThreadPane.tsx`; the engine in its coach presentation).
+- Header: the recipient always named (avatar, name), then package and account state, last workout and this week's check-in — the Clients directory's own values (MS-04). No presence, typing, "online" or delivery signals: none exist.
+- Quick actions: **Open client**, and **Request this week's check-in** when the client is eligible (the same rule and call as the workspace).
+- **NAV-K07:** Open client returns to the workspace the conversation was opened from (history pops), and the workspace's Message returns to the conversation it came from; otherwise each pushes once.
+- A client who is not (or no longer) on the roster: "This conversation isn't available" — nothing of the thread is fetched or shown, no composer, no actions.
+- If the relationship ends **while the conversation is open** (released / transferred), the server's refusal is detected on the next poll: polling stops (no endless 403s), everything on screen is dropped, the composer goes, the state says why, and the inbox drops the row.
+
+**1.4 The engine** (`src/components/MessageThread.tsx`). One engine for both apps (C11); everything coach-only is behind `variant="coach"`, which only the coach passes.
+- *Coach presentation:*
+  - **Unread divider (MS-05):** "N new messages" before the first unread, fixed for the visit. The conversation opens there when the unread run is taller than the screen, otherwise at the bottom.
+  - **Read on view:** the coach marks the conversation read only once its newest message has been on screen (at the bottom, or on scrolling there) — not on open. (`markRead` still marks the whole conversation — B36-R2.)
+  - **Sent / Seen on the last own message only (MS-11)** — no invented "delivered".
+  - **Message actions** revealed on hover or keyboard focus at ≥ 768 (MS-12); long-press on touch as before.
+  - **Per-conversation draft (MS-07):** unsent text is kept per account + client (`messageDraft:<coach>:<client>` in the device store the plan drafts use), across switching, leaving, reload and a failed queue; never shown in another client's composer; cleared once the message is in the outbox. Text only (a picked attachment stays in the composer until Send).
+  - Send icon; one bottom safe area and none above an open keyboard (Visual Viewport).
+  - **Compact voice-note player (MS-08):** play / pause, seek, the length (found by seeking when Chrome's WebM carries none); a file this browser can't play says so and offers it to open — never a dead player.
+  - A send refused because the client is no longer assigned says "Not sent — this client is no longer assigned to you." (it used to be a bare "Couldn't send"), with Delete only — a retry can never succeed.
+  - Offline: a line above the composer says sends wait on this device and go out when back online (the outbox already queued them).
+- *Both apps (correctness, no visual change unless stated):*
+  - **4,000-character guard:** the server's limit; a counter appears near it and Send is off above it (the text is kept) — a longer message used to be queued and fail forever (MS-07).
+  - **One send per tap** (a synchronous guard; the outbox id was already the idempotency key).
+  - **Mark-read once per new message:** the `since` polls keep a stale `seenAt: null` copy until the next full refresh, so every 5 s tick sent another `markRead` (MS-06). Now once per newest unseen message (retried if it fails).
+  - **Message actions are a real menu:** `menu` / `menuitem` / `menuitemradio` roles, arrow keys, Home / End; focus moves into the desktop menu and back to where it came from.
+  - **Attachment links:** an address that is not a web URL is never rendered as a link, image or media source (§2). Videos load metadata only.
+  - Day separators: Today, **Yesterday**, a short date, a date with the year (MS-16); "N new messages" is plural-aware (Arabic's six forms).
+  - **Mixed direction:** a message's own text keeps its direction in its bubble, the composer and the edit box (`dir="auto"`) — an English sentence in an Arabic conversation read "?Is it ok…".
+  - Screen readers hear who wrote each message ("You wrote:" / "Amira wrote:", visually hidden); the message list is a focusable, named region so it can be scrolled from the keyboard (axe `scrollable-region-focusable` on phones).
+
+**1.5 Broadcast** (`src/pages/coach/messages/BroadcastSheet.tsx`, `sendBroadcast`; MS-10, B3-C08).
+- From the Messages menu. The audience is explicit — **every active client** or the ones chosen in the sheet — and never the inbox's filter or search.
+- Type (announcement / offer / reminder / update), message with the same 4,000 limit, a preview of the bubble, "Send to N clients" with a confirmation.
+- One `messages.send` per recipient, at most four at a time, **each with its own idempotency key** (`bc_<batch>_<client>`) and this coach's conversation id — so a client transferred meanwhile is refused (never reached through a new coach), and **Retry failed** re-sends only to the failed recipients with the same keys: nobody gets two copies.
+- Result: "Sent to 9 of 10 clients", the failed ones by name with why (no longer your client / your account isn't active / no connection / couldn't send). Online only (a direct send, not the outbox — B36-R5); the sheet can't be closed mid-send.
+
+**1.6 Other**
+- `CoachClientWorkspaceLayout`: the Message button (NAV-K07).
+- Coach shell: the Messages unread badge uses an AA-contrast solid red (axe; the shared badge style is the later a11y pass's — the client's badge is unchanged).
+- `src/services/platform/messagesApi.test.ts` → `.tsx` so Vitest runs it (B34-R5).
+
+### 2. API contract
+
+| Change | Why | Compatibility |
+|---|---|---|
+| `messages.send`: `attachment.url` must be an `http(s)` URL (`isWebUrl`) | **Verified bug (B36-R1):** any non-empty string was accepted and rendered as a link / media source — a hand-made request could plant e.g. a `javascript:` URL in a coach's conversation. The new test fails on the old router. | Real attachments are always the upload's https CDN URL; local stacks use http. Older rows with another scheme are not deleted — they render as "Attachment unavailable". |
+| `messages.markRead`: a receipt is recorded only by the message's **addressee** (client ← coach / platform, coach ← client, admin: none) — certification §9.2 | **Verified bug (B36-R8):** "every message not from my role" let an admin's read mark the coach's messages Seen, and a coach's read mark an admin's message to the client seen. Two new tests fail on the old router. | No caller relied on it (no admin screen marks threads read); client and coach behaviour in their own conversations is unchanged |
+| `markThreadSeen` (client service) resolves to the server's `updated` count | Refresh badges only when something was marked | Additive (callers that ignore it are unchanged) |
+| `subscribeMessages` / `subscribeOpenThread`: optional `onForbidden` | A coach's thread access ended: stop polling, say so | Additive; without it a refusal is a failed tick as before (the client app) |
+| `sendBroadcast` replaces `broadcast` (client service) | Per-recipient keys, conversation id, results | The server procedure is unchanged (`messages.send` already dedupes on `clientMsgId`) |
+
+No schema, index, data, notification or media change. Authorization is unchanged — every screen state above is driven by the server's own answers.
+
+### 3. Tests
+
+| Test | Proves |
+|---|---|
+| `src/lib/coachInbox.test.ts` (new, 6) | newest-first order; previews ("You:", deleted, media, broadcast, loading vs none); search by name / e-mail; Unread; the open conversation kept under any filter; time and day labels; badge text |
+| `src/components/MessageThread.coach.test.tsx` (new, 18) | divider + count, where the thread opens (fits → bottom + read; long → at the divider, unread until the newest is on screen); the divider stays; no repeated mark-read on poll ticks; badges told after a read; Sent / Seen on the last own message only; menu roles + keyboard; non-web attachment URL never rendered; drafts per conversation (leave, return, never in another client, cleared by Send); one send per double tap; the 4,000 guard; "no longer assigned" refusal text (no Retry); the offline line; the screen-reader sender label; access ended mid-visit hides everything; **the client presentation unchanged** |
+| `src/services/platform/messagesApi.test.tsx` (was never run, now 8) | B1.13 one fetch path; FORBIDDEN stops polling and reports once; other failures keep retrying; without a handler a refusal is a failed tick; mark-read count; broadcast: one send per recipient with stable keys + conversation id; partial failure reasons; Retry reuses the keys; suspended coach |
+| `api/_trpc/routers/b36Messaging.test.ts` (new, 6) | a coach's message queued before a transfer A → B is refused (also without a conversation id) and reaches nobody; B sees nothing; A loses read and summary; the client's queued message for A is CONVERSATION_CLOSED, not delivered to B; broadcast fan-out idempotent (retries, one notification each), transferred recipient refused; released relationship: read / send / react / mark-read refused; suspended coach reads and marks read, queued send refused ACCOUNT_NOT_ACTIVE; attachment URLs |
+| `e2e3/specs/90-b3-messages.spec.ts` (new, 16) | the owner's twelve cases (§4) plus NAV-K07, broadcast, axe and the visual matrix |
+| `e2e3/specs/91-b3-coach-thread.touch.spec.ts` (new; mobile-390, mobile-430, WebKit iPhone) | full-screen conversation, composer the hit target, tap to send, long-press menu, Back |
+| Updated: 60 (C12 re-certified: split pane ≥ 768, full-screen on phones), 23 (messages history: split selection, Open client), `_d-layout` (the Back chevron is checked where a Back exists) | |
+
+### 4. Verification (final code)
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 866 / 866 in 100 files** (B3.5: 828 in 96; +38 — inbox model 6, the engine's coach view 18, `messagesApi` 8 (one case existed but never ran — B34-R5), B3.6 API 6) |
+| Build | **PASS**. Entry 476.45 / 153.99 kB gzip (B3.5: 473.50 / 153.13 — mostly the new English strings, which ship in the entry). `ClientApp` 39.02 / 12.28 (B3.5: 39.02 / 12.27 — no client-screen code changed). `CoachApp` 24.06 / 8.02 (24.24 / 8.05; the old thread page is gone). `CoachMessages` (page, inbox, conversation pane, broadcast; lazy) 22.21 / 7.34. The shared message-engine chunk (lazy, loaded with a conversation in either app) 44.11 / 14.46 (B3.4 / B3.5: 32.30 / 10.61). Precache 184 entries |
+| Full e2e3, all projects (`e2e-out/b36-full-a`) | **318 passed, 8 failed, 1 skipped of 327** in 1.8 h. Count: B3.5's 308 + spec 90 (16) + spec 91 (3 projects). **One failure was real:** axe `scrollable-region-focusable` on the conversation at 390 — fixed (the message list is a focusable, named region). **Seven were environmental:** pages whose `load` never fired while an external Google Fonts request hung (40 file picker, 41 media list, 51 legal TOC, 86 axe + matrix, 87 URL filters + matrix — none a Messages screen; their traces show no app request outstanding) |
+| Re-run of every failed spec + the engine's (`e2e-out/b36-rerun-a`) | **101 / 101** — 23, 31, 40, 41, 51, 86, 87, 90 (spec 90 16 / 16 incl. axe) |
+| Re-run of every other spec that opens a conversation, after the last engine change | desktop (`b36-rerun-b`: 30, 44, 47, 80, 81, 85) **39 / 41** — the two failures were `net::ERR_NETWORK_IO_SUSPENDED` (the machine's network was suspended mid-test) in 81, re-run below; responsive + touch (`b36-rerun-c`: 32, 33, 45, 60, 91 on 1280 / 1024 / 768 / 430 / 390 / WebKit iPhone) **66 / 66** |
+| Final code | **31 + 81 + 90: 30 / 31 in `e2e-out/b36-final-e2e` (81 passes again) — the visual matrix timed out with 14 app contexts left open while the machine ran about ten times slower than earlier; the test now closes each context after its iteration and passes together with the axe test (`e2e-out/b36-final-matrix-b`: 2 / 2, 34 shots)** |
+| Focused | the owner's twelve cases: inbox loading / sorting / search / unread (90); phone inbox → conversation → Back (90, 91); split view + selection in the URL (90, 23); drafts across navigation and reload (90 + unit); failed send and retry without duplicates (90: offline queue + a lost answer → one row); long history and scroll (90 unread + jump pill; 31 load older); Arabic / mixed text (90 + matrix); attachments / voice notes incl. a failing provider (90, 31, 40); transfer with a queued message (90 + API); ended / suspended (90 + API); notification deep links (90); keyboard / safe area (90 emulated Visual Viewport, 60, 91) |
+| Polling (C24) | spec 47 (2 min idle on a coach conversation) within its budget — no new poller: the inbox and the nav badge share the 20 s summary; a read re-polls it once |
+| Accessibility (axe WCAG 2.1 A / AA) | inbox, conversation and broadcast × EN / AR × 390 / 1440 (12 scans): **0 violations** after the badge contrast and conversation-region fixes (`B3_VISUAL_QA.md` §B3.6 M3, M6); specs 85–89 unchanged |
+| Visual QA | 34 matrix shots + 17 test shots, **0 px overflow, correct `dir`**; `B3_VISUAL_QA.md` §B3.6 |
+| PWA (production build) | manifest, installability, SW, offline reload, offline banner, deferred update **PASS** (the known `_vercel/insights` page error); signed-in offline boot **PASS** |
+| Physical devices | **Not run** (no device available here) — R-17 stays open |
+
+### 5. Backlog outcome (B3.6-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | B3-C08, CO-27, DT-01, MS-09, MS-10, NAV-K07, B34-R5; new **B36-R1** (attachment URL) |
+| **Mitigated** — the coach side done, the rest later | MS-03, MS-04, MS-05, MS-07, MS-08, MS-11, MS-12, MS-13, MS-16, AX-09 (B5: the client's conversation, in-thread events, media dimensions / in-app files / viewer Back, an "up to here" read) |
+| **Still open** | R-17 — the physical-device check on the B3 build (release gate) |
+| **New** | B36-R1 (fixed) · B36-R2 read "up to here" (API) · B36-R3 summary unread with a missing `seenAt` · B36-R4 no rate limit on `messages.send` · B36-R5 broadcast durability · B36-R6 a lost-answer retry after the relationship ended · B36-R7 client conversation parity — all B5 |
+
+### 6. Known limits and risks
+
+1. **Physical devices not run** (R-17 stays open): the keyboard lift, safe areas and WebM playback on iOS are verified only in emulation (Chromium phone profiles, WebKit iPhone profile, an emulated Visual Viewport keyboard).
+2. **Attachments still use public, permanent URLs** (MD-01 / 02 / 03, owner-deferred launch blockers). B3.6 adds no new path; private attachments need the approved media work.
+3. Mark-read is whole-conversation (B36-R2): the coach view only delays it until the newest is on screen.
+4. Broadcast is online-only and not durable (B36-R5, certification §9.3): at most one copy per client within one open broadcast; a send with no answer is "not confirmed" (it may have arrived); abandoning the sheet keeps no record. Not exactly-once.
+5. The client app's conversation keeps its B2 presentation (B36-R7).
+6. A coach retry after the relationship ended reads "Not sent" even if an earlier attempt was delivered with its answer lost (B36-R6, rare).
+7. `messages.send` has no rate limit (B36-R4); summary unread misses rows without a `seenAt` field (B36-R3; none exist today).
+
+### 7. Owner decisions requested (answered in §9.4)
+
+1. **Client parity (B36-R7):** adopt the coach presentation in the client's conversation (status on the last message, divider, draft, actions on hover) in B5 — or keep the B2 behaviour?
+2. **Read up to what was shown (B36-R2):** an additive `markRead({ upTo })` — approve for B5?
+3. **Broadcast durability (B36-R5):** keep it online-only, or a server-side fan-out / outbox batch later?
+4. **Rate limit on `messages.send` (B36-R4):** approve a per-sender limit (B5)?
+
+**Status (before certification): B3.6 implemented and verified locally — not committed. Stopped for the owner's review; B3.7 not started.**
+
+### 9. Final certification (2026-10-20)
+
+**Owner brief:** B3.6 accepted in principle, not committed. Re-run the complete suite on the exact final tree and explain the earlier network failures (environment, external requests, service worker or code — no longer timeouts, blanket retries, skips or weaker assertions); audit Sent / Seen; verify broadcast idempotency (a timeout after the server accepted, partial success, retrying the failed, lost answers) and document anything not guaranteed in B36-R5; record decisions on B36-R2 / R4 / R5 / R7; keep the transfer / queued-message privacy regression permanently. No B3.7, push, deploy, production data or cleanup.
+
+**9.1 Why full runs failed — root causes (per-trace network error codes).**
+
+The failing tests' traces were re-read for the browser's own network error codes (`_failureText`), and the Windows System log was read for the same hours (local time, UTC+3).
+
+| Failure | Error codes in its trace | Cause |
+|---|---|---|
+| 40 file picker, 41 admin media list, 86 Today axe (first full run) | `ERR_CONNECTION_CLOSED` on the **Google Fonts** stylesheet; the **Vercel Analytics debug script** (`va.vercel-scripts.com`) never finished | **External requests.** `index.html` loads a render-blocking Google Fonts stylesheet and the app loads the Vercel Analytics script, so every page of the "isolated" stack depends on the internet; a stalled stylesheet blocks the page's `load`, and an unfinished request blocks `networkidle` |
+| 86 Today matrix (first run) | `ERR_NETWORK_CHANGED`, `ERR_INTERNET_DISCONNECTED`, `ERR_NAME_NOT_RESOLVED` (fonts) + 1 `ERR_INSUFFICIENT_RESOURCES` | **The Wi-Fi dropped:** "WLAN AutoConfig detected limited connectivity, attempting automatic recovery" at 21:18:22, inside that run |
+| 87 Clients URL filters + matrix (first run); 30 nutrition, 30 measurements, 85 coach matrix, 86 Today matrix (certification run) | `ERR_INSUFFICIENT_RESOURCES` (1–12 per trace) on the dev server's module and API requests | **Browser resource exhaustion on this machine:** measured during the certification run, commit charge **32.7 of 35.9 GB (91 %)** with 2.1 GB of RAM free; C: is full, so the page file cannot grow; a desktop Chrome session (the owner's profile) started at 01:36, the minute of the first certification failure. The dev stack serves the app unbundled (≈ 680 module requests per page load), so a refused module leaves a blank page and an unfinished request blocks `networkidle` |
+| 81 (follow-up run) | `ERR_NETWORK_IO_SUSPENDED` | **Modern Standby** 22:54–23:47 with the network disconnected by policy |
+| 51 legal page TOC (first run) | none (only the benign blocked analytics script) | No network cause; a scroll-position timing assertion; passed on every re-run |
+
+- *Ruled out:* the **service worker** — `devOptions.enabled` is `false`, so none runs in the e2e3 dev stack (only the production-build PWA checks use one); **application code** — no failure was on a Messages screen; the failing specs are not touched by B3.6 except through the shared shell; every failing test passed when re-run on a fresh stack; and the browser's own error codes name the cause in each trace.
+- *Not hidden:* no assertion, timeout or retry was relaxed. Two harness changes were made: the fixtures attach the requests still open when a test fails (a trace records only completed requests — that is how the 175 s `sync.singletonGet` was found), and spec 90's matrix / axe tests close each app context after use. The certification run held a keep-awake request (no standby mid-run).
+- *Real findings recorded:* **B36-R9** — the app and the "isolated" stack depend on Google Fonts and the Vercel Analytics script (self-host / stub; owner decision, B5). **B36-R10** — the tRPC client's 30 s deadline ends when response headers arrive, so a stalled response body has no deadline (the 175 s open request).
+
+**9.2 Sent / Seen.**
+- **Seen is the server's read receipt and nothing else.** The screen shows Seen only when the server's copy of the coach's message carries `seenAt`. Nothing on the device sets it: sending (the server stores `seenAt: null`), the outbox's server copy, an idempotent retry, the coach opening or reloading the conversation and the coach's own mark-read all leave it unset. The bubble re-renders when `seenAt` changes (the memo compares it).
+- **Who records it:** the client, when the client's app opens the conversation (or opens it from a message notification) — `messages.markRead` by the reader.
+- **Fixed during the audit (B36-R8):** `markRead` marked "every message not from my role", so an admin's read could mark the coach's messages Seen and a coach's read marked an admin's message to the client seen. Now only the **addressee** records a receipt (client ← coach / platform; coach ← client; admin: none). Two of the three new API tests failed on the old router.
+- *Known lag, not a false claim:* receipts arrive with the conversation's full refresh (≤ 20 s), so Seen can appear up to 20 s late. Sent is never shown for something not stored, Seen never for something not read; there is no "delivered" state.
+- *Tests:* `b36Messaging.test.ts` "read receipts mean the ADDRESSEE read it" (3); `MessageThread.coach.test.tsx` (+2: the coach's own open / mark-read and repeated polls never show Seen, only the server copy does; a just-sent message says Sent); e2e3 90 "Seen is the client's read receipt" (Sent after sending, after the coach reloads and a full refresh, database `seenAt` null; Seen only after the client opens the conversation).
+
+**9.3 Broadcast — what is and isn't guaranteed.**
+- **Guaranteed:** within ONE broadcast (the open sheet) a client is stored **at most once**. Every recipient has its own key (`bc_<batch>_<client>`), every Retry reuses it, and the server stores one message per client + sender + key (a unique index; concurrent duplicates return the winner).
+- **Truthful results (changed in certification):** a refusal from the server (no longer your client, account not active, any other 4xx) means nothing was stored — "Not sent". **No usable answer** (connection lost, a timeout — the client gives up after 30 s — or a server / gateway error) means the copy **may** have been stored — "Not confirmed — it may have arrived", never "sent" and never "not sent". The summary counts them apart ("Sent to 7 of 10 · 2 not sent · 1 not confirmed"); Retry re-sends only to those, inside the same batch, and no longer says "failed".
+- **Leaving mid-send now asks first** (reload / closing the tab), because the rest of the batch would be abandoned.
+- **Not guaranteed (B36-R5):** exactly-once delivery; a durable result — closing the sheet, a reload or a crash keeps no record of the batch, and recipients not reached yet are simply not sent; a NEW broadcast is a new message, so re-composing after a "not confirmed" result can give that client a second copy; a server error after the copy was stored can lose that client's notification (the retry returns the stored copy without notifying again).
+- *Tests:* `messagesApi.test.tsx` (refusals vs unknown for 400 / 401 / 409 / 500 / a timeout / an HTML gateway page; a timeout after the server stored both copies → unknown, and the retry stores nothing new); `BroadcastSheet.test.tsx` (new, 2: the three outcomes reported apart and Retry re-sending only the other two in the same batch; leaving mid-send asks); `b36Messaging.test.ts` (idempotent fan-out); e2e3 90 broadcast (a released recipient → "1 not sent"; then the answers lost after the server stored the copies → "Sent to 0 of 2 · 2 not confirmed" with one copy each in the database, Retry → "Sent to 2 of 2", still one copy each).
+
+**9.4 Owner decisions (2026-10-20) — recorded; B3.6 scope unchanged.**
+- **B36-R7:** approved for B5 — the client conversation gets matching premium quality, with a simpler UX than the coach's.
+- **B36-R2:** approved for B5 — server-backed partial-read cursors with correct unread and notification semantics.
+- **B36-R5:** broadcast stays online-only for now; durable recipient-level jobs approved for B5 with truthful partial / unknown results.
+- **B36-R4:** server-side per-sender message and broadcast rate limiting is **required before public launch** (429 / Retry-After handled) — now release-blocking.
+- **Permanent regression:** the coach-transfer queued-message privacy tests (`b36Messaging.test.ts`; e2e3 90 "transfer with a message queued before it") are part of contract C11 in `B3_COACH_BLUEPRINT.md`.
+
+**9.5 Changes made during certification.**
+
+| Change | Where |
+|---|---|
+| Read receipts only from the addressee (B36-R8) | `api/_trpc/routers/messages.ts` (`markRead`) + 3 API tests |
+| Broadcast results: refused vs not confirmed, summary counts, a neutral Retry label, leaving mid-send asks | `messagesApi.ts` (`BroadcastFailure`), `BroadcastSheet.tsx`, en / ar / ar-eg; unit, component and e2e tests |
+| Seen semantics pinned | `MessageThread.coach.test.tsx` (+2), e2e3 90 (+1 test) |
+| Open requests attached to a failed test | `e2e3/fixtures.ts` (diagnostics only) |
+| One live app context at a time in spec 90's matrix / axe tests | `e2e3/specs/90-b3-messages.spec.ts` |
+| Backlog: B36-R2 / R4 / R5 / R7 decisions, B36-R8 (fixed), B36-R9 (new); blueprint C11 | backlog, `B3_COACH_BLUEPRINT.md` |
+
+**9.6 Final verification (exact final tree).**
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 875 / 875 in 101 files** (before certification 866 in 100: +3 read-receipt API tests, +2 broadcast unit cases, +2 engine Seen cases, +2 `BroadcastSheet` tests) |
+| Build | **PASS.** Entry 476.73 / 154.07 kB gzip (B3.5: 473.50 / 153.13). `ClientApp` 39.02 / 12.27 — identical to B3.5. `CoachApp` 24.06 / 8.02. `CoachMessages` 22.78 / 7.51 (lazy). Message-engine chunk 44.11 / 14.46 (lazy; B3.5 32.30 / 10.61). Precache 184 entries |
+| PWA (production build) | manifest, installability, SW, offline reload, offline banner, deferred update **PASS** (the known `_vercel/insights` page error); signed-in offline boot **PASS** |
+| **Full e2e3, all projects, exact final tree** (`e2e-out/b36-cert-full`, 1.4 h, keep-awake held) | **NOT GREEN — 323 passed, 4 failed, 1 skipped of 328.** The skip is the approved Google sign-in case. Spec 90 **17 / 17** (incl. axe, the Seen receipt, the lost-answer broadcast, transfer privacy), spec 91 **3 / 3** (390 / 430 / WebKit iPhone), spec 60 10 / 10, 31 / 32 / 33 / 40 / 47 / 80 / 81 all green |
+| The 4 failures (unresolved in the full run) | `30-client` "nutrition: mark meal eaten + food search … → reload → persists" (3.0 min timeout; `sync.singletonGet` open 175 s); `30-client` "measurements: save → reload → persist …" (blank page — modules refused); `85-b3-coach` "visual QA matrix" (10 min timeout); `86-b3-today` "visual QA matrix" (15 min timeout). None is a Messages screen. Every trace carries `net::ERR_INSUFFICIENT_RESOURCES` (12 / 10 / 4 / 4) — the browser refused requests under the machine's memory pressure (§9.1) |
+| Diagnostic re-run of exactly those 4 (`e2e-out/b36-cert-diag`, fresh stack) | **4 / 4 passed** in 3.5 min — consistent with the environmental cause; it does **not** turn the full run green |
+| Accessibility (axe WCAG 2.1 A / AA) | spec 90's axe test in the full run: inbox, conversation and broadcast × EN / AR × 390 / 1440 — **0 violations** |
+| Physical devices | **Not run** — R-17 stays open |
+
+**9.7 Second certification attempt (2026-10-20, owner: "one final full-suite attempt under stable machine conditions") — GREEN.**
+- *Conditions, measured before starting* (nothing deleted, no system setting changed): the owner freed memory — free RAM 0.7 → **6.0 GB**, commit charge 81 % → **65 %**, C: 17.4 GB and D: 20 GB free, no desktop Chrome, the VM stopped; on mains power. The run held a keep-awake request (released at the end). A sampler logged memory every minute (`e2e-out/.tmp/b36-cert2-memory.csv`, 63 samples): free RAM 1.95–5.73 GB, commit peak 91 % (the dev server grows during a run), no desktop Chrome at any point.
+- *Same tree, same suite, nothing relaxed* (assertions, retries, skips and timeouts as before; `playwright.e2e3.config.ts` unchanged).
+
+| Gate | Result |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 875 / 875 in 101 files** — incl. read receipts (`b36Messaging.test.ts`, 9), broadcast idempotency (`messagesApi.test.tsx` 10, `BroadcastSheet.test.tsx` 2), engine (`MessageThread.coach.test.tsx` 20) |
+| Build / PWA / offline boot | **PASS / PASS / PASS** (the known `_vercel/insights` page error) |
+| **Full e2e3, all projects** (`e2e-out/b36-cert-full2`, 56.7 min) | **GREEN — 327 passed, 0 failed, 0 flaky, 1 skipped of 328.** The skip is the approved Google sign-in case |
+| Messages specs | 90 **17 / 17** (incl. the transfer / queued-message privacy regression, the Seen receipt, the offline queue + lost-answer retry, the broadcast lost-answer case, axe, the visual matrix), 91 **3 / 3** (390 / 430 / WebKit iPhone), 31 11 / 11, 32 3 / 3, 33 5 / 5, 60 10 / 10, 23 9 / 9, 81 4 / 4, 47 3 / 3 |
+| Diagnostics | no failure, so no `pending-requests.json`; the network audit of all 328 tests recorded **no** `ERR_INSUFFICIENT_RESOURCES` |
+
+The earlier failures (§9.1, §9.6) are therefore attributed to the machine's state at the time (memory pressure with a desktop browser running, a Wi-Fi drop, standby), not to the code; their evidence stays in `e2e-out/b36-full-a`, `b36-cert-full` and `b36-cert-diag`. B36-R9 (third-party requests on every page) and B36-R10 (the request deadline ends at response headers) remain tracked.
+
+**Status: B3.6 certified — full e2e3 suite green on the exact final tree. Not committed: awaiting the owner's explicit authorization. B3.7 not started.**

@@ -12,21 +12,26 @@ import {
   subscribeOpenThread,
   type MessageSubscription,
 } from "@/services/platform/messagesApi";
+import { readMessageDraft, writeMessageDraft } from "@/data/messageDrafts";
 import { useUploadConfigured } from "@/services/platform/mediaApi";
 import { discardOutbox, onOutboxAck, retryOutbox, useOutbox, waitForFirstAttempt, type OutboxOp } from "@/data/outbox/outbox";
 import { queueMessage, type MessageSendPayload } from "@/data/outbox/handlers";
 import { blobStore } from "@/data/blobStore";
 import { getAttachmentKind, type AttachmentKind } from "@/lib/attachmentKind";
 import { messagesEqual } from "@/lib/messagesEqual";
+import { dayLabelOf } from "@/lib/coachInbox";
+import { isWebUrl } from "@/lib/safeUrl";
 import { viewImages } from "@/stores/mediaViewerStore";
 import { alertDialog, confirmDelete, confirmDialog } from "@/stores/dialogStore";
 import { useVoiceRecorder, type VoiceRecorderError } from "@/hooks/useVoiceRecorder";
 import { useIsTabletUp } from "@/hooks/useMediaQuery";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
 import { Sheet } from "@/components/Sheet";
 import { colors } from "@/theme/colors";
-import { formatBytes, formatDate, formatDuration, formatTime } from '@/lib/format';
+import { formatBytes, formatDate, formatDuration, formatNumber, formatTime } from '@/lib/format';
 
 /**
  * Messages this device sent that the server hasn't acknowledged yet live in the
@@ -72,6 +77,11 @@ function swallowNextClick(at: { x: number; y: number }): void {
   window.setTimeout(() => window.removeEventListener('click', swallow, true), 350);
 }
 
+/** The server's cap on a message's text (`messages.send` / `edit`): the composer says so instead of queueing a send that can never succeed (MS-07). */
+export const MAX_MESSAGE_CHARS = 4000;
+/** The counter appears this close to the cap. */
+const COUNTER_FROM = MAX_MESSAGE_CHARS - 500;
+
 /** Format an elapsed-seconds count as m:ss for the recording indicator. */
 const fmtElapsed = (total: number): string => formatDuration(total);
 
@@ -100,6 +110,10 @@ export function MessageThread({
   meRole,
   peer,
   conversationCoachId,
+  variant = "standard",
+  draftKey,
+  onAccessLost,
+  onMarkedRead,
 }: {
   clientId: string;
   meId: string;
@@ -114,8 +128,23 @@ export function MessageThread({
    * returns only their own conversation).
    */
   conversationCoachId?: string | null;
+  /**
+   * B3.6 coach presentation (blueprint §6.5): opens at the first unread
+   * message under a divider (MS-05) and marks the thread read only once its
+   * newest message is on screen; Sent / Seen on the last own message only
+   * (MS-11); message actions revealed on hover or focus (MS-12); a send icon.
+   * Omitted (the client app) everything renders as before.
+   */
+  variant?: "standard" | "coach";
+  /** B3.6: keep unsent composer text under this key (one per account + conversation). */
+  draftKey?: string;
+  /** B3.6: the server refused access to the thread (coach no longer assigned). Polling has stopped. */
+  onAccessLost?: () => void;
+  /** B3.6: the server just marked messages seen (badges can refresh now instead of on their next tick). */
+  onMarkedRead?: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const coachView = variant === "coach";
   const uploadsEnabled = useUploadConfigured();
   const [messages, setMessages] = useState<Message[]>([]);
   // Server-confirmed sends whose real `id` we already have (from the `send`
@@ -137,6 +166,14 @@ export function MessageThread({
   const [body, setBody] = useState("");
   const [draft, setDraft] = useState<DraftAttachment | null>(null);
   const [sending, setSending] = useState(false);
+  // A second tap (or Enter) before React re-renders can't queue the message twice.
+  const sendingRef = useRef(false);
+  // B3.6: the coach is no longer assigned to this client — nothing of the thread stays on screen.
+  const [accessLost, setAccessLost] = useState(false);
+  const onAccessLostRef = useRef(onAccessLost);
+  onAccessLostRef.current = onAccessLost;
+  const onMarkedReadRef = useRef(onMarkedRead);
+  onMarkedReadRef.current = onMarkedRead;
   const outboxOps = useOutbox((s) => s.ops);
   const outboxProgress = useOutbox((s) => s.progress);
   // Preview object URLs for pending attachments (from the draft, or re-made from the device copy after a reload).
@@ -159,6 +196,8 @@ export function MessageThread({
   // ≥768px gets a small floating menu anchored to the message it belongs to;
   // narrower viewports keep the bottom-sheet contextual surface (long-press).
   const isTabletUp = useIsTabletUp();
+  const keyboardOpen = useKeyboardInset(coachView) > 0;
+  const online = useOnlineStatus();
   const voice = useVoiceRecorder({
     onAutoStop: (file) => {
       // 5-minute cap goes to REVIEW (the composer's attachment slot), never
@@ -198,6 +237,25 @@ export function MessageThread({
   const historyMsgs = useMemo(() => combined.filter(isHistory), [combined, isHistory]);
   const currentMsgs = useMemo(() => (historyMsgs.length ? combined.filter((m) => !isHistory(m)) : combined), [combined, historyMsgs.length, isHistory]);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // B3.6 (coach, MS-05): where the unread messages began when the thread
+  // opened — fixed for this visit, so the divider doesn't move as they are read.
+  // Decided during the first render with data (not in an effect), so the very
+  // first scroll can go to it instead of the bottom.
+  const unreadMarkRef = useRef<{ id: string; count: number } | null | undefined>(undefined);
+  const anchorPendingRef = useRef(false);
+  if (coachView && unreadMarkRef.current === undefined && !loading && !loadError && combined.length > 0) {
+    const unseen = currentMsgs.filter((m) => m.fromRole !== meRole && !m.seenAt);
+    unreadMarkRef.current = unseen.length > 0 ? { id: unseen[0].id, count: unseen.length } : null;
+    anchorPendingRef.current = unseen.length > 0;
+  }
+  const unreadMark = coachView ? (unreadMarkRef.current ?? null) : null;
+  // MS-11: Sent / Seen only on the newest own message.
+  const lastOwnId = useMemo(() => {
+    if (!coachView) return null;
+    for (let i = currentMsgs.length - 1; i >= 0; i--) if (currentMsgs[i].fromRole === meRole && !currentMsgs[i].deletedAt) return currentMsgs[i].id;
+    return null;
+  }, [coachView, currentMsgs, meRole]);
 
   const pending = useMemo(() => {
     const delivered = new Set(combined.map((m) => m.clientMsgId).filter(Boolean));
@@ -272,6 +330,10 @@ export function MessageThread({
     setHasOlder(false);
     oldestCursorRef.current = null;
     prevNewestAtRef.current = 0;
+    markedUpToRef.current = 0;
+    unreadMarkRef.current = undefined;
+    anchorPendingRef.current = false;
+    setAccessLost(false);
     setLoadError(false);
     const unsub = subscribeOpenThread(clientId, (msgs) => {
       setMessages(msgs);
@@ -285,13 +347,23 @@ export function MessageThread({
     }, () => {
       setLoading(false);
       setLoadError(true);
-    });
+    }, coachView ? () => {
+      // Released or transferred (B3-S14): drop what was on screen, stop, and say so.
+      setMessages([]);
+      setOlderPages([]);
+      setJustSent([]);
+      setHasOlder(false);
+      setLoading(false);
+      setLoadError(false);
+      setAccessLost(true);
+      onAccessLostRef.current?.();
+    } : undefined);
     subRef.current = unsub;
     return () => {
       subRef.current = null;
       unsub();
     };
-  }, [clientId, reloadKey]);
+  }, [clientId, reloadKey, coachView]);
 
   const loadOlder = async () => {
     if (loadingOlder || oldestCursorRef.current == null) return;
@@ -318,6 +390,40 @@ export function MessageThread({
     }
   };
 
+  // B3.6: the unsent text of THIS conversation survives navigation, reload and
+  // a failed queue (MS-07). Nothing is written until the stored draft has been
+  // read, so opening and leaving at once can't erase it.
+  const [draftLoaded, setDraftLoaded] = useState(!draftKey);
+  const bodyRef = useRef(body);
+  bodyRef.current = body;
+  useEffect(() => {
+    if (!draftKey) return;
+    let alive = true;
+    setDraftLoaded(false);
+    void readMessageDraft(draftKey).then((text) => {
+      if (!alive) return;
+      if (text) setBody((cur) => cur || text);
+      setDraftLoaded(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [draftKey]);
+  useEffect(() => {
+    if (!draftKey || !draftLoaded) return;
+    const id = window.setTimeout(() => void writeMessageDraft(draftKey, body), 250);
+    return () => window.clearTimeout(id);
+  }, [draftKey, draftLoaded, body]);
+  useEffect(() => {
+    if (!draftKey || !draftLoaded) return;
+    const flush = () => void writeMessageDraft(draftKey, bodyRef.current);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [draftKey, draftLoaded]);
+
   // Auto-grow the composer with its content (up to max-h-32) so a long message
   // wraps and expands instead of being clipped inside a fixed one-line box.
   useEffect(() => {
@@ -335,16 +441,41 @@ export function MessageThread({
     setNewBelow(0);
   }, []);
 
+  // Mark seen once per newest unseen message (the `since` polls keep a stale
+  // `seenAt: null` copy until the next full refresh — without this every tick
+  // sent another markRead, MS-06). Coach view: only once the newest is on screen.
+  const markedUpToRef = useRef(0);
+  const combinedRef = useRef(combined);
+  combinedRef.current = combined;
+  const markSeen = useCallback(() => {
+    let newest = 0;
+    for (const m of combinedRef.current) if (m.fromRole !== meRole && !m.seenAt && m.createdAt > newest) newest = m.createdAt;
+    if (newest === 0 || newest <= markedUpToRef.current) return;
+    markedUpToRef.current = newest;
+    // One call: the server also clears this thread's message notifications (bell/feed), B1.13.
+    void Promise.resolve(markThreadSeen(clientId, meRole)).then(
+      (n) => {
+        if ((n ?? 0) > 0) onMarkedReadRef.current?.();
+      },
+      () => {
+        markedUpToRef.current = 0; // offline / failed: the next tick tries again
+      },
+    );
+  }, [clientId, meRole]);
+  const markSeenRef = useRef(markSeen);
+  markSeenRef.current = markSeen;
+
   // Only auto-scroll while the user is already near the bottom.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
       stick.current = el.scrollHeight - (el.scrollTop + el.clientHeight) < 120;
+      if (stick.current && coachView && !anchorPendingRef.current) markSeenRef.current();
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [coachView]);
 
   const onMediaLoad = useCallback(() => {
     if (stick.current) scrollToBottom();
@@ -392,10 +523,6 @@ export function MessageThread({
   // get yanked back to the bottom while reading old messages.
   useEffect(() => {
     if (!clientId || combined.length === 0) return;
-    if (combined.some((m) => m.fromRole !== meRole && !m.seenAt)) {
-      // One call: the server also clears this thread's message notifications (bell/feed), B1.13.
-      void markThreadSeen(clientId, meRole);
-    }
     // `combined` is always chronological, so its last element is the newest —
     // count how many messages are newer than the last one we accounted for.
     // A `loadOlder` prepend never raises this value, so it can never be
@@ -403,6 +530,26 @@ export function MessageThread({
     const newestAt = combined[combined.length - 1]?.createdAt ?? 0;
     const arrivedCount = combined.reduce((n, m) => (m.createdAt > prevNewestAtRef.current ? n + 1 : n), 0);
     prevNewestAtRef.current = Math.max(prevNewestAtRef.current, newestAt);
+    if (anchorPendingRef.current) {
+      // B3.6 coach, first load with unread messages: open at the divider. When
+      // everything unread fits on screen this is just the bottom (and read).
+      const id = requestAnimationFrame(() => {
+        if (!anchorPendingRef.current) return;
+        anchorPendingRef.current = false;
+        const el = scrollRef.current;
+        const divider = el?.querySelector<HTMLElement>("[data-unread-divider]");
+        const top = divider ? Math.max(0, divider.offsetTop - 12) : null;
+        if (el && top != null && el.scrollHeight - top > el.clientHeight + 4) {
+          el.scrollTop = top;
+          stick.current = false;
+        } else {
+          scrollToBottom();
+          markSeenRef.current();
+        }
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    if (!coachView || stick.current) markSeen();
     if (stick.current) {
       setNewBelow(0);
       const id = requestAnimationFrame(scrollToBottom);
@@ -410,7 +557,7 @@ export function MessageThread({
     } else if (arrivedCount > 0) {
       setNewBelow((n) => n + arrivedCount);
     }
-  }, [clientId, meRole, combined, scrollToBottom]);
+  }, [clientId, combined, scrollToBottom, coachView, markSeen]);
 
   const revokeDraftUrl = (d: DraftAttachment | null) => {
     if (d?.previewUrl) URL.revokeObjectURL(d.previewUrl);
@@ -434,11 +581,13 @@ export function MessageThread({
   // clears (nothing typed is lost if queueing fails); the caption waits for its
   // attachment (`dependsOn`) so slow networks can never reorder them, and each
   // has its own id so a retry of either can never duplicate or touch the other.
+  const tooLong = body.trim().length > MAX_MESSAGE_CHARS;
   const doSend = async () => {
     const text = body.trim();
     const attachment = draft;
     if (!text && !attachment) return;
-    if (sending) return;
+    if (sendingRef.current || text.length > MAX_MESSAGE_CHARS) return;
+    sendingRef.current = true;
     setSending(true);
     try {
       let attachmentOpId: string | undefined;
@@ -450,6 +599,8 @@ export function MessageThread({
       }
       if (text) await queueMessage({ clientId, coachId: conversation, text, dependsOn: attachmentOpId });
       setBody("");
+      bodyRef.current = "";
+      if (draftKey) void writeMessageDraft(draftKey, ""); // the message itself is in the outbox now
       setDraft(null);
       stick.current = true;
       requestAnimationFrame(scrollToBottom);
@@ -457,6 +608,7 @@ export function MessageThread({
       console.error("[messages] could not queue the message:", err);
       await alertDialog({ title: t("messages.title"), message: t("messages.sendFailed") });
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -490,6 +642,8 @@ export function MessageThread({
     if (reason === "NO_ACTIVE_COACH") return t("messages.noActiveCoach");
     if (reason === "ACCOUNT_NOT_ACTIVE") return t("messages.accountNotActive");
     const code = op.lastError?.code;
+    // A coach's thread access ended (released / transferred): FORBIDDEN without a reason (B3-S14).
+    if (meRole === "coach" && code === "FORBIDDEN" && !reason) return t("messages.notAssigned");
     if (code === "forbidden") return t("upload.forbidden");
     return code && (code === "badType" || code.startsWith("tooLarge")) ? t(`upload.${code}`) : null;
   };
@@ -583,7 +737,7 @@ export function MessageThread({
   const submitEdit = useCallback(async () => {
     if (!editingId) return;
     const text = editText.trim();
-    if (!text) return;
+    if (!text || text.length > MAX_MESSAGE_CHARS) return;
     try {
       const updated = await editMessage(clientId, editingId, text);
       applyLocalUpdate(updated);
@@ -627,17 +781,35 @@ export function MessageThread({
     [meRole, isHistory],
   );
 
+  const onMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemradio"]'));
+    if (items.length === 0) return;
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    const next =
+      e.key === "ArrowDown" || e.key === "ArrowRight" ? (i + 1) % items.length
+      : e.key === "ArrowUp" || e.key === "ArrowLeft" ? (i <= 0 ? items.length - 1 : i - 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? items.length - 1
+      : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    items[next].focus();
+  };
+
   // Shared by the mobile bottom sheet (long-press) and the desktop floating
   // menu (hover 3-dot) — one action list, two presentations, both always
   // scoped to `target.message` alone.
   const renderActionsContent = (target: ActionTarget) => (
-    <div className="space-y-3">
+    // MS-12: a real menu — arrow keys / Home / End move between the items.
+    <div className="space-y-3" role="menu" aria-label={t("messages.moreActions")} onKeyDown={onMenuKeyDown}>
       {!target.history && (
-      <div className="flex justify-center gap-1.5" data-testid="reaction-picker">
+      <div className="flex justify-center gap-1.5" data-testid="reaction-picker" role="group" aria-label={t("messages.react")}>
         {MESSAGE_REACTIONS.map((emoji) => (
           <button
             key={emoji}
             type="button"
+            role="menuitemradio"
+            aria-checked={target.message.reactions?.[meId] === emoji}
             data-testid="reaction-pick"
             onClick={() => {
               void react(target.message, emoji);
@@ -652,18 +824,19 @@ export function MessageThread({
       )}
       <div className="space-y-1">
         {target.editable && (
-          <button type="button" data-testid="action-edit" className="row w-full text-start" onClick={() => openEdit(target.message)}>
+          <button type="button" role="menuitem" data-testid="action-edit" className="row w-full text-start" onClick={() => openEdit(target.message)}>
             <Icon name="edit" size={18} className="text-earth-muted" /> {t("common.edit")}
           </button>
         )}
         {target.editable && (
-          <button type="button" data-testid="action-delete" className="row w-full text-start text-danger" onClick={() => void doDelete(target.message)}>
+          <button type="button" role="menuitem" data-testid="action-delete" className="row w-full text-start text-danger" onClick={() => void doDelete(target.message)}>
             <Icon name="close" size={18} /> {t("common.delete")}
           </button>
         )}
         {target.message.body && (
           <button
             type="button"
+            role="menuitem"
             data-testid="action-copy"
             className="row w-full text-start"
             onClick={async () => {
@@ -678,9 +851,10 @@ export function MessageThread({
             <Icon name="list" size={18} className="text-earth-muted" /> {t("messages.copy")}
           </button>
         )}
-        {target.message.attachment && (
+        {target.message.attachment && isWebUrl(target.message.attachment.url) && (
           <button
             type="button"
+            role="menuitem"
             data-testid="action-open-attachment"
             className="row w-full text-start"
             onClick={() => {
@@ -714,10 +888,19 @@ export function MessageThread({
       const isNewDay = !prev || new Date(prev.createdAt).toDateString() !== curDay;
       const topGap = isNewDay ? "mt-1" : isFirstOfGroup ? "mt-5" : "mt-2";
       return (
+        <Fragment key={m.id}>
+        {!history && unreadMark?.id === m.id && (
+          <div className="my-3 flex items-center gap-3 px-1" data-testid="unread-divider" data-unread-divider="" role="separator" aria-label={t("messages.unreadDivider", { count: unreadMark.count })}>
+            <span className="h-px flex-1 bg-brand/40" />
+            <span className="text-[11.5px] font-semibold text-brand-hover">{t("messages.unreadDivider", { count: unreadMark.count })}</span>
+            <span className="h-px flex-1 bg-brand/40" />
+          </div>
+        )}
         <MessageRow
-          key={m.id}
           m={m}
           mine={mine}
+          showStatus={!coachView || m.id === lastOwnId}
+          coachView={coachView}
           topGap={topGap}
           isLastOfGroup={isLastOfGroup}
           isNewDay={isNewDay}
@@ -733,6 +916,64 @@ export function MessageThread({
           bubbleRefs={bubbleRefs}
           onMediaLoad={onMediaLoad}
         />
+        </Fragment>
+      );
+    });
+
+  const renderPending = () =>
+    pending.map((op) => {
+      const p = pendingPayload(op);
+      const preview = previews[op.operationId];
+      const uploading = !!p.attachment && !op.media?.attachment && op.status === "sending";
+      const pct = outboxProgress[op.operationId];
+      const failed = op.status === "failed_permanent";
+      const uploadReason = failed ? refusalText(op) : null;
+      // Retrying can't succeed once the coach is no longer assigned (B3.6) — only Delete is offered.
+      const canRetry = !accessLost && !(failed && meRole === "coach" && op.lastError?.code === "FORBIDDEN" && !op.lastError?.reason);
+      return (
+        <div key={op.operationId} className="mt-2 flex items-end justify-end gap-2" data-testid="message-bubble-pending" data-outbox-status={op.status}>
+          <div className="flex min-w-0 max-w-[85%] flex-col items-end">
+            {p.attachment && (
+              <div className="mb-1 w-fit max-w-full overflow-hidden rounded-xl border border-line-soft">
+                {p.attachment.kind === "image" && preview && <img src={preview} alt="" className="max-h-40 object-cover opacity-80" />}
+                {p.attachment.kind === "audio" && preview && <audio src={preview} controls className="w-56" />}
+                {(p.attachment.kind === "file" || p.attachment.kind === "video") && (
+                  <div className="flex items-center gap-2 px-2.5 py-2 text-[13px] text-earth-muted">
+                    <Icon name={p.attachment.kind === "video" ? "video" : "download"} size={16} /> {p.attachment.name}
+                  </div>
+                )}
+              </div>
+            )}
+            {p.text && (
+              <div className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm rounded-ee-[5px] ${failed ? "border border-danger/50 bg-danger/10 text-earth" : "bg-gradient-brand text-brand-ink opacity-70"}`}>
+                <p className="whitespace-pre-wrap break-words" dir="auto">{p.text}</p>
+              </div>
+            )}
+            {failed ? (
+              <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-danger" role="status">
+                {uploadReason ?? t("messages.sendFailed")}
+                {canRetry && <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("common.retry")}</button>}
+                <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
+              </span>
+            ) : op.status === "failed_retryable" || op.status === "waiting_for_network" ? (
+              <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-earth-subtle" role="status">
+                {op.status === "waiting_for_network" ? t("trust.outbox.waiting") : t("trust.outbox.retrying")}
+                {canRetry && <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("trust.outbox.retryNow")}</button>}
+                <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
+              </span>
+            ) : (
+              <span className="mt-1 flex items-center gap-1.5 px-1 text-[11px] text-earth-subtle" role="status">
+                <Icon name="rotate" size={11} className="animate-spin motion-reduce:animate-none" />
+                {uploading && pct != null ? `${t("upload.uploading")} ${Math.round(pct * 100)}%` : t("messages.sending")}
+                {uploading && (
+                  <button type="button" data-testid="message-cancel-upload" className="underline" onClick={() => void cancelUpload(op)}>
+                    {t("common.cancel")}
+                  </button>
+                )}
+              </span>
+            )}
+          </div>
+        </div>
       );
     });
 
@@ -742,7 +983,14 @@ export function MessageThread({
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="message-thread">
       {/* Sunken warm-charcoal canvas, distinct from the elevated header above and the composer below. */}
-      <div ref={scrollRef} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface px-2 py-3">
+      {/* A focusable, named region: keyboard users can scroll the conversation even when no bubble has a control (axe scrollable-region-focusable). */}
+      <div
+        ref={scrollRef}
+        tabIndex={0}
+        role="region"
+        aria-label={t("messages.conversation")}
+        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/50"
+      >
         {newBelow > 0 && (
           <button
             type="button"
@@ -750,10 +998,17 @@ export function MessageThread({
             onClick={scrollToBottom}
             className="sticky top-1 z-10 mx-auto flex items-center gap-1.5 self-center rounded-full bg-gradient-brand px-3 py-1.5 text-[12px] font-semibold text-brand-ink shadow-deep"
           >
-            <Icon name="chevronDown" size={14} /> {t("messages.newBelow", { n: newBelow })}
+            <Icon name="chevronDown" size={14} /> {t("messages.newBelow", { count: newBelow })}
           </button>
         )}
-        {loading ? (
+        {accessLost ? (
+          <div role="status" className="m-auto flex w-full max-w-sm flex-col items-center gap-2 px-4 py-8 text-center" data-testid="thread-access-ended">
+            <Icon name="lock" size={22} className="text-earth-subtle" />
+            <p className="text-[15px] font-semibold text-earth">{t("messages.accessEndedTitle")}</p>
+            <p className="text-[13px] text-earth-muted">{t("messages.accessEndedBody")}</p>
+            {pending.length > 0 && <div className="mt-3 w-full">{renderPending()}</div>}
+          </div>
+        ) : loading ? (
           <p className="m-auto py-8 text-center text-sm text-earth-muted">{t("auth.working")}</p>
         ) : loadError && combined.length === 0 ? (
           // A failed first load is not an empty thread. Polling keeps retrying and clears this on success.
@@ -796,59 +1051,7 @@ export function MessageThread({
               </section>
             )}
             {renderRows(currentMsgs, false)}
-            {pending.map((op) => {
-              const p = pendingPayload(op);
-              const preview = previews[op.operationId];
-              const uploading = !!p.attachment && !op.media?.attachment && op.status === "sending";
-              const pct = outboxProgress[op.operationId];
-              const failed = op.status === "failed_permanent";
-              const uploadReason = failed ? refusalText(op) : null;
-              return (
-                <div key={op.operationId} className="mt-2 flex items-end justify-end gap-2" data-testid="message-bubble-pending" data-outbox-status={op.status}>
-                  <div className="flex min-w-0 max-w-[85%] flex-col items-end">
-                    {p.attachment && (
-                      <div className="mb-1 w-fit max-w-full overflow-hidden rounded-xl border border-line-soft">
-                        {p.attachment.kind === "image" && preview && <img src={preview} alt="" className="max-h-40 object-cover opacity-80" />}
-                        {p.attachment.kind === "audio" && preview && <audio src={preview} controls className="w-56" />}
-                        {(p.attachment.kind === "file" || p.attachment.kind === "video") && (
-                          <div className="flex items-center gap-2 px-2.5 py-2 text-[13px] text-earth-muted">
-                            <Icon name={p.attachment.kind === "video" ? "video" : "download"} size={16} /> {p.attachment.name}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {p.text && (
-                      <div className={`w-fit max-w-full rounded-2xl px-3 py-2 text-sm rounded-ee-[5px] ${failed ? "border border-danger/50 bg-danger/10 text-earth" : "bg-gradient-brand text-brand-ink opacity-70"}`}>
-                        <p className="whitespace-pre-wrap break-words">{p.text}</p>
-                      </div>
-                    )}
-                    {failed ? (
-                      <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-danger" role="status">
-                        {uploadReason ?? t("messages.sendFailed")}
-                        <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("common.retry")}</button>
-                        <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
-                      </span>
-                    ) : op.status === "failed_retryable" || op.status === "waiting_for_network" ? (
-                      <span className="mt-1 flex flex-wrap items-center justify-end gap-2 px-1 text-[12px] text-earth-subtle" role="status">
-                        {op.status === "waiting_for_network" ? t("trust.outbox.waiting") : t("trust.outbox.retrying")}
-                        <button type="button" data-testid="message-retry" className="underline" onClick={() => retryPending(op)}>{t("trust.outbox.retryNow")}</button>
-                        <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
-                      </span>
-                    ) : (
-                      <span className="mt-1 flex items-center gap-1.5 px-1 text-[11px] text-earth-subtle" role="status">
-                        <Icon name="rotate" size={11} className="animate-spin motion-reduce:animate-none" />
-                        {uploading && pct != null ? `${t("upload.uploading")} ${Math.round(pct * 100)}%` : t("messages.sending")}
-                        {uploading && (
-                          <button type="button" data-testid="message-cancel-upload" className="underline" onClick={() => void cancelUpload(op)}>
-                            {t("common.cancel")}
-                          </button>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {renderPending()}
           </div>
         )}
       </div>
@@ -856,8 +1059,11 @@ export function MessageThread({
       {/* Composer — in-flow at the bottom of the full-height column. The extra
           bottom padding respects the home-indicator/gesture-bar safe area on
           notched phones instead of the composer sitting flush against it. */}
-      {!historyOnly && (
-      <div className="shrink-0 border-t border-line bg-surface-card px-2 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-2.5">
+      {!historyOnly && !accessLost && (
+      <div
+        className={`shrink-0 border-t border-line bg-surface-card px-2 pt-2.5 ${coachView && keyboardOpen ? "pb-2" : "pb-[calc(0.375rem+env(safe-area-inset-bottom))]"}`}
+        data-testid="message-composer"
+      >
         {voice.state === "recording" ? (
           <div className="flex items-center gap-2" data-testid="voice-recording">
             <button
@@ -883,6 +1089,11 @@ export function MessageThread({
           </div>
         ) : (
           <div className="space-y-2">
+            {coachView && !online && (
+              <p className="px-1 text-[12.5px] text-warn" role="status" data-testid="composer-offline">
+                {t("messages.offlineComposer")}
+              </p>
+            )}
             {draft && (
               <div className="flex items-center gap-2 rounded-xl border border-line-soft p-2" data-testid="composer-attachment-preview">
                 {draft.kind === "image" && draft.previewUrl && <img src={draft.previewUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />}
@@ -933,8 +1144,11 @@ export function MessageThread({
               <textarea
                 ref={taRef}
                 className="input max-h-32 min-h-11 flex-1 resize-none py-2.5"
+                dir="auto"
                 data-testid="message-input"
                 aria-label={t("messages.composerLabel")}
+                aria-describedby={body.length >= COUNTER_FROM ? "message-count" : undefined}
+                aria-invalid={tooLong || undefined}
                 rows={1}
                 placeholder={draft ? t("messages.captionPlaceholder") : t("messages.placeholder")}
                 value={body}
@@ -952,14 +1166,20 @@ export function MessageThread({
               <button
                 type="button"
                 data-testid="message-send"
-                disabled={(!body.trim() && !draft) || sending}
+                disabled={(!body.trim() && !draft) || sending || tooLong}
                 onClick={() => void doSend()}
                 className="btn-primary h-11 w-11 shrink-0 px-0 shadow-deep transition-transform disabled:opacity-40 disabled:shadow-none active:scale-95"
                 aria-label={t("messages.send")}
               >
-                <Icon name="chevron" size={20} />
+                {coachView ? <Icon name="send" size={20} mirror /> : <Icon name="chevron" size={20} />}
               </button>
             </div>
+            {body.length >= COUNTER_FROM && (
+              <p id="message-count" className={`px-1 text-end text-[11.5px] ${tooLong ? "text-danger" : "text-earth-subtle"}`} data-testid="composer-count" aria-live="polite">
+                {tooLong ? `${t("messages.tooLong")} · ` : ""}
+                <bdi dir="ltr">{formatNumber(body.trim().length, i18n.language)} / {formatNumber(MAX_MESSAGE_CHARS, i18n.language)}</bdi>
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -987,6 +1207,10 @@ export function MessageThread({
 interface MessageRowProps {
   m: Message;
   mine: boolean;
+  /** Show Sent / Seen on this own message (coach view: only the newest — MS-11). */
+  showStatus: boolean;
+  /** B3.6 coach presentation (actions on hover / focus, compact voice player). */
+  coachView: boolean;
   topGap: string;
   isLastOfGroup: boolean;
   isNewDay: boolean;
@@ -1018,6 +1242,8 @@ interface MessageRowProps {
 const MessageRow = memo(function MessageRow({
   m,
   mine,
+  showStatus,
+  coachView,
   topGap,
   isLastOfGroup,
   isNewDay,
@@ -1046,8 +1272,12 @@ const MessageRow = memo(function MessageRow({
     }
     longPressStart.current = null;
   };
-  const curDay = new Date(m.createdAt).toDateString();
-  const dateLabel = curDay === new Date().toDateString() ? t("common.today") : formatDate(m.createdAt, i18n.language, 'weekdayShort');
+  // Today · Yesterday · a short date · a date with the year (MS-16).
+  const dayKind = dayLabelOf(m.createdAt, Date.now());
+  const dateLabel =
+    dayKind === "today" ? t("common.today")
+    : dayKind === "yesterday" ? t("common.yesterday")
+    : formatDate(m.createdAt, i18n.language, dayKind === "thisYear" ? "weekdayShort" : "medium");
   const daySeparator = isNewDay && (
     <div className="my-3 flex items-center justify-center" data-testid="date-separator">
       <span className="rounded-full bg-surface-raised px-3 py-1 text-[11px] font-medium text-earth-subtle">{dateLabel}</span>
@@ -1080,6 +1310,8 @@ const MessageRow = memo(function MessageRow({
     return acc;
   }, {});
   const timeStr = formatTime(m.createdAt, i18n.language);
+  // Who wrote it, for screen readers (sighted users read it from the side the bubble sits on).
+  const senderSr = mine ? t("messages.youWroteSr") : peerName ? t("messages.senderSr", { name: peerName }) : "";
 
   // WhatsApp/Messenger-style trailing time — lives INSIDE its own bubble's
   // bottom edge (never a separate floating line), so it's unambiguous which
@@ -1096,7 +1328,7 @@ const MessageRow = memo(function MessageRow({
       >
         <span dir="ltr">{timeStr}</span>
         {m.editedAt && !overlay && <span>· {t("messages.edited")}</span>}
-        {mine &&
+        {mine && showStatus &&
           (overlay ? (
             <Icon name="check" size={10} className={m.seenAt ? "text-brand" : "text-white/70"} />
           ) : (
@@ -1112,6 +1344,7 @@ const MessageRow = memo(function MessageRow({
         className={`group flex items-end gap-2 ${mine ? "flex-row-reverse" : ""} ${topGap} ${reactionEntries.length > 0 ? "mb-2.5" : ""}`}
         data-testid="message-bubble"
       >
+        {senderSr ? <span className="sr-only">{senderSr} </span> : null}
         {!mine && (isLastOfGroup ? (
           <Avatar name={peerName || ""} photoUrl={peerPhotoUrl} size="xs" rounded="rounded-full" className="mb-5 shrink-0" />
         ) : (
@@ -1159,9 +1392,11 @@ const MessageRow = memo(function MessageRow({
                 data-testid="message-actions-trigger"
                 aria-label={t("messages.moreActions")}
                 onClick={() => onOpenActions(m)}
-                className={`absolute -top-2 z-10 hidden h-6 w-6 items-center justify-center rounded-full bg-surface-card text-earth-subtle shadow-deep group-hover:flex md:flex ${mine ? "-start-7" : "-end-7"}`}
+                className={`absolute -top-2 z-10 hidden h-6 w-6 items-center justify-center rounded-full bg-surface-card text-earth-subtle shadow-deep md:flex ${
+                  coachView ? "md:opacity-0 md:transition-opacity md:focus-visible:opacity-100 md:group-focus-within:opacity-100 md:group-hover:opacity-100" : "group-hover:flex"
+                } ${mine ? "-start-7" : "-end-7"}`}
               >
-                ⋮
+                {coachView ? <Icon name="dots" size={14} /> : "⋮"}
               </button>
             )}
             {isEditing ? (
@@ -1170,6 +1405,7 @@ const MessageRow = memo(function MessageRow({
                   ref={editRef}
                   aria-label={t("messages.editLabel")}
                   className="input min-h-16 w-full resize-none text-sm"
+                  dir="auto"
                   value={editText}
                   onChange={(e) => onEditTextChange(e.target.value)}
                   onKeyDown={(e) => {
@@ -1181,7 +1417,7 @@ const MessageRow = memo(function MessageRow({
                 />
                 <div className="flex justify-end gap-2">
                   <button type="button" className="btn-ghost btn-sm" onClick={onCancelEdit}>{t("common.cancel")}</button>
-                  <button type="button" className="btn-primary btn-sm" disabled={!editText.trim()} onClick={onSubmitEdit}>{t("common.save")}</button>
+                  <button type="button" className="btn-primary btn-sm" disabled={!editText.trim() || editText.trim().length > MAX_MESSAGE_CHARS} onClick={onSubmitEdit}>{t("common.save")}</button>
                 </div>
               </div>
             ) : isVisualMedia && m.attachment ? (
@@ -1189,10 +1425,10 @@ const MessageRow = memo(function MessageRow({
               // INSIDE the same card, time overlaid on the media itself
               // when there's no caption to carry it in-flow instead.
               <div className="relative w-fit max-w-full overflow-hidden rounded-2xl border border-line-soft/60">
-                <Attachment attachment={m.attachment} onLoad={onMediaLoad} />
+                <Attachment attachment={m.attachment} onLoad={onMediaLoad} voice={coachView} />
                 {m.body ? (
                   <div className={`flex flex-col px-3 py-2 text-sm ${bubbleClass}`}>
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    <p className="whitespace-pre-wrap break-words" dir="auto">{m.body}</p>
                     {timeRow(false)}
                   </div>
                 ) : (
@@ -1209,8 +1445,8 @@ const MessageRow = memo(function MessageRow({
                     {t(`messages.category.${cat}`)}
                   </span>
                 )}
-                {m.attachment && <div className="mb-1"><Attachment attachment={m.attachment} /></div>}
-                {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                {m.attachment && <div className="mb-1"><Attachment attachment={m.attachment} onLoad={onMediaLoad} voice={coachView} /></div>}
+                {m.body && <p className="whitespace-pre-wrap break-words" dir="auto">{m.body}</p>}
                 {timeRow(false)}
               </div>
             )}
@@ -1241,6 +1477,8 @@ const MessageRow = memo(function MessageRow({
 (prev, next) =>
   messagesEqual(prev.m, next.m) &&
   prev.mine === next.mine &&
+  prev.showStatus === next.showStatus &&
+  prev.coachView === next.coachView &&
   prev.topGap === next.topGap &&
   prev.isLastOfGroup === next.isLastOfGroup &&
   prev.isNewDay === next.isNewDay &&
@@ -1275,6 +1513,18 @@ function FloatingActionMenu({
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; ready: boolean } | null>(null);
+
+  // MS-12: focus moves into the menu when it opens and back to where it came from when it closes.
+  useEffect(() => {
+    if (!open) return;
+    const from = document.activeElement as HTMLElement | null;
+    return () => {
+      if (from && from !== document.body && document.contains(from)) from.focus({ preventScroll: true });
+    };
+  }, [open]);
+  useEffect(() => {
+    if (pos?.ready) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"], [role="menuitemradio"]')?.focus({ preventScroll: true });
+  }, [pos?.ready]);
 
   useLayoutEffect(() => {
     if (!open || !anchor) {
@@ -1360,9 +1610,18 @@ function FloatingActionMenu({
  * stored `kind` outright — this also self-heals older messages that were
  * misclassified as generic files before the media-type detection fix.
  */
-function Attachment({ attachment, onLoad }: { attachment: NonNullable<Message["attachment"]>; onLoad?: () => void }) {
+function Attachment({ attachment, onLoad, voice = false }: { attachment: NonNullable<Message["attachment"]>; onLoad?: () => void; /** B3.6: the compact voice-note player. */ voice?: boolean }) {
+  const { t } = useTranslation();
   const { url, name } = attachment;
   const kind = getAttachmentKind({ mimeType: attachment.mimeType, name: attachment.name, fallbackKind: attachment.kind });
+  // Never render a non-web address as a link or media source (B3.6 — the server refuses them now).
+  if (!isWebUrl(url)) {
+    return (
+      <span className="flex items-center gap-2 px-2.5 py-2 text-[13px] text-earth-muted" data-testid="attachment-unavailable">
+        <Icon name="alert" size={16} /> {t("messages.attachmentUnavailable")}
+      </span>
+    );
+  }
   // Image/video render bare here — the caller wraps them in one rounded,
   // clipped media card (see `isVisualMedia` above), so this never rounds or
   // margins itself; `object-contain` never crops content to fill the box.
@@ -1374,14 +1633,121 @@ function Attachment({ attachment, onLoad }: { attachment: NonNullable<Message["a
     );
   }
   if (kind === "video") {
-    return <video src={url} controls className="block max-h-72 w-full max-w-full bg-black object-contain sm:max-h-80" onLoadedMetadata={onLoad} />;
+    return <video src={url} controls preload="metadata" className="block max-h-72 w-full max-w-full bg-black object-contain sm:max-h-80" onLoadedMetadata={onLoad} />;
   }
   if (kind === "audio") {
-    return <audio src={url} controls className="w-60 max-w-full" onLoadedMetadata={onLoad} />;
+    return voice ? <VoiceNotePlayer src={url} name={name} onLoad={onLoad} /> : <audio src={url} controls className="w-60 max-w-full" onLoadedMetadata={onLoad} />;
   }
   return (
     <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg bg-black/20 px-2.5 py-2 text-[13px] underline">
-      <Icon name="download" size={16} /> {name ?? "file"}
+      <Icon name="download" size={16} /> {name ?? t("messages.fileMsg")}
     </a>
+  );
+}
+
+/**
+ * B3.6 compact voice-note player (MS-08, coach view): play / pause, a seek
+ * bar and the length. Chrome's WebM recordings carry no length header, so the
+ * length is found by seeking past the end once. A file this browser cannot
+ * play says so and offers it to open — never a silent dead player.
+ */
+function VoiceNotePlayer({ src, name, onLoad }: { src: string; name?: string; onLoad?: () => void }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [position, setPosition] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const probing = useRef(false);
+
+  const onMeta = () => {
+    const a = ref.current;
+    if (!a) return;
+    onLoad?.();
+    if (Number.isFinite(a.duration) && a.duration > 0) setDuration(a.duration);
+    else {
+      probing.current = true;
+      a.currentTime = 1e7;
+    }
+  };
+  const onTime = () => {
+    const a = ref.current;
+    if (!a) return;
+    if (probing.current) {
+      probing.current = false;
+      if (Number.isFinite(a.duration) && a.duration > 0) setDuration(a.duration);
+      a.currentTime = 0;
+      return;
+    }
+    setPosition(a.currentTime);
+  };
+  const toggle = () => {
+    const a = ref.current;
+    if (!a) return;
+    if (a.paused) void a.play().catch(() => setFailed(true));
+    else a.pause();
+  };
+  const fmt = (sec: number) => formatDuration(Math.max(0, Math.round(sec)));
+
+  if (failed) {
+    return (
+      <span className="flex w-60 max-w-full items-center gap-2 px-1 py-1 text-[13px]" data-testid="voice-note-unplayable" role="status">
+        <Icon name="mic" size={16} className="shrink-0" />
+        <span className="min-w-0 flex-1">{t("messages.voiceUnplayable")}</span>
+        <a href={src} target="_blank" rel="noreferrer" className="shrink-0 font-semibold underline">{t("messages.voiceOpen")}</a>
+        <audio ref={ref} src={src} preload="none" className="hidden" />
+      </span>
+    );
+  }
+  return (
+    <div className="flex w-60 max-w-full items-center gap-2" data-testid="voice-note">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/25"
+        aria-label={playing ? t("messages.voicePause") : t("messages.voicePlay")}
+        data-testid="voice-note-toggle"
+      >
+        <Icon name={playing ? "pause" : "play"} size={16} />
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={duration ?? 0}
+        step={0.1}
+        value={Math.min(position, duration ?? 0)}
+        disabled={!duration}
+        onChange={(e) => {
+          const a = ref.current;
+          if (a) a.currentTime = Number(e.target.value);
+          setPosition(Number(e.target.value));
+        }}
+        aria-label={t("messages.voiceSeek", { name: name ?? t("messages.audioMsg") })}
+        className="h-1.5 min-w-0 flex-1 cursor-pointer accent-current disabled:cursor-default disabled:opacity-50"
+        dir="ltr"
+      />
+      <span className="shrink-0 font-mono text-[11px] tabular-nums opacity-80" dir="ltr">
+        {playing || position > 0 ? fmt(position) : duration ? fmt(duration) : "–:––"}
+      </span>
+      <audio
+        ref={ref}
+        src={src}
+        preload="metadata"
+        className="hidden"
+        onLoadedMetadata={onMeta}
+        onDurationChange={() => {
+          const a = ref.current;
+          if (a && Number.isFinite(a.duration) && a.duration > 0) setDuration(a.duration);
+        }}
+        onTimeUpdate={onTime}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          setPosition(0);
+        }}
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }

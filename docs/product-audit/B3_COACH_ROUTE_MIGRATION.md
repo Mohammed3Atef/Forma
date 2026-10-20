@@ -131,3 +131,26 @@ Routes are unchanged (the editors keep `…/workout`, `…/nutrition`, `…/card
 | template editor | `template-goal`, `template-split` (selects), `template-not-found`, `template-load-error` | 22, 89 |
 
 **Owner review additions (2026-10-19):** `cardio-targets-conflict` with `cardio-targets-mine-<steps|cardioMin>`, `cardio-targets-theirs-<…>`, `cardio-targets-keep-mine`, `cardio-targets-use-theirs`; the bar's `cardio-conflict` also covers a targets conflict; `plan-editor-draft-restored` carries `[data-stale]` when the restored draft was made before the saved version changed. Spec 89.
+
+## 11. B3.6 changes
+
+URLs are unchanged (`/coach/messages`, `/coach/messages/:clientId`; every notification target keeps resolving), but they are now **one screen** (`CoachMessages`; `CoachMessageThread` is removed):
+
+| Width | `/coach/messages` | `/coach/messages/:clientId` |
+|---|---|---|
+| ≥ 768 | inbox + "Select a conversation" | inbox + that conversation selected (split view) — no Back; selecting another row **replaces** the history entry, the first selection from the bare inbox pushes |
+| < 768 | the inbox | the conversation, full-screen above the shell (no tab bar); its Back pops history, from a cold link → `/coach/messages` |
+
+- Semantic parent unchanged (`/coach/messages/:id` → `/coach/messages`); the shell still draws no Back on a conversation (`coachPageOwnsBack`).
+- **NAV-K07:** thread → client workspace pushes with `state.fromThread`; the workspace's Message pushes with `state.fromWorkspace`. Each side **pops** history instead when it was opened from the other for the same client, so thread ↔ client never stacks up.
+- Notification toasts for the open conversation are suppressed on the split view too (its path is the conversation's).
+
+| Old | New | Specs |
+|---|---|---|
+| `coach-thread` (phone/tablet thread page), `topbar-title` (header → workspace) | `coach-thread` = the phone full-screen layer (`role="dialog"`) or the split's conversation pane; header `thread-header` with `thread-recipient`, `thread-context`, `thread-header-identity`, `thread-open-client`, `thread-more` (`thread-request-checkin`, `thread-menu-open-client`), `thread-back` (phones) | 23, 60, 90, 91, `_d-layout` |
+| `coach-desktop-messages` only ≥ 1024, selection in state | `coach-desktop-messages` ≥ 768 with `inbox-pane`; `thread-empty` when nothing is selected | 23, 85, 90 |
+| `thread-row` (button), `thread-unread-badge` (`9+`) | `thread-row` is a link with `data-client-id` and `aria-current`; `thread-preview`; `thread-unread-badge` (`99+`, the real count for screen readers); `inbox-search`, `inbox-filter-all` / `-unread`, `inbox-list`, `inbox-no-results`, `inbox-threads-error`, `inbox-unread-line` | 23, 42, 90 |
+| `broadcast-open` (top-bar button), `broadcast-search`, `broadcast-body`, `broadcast-send` | `messages-more` → `broadcast-open`; `broadcast-category-<c>`, `broadcast-audience-all` / `-chosen`, `broadcast-recipients` / `broadcast-recipient`, `broadcast-chosen-count`, `broadcast-preview`, `broadcast-send`, result `broadcast-result` / `broadcast-summary` / `broadcast-failed-list` / `broadcast-retry` / `broadcast-done` | 90 |
+| engine | adds `unread-divider`, `message-composer`, `composer-count`, `composer-offline`, `thread-access-ended`, `thread-not-assigned`, `attachment-unavailable`, `voice-note` / `voice-note-toggle` / `voice-note-unplayable`; the action sheet / menu has `role="menu"` | 31, 32, 90, 91 |
+
+**Certification additions (2026-10-20):** the broadcast result adds `broadcast-not-sent` (refused, nothing stored) and `broadcast-unconfirmed` (no answer, may have arrived); rows of `broadcast-failed-list` carry `data-failure` (`notAssigned` / `accountNotActive` / `rejected` / `unknown`). Spec 90.

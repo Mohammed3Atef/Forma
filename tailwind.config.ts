@@ -95,6 +95,8 @@ const config: Config = {
           DEFAULT: '#F0483E', // unchanged — already matched the new spec's --bad
           // B3.3: danger TEXT on a danger tint (status pills) — #F0483E reads ~4.1:1 there, this ≥ 5:1 (WCAG AA).
           text: '#FF6B62',
+          // B3.6: a solid fill that carries white 11 px text at ≥ 5:1 (the coach's unread badges; #F0483E is ~3.6:1).
+          solid: '#CF3329',
         },
         warn: '#F5A623', // unchanged — already matched the new spec's --warn
         info: '#5B8DEF', // informational blue (distinct from brand orange)

@@ -343,3 +343,71 @@ Two new states, both in spec 89:
 | Conflict panel, EN 1440 (`targets-conflict-1440`) | the panel stays inside the targets card; the session form beside it is unchanged |
 
 Reviewed by eye: the Arabic table reads right to left (target · yours · saved now), the buttons keep their order (Keep mine first), and nothing else on the screen moves when the panel appears.
+
+## B3.6 — Coach Messages (2026-10-19)
+
+**Scope reviewed:**
+- the inbox (phones: a page; ≥ 768: the left pane) — rows, previews, unread, search, All · Unread, its states;
+- the conversation (phones: full-screen; ≥ 768: the right pane) — header with the client's context, the unread divider, bubbles, voice notes, the composer and its counter, the ended / not-assigned states, the refused-after-transfer bubble;
+- the broadcast sheet (compose, choose recipients, preview, partial result);
+- English, Arabic and Egyptian Arabic, 360–1440 px; the emulated on-screen keyboard (390); touch on Pixel 390 / 430 and WebKit iPhone.
+
+Fixtures on coachPro (`e2e-msg-` ids): 33 active conversations (two unread, a last message of the coach's, a deleted last message, a photo, an Arabic / English mixed message, a voice note, a suspended client, a 60-message conversation whose last 25 are unread, 24 older ones), a released client. See spec 90.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/90-b3-messages.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b36-visual/{inbox,thread,thread-unread}-<width>-<lang>.png` (viewport captures — the conversation scrolls inside its pane) and `shots.json` (overflow, `dir`), and fails on any horizontal overflow or wrong direction. The other tests attach their own screenshots (`01-inbox-1440` … `17-broadcast-partial`).
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 |
+| Languages | English · Arabic · Egyptian Arabic (390 / 1440) |
+| Screens | inbox and an open conversation at every width; the conversation opened at its unread divider at 390 and 1440; plus the test shots — split 768 / 1440, phone thread, draft restored, offline waiting, the divider, the voice note that can't play, a failing upload, the transfer refusal, the toast-opened thread, the emulated keyboard, broadcast compose and partial result |
+
+**Result:** 34 matrix shots, **0 px horizontal overflow, correct `dir` on every shot** (`e2e-out/b36-final-matrix-b/b36-visual/`, final code). axe (WCAG 2.1 A / AA) on the inbox, the conversation and the broadcast sheet, EN + AR, 390 and 1440 (12 scans): **0 violations** after M3 and M6 below. Touch: spec 91 on Pixel 390 / 430 and WebKit iPhone.
+
+Checked on every shot:
+- the recipient is always named in the conversation header, with the same package / account pills as Clients and the workspace; no presence, typing or delivery claims;
+- phones: the conversation covers the shell (no tab bar under the composer); the composer is the hit target at its own position; one bottom safe area;
+- ≥ 768: inbox and conversation side by side, the selected row marked; the composer inside the pane, never under anything; the page itself does not scroll;
+- Arabic: the panes mirror (inbox on the right), Back points right, times and counts read correctly; English names / previews keep their direction inside Arabic rows (`<bdi>`), and a message's own text keeps its direction in its bubble (`dir="auto"`).
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| M1 | An English sentence in an Arabic conversation read "?Is it ok to train fasted" — message text inherited the page's right-to-left direction | AR, bubbles (both apps) and the composer | bubbles, pending bubbles, the composer and the edit box take the text's own direction (`dir="auto"`) |
+| M2 | The coach's message-action button appeared on a phone after a tap (sticky hover) | coach, 390 | below 768 the button never shows on hover — long-press opens the actions |
+| M3 | The Messages unread badge in the tab bar / rail: white on #F0483E, ~3.6:1 (axe) | coach shell | the coach shell's badges use a solid red at ≥ 5:1 (the shared badge style stays for the a11y pass) |
+| M4 | After a mid-visit transfer the header fell back to "Client" (the row had left the roster) | coach, conversation | the header keeps the name it showed |
+| M5 | "Retry" offered on a message refused because the client is no longer assigned (it can never succeed) | coach, refused bubble | Delete only |
+| M6 | axe `scrollable-region-focusable` on the conversation at 390 (no control inside the bubbles on phones, so the list could not be scrolled from a keyboard) | EN / AR 390, both apps | the message list is a focusable region named "Conversation" with a focus ring |
+
+### 4. Still deviating (owned by later milestones)
+
+| What | Milestone |
+|---|---|
+| The client's conversation keeps its B2 look (B36-R7) | B5 |
+| Image attachments have no stored size (a small shift when they load); PDFs open outside the app; Android Back and the image viewer (MS-13) | B5 |
+| The shared red badge / pill styles on client and admin screens (B33-R1) | B3.9 |
+
+### 5. Not covered
+
+Physical devices (the real keyboard, home indicators, iOS WebM playback — R-17), screen readers beyond axe and the roles / labels checked in tests, conversations with thousands of messages beyond the 200-message window plus "Load older".
+
+### 6. Certification addition (2026-10-20)
+
+| State | Shot | Reviewed |
+|---|---|---|
+| Broadcast, answers lost after the server stored the copies | `19-broadcast-unconfirmed` (1440) | warning card "Sent to 0 of 2 clients · 2 not confirmed — may have arrived"; each client "Not confirmed — it may have arrived"; the note that Retry sends only to these and nobody already reached gets a second copy; the button reads "Retry for 2 clients" (no "failed") |
+| Broadcast, a refused recipient | the broadcast test's partial result | "1 not sent"; the client "Not sent — no longer your client" |
+| Read receipt | `18-seen-after-client-read` (1440) | "Seen" only on the newest own message, only after the client opened the conversation; older own messages carry no status |
+
+Both new broadcast lines are plural-aware in Arabic (six forms) and keep the warning card's layout; spec 90's axe test covers the sheet (EN / AR, 390 / 1440).

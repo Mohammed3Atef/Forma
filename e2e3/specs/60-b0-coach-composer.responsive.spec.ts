@@ -10,6 +10,11 @@ import { test, expect, ready, shot } from '../fixtures';
  * B3.2 (owner O-6): "term ending" is now a notice on Today only, so the
  * banner that sits above the thread here is the over-capacity one — still
  * app-wide because it blocks work. Same guarantee, same geometry checks.
+ *
+ * B3.6 (contract C12 re-certified): ≥ 768 the conversation is the split
+ * view's pane, sized from its real top edge below the banner; on phones the
+ * conversation is a full-screen task ABOVE the shell (no tab bar, no banner
+ * over it — MS-01 / MS-03), so the banner stays on the other coach screens.
  */
 test.describe.configure({ timeout: 180_000 });
 
@@ -42,10 +47,23 @@ for (const locale of ['en', 'ar'] as const) {
       if (locale === 'ar') await setCoachLocale(page, 'ar');
       await page.goto(`/coach/messages/${env.accounts.clientA.id}`);
       await ready(page);
-      await expect(page.getByTestId('coach-capacity-banner')).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('coach-capacity-banner')).toBeAttached({ timeout: 20_000 });
       await expect(page.getByTestId('coach-thread')).toBeVisible();
       // Let the banner settle, then the column re-measures.
       await page.waitForTimeout(300);
+      const wide = (page.viewportSize()?.width ?? 0) >= 768;
+      if (wide) {
+        // The banner is shown above the split view and never overlaps the conversation.
+        await expect(page.getByTestId('coach-capacity-banner')).toBeVisible();
+        const banner = (await page.getByTestId('coach-capacity-banner').boundingBox())!;
+        const pane = (await page.getByTestId('coach-thread').boundingBox())!;
+        expect(banner.y + banner.height).toBeLessThanOrEqual(pane.y + 1);
+      } else {
+        // Full-screen task: it covers the whole viewport, the tab bar and the banner stay underneath.
+        const layer = (await page.getByTestId('coach-thread').boundingBox())!;
+        expect(layer.y).toBe(0);
+        expect(Math.round(layer.y + layer.height)).toBe(page.viewportSize()!.height);
+      }
       const hit = await sendIsReachable(page);
       await shot(page, testInfo, `coach-composer-banner-${locale}`);
       expect(hit.ok, `send covered by ${hit.at} (bottom ${hit.bottom} / viewport ${hit.vh})`).toBe(true);

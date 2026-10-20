@@ -25,6 +25,7 @@ export function TabBar({
   label,
   onNavigate,
   className = '',
+  badgeTone,
 }: {
   items: NavDestination[];
   /** Accessible name of the navigation landmark. */
@@ -32,6 +33,8 @@ export function TabBar({
   /** Called on a tab tap — may prevent the default to guard unsaved work. */
   onNavigate?: (to: string, e: MouseEvent) => void;
   className?: string;
+  /** Unread badge fill (B3.6: the coach shell uses the AA-contrast `solid`). */
+  badgeTone?: 'danger' | 'solid';
 }) {
   return (
     <nav
@@ -55,7 +58,7 @@ export function TabBar({
               {it.active && <span aria-hidden="true" className="absolute inset-x-[22%] top-0 h-[3px] rounded-b-full bg-gradient-brand" />}
               <span className="relative">
                 <Icon name={it.icon} size={24} />
-                {it.badge ? <CountBadge count={it.badge} className="absolute -end-2.5 -top-1.5" testId={`nav-${it.key}-badge`} /> : null}
+                {it.badge ? <CountBadge count={it.badge} tone={badgeTone} className="absolute -end-2.5 -top-1.5" testId={`nav-${it.key}-badge`} /> : null}
               </span>
               <span className="max-w-full truncate px-1 text-[12px] font-medium leading-none">{it.label}</span>
             </Link>
@@ -85,6 +88,7 @@ export function SideRail({
   className = '',
   testId = 'client-rail',
   collapsible = false,
+  badgeTone,
 }: {
   items: NavDestination[];
   label: string;
@@ -94,6 +98,7 @@ export function SideRail({
   className?: string;
   testId?: string;
   collapsible?: boolean;
+  badgeTone?: 'danger' | 'solid';
 }) {
   const width = collapsible ? 'w-[72px] lg:w-60' : 'w-60';
   return (
@@ -117,10 +122,10 @@ export function SideRail({
                 {it.active && <span aria-hidden="true" className="absolute inset-y-2 start-0 w-[3px] rounded-e-full bg-gradient-brand" />}
                 <span className="relative flex">
                   <Icon name={it.icon} size={20} className={it.active ? 'text-brand-hover' : undefined} />
-                  {collapsible && it.badge ? <CountBadge count={it.badge} className="absolute -end-2.5 -top-1.5 lg:hidden" testId={`rail-${it.key}-badge-compact`} /> : null}
+                  {collapsible && it.badge ? <CountBadge count={it.badge} tone={badgeTone} className="absolute -end-2.5 -top-1.5 lg:hidden" testId={`rail-${it.key}-badge-compact`} /> : null}
                 </span>
                 <span className={`min-w-0 flex-1 truncate ${collapsible ? 'hidden lg:block' : ''}`}>{it.label}</span>
-                {it.badge ? <CountBadge count={it.badge} className={collapsible ? 'hidden lg:inline-flex' : undefined} testId={`rail-${it.key}-badge`} /> : null}
+                {it.badge ? <CountBadge count={it.badge} tone={badgeTone} className={collapsible ? 'hidden lg:inline-flex' : undefined} testId={`rail-${it.key}-badge`} /> : null}
               </Link>
             </li>
           ))}

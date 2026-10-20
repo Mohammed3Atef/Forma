@@ -1,337 +1,203 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { MessageAttachment, MessageCategory, UserRecord } from '@/types';
-import { getAttachmentKind } from '@/lib/attachmentKind';
 import { TopBar } from '@/components/TopBar';
-import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
-import { Sheet } from '@/components/Sheet';
-import { SearchField, TextAreaField } from '@/components/ui/Field';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { MessageThread } from '@/components/MessageThread';
-import { SplitPane } from '@/components/ui/SplitPane';
 import { useFullBleed } from '@/hooks/useFullBleed';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { useCoachClientHeader, SUB_TONE } from '@/hooks/useCoachClientHeader';
-import { Pill } from '@/components/ui/Pill';
+import { useIsTabletUp } from '@/hooks/useMediaQuery';
+import { useFillToBottomNav } from '@/hooks/useFillToBottomNav';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useBack } from '@/hooks/useBack';
+import { useCoachInbox } from '@/hooks/useCoachInbox';
 import { useSession } from '@/services/auth/sessionStore';
-import { listMyClients } from '@/services/platform/coachApi';
-import { broadcast, subscribeCoachThreadsSummary, type ThreadMeta } from '@/services/platform/messagesApi';
-import { alertDialog } from '@/stores/dialogStore';
-import { formatDate, formatTime } from '@/lib/format';
+import { buildInbox, type InboxFilter } from '@/lib/coachInbox';
+import { InboxFilters, InboxList, threadPath } from '@/pages/coach/messages/InboxList';
+import { CoachThreadPane } from '@/pages/coach/messages/CoachThreadPane';
+import { BroadcastSheet } from '@/pages/coach/messages/BroadcastSheet';
 
-const CATEGORIES: MessageCategory[] = ['announcement', 'offer', 'reminder', 'update'];
-const INBOX_FILTERS = ['all', 'unread', 'broadcasts'] as const;
-type InboxFilter = (typeof INBOX_FILTERS)[number];
-
-/** Inbox preview label key for an attachment-only message, by kind. */
-const ATTACH_PREVIEW: Record<MessageAttachment['kind'], string> = {
-  image: 'photoMsg',
-  video: 'videoMsg',
-  audio: 'audioMsg',
-  file: 'fileMsg',
-};
-
-/** Coach messaging inbox: a thread per client + a broadcast composer. */
+/**
+ * Coach Messages (B3.6 / blueprint §6.5) — `/coach/messages` and
+ * `/coach/messages/:clientId` are this one screen:
+ *  - ≥ 768 px: the inbox and the open conversation side by side; the
+ *    selection IS the URL (DT-01), so a reload, a notification or a shared
+ *    link opens the same conversation, and the shell's toast suppression
+ *    sees it.
+ *  - phones: the inbox, or the conversation full-screen (its own header and
+ *    Back, no tab bar, the composer above the keyboard — MS-03 / C12).
+ * The engine is unchanged (C11): `MessageThread`, the durable outbox, the
+ * 5 s thread poll and the shared 20 s summary poll (no new poller).
+ */
 export function CoachMessages() {
   useFullBleed();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { clientId: rawId } = useParams();
+  const selectedId = rawId ?? null;
   const account = useSession((s) => s.account);
-  const coachId = account?.id;
-  const isDesktop = useIsDesktop();
-  const [broadcasting, setBroadcasting] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const coachId = account?.id ?? '';
+  const tabletUp = useIsTabletUp();
+  const goBack = useBack('/coach/messages');
+  const data = useCoachInbox(coachId);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<InboxFilter>('all');
+  const [broadcasting, setBroadcasting] = useState(false);
 
-  const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId!), enabled: !!coachId });
-  const clientList = clients.data ?? [];
-  const clientIds = clientList.map((c) => c.id).join(',');
+  const clients = useMemo(() => data.directory.rows.map((r) => ({ id: r.id, displayName: r.name, photoUrl: r.photoUrl, email: (data.roster.data ?? []).find((c) => c.id === r.id)?.email })), [data.directory.rows, data.roster.data]);
+  const inbox = useMemo(() => buildInbox(clients, data.threads, { coachId, q, filter, selectedId }), [clients, data.threads, coachId, q, filter, selectedId]);
+  const rosterReady = data.roster.data !== undefined;
+  const row = data.rowOf(selectedId);
 
-  // Live last-message + unread per client, one request per tick (was one
-  // polling subscription PER client thread — see `coachThreadsSummary`).
-  const [metaMap, setMetaMap] = useState<Record<string, ThreadMeta>>({});
-  // Distinguishes "still waiting on the first summary response" from "this
-  // client genuinely has no messages" — without it every row briefly flashed
-  // "No messages yet" on mount, even for clients with real history.
-  const [metaLoaded, setMetaLoaded] = useState(false);
-  useEffect(() => {
-    if (!coachId || !clientIds) return;
-    return subscribeCoachThreadsSummary(coachId, (rows) => {
-      setMetaMap(Object.fromEntries(rows.map((r) => [r.clientId, { last: r.last, unreadForCoach: r.unreadForCoach, unreadForClient: 0 }])));
-      setMetaLoaded(true);
-    });
-  }, [coachId, clientIds]);
-
-  const sorted = useMemo(
-    () => [...clientList].sort((a, b) => (metaMap[b.id]?.last?.createdAt ?? 0) - (metaMap[a.id]?.last?.createdAt ?? 0)),
-    [clientList, metaMap],
-  );
-  const list = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    return sorted.filter((c) => {
-      if (query && !`${c.displayName ?? ''} ${c.email ?? ''}`.toLowerCase().includes(query)) return false;
-      const meta = metaMap[c.id];
-      if (filter === 'unread' && (meta?.unreadForCoach ?? 0) === 0) return false;
-      if (filter === 'broadcasts' && !meta?.last?.broadcast) return false;
-      return true;
-    });
-  }, [sorted, metaMap, q, filter]);
-  const selectedClient = list.find((c) => c.id === selectedId) ?? null;
-  // "Load more" instead of numbered pages — one smooth scroll-and-tap pattern
-  // rather than a page-number picker, and simpler/safer than true infinite
-  // scroll (no IntersectionObserver to get subtly wrong).
-  const PAGE = 30;
-  const [visible, setVisible] = useState(PAGE);
-  useEffect(() => setVisible(PAGE), [q, filter]);
-  const shown = list.slice(0, visible);
-
-  return (
-    <>
-      <TopBar
-        title={t('coach.messages')}
-        eyebrow={t('platform.coachPortal')}
-        right={
-          <button type="button" data-testid="broadcast-open" className="icon-btn h-11 w-11" aria-label={t('messages.broadcast')} onClick={() => setBroadcasting(true)}>
-            <Icon name="bolt" size={20} />
-          </button>
-        }
-      />
-
-      {clients.isError && !clients.data ? (
-        <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void clients.refetch()} testId="coach-messages-error" />
-      ) : clients.isLoading ? (
-        <LoadingState variant="list" count={4} />
-      ) : isDesktop ? (
-        /* Desktop split: inbox list + selected conversation */
-        <SplitPane
-          testId="coach-desktop-messages"
-          detailPosition="start"
-          detail={
-            <div className="space-y-3">
-              <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} />
-              <div className="card max-h-[calc(100dvh-16rem)] divide-y divide-line-soft overflow-y-auto p-0">
-                {list.length === 0 ? (
-                  <p className="p-4 text-center text-sm text-earth-muted">{t(clientList.length ? 'search.noResults' : 'coach.noClientsTitle')}</p>
-                ) : (
-                  list.map((c) => (
-                    <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} metaLoaded={metaLoaded} active={c.id === selectedId} onOpen={() => setSelectedId(c.id)} />
-                  ))
-                )}
-              </div>
-            </div>
-          }
-          main={
-            selectedClient && coachId ? (
-              <div className="card flex h-[calc(100dvh-12rem)] flex-col overflow-hidden p-0">
-                {/* Elevated header band — a distinct warm-charcoal surface from the
-                    sunken chat canvas below, instead of blending into the card. */}
-                <div className="border-b border-line bg-surface-raised px-3 pt-3">
-                  <ThreadHeader clientId={selectedClient.id} fallbackName={selectedClient.displayName || selectedClient.email} />
-                </div>
-                <div className="min-h-0 flex-1">
-                  <MessageThread key={selectedClient.id} clientId={selectedClient.id} meId={coachId} meRole="coach" peer={{ name: selectedClient.displayName || selectedClient.email, photoUrl: selectedClient.photoUrl }} />
-                </div>
-              </div>
-            ) : (
-              <div className="card flex h-64 items-center justify-center text-sm text-earth-subtle">
-                {t('coachDash.selectConversation')}
-              </div>
-            )
-          }
-        />
-      ) : clientList.length === 0 ? (
-        <EmptyState
-          icon="user"
-          title={t('coach.noClientsTitle')}
-          message={t('coach.noClientsMessage')}
-          action={<button type="button" className="btn-primary btn-sm" onClick={() => navigate('/coach/clients')}>{t('coach.addClient')}</button>}
-        />
-      ) : (
-        <>
-          <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} />
-          {list.length === 0 ? (
-            <EmptyState
-              icon="search"
-              title={t('search.noResults')}
-              message={t('messages.noResultsMessage')}
-              action={<button type="button" className="btn-tonal btn-sm" onClick={() => { setQ(''); setFilter('all'); }}>{t('common.clearFilters')}</button>}
-            />
-          ) : (
-            <>
-              <div className="card divide-y divide-line-soft">
-                {shown.map((c) => (
-                  <ThreadRow key={c.id} client={c} meta={metaMap[c.id]} metaLoaded={metaLoaded} onOpen={() => navigate(`/coach/messages/${c.id}`)} />
-                ))}
-              </div>
-              {visible < list.length && (
-                <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setVisible((v) => v + PAGE)}>{t('common.showMore')}</button>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      <Sheet open={broadcasting} onClose={() => setBroadcasting(false)} size="md" title={t('messages.broadcast')}>
-        {coachId && <BroadcastForm coachId={coachId} role={account?.role ?? 'coach'} clients={list} onDone={() => setBroadcasting(false)} />}
-      </Sheet>
-    </>
-  );
-}
-
-/**
- * Premium conversation header for the desktop split view — a real two-zone
- * `justify-between` layout (identity/context on the start side, a real
- * action on the end side), not one giant button with an ambiguous empty
- * middle. Reuses the same `useCoachClientHeader` hook/query-keys the
- * workspace layout and client switcher already use, so mounting this is a
- * cache hit, not a new fetch. Both the identity block and the trailing
- * button navigate to the Coach Client Workspace — there is no fabricated
- * "online" presence or fake call/video affordance here, only a real,
- * existing destination.
- */
-function ThreadHeader({ clientId, fallbackName }: { clientId: string; fallbackName: string }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { name, photoUrl, goal, subStatus, daysLeft } = useCoachClientHeader(clientId);
-  const subLine = [
-    goal ? t(`settings.goals.${goal}`) : null,
-    daysLeft != null ? t('subscription.daysLeft', { n: daysLeft }) : null,
-  ].filter(Boolean).join(' · ');
-  const goToWorkspace = () => navigate(`/coach/client/${clientId}`);
-  return (
-    <div className="mb-2 flex items-center justify-between gap-3 pb-2">
-      <button
-        type="button"
-        className="-m-1 flex min-w-0 items-center gap-2.5 rounded-lg p-1 text-start transition-colors hover:bg-surface-hover/60"
-        onClick={goToWorkspace}
-        data-testid="thread-header-identity"
-      >
-        <Avatar name={name || fallbackName} photoUrl={photoUrl} size="sm" className="shrink-0" />
-        <span className="min-w-0">
-          <span className="flex items-center gap-2">
-            <span className="truncate font-display text-[15px] font-semibold">{name || fallbackName}</span>
-            <Pill tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
-          </span>
-          {subLine && <span className="block truncate text-[12px] text-earth-subtle">{subLine}</span>}
-        </span>
-      </button>
-      <button type="button" onClick={goToWorkspace} className="icon-btn h-9 w-9 shrink-0" aria-label={t('coachDash.openWorkspace')} title={t('coachDash.openWorkspace')}>
-        <Icon name="chevron" size={18} className="text-earth-subtle" />
-      </button>
-    </div>
-  );
-}
-
-/** Search + All/Unread/Broadcasts filter chips above the thread list — matches the design's `inbox()` header. */
-function InboxFilters({ q, onQ, filter, onFilter }: { q: string; onQ: (v: string) => void; filter: InboxFilter; onFilter: (f: InboxFilter) => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="space-y-2.5">
-      <SearchField aria-label={t('messages.searchInbox')} placeholder={t('messages.searchInbox')} value={q} onChange={(e) => onQ(e.target.value)} />
-      <div className="flex gap-2">
-        {INBOX_FILTERS.map((f) => (
-          <button key={f} type="button" onClick={() => onFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>
-            {t(`messages.filters.${f}`)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** "2:30 PM" for today, a short weekday/date otherwise — matches how most chat inboxes label a last-message time. */
-function threadTimeLabel(ms: number, locale: string): string {
-  const d = new Date(ms);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  return sameDay ? formatTime(d, locale) : formatDate(d, locale, 'short');
-}
-
-function ThreadRow({ client, meta, metaLoaded = true, onOpen, active = false }: { client: UserRecord; meta?: ThreadMeta; metaLoaded?: boolean; onOpen: () => void; active?: boolean }) {
-  const { t, i18n } = useTranslation();
-  const last = meta?.last;
-  const unread = meta?.unreadForCoach ?? 0;
-  // An attachment-only message has an empty body — show a media label instead
-  // of a blank preview (e.g. "📷 Photo"). While the first summary tick hasn't
-  // landed yet, show a neutral placeholder instead of a false "No messages".
-  const preview = !metaLoaded
-    ? '···'
-    : !last
-      ? t('messages.noMessages')
-      : last.body?.trim()
-        ? last.body
-        : last.attachment
-          ? t(`messages.${ATTACH_PREVIEW[getAttachmentKind({ mimeType: last.attachment.mimeType, name: last.attachment.name, fallbackKind: last.attachment.kind })] ?? 'fileMsg'}`)
-          : t('messages.noMessages');
-  return (
-    <button type="button" data-testid="thread-row" onClick={onOpen} className={`row w-full px-3 text-start ${active ? 'bg-brand/10' : ''}`}>
-      <Avatar name={client.displayName || client.email} photoUrl={client.photoUrl} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{client.displayName || client.email}</span>
-        <span className="block truncate text-[13px] text-earth-muted">{preview}</span>
-      </span>
-      {last && <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{threadTimeLabel(last.createdAt, i18n.language)}</span>}
-      {unread > 0 && <span data-testid="thread-unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-brand px-1 font-mono text-[10px] font-bold text-brand-ink">{unread > 9 ? '9+' : unread}</span>}
-      <Icon name="chevron" size={18} className="text-earth-subtle" />
-    </button>
-  );
-}
-
-function BroadcastForm({ coachId, role, clients, onDone }: { coachId: string; role: UserRecord['role']; clients: UserRecord[]; onDone: () => void }) {
-  const { t } = useTranslation();
-  const [body, setBody] = useState('');
-  const [category, setCategory] = useState<MessageCategory>('announcement');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState('');
-  const all = selected.size === 0;
-  const recipients = all ? clients.map((c) => c.id) : [...selected];
-  const shownClients = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter((c) => `${c.displayName ?? ''} ${c.email ?? ''}`.toLowerCase().includes(q));
-  }, [clients, search]);
-
-  const send = useMutation({
-    mutationFn: () => broadcast(recipients, { id: coachId, role }, body.trim(), category),
-    onSuccess: async () => {
-      onDone();
-      await alertDialog({ title: t('coach.sent'), message: t('coach.sentTo', { n: recipients.length }) });
+  // Selecting in the split view replaces the entry (switching conversations is not a history trail);
+  // the first selection from the bare inbox, and every phone open, pushes.
+  const open = useCallback(
+    (id: string, e?: MouseEvent) => {
+      e?.preventDefault();
+      navigate(threadPath(id), { replace: tabletUp && !!selectedId });
     },
-    onError: (e) => void alertDialog({ title: t('coach.sent'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
-  });
+    [navigate, tabletUp, selectedId],
+  );
+  const refreshAfterRead = useCallback(() => void data.refreshThreads(), [data]);
+  const onAccessChanged = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+    void data.refreshThreads();
+  }, [qc, coachId, data]);
+  const clear = () => {
+    setQ('');
+    setFilter('all');
+  };
 
-  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const more = (
+    <ActionMenu
+      label={t('messages.inboxActions')}
+      testId="messages-more"
+      items={[{ key: 'broadcast', label: t('messages.broadcast'), icon: 'bolt', testId: 'broadcast-open', disabled: !rosterReady || clients.length === 0, onSelect: () => setBroadcasting(true) }]}
+    />
+  );
+  const broadcastSheet = coachId ? (
+    <BroadcastSheet open={broadcasting} onClose={() => setBroadcasting(false)} coachId={coachId} clients={data.directory.rows.map((r) => ({ id: r.id, name: r.name, photoUrl: r.photoUrl }))} onSent={() => void data.refreshThreads()} />
+  ) : null;
 
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map((c) => (
-          <button key={c} type="button" onClick={() => setCategory(c)} className={`chip ${category === c ? 'chip-on' : ''}`}>{t(`messages.category.${c}`)}</button>
-        ))}
-      </div>
-      <p className="label">{t('messages.recipients')} · {all ? t('admin.allRoles') : recipients.length}</p>
-      <SearchField
-        aria-label={t('coach.searchClients')}
-        data-testid="broadcast-search"
-        placeholder={t('coach.searchClients')}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+  const listBody = () =>
+    data.roster.isError && !rosterReady ? (
+      <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void data.roster.refetch()} testId="coach-messages-error" />
+    ) : !rosterReady ? (
+      <LoadingState variant="list" count={5} />
+    ) : clients.length === 0 ? (
+      <EmptyState
+        icon="chat"
+        title={t('coach.noClientsTitle')}
+        message={t('messages.noClientsBody')}
+        action={<button type="button" className="btn-primary btn-sm" onClick={() => navigate('/coach/clients')}>{t('coach.addClient')}</button>}
       />
-      <div className="flex flex-wrap gap-1.5">
-        {shownClients.map((c) => (
-          <button key={c.id} type="button" onClick={() => toggle(c.id)} className={`chip ${selected.has(c.id) ? 'chip-on' : ''}`}>{c.displayName || c.email}</button>
-        ))}
+    ) : (
+      <InboxList
+        rows={inbox.rows}
+        selectedId={selectedId}
+        onOpen={open}
+        threadsLoaded={data.threads !== undefined}
+        threadsFailed={data.threadsFailed}
+        onRetryThreads={() => void data.refreshThreads()}
+        filter={filter}
+        q={q}
+        onClear={clear}
+      />
+    );
+  const unreadLine = inbox.unreadThreads > 0 ? t('messages.unreadThreads', { count: inbox.unreadThreads }) : data.threads ? t('messages.allRead') : '';
+
+  // ---- phones ---------------------------------------------------------------
+  if (!tabletUp) {
+    if (selectedId) {
+      return (
+        <PhoneThreadScreen label={t('messages.conversationWith', { name: row?.name || t('coach.client') })}>
+          <CoachThreadPane key={selectedId} coachId={coachId} clientId={selectedId} row={row} rosterReady={rosterReady} screen onBack={goBack} onAccessChanged={onAccessChanged} onMarkedRead={refreshAfterRead} />
+        </PhoneThreadScreen>
+      );
+    }
+    return (
+      <div data-testid="coach-messages">
+        <TopBar title={t('coach.messages')} sub={unreadLine || undefined} right={more} />
+        {rosterReady && clients.length > 0 && (
+          <div className="mb-3">
+            <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} unreadThreads={inbox.unreadThreads} />
+          </div>
+        )}
+        <div className="card overflow-hidden p-0">{listBody()}</div>
+        {broadcastSheet}
       </div>
-      <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="broadcast-body" placeholder={t('coach.announcementPlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
-      <button type="button" data-testid="broadcast-send" disabled={!body.trim() || recipients.length === 0 || send.isPending} onClick={() => send.mutate()} className="btn-primary w-full disabled:opacity-40">
-        {send.isPending ? t('auth.working') : t('messages.send')}
-      </button>
+    );
+  }
+
+  // ---- ≥ 768: split view -------------------------------------------------------
+  return (
+    <SplitMessages
+      list={
+        <>
+          <div className="shrink-0 space-y-3 border-b border-line-soft px-3 pb-3 pt-3">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate font-display text-[20px] font-semibold leading-tight">{t('coach.messages')}</h1>
+                {unreadLine ? <p className="truncate text-[12.5px] text-earth-muted" data-testid="inbox-unread-line">{unreadLine}</p> : null}
+              </div>
+              {more}
+            </div>
+            {rosterReady && clients.length > 0 && <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} unreadThreads={inbox.unreadThreads} />}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{listBody()}</div>
+        </>
+      }
+      thread={
+        selectedId ? (
+          <CoachThreadPane key={selectedId} coachId={coachId} clientId={selectedId} row={row} rosterReady={rosterReady} screen={false} onAccessChanged={onAccessChanged} onMarkedRead={refreshAfterRead} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center" data-testid="thread-empty">
+            <Icon name="chat" size={28} className="text-earth-subtle" />
+            <p className="text-[15px] font-semibold text-earth">{t('coachDash.selectConversation')}</p>
+            <p className="max-w-xs text-[13px] text-earth-muted">{t('messages.selectHint')}</p>
+          </div>
+        )
+      }
+      extra={broadcastSheet}
+    />
+  );
+}
+
+/** ≥ 768: inbox + conversation, sized from their real top edge to the viewport bottom (C12 with any banner above). */
+function SplitMessages({ list, thread, extra }: { list: ReactNode; thread: ReactNode; extra: ReactNode }) {
+  const { t } = useTranslation();
+  const fill = useFillToBottomNav('2rem');
+  return (
+    <div ref={fill.ref} className="flex min-h-[26rem] gap-4" style={{ height: fill.height }} data-testid="coach-desktop-messages">
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-ui-surface border border-line bg-surface-card lg:w-80 xl:w-96" aria-label={t('messages.conversations')} data-testid="inbox-pane">
+        {list}
+      </aside>
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-ui-surface border border-line bg-surface-card" aria-label={t('messages.conversation')} data-testid="coach-thread">
+        {thread}
+      </section>
+      {extra}
+    </div>
+  );
+}
+
+/** Phones: the conversation is a full-screen task above the shell (no tab bar), ending at the top of the on-screen keyboard. */
+function PhoneThreadScreen({ label, children }: { label: string; children: ReactNode }) {
+  const keyboard = useKeyboardInset(true);
+  return (
+    <div
+      className="fixed inset-x-0 top-0 z-ui-task flex flex-col bg-surface"
+      style={{ bottom: keyboard }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      data-testid="coach-thread"
+      data-keyboard={keyboard > 0 || undefined}
+    >
+      {children}
     </div>
   );
 }

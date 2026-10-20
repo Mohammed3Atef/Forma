@@ -78,8 +78,21 @@ const db: Db = {
 /** Expected, explained 4xx: the anonymous boot's silent refresh probe. Everything else is recorded and reviewed. */
 export const EXPECTED_HTTP = [/auth\.refresh/];
 
-function attachAudit(context: BrowserContext, who: string, events: NetEvent[]) {
+/**
+ * Requests that have started but not finished (B3.6 certification): a trace
+ * only records a request once it completes, so a stall that blocks a page's
+ * `load` left no evidence. On a failed test the ones still open are attached
+ * (`pending-requests.json`) and summarised on stdout. Diagnostic only.
+ */
+type Pending = Map<object, { who: string; url: string; at: number }>;
+
+function attachAudit(context: BrowserContext, who: string, events: NetEvent[], pending?: Pending) {
   const watch = (page: Page) => {
+    if (pending) {
+      page.on('request', (r) => pending.set(r, { who, url: r.url(), at: Date.now() }));
+      page.on('requestfinished', (r) => pending.delete(r));
+      page.on('requestfailed', (r) => pending.delete(r));
+    }
     page.on('console', (m) => {
       if (m.type() === 'error') events.push({ kind: 'console', who, text: m.text().slice(0, 400) });
     });
@@ -100,7 +113,7 @@ type NewCtxOpts = Parameters<Browser['newContext']>[0];
 type Fixtures = {
   env: E2EEnv;
   db: Db;
-  audit: { events: NetEvent[]; allow5xx: (re: RegExp) => void; allowPageError: (re: RegExp) => void };
+  audit: { events: NetEvent[]; allow5xx: (re: RegExp) => void; allowPageError: (re: RegExp) => void; pending: Pending };
   as: (role: Role, opts?: NewCtxOpts) => Promise<{ context: BrowserContext; page: Page }>;
   anon: (opts?: NewCtxOpts) => Promise<{ context: BrowserContext; page: Page }>;
 };
@@ -115,9 +128,16 @@ export const test = base.extend<Fixtures>({
       const events: NetEvent[] = [];
       const allowed5xx: RegExp[] = [];
       const allowedPE: RegExp[] = [];
-      attachAudit(context, 'default', events);
-      await use({ events, allow5xx: (re) => allowed5xx.push(re), allowPageError: (re) => allowedPE.push(re) });
+      const pending: Pending = new Map();
+      attachAudit(context, 'default', events, pending);
+      await use({ events, allow5xx: (re) => allowed5xx.push(re), allowPageError: (re) => allowedPE.push(re), pending });
       await testInfo.attach('console-network.json', { body: JSON.stringify(events, null, 2), contentType: 'application/json' });
+      if (testInfo.status !== testInfo.expectedStatus) {
+        const now = Date.now();
+        const open = [...pending.values()].map((p) => ({ who: p.who, url: p.url.slice(0, 200), openForMs: now - p.at })).sort((a, b) => b.openForMs - a.openForMs);
+        await testInfo.attach('pending-requests.json', { body: JSON.stringify(open, null, 2), contentType: 'application/json' });
+        if (open.length) console.log(`[pending at failure] ${testInfo.title}: ${open.slice(0, 5).map((p) => `${p.url.slice(0, 120)} (${Math.round(p.openForMs / 1000)}s, ${p.who})`).join(' | ')}`);
+      }
       const bad5xx = events.filter((e) => e.kind === 'http' && (e.status ?? 0) >= 500 && !allowed5xx.some((re) => re.test(e.url ?? '')));
       const pageErrors = events.filter((e) => e.kind === 'pageerror' && !allowedPE.some((re) => re.test(e.text)));
       expect.soft(bad5xx, 'unexplained 5xx responses').toEqual([]);
@@ -130,7 +150,7 @@ export const test = base.extend<Fixtures>({
     await use(async (role, opts) => {
       const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: env.baseURL, ...(opts ?? {}) });
       opened.push(ctx);
-      attachAudit(ctx, role, audit.events);
+      attachAudit(ctx, role, audit.events, audit.pending);
       const { raw } = await control<{ raw: string }>('session', { userId: env.accounts[role].id });
       await ctx.addCookies([{ name: 'forma_rt', value: raw, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Strict' }]);
       return { context: ctx, page: await ctx.newPage() };
@@ -142,7 +162,7 @@ export const test = base.extend<Fixtures>({
     await use(async (opts) => {
       const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: env.baseURL, ...(opts ?? {}) });
       opened.push(ctx);
-      attachAudit(ctx, 'anon', audit.events);
+      attachAudit(ctx, 'anon', audit.events, audit.pending);
       return { context: ctx, page: await ctx.newPage() };
     });
     for (const c of opened) await c.close();

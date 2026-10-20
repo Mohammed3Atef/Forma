@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
@@ -14,11 +14,13 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSession } from '@/services/auth/sessionStore';
 import { releaseClient } from '@/services/platform/coachClientsApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { confirmLeave } from '@/stores/navGuardStore';
 import { showToast } from '@/stores/toastStore';
 import { clientStateOf } from '@/lib/coachDirectory';
 import { semanticParent } from '@/lib/navContract';
 import { samePlaceFor, sectionOf, sectionPath, WORKSPACE_SECTIONS, type WorkspaceSection } from '@/lib/coachWorkspace';
 import { STATE_TONE, toneText } from '@/pages/coach/clients/parts';
+import type { ThreadNavState } from '@/pages/coach/messages/CoachThreadPane';
 
 /**
  * How a section opens (B3.4): the four sections REPLACE the history entry, so Back always returns
@@ -42,9 +44,11 @@ const SECTION_ICON = { summary: 'home', plan: 'list', progress: 'chart', profile
 export function CoachClientWorkspaceLayout() {
   const { t } = useTranslation();
   const navigate = useGuardedNav();
+  const rawNavigate = useNavigate();
   const qc = useQueryClient();
   const online = useOnlineStatus();
-  const { pathname, search } = useLocation();
+  const location = useLocation();
+  const { pathname, search } = location;
   const { clientId = '' } = useParams();
   const coachId = useSession((s) => s.account?.id) ?? '';
   const section = sectionOf(pathname, clientId);
@@ -72,6 +76,19 @@ export function CoachClientWorkspaceLayout() {
     },
     onError: (e) => void alertDialog({ title: t('workspace.release.failedTitle'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
   });
+  // NAV-K07: Message from a workspace the thread opened returns to that thread (history pops) instead of
+  // pushing thread → client → thread → … ; otherwise the thread is a task opened from here (push).
+  const openThread = () => {
+    const fromThread = ((location.state ?? {}) as ThreadNavState).fromThread === clientId;
+    if (fromThread && (window.history.state?.idx ?? 0) > 0) {
+      void confirmLeave().then((ok) => {
+        if (ok) rawNavigate(-1);
+      });
+    } else {
+      navigate(`/coach/messages/${encodeURIComponent(clientId)}`, { state: { fromWorkspace: clientId } satisfies ThreadNavState });
+    }
+  };
+
   const askRelease = async () => {
     const ok = await confirmDialog({
       title: t('workspace.release.title', { name }),
@@ -136,7 +153,7 @@ export function CoachClientWorkspaceLayout() {
             className="btn-secondary btn-sm h-11 w-11 shrink-0 !px-0 sm:w-auto sm:!px-4"
             data-testid="workspace-message"
             aria-label={t('coachDash.message')}
-            onClick={() => navigate(`/coach/messages/${encodeURIComponent(clientId)}`)}
+            onClick={openThread}
           >
             <Icon name="chat" size={16} /> <span className="hidden sm:inline">{t('coachDash.message')}</span>
           </button>

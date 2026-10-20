@@ -1,5 +1,6 @@
 import { trpc } from '@/services/trpc';
 import { shareSubscription } from '@/lib/sharedSubscription';
+import { classifyError } from '@/lib/errorKind';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
@@ -40,7 +41,7 @@ function isTabHidden(): boolean {
 /**
  * The backend's `POST /messages` (`SendBody`) has no `broadcast` field — only
  * `category` — so it's synthesized on read: in this app `category` is set
- * ONLY on broadcast sends (see `broadcast()` below; a plain 1:1 message never
+ * ONLY on broadcast sends (see `sendBroadcast()` below; a plain 1:1 message never
  * sets it), so "has a category" is an exact stand-in for `broadcast`. This
  * keeps `MessageThread`'s existing `m.broadcast && m.category` render check
  * working unchanged.
@@ -71,6 +72,16 @@ export async function listMessages(clientId: string, max = 200): Promise<Message
  * revert-then-restore is exactly the "reaction added, disappears, comes back
  * a few seconds later" symptom.
  */
+/**
+ * The server refused the caller's access to the thread itself (B3.6): for a
+ * coach that means the relationship ended or the client was transferred —
+ * `resolveThreadViewer` answers FORBIDDEN, never a reason code.
+ */
+export function isThreadForbidden(e: unknown): boolean {
+  const data = (e as { data?: { code?: string } | null } | null)?.data;
+  return data?.code === 'FORBIDDEN';
+}
+
 export interface MessageSubscription {
   (): void;
   /** Patch one message in this loop's own cache so the next poll tick doesn't emit a stale copy over a just-applied local change. */
@@ -86,8 +97,15 @@ export function subscribeMessages(
   onError?: () => void,
   /** Skip this tick (someone else is already fetching the same data). The tick after a skip refetches the whole window. */
   skipTick?: () => boolean,
+  /**
+   * B3.6: the server says the caller may no longer read this thread. Polling
+   * STOPS (no endless 403s every 5 s) and this is called once. Without it a
+   * refusal is treated like any other failed tick.
+   */
+  onForbidden?: () => void,
 ): MessageSubscription {
   let cancelled = false;
+  let interval: ReturnType<typeof setInterval> | undefined;
   let cursor: number | undefined;
   let all: Message[] = [];
   let tick = 0;
@@ -111,14 +129,21 @@ export function subscribeMessages(
       if (fullRefresh) resync = false;
       tick += 1;
       emit();
-    } catch {
+    } catch (e) {
+      if (cancelled) return;
+      if (onForbidden && isThreadForbidden(e)) {
+        cancelled = true;
+        clearInterval(interval);
+        onForbidden();
+        return;
+      }
       // Transient network/API error — keep the last known state, retry next tick.
-      if (!cancelled && tick === 0) onError?.();
+      if (tick === 0) onError?.();
     }
   };
 
   void poll();
-  const interval = setInterval(() => void poll(), intervalMs);
+  interval = setInterval(() => void poll(), intervalMs);
   const unsubscribe = (() => {
     cancelled = true;
     clearInterval(interval);
@@ -193,7 +218,7 @@ const openThreadLast = new Map<string, Message[]>();
 const openThreadWatchers = new Map<string, Set<(msgs: Message[]) => void>>();
 
 /** The actively-open thread's poll (5 s). Its data also feeds that thread's unread badge. */
-export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => void, onError?: () => void): MessageSubscription {
+export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => void, onError?: () => void, onForbidden?: () => void): MessageSubscription {
   openThreads.set(clientId, (openThreads.get(clientId) ?? 0) + 1);
   const sub = subscribeMessages(
     clientId,
@@ -205,6 +230,8 @@ export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => v
     200,
     THREAD_POLL_MS,
     onError,
+    undefined,
+    onForbidden,
   );
   const unsubscribe = (() => {
     sub();
@@ -219,11 +246,12 @@ export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => v
   return unsubscribe;
 }
 
-/** Mark messages from the OTHER party as seen (the reader just opened the thread). */
-export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<void> {
+/** Mark messages from the OTHER party as seen (the reader just opened the thread). Resolves to how many were newly marked. */
+export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<number> {
   // `_readerRole` is unused: the backend infers the reader's role from the
   // authenticated session. Kept for signature compatibility.
-  await trpc.messages.markRead.mutate({ clientId });
+  const r = await trpc.messages.markRead.mutate({ clientId });
+  return r?.updated ?? 0;
 }
 
 export interface ThreadMeta {
@@ -368,7 +396,73 @@ export function subscribeCoachUnread(coachId: string, cb: (total: number) => voi
   );
 }
 
-/** Send a broadcast message to many clients' threads (announcement/offer/reminder/update). */
-export async function broadcast(clientIds: string[], from: { id: string; role: Role }, body: string, category: MessageCategory): Promise<void> {
-  await Promise.all(clientIds.map((cid) => sendMessage(cid, from, body, { category, broadcast: true })));
+/**
+ * Why one recipient's copy is not confirmed as delivered.
+ *  - `notAssigned` / `accountNotActive` / `rejected`: the server ANSWERED with a
+ *    refusal (4xx) — it refuses before writing, so that client did not get it;
+ *  - `unknown`: no usable answer (connection lost, timeout, server error) — the
+ *    copy MAY have been stored. Retrying with the same key never stores a second.
+ */
+export type BroadcastFailure = 'notAssigned' | 'accountNotActive' | 'rejected' | 'unknown';
+
+export interface BroadcastResult {
+  clientId: string;
+  ok: boolean;
+  failure?: BroadcastFailure;
+}
+
+/**
+ * The idempotency key of one recipient's copy of one broadcast (B3-C08): the
+ * same batch and recipient always give the same key, so "Retry failed" — or
+ * a retry after a lost answer — can never post a second copy (`messages.send`
+ * dedupes on `clientId + sender + clientMsgId`). Kept within the server's 100
+ * characters.
+ */
+export function broadcastMsgId(batchId: string, clientId: string): string {
+  return `bc_${batchId}_${clientId}`.slice(0, 100);
+}
+
+function broadcastFailure(e: unknown): BroadcastFailure {
+  const c = classifyError(e);
+  const refused = c.kind === 'permanent' || c.kind === 'unauthorized' || c.kind === 'rate_limited';
+  if (!refused) return 'unknown'; // network / timeout / 5xx / cancelled: the outcome is not known
+  if (c.reason === 'ACCOUNT_NOT_ACTIVE') return 'accountNotActive';
+  if (isThreadForbidden(e) || c.reason === 'CONVERSATION_CLOSED') return 'notAssigned';
+  return 'rejected';
+}
+
+/**
+ * Send one announcement / offer / reminder / update to each recipient's own
+ * thread (MS-10 / B3-C08): one `messages.send` per recipient with a
+ * per-recipient `clientMsgId`, written in this coach's conversation (so a
+ * client transferred meanwhile is refused, never reached through a new
+ * coach), at most four at a time. Resolves with a result per recipient;
+ * nothing is thrown for a partial failure.
+ *
+ * Guarantees (B3.6 certification): within ONE batch a recipient is stored at
+ * most once — every retry reuses that recipient's key. It is NOT exactly-once:
+ * an `unknown` result may or may not have been stored, and nothing is kept
+ * once the batch is abandoned (a new broadcast is a new message). B36-R5.
+ */
+export async function sendBroadcast(
+  input: { batchId: string; coachId: string; recipients: string[]; body: string; category: MessageCategory },
+  onResult?: (r: BroadcastResult) => void,
+): Promise<BroadcastResult[]> {
+  const queue = [...input.recipients];
+  const results: BroadcastResult[] = [];
+  const worker = async () => {
+    for (let cid = queue.shift(); cid !== undefined; cid = queue.shift()) {
+      let r: BroadcastResult;
+      try {
+        await sendMessage(cid, { id: input.coachId, role: 'coach' }, input.body, { category: input.category, broadcast: true, clientMsgId: broadcastMsgId(input.batchId, cid), coachId: input.coachId });
+        r = { clientId: cid, ok: true };
+      } catch (e) {
+        r = { clientId: cid, ok: false, failure: broadcastFailure(e) };
+      }
+      results.push(r);
+      onResult?.(r);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, worker));
+  return results;
 }

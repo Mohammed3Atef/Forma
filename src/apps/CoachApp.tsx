@@ -40,7 +40,6 @@ const CoachTemplatePreview = lazy(() => import('@/pages/coach/CoachTemplatePrevi
 const CoachExerciseLibrary = lazy(() => import('@/pages/coach/CoachExerciseLibrary').then((m) => ({ default: m.CoachExerciseLibrary })));
 const PlanVersionHistory = lazy(() => import('@/pages/coach/PlanVersionHistory').then((m) => ({ default: m.PlanVersionHistory })));
 const CoachMessages = lazy(() => import('@/pages/coach/CoachMessages').then((m) => ({ default: m.CoachMessages })));
-const CoachMessageThread = lazy(() => import('@/pages/coach/CoachMessageThread').then((m) => ({ default: m.CoachMessageThread })));
 const CoachClientNotes = lazy(() => import('@/pages/coach/CoachClientNotes').then((m) => ({ default: m.CoachClientNotes })));
 const CoachClientSubscriptionTab = lazy(() => import('@/pages/coach/CoachClientSubscriptionTab').then((m) => ({ default: m.CoachClientSubscriptionTab })));
 const CoachClientHistory = lazy(() => import('@/pages/coach/CoachClientHistory').then((m) => ({ default: m.CoachClientHistory })));
@@ -120,8 +119,9 @@ export function CoachApp() {
         <Route path="/coach/templates/:templateId/edit" element={gated(<CoachWorkoutTemplateEditor />)} />
         <Route path="/coach/templates/:templateId" element={shell(<CoachTemplatePreview />)} />
         <Route path="/coach/adherence" element={<Navigate to="/coach/clients?sort=workouts" replace />} />
+        {/* B3.6: one screen — the selection is the URL (split view ≥ 768, full-screen thread on phones). */}
         <Route path="/coach/messages" element={shell(<CoachMessages />)} />
-        <Route path="/coach/messages/:clientId" element={shell(<CoachMessageThread />)} />
+        <Route path="/coach/messages/:clientId" element={shell(<CoachMessages />)} />
         <Route path="/coach/notifications" element={<Navigate to="/coach/dashboard" replace />} />
         <Route path="/coach/settings" element={shell(<RoleAccount />)} />
         {/* Anonymous-only links opened while signed in: explain instead of silently redirecting home. */}

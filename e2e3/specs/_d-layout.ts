@@ -228,7 +228,8 @@ export function defineLayoutTests() {
               return { items: ul ? Array.from(ul.querySelectorAll('li')).map((l) => l.textContent) : [], direction: box ? getComputedStyle(box).direction : null };
             });
           }
-          if (p.path === '/coach/client/e2e-client-a' || p.path === '/coach/messages/e2e-client-a') r.chevron = await chevronFlipped(page);
+          // B3.6: ≥ 768 the conversation is a pane of the Messages split view (no Back); phones draw the thread's own Back.
+          if (p.path === '/coach/client/e2e-client-a' || (p.path === '/coach/messages/e2e-client-a' && (page.viewportSize()?.width ?? 0) < 768)) r.chevron = await chevronFlipped(page);
           if (p.path === '/coach/clients') r.addClientLabel = await page.getByTestId('coach-add-client').getAttribute('aria-label');
           res[p.name] = r;
         }
