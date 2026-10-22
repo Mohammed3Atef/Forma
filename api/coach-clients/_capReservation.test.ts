@@ -309,6 +309,8 @@ describe('failure after the reservation', () => {
     await expect(transferClientWithMode('client-a', from._id, to._id, 'keep_plans', 'keep', 'sa')).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'Destination coach: client capacity reached — add client capacity to take on more clients',
+      // B3.9: the reason names the receiving coach, so the approving coach's UI says whose capacity it is.
+      cause: { reason: 'DESTINATION_CAPACITY_REACHED' },
     });
     expect((await db.collection<CoachClientDoc>('coachClients').findOne({ _id: `${from._id}__client-a` }))?.status).toBe('active');
     expect(await planCount(from._id)).toBe(1);

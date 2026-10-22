@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
-import { StatTile } from '@/components/StatTile';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { BarChart, DonutChart } from '@/components/charts';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { fetchPlatformStats } from '@/services/platform/analyticsApi';
@@ -71,10 +71,10 @@ export function AdminAnalytics() {
       <TopBar testId="admin-analytics" title={t('admin.analytics')} eyebrow={t('nav.groupMonitor')} />
 
       <div className="grid grid-cols-2 gap-2.5">
-        <StatTile icon="user" value={u?.dau ?? '—'} label={t('adminUsage.dau')} />
-        <StatTile icon="activity" value={u?.wau ?? '—'} label={t('adminUsage.wau')} />
-        <StatTile icon="calendar" value={u?.mau ?? '—'} label={t('adminUsage.mau')} />
-        <StatTile icon="search" value={u?.searches7d ?? '—'} label={t('adminUsage.searches7d')} />
+        <MetricCard icon="user" value={u?.dau ?? '—'} label={t('adminUsage.dau')} />
+        <MetricCard icon="activity" value={u?.wau ?? '—'} label={t('adminUsage.wau')} />
+        <MetricCard icon="calendar" value={u?.mau ?? '—'} label={t('adminUsage.mau')} />
+        <MetricCard icon="search" value={u?.searches7d ?? '—'} label={t('adminUsage.searches7d')} />
       </div>
       {wauMauPct != null && <p className="mt-2 text-sm text-earth-muted">{t('adminUsage.wauMauRatio', { pct: wauMauPct })}</p>}
 

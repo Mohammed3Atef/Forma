@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
@@ -11,13 +11,12 @@ import { OfflineState } from '@/components/ui/ScreenState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { IncomingTransferRequests } from '@/components/coach/IncomingTransferRequests';
-import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
+import { useCapacityFollowsRoster, useCoachCapacity, useCoachPlan } from '@/components/coach/CoachPlanProvider';
 import { useCoachSources } from '@/hooks/useCoachSources';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { usePagination } from '@/hooks/usePagination';
 import { useSession } from '@/services/auth/sessionStore';
-import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { today as todayKey, weekRange } from '@/lib/utils';
 import {
   buildDirectory,
@@ -128,15 +127,15 @@ export function CoachClients() {
   const [visible, setVisible] = useState(LIST_STEP);
   useEffect(() => setVisible(LIST_STEP), [resetKey]);
 
-  // ---- capacity (B0 semantics: the real roster count; lapsed or full blocks NEW clients only) ----
-  const plan = useQuery(coachPlanQuery(coachId));
-  const maxClients = plan.data?.maxClients ?? Infinity;
-  const roster = sources.roster.data as { accountStatus?: string }[] | undefined;
-  const usedClients = roster ? roster.filter((c) => c.accountStatus !== 'disabled').length : (plan.data?.activeClientCount ?? 0);
-  const lapsed = plan.data?.state === 'expired' || plan.data?.state === 'suspended';
-  const overBy = Number.isFinite(maxClients) ? Math.max(0, usedClients - maxClients) : 0;
-  const atLimit = lapsed || (Number.isFinite(maxClients) && usedClients >= maxClients);
-  const nearLimit = Number.isFinite(maxClients) && usedClients >= Math.ceil(maxClients * 0.8);
+  // ---- capacity (B3.8 D5: the server's count — the one that gates a new client; lapsed or full blocks NEW clients only) ----
+  const capacity = useCoachCapacity();
+  useCapacityFollowsRoster((sources.roster.data as unknown[] | undefined)?.length);
+  const maxClients = capacity.known ? capacity.limit : Infinity;
+  const usedClients = capacity.used;
+  const lapsed = capacity.lapsed;
+  const overBy = capacity.over;
+  const atLimit = capacity.atLimit;
+  const nearLimit = capacity.nearLimit;
 
   // ---- render ---------------------------------------------------------------------
   const header = (
@@ -197,14 +196,13 @@ export function CoachClients() {
   // Whole-screen states: the roster is every row's base.
   if (!dir.rosterReady) {
     return (
-      <div className="mx-auto w-full max-w-6xl pb-6 pt-3" data-testid="coach-clients" data-state={dir.rosterError ? (online ? 'error' : 'offline') : 'loading'}>
+      <div className="w-full pb-6 pt-3" data-testid="coach-clients" data-state={!online || dir.rosterOffline ? 'offline' : dir.rosterError ? 'error' : 'loading'}>
         {header}
-        {dir.rosterError ? (
-          online ? (
-            <ErrorState message={t('coach.clientsLoadFailed')} onRetry={refresh} testId="coach-clients-error" />
-          ) : (
-            <OfflineState onRetry={refresh} testId="coach-clients-offline" />
-          )
+        {/* B3.9 (CO-18 / PF-21): a read paused offline is offline — never an endless skeleton. */}
+        {!online || dir.rosterOffline ? (
+          <OfflineState onRetry={refresh} testId="coach-clients-offline" />
+        ) : dir.rosterError ? (
+          <ErrorState message={t('coach.clientsLoadFailed')} onRetry={refresh} testId="coach-clients-error" />
         ) : (
           <div className="space-y-2" aria-busy="true" data-testid="clients-loading">
             {Array.from({ length: 6 }, (_, i) => (
@@ -296,7 +294,7 @@ export function CoachClients() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-6 pt-3" data-testid="coach-clients" data-view={view}>
+    <div className="w-full pb-6 pt-3" data-testid="coach-clients" data-view={view}>
       {header}
       {coachId ? <IncomingTransferRequests coachId={coachId} /> : null}
 

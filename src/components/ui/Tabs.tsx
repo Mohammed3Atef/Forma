@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '@/components/Icon';
+import { focusItem, rovingIndex } from '@/lib/rovingKeys';
 
 export interface TabDef {
   key: string;
@@ -54,7 +55,7 @@ export function Tabs({
       aria-label={t('common.sections')}
       className={`-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
     >
-      {tabs.map((tab) => {
+      {tabs.map((tab, i) => {
         const on = tab.key === active;
         return (
           <button
@@ -62,8 +63,17 @@ export function Tabs({
             role="tab"
             type="button"
             aria-selected={on}
+            // B3.9 (AX-05): one tab stop for the whole bar; arrows / Home / End move and select.
+            tabIndex={on ? 0 : -1}
             data-testid={testIdPrefix ? `${testIdPrefix}-${tab.key}` : undefined}
             onClick={() => onChange(tab.key)}
+            onKeyDown={(e) => {
+              const next = rovingIndex(e, i, tabs.length);
+              if (next < 0) return;
+              e.preventDefault();
+              focusItem(e, next, '[role="tab"]');
+              onChange(tabs[next].key);
+            }}
             className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 font-mono text-[12px] font-medium uppercase tracking-[0.04em] transition-colors ${
               on ? onColor : 'border border-line bg-surface-card text-earth-muted hover:bg-surface-hover hover:text-earth'
             }`}
@@ -100,15 +110,24 @@ export function SegmentedControl<T extends string>({
 }) {
   return (
     <div role="radiogroup" aria-label={label} className={`seg ${className}`}>
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
           type="button"
           role="radio"
           aria-checked={o.value === value}
+          // B3.9 (AX-05): a radio group is one tab stop; arrows move the selection.
+          tabIndex={o.value === value ? 0 : -1}
           className={o.value === value ? 'on' : ''}
           data-testid={testIdPrefix ? `${testIdPrefix}-${o.value}` : undefined}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => {
+            const next = rovingIndex(e, i, options.length, 'both');
+            if (next < 0) return;
+            e.preventDefault();
+            focusItem(e, next, '[role="radio"]');
+            onChange(options[next].value);
+          }}
         >
           {o.label}
         </button>

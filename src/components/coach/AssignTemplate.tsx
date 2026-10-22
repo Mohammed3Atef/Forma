@@ -9,7 +9,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { listMyClients } from '@/services/platform/coachApi';
 import { assignWorkoutTemplate } from '@/services/platform/coachAssetsApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
+import { OfflineState, useQueryScreen } from '@/components/ui/ScreenState';
 import type { UserRecord, WorkoutTemplate } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 /**
  * "Use in a client plan" for a program — B3.7: from Library › Programs and the template's own page.
@@ -18,16 +21,20 @@ import type { UserRecord, WorkoutTemplate } from '@/types';
 export function AssignTemplateSheet({ template, coachId, onClose }: { template: WorkoutTemplate | null; coachId: string; onClose: () => void }) {
   const { t } = useTranslation();
   const clients = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId && !!template });
+  // B3.9 (CO-18): a roster read paused offline is offline — never "no clients".
+  const screen = useQueryScreen(clients);
   return (
     <Sheet open={!!template} onClose={onClose} size="md" title={template ? t('library.use.title', { name: template.name || t('workoutTemplate.untitled') }) : ''}>
       {template ? (
-        clients.isLoading ? (
+        screen.status === 'offline' ? (
+          <OfflineState onRetry={screen.retry} testId="assign-clients-offline" />
+        ) : screen.status === 'loading' ? (
           <div className="space-y-2" aria-busy="true">
             {Array.from({ length: 4 }, (_, i) => (
               <Skeleton key={i} className="h-14 w-full rounded-ui-control" />
             ))}
           </div>
-        ) : clients.isError ? (
+        ) : screen.status === 'error' ? (
           <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void clients.refetch()} testId="assign-clients-error" />
         ) : (
           <AssignTemplate template={template} clients={clients.data ?? []} assignedBy={coachId} onDone={onClose} />
@@ -56,6 +63,8 @@ export function AssignTemplate({
   const qc = useQueryClient();
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  // B3.9 (C2): assigning replaces the client's plan — a coach write (plan + connection).
+  const gate = useWriteGate();
   const mut = useMutation({
     mutationFn: (clientId: string) => assignWorkoutTemplate(template, clientId, assignedBy),
     onSuccess: (_v, clientId) => {
@@ -64,7 +73,7 @@ export function AssignTemplate({
       void qc.invalidateQueries({ queryKey: ['clientWorkoutPlan', clientId] });
       void qc.invalidateQueries({ queryKey: ['planVersions', clientId] });
     },
-    onError: (e) => void alertDialog({ title: t('workoutTemplate.assign'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('workoutTemplate.assign'), message: errorMessage(e, t) }),
   });
   const askAndAssign = async (c: UserRecord) => {
     const ok = await confirmDialog({
@@ -95,7 +104,7 @@ export function AssignTemplate({
       ) : (
         <div className="card divide-y divide-line-soft">
           {filtered.map((c) => (
-            <button key={c.id} type="button" disabled={mut.isPending} onClick={() => void askAndAssign(c)} className="row w-full text-start" data-testid="assign-client">
+            <button key={c.id} type="button" disabled={mut.isPending || !gate.canWrite} title={gate.reason} onClick={() => void askAndAssign(c)} className="row w-full text-start" data-testid="assign-client">
               <span className="row-av font-serif">{(c.displayName || c.email || '?').charAt(0).toUpperCase()}</span>
               <span className="min-w-0 flex-1 truncate">{c.displayName || c.email}</span>
               {done === c.id && <Icon name="check" size={18} className="text-brand" />}

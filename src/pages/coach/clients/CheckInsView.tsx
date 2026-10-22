@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
@@ -59,6 +60,8 @@ export function CheckInsView({ rows, known, coachId, weekStart, onRetry }: { row
   };
 
   const [sending, setSending] = useState(false);
+  // B3.8 (P2): requests and reviews are coaching writes — off with a lapsed Forma plan.
+  const gate = useWriteGate();
   const requestWeek = async () => {
     const ok = await confirmDialog({ title: t('coachClients.checkins.requestConfirmTitle'), message: `${t('coachClients.checkins.requestConfirm', { count: eligible.length })} ${t('coachClients.checkins.eligibleNote')}` });
     if (!ok) return;
@@ -88,11 +91,11 @@ export function CheckInsView({ rows, known, coachId, weekStart, onRetry }: { row
         </div>
         <div className="flex flex-wrap gap-2">
           {reviewable.length > 0 ? (
-            <Button variant="primary" size="sm" data-testid="start-review-queue" onClick={() => { setDone(new Set()); setQueueOpen(true); }}>
+            <Button variant="primary" size="sm" data-testid="start-review-queue" disabled={!gate.canWrite} title={gate.reason} onClick={() => { setDone(new Set()); setQueueOpen(true); }}>
               {t('coachClients.checkins.reviewAll')} ({reviewable.length})
             </Button>
           ) : null}
-          <Button variant="ghost" size="sm" data-testid="checkins-request-week" disabled={eligible.length === 0 || sending} pending={sending} onClick={() => void requestWeek()}>
+          <Button variant="ghost" size="sm" data-testid="checkins-request-week" disabled={eligible.length === 0 || sending || !gate.canWrite} title={gate.reason} pending={sending} onClick={() => void requestWeek()}>
             {t('coachClients.checkins.requestWeek', { count: eligible.length })}
           </Button>
         </div>

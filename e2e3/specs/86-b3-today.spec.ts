@@ -3,9 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot, type Db } from '../fixtures';
-import { allowDevModuleStorm } from './_c-helpers';
+import { allowDevModuleStorm, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmYes } from './_b-helpers';
 import { procsOf } from './_d-helpers';
+import { addDays, anchorAt, dayRolled, type DayAnchor } from './_dates';
 
 /**
  * B3.2 — Coach Today (blueprint §6.1, owner brief 2026-10-17). A queue, not a
@@ -25,10 +26,6 @@ const DAY = 86_400_000;
 const ar = JSON.parse(fs.readFileSync('src/i18n/ar.json', 'utf8'));
 const phone = { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } };
 const sized = (width: number, height = 900) => ({ viewport: { width, height } });
-const local = (t: number) => {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 const C = {
   checkin: { id: `${PFX}checkin`, name: 'Nadia Hassan' },
@@ -48,9 +45,14 @@ const ALL = [...Object.values(C), ...MSG];
 const EXPECTED = { checkin: 1, assessment: 1, freeze: 1, transfer: 1, message: 6, renewal: 1, lapsed: 1, noPlan: 1, inactive: 1 };
 const TOTAL = Object.values(EXPECTED).reduce((a, b) => a + b, 0);
 
-async function insertBusyCoach(db: Db) {
-  const now = Date.now();
-  const today = local(now);
+/**
+ * B3.9.0: calendar days are Cairo days stepped on the key (the old `local()` used the Node process's zone
+ * and `now - n × 24 h`, which a DST change or a non-Cairo machine puts on the wrong day). Returns the
+ * anchor the fixture was written for.
+ */
+async function insertBusyCoach(db: Db): Promise<DayAnchor> {
+  const anchor = anchorAt();
+  const { now, today } = anchor;
   for (const [i, c] of ALL.entries()) {
     await db.insertOne('users', {
       _id: c.id, email: `${c.id}@e2e.test`, emailLower: `${c.id}@e2e.test`, displayName: c.name, displayNameLower: c.name.toLowerCase(),
@@ -58,7 +60,9 @@ async function insertBusyCoach(db: Db) {
       passwordHash: 'not-a-login', createdBy: 'e2e-today', createdAt: now - 40 * DAY, updatedAt: now,
     });
     const sub =
-      c === C.renew ? { status: 'active', startAt: now - 27 * DAY, endAt: now + 3 * DAY + 3600_000 }
+      // B3.9.0: Today counts "ends in N days" as elapsed time (ceil of ms ÷ 24 h): now + 3 days − 1 h reads exactly 3 for the
+      // next 23 hours (it used to be + 1 h, which reads 4 for the first hour and needed a 3-or-4 assertion).
+      c === C.renew ? { status: 'active', startAt: now - 27 * DAY, endAt: now + 3 * DAY - 3600_000 }
       : c === C.lapsed ? { status: 'active', startAt: now - 35 * DAY, endAt: now - 5 * DAY }
       : c === C.quiet ? { status: 'active', startAt: now - 15 * DAY, endAt: now + 15 * DAY }
       : c === C.frozen ? { status: 'frozen', startAt: now - 10 * DAY, endAt: now + 27 * DAY, frozenFrom: now - 2 * DAY, frozenUntil: now + 5 * DAY, freezeCredit: 7 * DAY }
@@ -75,22 +79,22 @@ async function insertBusyCoach(db: Db) {
       await db.insertOne('clientWorkoutPlans', { _id: c.id, clientId: c.id, id: `wp-${c.id}`, name: 'Upper / lower', days: [{ id: 'd1', name: 'Upper', exerciseIds: [] }], exercises: {}, updatedAt: now - 15 * DAY });
     }
     if (c !== C.noPlan && c !== C.frozen) {
-      const date = c === C.inactive ? local(now - 10 * DAY) : today;
+      const date = c === C.inactive ? addDays(today, -10) : today;
       await db.insertOne('syncRecords', { _id: `${c.id}__workoutLogs__${date}`, clientId: c.id, collection: 'workoutLogs', recordId: date, data: { date, finished: true }, updatedAt: now, syncedAt: now, rev: 1 });
     }
   }
   // Check-ins: Nadia's (requested by this coach) waits; Hana's was submitted to her previous coach.
-  const week = (offset: number) => local(now - offset * DAY);
+  const week = (offset: number) => addDays(today, -offset);
   await db.insertOne('checkIns', {
     _id: `${C.checkin.id}__${week(8)}`, clientId: C.checkin.id, coachId: COACH, weekStart: week(8), weekEnd: week(2), status: 'reviewed', submittedAt: now - 8 * DAY, reviewedAt: now - 7 * DAY,
     currentWeight: 73.1, adherenceTraining: 70, adherenceNutrition: 65, hungerLevel: 5, energyLevel: 6, sleepQuality: 6, progressPhotos: {}, coachFeedback: 'Good start.', createdAt: now - 9 * DAY, updatedAt: now - 7 * DAY,
   });
   await db.insertOne('checkIns', {
-    _id: `${C.checkin.id}__${week(1)}`, clientId: C.checkin.id, coachId: COACH, weekStart: week(1), weekEnd: local(now + 5 * DAY), status: 'submitted', submittedAt: now - 5 * 3600_000,
+    _id: `${C.checkin.id}__${week(1)}`, clientId: C.checkin.id, coachId: COACH, weekStart: week(1), weekEnd: addDays(today, 5), status: 'submitted', submittedAt: now - 5 * 3600_000,
     currentWeight: 72.4, adherenceTraining: 85, adherenceNutrition: 75, hungerLevel: 4, energyLevel: 7, sleepQuality: 7, notes: 'Felt strong on squats, knee is fine now.', progressPhotos: {}, createdAt: now - DAY, updatedAt: now - 5 * 3600_000,
   });
   await db.insertOne('checkIns', {
-    _id: `${C.handover.id}__${week(1)}`, clientId: C.handover.id, coachId: 'e2e-coach-b', weekStart: week(1), weekEnd: local(now + 5 * DAY), status: 'submitted', submittedAt: now - 2 * DAY,
+    _id: `${C.handover.id}__${week(1)}`, clientId: C.handover.id, coachId: 'e2e-coach-b', weekStart: week(1), weekEnd: addDays(today, 5), status: 'submitted', submittedAt: now - 2 * DAY,
     currentWeight: 61, progressPhotos: {}, createdAt: now - 3 * DAY, updatedAt: now - 2 * DAY,
   });
   // Freeze request (the only batched source is the coach's unresolved task).
@@ -111,6 +115,7 @@ async function insertBusyCoach(db: Db) {
   }
   // Another coach's unread conversation — never on coachPro's Today.
   await db.insertOne('messages', { _id: `${PFX}m-bilal`, clientId: 'e2e-client-b', coachId: 'e2e-coach-b', fromUserId: 'e2e-client-b', fromRole: 'client', body: 'Coach B only', seenAt: null, createdAt: now - 60_000, updatedAt: now });
+  return anchor;
 }
 
 async function removeBusyCoach(db: Db) {
@@ -127,8 +132,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 
 async function openToday(page: Page) {
@@ -176,6 +180,8 @@ test.describe('B3.2 Today — new coach, redirects, bell, notices', () => {
   test('O-6: a paid term ending soon is a notice on Today only; app-wide banners stay for blocking states', async ({ as, db, audit }) => {
     allowDevModuleStorm(audit);
     const plan = await db.findOne('coachPlans', { _id: COACH });
+    // B3.9.0 (verified, unchanged): the banner's count is elapsed time — ceil((endsAt − now) ÷ 24 h), `trialDaysLeft` — so
+    // now + 3 × 24 h reads 3 for a whole day after this line, whatever the Cairo time of day or a DST change.
     await db.updateOne('coachPlans', { _id: COACH }, { $set: { endsAt: Date.now() + 3 * DAY } });
     try {
       const { page } = await as('coachPro', sized(1440));
@@ -248,9 +254,17 @@ test.describe('NT-10 — announcement dismissals (coach Today and client home)',
 });
 
 test.describe('B3.2 Today — a busy coach', () => {
+  let anchor: DayAnchor | null = null;
   test.beforeAll(async ({ db }) => {
     await removeBusyCoach(db); // a crashed earlier run must not leak into this one
-    await insertBusyCoach(db);
+    anchor = await insertBusyCoach(db);
+  });
+  // B3.9.0: the queue is day-relative (workouts "today" / 10 days ago). If the run crossed Cairo midnight since the
+  // fixture was written, write it again for the new day — the fixture and the app must agree on "today".
+  test.beforeEach(async ({ db }) => {
+    if (!dayRolled(anchor)) return;
+    await removeBusyCoach(db);
+    anchor = await insertBusyCoach(db);
   });
   test.afterAll(async ({ db }) => {
     await removeBusyCoach(db);
@@ -270,7 +284,7 @@ test.describe('B3.2 Today — a busy coach', () => {
     await expect(rows(page, 'freeze')).toContainText('Travelling for work — back on the 30th');
     await expect(rows(page, 'transfer')).toContainText('Moving to my gym in Alexandria');
     await expect(rows(page, 'message').filter({ hasText: MSG[0].name })).toContainText('2 unread messages');
-    await expect(rows(page, 'renewal')).toContainText(/Package ends in [34] days/);
+    await expect(rows(page, 'renewal')).toContainText('Package ends in 3 days'); // B3.9.0: exact (the fixture now ends 3 days − 1 h ahead)
     await expect(rows(page, 'lapsed')).toContainText('Package ended 5 days ago');
     await expect(rows(page, 'noPlan')).toContainText(C.noPlan.name);
     await expect(rows(page, 'inactive')).toContainText(/No workout in 10 days/);
@@ -385,8 +399,10 @@ test.describe('B3.2 Today — a busy coach', () => {
     const panel = page.getByTestId('today-panel');
     const first = await rows(page).first().getAttribute('data-kind');
     await expect(panel.getByTestId('today-detail')).toHaveAttribute('data-kind', first!);
-    await page.locator('body').click({ position: { x: 5, y: 300 } });
+    // Nothing focused, so J / K drive the queue (B3.8: the sidebar now fills the left edge — no click there).
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('j');
+    // B3.9.0 (reviewed, kept): positional on purpose — J moves the selection to the NEXT row, whatever kind it is.
     const second = await rows(page).nth(1).getAttribute('data-kind');
     await expect(panel.getByTestId('today-detail')).toHaveAttribute('data-kind', second!);
     await rows(page, 'transfer').click();
@@ -490,13 +506,15 @@ test.describe('B3.2 Today — a busy coach', () => {
     const run = async (state: string, langs: ('en' | 'ar' | 'ar-eg')[], ws: [number, number][]) => {
       for (const lang of langs) {
         for (const [w, h] of ws) {
-          const { page } = await as('coachPro', w === 390 ? phone : sized(w, h));
+          const { context, page } = await as('coachPro', w === 390 ? phone : sized(w, h));
           if (lang !== 'en') await setLanguage(page, lang === 'ar' ? 'العربية' : 'مصري');
           try {
             await openToday(page);
             await capture(page, `${state}-${w}-${lang}`);
           } finally {
             if (lang !== 'en') await setLanguage(page, 'English').catch(() => undefined);
+            // B3.8 completion: close each window when done — the matrix used to keep a dozen live coach apps open at once.
+            await context.close();
           }
         }
       }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '@/components/Icon';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface CommandItem {
   id: string;
@@ -38,6 +39,10 @@ export function CommandPalette({
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
+  // B3.9: the shared trap (Tab cycles enabled controls, the page behind is inert, Escape closes the
+  // top layer only) — declared before the effect that restores focus to the opener.
+  useFocusTrap(panelRef, { active: open, onEscape: onClose });
+
   useEffect(() => {
     if (open) {
       restoreFocusRef.current = document.activeElement as HTMLElement | null;
@@ -49,29 +54,6 @@ export function CommandPalette({
         restoreFocusRef.current?.focus();
       };
     }
-  }, [open]);
-
-  // Tab/Shift+Tab stay inside the palette instead of leaking focus to the
-  // page behind the backdrop — the palette's own arrow-key navigation covers
-  // the common case, but Tab is still a plausible keyboard path out of it.
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
   const filtered = useMemo(() => {
@@ -126,7 +108,7 @@ export function CommandPalette({
               data-testid="command-input"
               className="no-focus-ring w-full bg-transparent text-base text-earth outline-none placeholder:text-earth-subtle"
             />
-            <kbd className="hidden rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-earth-subtle sm:inline">esc</kbd>
+            <kbd className="hidden rounded border border-line px-1.5 py-0.5 font-mono text-[12px] text-earth-subtle sm:inline">esc</kbd>
           </div>
           <ul role="listbox" className="max-h-[55vh] overflow-y-auto py-2">
             {filtered.length === 0 ? (
@@ -139,7 +121,7 @@ export function CommandPalette({
                 return (
                   <li key={it.id}>
                     {header ? (
-                      <div className="px-4 pb-1 pt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-earth-subtle">{header}</div>
+                      <div className="px-4 pb-1 pt-3 font-mono text-[12px] uppercase tracking-[0.08em] text-earth-subtle">{header}</div>
                     ) : null}
                     <button
                       type="button"
@@ -151,7 +133,7 @@ export function CommandPalette({
                     >
                       {it.icon ? <Icon name={it.icon} size={17} className="shrink-0 text-brand" /> : null}
                       <span className="min-w-0 flex-1 truncate">{it.label}</span>
-                      {it.hint ? <span className="shrink-0 text-[11px] text-earth-subtle">{it.hint}</span> : null}
+                      {it.hint ? <span className="shrink-0 text-[12px] text-earth-subtle">{it.hint}</span> : null}
                     </button>
                   </li>
                 );

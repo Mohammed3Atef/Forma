@@ -7,6 +7,7 @@ import { resolveMedia, type MediaRef } from '@/lib/mediaRef';
 import { safeExternalUrl } from '@/lib/videoSource';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaViewer } from '@/stores/mediaViewerStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 /**
  * The one full-screen media viewer (B1.11), mounted once at the app root and
@@ -21,14 +22,16 @@ export function MediaViewer() {
   const { items, index, close, setIndex } = useMediaViewer();
   const open = items.length > 0;
   const touchX = useRef<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // B3.9: the shared trap — Tab stays in the viewer, Escape closes only it (not a sheet beneath).
+  useFocusTrap(panelRef, { active: open, onEscape: close });
 
   useEffect(() => {
     if (!open) return;
     // In RTL the "next" item is to the LEFT (keys and swipes follow reading direction).
     const step = document.documentElement.dir === 'rtl' ? -1 : 1;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-      else if (e.key === 'ArrowRight') setIndex(index + step);
+      if (e.key === 'ArrowRight') setIndex(index + step);
       else if (e.key === 'ArrowLeft') setIndex(index - step);
     };
     document.addEventListener('keydown', onKey);
@@ -48,7 +51,9 @@ export function MediaViewer() {
 
   return (
     <div
-      className="fixed inset-0 z-ui-media flex items-center justify-center bg-black/95 px-4"
+      ref={panelRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-ui-media flex items-center justify-center bg-black/95 px-4 outline-none"
       data-testid={legacy}
       data-media-kind={item.kind}
       role="dialog"

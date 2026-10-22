@@ -20,6 +20,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { LibraryFood, LocalizedText } from '@/types';
 import { DetailSheet, ListBody, StarterPanel, Toolbar, UseInPlanSheet, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { errorMessage } from '@/lib/errorMessage';
 
 // Swap groups load when that view is opened.
 const SwapGroupsView = lazy(() => import('./SwapGroupsView'));
@@ -121,7 +122,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
       void qc.invalidateQueries({ queryKey: ['foods', coachId] });
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('coachFoods.newFood'), message: e instanceof Error ? e.message : t('common.savedFailed') }),
+    onError: (e) => void alertDialog({ title: t('coachFoods.newFood'), message: errorMessage(e, t, 'common.savedFailed') }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteFood(coachId, id),
@@ -130,7 +131,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
       void qc.invalidateQueries({ queryKey: ['foods', coachId] });
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (f: LibraryFood) => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: name(f) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(f.id);
@@ -306,7 +307,7 @@ function FoodDetail({ food }: { food: LibraryFood }) {
   const cell = (label: string, value: number, unit: string) => (
     <div className="rounded-ui-control border border-line-soft bg-surface-raised px-3 py-2.5 text-center">
       <div className="font-mono text-[18px] font-semibold tabular-nums">{value}</div>
-      <div className="text-[11.5px] uppercase tracking-wide text-earth-subtle">
+      <div className="text-[12px] uppercase tracking-wide text-earth-subtle">
         {label} {unit ? `(${unit})` : ''}
       </div>
     </div>
@@ -331,7 +332,7 @@ function FoodDetail({ food }: { food: LibraryFood }) {
       {food.category || food.tags?.length ? (
         <div className="flex flex-wrap gap-1.5">
           {[food.category, ...(food.tags ?? [])].filter(Boolean).map((tg) => (
-            <span key={tg} className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-earth-muted">
+            <span key={tg} className="rounded-full border border-line px-2.5 py-1 text-[12px] text-earth-muted">
               <bdi>{tg}</bdi>
             </span>
           ))}

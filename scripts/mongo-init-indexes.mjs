@@ -41,11 +41,16 @@ async function main() {
 
   // Generic sync backend (api/sync/*) — every push/pull filters by these.
   await db.collection('syncRecords').createIndex({ clientId: 1, collection: 1, syncedAt: 1 }, { name: 'clientId_collection_syncedAt' });
+  // B3.9 (PF-14): each client's newest finished workout for the coach directory (dashboardSummaries),
+  // read index-only — additive, not unique.
+  await db.collection('syncRecords').createIndex({ clientId: 1, collection: 1, 'data.finished': 1, 'data.date': -1 }, { name: 'clientId_collection_finished_date' });
   await db.collection('syncDeletions').createIndex({ clientId: 1, collection: 1, syncedAt: 1 }, { name: 'clientId_collection_syncedAt' });
   await db.collection('syncSingletons').createIndex({ clientId: 1, name: 1 }, { name: 'clientId_name' });
 
   // Messaging / notifications — polled on an interval by every active session.
   await db.collection('notifications').createIndex({ clientId: 1, forRole: 1, createdAt: -1 }, { name: 'clientId_forRole_createdAt' });
+  // B3.9 (PF-14): the unread count (`seenAt: null`) on every feed poll — additive, not unique.
+  await db.collection('notifications').createIndex({ clientId: 1, forRole: 1, seenAt: 1 }, { name: 'clientId_forRole_seenAt' });
   await db.collection('messages').createIndex({ clientId: 1, createdAt: 1 }, { name: 'clientId_createdAt' });
   // `messages.send` retry idempotency — a client-generated key must never
   // yield two rows even under concurrent retries (also self-ensured at
@@ -92,6 +97,26 @@ async function main() {
   // Coach <-> client relationships.
   await db.collection('coachClients').createIndex({ coachId: 1, status: 1 }, { name: 'coachId_status' });
   await db.collection('coachClients').createIndex({ clientId: 1 }, { name: 'clientId' });
+  // B3.9: one ACTIVE coach per client, enforced by the database too (the app already guarantees it
+  // with a transactional compare-and-set — `assignExistingClient`). PREFLIGHT first: a unique index
+  // cannot be built over existing duplicates, and this script never changes or deletes data to make
+  // it fit — duplicates are listed and the index is skipped for the owner to resolve.
+  const dupes = await db.collection('coachClients').aggregate([
+    { $match: { status: 'active' } },
+    { $group: { _id: '$clientId', n: { $sum: 1 }, rels: { $push: '$_id' } } },
+    { $match: { n: { $gt: 1 } } },
+  ]).toArray();
+  if (dupes.length) {
+    console.warn(`  ! uniq_active_client NOT created: ${dupes.length} client(s) have more than one active relationship:`);
+    for (const d of dupes) console.warn(`      client ${d._id}: ${d.rels.join(', ')}`);
+  } else {
+    await db.collection('coachClients').createIndex({ clientId: 1 }, { name: 'uniq_active_client', unique: true, partialFilterExpression: { status: 'active' } });
+  }
+  // B3.8 — manually recorded client payments (runtime: api/payments/_data.ts).
+  await db.collection('clientPayments').createIndex({ coachId: 1, requestId: 1 }, { unique: true, name: 'uniq_coach_request' });
+  await db.collection('clientPayments').createIndex({ reversesId: 1 }, { unique: true, partialFilterExpression: { reversesId: { $type: 'string' } }, name: 'uniq_reverses' });
+  await db.collection('clientPayments').createIndex({ coachId: 1, paidAt: -1 }, { name: 'coachId_paidAt' });
+  await db.collection('clientPayments').createIndex({ relationshipId: 1, termId: 1 }, { name: 'relationshipId_termId' });
 
   // Coach-owned asset libraries — queried by coachId on every page load, AND
   // a bare logical `id` is only unique PER COACH (two coaches legitimately

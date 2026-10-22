@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page, type Route, type TestInfo } from '@playwright/test';
 import { test, expect, ready, shot, type Db } from '../fixtures';
-import { allowDevModuleStorm, insertMany } from './_c-helpers';
+import { allowDevModuleStorm, insertMany, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmYes } from './_b-helpers';
 import { procsOf } from './_d-helpers';
 
@@ -124,8 +124,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 async function openLibrary(page: Page, qs = '') {
   await page.goto(`/coach/library${qs}`);
@@ -265,10 +264,12 @@ test.describe('B3.7 Library', () => {
 
     await page.getByTestId('sort-muscle').click();
     await expect(page).toHaveURL(/sort=muscle/);
-    await expect(page.getByTestId('sort-muscle').locator('xpath=ancestor::th')).toHaveAttribute('aria-sort', 'ascending');
+    // B3.9.0: the column header that holds the sort button, by role (was `xpath=ancestor::th`).
+    const muscleHeader = table(page).getByRole('columnheader').filter({ has: page.getByTestId('sort-muscle') });
+    await expect(muscleHeader).toHaveAttribute('aria-sort', 'ascending');
     await expect(rows(page).first()).toContainText('Back');
     await page.getByTestId('sort-muscle').click();
-    await expect(page.getByTestId('sort-muscle').locator('xpath=ancestor::th')).toHaveAttribute('aria-sort', 'descending');
+    await expect(muscleHeader).toHaveAttribute('aria-sort', 'descending');
     await expect(rows(page).first()).toContainText('Shoulders');
     await page.getByTestId('pagination-next').click();
     await expect(page.getByTestId('pagination-status')).toHaveText('Page 2 / 5');
@@ -345,7 +346,7 @@ test.describe('B3.7 Library', () => {
     const targets = prompt.getByTestId('library-add-target');
     await expect(targets).toHaveText([/Upper/, /Lower › Warm-up/, /Lower › Main/]);
     await shot(page, testInfo, 'journey-i-choose-day');
-    await targets.nth(2).click();
+    await targets.filter({ hasText: 'Lower › Main' }).click(); // B3.9.0: the target by its name (the order is asserted just above), not nth(2)
     await expect(page.getByTestId('workout-unsaved')).toBeVisible();
     await expect(page.getByTestId('builder-section').filter({ hasText: 'Main' })).toContainText('E2E-LIB Bench press');
     const stored = () => db.findOne<{ days: { id: string; exerciseIds: string[]; sections?: { id: string; exerciseIds: string[] }[] }[]; exercises: Record<string, Record<string, unknown>> }>('clientWorkoutPlans', { _id: CLIENT.id });

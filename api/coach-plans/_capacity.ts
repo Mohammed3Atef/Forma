@@ -94,9 +94,14 @@ export async function capacityEntitlementsCol(): Promise<Collection<CapacityEnti
   return col;
 }
 
+/**
+ * Calendar months for capacity add-ons (a Forma commercial term — unchanged by B3.8's 30-day client
+ * packages). B3.8: computed on the UTC calendar EXPLICITLY, never the server's own zone — on Vercel
+ * that zone is UTC already, so production is unchanged; local development and the tests now match it.
+ */
 export function addMonths(at: number, months: number): number {
   const d = new Date(at);
-  d.setMonth(d.getMonth() + months);
+  d.setUTCMonth(d.getUTCMonth() + months);
   return d.getTime();
 }
 

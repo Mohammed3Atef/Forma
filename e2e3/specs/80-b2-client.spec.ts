@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot } from '../fixtures';
-import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, allowDevModuleStorm, type SyncRec } from './_c-helpers';
+import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, allowDevModuleStorm, waitForLocaleSaved, type SyncRec } from './_c-helpers';
 import { uiLogin, noHmr } from './_a-helpers';
 
 /**
@@ -16,19 +16,29 @@ const mobile = (width = 390, height = 844) => ({ ...devices['Pixel 7'], viewport
 const ar = JSON.parse(fs.readFileSync('src/i18n/ar.json', 'utf8'));
 const tr = (key: string, vars: Record<string, string | number> = {}) =>
   Object.entries(vars).reduce((s, [k, v]) => s.replace(`{{${k}}}`, String(v)), key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], ar) as string);
-const TODAY = todayKey();
+/**
+ * B3.9.0: the client's day is read when each test starts (it was a module-load constant, stale once a run crossed
+ * Cairo midnight); every day a test used — and the current one — is cleaned up in afterAll.
+ */
+const usedDays = new Set<string>();
+const clientToday = () => {
+  const day = todayKey();
+  usedDays.add(day);
+  return day;
+};
 
 async function setLanguage(page: Page, label: 'EN' | 'ع') {
   await page.goto('/settings?tab=preferences');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('dir', label === 'EN' ? 'ltr' : 'rtl');
-  await page.waitForTimeout(600); // let the synced locale land before navigating
+  await waitForLocaleSaved(page, label === 'EN' ? 'en' : 'ar'); // B3.9.0: the locale is stored on the device before navigating (was a fixed 600 ms)
 }
 
 test.describe('B2 client', () => {
   test.afterAll(async ({ db }) => {
-    for (const collection of ['workoutLogs', 'nutritionLogs', 'weightLogs']) await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection, recordId: TODAY });
+    usedDays.add(todayKey());
+    for (const day of usedDays) for (const collection of ['workoutLogs', 'nutritionLogs', 'weightLogs']) await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection, recordId: day });
     await db.deleteMany('messages', { clientId: CLIENT_A, body: { $regex: '^B2 ' } });
     await db.deleteMany('checkIns', { _id: { $regex: `^${CLIENT_A}__2032-` } });
   });
@@ -91,6 +101,7 @@ test.describe('B2 client', () => {
 
   test('Journey B — Today → Start (already running, CL-18) → set → rest → resume bar → finish → Today shows done', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     await seedWorkoutPlan(db);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'workoutLogs' });
     const { page } = await as('clientA', mobile());
@@ -134,6 +145,7 @@ test.describe('B2 client', () => {
 
   test('Journey C — Nutrition: one Add-food flow with "Add to", edit the quantity, and the day switcher never logs to another day silently', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     await seedNutritionPlan(db);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'nutritionLogs' });
     const { page } = await as('clientA', mobile());
@@ -185,6 +197,7 @@ test.describe('B2 client', () => {
 
   test('Journey D — Progress: one log flow (weight → measurements), period-driven trend, old tab links land on the right view', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'weightLogs', recordId: TODAY });
     const { page } = await as('clientA', mobile());
     await page.goto('/progress');
@@ -287,6 +300,7 @@ test.describe('B2 client', () => {
 
   test('Journey G — account isolation: A’s offline change stays A’s, B never sees it, and it syncs when A returns', async ({ anon, db, env, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     test.setTimeout(240_000);
     await seedNutritionPlan(db);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'nutritionLogs' });
@@ -346,6 +360,7 @@ test.describe('B2 client', () => {
 
   test('You: "Remove my data from this device" refuses while changes are only on this device; when clean it removes this account’s local database and the server copy stays', async ({ anon, db, env, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     test.setTimeout(240_000);
     await seedNutritionPlan(db);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'nutritionLogs' });
@@ -401,6 +416,7 @@ test.describe('B2 client', () => {
 
   test('Journey I — Arabic: workout, nutrition and messaging complete in Arabic, right to left', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
+    const TODAY = clientToday();
     test.setTimeout(240_000);
     await seedWorkoutPlan(db);
     await seedNutritionPlan(db);

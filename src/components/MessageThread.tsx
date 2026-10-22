@@ -114,6 +114,7 @@ export function MessageThread({
   draftKey,
   onAccessLost,
   onMarkedRead,
+  readOnly,
 }: {
   clientId: string;
   meId: string;
@@ -142,6 +143,12 @@ export function MessageThread({
   onAccessLost?: () => void;
   /** B3.6: the server just marked messages seen (badges can refresh now instead of on their next tick). */
   onMarkedRead?: () => void;
+  /**
+   * B3.8 (P2): the coach's Forma plan lapsed — the thread is read-only (the server refuses sends,
+   * edits, reactions and attachments). This notice takes the composer's place; message actions
+   * keep only Copy / Open.
+   */
+  readOnly?: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const coachView = variant === "coach";
@@ -641,6 +648,10 @@ export function MessageThread({
     if (reason === "CONVERSATION_CLOSED") return t("messages.conversationClosed");
     if (reason === "NO_ACTIVE_COACH") return t("messages.noActiveCoach");
     if (reason === "ACCOUNT_NOT_ACTIVE") return t("messages.accountNotActive");
+    // B3.8 (P2): refused because the coach's Forma plan lapsed / was suspended — renewing lets Retry through.
+    if (reason === "SUBSCRIPTION_EXPIRED") return t("messages.planLapsed");
+    if (reason === "SUBSCRIPTION_SUSPENDED") return t("messages.planSuspended");
+    if (reason === "NO_SUBSCRIPTION") return t("messages.planMissing");
     const code = op.lastError?.code;
     // A coach's thread access ended (released / transferred): FORBIDDEN without a reason (B3-S14).
     if (meRole === "coach" && code === "FORBIDDEN" && !reason) return t("messages.notAssigned");
@@ -774,11 +785,11 @@ export function MessageThread({
     (m: Message) => {
       if (m.deletedAt) return;
       const mine = m.fromRole === meRole;
-      const history = isHistory(m);
+      const history = isHistory(m) || !!readOnly;
       const editable = !history && mine && Date.now() - m.createdAt < MESSAGE_EDIT_WINDOW_MS;
       setActionsFor({ message: m, mine, editable, history });
     },
-    [meRole, isHistory],
+    [meRole, isHistory, readOnly],
   );
 
   const onMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -892,7 +903,7 @@ export function MessageThread({
         {!history && unreadMark?.id === m.id && (
           <div className="my-3 flex items-center gap-3 px-1" data-testid="unread-divider" data-unread-divider="" role="separator" aria-label={t("messages.unreadDivider", { count: unreadMark.count })}>
             <span className="h-px flex-1 bg-brand/40" />
-            <span className="text-[11.5px] font-semibold text-brand-hover">{t("messages.unreadDivider", { count: unreadMark.count })}</span>
+            <span className="text-[12px] font-semibold text-brand-hover">{t("messages.unreadDivider", { count: unreadMark.count })}</span>
             <span className="h-px flex-1 bg-brand/40" />
           </div>
         )}
@@ -962,7 +973,7 @@ export function MessageThread({
                 <button type="button" data-testid="message-discard" className="underline" onClick={() => void dismissPending(op)}>{t("common.delete")}</button>
               </span>
             ) : (
-              <span className="mt-1 flex items-center gap-1.5 px-1 text-[11px] text-earth-subtle" role="status">
+              <span className="mt-1 flex items-center gap-1.5 px-1 text-[12px] text-earth-subtle" role="status">
                 <Icon name="rotate" size={11} className="animate-spin motion-reduce:animate-none" />
                 {uploading && pct != null ? `${t("upload.uploading")} ${Math.round(pct * 100)}%` : t("messages.sending")}
                 {uploading && (
@@ -989,7 +1000,7 @@ export function MessageThread({
         tabIndex={0}
         role="region"
         aria-label={t("messages.conversation")}
-        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/50"
+        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-focus"
       >
         {newBelow > 0 && (
           <button
@@ -1059,7 +1070,12 @@ export function MessageThread({
       {/* Composer — in-flow at the bottom of the full-height column. The extra
           bottom padding respects the home-indicator/gesture-bar safe area on
           notched phones instead of the composer sitting flush against it. */}
-      {!historyOnly && !accessLost && (
+      {readOnly && !historyOnly && !accessLost ? (
+        <div className="shrink-0 border-t border-line bg-surface-card px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3" data-testid="message-readonly">
+          {readOnly}
+        </div>
+      ) : null}
+      {!readOnly && !historyOnly && !accessLost && (
       <div
         className={`shrink-0 border-t border-line bg-surface-card px-2 pt-2.5 ${coachView && keyboardOpen ? "pb-2" : "pb-[calc(0.375rem+env(safe-area-inset-bottom))]"}`}
         data-testid="message-composer"
@@ -1102,7 +1118,7 @@ export function MessageThread({
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-[13px] text-earth-muted">
                     <Icon name={draft.kind === "video" ? "video" : "download"} size={18} className="shrink-0" />
                     <span className="min-w-0 truncate">{draft.file.name}</span>
-                    <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{formatBytes(draft.file.size, i18n.language)}</span>
+                    <span className="shrink-0 font-mono text-[12px] text-earth-subtle">{formatBytes(draft.file.size, i18n.language)}</span>
                   </span>
                 )}
                 {draft.kind === "audio" && (
@@ -1175,7 +1191,7 @@ export function MessageThread({
               </button>
             </div>
             {body.length >= COUNTER_FROM && (
-              <p id="message-count" className={`px-1 text-end text-[11.5px] ${tooLong ? "text-danger" : "text-earth-subtle"}`} data-testid="composer-count" aria-live="polite">
+              <p id="message-count" className={`px-1 text-end text-[12px] ${tooLong ? "text-danger" : "text-earth-subtle"}`} data-testid="composer-count" aria-live="polite">
                 {tooLong ? `${t("messages.tooLong")} · ` : ""}
                 <bdi dir="ltr">{formatNumber(body.trim().length, i18n.language)} / {formatNumber(MAX_MESSAGE_CHARS, i18n.language)}</bdi>
               </p>
@@ -1280,7 +1296,7 @@ const MessageRow = memo(function MessageRow({
     : formatDate(m.createdAt, i18n.language, dayKind === "thisYear" ? "weekdayShort" : "medium");
   const daySeparator = isNewDay && (
     <div className="my-3 flex items-center justify-center" data-testid="date-separator">
-      <span className="rounded-full bg-surface-raised px-3 py-1 text-[11px] font-medium text-earth-subtle">{dateLabel}</span>
+      <span className="rounded-full bg-surface-raised px-3 py-1 text-[12px] font-medium text-earth-subtle">{dateLabel}</span>
     </div>
   );
 
@@ -1322,8 +1338,8 @@ const MessageRow = memo(function MessageRow({
       <span
         className={
           overlay
-            ? "flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] text-white backdrop-blur-sm"
-            : `mt-0.5 flex items-center gap-1 self-end text-[10px] ${mine ? "text-brand-ink/70" : "text-earth/55"}`
+            ? "flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[12px] text-white backdrop-blur-sm"
+            : `mt-0.5 flex items-center gap-1 self-end text-[12px] ${mine ? "text-brand-ink/70" : "text-earth/55"}`
         }
       >
         <span dir="ltr">{timeStr}</span>
@@ -1392,7 +1408,9 @@ const MessageRow = memo(function MessageRow({
                 data-testid="message-actions-trigger"
                 aria-label={t("messages.moreActions")}
                 onClick={() => onOpenActions(m)}
-                className={`absolute -top-2 z-10 hidden h-6 w-6 items-center justify-center rounded-full bg-surface-card text-earth-subtle shadow-deep md:flex ${
+                // B3.9 (AX-01): a 24 px visual with a centred 44 px tap area (it is absolutely placed, so the
+                // area is its own ::before rather than `.hit-44`, which would make it relative).
+                className={`absolute -top-2 z-10 hidden h-6 w-6 items-center justify-center rounded-full bg-surface-card text-earth-subtle shadow-deep before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] md:flex ${
                   coachView ? "md:opacity-0 md:transition-opacity md:focus-visible:opacity-100 md:group-focus-within:opacity-100 md:group-hover:opacity-100" : "group-hover:flex"
                 } ${mine ? "-start-7" : "-end-7"}`}
               >
@@ -1441,7 +1459,7 @@ const MessageRow = memo(function MessageRow({
                 style={flash ? ({ "--flash": style?.flash } as CSSProperties) : undefined}
               >
                 {cat && (
-                  <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                  <span className="mb-0.5 block text-[12px] font-semibold uppercase tracking-wide opacity-80">
                     {t(`messages.category.${cat}`)}
                   </span>
                 )}
@@ -1465,7 +1483,7 @@ const MessageRow = memo(function MessageRow({
                 {Object.keys(reactionCounts).slice(0, 3).map((emoji) => (
                   <span key={emoji}>{emoji}</span>
                 ))}
-                {reactionEntries.length > 1 && <span className="ms-0.5 font-mono text-[10px] text-earth-subtle">{reactionEntries.length}</span>}
+                {reactionEntries.length > 1 && <span className="ms-0.5 font-mono text-[12px] text-earth-subtle">{reactionEntries.length}</span>}
               </button>
             )}
           </div>
@@ -1726,7 +1744,7 @@ function VoiceNotePlayer({ src, name, onLoad }: { src: string; name?: string; on
         className="h-1.5 min-w-0 flex-1 cursor-pointer accent-current disabled:cursor-default disabled:opacity-50"
         dir="ltr"
       />
-      <span className="shrink-0 font-mono text-[11px] tabular-nums opacity-80" dir="ltr">
+      <span className="shrink-0 font-mono text-[12px] tabular-nums opacity-80" dir="ltr">
         {playing || position > 0 ? fmt(position) : duration ? fmt(duration) : "–:––"}
       </span>
       <audio

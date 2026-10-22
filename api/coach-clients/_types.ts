@@ -49,6 +49,25 @@ export interface SubscriptionDoc {
   freezeCredit?: number | null;
   note?: string;
   updatedAt: number;
+  /**
+   * B3.8 (owner: fixed-day terms, Fix C, payments). Absent on terms written before B3.8, which
+   * keep working from `startAt` / `endAt` alone (never migrated):
+   *  - `termId` — the economic term's stable id; corrections keep it, a renewal starts a new one,
+   *    and recorded payments point at it.
+   *  - `startDate` / `endDate` — the term's calendar days `[startDate, endDate)` in `zone`
+   *    (`endDate` EXCLUSIVE: 30 days from 1 Oct covers 1–30 Oct, the next term starts 31 Oct).
+   *    `startAt` / `endAt` are the first instants of those days in `zone` (`endAt` may differ from
+   *    `endDate` only once the term was ended early — `end` stops access at that instant).
+   *  - `days` — the booked length in days (1 month = 30 days); extensions and freeze
+   *    compensation move `endDate` but never `days`.
+   *  - `zone` — the IANA zone the dates are anchored in (the coach device's zone when the term
+   *    was set; `Africa/Cairo` when none was sent). Never the server's own zone.
+   */
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
 }
 
 /** The dated fields of a term, as recorded in a subscription-change event. */
@@ -59,7 +78,27 @@ export interface SubscriptionSnapshot {
   frozenFrom: number | null;
   frozenUntil: number | null;
   freezeCredit: number | null;
+  /** B3.8: the economic fields too, so a corrected term's earlier versions stay auditable. */
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  months?: number;
+  price?: number;
+  planName?: string;
 }
+
+/**
+ * B3.8 (Fix C): what a term change MEANS — never inferred from its dates.
+ *  - `newTerm`  the client's first term (no term yet, or a pending one).
+ *  - `renew`    the NEXT term: a running term is renewed from its end; a lapsed one from the day
+ *               the coach picks. The current term moves to `subscriptionHistory` with its real end.
+ *  - `correct`  the CURRENT term was set wrong (dates, length, price) or its package changes: the
+ *               same economic term (same `termId`), edited in place; the earlier version stays in
+ *               the event's `before` snapshot only — never a second term.
+ * `setTerm` / `setPrice` are the pre-B3.8 operations; the server no longer accepts them.
+ */
+export type SubscriptionIntent = 'newTerm' | 'renew' | 'correct';
 
 /**
  * B3.0.1: one auditable subscription change (owner: "record an auditable
@@ -69,8 +108,12 @@ export interface SubscriptionSnapshot {
  */
 export interface SubscriptionEventDoc {
   at: number;
-  op: 'setTerm' | 'setPrice' | 'freeze' | 'unfreeze' | 'end' | 'cancel' | 'extend';
+  op: SubscriptionIntent | 'setTerm' | 'setPrice' | 'freeze' | 'unfreeze' | 'end' | 'cancel' | 'extend';
   actorRole: 'coach' | 'admin';
+  /** B3.8: `correct` only — a plain correction, or the client changing package mid-term. */
+  reason?: 'correction' | 'changePackage';
+  /** B3.8: the caller's idempotency key — a retried change with the same key is applied once. */
+  requestId?: string;
   before: SubscriptionSnapshot | null;
   after: SubscriptionSnapshot;
   /**
@@ -81,7 +124,12 @@ export interface SubscriptionEventDoc {
   backdated?: true;
 }
 
-/** An archived subscription term, pushed onto `subscriptionHistory` (newest last). */
+/**
+ * An archived subscription term, pushed onto `subscriptionHistory` (newest last). Since B3.8 only
+ * a RENEWAL archives (`archivedBy: 'renew'`), with the term's real end. Entries without
+ * `archivedBy` were archived by the pre-B3.8 `setTerm`, which also archived corrections — they
+ * are kept as they are (clean launch: no back-fill).
+ */
 export interface SubscriptionPeriodDoc {
   startAt: number;
   endAt: number;
@@ -89,7 +137,16 @@ export interface SubscriptionPeriodDoc {
   price?: number;
   currency?: string;
   status: SubscriptionStatus;
+  /** When the term was archived (the renewal's time). */
   endedAt: number;
+  /** B3.8 — see `SubscriptionDoc`. */
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
+  planName?: string;
+  archivedBy?: 'renew';
 }
 
 /** Coach⇄client link. `_id` is deterministic: `${coachId}__${clientId}`. */
@@ -140,6 +197,10 @@ export interface ClientSubscriptionInput {
   planName?: string;
   billingCycle?: BillingCycle;
   startAt?: number;
+  /** B3.8: the first day (`YYYY-MM-DD`) in `zone`; preferred over `startAt`. */
+  startDate?: string;
+  /** B3.8: the coach device's IANA zone the dates are meant in. */
+  zone?: string;
 }
 
 /**

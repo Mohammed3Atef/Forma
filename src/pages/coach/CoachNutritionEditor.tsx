@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
+import { useHistoryParam } from '@/components/coach/editor/useHistoryParam';
 import { LibraryAddPrompt } from '@/components/coach/editor/LibraryAddPrompt';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
@@ -34,8 +35,9 @@ import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
 import type { FoodItem, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
 
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack', 'postWorkout'];
-const POLICY_KEYS = ['allowClientSubstitutions', 'allowCustomFoods', 'requireCoachApproval'] as const;
-const DEFAULT_POLICY: SubstitutionPolicy = { allowClientSubstitutions: false, allowCustomFoods: false, requireCoachApproval: false };
+// B3.9 (CO-19, owner D6): no "flag swaps for review" switch — nothing anywhere could review them.
+const POLICY_KEYS = ['allowClientSubstitutions', 'allowCustomFoods'] as const;
+const DEFAULT_POLICY: SubstitutionPolicy = { allowClientSubstitutions: false, allowCustomFoods: false };
 
 function emptyPlan(): MealPlan {
   return { id: uid('mplan'), name: '', meals: [], targets: { calories: 0, protein: 0, carbs: 0, fats: 0 }, supplements: [], waterTargetMl: 0, beverageNotes: [], generalNotes: [], updatedAt: Date.now() };
@@ -114,7 +116,7 @@ export function CoachNutritionEditor() {
   const [food, setFood] = useState<FoodForm | null>(null);
   const [supp, setSupp] = useState<SuppForm | null>(null);
   const [pick, setPick] = useState('');
-  const [history, setHistory] = useState(false);
+  const [history, setHistory] = useHistoryParam(); // B3.9 (D10): ?history=1 opens it
   useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, ed.discardDraft);
   const exit = useBack(`/coach/client/${clientId}/plan`, ed.discardDraft);
   const ar = i18n.language.startsWith('ar');
@@ -326,7 +328,8 @@ export function CoachNutritionEditor() {
         </div>
         {open && (
           <div className="space-y-3 border-t border-line-soft p-3">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+            {/* B3.9: at 1024–1279 the meals column is ~360 px — name and slot stack there (the name was ~120 px wide). */}
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] lg:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_12rem]">
               <div className="space-y-1">
                 <TextInput label={t('coachEditor.mealLabel')} data-testid="meal-label" value={m.label.en} onChange={(e) => patchMeal(m.id, { label: typeMealLabel(m.label, e.target.value) })} />
                 <SecondLanguageField lang="ar" testId="meal-label-ar" value={m.label.ar ?? ''} onChange={(v) => patchMeal(m.id, { label: { ...m.label, ar: v } })} />
@@ -564,8 +567,8 @@ export function CoachNutritionEditor() {
         {food && (
           <div className="space-y-4" data-testid="food-form">
             {(lib.data?.length ?? 0) > 0 && (
-              <div data-testid="food-library-picker">
-                <label className="label mb-1.5 block">{t('coachEditor.chooseFood')}</label>
+              <div data-testid="food-library-picker" role="group" aria-labelledby="food-library-picker-label">
+                <p className="label mb-1.5 block" id="food-library-picker-label">{t('coachEditor.chooseFood')}</p>
                 <SearchField fieldClassName="mb-2" aria-label={t('coachEditor.searchFoods')} placeholder={t('coachEditor.searchFoods')} value={pick} onChange={(e) => setPick(e.target.value)} />
                 <div className="max-h-44 space-y-1 overflow-y-auto">
                   {(lib.data ?? [])
@@ -597,8 +600,8 @@ export function CoachNutritionEditor() {
               </div>
             )}
             {lib.isError && <p className="text-[12.5px] text-warn">{t('coachEditor.foodLibraryFailed')}</p>}
-            <div>
-              <label className="label mb-1.5 block">{t('coachEditor.searchFoodDatabase')}</label>
+            <div role="group" aria-labelledby="food-database-label">
+              <p className="label mb-1.5 block" id="food-database-label">{t('coachEditor.searchFoodDatabase')}</p>
               <FoodSearchPicker onPick={(f) => setFood({ ...food, name: f.name, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats } })} />
             </div>
             <div className="h-px bg-line-soft" />
@@ -619,8 +622,8 @@ export function CoachNutritionEditor() {
               ))}
             </div>
             <div>
-              <label className="label mb-1.5 block">{t('nutritionSub.approvedAlternatives')}</label>
-              <div className="flex flex-wrap gap-2" data-testid="meal-allowed-group">
+              <p className="label mb-1.5 block" id="meal-allowed-group-label">{t('nutritionSub.approvedAlternatives')}</p>
+              <div className="flex flex-wrap gap-2" data-testid="meal-allowed-group" role="group" aria-labelledby="meal-allowed-group-label">
                 <button type="button" className={`chip ${!food.groupId ? 'chip-on' : ''}`} aria-pressed={!food.groupId} onClick={() => setFood({ ...food, groupId: null, groupTouched: true })}>
                   {t('nutritionSub.noGroup')}
                 </button>
@@ -653,8 +656,8 @@ export function CoachNutritionEditor() {
           <div className="space-y-3" data-testid="supp-form">
             {(suppLib.data?.length ?? 0) > 0 && (
               <div>
-                <label className="label mb-1.5 block">{t('coachEditor.chooseSupp')}</label>
-                <div className="flex flex-wrap gap-2" data-testid="supp-picker">
+                <p className="label mb-1.5 block" id="supp-picker-label">{t('coachEditor.chooseSupp')}</p>
+                <div className="flex flex-wrap gap-2" data-testid="supp-picker" role="group" aria-labelledby="supp-picker-label">
                   {(suppLib.data ?? []).map((s) => (
                     <button
                       key={s.id}

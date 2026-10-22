@@ -8,6 +8,7 @@ import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import type { MessageDoc } from '../../messages/_data.js';
 import { resolveUploadTarget } from '../../media/_lib/policy.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * B3.0.1 — B3-S14 (owner R-4 = Option C: per-coach conversations, enforced
@@ -33,6 +34,7 @@ function userDoc(o: Partial<UserDoc>): UserDoc {
 async function insertUser(o: Partial<UserDoc>): Promise<AuthedUser> {
   const doc = userDoc(o);
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return { id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc };
 }
 const ctxFor = (user: AuthedUser): Context => ({ req: {} as VercelRequest, res: { setHeader: () => undefined } as unknown as VercelResponse, user });

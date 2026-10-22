@@ -30,14 +30,14 @@ Removed from the coach (still used by the admin shell): the ☰ menu sheet, the 
 | `/coach/client/:id` (+ every workspace section) | Client › Summary · Plan · Progress · Profile | same URLs; new `…/plan`, `…/progress`, `…/profile`; `…/assessment` `…/notes` `…/subscription` `…/history` are Profile sections, `…/checkins` is Progress › Check-ins | B3.4 | **Done (B3.4)**; lights **Clients** (NAV-K11) |
 | `…/workout`, `…/nutrition`, `…/cardio` | editors (task flows) | same URLs; B3.4 draws no workspace chrome around them (one Back → Plan) | B3.5 | Unchanged inside (B3.5) |
 | `…/view`, `…/view/:tab` | Client › Progress | redirect `…/progress?view=` (activity → `day`, measurements / progress → `body`, nutrition, cardio, photos) | B3.4 | **Done (B3.4)**; the "view as client" page is removed |
-| `…/versions/:kind` | editor History sheet | redirect `…/:kind?history=1` | B3.5 | Unchanged |
+| `…/versions/:kind` | editor History sheet | redirect `…/:kind?history=1` (unknown kind → `…/plan`); the editor opens History from `?history=1` and drops the parameter once read; the Plan section's History links there too | B3.5 → **B3.9 (owner D10)** | **Done (B3.9)** — `PlanVersionHistory` page and `VersionActions` deleted; `versionsTarget` unit test + spec 89 redirect test |
 | `/coach/messages`, `/coach/messages/:clientId` | Messages | same URLs | B3.6 | Tab |
 | `/coach/library?tab=…` | Library | same URL; `?tab=programs` added (and the default); `?tab=groups` → Foods › Swap groups | B3.7 | **Done (B3.7)** — §12 |
 | `/coach/templates`, `/:id`, `/new`, `/:id/edit` | Library › Programs | list → `/coach/library?tab=programs`; editor URLs kept; `/:id` opens the template read-first (RM-27) | B3.7 | **Done (B3.7)**; the list and preview pages are removed; light **Library** |
-| `/coach/revenue`, `/coach/reports` | Me › Business | **new** `/coach/business`, old URLs redirect | B3.8 | Pages kept; Me › Business rows |
-| `/coach/subscription-plans` | Me › Business › Packages | redirect `/coach/business?tab=packages` | B3.8 | Page kept; Me › Client packages |
-| `/coach/plan` | Me › Forma subscription | same URL | — | Me › Forma subscription |
-| `/coach/settings` | Me › Account / Preferences | same URL | — | Me › Account & preferences |
+| `/coach/revenue`, `/coach/reports` | Me › Business | **new** `/coach/business`, old URLs redirect | B3.8 | **Done (B3.8)** — §13; pages removed |
+| `/coach/subscription-plans` | Me › Business › Packages | redirect `/coach/business?tab=packages` | B3.8 | **Done (B3.8)**; page removed |
+| `/coach/plan` | Me › Forma subscription | same URL | B3.8 | **Done (B3.8)** — one status card |
+| `/coach/settings` | Me › Account / Preferences | same URL | B3.8 | **Done (B3.8)** — saved / failed per field |
 
 Every stored notification target keeps resolving: `/coach/client/:id/checkins`, `…/assessment`, `…/subscription`, `/coach/messages/:id`, `/coach/plan`.
 
@@ -53,7 +53,7 @@ Every stored notification target keeps resolving: `/coach/client/:id/checkins`, 
 | `/coach/client/:id` | `/coach/clients` | B1 (B3.4: sections replace history, so with in-app history Back returns to the opener — NAV-K08) |
 | `/coach/messages/:id` | `/coach/messages` | B1 |
 | `/coach/templates/:id/edit` → `/coach/templates/:id` → **`/coach/library?tab=programs`** (`/coach/templates` and `/new` too) | Library › Programs | B3.1; B3.7 (the segment) |
-| `/coach/plan`, `/coach/settings`, `/coach/revenue`, `/coach/reports`, `/coach/subscription-plans` | **`/coach/me`** | B3.1 |
+| `/coach/business`, `/coach/plan`, `/coach/settings`, `/coach/revenue`, `/coach/reports`, `/coach/subscription-plans` | **`/coach/me`** | B3.1 (`/coach/business`: B3.8) |
 | `/coach/me` and every other `/coach/<section>` | **`/coach/dashboard`** (Today) | B3.1 (was `/coach`, a redirect) |
 
 With in-app history, Back is real history (B1 contract); the parent is only used when there is nothing to go back to.
@@ -185,3 +185,63 @@ Templates is **Library › Programs**; the separate preview page is gone (RM-27,
 | template preview `coach-template-preview`, `template-preview`, `template-preview-days`, `template-edit / -assign / -duplicate / -delete` | the editor screen `coach-template-editor` read-first: `template-preview` (`template-read-day`, `template-read-exercise`), `template-edit`, `template-assign`, `template-more` → `template-duplicate` / `template-delete`, `template-draft-pending` | 22, 89, 92 |
 | — | "Use in a client plan": `use-in-plan` (`use-client-search`, `use-client-client`); in the editors `library-add` (`library-add-target`, `library-add-new`, `library-add-cancel`, `library-add-missing`) | 92 |
 | — | template sync notice `lib-sync-issue` (`lib-sync-retry`, dismiss) | 92 |
+
+## 13. B3.8 changes
+
+**Routes** (`src/apps/CoachApp.tsx`):
+
+| URL | Now | Notes |
+|---|---|---|
+| `/coach/business` (`?tab=overview` default · `renewals` · `packages` · `exports`) | **Me › Business** (new) | the tab replaces history; lights Me; shell Back → `/coach/me` |
+| `/coach/revenue` | redirect → `/coach/business` | the Revenue page is removed |
+| `/coach/reports` | redirect → `/coach/business?tab=exports` | the Reports page (KPIs, ranking, aggregate CSVs) is removed |
+| `/coach/subscription-plans` | redirect → `/coach/business?tab=packages` | the Client Plans page is removed |
+| `/coach/plan` | Me › Forma subscription (same URL) | restructured; every notification / banner link keeps resolving |
+| `/coach/settings` | Me › Account & preferences (same URL) | shared with admin (`/admin/settings`) |
+
+**Semantic parents** (`src/lib/navContract.ts`): `/coach/business` → `/coach/me` (added); the redirected URLs keep their entries (→ `/coach/me`). `src/config/coachNav.ts`: `/coach/business` belongs to Me.
+
+**Test id changes** (guarantees unchanged):
+
+| Old | New | Specs |
+|---|---|---|
+| Me rows `me-revenue`, `me-reports` | `me-business` (→ `/coach/business`); `me-packages` now opens `/coach/business?tab=packages` | 85 |
+| `coach-revenue`, `coach-revenue-error` | `coach-business`, `coach-business-error` (`/coach/revenue` still works — it redirects) | 42 |
+| `coach-reports`, the three unnamed export buttons | `biz-export-clients`, `biz-export-terms`, `biz-export-from`, `biz-export-to` (row-level files) | 93 |
+| Packages: `coach-plan-edit` (a text button per row), `coach-plan-order` (field) | the row's `row-open` opens the sheet (`coach-plan-form`, `coach-plan-delete` inside); `coach-plan-up` / `coach-plan-down` on every row; `coach-plan-archived` marker. Kept: `coach-subscription-plans`, `coach-plan-list`, `coach-plan-row`, `coach-plan-add`, `coach-plan-name / -duration / -unit / -price / -trial / -save` | 93 (no spec used them before) |
+| — | Business: `coach-business` (`data-tab`), `biz-tab-*`, `biz-money` (`data-currency`), `biz-booked / -due / -lost`, `biz-definitions`, `biz-month-range`, `biz-attention-soon / -lapsed / -none`, `biz-count-<state>`, `biz-upcoming-list`, `biz-lapsed-list`, `biz-row`, `biz-renew`, `biz-exports-phone` | 93 |
+| Forma subscription | all ids kept (`plan-phase`, `plan-state`, `plan-ends`, `plan-price` now live inside `plan-subscription-card`); new `plan-requests-older` | 11, 12, 50, 93 |
+| Account | new `account-identity`, `account-name`, `account-phone`, `account-timezone`, `account-timezone-device`, `account-*-status` (+ `-retry`), `account-name-error`, `account-sign-out`; kept `account-currency`, `change-password`, the language buttons' names and the "Sign out" button name | 93 (helpers in 10–92 unchanged) |
+| Today | new `today-coming-up-all` (→ `/coach/business?tab=renewals`) | — |
+
+## 14. B3.8 completion changes (2026-10-21)
+
+**Routes:** none added or removed. The desktop sidebar now links `/coach/business`, `/coach/plan` and `/coach/settings` directly (they used to be reachable only through Me); on phones they stay behind the avatar.
+
+**Lit destination** (`src/config/coachNav.ts` — `coachRailGroups`, pinned by `coachNav.test.tsx`):
+
+| Location | Desktop sidebar | Phone |
+|---|---|---|
+| `/coach/business` (any tab), `/coach/revenue` (redirect) | `rail-business` (`aria-current="page"`); its tab `rail-sub-business-<tab>` (`aria-current="true"`) | avatar (`me-button`) |
+| `/coach/plan` | `rail-forma` | avatar |
+| `/coach/settings` | `rail-account` | avatar |
+| `/coach/me` | the footer `rail-me` (only here now) | avatar |
+| `/coach/library` (any segment), `/coach/templates/*` | `rail-library` + `rail-sub-library-<programs·exercises·foods·supplements·groups>` | `nav-library` |
+
+**Test id changes** (guarantees unchanged unless stated):
+
+| Old | New | Specs |
+|---|---|---|
+| `rail-me` lit on Business / Forma / Account | `rail-business`, `rail-forma`, `rail-account`; `rail-me` lit on `/coach/me` | 85, 93 |
+| — | sidebar groups `rail-group-<workspace·content·business·account>`; sub-pages `rail-<key>-pages`, `rail-sub-<key>-<page>` | 94 |
+| package card: `p.font-mono.font-medium` (renew date, B3-C07) | `sub-start`, `sub-last-day`, `sub-price`, `sub-length`, `sub-plan-name` | 20 |
+| "Set term" / "Renew" `sub-set-term` (one sheet) | `sub-set-term` = Set package / Renew (`term-sheet-new` / `term-sheet-renew`); Edit `sub-edit-term` (`term-sheet-correct`, `term-reason-*`, `term-no-changes`); `term-renew-start` (a running term's fixed start); `term-error` | 20, 61, 81, 88, 93, 94 |
+| price sheet `sub-set-price`, `price-amount`, `price-currency`, `price-save` | removed — a price change is an Edit (correction) | 88 |
+| transfer wizard `transfer-sub-currency` | removed (EGP only) | — |
+| Account `account-currency` (select), `account-timezone` (select), `account-timezone-device`, `account-*-status` for both | `account-currency`, `account-timezone` are read-only rows (EGP; the device zone); `role-account` wraps the page | 93 |
+| — | payments: `client-payments`, `pay-balance`, `pay-recorded`, `pay-outstanding`, `pay-record`, `pay-list`, `pay-row`, `pay-reversed`, `pay-actions`, `pay-correct`, `pay-reverse`, `pay-form`, `pay-term`, `pay-amount`, `pay-method-<cash·mobile_wallet·instapay>`, `pay-date`, `pay-reference`, `pay-reason`, `pay-save`, `pay-error`, `pay-reverse-form`, `pay-reverse-reason`, `pay-reverse-save` | 94 |
+| Business Overview `biz-money` (`data-currency`), `biz-attention-*`, `biz-currency-note` | `biz-booked`, `biz-collected`, `biz-due`, `biz-lost`, `biz-reversed`, `biz-outstanding`, `biz-overdue`, `biz-credit`, `biz-booked-all`, `biz-collected-all`, `biz-active-paying`, `biz-coverage`, `biz-trend` (`-legend`, `-month`, `-table-toggle`, `-table`, `-empty`), `biz-methods` (`-row`, `-scope-*`), `biz-pipeline` (`-row` with `data-key`), `biz-package-mix`, `biz-payments-error`; kept `biz-definitions`, `biz-month-range`, `biz-count-<state>` | 93, 94 |
+| Exports | new `biz-export-payments` | 94 |
+| P2 read-only | `message-readonly`, `plan-read-only`, `plan-read-only-renew` | 94 |
+| Final review (2026-10-22): payments not linked to a package | new `biz-unlinked` (Overview coverage note), `pay-unlinked` (card note), `pay-no-term` (payment form, client with no package) | 95 |
+| B3.9: states, shell, progress views | new: `skip-link`, `error-boundary`; states `checkins-offline/-error`, `timeline-offline/-error`, `assessment-offline/-error/-not-submitted`, `coach-invite-offline/-error`, `plan-history-offline`, `assign-clients-offline`, `incoming-transfers-error`, `outgoing-transfers-error`, `summary-plan-partial`, `summary-plan-failed-<kind>`, `summary-week-sessions`, `plan-offline-<kind>`, `progress-week-offline`; progress views `body-weights(-offline/-error/-empty)`, `body-latest-weight`, `body-weight-change`, `body-weight-list`, `body-measurements`, `measurements-offline/-error`, `measure-compare(-row)`, `coach-view-cardio`, `cardio-plan(-offline/-error)`, `cardio-plan-session`, `cardio-session-state`, `cardio-logged(-row)`, `cardio-day-offline/-error`, `coach-view-photos`, `photos-offline/-error/-empty`, `coach-view-nutrition`, `nutrition-view-offline/-error`, `day-offline/-error`, `day-activity`; Today `today-detail-context`. Removed: `policy-requireCoachApproval` (owner D6) | 89, 96, 97 |

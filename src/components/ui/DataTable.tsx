@@ -71,7 +71,7 @@ export function DataTable<T>({
               </th>
             ) : null}
             {columns.map((c) => (
-              <th key={c.key} scope="col" className={`whitespace-nowrap px-4 py-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-earth-muted ${c.className ?? ''}`}>
+              <th key={c.key} scope="col" className={`whitespace-nowrap px-4 py-3 text-start font-mono text-[12px] font-medium uppercase tracking-[0.06em] text-earth-muted ${c.className ?? ''}`}>
                 {c.header}
               </th>
             ))}

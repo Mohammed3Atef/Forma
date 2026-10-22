@@ -78,7 +78,8 @@ async function send(to: string, subject: string, html: string, logFallback: stri
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   const html = render(loadPasswordResetTemplate(), { resetUrl });
-  await send(to, 'Reset your Forma password', html, `password reset link for ${to} was not delivered: ${resetUrl}`);
+  // B39A-S01: never log the link — it carries the reset token.
+  await send(to, 'Reset your Forma password', html, 'a password reset email was not delivered (email is disabled)');
 }
 
 /** Sent right after a new account is created (self-signup or invite-claim). */
@@ -91,7 +92,8 @@ export async function sendWelcomeEmail(to: string, name: string, appUrl: string)
 export async function sendClientInviteEmail(to: string, opts: { coachName: string; inviteUrl: string; inviteCode: string; appUrl: string }): Promise<void> {
   const coachInitial = (opts.coachName.trim().charAt(0) || 'F').toUpperCase();
   const html = render(loadClientInviteTemplate(), { ...opts, coachInitial });
-  await send(to, `${opts.coachName} invited you to Forma`, html, `client invite email for ${to} was not delivered: ${opts.inviteUrl}`);
+  // Never log the invite link: its code lets anyone claim the invite.
+  await send(to, `${opts.coachName} invited you to Forma`, html, 'a client invite email was not delivered (email is disabled)');
 }
 
 /**

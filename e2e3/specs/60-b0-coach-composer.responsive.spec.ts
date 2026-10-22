@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, ready, shot } from '../fixtures';
+import { waitForLocaleSaved } from './_c-helpers';
 
 /**
  * B0 / CO-04 / MS-01 — the coach thread composer must stay reachable above the
@@ -32,8 +33,7 @@ async function setCoachLocale(page: Page, locale: 'en' | 'ar') {
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: locale === 'en' ? 'English' : 'العربية', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(locale === 'en' ? /^en/ : /^ar/);
-  await page.waitForTimeout(600); // let the profile save land
+  await waitForLocaleSaved(page, locale); // B3.9.0: let the profile save land — <html lang> + the stored settings (was a fixed 600 ms)
 }
 
 for (const locale of ['en', 'ar'] as const) {

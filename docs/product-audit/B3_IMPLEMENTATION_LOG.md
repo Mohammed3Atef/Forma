@@ -1389,4 +1389,564 @@ During development, spec 92's visual matrix once stalled when the dev server sto
 
 **9.4 Backlog:** **B37-R2 → Fixed** (closed with the tests above). B37-R5 stays **Open for B5** by the owner's decision (no website change; spec 51 keeps its deterministic synchronization). Counts: Open 208 · Mitigated 60 · Needs Verification 31 · Deferred 8 · Fixed 171 (478 entries).
 
-**Status: B3.7 implemented and certified locally on the final tree — full e2e3 342 / 343 in one complete run (0 failed, 0 flaky, the approved skip); unit / API 932 / 932; typecheck, boundaries, build, PWA and offline boot green (§9.3). Program assignment is confirmed before it replaces a plan (§8.1); B37-R2 fixed (§9); B37-R5 deferred to B5. Not committed — awaiting the owner's approval.**
+**Status: B3.7 implemented and certified locally on the final tree — full e2e3 342 / 343 in one complete run (0 failed, 0 flaky, the approved skip); unit / API 932 / 932; typecheck, boundaries, build, PWA and offline boot green (§9.3). Program assignment is confirmed before it replaces a plan (§8.1); B37-R2 fixed (§9); B37-R5 deferred to B5. Committed locally with the owner's authorization as `025445c` "feat(coach): complete B3.7 library experience" (2026-10-21, 65 files; not pushed).**
+
+## B3.8 — Coach Me / Business (2026-10-21)
+
+**Owner brief (2026-10-21, after the B3.7 commit `025445c`):** implement blueprint §6.7 — the Me hub, **Business** (`/coach/business`: this month, renewals, lapsed clients, packages, exports), **Forma subscription** (`/coach/plan`) and **Account & preferences** (`/coach/settings`) — following the read-only plan's steps B3.8.0–B3.8.7, reusing the B3.7 tab and table / list foundations, keeping every API and database contract unless a genuine blocker appears (ask first). Stop before any commit.
+
+**Owner decisions (2026-10-21):**
+1. **D1 — revenue correctness:** option (b). Current due, renewals and status counts come from **active** relationships only; booked and lost keep their historical meaning only where the definition supports it; currencies are never mixed; every formula and its inclusion / exclusion rules are documented and pinned by unit tests; no commercial or backend payment change.
+2. **D2 — labels:** truthful labels such as **Booked · Due · Lost**, each with its meaning and window; never imply a verified payment where none is recorded.
+3. **D3 — exports:** real row-level CSV for clients and for subscription terms / history, with a date range; correct relationships, currency and dates; CSV-safe; desktop-first without broken mobile behaviour.
+4. **D4 — removals:** the duplicate Revenue / Reports UI, misleading metrics, the donut and retention tiles, the redundant Forma subscription cards, the account's capacity card and the packages "Order" field (→ accessible move up / down). Old routes redirect; no business record or history is deleted.
+5. **D5 — capacity:** one authoritative count — the server's — on Clients, Today, Forma subscription and every capacity block; no change to server capacity rules, limits or entitlements; regression tests for disabled clients and other edge cases.
+6. **D6 — legacy commercial code:** the coach UI stops reading `plan.plan` and uses the server's `state` / `phase`; server compatibility code stays until the clean-launch / release-hardening work.
+7. **D7 — RM-66:** feature-flag governance leaves B3.8 (→ B5, rationale in the backlog); no Super Admin redesign.
+8. **D8 — account:** the shared Account & preferences page is improved additively (admin-compatible): explicit saved / failed per field, unsaved input kept after a failure, a real time-zone picker, named currencies, no new fields.
+
+### 0. Documentation corrections (B3.8.0)
+- Stale status lines corrected: the blueprint and the B3.7 log section now record the B3.7 commit `025445c`; the backlog's REL-01 lists every local phase commit (none pushed), REL-03 the current distance from `origin` (11 commits), and its header the last update.
+- `B3_COACH_ROUTE_MIGRATION.md`: `/coach/plan` and `/coach/settings` belong to B3.8 (they read "—").
+- **IA-K06** (doc 05) is not a backlog entry — IA-K findings never were (they are covered by backlog IDs): here by **RM-38** (Revenue / Reports / Client Plans / My Plan out of the main navigation), **RM-25** and **CO-32** (capacity shown in several places). DT-06 and TB-02 were folded into **JR-03**.
+- **RM-66** → B5 (D7). **RM-53** → Release hardening (D6: server compatibility stays until the clean launch; with the clean launch no production migration is needed — the removal doc's "migrate against production first" no longer applies).
+
+### 1. What changed
+
+**1.1 Me › Business** (`/coach/business?tab=overview|renewals|packages|exports`, `src/pages/coach/business/`) replaces the Revenue, Reports and Client Plans pages; their URLs redirect (`/coach/revenue` → Business, `/coach/reports` → `?tab=exports`, `/coach/subscription-plans` → `?tab=packages`). One screen with the B3.7 section tabs (`SectionTabs`, tab in the URL), each tab its own chunk. Data: `coachBusinessQuery` — the coach's relationships (all statuses, with archived terms) and the roster, two bounded reads, no polling; the old dashboard aggregate (which also downloaded both template lists and the unread count) is deleted with the pages.
+
+**1.2 The month's figures — rules (`src/lib/coachBusiness.ts`, owner D1 / D2).** Forma records no payments, so every figure is a sum of package prices of terms, named for what it is, defined on screen, per currency:
+
+| Figure | Counts | Never counts |
+|---|---|---|
+| **Booked** | the price of every term that **started** this calendar month — current and archived terms of **every** relationship this coach has had (also ended ones and earlier stints: the term was booked with this coach) | pending terms (not started), free terms (no price / 0), terms that started in another month |
+| **Due** | the price of each **current** client's (active relationship) running trial / active term that ends after now and by the month's last day — what renewing at the same price would bring | former (released / transferred) clients — they used to show here, with no name (D1); paused / expired / cancelled terms; free terms |
+| **Lost** | the price of a relationship's **current** term that ran out (`endAt`) or was cancelled (`cancelledAt`) this month without a renewal — current clients, and former clients whose term lapsed while still this coach's client | a released / transferred client's running term; terms stored as `ended`; archived terms (each was followed by a renewal) |
+
+- Amounts are grouped by the term's own currency and never added across currencies (the old page summed them and labelled the total with the last relationship's currency); a term without a currency is its own group. The month is the calendar month in this device's time zone; the screen prints its dates.
+- **Renewals** (current clients' running terms ending within 30 days — Today shows only the 7-day ones and five more, B3.2) and **Lapsed** (Today's rule: ran out by itself within 30 days; cancelled / ended terms were the coach's decision) use the same windows as Today and Clients (`coachToday` constants).
+- **Current clients by package** counts active relationships with the Clients filter states (`clientStateOf`), each row opening Clients with that filter.
+- Removed, not re-derived (D4 / O-14): the hero, retention (it was 100 − churn over every relationship ever), churn, "new clients", the subscription donut and its six duplicate tiles, the "collected" figure (no payment ledger), the Reports KPIs (adherence %, average workouts, assessments / check-ins to review — Today and Clients own them) and the Reports ranking (Clients › sort by workouts, RM-18).
+
+**1.3 Renewals tab (JR-03 / CO-16):** every current client whose package ends in the next 30 days and every lapsed one, named, soonest / latest first, with **Renew** on the row (a real button beside the row on phones, an Action column on desktop; the row itself opens the client's Package & billing, the desktop row menu also Message). Renew opens the client's own term sheet — moved, unchanged, from the subscription panel into `components/coach/SubscriptionTermSheet` so both use one path: a renewal starts today at the current price, a back-dated one is confirmed (B3.0.1), the server archives the previous term to the history ledger (C9). A renewed client leaves the list at once (`invalidateSubscription` refreshes Business, Today and the workspace). Names are bidi-isolated (a Latin name inside Arabic keeps its order).
+
+**1.4 Packages tab (CO-36 / TB-06 / TB-08 / D4)** — was "Client Plans": the B3.7 table (≥ 1024) / list, the row opening the package's sheet (edit, Delete inside, confirmed — clients already on it keep their term and history; the sheet is its own chunk), archived packages marked. The free-number "Order" field is gone: **Move up / Move down** buttons on every row (named "Move Monthly up"; the list is renumbered 10, 20, 30… and only packages whose position changed are saved; a new package goes after the last one, computed when saving). Every picker (invite, add existing, set term) follows the list order. Labels say "package" (CO-36); lengths have real plurals ("1 month", "3 months" — CO-22, also in both pickers).
+
+**1.5 Exports tab (CO-35 / D3):** an optional date range (From / To, inclusive, this device's time zone; empty = every date; a reversed range is refused with the reason) and two row-level CSVs built in the browser: **Clients** (one row per current client who joined in the range: contact, package state, package, term dates, price, currency, client since, last workout, workouts in 7 days, assessment) and **Package terms** (one row per term — current and archived, current and former clients — that started in the range: client or "Former client", client ID, current / former with the date they left, current / past term, dates, status, package, months, price, currency). CSV-safe (`lib/csv`): a free-text cell starting with `=`, `+`, `-`, `@`, tab or CR is prefixed with `'` unless it is only a phone number / plain number; numbers stay numbers; UTF-8 BOM; CRLF. On a touch device the file goes through the share sheet (an installed iPhone app can't download a blob); any other refusal falls back to a download. The builders load only on the first export.
+
+**1.6 Forma subscription** (`/coach/plan`, was "My Plan" — CO-32 / RM-55): one status card (the phase as its title, the state, end date and days left, price, what happens next, the one action — subscribe / renew, or the request awaiting payment) instead of four metric cards and an explanation card; "Renew" is offered only for a running paid term (it said "Renew" with no subscription at all). Capacity: the server's count with base / add-ons / adjustment and a real progress bar (`role="progressbar"`, value and text — AX-10). Requests: open and recent ones (30 days) in view, older ones in a collapsed history. Every test id is kept.
+
+**1.7 One capacity count (D5 / CO-32 / RM-25):** `useCoachCapacity()` (in `CoachPlanProvider`) exposes the server's maintained counter — the number `reserveClientSlot` gates a new client on — and Clients (usage strip, limit link), Today's trial banner, the add-client blocks (which now also say "over capacity by N") and Forma subscription all read it. The Clients strip used to count the roster without disabled clients, the trial banner and the account card counted it with them; a disabled client still holds an active relationship, so the server counts it — and so does every screen now. Server rules, limits and entitlements are unchanged. The count stays fresh: adding an existing client, a release, a transfer and a lost-access message refresh it, and `useCapacityFollowsRoster` reads it again whenever the roster a screen polls (Clients, Today) changes size — a claimed invite or a change from another device included (spec 20 caught the first version showing the previous count after an assign).
+
+**1.8 Legacy commercial field (D6 / RM-52):** the coach UI no longer reads `plan.plan`: the plan provider uses the server's `state` (an end date that passed since the read folds into "expired"), the trial banner the server's `phase`. The shared formatting helpers keep a `plan.plan` fallback for admin rows (raw documents without `phase`); every coach caller passes the server's `phase`. Server compatibility code is untouched (release hardening, after the clean launch).
+
+**1.9 Account & preferences** (`/coach/settings`, shared `RoleAccount`, admin-compatible — CO-31 / CD-09 / D8): name, phone, time zone and currency each show Saving… / Saved / Couldn't save **with Retry**, announced to screen readers; a failed save keeps what was typed (each field now follows the stored value only when *its* value changes — one field's save used to reset all of them); an empty name is refused with the reason, never sent; the time zone is a picker of the browser's IANA zones grouped by region, the stored zone kept and "Use this device's (…)" one tap away; currencies are named ("EGP — Egyptian Pound" / Arabic name), with a note on what they apply to. The coach's capacity hero card is gone (capacity lives on Forma subscription); admin keeps its card. The language buttons keep their names (test helpers depend on them). The save-status hook moved from the client's Settings page into `components/ui/SaveStatus` (client behaviour unchanged; a sticky failure is opt-in).
+
+**1.10 Me hub and navigation:** a Business row ("Figures & renewals") and a direct Packages row (were Revenue & renewals, Client packages, Reports & exports); `/coach/business` lights Me and its Back goes up to Me; ⌘K: Business, Renewals to act on, Packages (Reports is gone); Today's "Coming up" links to all renewals (`today-coming-up-all`) — B3.2 promised "the full list is in Me › Business".
+
+**1.11 A label that contradicted its save:** the term sheet showed the previous term's currency but has always saved the coach's default currency; it now shows the currency it saves (the stored rule is unchanged — which currency a renewal should use is listed for the owner, B38-R1).
+
+### 2. API contract
+
+No change — no router, schema, index or data change, no migration. Calls used: `coachClients.list` (all statuses, full view) and `listMyClientUsers` (Business), `coachClients.dashboardSummaries` (the clients export, on demand), `coachClients.updateSubscription` (setTerm, unchanged), `coachAssets.billingPlans.list / save / delete`, `coachCommercial.myOverview`, `coachPlanRequests.*`, `coachPlans.me`, `auth.updateProfile`. The server's capacity counter, commercial rules (C10), the ledger (C9) and the legacy `plan` field are untouched.
+
+### 3. Tests
+
+| File | What it pins |
+|---|---|
+| `src/lib/coachBusiness.test.ts` (new, 12) | every rule of §1.2: the month (device time zone); Booked across current / archived / earlier-stint terms and former clients, never pending / free / other months; Due only for current clients' running terms ending by month end (never a released client, a paused or a lapsed term); Lost for expired / cancelled current terms of current clients and of former clients who lapsed while still a client, never a release or an `ended` term, never a renewed client's archived term; one line per currency (none summed, no-currency last); counts by the Clients states for current clients only; renewals ≤ 30 days ("soon" ≤ 7, free ones too) and Today's lapsed rule; export rows (term rows with current / former, current / past, effective status; client rows by join date) and inclusive day ranges |
+| `src/lib/csv.test.ts` (new, 3) | formula cells neutralised (`=`, `+`, `-`, `@`, tab, CR, DDE), phone numbers and plain numbers kept, numbers numeric, quoting, BOM, CRLF |
+| `src/pages/coach/business/CoachBusiness.test.tsx` (new, 14) | Overview per currency with the definitions and the month's dates; to act on and counts linking into Clients; a failed load = alert with Retry (never 0); tabs in the URL; Renewals named (former client never), Renew through the client's term sheet with the coach and client, disabled offline with the reason, the desktop table's column names and row → Package & billing; Packages: sheet with Delete, no Order field, archived marker, Move down saves only the two changed positions, a new package needs a name and a valid price (Arabic digits accepted) and lands after the last; Exports: the clients CSV (headers, a row field by field, a formula name neutralised), the terms CSV in a range with the former client named as such, a reversed range refused |
+| `src/components/coach/CoachPlanProvider.test.tsx` (new, 8) | D5: the server's counter (a disabled client still holds a slot), over capacity, a plan without the counter, a lapsed plan blocks new clients, nothing blocked while loading, the count read again when the roster changes size (not on the first load, not when unchanged); D6: the server's state wins over a contradicting legacy `plan`, an end date that passed folds into expired |
+| `src/pages/coach/CoachClients.test.tsx` (+2) | the strip shows the server's count with a disabled client on the roster; over capacity says by how much; nothing shown as full before the plan loads |
+| `src/pages/coach/CoachPlan.test.tsx` (+4) | one status card and the page title; no subscription → "Subscribe", never "Renew"; the capacity progress bar's accessible value; open and recent requests in view, older ones folded |
+| `src/pages/RoleAccount.test.tsx` (new, 8) | Saved per field; a failed save keeps the input, says so (alert) and Retry saves it; one field saving never resets another that failed; an empty name is refused, never sent; named currencies; the stored time zone kept, the device's one tap away; the coach has no capacity card / hero; admin keeps its card, no currency field, the language buttons' names |
+| `src/lib/navContract.test.tsx`, `src/config/coachNav.test.tsx` (changed) | `/coach/business` lights Me, shows the shell's Back, goes up to `/coach/me` |
+| `e2e3/specs/93-b3-business.spec.ts` (new, 12) | Journey J on a coach the spec creates: exact Booked / Due / Lost per currency with a released client and a lapsed one, the counts into Clients; Renewals named on a phone, Renew on the row → the term saved with the old one in the history (DB), the former client never listed; Packages: Move down (DB orders), a new package after the last, Delete in the sheet, the term picker's order (archived never); Exports: real downloaded files (headers, rows, a formula name neutralised, a former client, the date range); capacity: Clients and Forma subscription both "4 / 4" with a disabled client, no account capacity card; Forma subscription: the status card, recent vs folded requests; Account: Saved, a forced failure keeps the input with Retry, named currency, time zone (DB); the old URLs and the Me rows; Arabic and Egyptian Arabic at 390 / 1440 (RTL, translated, Latin digits, no overflow); axe EN and AR (32 scans); the visual matrix |
+| Specs changed (guarantees unchanged, route migration §13) | 85 (Me rows; `/coach/business` deep link), 42 (`coach-business` error state — same guarantee), 46 (+ axe target `/coach/business`), `_d-layout` (+ `/coach/business` and `/coach/settings` in the coach layout sweep) |
+
+### 4. Verification
+
+| Gate | Result (the exact final tree, `e2e-out/b38-cert`, 05:00 → 06:08) |
+|---|---|
+| Before the run | on AC power (100 %) and online, 4.1 GB RAM free (80 % commit), C: 29.6 GB and D: 22.3 GB free, the e2e ports free, Playwright's browsers intact; a keep-awake request held; Storage Sense left as it is — no system setting changed, nothing deleted |
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 983 / 983 in 112 files** (B3.7: 932 in 107; +51 — §3) |
+| Build | **PASS.** Entry 484.77 / 156.46 kB gzip (B3.7: 480.43 / 155.20 — the new English strings ship in the entry, as in earlier phases). `ClientApp` 39.02 / 12.28 — identical. `CoachApp` 23.83 / 8.06 (23.78 / 8.02). Business: shell 3.31 · data + rules 3.54 · parts 1.29 · Overview 5.38 · Renewals 5.20 · Packages 6.11 · Exports 4.79; on demand: package sheet 2.37, export builders 2.80, term sheet 4.65 (moved out of the subscription tab: 17.44 → 13.52). Forma subscription 13.32 (11.92). Account 15.84 (16.23). Precache 205 entries |
+| Budget (blueprint §9: each screen ≤ +20 %) | every tab ≤ 6.5 KB ✓ · Forma subscription ≤ 14.3 ✓ · Account ≤ 19.5 ✓ · **a first visit to Business = 13.52 KB, 0.21 KB (1.6 %) over the 13.3 KB proposed in the plan** (it grew with the phone layout of the figures, VQA #2); the Revenue page it replaces needed 12.67 KB with its charts chunk, so the blueprint's rule holds. No new polling; Business reads two lists (Revenue read five: roster, summaries, relationships, both template lists, the unread count) |
+| PWA (production build) / signed-in offline boot | **PASS** (0 installability or manifest errors; the known `_vercel/insights` page error) / **PASS** |
+| **Full e2e3, all projects** | **355 passed, 0 failed, 0 flaky, 1 skipped of 356 — one complete run (1.1 h).** The skip is the approved Google sign-in case. 93 **12 / 12**; 85 7 / 7; 42 10 / 10; 46 12 / 12; 20 12 / 12; 87 19 / 19; 11 1 / 1, 12 4 / 4, 50 5 / 5 (commercial model); 86 17 / 17; 13 (admin) 8 / 8; 40 15 / 15; 92 15 / 15; 89 16 / 16; layout 54 / 54 |
+| Focused runs before it | spec 93 and the B3.8-touched specs (85, 42, 46, 44, 45, 11, 12, 50, 86, 87, 13, 20): six failures, all fixed — the Clients count lagging an assign / release (spec 20: a real bug of the first D5 version, §1.7), spec 87's seeded rosters bypassing the server's counter (fixture, §7), a `dl` structure in the phone figures (axe); then 43 / 43 |
+| Accessibility (axe WCAG 2.1 A / AA) | spec 93: 32 scans — the four Business tabs, a package sheet, Forma subscription, Account and Me × EN / AR × 390 / 1440: **0 violations**; spec 46 + `/coach/business`: 0 critical |
+| Visual QA | **82 matrix shots, 0 px overflow, correct `dir`** (`e2e-out/b38-cert/b38-visual/`); `B3_VISUAL_QA.md` §B3.8 |
+| Machine during the run | no standby, power-source or Wi-Fi event in the System / WLAN logs; on AC and online at every sample; free RAM ≥ 1.15 GB |
+| Physical devices | **Not run** — R-17 stays open |
+
+### 5. Backlog outcome (B3.8-mapped items)
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | CO-16 · JR-03 (with DT-06, TB-02 folded in) · RM-38 · CO-22 · CO-31 · CO-32 · CO-35 · CO-36 · RM-18 · RM-25 · RM-42 · TB-06 · RM-55 · B3-S08 (owner D1: the formula documented and pinned, currencies never summed, browser-side by decision) |
+| **Mitigated** — the B3.8 part is done; the rest is named | RM-52 (coach UI fixed → server / admin readers in Release hardening, D6) · AX-10 (the coach's capacity bar → the client's rings in B5) · CD-09 (the coach's account → client screens in B5) · TB-08 (Business adopts the foundation → the admin `DataTable` in B5) · TB-07, AX-05, DT-07, VS-07, VS-13, RM-33 (B3.8 screens done → the B3.9 polish pass) |
+| **Moved (owner)** | RM-66 → B5 (D7) · RM-53 → Release hardening (D6) — §0 |
+| **Not a backlog entry** | IA-K06 — covered by RM-38, RM-25 and CO-32 (§0) |
+| **New** | B38-R1 the currency a renewal is saved in (owner decision, P3, B5) · B38-R2 a corrected start date booked twice in one month (P3, B5) · B38-R3 the month in the device's time zone (P3, B5) · B38-R4 former clients unnamed in the terms export (P3, B5) |
+
+Unchanged: MD-01 / 02 / 03 and every release blocker; REL-04 and the Clean Launch Plan; B36-R4 (P1, launch blocker); O-9 nutrition templates (B5).
+
+### 6. Known limits and risks
+1. **Booked counts a corrected start date twice** in the same month: when the coach re-sets a term's start date, the server archives the earlier start as a term of its own (the existing ledger rule, unchanged) — B38-R2.
+2. **The month is this device's calendar month**, not the coach's account time zone (the screen prints the dates) — B38-R3.
+3. **Former clients in the terms export are "Former client" + client ID**: their profile is no longer this coach's to read (B3.0.1); a name would need a server field — B38-R4.
+4. **Which currency a renewal is saved in** (the coach's default — unchanged — or the previous term's) is a product decision — B38-R1. The term sheet now says which one it uses.
+5. **Business figures are computed in the browser** (owner D1: no backend change); the formula is documented here and pinned by unit tests (B3-S08).
+6. **The admin `DataTable` is unchanged** (TB-08 admin part; no admin redesign in B3); the Packages and Renewals lists use the B3.7 foundation, which gained a row-action slot for phones.
+7. **Physical devices not run**; R-17 stays open.
+
+### 7. Selector and route changes
+
+`B3_COACH_ROUTE_MIGRATION.md` §13 (routes, semantic parents, every changed test id). Specs adapted: 85 (Me rows; the `/coach/business` deep link), 42 (`coach-business` — the same "an error, never 0" guarantee), 46 (+ `/coach/business`), `_d-layout` (+ `/coach/business`, `/coach/settings`), 87 (its seeded rosters set the server's client counter the way assigning does — `syncCounter`; the counter is the count every screen shows since D5; restored afterwards). The guarantees are unchanged.
+
+**Status: B3.8 implemented and certified locally on the final tree — full e2e3 355 / 356 in one complete run (0 failed, 0 flaky, the approved skip); unit / API 983 / 983; typecheck, boundaries, build, PWA and offline boot green (§4). Not committed — awaiting the owner's approval.**
+
+_The owner did not approve this commit (2026-10-21) and asked for the B3.8 completion below, built on this tree; its certification supersedes §4._
+
+## B3.8 completion — payments, subscription correctness, entitlements, analytics, desktop UX (2026-10-21 → 22)
+
+**Owner brief (2026-10-21, after the Phase 0 audit of the certified B3.8 tree):** B3.8 is not approved for commit yet; build on it. Owner decisions: (1) manually recorded client payments — Cash, Mobile Wallet, InstaPay; (2) **Fix C** — renewals and corrections told apart explicitly; (3) fixed-day periods — one month is exactly 30 calendar days; (4) **P2** — an expired Forma coach is read-only, on the server and in the app; (5) a premium, truthful Business analytics dashboard; (6) desktop widths; (7) a grouped desktop sidebar; (8) EGP-only; (9) no manual time-zone selection. No data deleted, reset or migrated; no commit.
+
+Every changed financial rule, entitlement, schema contract and known limitation: **`B3.8_COMPLETION_CONTRACTS.md`** (the reference for this section).
+
+### 1. What changed (by slice)
+
+**Phase 1 — subscription terms.** `api/_lib/civilDate.ts` + `src/lib/civilDate.ts` (identical; parity-tested in Cairo, UTC and Los Angeles): calendar-day arithmetic anchored to a named IANA zone — `startOfDay` handles DST gaps (Egypt springs forward at midnight) and the repeated hour. `api/coach-clients/_terms.ts`: `buildTerm` (every creator: assign, invite claim, transfer "new", first package), `renewalStart` (a running term renews from its end; any other start refused), `archiveForRenewal` (the real end — BE-3), `applyCorrection` (same `termId`, extension / freeze days kept, no-op detection), `extendDated`, `snapToCalendar`. `updateSubscription` takes `newTerm` / `renew` / `correct` (+ `reason`), `requestId` (idempotent replay, also for a lost race) and `expectedTermId`; `setTerm` / `setPrice` → `APP_UPDATE_REQUIRED`; a renewal during an unfinished pause → `RENEWAL_DURING_FREEZE`. Events record the economic fields; the sync gate's U3 / U5 rules know the new operations (a price-only correction never narrows a lapse). App: the term sheet has three explicit modes (first package / renew — the start shown, not editable, for a running term / edit current — "fix a mistake" or "switching package", nothing sent when nothing changed), a "Covers 1 Oct – 30 Oct · 30 days" preview, "1 month = 30 days"; every display shows the first and **last covered** day (package card, history, client card, renewals, Today, exports). Capacity add-on months: the UTC calendar, explicitly.
+
+**Phase 2 — payments.** `api/payments/*` + router `clientPayments` (`list` / `record` / `reverse` / `correct`), collection `clientPayments` (+ `clientPaymentTermLocks`), indexes in the accessor and `scripts/mongo-init-indexes.mjs`. App: `ClientPaymentsCard` on the client's package screen — price / recorded / outstanding (or credit), every payment (reversed ones kept, marked, with the reason), Record (amount prefilled with what is left, Cash / Mobile Wallet / InstaPay, date ≤ today, package, reference, note, a confirmation, Retry with the same request id), Correct and Reverse (reason required, confirmed). `src/lib/payments.ts` mirrors the server arithmetic (parity-tested).
+
+**Phase 3 — EGP only.** `assertSupportedCurrency` on every client-money procedure; terms and invites stored in EGP; the coach's currency picker and the price / transfer currency fields removed; `formatEgp` / `formatEgpMinor` / `formatMoney` / `formatEgpCompact` (Latin digits; "EGP 1,899" / "1,899 ج.م."). Admin and Forma commercial currencies unchanged.
+
+**Phase 4 — P2.** `api/_lib/coachEntitlement.ts` + the default-deny middleware in `api/_trpc/trpc.ts` (allow-list of 20 recovery / marker / client-protecting mutations), `messages.send` gated after its replay, coach uploads gated at `/api/media` (avatar only). App: `planLapseSignal` (tRPC link + uploader), `CoachPlanProvider` re-reads the plan on a refusal and at `endsAt`, `useWriteGate` + `PlanReadOnlyNotice` on every coach write surface, MessageThread `readOnly`, MeasurementForm `readOnly`, ⌘K without "create" commands when lapsed; copy rewritten (read-only mode, how to renew).
+
+**Phase 5 — analytics.** `src/lib/coachAnalytics.ts` (every figure, EGP-only, piastres); Business › Overview rebuilt (this month: booked / collected / due / lost, reversals; overall: outstanding with overdue / not yet due / credit, all-time booked and collected, active paying clients; coverage notes; booked vs collected × 12 months; collections by method; renewal pipeline; packages of current clients; clients by package state; definitions incl. "profit isn't shown"); charts in plain HTML (`business/charts.tsx`) with the validated pair `chartBooked` / `chartCollected` (`theme/colors.ts`); a Payments CSV export.
+
+**Phase 6 — layout & sidebar.** Wide pages (Clients, Library, Today two-pane, Business) use the shell column; reading width (768) for Account, version history, notes, history; package + payments side by side; the header row aligned with the column. `coachRailGroups` (pure) + `SideRail` groups: Workspace / Planning & content / Business / Account, sub-pages of the open section, one `aria-current="page"`, sub-page `aria-current="true"`, dividers on the 72 px rail; ⌘K names every section and tab.
+
+**Phase 7 — time zone.** Account shows the device's zone read-only (no picker); the stored field and API unchanged.
+
+**Phase 8 — the visual pass on the final tree (2026-10-22).** Reviewing the matrix shots of the first certification found three more things, all fixed before the final run: the Collections-by-method scope switch squeezed into its heading row ("THIS MONTH" on two lines; in Egyptian Arabic "الشهر ده" overflowed its segment) and pushed that card 15 px below the chart's — the switch now sits inside the card as a neutral view switch (`seg-quiet`, the B2 rule the Library's foods switch follows); the package card's "days left" passed `n` instead of `count`, so Arabic could not choose a plural ("20 يوم متبقٍ") — it uses the plural-aware `coachClients.daysLeft` the workspace header already uses (English text unchanged; the admin pages keep their key); the "‹ Profile" back chip stacked its chevron above the word (pre-existing since B3.4: `.chip` is not a flex container) — `inline-flex`; and at 1024 px the Overview's three-column rows were too narrow ("Overdue (ran ou…" clipped, headings on two lines) — the chart and the methods card take the full width below 1280 px, the pipeline and packages sit two-up at 1024 and three-up from 1280, and a bar's label wraps instead of being cut.
+
+### 2. API contract
+
+Additive, no migration, no data rewritten (`B3.8_COMPLETION_CONTRACTS.md` §1–§6 has every field and code):
+- **`coachClients.updateSubscription`** — new operations `newTerm` / `renew` / `correct` (`reason: 'correction' | 'changePackage'`), optional `requestId` and `expectedTermId`, a `zone` with every dated change; the result gains `changed`. `setTerm` / `setPrice` are refused (`PRECONDITION_FAILED`, `APP_UPDATE_REQUIRED`) — an older installed app cannot write the ambiguous operation. New refusals: `TERM_EXISTS`, `NO_TERM`, `RENEWAL_STARTS_AFTER_TERM`, `RENEWAL_DURING_FREEZE`, `SUBSCRIPTION_CHANGED`.
+- **Term documents** gain `termId`, `startDate`, `endDate` (exclusive), `days`, `zone` (history entries also `planName`, `archivedBy`); invites `subZone`; audit snapshots the economic fields; events `reason`, `requestId`. Older documents are read as they are.
+- **New router `clientPayments`** (`list`, `record`, `reverse`, `correct`) and collections `clientPayments`, `clientPaymentTermLocks` (indexes in the accessor and `scripts/mongo-init-indexes.mjs`). Refusals: `PAYMENT_EXCEEDS_BALANCE`, `PAYMENT_ALREADY_REVERSED`, `PAYMENT_NOT_FOUND`, `TERM_NOT_FOUND`.
+- **EGP:** `coachClients.assign`, `updateSubscription`, `transfer`, `transfers.resolve`, `invites.create` and `clientPayments.*` refuse an explicit non-EGP currency (`UNSUPPORTED_CURRENCY`).
+- **P2:** every mutation by an active coach account whose Forma plan is expired / suspended is refused `PRECONDITION_FAILED` with `SUBSCRIPTION_EXPIRED` / `SUBSCRIPTION_SUSPENDED`, except the 20 allow-listed paths (contracts §6); `/api/media` lets such a coach upload only an avatar.
+- **Unchanged:** `auth.updateProfile` (still accepts `timezone` and `currency`), the Forma coach plan, trial, billing, capacity rules and admin commercial procedures (capacity add-on months now use the UTC calendar explicitly — the same result on Vercel).
+
+### 3. Tests
+
+| File | What it pins |
+|---|---|
+| `api/coach-clients/_terms.test.ts` (new, 20) | 30-day months, exclusive ends (1 Oct + 30 → 1–30 Oct, next 31 Oct), month ends / February / leap years, renewal from the day after a running term, the real end on archive (BE-3), corrections in place (same id, extension and freeze days kept, no-op detection), extension and freeze snapping |
+| `api/_trpc/routers/b38Terms.test.ts` (new, 24, replica set) | every Phase 0 scenario through the router: a correction books once, renew vs correct, a running term renewed only from its end, refusals (`TERM_EXISTS`, `RENEWAL_DURING_FREEZE`, legacy ops), `requestId` replay and racing changes, `expectedTermId`, a no-op save writes nothing, EGP refusals on every creator, invite claim / transfer zones |
+| `api/_trpc/routers/clientPayments.test.ts` (new, 16) | ownership (another coach, another relationship's term), piastres, no overpayment and two racing payments for the last balance, reverse once, correct = reversal + new payment atomically, idempotent retries, credit after a price correction, admin read, EGP only |
+| `api/_trpc/routers/b38CoachP2.test.ts` (new, 13) | **every mutation in the API router called as an expired coach** — refused unless allow-listed; a suspended coach; a coach with no plan; admins and clients unaffected; `messages.send` replay acknowledged but a new message refused and not stored; the media gate |
+| `src/lib/civilDateParity.test.ts` (new, 13) | server and app date code identical; Cairo DST (midnight spring-forward), UTC, Los Angeles; legacy instants |
+| `src/lib/paymentsParity.test.ts` (new, 4) · `src/lib/coachAnalytics.test.ts` (new, 10) | the app's ledger = the server's; every analytics figure (booked by first day, collected by date received, reversals nowhere, outstanding / overdue / credit, active paying, pipeline, packages, coverage notes) |
+| `src/components/coach/ClientPaymentsCard.test.tsx` (new, 8) · `SubscriptionTermSheet.test.tsx` (new, 8) | the payment form (prefill, methods, date ≤ today, confirmation, retry with the same id), reverse with a reason, read-only; the three term modes, the fixed renewal start, "Covers … · 30 days", nothing sent when nothing changed |
+| Changed to the new contracts | `b301Subscription`, `b301Ownership`, `b34CompatPrivacy`, `subscriptionHistory` (operations, dates, EGP); `b34CheckInOwnership` and the `b301Subscription` freeze race (two pre-existing flaky tests made deterministic); `coachBusiness.test`, `CoachBusiness.test`, `RoleAccount.test`, `coachNav.test` (sidebar groups), `CoachPlanProvider.test` (P2), `MessageThread.coach.test`; four page tests' plan-provider mocks gained `useWriteGate` |
+| `e2e3/specs/94-b38-completion.spec.ts` (new, 8) | payments (record InstaPay, what is left, reverse with a reason, nothing deleted — DB, Business counts live payments only); Fix C (edit = the same term once, Renew from the day after the running one ends — DB); P2 (an expired coach reads everything, every write control disabled with the reason, the server refuses a direct write); EGP (a USD write refused, never relabelled); the sidebar (four groups, sub-pages, one current page, RTL, tablet rail); widths at 1280 / 1440 / 1728 / 1920; axe EN and AR |
+| `e2e3/specs/95-b38c-visual.spec.ts` (new, 1) | the visual matrix (`B3_VISUAL_QA.md` §B3.8 completion) |
+| Specs changed (guarantees unchanged, route migration §14) | 20 (package card selectors, B3-C07), 81 / 88 / 93 (term sheet modes, the removed price sheet, EGP rows; 61 unchanged — `sub-set-term` kept its id), 85 (the sidebar lights Business / Forma / Account), 86–89 (each visual-matrix context closed after use — they kept up to 12 apps open at once) |
+
+### 4. Verification
+
+| Gate | Result (the exact final tree, 2026-10-22; full run `e2e-out/b38c-final-e2e2`, 02:59 → 04:15) |
+|---|---|
+| Typecheck / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 1113 / 1113 in 121 files** (B3.8: 983 in 112; +130 — §3) |
+| Build | **PASS.** Entry 493.43 / 159.14 kB gzip (B3.8: 484.77 / 156.46 — the new strings ship in the entry, as in every phase, plus the calendar-date and plan-lapse code). `ClientApp` 38.92 / 12.26 (39.02 / 12.28 — unchanged). `CoachApp` 27.20 / 9.10 (23.83 / 8.06 — the sidebar groups, the read-only gate). Business Overview 19.01 / 6.03 (5.38 / 1.88 — the analytics and charts); **a first visit to Business 29.21 kB / 10.90 gzip** (13.52 / 5.72). The client's package screen 23.52 / 6.52 (13.52 / 3.70 — the payments card); the term sheet 7.28 / 2.83 (4.65) — _correction (final review §4): imported statically by the package panel and Renewals, so it loads with the package screen, not on demand_. Renewals 5.22, Packages 5.97, Exports 6.11 (payments CSV), export builders 4.06. Precache 205 entries |
+| Budget (blueprint §9: each screen ≤ +20 %) | **Over on two screens, by the features themselves:** Business Overview (the analytics dashboard, owner decision 5) and the package screen (the payments ledger, decision 1). Every other screen within budget. No new polling — payments are read once per screen (`['coachPayments', coachId]`, fresh for 60 s) |
+| PWA (production build) / signed-in offline boot | **PASS / PASS** (0 manifest or installability errors; offline reload from the precache; the update waits until the tab is hidden; the known `Unexpected token '<'` page error of the isolated stack). The first boot attempt never started its stack (an in-memory replica set left over from an interrupted run) and was retried under a fresh tag |
+| **Full e2e3, all projects** | **364 passed, 0 failed, 0 flaky, 1 skipped of 365 — one complete run (1.3 h).** The skip is the approved Google sign-in case. 94 **8 / 8**; 95 **1 / 1**; 93 12 / 12; 20 12 / 12; 81 4 / 4; 85 7 / 7; 86 17 / 17; 87 19 / 19; 88 14 / 14; 89 16 / 16; 90 17 / 17; 92 15 / 15; 42 10 / 10; 46 12 / 12; layout 54 / 54 |
+| Runs before it | the first certification ran on battery with 0.23 GB free RAM (16 environment failures, discarded); the second (`b38c-cert2`): 358 passed, 5 failed — all five re-run green (10-auth: environment; 86–89: the visual matrices kept every context open — fixed, §3); a run on the final tree was stopped at 10 / 365 for the 1024 px fix (§1, Phase 8), and its re-start reused the stopped run's database folder and could not start — a fresh run ID, nothing deleted |
+| Accessibility (axe WCAG 2.1 A / AA) | spec 94: **16 scans** — the payments card, the payment sheet, the analytics overview and its table view, with the grouped sidebar, × 390 / 1440 × EN / AR: **0 violations**; spec 93: 32 scans, 0; spec 46: 0 critical |
+| Visual QA | **47 matrix shots, 0 px overflow, correct `dir`** (`e2e-out/b38c-final-e2e2/b38c-visual/`); `B3_VISUAL_QA.md` §B3.8 completion |
+| Physical devices | **Not run** — R-17 stays open |
+
+### 5. Backlog outcome
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | B38-R1 (EGP only, decision 8) · B38-R2 (Fix C, decision 2) · B38-R3 (the device zone by decision 9; term days anchored to their zone) |
+| **New** (known limitations / follow-ups — contracts §9) | B38C-R1 pre-B3.8 history entries counted as terms (P3, B5, clean launch) · B38C-R2 renewal refused during a pause (P3, B5, product decision) · B38C-R3 mid-term package change without pro-rating (P3, B5, owner decision) · B38C-R4 the anchor zone of a term (P3, B5) · B38C-R5 admin revenue aggregates still on their old formulas (P2, B5) · B38C-R6 `users.timezone` / `currency` and the refused legacy operations to remove once no older build runs (P3, Release hardening) |
+
+Totals after this section: Open 201 · Fixed 188 · 488 entries (the backlog recomputes them from its rows). Unchanged: MD-01 / 02 / 03, every release blocker, REL-04, B36-R4, R-17.
+
+### 6. Known limits and risks
+1. The six limitations in contracts §9 (B38C-R1…R4, R-17) and B38C-R5 / R6 above.
+2. **Payments are what the coach records.** Forma sees no bank, wallet or InstaPay transaction; every screen and the CSV say "recorded", never "verified".
+3. **P2 is enforced by the server.** The app's gates are convenience; a coach with no Forma plan document at all is not locked by this rule (the app treats it the same way).
+4. **The package screen grew with the payments card** (23.5 KB raw, 6.5 KB gzip — the payments feature itself); _correction (final review §4): the term sheet does not load on demand — it is a static import and loads with the screen (B38F-R4)_.
+5. **A pre-existing look on the Arabic package card:** "days left" is in the mono face, whose wide space shows between Arabic words (the global RTL rule falls back per glyph) — unchanged, for the B3.9 polish pass.
+6. Physical devices not run; R-17 stays open.
+
+### 7. Selector and route changes
+
+`B3_COACH_ROUTE_MIGRATION.md` §14 — no route added or removed; the sidebar's lit destinations; every changed test id (term sheet modes, the removed price sheet and currency fields, payments, analytics, P2, sidebar groups).
+
+**Status: the B3.8 completion is implemented and certified locally on the final tree (full e2e3 364 / 365 in one complete run — 0 failed, 0 flaky, the approved skip; unit / API 1113 / 1113; typecheck, boundaries, build, PWA and offline boot green — §4). Not committed — awaiting the owner's approval. Nothing staged, pushed or deployed; no data deleted, reset or migrated; B3.9 not started.**
+
+## B3.8 final review — financial boundary, transfer-in, unlinked payments, entitlements, bundle (2026-10-22)
+
+**Owner brief (2026-10-22, after the certified B3.8 completion):** a strictly scoped final review before the owner approves the local commit. Forma has two financial domains that must never meet: **Forma ↔ coach** (platform subscriptions, trials, renewals, capacity add-ons — Forma's revenue, managed by the Super Admin) and **coach ↔ client** (the coach's own packages and the Cash / Mobile Wallet / InstaPay payments the coach records — the coach's business, not Forma's revenue). No Admin redesign, no change to a financial formula, no new accounting subsystem.
+
+### 1. Findings and what changed
+
+| # | Area | Finding (verified in code and by test) | Action |
+|---|---|---|---|
+| 1 | Expired / suspended coach receiving a client by transfer | **Already refused by the server, but no test proved it.** `transfers.resolve` stays callable while a coach is lapsed (it protects the client: reject, cancel, release), so the *receiving* coach's plan is checked inside the transfer's own transaction: `reserveClientSlot` matches only an `active` plan whose `endsAt` is in the future; otherwise `capError` → `PRECONDITION_FAILED` `SUBSCRIPTION_EXPIRED` / `SUBSCRIPTION_SUSPENDED`, the transaction aborts (no relationship, ownership, slot, term or archive written) and `transfers.resolve` puts the request back to `pending` | **9 regression tests** (§3). Mutation check: with the plan conditions removed from the slot gate, 8 of the 9 fail (the ninth is a positive path); the file was restored byte-identical |
+| 2 | Payments not linked to a package | **Collected:** counted (money received — this month, all time, by method, in the trend). **Outstanding:** not reduced — only term-linked payments are taken off a package (`paidByTerm`). **Payments CSV:** the package cells were blank, the same as a package the file could not name. **Visibility:** the client's card listed the row as "Not linked to a package" but its Recorded / Outstanding and the Overview gave no hint, so Collected and Outstanding could both include the same money without a word; a client with **no** package recorded unlinked payments silently (the package field is hidden). **Later allocation:** supported — Correct on the payment, choose the package (a reversal + a payment for that package in one transaction, checked against its balance). **Correction / reversal:** as for any payment (void everywhere, kept, marked) | **Smallest label correction, no formula or server change:** `coachAnalytics` exposes `unlinkedMinor` / `unlinkedCount`; Overview › Overall says "N payments (EGP X) aren't linked to a package: they're in Collected but not taken off Outstanding. Link them with Correct…"; the client's card says how much was recorded without a package and how to link it; the payment form says when the client has no package to link to; the Payments CSV writes "Not linked to a package" in the package column (EN / AR / AR-EG) |
+| 3 | Coaches with no `coachPlans` document | **Fail-open for P2, fail-closed for clients.** `writeStateOf(null)` is `ok`, so such a coach is not read-only; adding a client is refused (`NO_SUBSCRIPTION` — `reserveClientSlot` / `coachCapStatus`). Every coach-creation path creates a trial plan: `auth.signup` (one transaction with the user), `adminUsers.create` and `adminUsers.setRole` (`ensureTrialPlan` **after** the user write, not in one transaction). No API path deletes a plan document. The app never calls `coachPlans.createTrial` (the recovery procedure exists and is allow-listed). So the state is reachable only through legacy / manual data or a failed admin creation; such a coach cannot gain clients but keeps full write access to any clients it already has | **Not changed — owner decision required (B38F-R3).** Options in the report |
+| 4 | Financial domain isolation | Verified: Forma revenue (`adminCoaches.list`: `trackedRevenue` from confirmed plan snapshots, `capacityRevenue` from capacity entitlements) reads no client term or payment; Business analytics read only the coach's relationships and `clientPayments`; Forma billing operations never write `clientPayments` / client terms; payment operations never write `coachPlans` / requests / entitlements; another coach is refused on every payment procedure. **Found (pre-existing, Admin, not changed):** Admin › Subscriptions shows "Total tracked MRR" = Forma coach revenue **+** `adminGrowth.clientMrr` (the monthly value of every coach's client packages) — the two ledgers added together (**B38F-R1**). Admin READ access to client payment records: `clientPayments.list` with `users.read` (admin and super admin by role; any account granted `users.read` as an extra permission); no admin screen calls it (**B38F-R2**, reported, pinned as it is) | **5 regression tests** (§3); B38F-R1 / R2 to the owner |
+| 5 | Bundle budget | Attributed module by module against a B3.7 build of HEAD (§4). One documentation error found: the term sheet is **not** loaded on demand (§B3.8 completion §4 and §6.4 said it was) — `CoachSubscriptionPanel` and Renewals import it statically, so it loads with the package screen | Doc corrected here; lazy split proposed (B38F-R4); i18n split proposed (B38F-R5) |
+
+### 2. API contract
+
+Unchanged. No procedure, schema, index, rule or permission changed. `BusinessAnalytics` (app-only) gains `unlinkedMinor` and `unlinkedCount`.
+
+### 3. Tests
+
+| File | What it pins |
+|---|---|
+| `api/_trpc/routers/b38CoachP2.test.ts` (+9 → 22) | expired **and** suspended receiving coach × (the client's current coach accepts · an admin accepts, also with a new package · an admin moves the client directly): refused with the right reason; a snapshot of every collection except the request is identical; the client's coach, `assignedCoachId`, both slot counts, the term (and its id and price) unchanged; the request back to `pending`; the receiving coach gets no roster entry, no client data (`checkIns.get`), no relationship and no payments. Also: a lapsed coach cannot file a request or take a client through an invite made while live (no account, relationship or slot; invite still pending); still allowed — the lapsed requester withdraws, the current coach rejects, and after renewal the same request completes ("keep" hands over the term without the previous coach's price or term id; the payment stays the previous coach's); a lapsed **current** coach can still hand the client to a live coach, and release |
+| `api/_trpc/routers/b38FinanceIsolation.test.ts` (new, 5) | client payments (record, unlinked, correct, reverse) and client package prices never change Forma revenue or any Forma billing document; Forma billing operations (suspend, reactivate, expire, extend, confirm, reject) leave `clientPayments` and client terms byte-for-byte unchanged; no cross-coach record / correct / reverse / read; admins read payment records through `users.read` and cannot write them; a suspended admin reads nothing; the grant is `users.read` itself (B38F-R2) |
+| `src/lib/coachAnalytics.test.ts` (+1) | an unlinked payment is in Collected (month, all time, method, trend), never taken off Outstanding, counted as unlinked; a reversed one counts nowhere |
+| `src/components/coach/ClientPaymentsCard.test.tsx` (+4) | the unlinked note (and none when all are linked); linking later through Correct sends a correction for the chosen package; a client with no package: the form says so and sends no package |
+| `src/pages/coach/business/CoachBusiness.test.tsx` (+2) | the Overview coverage note with the amount; the Payments CSV names an unlinked payment in its package column |
+| `e2e3/specs/95-b38c-visual.spec.ts` (seed + 2 assertions) | the matrix seeds one unlinked payment; both notes visible at every width and language |
+| `api/_trpc/routers/subscriptionHistory.test.ts` (fixture fixed, assertion unchanged in strength) | **A test defect from the B3.8 completion, found by this verification:** the legacy term ended at "now + 25 days" and the test expected the renewal to start on `dateKeyIn(end + 12 h)`, while the server applies the pinned legacy rule (`dayAfterEndInstant`: an end within ±2 h of midnight is that boundary; a mid-day end keeps its day as the partial last day — `civilDateParity.test.ts` line 94). The two agree only when the suite runs between about 12:00 and 02:00 Cairo time; it failed at 04:47. The end is now 15:00 Cairo on a fixed day and the expected start is the next day — the server code is unchanged and correct |
+
+### 4. Bundle review
+
+Measured on production builds with source maps: the B3.8 tree against a build of HEAD (B3.7, `025445c`, same dependencies), bytes attributed to source modules.
+
+| Chunk | B3.7 → now | Where the growth is |
+|---|---|---|
+| Entry | 480.48 / 155.24 → **494.10 / 159.34** kB (B3.8 certified: 493.43 / 159.14 — this review adds 0.67 kB of strings) | **+12.5 kB raw / +3.5 kB gzip of English strings** (`en.json` is inlined in the entry: 113.1 → 125.6 kB minified; `business` +8.3, `payments` +2.1, `forma` +1.2, `subscription` +1.1), `lib/format.ts` +1.2 (EGP formatting), `planLapseSignal` +0.2, `trpc.ts` +0.2. Arabic bundles load on demand (ar 185.8 kB, ar-eg 180.0 kB raw) |
+| Business, first visit | 13.52 / 5.72 → **29.47 / 10.97** kB (certified 29.21 / 10.90) | Overview chunk = `business/charts.tsx` 7.8 + `OverviewTab` 7.1 + `coachAnalytics` 3.1; plus `coachBusinessApi` 4.0, `payments` 0.9, `clientPaymentsApi` 0.9 — the analytics dashboard itself (owner decision 5) |
+| Client package screen | 13.52 / 3.70 → **23.86 / 6.61** kB, **+ the term sheet 7.28 / 2.83** = 31.14 / 9.44 actually downloaded (certified 23.52 / 6.52 + the same sheet) | `CoachSubscriptionPanel` 11.8 + `ClientPaymentsCard` 10.0 (owner decision 1); **plus the term sheet chunk 7.3 kB / 2.8 kB gzip, loaded statically** |
+
+**Accepted budget exceptions (owner decisions 1 and 5):** Business first visit and the package screen exceed the blueprint's +20 % by the features themselves; lazy-loading the charts or the payments card would not reduce what a first visit downloads (both are on screen at once).
+
+**Proposed (not done — B5 / owner):** B38F-R4 load `SubscriptionTermSheet` on first open (move `toMs` / `toDate` / `todayStr` / `invalidateSubscription` / `primaryTermMode` to a small module; `React.lazy` in the package panel and Renewals) — saves 7.3 kB raw / 2.8 kB gzip on every first visit to a package screen; B38F-R5 ship each role's strings with its app chunk (client / coach / admin namespaces) instead of the whole `en.json` in the entry — the largest item in the entry (≈ 25 %), under PF-17.
+
+### 5. Verification (2026-10-22, the final tree)
+
+| Gate | Result |
+|---|---|
+| Typecheck (incl. `api/**` tests) / boundaries | **PASS / PASS** |
+| Unit + API `vitest run` | **PASS — 1134 / 1134 in 122 files** (certified: 1113 / 1113 in 121; +21 new tests, 1 file). The first full run on this tree: 1133 / 1134 — the one failure was the time-of-day test defect in §3, fixed |
+| Build | **PASS.** Entry 494.10 / 159.34 kB gzip; `CoachApp` 27.20 / 9.11; `ClientApp` 38.92 / 12.26 (unchanged); Overview 19.27 / 6.10; package screen 23.86 / 6.61; term sheet 7.28 / 2.83; precache 205 entries |
+| PWA (production build) | **PASS** — every result line identical to the certified run (`e2e-out/.tmp/b38f-pwa.txt`) |
+| Signed-in offline boot | **PASS** — fresh stack `b38f-boot-stack`, client home renders offline, lazy runtime chunks from the SW, the known `Unexpected token '<'` page error of the isolated stack |
+| e2e3, focused (`b38f-focus-1`, chromium-1440) | **59 / 59 passed** in 11.7 min — specs 20 (coach core: package card), 46 (accessibility), 88 (workspace / package screen), 93 (Business, exports, 32 axe scans), 94 (payments, Fix C, P2, sidebar, widths, 16 axe scans), 95 (visual matrix) |
+| Visual matrix (spec 95) | **47 shots, 0 px overflow, right `dir` on every shot** (25 LTR, 22 RTL) with the unlinked payment seeded; both notes checked by eye in EN and AR (`e2e-out/b38f-focus-1/b38c-visual/`) |
+| Full e2e3 | **Not re-run**: no shared financial, subscription or authorization behaviour changed (server code untouched; the app change is two notes, one CSV label and an additive analytics field). The certified full run (`b38c-final-e2e2`, 364 / 365) stands for everything else |
+| Physical devices | Not run — R-17 stays open |
+
+### 6. Backlog outcome
+
+| Outcome | Items |
+|---|---|
+| **Fixed** | B38F-R6 payments not linked to a package said nowhere (P2) |
+| **New — owner decisions** | B38F-R1 Admin "Total tracked MRR" adds coach-client value to Forma revenue (P2, Recommended before launch) · B38F-R2 `users.read` reads any coach's client payments (P2, with REL-02) · B38F-R3 a coach with no plan document is not read-only (P2) |
+| **New — B5** | B38F-R4 the term sheet loads statically with the package screen (P3) · B38F-R5 the English strings ship in the entry (P3, see PF-17) |
+
+Totals: Open 206 · Fixed 189 · 494 entries (recomputed from the rows). Unchanged: MD-01 / 02 / 03, PWA-06, R-17 and the physical-device matrix, REL-01…04, B36-R4, every release blocker.
+
+### 7. Known limits and risks
+1. The three owner decisions above (B38F-R1…R3) are open; nothing in Admin, permissions or the no-plan rule was changed.
+2. Unlinked payments stay a valid choice (an advance before a package is set up); they are now visible everywhere, and linking is a correction (reversal + payment), so "Reversed this month" also counts a re-link.
+3. The bundle exceptions above are accepted by the features; B38F-R4 / R5 are the measured follow-ups.
+
+### 8. Found by the B3.9 read-only audit the same day (recorded, not changed)
+
+Verified in code after the review; none was introduced by B3.8 and no code was changed for them:
+- **B39A-S01 (P0, release blocker)** — `auth.requestPasswordReset` builds the reset link from the request's `Origin` header before `APP_BASE_URL` (unchanged since 2026-10-03); `invites.create` / resend do the same. Nothing in front of tRPC checks `Origin`, so a forged request mails a genuine reset link pointing at another host. Owner approval needed for the fix.
+- **B38F-R7 (P3)** — `clientPayments.list` is capped at 5,000 records without paging; Business, the exports and the client's card compute from it.
+- Further verified B3 / release items (two coaches assigning one client at once; `endRelationship` without compare-and-set; plan versions visible to the next coach after a fresh start; `subscriptionRequest.decide` without a status check; B3-S09) are in the B3.9 audit report for the owner's decision.
+
+**Status: B3.8 final review complete and verified locally. Not committed — awaiting the owner's approval. Nothing staged, pushed or deployed; no data deleted, reset or migrated; B3.9 not started.**
+
+
+## B3.8 finalization — owner decisions B38F-R1 / R2 / R3 (2026-10-22)
+
+**Owner brief (2026-10-22, "B3.8 Finalization, Critical Security Hotfix & B3.9"):** the final review and the B3.9 audit are approved as the planning baseline. Three B3.8 findings are decided: Forma Admin manages the Forma ↔ coach financial relationship only (R1); a coach's client-payment records are private to that coach (R2); a coach with no valid Forma subscription or trial is read-only — default-deny (R3). No commit.
+
+### 1. What changed
+
+| Decision | Change | Files |
+|---|---|---|
+| **R1 — Forma revenue is Forma's** | `adminCoaches.list`: `trackedRevenue` counts only active paid terms with a **confirmed payment** (`subscription.confirmedAt`, written only by `coachPlanRequests.confirm`); `capacityRevenue` counts only active **monthly** add-ons bought through a **confirmed request** (`source: 'request'`). New counts `unconfirmedPaidCoaches`, `grantedAddons` (not revenue). `adminGrowth.get` no longer returns `clientMrr` (and its `currency`) — no coach-client money is aggregated in Admin; the dead `monthlyOf` helper is removed. Admin › Subscriptions: hero **"Forma recurring revenue / mo"** = subscriptions + add-ons, split by source; the "Client subscriptions (MRR)" and "Total tracked MRR" lines are gone; a line says what is not counted. The Overview dashboard tile uses the same figure and label. One-time add-ons stay out of the monthly figure | `api/_trpc/routers/adminCoaches.ts`, `adminAnalytics.ts`, `api/admin/_lib/subscription.ts`, `src/pages/admin/AdminSubscriptions.tsx`, `admin/dashboard/OverviewPanel.tsx`, `services/platform/adminCoachesApi.ts`, `adminGrowthApi.ts`, i18n ×3 |
+| **R2 — payments private to their coach** | `clientPayments.list` → coach-only, the caller's own ledger (`coachId`, if sent, must be the caller); no permission (`users.read`, `clients.readAll`, an extra grant) reads another coach's ledger; record / reverse / correct were already coach-only and ownership-checked. Admin reads of a relationship (`coachClients.get`, `.list` by client or by coach) and of the member list (`adminMembers.get`) carry **no package economics** (price, currency, package name, billing cycle, the coach's term note — also in history, earlier stints and audit snapshots) — status, dates, length, freezes and the term id remain (no admin screen reads those fields). The coach and the client still see theirs. Forma's own billing administration is untouched | `api/_trpc/routers/clientPayments.ts`, `coachClients.ts`, `adminAnalytics.ts`, new `api/coach-clients/_economics.ts` |
+| **R3 — no plan = read-only** | `writeStateOf(null)` → `none` → `PRECONDITION_FAILED` `NO_SUBSCRIPTION` for every gated coach mutation (default-deny, the same allow-list: account, Forma activation / recovery, read markers, client protection, support); `messages.send` and coach uploads (avatar only) too. `adminUsers.create` and `adminUsers.setRole` write the account and its trial in **one transaction** (as `auth.signup`); `setRole` never gives a second trial (idempotent `ensureTrialPlan`). `coachPlans.createTrial` (recovery) stays idempotent and is refused (`NO_SUBSCRIPTION`) for an account with Forma history (a request, an add-on or any relationship) but no plan document — no second trial, no silent extension. App: a coach the server answers "no plan" for is read-only (never mid-load or on a failed read) with its own sentences; `NO_SUBSCRIPTION` joins the plan-lapse signal (tRPC + uploads) | `api/_lib/coachEntitlement.ts`, `api/media/_lib/policy.ts`, `api/_trpc/routers/adminUsers.ts`, `coachPlans.ts`, `src/components/coach/CoachPlanProvider.tsx`, `ClientCapBlocked.tsx`, `MessageThread.tsx`, `services/platform/planLapseSignal.ts`, `mediaApi.ts`, `lib/errorKind.ts`, i18n ×3 |
+
+### 2. Tests
+
+| File | What it pins |
+|---|---|
+| `b38FinanceIsolation.test.ts` (5 → 8) | admins and super admins cannot read, record, correct or reverse payments (direct API calls, by coach / own / client); a coach granted `users.read` + `clients.readAll` still reads only its own ledger; admin relationship and member reads carry no economics while the coach and the client see theirs; `adminGrowth` has no client money; only payment-evidenced recurring income counts (confirmed subscription, a hand-written "paid" plan excluded, admin-granted and one-time add-ons excluded) and a coach's packages and collections never move it |
+| `b38CoachP2.test.ts` (22 → 26) | every gated mutation of a no-plan coach → `NO_SUBSCRIPTION`; send and uploads refused, avatar allowed, reads / account / activation open; `createTrial` for a fresh account once (idempotent, nothing reset), refused with history (relationship; an old request), never extends an expired plan; admin-created and promoted coaches exist only with their plan and promotion again gives no second trial |
+| `clientPayments.test.ts`, `b301Ownership.test.ts`, `certification.test.ts` | the old admin-read expectations replaced by the owner's rule; "no plan" error semantics now `NO_SUBSCRIPTION` for the coach, `CONFLICT` "no active Forma subscription" for an admin assigning to that coach |
+| `CoachPlanProvider.test.tsx` (+2) · `AdminSubscriptions.test.tsx` (new, 3) | no-plan read-only (not while loading), `NO_SUBSCRIPTION` re-reads the plan; the Admin hero = Forma revenue only, split, exclusions stated, no client figure |
+| Fixture: `api/_lib/testFixtures.ts` `ensureCoachPlan` | 23 API suites created coaches without a plan document (which no real coach can have since B38F-R3); they now give them one — the authorization assertions they make (`FORBIDDEN` for a stranger coach) are unchanged and still exercised. `admin.test.ts` runs on a replica set (production is one) for the transactional creation |
+
+### 3. Verification (B3.8-final state, before the security hotfix)
+
+- API 724/724 · UI unit 417/417 · typecheck (app + api) clean · build OK (entry 494.96 kB / 159.48 kB gzip).
+- **Full e2e3** on a frozen copy of the tree (`D:\Gym-b38cert`, isolated stack, ports 5197/5297): **364 passed, 1 skipped** (the approved Google sign-in skip), exit 0, 1.2 h (run `b38fin-full-1`, 14:30–15:40).
+- Commit boundary snapshot: `e2e-out/.tmp/commit-boundaries/01-b38-final.*` (135 tracked + 50 untracked; excludes `B3.9_AUDIT_AND_PLAN.md` and every later change).
+
+
+## Security hotfix — B39A-S01 (P0) password-reset poisoning · B36-R4 (P1) rate limits (2026-10-22)
+
+**Owner brief:** highest priority, before any B3.9 UI work; security fixes inside authentication backend logic are allowed (no auth-screen redesign); no secret, infrastructure, production or deploy change.
+
+### 1. B39A-S01 — emailed links on a trusted origin only
+
+**Before:** `auth.requestPasswordReset` built `${ctx.req.headers.origin || APP_BASE_URL || 'https://www.useforma.fit'}/reset/<token>`; `auth.signup`, `invites.create` and `invites.claim` built their links the same way. Nothing in front of tRPC checks `Origin`. A request with a forged `Origin` for a victim's email made Forma mail the victim a genuine reset link to the attacker's host → the token → account takeover (any role). Also: with no email key, the reset link (token) and invite links were written to the server log (`auth.ts` dev branch, `email.ts` fallbacks).
+
+**After:** `api/_lib/appUrl.ts` `trustedAppOrigin()` — the ONE source of emailed links: `APP_BASE_URL`, validated as a bare origin (https; http only for localhost outside production; no credentials, path, query, fragment); production without it → the built-in `https://www.useforma.fit` (a constant), logged once; anything else (invalid value; missing outside production, a Vercel preview included) → `AppUrlError` → **fail safe**: no email, and for a reset **no token stored** — the reply stays `{ ok: true }` (no enumeration). Request headers (`Origin`, `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `Forwarded`, `Referer`) are never read for links. Every call site uses it (`auth.signup`, `auth.requestPasswordReset`, `invites.create`, `invites.claim`). Tokens and invite links never reach the logs; only the token's hash is stored (unchanged). The legitimate journeys are unchanged (spec 10 resets, invite / claim specs).
+
+**Tests:** `api/_lib/appUrl.test.ts` (6) — the policy; `api/_trpc/routers/b39Security.test.ts` (9) — forged `Origin` / `Host` / `X-Forwarded-*` / `Forwarded` / `Referer` never reach the link; missing `Origin`; configured production origin; production with no configuration → the constant; six invalid / missing configurations → nothing sent, no token stored, same reply; unknown email; the emailed token resets once and is never logged (console captured); invite and welcome emails on the trusted origin; an invite with no trusted origin is created but not mailed. **Mutation check:** with the old `Origin`-first line restored, 3 tests fail (file restored byte-identical).
+
+**Production exposure (not changed — owner action):** production runs RC2 `cf3a5d9`, deployed via CLI, with `APP_BASE_URL` **unset** (`FORMA_FINAL_PRODUCTION_RELEASE_REPORT.md`), so it builds reset and invite links from the request's `Origin` today. Proposed incident-response checklist (each step owner-run, after approval):
+1. Deploy this fix (the only code change needed; no new secret). Optionally set `APP_BASE_URL=https://www.useforma.fit` in Vercel **Production** and the preview URL in **Preview** (otherwise previews send no emails, by design).
+2. Invalidate outstanding reset tokens: delete or mark `used` every `passwordResets` row with `expiresAt` in the future, right after the deploy (tokens live 1 hour, so the window is short; clean launch replaces the database anyway).
+3. Review the email provider's sent log (Resend) for password-reset and invite emails whose links point at a host other than `www.useforma.fit`; and the Vercel function logs for `requestPasswordReset` bursts. If `RESEND_API_KEY` was ever unset in production, the function logs contained reset links with tokens — restrict and purge those logs.
+4. For any account with a reset confirmed shortly after a suspicious request: revoke its sessions (`revokeAllUserSessions`), force a new password, notify the owner of the account.
+5. Record the outcome in REL-02 (security / privacy review).
+
+### 2. B36-R4 — server-side rate limits
+
+**Infrastructure:** `api/_lib/rateLimit.ts` (Mongo fixed window, shared by every instance) now increments with one atomic `findOneAndUpdate` and survives the race of two first hits on a new window (duplicate key → one retry as an update); a refusal is `TOO_MANY_REQUESTS` with `cause` `RATE_LIMITED` and `retryAfter` (seconds to the window's end), surfaced by the error formatter as `error.data.reason` / `error.data.retryAfter`.
+
+| Procedure | Limit (proposed — owner to confirm) | Where |
+|---|---|---|
+| `messages.send` | **300 per sender** and **60 per conversation** per 10 minutes | after the idempotent replay (a retried delivered message never counts) and after authorization and the plan gate |
+| `invites.create` | **30 per creating account per hour**; **5 per destination address per 24 h** across every coach | before anything is written or mailed |
+
+Why these values: a broadcast to a whole roster (capacity ≤ ~100 today) fits the per-sender window three times over; 60 messages in 10 minutes in one conversation is beyond a fast human chat; 30 invites an hour covers onboarding a group; 5 invitations of one address a day stops one inbox being flooded from many throwaway trial coaches. The app already handles the refusal: the outbox keeps a rate-limited message and retries after ≥ 30 s (`outbox.ts`), a broadcast lists such recipients as not sent with retry. They do not change any existing user flow; they are named constants (`MESSAGE_SEND_LIMIT`, `INVITE_CREATE_LIMIT`) if the owner wants others.
+
+**Tests (`b39Security.test.ts`, +6):** per conversation 60 then `RATE_LIMITED` + `retryAfter` (also on the wire: `data.reason`, `data.retryAfter`, HTTP 429) and nothing stored, other conversations unaffected; a delivered retry acknowledged in a full window; **70 concurrent sends → exactly 60 stored, 10 refused**; per sender across conversations (a client too) and recovery in the next window; authorization first (a stranger coach is `FORBIDDEN` and consumes no counter); invites per account and per address across coaches, refusals creating and mailing nothing.
+
+### 3. Verification (security checkpoint)
+
+API: `b39Security` + `appUrl` 15 / 15; messaging, invites, auth, ownership and P2 suites 176 / 176; typecheck, boundaries, build PASS (entry 494.96 / 159.48 kB gzip). Browser: specs 10 (auth / reset), 20 (invite → claim), 31 / 90 (messaging), 94 run after the B3.8 full certification (two isolated stacks at once would starve this machine) — results in §B3.9 certification.
+
+## B3.9 — Coach blueprint completion (implementation, 2026-10-22)
+
+Scope and order: `B3.9_AUDIT_AND_PLAN.md` §7 (owner-approved baseline). Local only — nothing staged, committed or deployed.
+
+### B3.9.0 (C0) — test safety net
+
+- **Clock / timezone independence (e2e3 specs).** A new `e2e3/specs/_dates.ts` holds the Cairo civil-date helpers (`cairoDay`, `addDays`, `daysBetween`, `cairoMidnight`, `cairoNoon`, `weekStartOf` (Saturday, as the app), `cairoMonth`, `anchorAt` / `dayRolled`).
+  - Checked against `src/lib/civilDate.ts` over 1,200 consecutive days across both Egyptian DST changes: 0 differences.
+  - Specs 86, 87, 88, 93, 61, 80, 81, 20, 94 and 95 now step calendar days on the date key, not 24 h.
+  - Module-load "now" anchors were removed: fixtures are built at seed time and re-seeded if Cairo midnight passes during the run.
+  - 81's freeze was one day short across the 25-hour DST-end day; fixed.
+  - 94/95 had a private copy whose day started at 03:00 on DST-start days (the app starts it at 01:00); replaced.
+- **Selectors.** 20 (custom price by label, not the 2nd input), 40 (avatar through the real file chooser), 92 (sort header by role; target by name), 89 (new section by `data-section-id`; cardio move button by its accessible name) and `_a-helpers` (`/coach/me` → `me-sign-out`). The admin sidebar is scoped by its admin link (13, `_d-layout`).
+- **Language waits.** A shared `waitForLocaleSaved(page, locale)` replaces fixed sleeps: it waits for `<html lang>` and the account's IndexedDB settings to hold the new locale. That stored copy is what a reload reads; a coach's language never reaches the server.
+- **Coach offline boot.** New script `e2e3/pwa/b39-coach-offline-boot.mjs`. It refuses to run unless the stack is loopback-only (`current-env-<port>.json`, loopback Mongo and Bunny stub, seeded coach).
+  - Phone and desktop.
+  - It goes offline, reloads, then navigates Today → Clients → Messages → Library → Today.
+  - It fails on a login screen, the error boundary, a self-reload, a chunk fetched from the network, or a screen not rendering.
+- **Bundle report.** New `scripts/bundle-report.mjs` and `scripts/bundle-budgets.json` report each coach screen's first-visit closure, minus what the entry has already loaded. Its parsed closures match Vite's own preload lists for all 78 dynamic imports. `--strict` fails a budget overrun or a missing chunk.
+- Known remaining wall-clock / run-order ties are listed for B5 (fixed sleeps in 20/31/32/40/42/43/61/86/90; run-order seeds 20→80, 86, 87, 90).
+
+### B3.9.1 (C1) — server integrity
+
+- **One active relationship per client.**
+  - `assignExistingClient` is now one transaction: CAS-claim the user (`assignedCoachId` missing/null), then `reserveClientSlot`, then `activateRelationship`.
+  - Index script `uniq_active_client` (unique, partial `status:'active'`) with a duplicate preflight. It is not built against existing data without owner approval; on duplicates it is skipped with a warning.
+- **`endRelationship` CAS.** One transaction on `status:'active'`.
+  - Already ended as released/unassigned: idempotent.
+  - Otherwise: CONFLICT.
+  - It unsets `assignedCoachId` only where it still names this coach, and releases the slot in the same session.
+- **Plan-history isolation (B3-S09).** A coach sees only the versions from their current stint (`createdAt >= relationship.createdAt`) in `list` and `restore`, capped at 200.
+- **Check-in review / delete / decide CAS.**
+  - `review` only on submitted/reviewed (`CHECKIN_NOT_SUBMITTED`). The first review is a CAS on `submitted`; edits are a CAS on `updatedAt`. Unchanged feedback means no write and no notify.
+  - `delete` only while `requested` (`CHECKIN_ANSWERED`).
+  - `subscriptionRequest.decide`: CAS on `pending` and this stint, no upsert (`REQUEST_ALREADY_RESOLVED`).
+  - Assessment `review`: CAS on submitted/updated_after_review, idempotent (`ASSESSMENT_NOT_SUBMITTED`). `saveDraft` keeps a reviewed status. The UI offers "Mark reviewed" only for a submitted assessment.
+- **Privacy.**
+  - `banners.list` requires `flags.manage`.
+  - `invites.list` redacts email/phone on non-pending invites for non-assigners.
+  - `transfers.create` derives `fromCoachId` on the server.
+  - Incoming transfers are limited to the coach's active clients.
+  - Resolving as the from-coach needs `assertCurrentCoach`.
+- Tests: `b39Integrity.test.ts` (15, real concurrency on a replica set; the assign race test fails without the CAS — mutation-checked). Updated: b34 (answered delete → CONFLICT), certification (the `fromCoachId` hijack is filed against the real coach), banners (admin lists; coach forbidden). Affected suites 81/81.
+
+### B3.9.2 (C2) — honest states
+
+- **Paused reads.** React Query pauses a fetch while it believes the device is offline. A paused read with nothing on the device is now **offline**, never an endless skeleton and never "nothing here".
+  - `screenStatus` takes `paused`.
+  - New `queryScreen(q)` / `useQueryScreen(q)` map a query result.
+  - Coach sources carry `paused`.
+- **Converted to offline / error / loading / stale:**
+  - Today, Clients, Messages (list).
+  - Workspace Plan lines and the Progress week.
+  - Check-ins, Timeline, Assessment.
+  - Add-client pending invites.
+  - Transfer lists (error + Retry), assign-program roster.
+  - Plan history versions.
+  - The Summary plan card and check-in line: "Couldn't load" / "Offline — not on this device yet" plus "Some of this couldn't load · Retry" — no bare "—".
+- **Write gates.** New invite (plan + connection); revoke, transfer approve/reject/cancel (connection); assign program (`useWriteGate`); history save-with-note and restore (connection; the editor is behind the plan gate).
+- **TS-02 — one translated error line.** New `src/lib/errorMessage.ts`, `errorMessage(e, t, fallbackKey?)`, in this order:
+  1. the server's stable reason (`forma.reason.*`);
+  2. the failure kind (no connection; rate limited, with minutes from `retryAfter`; session; server);
+  3. the refusal code (forbidden, gone, changed meanwhile, not valid, not now);
+  4. the fallback.
+
+  The server's English text (sometimes validation JSON or E11000) is never shown. 44 UI error paths in coach, admin, the password sheet and the assessment wizard were switched.
+  - `commercialErrorMessage` now delegates to it.
+  - A wrong current password (UNAUTHORIZED) reads as such, not as "session ended".
+  - Auth screens (login, reset, accept-invite) were not touched: authentication-page scope.
+  - New reasons translated: `CHECKIN_NOT_SUBMITTED`, `CHECKIN_ANSWERED`, `ASSESSMENT_NOT_SUBMITTED`.
+  - Found by the full certification run (spec 21): a transfer refused by the RECEIVING coach's capacity read "Client capacity reached — add client capacity…" to the approving coach, as if it were their own. The server now sends `DESTINATION_CAPACITY_REACHED` / `DESTINATION_NOT_ACCEPTING` for the transfer path (`capError(…, DESTINATION_CAP_REASONS)`), translated "The receiving coach has no free client places…" in EN / AR / AR-EG. Pinned by `_capReservation.test.ts` and spec 21.
+- **TS-06 — toast titles are outcomes:**
+  - Client transferred.
+  - Check-in requested / reviewed.
+  - Subscription frozen until {date} / unfrozen / ended / cancelled / extended by N days.
+  - Pause accepted / declined.
+  - Coach plan renewed for 30 days.
+  - Coach suspended / reactivated.
+  - Account created.
+  - {name} added to your clients (name isolated).
+
+  The question toast ("Make this a custom override?") is now "Now a custom version for this client"; its orphan key was removed.
+- Tests: `errorMessage.test.tsx` (8, EN + AR + AR-EG; asserts no English or raw server text in Arabic) and `ScreenState.test.tsx` (+4, paused). UI unit: 62 files / 434 tests green. Typecheck clean.
+
+### B3.9.3 (C3) — shared design primitives
+
+- **VS-01 — button sizes are real.** `.btn-sm` now sits after the variants: each variant `@apply btn` re-declared the base size, so the modifier was dead and every "small" button rendered 48 px.
+  - Dense size: 32 px visual, 12 px text, 44 px hit area.
+  - The per-site `h-8 px-3 text-[11px]` / `h-9 … text-[13px]` hacks (which lost to `min-height` anyway) are now `btn-sm`.
+  - `.btn-lg` is left alone: it is used only by the frozen marketing page and onboarding.
+- **AX-01 — 44 px hit area.** The shared invisible area under `.btn-sm`, `.chip`, `.seg` buttons, `.sec-link` and `.icon-btn` is a guaranteed 44 × 44 px, centred (as `.hit-44`). The old `inset: -4px` reached only 40–42 px.
+- **AX-08 — selected chips.** A selected chip is also semibold and double-outlined — never colour alone. 23 toggle chips got `aria-pressed`; the rest already had `aria-pressed`, `role` or a radio role, or are static badges.
+- **B33-R1.** `.pill-bad` uses the AA-safe `danger.text` token; the per-screen `toneText` workaround is gone.
+- **VS-10 — one status vocabulary.** New `src/lib/statusTone.ts` holds one map per domain: subscription, account, client state, coach plan, check-in, assessment, transfer, plus `TONE_TEXT`. 11 screens' local maps were replaced. A trial is `info`, not brand (VS-05).
+- **VS-04 — 12 px floor.**
+  - `.pill`, `.ui-label`, `.sec-link`, `.btn-sm` and `.seg` are 12 px everywhere.
+  - `.label`, `.eyebrow` and `.stat-label` are 12 px inside the signed-in app only. `useAppSurface` marks `<html data-surface="app">`, so portals are included; the marketing and auth pages are untouched.
+  - 54 sub-12 px utilities on coach screens and the shared coach-facing components (DataTable, MetricCard, TabBar, CommandPalette, MessageThread) are now 12 px.
+- **Mono in Arabic.** Inside the app, Arabic text styled `font-mono` uses the Arabic face with tabular figures. `.stat-unit` is translated text, so it uses the Arabic face too. Numbers meant to be compared keep `t-numeric` / `stat-num`.
+- **VS-17 — charts.**
+  - Chart colours are tokens (`--ui-chart-grid / track / guide / label`).
+  - LineChart axis labels are HTML at a real 12 px; the old SVG text in a scaled viewBox rendered about 8 px on phones and 17 px on wide cards.
+  - Every chart label and legend is at least 12 px.
+- **VS-02 — focus.** The remaining hand-coloured focus rings now use the `ui-focus` token.
+- **CD-02 / RM-31 — one KPI tile.** `Metric` (+ `MetricGroup`, one hairline surface) is the coach tile: promoted from Business and used by Business, Progress › Body and Progress › Day. Admin keeps `MetricCard`. The old shared `StatTile` is deleted (git grep: no importers; the marketing page has its own).
+- **VS-13 / RM-33 / RM-49 — headers.**
+  - Inside the workspace, Check-ins and Assessment are `h2` sections, not a second `h1`.
+  - Messages on phones uses the coach page header (`t-title`) like Today, Clients, Library and Business.
+  - No FORMA eyebrow on Account.
+
+### B3.9.4 (C4) — coach screen polish
+
+- **One weekly metric (owner).** New `weekTraining()`: distinct completed plan days ÷ plan days, with sessions shown beside it. Summary and Progress use it, so "4 of 3" can no longer happen. Tests: `coachWorkspace.test.ts` +1.
+- **CO-19 (D6).** The "Flag custom swaps for review" switch and the "Needs review" badge are gone: coach editor, coach views and the client's Nutrition. The client no longer flags swaps. Stored legacy fields stay readable; there is no migration. Orphan strings were removed, as was `assessment.photosSoon`. Spec 89 was updated (the switch is gone; another policy is toggled).
+- **D10.** The `…/versions/:kind` URL redirects to that editor with its History sheet open (`?history=1`, read once). The Plan section's History links there too. `PlanVersionHistory.tsx` and the unused `VersionActions.tsx` are deleted. Tests: `versionsTarget` unit, plus a spec 89 redirect test.
+- **Today (≥ 1280).** A 5 : 7 split. The panel shows the client's context (package, last workout, 7-day workouts, this week's check-in) from Today's own directory rows, with no extra reads. Its actions are content-width; a phone sheet keeps full-width actions.
+- **Hierarchy (CD-01 / CD-04).**
+  - Summary: one hero box ("Needs you"); Training and Body are unboxed sections; Plan, Check-in and Note are one grouped surface.
+  - Business Overview: the 8 equal tiles are two `MetricGroup` strips.
+  - Subscription panel: Renew is content-width from `sm`.
+  - History rows are a hairline group, not a card in a card (CD-03).
+- **Progress sub-views rebuilt** (honest states: loading / offline / error / stale / empty):
+  - Body: weights as one `MetricGroup` (latest, change since) + chart + list; the duplicate measurements snapshot was dropped.
+  - Measurements (RTL-11):
+    - A real table that follows the page direction, with Δ in cm and neutral deltas.
+    - The entry form appears only once entries have loaded, so a failed read can never save over values it never saw.
+  - Cardio: the plan and the day as grouped surfaces; units on every figure; "Not logged" instead of "—".
+  - Photos: real buttons with translated names (pose · date); a responsive grid.
+  - Nutrition: nothing is totalled until the plan and the log have loaded; kcal / g / ml units; tokens instead of slate / sky.
+  - Day view: states and one `MetricGroup`.
+- **CO-13.** Check-ins: the list to review leads; "Request this week's" is the section's secondary action.
+- **VS-05.**
+  - Library: while the starter panel is shown, "Add the starter library" is the one primary and the header's "New …" is secondary.
+  - Editors: "Save plan" is orange only while there are unsaved changes.
+- **Meal name at 1024.** Name and slot stack between 1024 and 1279 px (the name was about 120 px wide).
+- **B2-R03.** MeasurementForm was rebuilt once for both roles:
+  - no "0" placeholders that read as values;
+  - cm on every field;
+  - 12 px labels;
+  - tokens.
+
+### B3.9.5 (C5) — accessibility & RTL
+
+- **Skip link and focus on navigation (AX-05).** `SkipLink` and `useRouteFocus` are in every shell. There is one `#main-content`. After a route change, focus moves to the new screen's `h1` (or its main region), unless the screen already focused something.
+- **One focus trap (`useFocusTrap`)** for Sheet, the dialog host, the command palette, the media viewer and the phone task screens (plan editor, thread):
+  - Tab cycles enabled, visible controls only.
+  - Escape closes the top layer only — a confirm over a sheet never closes both — and respects a handler that already took the key.
+  - Everything outside the top layer is `inert`. The toast region (now portaled to `<body>`, `data-trap-keep`) stays live.
+  - Tests: `useFocusTrap.test.tsx` (6), plus spec 96.
+- **Arrow keys (`rovingIndex`).** Tabs and the segmented control (roving tab stop), ActionMenu (Up / Down / Home / End over enabled items), and the cardio type and broadcast audience radio groups. Left and Right follow the reading direction.
+- **AX-03.** The four freeze date fields are labelled; the check-in feedback and assessment notes textareas are named; the four nutrition-editor chip pickers are named groups. **AX-11:** template days are `h2`, sections `h3` (no skipped level).
+- **RTL-07.** The `assessment.activities.moderate` key was added; unknown cardio types read "Other"; the activity level falls back to "—".
+- **RTL-09.**
+  - In Arabic, inside the app, every interpolated string (names, titles, dates) is isolated (FSI … PDI) by the i18next formatter (`alwaysFormat`). Counts are untouched; the website is excluded.
+  - Language options carry `lang`.
+  - The ErrorBoundary is translated (EN fallback) and sets its direction.
+- **B32-R1.** Check-in notes and coach feedback render with `dir="auto"` on both sides.
+- **Plural.** `coachLib.templatesUpdated` is a real `count` plural in EN / AR (six forms) / AR-EG; the owner's Egyptian wording is kept as the `few` form.
+
+### B3.9.6 (C6) — performance
+
+- **PF-07 / RM-84 — one cache entry per resource.**
+  - Weigh-ins: header, Summary and Body share `clientWeightLogsQuery` (3 reads → 1).
+  - Business reads the roster through the shared `['myClients']` entry (`ensureQueryData`) instead of downloading it again.
+  - The workspace header starts from the roster's public user record (no second `user` read while the roster is fresh).
+- **PF-12.** A check-in review writes the result into the client's check-in list (`writeReviewToCache`) instead of refetching it; the coach-wide summaries still refresh. Remaining (library CRUD, notes, term, payments cache writes) → B5.
+- **PF-22.**
+  - The Nutrition view polls only the nutrition log: one procedure every 15 s instead of five (20 → 4 calls / min).
+  - The plan-request banner is read and polled on Today only, where it shows.
+- **B38F-R7 (part).** The workspace Payments card reads that client's records only (server-filtered), not the coach's whole ledger.
+- **Messages.** The roster e-mail lookup is a Map, not a scan per row (it was O(n²) at 200 clients).
+- **PF-14 (server, owner D5: projections, indexes, bounded windows):**
+  - Thread summary: `$sort` by (clientId, createdAt), the existing index order, instead of an in-memory sort of every message.
+  - Roster ids: projections on relationship reads (`listMyClientUsers`, `listForCoachClients`).
+  - Check-in overview: `$topN` (12 per client) in the database instead of every check-in ever.
+  - Directory: the 7-day count reads 7 days, and the last workout is each client's newest date read in index order.
+  - New additive indexes in `scripts/mongo-init-indexes.mjs` (not unique, not built here): `notifications {clientId, forRole, seenAt}`, `syncRecords {clientId, collection, data.finished, data.date}`.
+  - Counters and paging → B5.
+- Tests: `b39Integrity.test.ts` +2 (a bounded read keeps the latest and the previous answered check-in across 40 weeks and excludes another coach's; the last workout months ago is still its date, not "never").
+
+### B3.9.7 (C7) — certification
+
+**Full e2e3:** run `b39-full-1`, on a frozen copy of the tree (`D:\Gym-b38cert`, isolated stack, 17:22–18:34). **373 tests: 369 passed, 1 skipped** (the approved Google sign-in skip), **3 failed**, each diagnosed and fixed:
+1. **Spec 21** (transfer to a full destination): the translated capacity line read as the approving coach's own capacity. Fixed with the destination reasons (§B3.9.2 note), and the spec expects "receiving coach".
+2. **Spec 97 axe matrix:** the browser context closed after 128 s under the full run's memory pressure. This was not a violation: the same matrix passed 0 / 231 standalone (`b39-cert-1`). Re-run below.
+3. **Spec 97 tap targets:** with the data earlier specs leave behind (a starter library, a nutrition plan for Aya), it found the Library sort headers (18 px), the goal filter (36 px), the editor switches (25 px) and the client-context toggle (40 px). Fixed:
+   - real 44 px header cells with full-height sort buttons — a centred area would be clipped by the table;
+   - a 44 px filter;
+   - `hit-44` on `Switch`;
+   - a 44 px toggle.
+
+**Re-run on the final tree** (run `b39-final-rerun`: specs 21, 85, 86, 87, 89, 92, 96, 97 — everything the fixes and the trial-banner tone touch): **84 passed, 1 failed:** the tap audit found the Clients "Name" sort button 44 px tall but 37 px wide. Given a 44 px minimum width (both tables), then **re-run 1 / 1 passed** (`b39-tap-final`). The axe and visual matrices passed in this run: 0 violations, 0 px overflow.
+
+**Production build:**
+- Coach offline boot: **PASS**, phone + desktop. Today, Clients, Messages and Library render offline with their offline state; no endless skeleton; no chunk from the network.
+- Client offline boot: **PASS**.
+- PWA check: **PASS** (installable, offline reload, update deferred until hidden).
+- Bundle: `--strict` PASS on the reviewed baseline (`scripts/bundle-budgets.json`): entry 161.88 kB gzip (+1.5 % vs B3.8); Today +18.8 %; other coach screens +2.9 – 7.4 %.
+- All re-run on the production build of the final tree (`b39-boot-2`, `b39-pwa-2`).
+
+**Unit / API:** **1,204 / 1,204** (API 763 · UI 441). `b38CoachP2.test.ts` (transfer-in to a lapsed coach) now expects `DESTINATION_NOT_ACCEPTING`: the refusal names the receiving coach, and nothing moves (unchanged). **Typecheck** (app + api), **boundaries**, **build:** PASS.
+
+The security-focused specs (10 auth / reset, 20 invite → claim, 31 / 90 messaging, 94) all passed in the full run. The certification report is `B3_COACH_CERTIFICATION_REPORT.md`.

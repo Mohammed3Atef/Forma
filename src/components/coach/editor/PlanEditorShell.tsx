@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, IconButton } from '@/components/ui/Button';
 import { ActionMenu, type ActionMenuItem } from '@/components/ui/ActionMenu';
@@ -6,6 +6,7 @@ import { PlanConflictBanner } from '@/components/coach/PlanEditorStates';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useIsTabletUp } from '@/hooks/useMediaQuery';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface EditorBarState {
   saving: boolean;
@@ -69,6 +70,10 @@ export function PlanEditorShell({
   const { t } = useTranslation();
   const tabletUp = useIsTabletUp();
   const keyboard = useKeyboardInset(!tabletUp);
+  // B3.9 (AX-05): on phones the editor is a full-screen task (role="dialog") — Tab stays inside it.
+  // Escape does nothing here: leaving goes through Back and its unsaved-work guard.
+  const shellRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(shellRef, { active: !tabletUp, onEscape: () => {} });
   const online = useOnlineStatus();
 
   const status = !state ? null : state.saving ? (
@@ -89,6 +94,7 @@ export function PlanEditorShell({
 
   return (
     <div
+      ref={shellRef}
       className={tabletUp ? 'pb-2' : 'fixed inset-x-0 top-0 z-ui-task flex flex-col bg-surface'}
       style={tabletUp ? undefined : { bottom: keyboard }}
       data-testid="plan-editor"
@@ -129,7 +135,7 @@ export function PlanEditorShell({
             <span className="min-w-0 flex-1 text-earth-muted" data-stale={draftStale || undefined}>
               {t(draftStale ? 'trust.planEditor.draftRestoredStale' : 'trust.planEditor.draftRestored')}
             </span>
-            <button type="button" className="font-semibold text-brand hover:underline" data-testid="plan-editor-discard-draft" onClick={onDiscardDraft}>
+            <button type="button" className="hit-44 font-semibold text-brand hover:underline" data-testid="plan-editor-discard-draft" onClick={onDiscardDraft}>
               {t('trust.planEditor.discardDraft')}
             </button>
           </div>
@@ -149,7 +155,8 @@ export function PlanEditorShell({
         <p className="min-w-0 flex-1 truncate text-[13px] font-medium" role="status" aria-live="polite">
           {status}
         </p>
-        <Button data-testid={`${prefix}-save`} pending={state.saving} disabled={!state.canSave} offline={!online} onClick={onSave} className="shrink-0">
+        {/* B3.9 (VS-05): the orange primary only while there is something to save — "All changes saved" is not a call to action. */}
+        <Button data-testid={`${prefix}-save`} variant={state.dirty || state.saving ? 'primary' : 'secondary'} data-dirty={state.dirty || undefined} pending={state.saving} disabled={!state.canSave} offline={!online} onClick={onSave} className="shrink-0">
           {saveLabel ?? t('coachEditor.saveAssigned')}
         </Button>
       </div>

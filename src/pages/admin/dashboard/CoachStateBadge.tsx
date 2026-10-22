@@ -4,7 +4,7 @@ import { Icon, type IconName } from '@/components/Icon';
 type CoachState = 'trial' | 'active' | 'expired' | 'suspended' | 'none';
 
 const META: Record<CoachState, { icon: IconName; cls: string }> = {
-  trial: { icon: 'timer', cls: 'pill-brand' },
+  trial: { icon: 'timer', cls: 'pill-info' }, // VS-05/VS-10: a trial is informational, not brand
   active: { icon: 'check', cls: 'pill-ok' },
   expired: { icon: 'info', cls: 'pill-bad' },
   suspended: { icon: 'pause', cls: 'pill-bad' },

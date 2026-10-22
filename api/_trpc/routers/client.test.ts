@@ -7,6 +7,7 @@ import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import { syncRecordsCol, recordId } from '../../sync/_data.js';
 import type { CoachClientRelDoc } from '../../client/_lib/db.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 let mongod: MongoMemoryServer;
 
@@ -48,6 +49,7 @@ async function insertUser(overrides: Partial<UserDoc>): Promise<UserDoc> {
   const doc = userDoc(overrides);
   const db = await getDb();
   await db.collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return doc;
 }
 

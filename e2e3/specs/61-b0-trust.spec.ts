@@ -1,5 +1,6 @@
 import { devices, type BrowserContext, type Page } from '@playwright/test';
 import { test, expect, ready, shot } from '../fixtures';
+import { addDays, cairoDay, cairoNoon } from './_dates';
 
 /**
  * B0 — Safety, Trust & Cleanup browser verification (isolated stack only).
@@ -12,9 +13,6 @@ test.describe.configure({ mode: 'serial', timeout: 180_000 });
 const CLIENT_A = 'e2e-client-a';
 const COACH_A = 'e2e-coach-a';
 const mobile = (width = 390, height = 844) => ({ ...devices['Pixel 7'], viewport: { width, height } });
-const cairo = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(d);
-const TODAY = cairo(new Date());
-const YESTERDAY = cairo(new Date(Date.now() - 86_400_000));
 
 const exercise = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
   id,
@@ -50,13 +48,17 @@ async function seedPlan(db: import('../fixtures').Db) {
   // Last session's numbers for the bench (what the empty row shows as placeholders).
   await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'workoutLogs' });
   const set = (i: number, w: number, r: number) => ({ setIndex: i, type: 'working', targetReps: '8-12', actualReps: r, weightKg: w, rpe: null, done: true });
+  // B3.9.0: yesterday is the Cairo day before today, read when the plan is seeded (it was a module-load constant, stepped
+  // back 24 h — a DST change or a run crossing midnight made it the wrong day); the session sat at that day's noon.
+  const yesterday = addDays(cairoDay(Date.now()), -1);
+  const startedAt = cairoNoon(yesterday);
   await db.insertOne('syncRecords', {
-    _id: `${CLIENT_A}__workoutLogs__${YESTERDAY}`,
+    _id: `${CLIENT_A}__workoutLogs__${yesterday}`,
     clientId: CLIENT_A,
     collection: 'workoutLogs',
-    recordId: YESTERDAY,
-    data: { id: YESTERDAY, date: YESTERDAY, dayId: 'b0-d1', startedAt: Date.now() - 90_000_000, endedAt: Date.now() - 86_000_000, durationSec: 3600, finished: true, updatedAt: Date.now() - 86_000_000, exercises: [{ exerciseId: 'b0-bench', done: true, sets: [set(0, 52.5, 10), set(1, 50, 9)] }] },
-    updatedAt: Date.now() - 86_000_000,
+    recordId: yesterday,
+    data: { id: yesterday, date: yesterday, dayId: 'b0-d1', startedAt, endedAt: startedAt + 3_600_000, durationSec: 3600, finished: true, updatedAt: startedAt + 3_600_000, exercises: [{ exerciseId: 'b0-bench', done: true, sets: [set(0, 52.5, 10), set(1, 50, 9)] }] },
+    updatedAt: startedAt + 3_600_000,
     syncedAt: Date.now(),
     rev: 1,
   });

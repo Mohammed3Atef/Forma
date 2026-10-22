@@ -1,4 +1,4 @@
-import type { CoachClientDoc, SubscriptionDoc, SubscriptionSnapshot } from './_types.js';
+import type { CoachClientDoc, SubscriptionDoc, SubscriptionEventDoc, SubscriptionSnapshot } from './_types.js';
 
 /**
  * B3.0.1 — the owner-approved client-subscription rules, as pure functions so
@@ -34,8 +34,28 @@ export function snapshotOf(sub: SubscriptionDoc): SubscriptionSnapshot {
     frozenFrom: sub.frozenFrom ?? null,
     frozenUntil: sub.frozenUntil ?? null,
     freezeCredit: sub.freezeCredit ?? null,
+    // B3.8: the economic fields, so a corrected term's earlier versions stay auditable.
+    ...(sub.termId ? { termId: sub.termId } : {}),
+    ...(sub.startDate ? { startDate: sub.startDate } : {}),
+    ...(sub.endDate ? { endDate: sub.endDate } : {}),
+    ...(sub.days != null ? { days: sub.days } : {}),
+    ...(sub.months != null ? { months: sub.months } : {}),
+    ...(sub.price != null ? { price: sub.price } : {}),
+    ...(sub.planName ? { planName: sub.planName } : {}),
   };
 }
+
+/**
+ * B3.8: an event that set a term's start — a new term or a renewal (and the pre-B3.8 `setTerm`),
+ * or a correction that actually MOVED the start. A price-only correction keeps the start and
+ * covers no lapse.
+ */
+function setsStart(e: SubscriptionEventDoc): boolean {
+  if (e.op === 'setTerm' || e.op === 'newTerm' || e.op === 'renew') return true;
+  return e.op === 'correct' && !!e.before && e.before.startAt !== e.after.startAt;
+}
+/** An event that replaced the term (and with it any freeze): only a new term or a renewal. */
+const replacesTerm = (e: SubscriptionEventDoc) => e.op === 'setTerm' || e.op === 'newTerm' || e.op === 'renew';
 
 /**
  * A renewal (`setTerm`) that starts before today over time the previous term
@@ -180,12 +200,12 @@ export function unauthorizedWindows(rel: RelLike): Window[] {
   events.forEach((e, k) => {
     if (e.op === 'extend' && e.before && e.before.endAt < e.at) {
       // The lapse before an extension — narrowed by any later renewal back-dated over it.
-      const laterStarts = events.slice(k + 1).filter((x) => x.op === 'setTerm').map((x) => x.after.startAt);
+      const laterStarts = events.slice(k + 1).filter(setsStart).map((x) => x.after.startAt);
       add(e.before.endAt, Math.min(e.at, ...laterStarts), 'U5');
     }
     if (e.op === 'freeze' && e.after.freezeCredit != null && e.after.frozenFrom != null && e.after.frozenUntil != null) {
       // The freeze ran until its end, or until the next change that ended it.
-      const stop = events.slice(k + 1).find((x) => x.op === 'unfreeze' || x.op === 'setTerm' || x.op === 'freeze');
+      const stop = events.slice(k + 1).find((x) => x.op === 'unfreeze' || x.op === 'freeze' || replacesTerm(x));
       const end = stop ? Math.min(e.after.frozenUntil, stop.at) : e.after.frozenUntil;
       add(e.after.frozenFrom, end, 'U3');
     }

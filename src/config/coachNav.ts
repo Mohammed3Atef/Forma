@@ -40,6 +40,7 @@ const AREA_OF: [prefix: string, area: CoachTab | 'me'][] = [
   ['/coach/library', 'library'],
   ['/coach/templates', 'library'], // Library › Programs (B3.7)
   ['/coach/me', 'me'],
+  ['/coach/business', 'me'], // Me › Business (B3.8)
   ['/coach/plan', 'me'],
   ['/coach/settings', 'me'],
   ['/coach/revenue', 'me'],
@@ -88,4 +89,99 @@ export function coachPageOwnsBack(pathname: string): boolean {
 /** Does the shell's header show a Back for this path? */
 export function coachShellShowsBack(pathname: string): boolean {
   return !isCoachRoot(pathname) && !coachPageOwnsBack(pathname);
+}
+
+// ---- B3.8 completion: the desktop sidebar (owner decision 7) -----------------------------------
+// Always-visible groups; a section's own pages (Library segments, Business tabs) appear under it
+// only while you are in that section (context-sensitive). Existing routes and `?tab=` URLs only —
+// no screen is duplicated. Phones keep the four tabs + the avatar (unchanged).
+
+export type RailGroupKey = 'workspace' | 'content' | 'business' | 'account';
+
+export interface RailLink {
+  key: string;
+  to: string;
+  icon: IconName;
+  /** i18n key of the label. */
+  label: string;
+  /** The section is the one on screen (lights the link). */
+  active: boolean;
+  /** Sub-pages of an active section; the one on screen is `current`. */
+  children?: { key: string; to: string; label: string; current: boolean }[];
+}
+
+export interface RailGroup {
+  key: RailGroupKey;
+  /** i18n key of the group heading. */
+  label: string;
+  links: RailLink[];
+}
+
+const LIBRARY_SUBS = [
+  { key: 'programs', label: 'coachLib.tabs.programs' },
+  { key: 'exercises', label: 'coachLib.tabs.exercises' },
+  { key: 'foods', label: 'coachLib.tabs.foods' },
+  { key: 'supplements', label: 'coachLib.tabs.supplements' },
+  { key: 'groups', label: 'library.views.groups' },
+] as const;
+const BUSINESS_SUBS = ['overview', 'renewals', 'packages', 'exports'] as const;
+
+/** The sidebar for a coach location (`pathname` + `search`). Pure — pinned by `coachNav.test.tsx`. */
+export function coachRailGroups(pathname: string, search: string): RailGroup[] {
+  const path = pathname.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+  const params = new URLSearchParams(search);
+  const tab = coachTabFor(path);
+  const inLibrary = tab === 'library';
+  const inBusiness = under(path, '/coach/business');
+
+  // Library: the segment on screen (`/coach/templates` is Programs; legacy `?tab=groups` is Swap groups).
+  const libTab = params.get('tab');
+  const libSegment = under(path, '/coach/templates') ? 'programs' : libTab === 'groups' || (libTab === 'foods' && params.get('view') === 'groups') ? 'groups' : (['programs', 'exercises', 'foods', 'supplements'] as string[]).includes(libTab ?? '') ? libTab! : 'programs';
+  const bizTab = (BUSINESS_SUBS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab')! : 'overview';
+
+  return [
+    {
+      key: 'workspace',
+      label: 'coachNav.groups.workspace',
+      links: COACH_TABS.filter((d) => d.key !== 'library').map((d) => ({ key: d.key, to: d.to, icon: d.icon, label: d.label, active: d.key === tab })),
+    },
+    {
+      key: 'content',
+      label: 'coachNav.groups.content',
+      links: [
+        {
+          key: 'library',
+          to: '/coach/library',
+          icon: 'dumbbell',
+          label: 'coachNav.library',
+          active: inLibrary,
+          ...(inLibrary
+            ? { children: LIBRARY_SUBS.map((s) => ({ key: s.key, to: s.key === 'groups' ? '/coach/library?tab=foods&view=groups' : `/coach/library?tab=${s.key}`, label: s.label, current: libSegment === s.key })) }
+            : {}),
+        },
+      ],
+    },
+    {
+      key: 'business',
+      label: 'coachNav.groups.business',
+      links: [
+        {
+          key: 'business',
+          to: '/coach/business',
+          icon: 'chart',
+          label: 'business.title',
+          active: inBusiness,
+          ...(inBusiness ? { children: BUSINESS_SUBS.map((k) => ({ key: k, to: k === 'overview' ? '/coach/business' : `/coach/business?tab=${k}`, label: `business.tabs.${k}`, current: bizTab === k })) } : {}),
+        },
+      ],
+    },
+    {
+      key: 'account',
+      label: 'coachNav.groups.account',
+      links: [
+        { key: 'forma', to: '/coach/plan', icon: 'bolt', label: 'forma.myPlan', active: under(path, '/coach/plan') },
+        { key: 'account', to: '/coach/settings', icon: 'settings', label: 'coachMe.accountRow', active: under(path, '/coach/settings') },
+      ],
+    },
+  ];
 }

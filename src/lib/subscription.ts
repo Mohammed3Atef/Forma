@@ -1,4 +1,5 @@
 import type { Subscription, SubscriptionStatus } from '@/types';
+import { DEFAULT_TERM_ZONE, addDays, dayAfterEndInstant, dayOfStartInstant, daysBetween, isDateKey, isTimeZone, todayIn } from './civilDate';
 
 const DAY = 86_400_000;
 
@@ -87,9 +88,68 @@ export function subscriptionDaysLeft(sub: Subscription | null | undefined, now =
   return Math.max(0, Math.ceil((sub.endAt - now) / DAY));
 }
 
-/** Calendar-accurate `startAt + months` → end timestamp. */
-export function addMonths(startAt: number, months: number): number {
-  const d = new Date(startAt);
-  d.setMonth(d.getMonth() + months);
-  return d.getTime();
+// ---- B3.8: fixed-day calendar terms (owner decisions 2 + 3) ----------------
+// Mirrors `api/coach-clients/_terms.ts`: a term is `[startDate, endDate)` in its zone, one month
+// is exactly 30 days, and a running term is renewed from its end. Terms written before B3.8
+// carry only instants; their days are read from those (the coach device's local midnights).
+
+export const DAYS_PER_MONTH = 30;
+
+/** This device's IANA zone (the zone a term the coach sets here is meant in). */
+export function deviceZone(): string {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return isTimeZone(zone) ? zone : DEFAULT_TERM_ZONE;
+  } catch {
+    return DEFAULT_TERM_ZONE;
+  }
+}
+
+/** A term's booked length in days: explicit days, else months × 30. */
+export function termLengthDays(input: { days?: number | null; months?: number | null }): number {
+  if (typeof input.days === 'number' && input.days > 0) return Math.round(input.days);
+  return DAYS_PER_MONTH * (typeof input.months === 'number' && input.months > 0 ? Math.round(input.months) : 1);
+}
+
+/** The term's first calendar day. */
+export function termFirstDay(sub: Pick<Subscription, 'startAt' | 'startDate' | 'zone'>): string {
+  return isDateKey(sub.startDate) ? sub.startDate : dayOfStartInstant(sub.startAt, sub.zone ?? deviceZone());
+}
+
+/** The day after the term's last day (EXCLUSIVE end) — where a renewal starts. */
+export function termEndDay(sub: Pick<Subscription, 'endAt' | 'endDate' | 'zone'>): string {
+  return isDateKey(sub.endDate) ? sub.endDate : dayAfterEndInstant(sub.endAt, sub.zone ?? deviceZone());
+}
+
+/** The term's LAST covered day (inclusive) — what a person reads as "until". */
+export function termLastDay(sub: Pick<Subscription, 'endAt' | 'endDate' | 'zone'>): string {
+  return addDays(termEndDay(sub), -1);
+}
+
+/** A term that is still running (stored running status, end not reached). */
+export function isRunningTerm(sub: Subscription | null | undefined, now = Date.now()): boolean {
+  return !!sub && (sub.status === 'active' || sub.status === 'trial' || sub.status === 'frozen') && sub.endAt > now;
+}
+
+/** Where a renewal starts: the day after a running term ends; otherwise today (the coach may pick another day). */
+export function renewalStartDay(sub: Subscription | null | undefined, now = Date.now()): string {
+  if (sub && isRunningTerm(sub, now)) return termEndDay(sub);
+  return todayIn(deviceZone(), now);
+}
+
+/** What a term starting `startDate` for `days` days covers. */
+export function termPreview(startDate: string, days: number): { lastDay: string; nextStart: string } {
+  const nextStart = addDays(startDate, Math.max(1, Math.round(days)));
+  return { lastDay: addDays(nextStart, -1), nextStart };
+}
+
+/** Today's calendar date on this device. */
+export function todayKey(now = Date.now()): string {
+  return todayIn(deviceZone(), now);
+}
+
+/** Calendar days left in the term, counting today (0 once it has ended). */
+export function termDaysLeft(sub: Subscription | null | undefined, now = Date.now()): number {
+  if (!sub) return 0;
+  return Math.max(0, daysBetween(todayKey(now), termEndDay(sub)));
 }

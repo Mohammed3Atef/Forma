@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextAreaField } from '@/components/ui/Field';
@@ -18,10 +19,11 @@ import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useSession } from '@/services/auth/sessionStore';
 import { addCoachNote, fetchClientLogs, listCoachNotes, type Author } from '@/services/platform/coachApi';
 import { getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
-import { LOG_DAYS, PROGRESS_VIEWS, progressViewOf, weekRows, workspaceBase, type ProgressView } from '@/lib/coachWorkspace';
+import { LOG_DAYS, PROGRESS_VIEWS, progressViewOf, weekRows, weekTraining, workspaceBase, type ProgressView } from '@/lib/coachWorkspace';
 import { addDays, today as todayKey, weekRange } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
 import type { CardioLog, NoteVisibility, NutritionLog, WorkoutLog } from '@/types';
+import { OfflineState } from '@/components/ui/ScreenState';
 
 /**
  * Client › Progress (B3.4 / blueprint §6.3): one place for what the client did — a week grid
@@ -122,11 +124,14 @@ function WeekView({ clientId, weekStart, onWeek, onDay }: { clientId: string; we
 
   const failed = workouts.isError || nutrition.isError || cardio.isError;
   const loading = workouts.isPending || nutrition.isPending || cardio.isPending;
+  // B3.9 (CO-18): a read paused offline with nothing on this device is offline — not an endless skeleton.
+  const offline = loading && [workouts, nutrition, cardio].some((x) => x.isPending && x.fetchStatus === 'paused');
   const rows = useMemo(
     () => (workouts.data && nutrition.data && cardio.data ? weekRows(start, day, { workouts: workouts.data, nutrition: nutrition.data, cardio: cardio.data }, { workout: plan.data, meal: meal.data }, coveredFrom) : []),
     [workouts.data, nutrition.data, cardio.data, plan.data, meal.data, start, day, coveredFrom],
   );
-  const doneDays = rows.filter((r) => r.workout === 'done').length;
+  // B3.9: the one weekly rule (distinct plan days done ÷ plan days; sessions beside it) — as Summary.
+  const week = useMemo(() => weekTraining(workouts.data ?? [], plan.data, start, rows.length ? rows[rows.length - 1].date : start), [workouts.data, plan.data, start, rows]);
 
   return (
     <section className="space-y-3" data-testid="progress-week">
@@ -150,12 +155,15 @@ function WeekView({ clientId, weekStart, onWeek, onDay }: { clientId: string; we
           <p className="text-[14px] text-danger">{t('workspace.progress.loadFailed')}</p>
           <button type="button" className="btn-ghost w-full" onClick={() => { void workouts.refetch(); void nutrition.refetch(); void cardio.refetch(); }}>{t('common.retry')}</button>
         </div>
+      ) : offline ? (
+        <OfflineState testId="progress-week-offline" />
       ) : loading ? (
         <div className="space-y-2" aria-busy="true">{Array.from({ length: 4 }, (_, i) => <div key={i} className="sk h-12 rounded-xl" />)}</div>
       ) : (
         <>
           <p className="text-[13px] text-earth-muted" data-testid="progress-week-summary">
-            {plan.data?.days.length ? t('workspace.progress.weekWorkoutsOfPlan', { done: doneDays, planned: plan.data.days.length }) : t('workspace.progress.weekWorkouts', { count: doneDays })}
+            {week.planned != null ? t('workspace.progress.weekPlanDays', { done: week.done, planned: week.planned }) : t('workspace.progress.weekWorkouts', { count: week.sessions })}
+            {week.planned != null && week.sessions !== week.done ? ` · ${t('workspace.summary.sessionsThisWeek', { count: week.sessions })}` : ''}
           </p>
           <ul className="overflow-hidden rounded-ui-surface border border-white/[0.07] bg-surface-card divide-y divide-white/[0.06]">
             {rows.map((r) => (
@@ -199,6 +207,8 @@ function ProgressNotes({ clientId, children }: { clientId: string; children: Rea
   const [pending, setPending] = useState<NoteAnchorCtx | null>(null);
   const [body, setBody] = useState('');
   const [visibility, setVisibility] = useState<NoteVisibility>('private');
+  // B3.8 (P2): a lapsed Forma plan makes notes read-only (the server refuses them too).
+  const gate = useWriteGate();
   const addNote = useMutation({
     mutationFn: () => addCoachNote(clientId, body.trim(), author, 'note', { screen: pending?.screen, date: pending?.date, entityType: pending?.entityType, entityId: pending?.entityId }, visibility),
     onSuccess: () => {
@@ -209,14 +219,14 @@ function ProgressNotes({ clientId, children }: { clientId: string; children: Rea
   });
   return (
     <>
-      <EntityNotesProvider notes={notesQ.data ?? []} onAdd={(ctx) => { setBody(''); setVisibility('private'); addNote.reset(); setPending(ctx); }}>
+      <EntityNotesProvider notes={notesQ.data ?? []} onAdd={gate.canWrite ? (ctx) => { setBody(''); setVisibility('private'); addNote.reset(); setPending(ctx); } : undefined}>
         {children}
       </EntityNotesProvider>
       <Sheet open={!!pending} onClose={() => setPending(null)} size="md" title={pending?.label ? t('notes.noteOn', { name: pending.label }) : t('coach.addNote')}>
         <TextAreaField label={t('field.notes')} className="min-h-28" data-testid="entity-note-body" placeholder={t('coach.notePlaceholder')} value={body} onChange={(e) => setBody(e.target.value)} />
         <NoteVisibilityToggle value={visibility} onChange={setVisibility} />
         {addNote.isError && <p className="mt-2 text-sm text-danger" role="alert">{t('trust.notes.saveFailed')}</p>}
-        <button type="button" data-testid="entity-note-save" disabled={!body.trim() || addNote.isPending} onClick={() => addNote.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
+        <button type="button" data-testid="entity-note-save" disabled={!body.trim() || addNote.isPending || !gate.canWrite} onClick={() => addNote.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
           {t('common.save')}
         </button>
       </Sheet>

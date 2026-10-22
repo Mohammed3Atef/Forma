@@ -25,6 +25,7 @@ import { uid } from '@/lib/utils';
 import { normalizeWorkoutBody, serializeWorkoutBody } from '@/lib/workoutPlanModel';
 import { deleteWorkoutTemplate, duplicateWorkoutTemplate, getWorkoutTemplate, saveWorkoutTemplate } from '@/services/platform/coachAssetsApi';
 import type { SplitType, WorkoutGoal, WorkoutTemplate } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 const draftStore = localforage.createInstance({ name: 'gym-tracker', storeName: 'meta' });
 const GOALS: WorkoutGoal[] = ['hypertrophy', 'fat_loss', 'strength', 'beginner', 'advanced', 'custom'];
@@ -89,7 +90,7 @@ function TemplateRead({ templateId }: { templateId: string }) {
       showToast({ title: t('library.duplicated'), variant: 'success' });
       navigate(readPath(copy.id), { replace: true });
     },
-    onError: (e) => void alertDialog({ title: t('workoutTemplate.duplicate'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('workoutTemplate.duplicate'), message: errorMessage(e, t) }),
   });
   const del = useMutation({
     mutationFn: () => deleteWorkoutTemplate(coachId, templateId),
@@ -98,7 +99,7 @@ function TemplateRead({ templateId }: { templateId: string }) {
       showToast({ title: t('common.removed'), variant: 'success' });
       navigate(PROGRAMS, { replace: true });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async () => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: tpl?.name || t('workoutTemplate.untitled') }), danger: true, confirmLabel: t('common.delete') })) del.mutate();

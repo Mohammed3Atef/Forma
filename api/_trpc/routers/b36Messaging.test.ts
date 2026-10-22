@@ -7,6 +7,7 @@ import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import type { MessageDoc } from '../../messages/_data.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * B3.6 coach messaging — the server contracts the rebuilt screens rely on
@@ -35,6 +36,7 @@ async function insertUser(o: Partial<UserDoc>): Promise<AuthedUser> {
   const now = Date.now();
   const doc: UserDoc = { _id: 'u', email: `${o._id}@t.test`, emailLower: `${o._id}@t.test`, passwordHash: 'x', displayName: String(o._id), role: 'coach', accountStatus: 'active', permissions: [], featureFlags: {}, createdBy: 'system', createdAt: now, updatedAt: now, ...o };
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return { id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc };
 }
 const ctxFor = (user: AuthedUser): Context => ({ req: {} as VercelRequest, res: { setHeader: () => undefined } as unknown as VercelResponse, user });

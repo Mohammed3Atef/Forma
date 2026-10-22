@@ -59,11 +59,21 @@ export function legacyViewTarget(clientId: string, tab: string | undefined): str
   return `${workspaceBase(clientId)}/progress?view=${view}`;
 }
 
+/**
+ * The retired version-history page (`…/versions/:kind`) → that plan's editor with its History sheet
+ * open (B3.9, owner D10). An unknown kind lands on the workspace Plan section.
+ */
+export function versionsTarget(clientId: string, kind: string | undefined): string {
+  return kind === 'workout' || kind === 'nutrition' || kind === 'cardio' ? `${workspaceBase(clientId)}/${kind}?history=1` : sectionPath(clientId, 'plan');
+}
+
 // ---- Summary numbers ------------------------------------------------------------
 
 export interface TrainingStats {
-  /** Distinct plan days finished in the current training week (Sat–Fri). */
+  /** Distinct plan days finished in the current training week (Sat–Fri) — see `weekTraining`. */
   doneThisWeek: number;
+  /** Finished workouts this week, any day — shown beside the plan count when they differ. */
+  sessionsThisWeek: number;
   /** Training days in the plan (the client's weekly split), or null without a plan. */
   planDays: number | null;
   /** Finished workouts in the last 7 / 28 days, today included. */
@@ -77,13 +87,27 @@ export interface TrainingStats {
  * Same rule as the client's own Train screen: a plan day counts once per week when a finished
  * workout for it was logged this week. `logs` must cover at least the last 28 days.
  */
+/**
+ * The ONE weekly training rule (B3.9, owner): completed planned training days ÷ planned training
+ * days. "Done" counts DISTINCT plan days with a finished workout between `weekStart` and `lastDay`
+ * — a plan day trained twice counts once and a workout that isn't one of the plan's days doesn't
+ * count toward it, so the figure can never read "4 of 3". `sessions` is every finished workout in
+ * the range (secondary). Without a plan (or an empty one) `planned` is null and `done` counts
+ * distinct days trained.
+ */
+export function weekTraining(logs: WorkoutLog[], plan: WorkoutPlan | null | undefined, weekStart: string, lastDay: string): { done: number; planned: number | null; sessions: number } {
+  const inWeek = logs.filter((l) => l.finished && l.date >= weekStart && l.date <= lastDay);
+  const planDayIds = new Set((plan?.days ?? []).map((d) => d.id));
+  const done = new Set(inWeek.filter((l) => planDayIds.size === 0 || planDayIds.has(l.dayId)).map((l) => l.dayId)).size;
+  return { done, planned: plan && plan.days.length ? plan.days.length : null, sessions: inWeek.length };
+}
+
 export function trainingStats(logs: WorkoutLog[], plan: WorkoutPlan | null | undefined, todayKey: string, weekStart: string): TrainingStats {
   const finished = logs.filter((l) => l.finished);
   const inLast = (n: number) => finished.filter((l) => l.date <= todayKey && diffDays(todayKey, l.date) < n).length;
-  const planDayIds = new Set((plan?.days ?? []).map((d) => d.id));
-  const thisWeek = new Set(finished.filter((l) => l.date >= weekStart && l.date <= todayKey && (planDayIds.size === 0 || planDayIds.has(l.dayId))).map((l) => l.dayId));
+  const week = weekTraining(logs, plan, weekStart, todayKey);
   const lastWorkout = finished.map((l) => l.date).filter((d) => d <= todayKey).sort().pop() ?? null;
-  return { doneThisWeek: thisWeek.size, planDays: plan ? plan.days.length : null, last7: inLast(7), last28: inLast(28), lastWorkout };
+  return { doneThisWeek: week.done, sessionsThisWeek: week.sessions, planDays: plan ? plan.days.length : null, last7: inLast(7), last28: inLast(28), lastWorkout };
 }
 
 export interface WeightTrend {

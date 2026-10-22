@@ -36,6 +36,12 @@
   --ui-border: rgba(255, 238, 228, 0.14);
   --ui-border-strong: rgba(255, 238, 228, 0.22);
 
+  /* ---- Charts (B3.9, VS-17) — one source for every chart's neutral parts ---- */
+  --ui-chart-grid: rgba(255, 238, 228, 0.09); /* gridlines */
+  --ui-chart-track: rgba(255, 238, 228, 0.16); /* bar tracks, empty rings */
+  --ui-chart-guide: rgba(255, 238, 228, 0.4); /* hover guides (not text) */
+  --ui-chart-label: rgba(255, 238, 228, 0.66); /* ticks and values: >= 4.5:1 on the card surface */
+
   /* ---- Text (contrast-checked on every surface tier; muted ≥ 4.5:1) ---- */
   --ui-text-primary: 248 244 241; /* #F8F4F1 */
   --ui-text-secondary: 171 161 155; /* #ABA19B */
@@ -252,6 +258,14 @@
  */
 :lang(ar) .font-mono {
   font-family: var(--ui-font-mono), var(--ui-font-arabic);
+}
+/* B3.9 (mono-in-Arabic): inside the signed-in app, Arabic text styled `.font-mono` (days left,
+   dates, notes) is set in the Arabic face with tabular figures — DM Mono digits beside Arabic glyphs
+   sat on a different baseline. Numbers meant to be compared keep their mono face via `.t-numeric` /
+   `.stat-num` (spec §15). The website keeps its own rules. */
+html[data-surface='app']:lang(ar) .font-mono {
+  font-family: var(--ui-font-arabic);
+  font-variant-numeric: tabular-nums;
 }
 :lang(ar) .uppercase {
   text-transform: none;

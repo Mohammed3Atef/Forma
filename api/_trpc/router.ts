@@ -11,6 +11,7 @@ import { coachPlanRequestsRouter } from './routers/coachPlanRequests.js';
 import { coachPlanTiersRouter } from './routers/coachPlanTiers.js';
 import { coachCommercialRouter } from './routers/coachCommercial.js';
 import { coachClientsRouter } from './routers/coachClients.js';
+import { clientPaymentsRouter } from './routers/clientPayments.js';
 import { invitesRouter } from './routers/invites.js';
 import { transfersRouter } from './routers/transfers.js';
 import { profileRouter, assessmentRouter } from './routers/clientProfile.js';
@@ -49,6 +50,7 @@ export const appRouter = router({
   coachPlanTiers: coachPlanTiersRouter,
   coachCommercial: coachCommercialRouter,
   coachClients: coachClientsRouter,
+  clientPayments: clientPaymentsRouter,
   invites: invitesRouter,
   transfers: transfersRouter,
   profile: profileRouter,

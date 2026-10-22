@@ -26,14 +26,43 @@ export interface ScreenStateInput {
   /** What loaded is an empty list / nothing to show. */
   empty?: boolean;
   online: boolean;
+  /**
+   * B3.9 (CO-18 / PF-21): the query is PAUSED — React Query holds a fetch while it believes the
+   * device is offline, so a paused query is neither loading nor failed. With no data it is offline,
+   * never "empty" and never an endless skeleton.
+   */
+  paused?: boolean;
 }
 
-export function screenStatus({ loading, error = false, hasData, empty = false, online }: ScreenStateInput): { status: ScreenStatus; stale: boolean } {
-  if (hasData) return { status: empty ? 'empty' : 'ready', stale: !online || error };
-  if (!online) return { status: 'offline', stale: false };
+export function screenStatus({ loading, error = false, hasData, empty = false, online, paused = false }: ScreenStateInput): { status: ScreenStatus; stale: boolean } {
+  if (hasData) return { status: empty ? 'empty' : 'ready', stale: !online || paused || error };
+  if (!online || paused) return { status: 'offline', stale: false };
   if (error) return { status: 'error', stale: false };
   if (loading) return { status: 'loading', stale: false };
   return { status: 'empty', stale: false };
+}
+
+/** The facts of a React Query result, as `ScreenState` takes them. `isEmpty` decides "loaded, nothing there". */
+export function queryScreen<T>(
+  q: { data: T | undefined; isPending: boolean; isError: boolean; fetchStatus: 'fetching' | 'paused' | 'idle'; refetch: () => unknown },
+  isEmpty?: (data: T) => boolean,
+): Omit<ScreenStateInput, 'online'> & { onRetry: () => void } {
+  const hasData = q.data !== undefined;
+  return {
+    loading: q.isPending && q.fetchStatus !== 'paused',
+    error: q.isError,
+    hasData,
+    empty: hasData && isEmpty ? isEmpty(q.data as T) : false,
+    paused: q.fetchStatus === 'paused',
+    onRetry: () => void q.refetch(),
+  };
+}
+
+/** `screenStatus` for a query, with the device's connection — for screens that lay out their own states. */
+export function useQueryScreen<T>(q: Parameters<typeof queryScreen<T>>[0], isEmpty?: (data: T) => boolean): { status: ScreenStatus; stale: boolean; online: boolean; retry: () => void } {
+  const online = useOnlineStatus();
+  const facts = queryScreen(q, isEmpty);
+  return { ...screenStatus({ ...facts, online }), online, retry: facts.onRetry };
 }
 
 /** No data on this device and no connection — says so, instead of "nothing here". */
@@ -83,6 +112,7 @@ export function ScreenState({
   loadingCount,
   testId,
   children,
+  paused,
 }: Omit<ScreenStateInput, 'online'> & {
   onRetry?: () => void;
   emptyTitle?: string;
@@ -96,7 +126,7 @@ export function ScreenState({
 }) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
-  const { status, stale } = screenStatus({ loading, error, hasData, empty, online });
+  const { status, stale } = screenStatus({ loading, error, hasData, empty, online, paused });
   const id = (s: string) => (testId ? `${testId}-${s}` : undefined);
   if (status === 'loading') return <LoadingState variant={loadingVariant} count={loadingCount} />;
   if (status === 'offline') return <OfflineState onRetry={onRetry} testId={id('offline')} />;

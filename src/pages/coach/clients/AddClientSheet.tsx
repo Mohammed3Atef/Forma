@@ -6,13 +6,17 @@ import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
-import { useSession } from '@/services/auth/sessionStore';
 import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { AddExistingClient } from '@/pages/coach/AddExistingClient';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { formatDate } from '@/lib/format';
 import { alertDialog } from '@/stores/dialogStore';
 import type { SignupInvite } from '@/types';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { OfflineState, useQueryScreen } from '@/components/ui/ScreenState';
+import { errorMessage } from '@/lib/errorMessage';
 
 export type AddMode = 'choose' | 'create' | 'existing';
 
@@ -105,7 +109,6 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   const qc = useQueryClient();
   const [copied, setCopied] = useState<string | null>(null);
   const [prefill, setPrefill] = useState({ name: '', email: '', phone: '' });
-  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
   const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   // O-4 (owner, B3.3): an invite stays pending until the coach revokes it or it expires —
   // closing the sheet never revokes anything (it used to silently revoke uncopied links, CO-37).
@@ -120,6 +123,12 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
+  // B3.9 (C2): a new invite is a coach write (plan + connection, as the server enforces); withdrawing one
+  // stays allowed on a lapsed plan (it protects the client) but needs the connection. Offline / failed
+  // reads of the pending list are said, never a false "no invites".
+  const gate = useWriteGate();
+  const online = useOnlineStatus();
+  const pendingScreen = useQueryScreen(pending);
 
   const gen = useMutation({
     mutationFn: async () => {
@@ -132,7 +141,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
         ...(sub.months != null ? { subMonths: sub.months } : {}),
         ...(sub.days != null ? { subDays: sub.days } : {}),
         ...(sub.trialDays != null ? { subTrialDays: sub.trialDays } : {}),
-        ...(sub.price != null ? { subPrice: sub.price, subCurrency: currency } : {}),
+        ...(sub.price != null ? { subPrice: sub.price } : {}),
         ...(sub.planName ? { subPlanName: sub.planName } : {}),
       });
     },
@@ -145,7 +154,7 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
   const revoke = useMutation({
     mutationFn: (code: string) => revokeInvite(code),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
-    onError: (e) => void alertDialog({ title: t('invite.revoke'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('invite.revoke'), message: errorMessage(e, t) }),
   });
 
   const copy = async (code: string) => {
@@ -184,8 +193,8 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
           <TextInput label={t('field.name')} data-testid="coach-invite-name" placeholder={t('invite.optional')} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
           <TextInput label={t('field.email')} type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={t('invite.optional')} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
           <TextInput label={t('field.phone')} type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={t('invite.optional')} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
-          <SubscriptionPlanPicker coachId={coachId} currency={currency} onChange={setSub} testId="coach-invite-sub" />
-          <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
+          <SubscriptionPlanPicker coachId={coachId} onChange={setSub} testId="coach-invite-sub" />
+          <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending || !gate.canWrite} title={gate.reason} onClick={() => gen.mutate()}>
             {gen.isPending ? t('auth.working') : t('invite.generate')}
           </button>
         </div>
@@ -193,8 +202,12 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
 
       <div className="space-y-2">
         <p className="label">{t('invite.pending')}</p>
-        {pending.isLoading ? (
-          <p className="text-sm text-earth-muted">{t('auth.working')}</p>
+        {pendingScreen.status === 'loading' ? (
+          <div className="sk h-12 rounded-xl" aria-busy="true" />
+        ) : pendingScreen.status === 'offline' ? (
+          <OfflineState onRetry={pendingScreen.retry} testId="coach-invite-offline" />
+        ) : pendingScreen.status === 'error' ? (
+          <ErrorState onRetry={pendingScreen.retry} testId="coach-invite-error" />
         ) : (pending.data ?? []).length === 0 ? (
           <p className="text-sm text-earth-subtle" data-testid="coach-invite-empty">{t('invite.none')}</p>
         ) : (
@@ -205,27 +218,27 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="font-mono text-sm">{inv.code}</span>
-                      <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
+                      <span className="chip border-warn/50 px-2 py-0.5 text-[12px] text-warn">{t('invite.statusPending')}</span>
                       {inv.expiresAt != null && (
-                        <span className="text-[10px] text-earth-subtle">{t('invite.expiresOn', { date: formatDate(inv.expiresAt, i18n.language, 'medium') })}</span>
+                        <span className="text-[12px] text-earth-subtle">{t('invite.expiresOn', { date: formatDate(inv.expiresAt, i18n.language, 'medium') })}</span>
                       )}
                     </span>
-                    <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
+                    <span className="block truncate text-[12px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
                   </span>
-                  <button type="button" data-testid="coach-invite-revoke" disabled={revoke.isPending} className="btn-ghost h-8 px-3 text-[11px] text-danger disabled:opacity-40" onClick={() => revoke.mutate(inv.code)}>
+                  <button type="button" data-testid="coach-invite-revoke" disabled={revoke.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} className="btn-ghost btn-sm text-danger disabled:opacity-40" onClick={() => revoke.mutate(inv.code)}>
                     {t('invite.revoke')}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
+                  <button type="button" data-testid="coach-invite-copy" className="btn-ghost btn-sm" onClick={() => void copy(inv.code)}>
                     <Icon name="download" size={13} /> {copied === inv.code ? t('invite.copied') : t('invite.copy')}
                   </button>
                   {canShare && (
-                    <button type="button" data-testid="coach-invite-share" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void share(inv.code)}>
+                    <button type="button" data-testid="coach-invite-share" className="btn-ghost btn-sm" onClick={() => void share(inv.code)}>
                       <Icon name="chat" size={13} /> {t('invite.share')}
                     </button>
                   )}
-                  <button type="button" data-testid="coach-invite-whatsapp" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => whatsapp(inv.code)}>
+                  <button type="button" data-testid="coach-invite-whatsapp" className="btn-ghost btn-sm" onClick={() => whatsapp(inv.code)}>
                     <Icon name="chat" size={13} /> {t('invite.whatsapp')}
                   </button>
                 </div>

@@ -36,8 +36,9 @@ export function DirectoryTable({
   const head = (key: DirectorySort, label: string, className = '') => {
     const active = sort === key;
     return (
-      <th scope="col" className={`px-3 py-2.5 text-start font-medium ${className}`} aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-        <button type="button" className={`inline-flex items-center gap-1 hover:text-earth ${active ? 'text-earth' : ''}`} data-testid={`clients-sort-${key}`} onClick={() => onSort(key)}>
+      // B3.9 (AX-01): the sort control fills a 44 px header cell (a centred area would be clipped by the table).
+      <th scope="col" className={`h-11 px-3 py-0 text-start font-medium ${className}`} aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+        <button type="button" className={`inline-flex min-h-ui-hit min-w-11 items-center gap-1 hover:text-earth ${active ? 'text-earth' : ''}`} data-testid={`clients-sort-${key}`} onClick={() => onSort(key)}>
           {label}
           {active ? <Icon name="chevronDown" size={13} className={dir === 'desc' ? '' : 'rotate-180'} /> : null}
         </button>
@@ -73,7 +74,7 @@ export function DirectoryTable({
                   <span className="flex min-w-0 items-center gap-2.5">
                     <Avatar name={r.name} photoUrl={r.photoUrl} size="sm" />
                     <span className="min-w-0">
-                      <Link to={ws(r.id)} data-testid="client-open" title={r.name} className="block truncate font-semibold hover:underline">
+                      <Link to={ws(r.id)} data-testid="client-open" title={r.name} className="block truncate font-semibold leading-[2.75rem] hover:underline">
                         {r.name}
                       </Link>
                       <AccountPill row={r} />

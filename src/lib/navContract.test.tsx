@@ -31,6 +31,7 @@ describe('navigation contract (B1.10)', () => {
     expect(coach('/coach/clients')).toBe('/coach/dashboard');
     expect(coach('/coach/checkins')).toBe('/coach/dashboard');
     expect(coach('/coach/me')).toBe('/coach/dashboard');
+    expect(coach('/coach/business')).toBe('/coach/me'); // B3.8
     expect(coach('/coach/plan')).toBe('/coach/me');
     expect(coach('/coach/settings')).toBe('/coach/me');
     expect(coach('/coach/revenue')).toBe('/coach/me');

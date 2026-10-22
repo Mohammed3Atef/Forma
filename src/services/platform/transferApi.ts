@@ -1,4 +1,5 @@
 import { trpc } from '@/services/trpc';
+import { deviceZone } from '@/lib/subscription';
 import type { ClientTransferRequest, TransferMode, TransferSubHandling } from '@/types';
 import type { ClientSubscriptionInput } from './coachClientsApi';
 
@@ -135,6 +136,6 @@ export async function resolveTransferRequest(
     ...(adminNote?.trim() ? { adminNote: adminNote.trim() } : {}),
     ...(overrides?.mode ? { mode: overrides.mode } : {}),
     ...(overrides?.subscriptionHandling ? { subscriptionHandling: overrides.subscriptionHandling } : {}),
-    ...(overrides?.newSubscription ? { newSubscription: overrides.newSubscription } : {}),
+    ...(overrides?.newSubscription ? { newSubscription: { ...overrides.newSubscription, zone: deviceZone() } } : {}),
   });
 }

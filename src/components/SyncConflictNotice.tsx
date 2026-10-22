@@ -47,10 +47,10 @@ export function ConflictState({ conflict, more = 0, testId = 'sync-conflict' }: 
     >
       <p data-testid={`${testId}-body`}>{t('trust.sync.conflictBody', { what, day: day ? ` · ${day}` : '' })}</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid={`${testId}-keep-mine`} disabled={busy} onClick={() => void resolve(keepThisDevice)}>
+        <button type="button" className="btn-ghost btn-sm" data-testid={`${testId}-keep-mine`} disabled={busy} onClick={() => void resolve(keepThisDevice)}>
           {t('trust.sync.keepMine')}
         </button>
-        <button type="button" className="btn-ghost h-9 text-[13px]" data-testid={`${testId}-use-other`} disabled={busy} onClick={() => void resolve(useOtherDevice)}>
+        <button type="button" className="btn-ghost btn-sm" data-testid={`${testId}-use-other`} disabled={busy} onClick={() => void resolve(useOtherDevice)}>
           {t('trust.sync.useOther')}
         </button>
       </div>

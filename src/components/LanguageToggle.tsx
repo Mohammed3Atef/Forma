@@ -42,6 +42,7 @@ export function LanguageToggle({ className = '' }: { className?: string }) {
               <button
                 key={l.code}
                 type="button"
+                lang={l.code === 'ar-eg' ? 'ar-EG' : l.code}
                 data-testid={`lang-${l.code}`}
                 onClick={() => { void setLocale(l.code); setOpen(false); }}
                 className={`block w-full px-3 py-2 text-start text-sm ${l.code === i18n.language ? 'bg-brand/15 text-brand' : 'text-earth hover:bg-white/5'}`}

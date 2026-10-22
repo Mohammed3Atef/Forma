@@ -46,6 +46,9 @@ export function WorkspacePlan() {
             <p className="text-[14px] text-danger">{t('workspace.plan.loadFailed')}</p>
             <Button variant="ghost" size="sm" onClick={() => void q.refetch()}>{t('common.retry')}</Button>
           </div>
+        ) : q.isPending && q.fetchStatus === 'paused' ? (
+          // B3.9 (CO-18): paused offline with nothing on this device — said, not an endless skeleton.
+          <p className="text-[13px] text-earth-muted" role="status" data-testid={`plan-offline-${kind}`}>{t('states.offline')}</p>
         ) : q.isPending ? (
           <div className="sk h-12 rounded-xl" aria-busy="true" />
         ) : present ? (
@@ -53,7 +56,7 @@ export function WorkspacePlan() {
             <div className="text-[14px] text-earth-muted">{body(data!)}</div>
             <div className="mt-auto flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" icon="edit" data-testid={`plan-edit-${kind}`} onClick={() => navigate(`${base}/${kind}`)}>{t('workspace.plan.edit')}</Button>
-              <Button size="sm" variant="ghost" icon="rotate" data-testid={`plan-history-${kind}`} onClick={() => navigate(`${base}/versions/${kind}`)}>{t('workspace.plan.history')}</Button>
+              <Button size="sm" variant="ghost" icon="rotate" data-testid={`plan-history-${kind}`} onClick={() => navigate(`${base}/${kind}?history=1`)}>{t('workspace.plan.history')}</Button>
             </div>
           </>
         ) : (

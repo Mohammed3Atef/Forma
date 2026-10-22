@@ -117,7 +117,7 @@ export function TrainingBuilder({
     const linked = !!prev?.libraryExerciseId && prev.librarySyncEnabled !== false;
     const touched = linked && SYNCED_EXERCISE_FIELDS.some((f) => JSON.stringify(prev[f]) !== JSON.stringify(ex[f]));
     onChange(updateExercise(body, touched ? { ...ex, librarySyncEnabled: false } : ex));
-    if (touched) showToast({ title: t('coachLib.detachConfirmTitle'), body: t('coachLib.customOverride'), variant: 'warning' });
+    if (touched) showToast({ title: t('coachLib.customOverrideTitle'), body: t('coachLib.customOverride'), variant: 'warning' });
     setEditing(null);
   };
   const refreshFromLibrary = async (exId: string) => {
@@ -214,7 +214,7 @@ export function TrainingBuilder({
   const exerciseTable = (d: WorkoutDay, s: WorkoutSection) => (
     <table className="w-full table-fixed text-[13.5px]">
       <thead>
-        <tr className="border-b border-line-soft text-start text-[11.5px] font-medium uppercase tracking-wide text-earth-subtle">
+        <tr className="border-b border-line-soft text-start text-[12px] font-medium uppercase tracking-wide text-earth-subtle">
           <th className="w-[32%] py-2 text-start font-medium">{t('coachEditor.exercise')}</th>
           <th className="w-[22%] py-2 text-start font-medium">{t('coachEditor.setsReps')}</th>
           <th className="w-[11%] py-2 text-start font-medium">{t('coachEditor.rest')}</th>

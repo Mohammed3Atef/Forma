@@ -287,8 +287,8 @@ export function AdminCoachDetail() {
         {add && (
           <div className="space-y-3" data-testid="add-capacity-form">
             <div className="flex gap-2">
-              <button type="button" className={`chip ${add.mode === 'package' ? 'chip-on' : ''}`} disabled={!livePackages.length} onClick={() => setAdd({ mode: 'package', packageId: livePackages[0]?.id ?? '', note: add.note })}>{t('forma.admin.fromPackage')}</button>
-              <button type="button" className={`chip ${add.mode === 'custom' ? 'chip-on' : ''}`} data-testid="add-capacity-custom" onClick={() => setAdd({ mode: 'custom', clients: '10', interval: 'month', months: '1', price: '0', note: add.note })}>{t('forma.admin.custom')}</button>
+              <button type="button" aria-pressed={add.mode === 'package'} className={`chip ${add.mode === 'package' ? 'chip-on' : ''}`} disabled={!livePackages.length} onClick={() => setAdd({ mode: 'package', packageId: livePackages[0]?.id ?? '', note: add.note })}>{t('forma.admin.fromPackage')}</button>
+              <button type="button" aria-pressed={add.mode === 'custom'} className={`chip ${add.mode === 'custom' ? 'chip-on' : ''}`} data-testid="add-capacity-custom" onClick={() => setAdd({ mode: 'custom', clients: '10', interval: 'month', months: '1', price: '0', note: add.note })}>{t('forma.admin.custom')}</button>
             </div>
             {add.mode === 'package' ? (
               <SelectField label={t('forma.admin.tabPackages')} value={add.packageId} onChange={(e) => setAdd({ ...add, packageId: e.target.value })} data-testid="add-capacity-package">

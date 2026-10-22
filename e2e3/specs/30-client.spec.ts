@@ -1,6 +1,6 @@
 import { test, expect, ready, shot } from '../fixtures';
 import type { Page } from '@playwright/test';
-import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng, bodyText, allowDevModuleStorm, type SyncRec } from './_c-helpers';
+import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng, bodyText, allowDevModuleStorm, waitForLocaleSaved, type SyncRec } from './_c-helpers';
 
 /**
  * Phase-3 client journeys (clientA). Local-first data → every persistence
@@ -459,7 +459,7 @@ test.describe('client journeys', () => {
       await expect(page.locator('html')).toHaveAttribute('lang', /^ar/);
       expect(await bodyText(page)).toMatch(/[\u0600-\u06FF]{3,}/);
       await shot(page, testInfo, '03-arabic-rtl');
-      await page.waitForTimeout(500);
+      await waitForLocaleSaved(page, 'ar'); // B3.9.0: the language is stored on the device before the reload (was a fixed 500 ms)
       await page.reload();
       await ready(page);
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

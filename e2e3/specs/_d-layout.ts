@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import type { Page, TestInfo } from '@playwright/test';
 import { test, expect, ready, shot, type Role } from '../fixtures';
 import { overflow } from './_d-helpers';
+import { waitForLocaleSaved } from './_c-helpers';
+import { addDays, cairoDay } from './_dates';
 
 /**
  * Layout + RTL checks shared by `45-layout.responsive.spec.ts` (1280/1024/768/430/390)
@@ -26,6 +28,8 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
       { path: '/coach/plan', name: 'coach-my-plan' },
       { path: '/coach/library', name: 'coach-library' },
       { path: '/coach/me', name: 'coach-me' },
+      { path: '/coach/business', name: 'coach-business' },
+      { path: '/coach/settings', name: 'coach-account' },
     ],
   },
   super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }, { path: '/admin/plans', name: 'admin-forma-plan' }, { path: '/admin/plans?tab=packages', name: 'admin-capacity-packages' }, { path: '/admin/plans?tab=requests', name: 'admin-payment-requests' }, { path: '/admin/coaches/e2e-coach-pro', name: 'admin-coach-capacity' }] },
@@ -47,8 +51,9 @@ async function settle(page: Page) {
 async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
   const w = page.viewportSize()!.width;
   const bottom = page.getByTestId('bottom-nav');
-  // B3.1: the coach has its own rail (`coach-rail`); the admin keeps the old sidebar.
-  const side = page.getByTestId(kind === 'coach' ? 'coach-rail' : 'coach-sidebar');
+  // B3.1: the coach has its own rail (`coach-rail`); the admin keeps the old sidebar — still test-id'd `coach-sidebar`,
+  // so B3.9.0 pins it to the ADMIN's by its overview link (a coach sidebar could never match).
+  const side = kind === 'coach' ? page.getByTestId('coach-rail') : page.getByTestId('coach-sidebar').filter({ has: page.getByTestId('sidebar-adminOverview') });
   if (kind === 'client') {
     const rail = page.getByTestId('client-rail');
     if (w < 1024) {
@@ -110,8 +115,7 @@ async function switchLanguage(page: Page, kind: 'client' | 'coach' | 'super', lo
     const label = locale === 'en' ? 'English' : locale === 'ar' ? 'العربية' : 'مصري';
     await page.getByRole('button', { name: label, exact: true }).click();
   }
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(locale === 'en' ? /^en/ : /^ar/);
-  await page.waitForTimeout(600); // let the profile save land before navigating away
+  await waitForLocaleSaved(page, locale); // B3.9.0: <html lang> + the stored settings land before navigating away (was a fixed 600 ms)
 }
 
 async function chevronFlipped(page: Page) {
@@ -196,8 +200,9 @@ export function defineLayoutTests() {
       // Client: three weigh-ins (test-owned sync records, removed after) so /progress draws a real chart.
       const seeded: string[] = [];
       if (kind === 'client') {
+        const today = cairoDay(Date.now()); // B3.9.0: Cairo calendar days stepped on the key (was the UTC day of `now − N × 24 h`)
         for (const daysAgo of [14, 7, 1]) {
-          const date = new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+          const date = addDays(today, -daysAgo);
           const _id = `e2e-client-a__weightLogs__${date}`;
           seeded.push(_id);
           await db.deleteMany('syncRecords', { _id });

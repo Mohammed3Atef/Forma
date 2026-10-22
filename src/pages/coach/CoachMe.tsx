@@ -15,7 +15,8 @@ import { whatsappUrl } from '@/lib/contact';
  *
  * The coaching tools that once lived here moved to their destinations:
  * assessments to review → Today (B3.2); weekly check-ins and the workout
- * ranking → Clients (B3.3, `?view=checkins`, `?sort=workouts`).
+ * ranking → Clients (B3.3, `?view=checkins`, `?sort=workouts`). B3.8: Revenue,
+ * Reports and Client Plans are one screen, Business (`/coach/business`).
  */
 export function CoachMe() {
   const { t } = useTranslation();
@@ -44,9 +45,8 @@ export function CoachMe() {
 
       <Section title={t('coachMe.business')}>
         <ListGroup>
-          <ListRow to="/coach/revenue" testId="me-revenue" leading={<IconTile icon="bolt" tone="brand" />} title={t('coachMe.revenue')} meta={t('coachMe.revenueMeta')} chevron />
-          <ListRow to="/coach/subscription-plans" testId="me-packages" leading={<IconTile icon="calendar" />} title={t('coachMe.packages')} meta={t('coachMe.packagesMeta')} chevron />
-          <ListRow to="/coach/reports" testId="me-reports" leading={<IconTile icon="chart" />} title={t('coachMe.reports')} meta={t('coachMe.reportsMeta')} chevron />
+          <ListRow to="/coach/business" testId="me-business" leading={<IconTile icon="chart" tone="brand" />} title={t('coachMe.businessRow')} meta={t('coachMe.businessMeta')} chevron />
+          <ListRow to="/coach/business?tab=packages" testId="me-packages" leading={<IconTile icon="calendar" />} title={t('coachMe.packages')} meta={t('coachMe.packagesMeta')} chevron />
         </ListGroup>
       </Section>
 

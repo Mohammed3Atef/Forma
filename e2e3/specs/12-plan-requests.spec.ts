@@ -187,6 +187,8 @@ test('B4: early renewal confirmed → term appended after the current end; same 
     await ready(sp);
     const adminLabel = await sp.evaluate((x) => new Date(x).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), newEnd);
     await expect(sp.getByTestId('coach-subscription')).toContainText(adminLabel);
+    // B3.9.0 (reviewed, kept): the UTC day on purpose — the server writes this history line with `toISOString().slice(0, 10)`
+    // (api/coach-plans/_subscription.ts), not in the coach's zone; the labels above are formatted in the page.
     const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
     await expect(sp.getByText(`${iso(before.endsAt)} → ${iso(newEnd)}`)).toBeVisible();
     await snap(sp, testInfo, 'admin-coach-extended', true);

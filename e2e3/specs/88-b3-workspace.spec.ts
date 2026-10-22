@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot, type Db } from '../fixtures';
-import { allowDevModuleStorm, insertMany } from './_c-helpers';
+import { allowDevModuleStorm, insertMany, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmYes } from './_b-helpers';
+import { addDays, anchorAt, dayRolled, noonOrNow, weekStartOf, type DayAnchor } from './_dates';
 
 /**
  * B3.4 — the coach's client workspace (blueprint §6.3, owner decisions 2026-10-18): one header,
@@ -25,15 +26,8 @@ const ar = JSON.parse(fs.readFileSync('src/i18n/ar.json', 'utf8'));
 const phone = { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } };
 const sized = (width: number, height = 900) => ({ viewport: { width, height } });
 
-const dayKey = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
-const plusDays = (k: string, n: number) => {
-  const [y, m, d] = k.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-};
-const weekStartOf = (k: string) => {
-  const [y, m, d] = k.split('-').map(Number);
-  return plusDays(k, -((new Date(Date.UTC(y, m - 1, d)).getUTCDay() - 6 + 7) % 7));
-};
+// B3.9.0: Cairo day keys, stepped on the key — the shared `_dates.ts` helpers (`weekStartOf` = the Saturday → Friday week).
+const plusDays = addDays;
 
 const C = {
   active: { id: `${PFX}active`, name: 'Nadia Hassan' },
@@ -49,9 +43,10 @@ const C = {
 const WORKOUTS: [number, string][] = [[0, 'a'], [1, 'b'], [3, 'c'], [5, 'a'], [9, 'b'], [15, 'c'], [20, 'a'], [27, 'b'], [40, 'c']];
 const WEIGHTS: [number, number][] = [[25, 84.0], [10, 83.2], [1, 82.6]];
 
-async function insertWorkspace() {
-  const now = Date.now();
-  const today = dayKey(now);
+/** Writes the workspace fixtures for one instant and returns it (B3.9.0: the expectations derive from the same anchor). */
+async function insertWorkspace(): Promise<DayAnchor> {
+  const anchor = anchorAt();
+  const { now, today } = anchor;
   const w0 = weekStartOf(today);
   const users: object[] = [];
   const rels: object[] = [];
@@ -85,12 +80,15 @@ async function insertWorkspace() {
   const a = C.active.id;
   await insertMany('clientWorkoutPlans', [{ _id: a, clientId: a, id: `wp-${a}`, name: 'Upper / lower / full', days: [{ id: 'a', dayIndex: 0, title: 'Upper', focus: '', exerciseIds: [], sections: [] }, { id: 'b', dayIndex: 1, title: 'Lower', focus: '', exerciseIds: [], sections: [] }, { id: 'c', dayIndex: 2, title: 'Full body', focus: '', exerciseIds: [], sections: [] }], exercises: {}, updatedAt: now - 6 * DAY }]);
   await insertMany('clientNutritionPlans', [{ _id: a, clientId: a, id: `np-${a}`, name: 'Cut', targets: { calories: 2100, protein: 160, carbs: 200, fats: 70 }, meals: [{ id: 'm1', name: { en: 'Breakfast' }, items: [] }, { id: 'm2', name: { en: 'Lunch' }, items: [] }, { id: 'm3', name: { en: 'Dinner' }, items: [] }], supplements: [], waterTargetMl: 3000, beverageNotes: [], generalNotes: [], updatedAt: now - 6 * DAY }]);
+  // B3.9.0: N calendar days back on the key (`now − N × 24 h` lands on the wrong day across a DST change); the workout
+  // itself at that day's Cairo noon (today's: now, never in the future).
   const logs: object[] = WORKOUTS.map(([ago, dayId]) => {
-    const date = dayKey(now - ago * DAY);
-    return { _id: `${a}__workoutLogs__${date}`, clientId: a, collection: 'workoutLogs', recordId: date, data: { id: date, date, dayId, startedAt: now - ago * DAY, endedAt: now - ago * DAY + HOUR, durationSec: 3600, exercises: [], finished: true }, updatedAt: now, syncedAt: now, rev: 1 };
+    const date = plusDays(today, -ago);
+    const at = noonOrNow(date, now);
+    return { _id: `${a}__workoutLogs__${date}`, clientId: a, collection: 'workoutLogs', recordId: date, data: { id: date, date, dayId, startedAt: at, endedAt: at + HOUR, durationSec: 3600, exercises: [], finished: true }, updatedAt: now, syncedAt: now, rev: 1 };
   });
   for (const [ago, kg] of WEIGHTS) {
-    const date = dayKey(now - ago * DAY);
+    const date = plusDays(today, -ago);
     logs.push({ _id: `${a}__weightLogs__${date}`, clientId: a, collection: 'weightLogs', recordId: date, data: { id: date, date, weightKg: kg }, updatedAt: now, syncedAt: now, rev: 1 });
   }
   logs.push({ _id: `${a}__nutritionLogs__${today}`, clientId: a, collection: 'nutritionLogs', recordId: today, data: { id: today, date: today, mealsEaten: { m1: true, m2: true }, supplementsTaken: {}, customFoods: [], itemOverrides: {} }, updatedAt: now, syncedAt: now, rev: 1 });
@@ -109,6 +107,7 @@ async function insertWorkspace() {
     { _id: `${PFX}note-1`, clientId: a, authorId: COACH, authorRole: 'coach', body: 'Keep the deficit; add one walk.', kind: 'note', visibility: 'private', createdAt: now - 2 * DAY, updatedAt: now - 2 * DAY },
     { _id: `${PFX}note-b`, clientId: C.moved.id, authorId: OTHER, authorRole: 'coach', body: 'Coach B private note', kind: 'note', visibility: 'private', createdAt: now - 10 * DAY, updatedAt: now - 10 * DAY },
   ]);
+  return anchor;
 }
 
 async function removeWorkspace(db: Db) {
@@ -121,8 +120,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 async function openWs(page: Page, id: string, rest = '') {
   await page.goto(`/coach/client/${id}${rest}`);
@@ -131,9 +129,17 @@ async function openWs(page: Page, id: string, rest = '') {
 const overflowOf = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
 test.describe('B3.4 workspace', () => {
+  let anchor: DayAnchor | null = null;
   test.beforeAll(async ({ db }) => {
     await removeWorkspace(db);
-    await insertWorkspace();
+    anchor = await insertWorkspace();
+  });
+  // B3.9.0: the fixtures are day-relative (today's workout, this week's check-in). If the run crossed Cairo midnight
+  // since they were written, write them again for the new day — the fixture and the app must agree on "today".
+  test.beforeEach(async ({ db }) => {
+    if (!dayRolled(anchor)) return;
+    await removeWorkspace(db);
+    anchor = await insertWorkspace();
   });
   test.afterAll(async ({ db }) => {
     await removeWorkspace(db);
@@ -150,10 +156,11 @@ test.describe('B3.4 workspace', () => {
 
   test('Summary: what needs the coach (reviewed in place), the week against the plan, body, plan, check-ins, latest note — every number from the logs', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
-    const now = Date.now();
-    const today = dayKey(now);
+    // B3.9.0: the expectations come from the anchor the fixtures were written for (they re-derived "today" from a new
+    // instant, in 24 h steps); the beforeEach keeps that anchor today's.
+    const { today } = anchor!;
     const w0 = weekStartOf(today);
-    const done = new Set(WORKOUTS.filter(([ago]) => dayKey(now - ago * DAY) >= w0).map(([, d]) => d)).size;
+    const done = new Set(WORKOUTS.filter(([ago]) => plusDays(today, -ago) >= w0).map(([, d]) => d)).size;
     const last7 = WORKOUTS.filter(([ago]) => ago < 7).length;
     const last28 = WORKOUTS.filter(([ago]) => ago < 28).length;
 
@@ -246,8 +253,7 @@ test.describe('B3.4 workspace', () => {
 
   test('Progress: a week of real days (tap a day for its log), body with weight and measurements, and only this coach\'s check-ins', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
-    const now = Date.now();
-    const today = dayKey(now);
+    const { today } = anchor!; // B3.9.0: the day the fixtures were written for (kept current by the beforeEach)
     const { page } = await as('coachPro', sized(1440));
     await openWs(page, C.active.id, '/progress');
     await expect(page.getByTestId('progress-week-label')).toHaveText('This week');
@@ -270,7 +276,7 @@ test.describe('B3.4 workspace', () => {
 
   test('a client transferred mid-week: none of the previous coach\'s check-ins or notes; the new coach requests the same week as their own record', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
-    const w0 = weekStartOf(dayKey(Date.now()));
+    const w0 = weekStartOf(anchor!.today); // B3.9.0: the week the fixtures were written for
     const before = await db.findOne('checkIns', { _id: `${C.moved.id}__${w0}` });
     const { page } = await as('coachPro', sized(1440));
     const payloads: string[] = [];
@@ -297,7 +303,7 @@ test.describe('B3.4 workspace', () => {
   });
 
   test('the transferred client: the previous coach\'s request left open reads as closed, its answers kept and shown, never sent (EN / AR, axe)', async ({ browser, env, db }, testInfo) => {
-    const w0 = weekStartOf(dayKey(Date.now()));
+    const w0 = weekStartOf(anchor!.today); // B3.9.0: the week the fixtures were written for
     const before = await db.findOne('checkIns', { _id: `${C.moved.id}__${w0}` });
     const stub = new URL(env.bunny.cdn).origin;
     const found: Record<string, string[]> = {};
@@ -367,9 +373,9 @@ test.describe('B3.4 workspace', () => {
     await openWs(page, C.active.id, '/subscription');
     await expect(page.getByTestId('sub-set-term')).toBeVisible();
     await expect(page.getByTestId('sub-freeze')).toBeVisible();
-    for (const hidden of ['sub-set-price', 'sub-extend', 'sub-end', 'sub-cancel']) await expect(page.getByTestId(hidden)).toHaveCount(0);
+    for (const hidden of ['sub-edit-term', 'sub-extend', 'sub-end', 'sub-cancel']) await expect(page.getByTestId(hidden)).toHaveCount(0);
     await page.getByTestId('sub-more').click();
-    for (const item of ['sub-set-price', 'sub-extend', 'sub-end', 'sub-cancel']) await expect(page.getByTestId(item)).toBeVisible();
+    for (const item of ['sub-edit-term', 'sub-extend', 'sub-end', 'sub-cancel']) await expect(page.getByTestId(item)).toBeVisible();
     await expect(page.getByTestId('sub-cancel')).toHaveText(/Cancel package/);
     await shot(page, testInfo, 'package-actions-390');
     await page.getByTestId('sub-end').click();
@@ -474,7 +480,7 @@ test.describe('B3.4 workspace', () => {
     }
     for (const [w, h] of [[390, 844], [1440, 900]] as const) plan.push({ lang: 'ar-eg', w, h, sections: [''] });
     for (const p of plan) {
-      const { page } = await as('coachPro', p.w === 390 ? phone : sized(p.w, p.h));
+      const { context, page } = await as('coachPro', p.w === 390 ? phone : sized(p.w, p.h));
       if (p.lang !== 'en') await setLanguage(page, p.lang === 'ar' ? 'العربية' : 'مصري');
       try {
         for (const rest of p.sections) {
@@ -483,6 +489,8 @@ test.describe('B3.4 workspace', () => {
         }
       } finally {
         if (p.lang !== 'en') await setLanguage(page, 'English').catch(() => undefined);
+        // B3.8 completion: close each window when done — the matrix used to keep a dozen live coach apps open at once.
+        await context.close();
       }
     }
     fs.writeFileSync(path.join(outDir, 'shots.json'), JSON.stringify(captured, null, 2));

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { assertCoachCanWrite } from '../../_lib/coachEntitlement.js';
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
@@ -22,6 +23,14 @@ import {
 } from '../../messages/_data.js';
 import { createNotification, feedFilter, notificationsCol } from '../../messages/_handlers/notifications-data.js';
 import type { Filter } from 'mongodb';
+import { enforceRateLimit } from '../../_lib/rateLimit.js';
+
+/**
+ * B36-R4 (owner, 2026-10-22: required before public launch) — proposed operational limits for
+ * `messages.send`, in one 10-minute window: 300 messages per sender (a broadcast to a whole roster
+ * fits), 60 per conversation (a fast human chat is far below). Shared by every server instance.
+ */
+export const MESSAGE_SEND_LIMIT = { perSender: 300, perConversation: 60, windowMs: 10 * 60_000 } as const;
 
 const DEFAULT_PAGE_SIZE = 200;
 
@@ -164,6 +173,15 @@ export const messagesRouter = router({
         if (existing) return toPublicMessage(existing);
       }
       assertCanWrite(ctx.user);
+      // B3.8 (P2): a coach whose Forma plan lapsed may read but not send — checked here, after the
+      // replay above, so a message delivered before the lapse is still acknowledged to its device.
+      await assertCoachCanWrite(ctx.user);
+      // B36-R4: server-side limits — per sender (bounds scripts and broadcasts; a whole roster still
+      // fits) and per conversation (bounds flooding one person). After the replay above, so a retried,
+      // already-delivered message never counts. Refusals carry RATE_LIMITED + retryAfter: the outbox
+      // keeps the message and retries later; a broadcast lists it as not sent.
+      await enforceRateLimit('messages.send', ctx.user.id, MESSAGE_SEND_LIMIT.perSender, MESSAGE_SEND_LIMIT.windowMs, 'Too many messages in a short time — please wait a moment.');
+      await enforceRateLimit('messages.thread', `${ctx.user.id}>${input.clientId}`, MESSAGE_SEND_LIMIT.perConversation, MESSAGE_SEND_LIMIT.windowMs, 'Too many messages in this conversation in a short time — please wait a moment.');
 
       let coachId: string | undefined;
       if (viewer.kind === 'coach') {
@@ -357,7 +375,9 @@ export const messagesRouter = router({
       const rows = await col
         .aggregate<{ _id: string; last: MessageDoc; unreadForCoach: number }>([
           { $match: { clientId: { $in: clientIds }, ...coachConversationFilter(coachId) } },
-          { $sort: { createdAt: 1 } },
+          // B3.9 (PF-14): ordered as the `clientId_createdAt` index is, so the sort walks the index
+          // instead of sorting every message of every thread in memory ($last still = the newest).
+          { $sort: { clientId: 1, createdAt: 1 } },
           {
             $group: {
               _id: '$clientId',

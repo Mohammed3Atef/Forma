@@ -27,6 +27,7 @@ const targets: { name: string; role: Role | null; path: string }[] = [
   { name: 'client-home', role: 'clientA', path: '/' },
   { name: 'coach-dashboard', role: 'coachA', path: '/coach/dashboard' },
   { name: 'coach-me', role: 'coachA', path: '/coach/me' }, // B3.1: the Me hub
+  { name: 'coach-business', role: 'coachA', path: '/coach/business' }, // B3.8: Me › Business
   { name: 'admin-accounts', role: 'super', path: '/admin/accounts' },
 ];
 

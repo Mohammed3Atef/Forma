@@ -19,7 +19,7 @@ export function GlobalSearch({ onOpen, className = '' }: { onOpen: () => void; c
     >
       <Icon name="search" size={16} className="shrink-0" />
       <span className="sr-only sm:not-sr-only">{t('search.placeholder')}</span>
-      <kbd className="ms-1 hidden rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-earth-subtle sm:inline-flex">
+      <kbd className="ms-1 hidden rounded border border-line px-1.5 py-0.5 font-mono text-[12px] text-earth-subtle sm:inline-flex">
         {isMac ? '⌘' : 'Ctrl'} K
       </kbd>
     </button>

@@ -12,6 +12,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { WorkoutTemplate } from '@/types';
 import { ListBody, SelectFilter, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { errorMessage } from '@/lib/errorMessage';
 
 /** The template's own page (read-first; Edit is explicit — RM-27). */
 export const programPath = (id: string) => `/coach/templates/${encodeURIComponent(id)}`;
@@ -58,7 +59,7 @@ export default function ProgramsSegment({ coachId, query, setQuery, createSignal
       invalidate();
       showToast({ title: t('library.duplicated'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('workoutTemplate.duplicate'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('workoutTemplate.duplicate'), message: errorMessage(e, t) }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteWorkoutTemplate(coachId, id),
@@ -66,7 +67,7 @@ export default function ProgramsSegment({ coachId, query, setQuery, createSignal
       invalidate();
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (p: WorkoutTemplate) => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: pname(p) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(p.id);

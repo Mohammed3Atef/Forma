@@ -1,6 +1,6 @@
 /**
  * Backend port of `src/lib/subscription.ts` (client Layer-B subscription state)
- * and the `coachPlanState`/`monthlyOf` helpers from
+ * and the `coachPlanState` helper from
  * `src/services/platform/coachPlanApi.ts` / `adminGrowthApi.ts`. Kept local to
  * `api/admin/` per the migration's file-ownership rules.
  */
@@ -40,16 +40,6 @@ export function effectiveSubscriptionStatus(
   }
   if (now >= sub.endAt) return 'expired';
   return sub.status === 'trial' ? 'trial' : 'active';
-}
-
-/** Normalise a term price to an approximate monthly figure. */
-export function monthlyOf(s: Subscription): number {
-  const p = s.price ?? 0;
-  if (!p) return 0;
-  if (s.months && s.months > 0) return p / s.months;
-  if (s.billingCycle === 'weekly') return p * 4.345;
-  if (s.billingCycle === 'quarterly') return p / 3;
-  return p;
 }
 
 export function coachPlanState(

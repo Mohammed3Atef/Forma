@@ -16,11 +16,16 @@ const h = vi.hoisted(() => ({
   desktop: false,
   online: true,
   request: vi.fn(async () => undefined),
+  // B3.8 D5: what the server's count says (`useCoachCapacity`); tests set it.
+  capacity: { known: true, used: 0, limit: 25, over: 0, remaining: 25, lapsed: false, atLimit: false, nearLimit: false },
 }));
 vi.mock('@/hooks/useCoachSources', () => ({ useCoachSources: () => h.data }));
 vi.mock('@/hooks/useMediaQuery', () => ({ useIsDesktop: () => h.desktop, useIsTabletUp: () => h.desktop, useMediaQuery: () => h.desktop }));
 vi.mock('@/hooks/useOnlineStatus', () => ({ useOnlineStatus: () => h.online }));
-vi.mock('@/components/coach/CoachPlanProvider', () => ({ useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }) }));
+vi.mock('@/components/coach/CoachPlanProvider', async () => {
+  const { useTranslation } = await import('react-i18next');
+  return { useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }), useCoachCapacity: () => h.capacity, useCapacityFollowsRoster: () => undefined, useWriteGate: () => { const { t } = useTranslation(); const reason = !(true) ? t('coachPlan.readOnly') : !(true) ? t('offline.actionDisabled') : undefined; return { canWrite: (true) && (true), planBlocked: !(true), online: true, reason }; } };
+});
 vi.mock('@/services/platform/coachPlanApi', async (orig) => ({ ...(await orig<typeof import('@/services/platform/coachPlanApi')>()), coachPlanQuery: () => ({ queryKey: ['coachPlan', 'c'], queryFn: async () => ({ maxClients: 25, activeClientCount: 0, state: 'active' }) }) }));
 vi.mock('@/services/platform/transferApi', async (orig) => ({ ...(await orig<typeof import('@/services/platform/transferApi')>()), listIncomingTransferRequests: async () => [], listOutgoingTransferRequests: async () => [] }));
 vi.mock('@/services/platform/checkInApi', async (orig) => ({ ...(await orig<typeof import('@/services/platform/checkInApi')>()), requestCheckIn: h.request }));
@@ -78,6 +83,7 @@ function renderAt(path = '/coach/clients') {
 beforeEach(() => {
   h.desktop = false;
   h.online = true;
+  h.capacity = { known: true, used: 0, limit: 25, over: 0, remaining: 25, lapsed: false, atLimit: false, nearLimit: false };
   refresh.mockReset();
   h.request.mockClear();
   useSession.setState({ uid: COACH, account: { id: COACH, role: 'coach', accountStatus: 'active', displayName: 'Amira', email: 'amira@x.test' } as never });
@@ -111,6 +117,30 @@ describe('Clients — states', () => {
     renderAt();
     expect(screen.getByTestId('clients-partial')).toBeInTheDocument();
     expect(screen.getByTestId('coach-client-row')).toHaveTextContent('—');
+  });
+});
+
+describe('Clients — capacity (B3.8, owner D5)', () => {
+  it('shows the server’s count — a disabled client still counts, as it does when adding a client', () => {
+    const s = sources(['a', 'b', 'c']);
+    (s.roster.data as { accountStatus: string }[])[2].accountStatus = 'disabled';
+    setData(s);
+    h.capacity = { known: true, used: 3, limit: 3, over: 0, remaining: 0, lapsed: false, atLimit: true, nearLimit: true };
+    renderAt();
+    expect(screen.getByTestId('coach-client-usage')).toHaveTextContent('3 / 3');
+    expect(screen.getByTestId('coach-client-limit')).toHaveAttribute('href', '/coach/plan');
+  });
+
+  it('over capacity says by how much; nothing is shown as full before the plan has loaded', () => {
+    setData(sources(['a', 'b', 'c', 'd']));
+    h.capacity = { known: true, used: 4, limit: 3, over: 1, remaining: 0, lapsed: false, atLimit: true, nearLimit: true };
+    const v = renderAt();
+    expect(screen.getByTestId('coach-client-limit')).toHaveTextContent('Over capacity by 1');
+    v.unmount();
+    h.capacity = { known: false, used: 0, limit: 0, over: 0, remaining: 0, lapsed: false, atLimit: false, nearLimit: false };
+    renderAt();
+    expect(screen.queryByTestId('coach-client-usage')).not.toBeInTheDocument();
+    expect(screen.getByTestId('coach-add-client')).toBeEnabled();
   });
 });
 

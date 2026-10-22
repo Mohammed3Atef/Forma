@@ -14,6 +14,7 @@ import { showToast } from '@/stores/toastStore';
 import { downscaleImage } from '@/lib/image';
 import { parseDecimal } from '@/lib/utils';
 import { uploadImage, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
+import { errorMessage } from '@/lib/errorMessage';
 import type {
   ActivityLevel,
   AssessmentChallenge,
@@ -220,7 +221,7 @@ export function AssessmentWizard({ uid, displayName, initial, onDone }: { uid: s
       // invalidate + transition instead.
       setSubmitted(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to submit');
+      setError(errorMessage(e, t));
     } finally {
       setSubmitting(false);
     }
@@ -334,7 +335,7 @@ function Chips<T extends string>({ options, value, onPick, tkey, t, multi, testI
   return (
     <div className="flex flex-wrap gap-2" data-testid={testId}>
       {options.map((o) => (
-        <button key={o} type="button" data-testid={`opt-${o}`} onClick={() => onPick(o)} className={`chip ${isOn(o) ? 'chip-on' : ''}`}>
+        <button key={o} type="button" data-testid={`opt-${o}`} onClick={() => onPick(o)} aria-pressed={isOn(o)} className={`chip ${isOn(o) ? 'chip-on' : ''}`}>
           {t(`${tkey}.${o}`)}
         </button>
       ))}
@@ -433,7 +434,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
                       const cur = a.goals.goalPriorities ?? [];
                       patch('goals', { goalPriorities: on ? cur.filter((x) => x !== g) : [...cur, g] });
                     }}
-                    className={`chip ${on ? 'chip-on' : ''}`}
+                    aria-pressed={on} className={`chip ${on ? 'chip-on' : ''}`}
                   >
                     {on && <span className="me-1 font-semibold">{idx + 1}.</span>}
                     {t(`assessment.goalOptions.${g}`)}
@@ -467,7 +468,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           <Field label={t('assessment.trainingDays')}>
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                <button key={n} type="button" onClick={() => patch('lifestyle', { trainingDaysPerWeek: n })} className={`chip ${a.lifestyle.trainingDaysPerWeek === n ? 'chip-on' : ''}`}>
+                <button key={n} type="button" onClick={() => patch('lifestyle', { trainingDaysPerWeek: n })} aria-pressed={a.lifestyle.trainingDaysPerWeek === n} className={`chip ${a.lifestyle.trainingDaysPerWeek === n ? 'chip-on' : ''}`}>
                   {n}
                 </button>
               ))}
@@ -499,12 +500,12 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
                     const has = a.health.injuries.includes(inj);
                     patch('health', { injuries: has ? a.health.injuries.filter((x) => x !== inj) : [...a.health.injuries, inj], noInjuries: false });
                   }}
-                  className={`chip ${a.health.injuries.includes(inj) ? 'chip-on' : ''}`}
+                  aria-pressed={a.health.injuries.includes(inj)} className={`chip ${a.health.injuries.includes(inj) ? 'chip-on' : ''}`}
                 >
                   {t(`assessment.injuries.${inj}`)}
                 </button>
               ))}
-              <button type="button" data-testid="a-no-injuries" onClick={() => patch('health', { injuries: [], noInjuries: true })} className={`chip ${a.health.noInjuries ? 'chip-on' : ''}`}>
+              <button type="button" data-testid="a-no-injuries" onClick={() => patch('health', { injuries: [], noInjuries: true })} aria-pressed={a.health.noInjuries} className={`chip ${a.health.noInjuries ? 'chip-on' : ''}`}>
                 {t('assessment.injuries.none')}
               </button>
             </div>
@@ -516,10 +517,10 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           )}
           <Field label={t('assessment.medicalQ')}>
             <div className="flex gap-2">
-              <button type="button" onClick={() => patch('health', { hasMedicalConditions: false, medicalDetails: undefined })} className={`chip ${!a.health.hasMedicalConditions ? 'chip-on' : ''}`}>
+              <button type="button" onClick={() => patch('health', { hasMedicalConditions: false, medicalDetails: undefined })} aria-pressed={!a.health.hasMedicalConditions} className={`chip ${!a.health.hasMedicalConditions ? 'chip-on' : ''}`}>
                 {t('common.no')}
               </button>
-              <button type="button" data-testid="a-medical-yes" onClick={() => patch('health', { hasMedicalConditions: true })} className={`chip ${a.health.hasMedicalConditions ? 'chip-on' : ''}`}>
+              <button type="button" data-testid="a-medical-yes" onClick={() => patch('health', { hasMedicalConditions: true })} aria-pressed={a.health.hasMedicalConditions} className={`chip ${a.health.hasMedicalConditions ? 'chip-on' : ''}`}>
                 {t('common.yes')}
               </button>
             </div>
@@ -552,7 +553,7 @@ function renderStep(step: number, a: ClientAssessment, patch: Patch, t: TFn): Re
           <Field label={t('assessment.mealsPerDay')}>
             <div className="flex flex-wrap gap-2">
               {[2, 3, 4, 5, 6].map((n) => (
-                <button key={n} type="button" onClick={() => patch('nutrition', { mealsPerDay: n })} className={`chip ${a.nutrition.mealsPerDay === n ? 'chip-on' : ''}`}>
+                <button key={n} type="button" onClick={() => patch('nutrition', { mealsPerDay: n })} aria-pressed={a.nutrition.mealsPerDay === n} className={`chip ${a.nutrition.mealsPerDay === n ? 'chip-on' : ''}`}>
                   {n}
                 </button>
               ))}

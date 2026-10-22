@@ -159,7 +159,7 @@ describe('same-week records of two coaches: this release (byKey) and older apps 
 describe('archived relationship stints: own history yes, others\' facts only, never the live workspace', () => {
   async function history() {
     const { a, b, x } = await people();
-    await caller(a).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'setPrice', price: 1500, currency: 'EGP' } } as never);
+    await caller(a).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'correct', price: 1500, currency: 'EGP' } } as never);
     await caller(a).coachNotes.create({ clientId: x._id, body: 'A private note', visibility: 'private' } as never);
     // The client's assessment (theirs, readable by their coach) with A's private review note on it.
     await (await getDb()).collection<{ _id: string } & Record<string, unknown>>('clientProfiles').updateOne({ _id: x._id }, { $set: { clientId: x._id, assessment: { status: 'submitted', submittedAt: Date.now(), goal: 'Run a 10k' } } }, { upsert: true });
@@ -234,7 +234,7 @@ describe('archived relationship stints: own history yes, others\' facts only, ne
     expect(await code(caller(z).coachClients.get({ id: `${a._id}__${x._id}` }))).toBe('FORBIDDEN');
     const suspended = { ...a, accountStatus: 'suspended' as const };
     expect(await caller(suspended).coachClients.get({ id: `${a._id}__${x._id}` })).toMatchObject({ status: 'active' });
-    expect(await code(caller(suspended).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'setPrice', price: 1, currency: 'EGP' } } as never))).toBe('FORBIDDEN');
+    expect(await code(caller(suspended).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'correct', price: 1, currency: 'EGP' } } as never))).toBe('FORBIDDEN');
     const admin = await insertUser({ _id: 'admin-1', role: 'super_admin' });
     const all = await caller(admin).coachClients.list({ clientId: x._id });
     expect(all.find((r) => r.coachId === a._id)?.previousStints?.[0]).toHaveProperty('subscription');

@@ -9,6 +9,7 @@ import { getDb } from '../_lib/mongodb.js';
 import { signAccessToken } from '../_lib/tokens.js';
 import type { UserDoc } from '../_lib/types.js';
 import type { CoachClientDoc } from '../coach-clients/_types.js';
+import { ensureCoachPlan } from '../_lib/testFixtures.js';
 
 /**
  * Media upload proxy — authorization, path ownership, type/size policy and
@@ -88,6 +89,7 @@ function userDoc(overrides: Partial<UserDoc>): UserDoc {
 async function insertUser(overrides: Partial<UserDoc>): Promise<UserDoc> {
   const doc = userDoc(overrides);
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return doc;
 }
 

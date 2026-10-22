@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
@@ -8,10 +8,12 @@ import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientRelDoc } from '../../client/_lib/db.js';
 import type { CoachPlanDoc } from '../../admin/_lib/types.js';
 
-let mongod: MongoMemoryServer;
+// A replica set, as in production (Atlas): creating or promoting a coach writes the account and its
+// plan in one transaction (B38F-R3).
+let mongod: MongoMemoryReplSet;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   process.env.MONGODB_URI = mongod.getUri();
   process.env.MONGODB_DB = 'forma_test';
 }, 60_000);
@@ -153,6 +155,9 @@ describe('admin module — audit', () => {
     const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
     const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
+    // B38F-R3: real coaches with live plans — the refusals below are the audit allow-list, not the plan.
+    await givePlan(coachDoc._id);
+    await givePlan(otherCoach._id);
     await assignCoach(coachDoc._id, clientDoc._id);
     const asAdmin = appRouter.createCaller(ctxFor(authedUser(adminDoc)));
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));

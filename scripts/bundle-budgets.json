@@ -1,0 +1,108 @@
+{
+  "notes": "Budgets are the B3.9 measured baseline, reviewed against the B3.8-final one (kept below in `previous`): the production build in dist/ of 2026-10-22 (entry index-C5TDGr1S.js), measured by scripts/bundle-report.mjs. KB = 1000 bytes; gzip = zlib level 6 per file (the numbers vite build prints). Screen values are FIRST-VISIT downloads: the screen's chunk(s) plus their static-import closure, minus what the entry (and for coach screens CoachApp) already loaded. Tolerance is 0 %, so any growth fails --strict until it is reviewed and the baseline is moved deliberately. Blueprint section 9 allows each coach screen up to +20 % over its baseline, with owner-approved exceptions for Business (Me > Business) and the package screen (CoachClientSubscriptionTab); raise a screen's budget here only within that allowance or with a recorded approval. B3.9 review (every screen within +20 % of B3.8): entry +1.5 % gzip (new EN strings: translated errors, outcome toasts, a11y; the shared focus trap and the interpolation formatter); CoachToday +18.8 % gzip (the desktop panel's client context: the directory builder and the package pill); every other coach screen +2.9 – 7.4 % (honest states, the shared Metric tile, status tones, labels); ClientApp +0.5 %.",
+  "measuredFrom": "dist/ built 2026-10-22 (branch development, B3.9 final tree incl. the certification fixes, uncommitted; entry index-C5TDGr1S.js)",
+  "tolerancePct": 0,
+  "entryGzipKB": 161.88,
+  "entryRawKB": 501.99,
+  "coachAppGzipKB": 9.31,
+  "coachAppRawKB": 27.68,
+  "screens": {
+    "CoachApp": {
+      "rawKB": 153.86,
+      "gzipKB": 53.87
+    },
+    "CoachToday": {
+      "rawKB": 60.25,
+      "gzipKB": 23.62
+    },
+    "CoachClients": {
+      "rawKB": 86.83,
+      "gzipKB": 31.62
+    },
+    "Workspace": {
+      "rawKB": 56.49,
+      "gzipKB": 22.61
+    },
+    "CoachClientSubscriptionTab": {
+      "rawKB": 43.73,
+      "gzipKB": 15.73
+    },
+    "Business": {
+      "rawKB": 45.77,
+      "gzipKB": 18.16
+    },
+    "CoachLibrary": {
+      "rawKB": 32.35,
+      "gzipKB": 13.91
+    },
+    "CoachMessages": {
+      "rawKB": 98.1,
+      "gzipKB": 35.59
+    },
+    "CoachWorkoutEditor": {
+      "rawKB": 91.4,
+      "gzipKB": 35.33
+    },
+    "CoachNutritionEditor": {
+      "rawKB": 78.4,
+      "gzipKB": 30.05
+    },
+    "ClientApp": {
+      "rawKB": 154.24,
+      "gzipKB": 53.92
+    }
+  },
+  "previous": {
+    "label": "B3.8-final (2026-10-22 14:40, entry index-CFDq3tIj.js)",
+    "entryGzipKB": 159.48,
+    "entryRawKB": 494.96,
+    "coachAppGzipKB": 9.18,
+    "coachAppRawKB": 27.37,
+    "screens": {
+      "CoachApp": {
+        "rawKB": 153.86,
+        "gzipKB": 53.87
+      },
+      "CoachToday": {
+        "rawKB": 50.24,
+        "gzipKB": 19.89
+      },
+      "CoachClients": {
+        "rawKB": 83.72,
+        "gzipKB": 30.74
+      },
+      "Workspace": {
+        "rawKB": 53.69,
+        "gzipKB": 21.75
+      },
+      "CoachClientSubscriptionTab": {
+        "rawKB": 41.82,
+        "gzipKB": 14.85
+      },
+      "Business": {
+        "rawKB": 43.32,
+        "gzipKB": 17.22
+      },
+      "CoachLibrary": {
+        "rawKB": 30.41,
+        "gzipKB": 12.95
+      },
+      "CoachMessages": {
+        "rawKB": 94.14,
+        "gzipKB": 34.12
+      },
+      "CoachWorkoutEditor": {
+        "rawKB": 88.42,
+        "gzipKB": 34
+      },
+      "CoachNutritionEditor": {
+        "rawKB": 75.09,
+        "gzipKB": 28.66
+      },
+      "ClientApp": {
+        "rawKB": 153.93,
+        "gzipKB": 53.67
+      }
+    }
+  }
+}

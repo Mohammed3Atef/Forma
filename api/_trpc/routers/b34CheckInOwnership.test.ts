@@ -88,8 +88,10 @@ describe('mid-week hand-over: the incoming coach requests the same week as a rec
     await caller(b).checkIns.review({ clientId: x._id, weekStart: W, feedback: 'Thanks' });
     expect((await docs({ _id: mine._id }))[0]).toMatchObject({ status: 'reviewed', coachFeedback: 'Thanks' });
     expect((await docs({ _id: `${x._id}__${W}` }))[0]).toEqual(before);
-    await caller(b).checkIns.delete({ clientId: x._id, weekStart: W });
-    expect(await docs({ _id: mine._id })).toHaveLength(0);
+    // B3.9 (audit): an answered check-in is kept — B's delete of the week (its own, reviewed record) is
+    // refused; A's record is untouched either way.
+    await expect(caller(b).checkIns.delete({ clientId: x._id, weekStart: W })).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(await docs({ _id: mine._id })).toHaveLength(1);
     expect((await docs({ _id: `${x._id}__${W}` }))[0]).toEqual(before);
 
     // A no longer coaches X: nothing at all.
@@ -199,9 +201,10 @@ describe('mid-week hand-over: the incoming coach requests the same week as a rec
     expect(await caller(admin).checkIns.get({ clientId: x._id, weekStart: W })).toMatchObject({ coachId: 'coach-a' });
     expect(await caller(admin).checkIns.get({ clientId: x._id, weekStart: `${W}__${b._id}` })).toMatchObject({ coachId: b._id });
     const stranger = await insertUser({ _id: 'coach-z', role: 'coach' });
-    for (const p of [caller(stranger).checkIns.list({ clientId: x._id }), caller(stranger).checkIns.get({ clientId: x._id, weekStart: W }), caller(stranger).checkIns.review({ clientId: x._id, weekStart: W, feedback: 'x' })]) {
-      expect(await code(p)).toBe('FORBIDDEN');
-    }
+    await givePlan(stranger._id); // B38F-R3: a real coach with a live plan — the refusals are ownership
+    // Every call's rejection is handled at once (awaiting them one by one let a later one reject unobserved).
+    const codes = await Promise.all([caller(stranger).checkIns.list({ clientId: x._id }), caller(stranger).checkIns.get({ clientId: x._id, weekStart: W }), caller(stranger).checkIns.review({ clientId: x._id, weekStart: W, feedback: 'x' })].map((p) => code(p)));
+    expect(codes).toEqual(['FORBIDDEN', 'FORBIDDEN', 'FORBIDDEN']);
   });
 });
 
@@ -211,7 +214,7 @@ describe('B3-S13: a re-activated relationship starts clean; the previous stint i
     const x = await insertUser({ _id: 'client-x', role: 'client' });
     await givePlan(a._id);
     await caller(a).coachClients.assign({ clientId: x._id, subscription: { status: 'active', months: 1 } });
-    await caller(a).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'setPrice', price: 900, currency: 'EGP' } } as never).catch(() => undefined);
+    await caller(a).coachClients.updateSubscription({ id: `${a._id}__${x._id}`, sub: { op: 'correct', price: 900, currency: 'EGP' } } as never).catch(() => undefined);
     await caller(a).coachClients.end({ id: `${a._id}__${x._id}`, reason: 'released' });
     const ended = await (await getDb()).collection('coachClients').findOne({ _id: `${a._id}__${x._id}` } as never);
     await tick();

@@ -10,6 +10,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { listVersions, restoreVersion } from '@/services/platform/planVersionsApi';
 import { confirmDialog } from '@/stores/dialogStore';
 import { formatDate } from '@/lib/format';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { OfflineState, useQueryScreen } from '@/components/ui/ScreenState';
 import type { CardioPlan, MealPlan, PlanVersion, PlanVersionKind, WorkoutPlan } from '@/types';
 
 type AnyPlan = WorkoutPlan | MealPlan | CardioPlan;
@@ -61,7 +63,11 @@ export function PlanHistorySheet({
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const [reason, setReason] = useState('');
+  // B3.9 (C2): the editor is behind the plan gate; saving or restoring a version still needs the connection.
+  const online = useOnlineStatus();
   const versions = useQuery({ queryKey: ['planVersions', clientId, kind], queryFn: () => listVersions(clientId, kind), enabled: open && !!clientId });
+  // B3.9 (CO-18): a read paused offline is offline — never "no versions".
+  const versionsScreen = useQueryScreen(versions);
 
   const restore = useMutation({
     mutationFn: (v: PlanVersion) => restoreVersion(clientId, v),
@@ -97,14 +103,16 @@ export function PlanHistorySheet({
         <div className="space-y-2 rounded-ui-control border border-line-soft p-3">
           <p className="text-[13px] text-earth-muted">{t('trust.planEditor.saveHint')}</p>
           <TextInput label={t('planVersions.noteLabel')} data-testid="version-reason" placeholder={t('planVersions.reasonPlaceholder')} value={reason} onChange={(e) => setReason(e.target.value)} />
-          <Button data-testid="version-save-confirm" variant="tonal" fullWidth pending={saving} disabled={!canSave || !reason.trim()} onClick={() => void saveWithNote()}>
+          <Button data-testid="version-save-confirm" variant="tonal" fullWidth pending={saving} disabled={!canSave || !reason.trim()} offline={!online} onClick={() => void saveWithNote()}>
             {t('planVersions.saveWithNote')}
           </Button>
         </div>
 
-        {versions.isLoading ? (
+        {versionsScreen.status === 'offline' ? (
+          <OfflineState onRetry={versionsScreen.retry} testId="plan-history-offline" />
+        ) : versionsScreen.status === 'loading' ? (
           <LoadingState variant="list" count={3} />
-        ) : versions.isError ? (
+        ) : versionsScreen.status === 'error' ? (
           <ErrorState onRetry={() => void versions.refetch()} testId="plan-history-error" />
         ) : versions.data?.length ? (
           <ul className="divide-y divide-line-soft rounded-ui-control border border-line-soft">
@@ -130,7 +138,7 @@ export function PlanHistorySheet({
                   <div className="mt-0.5 text-[12px] text-earth-subtle">{formatDate(v.createdAt, i18n.language, 'medium')}</div>
                 </div>
                 {!v.active && (
-                  <Button size="sm" variant="ghost" data-testid={`version-restore-${v.versionNumber}`} disabled={restore.isPending} onClick={() => void doRestore(v)}>
+                  <Button size="sm" variant="ghost" data-testid={`version-restore-${v.versionNumber}`} disabled={restore.isPending} offline={!online} onClick={() => void doRestore(v)}>
                     {t('planVersions.restore')}
                   </Button>
                 )}

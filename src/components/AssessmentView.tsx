@@ -85,7 +85,7 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
       <Section title={t('assessment.steps.2')}>
         <Row label={t('assessment.occupation')} value={t(`assessment.occupations.${a.lifestyle.occupation}`)} />
         <Row label={t('assessment.sleepHours')} value={`${a.lifestyle.sleepHours} h`} />
-        <Row label={t('assessment.activity')} value={t(`assessment.activities.${a.lifestyle.activityLevel}`)} />
+        <Row label={t('assessment.activity')} value={t(`assessment.activities.${a.lifestyle.activityLevel}`, { defaultValue: '—' })} />
         <Row label={t('assessment.trainingDays')} value={`${a.lifestyle.trainingDaysPerWeek}`} />
       </Section>
       <Section title={t('assessment.steps.3')}>

@@ -1,13 +1,14 @@
-import { useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { OfflineState } from '@/components/ui/ScreenState';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { useIsTabletUp } from '@/hooks/useMediaQuery';
 import { useFillToBottomNav } from '@/hooks/useFillToBottomNav';
@@ -19,6 +20,8 @@ import { buildInbox, type InboxFilter } from '@/lib/coachInbox';
 import { InboxFilters, InboxList, threadPath } from '@/pages/coach/messages/InboxList';
 import { CoachThreadPane } from '@/pages/coach/messages/CoachThreadPane';
 import { BroadcastSheet } from '@/pages/coach/messages/BroadcastSheet';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 /**
  * Coach Messages (B3.6 / blueprint §6.5) — `/coach/messages` and
@@ -44,11 +47,17 @@ export function CoachMessages() {
   const tabletUp = useIsTabletUp();
   const goBack = useBack('/coach/messages');
   const data = useCoachInbox(coachId);
+  const online = useOnlineStatus();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<InboxFilter>('all');
   const [broadcasting, setBroadcasting] = useState(false);
+  const writeGate = useWriteGate();
 
-  const clients = useMemo(() => data.directory.rows.map((r) => ({ id: r.id, displayName: r.name, photoUrl: r.photoUrl, email: (data.roster.data ?? []).find((c) => c.id === r.id)?.email })), [data.directory.rows, data.roster.data]);
+  // B3.9 (perf): one Map lookup per row — the list scan per row was O(n²) with a 200-client roster.
+  const clients = useMemo(() => {
+    const emailOf = new Map((data.roster.data ?? []).map((c) => [c.id, c.email]));
+    return data.directory.rows.map((r) => ({ id: r.id, displayName: r.name, photoUrl: r.photoUrl, email: emailOf.get(r.id) }));
+  }, [data.directory.rows, data.roster.data]);
   const inbox = useMemo(() => buildInbox(clients, data.threads, { coachId, q, filter, selectedId }), [clients, data.threads, coachId, q, filter, selectedId]);
   const rosterReady = data.roster.data !== undefined;
   const row = data.rowOf(selectedId);
@@ -65,6 +74,7 @@ export function CoachMessages() {
   const refreshAfterRead = useCallback(() => void data.refreshThreads(), [data]);
   const onAccessChanged = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+    void qc.invalidateQueries({ queryKey: ['coachPlan', coachId] }); // the server's client count (B3.8, D5)
     void data.refreshThreads();
   }, [qc, coachId, data]);
   const clear = () => {
@@ -76,7 +86,8 @@ export function CoachMessages() {
     <ActionMenu
       label={t('messages.inboxActions')}
       testId="messages-more"
-      items={[{ key: 'broadcast', label: t('messages.broadcast'), icon: 'bolt', testId: 'broadcast-open', disabled: !rosterReady || clients.length === 0, onSelect: () => setBroadcasting(true) }]}
+      // B3.8 (P2): no broadcast with a lapsed Forma plan (the server refuses every send).
+      items={[{ key: 'broadcast', label: t('messages.broadcast'), icon: 'bolt', testId: 'broadcast-open', disabled: !rosterReady || clients.length === 0 || writeGate.planBlocked, onSelect: () => setBroadcasting(true) }]}
     />
   );
   const broadcastSheet = coachId ? (
@@ -84,7 +95,10 @@ export function CoachMessages() {
   ) : null;
 
   const listBody = () =>
-    data.roster.isError && !rosterReady ? (
+    // B3.9 (CO-18 / PF-21): no roster on this device and the read paused offline → offline, not a skeleton.
+    !rosterReady && (!online || data.roster.fetchStatus === 'paused') ? (
+      <OfflineState onRetry={() => void data.roster.refetch()} testId="coach-messages-offline" />
+    ) : data.roster.isError && !rosterReady ? (
       <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => void data.roster.refetch()} testId="coach-messages-error" />
     ) : !rosterReady ? (
       <LoadingState variant="list" count={5} />
@@ -121,7 +135,14 @@ export function CoachMessages() {
     }
     return (
       <div data-testid="coach-messages">
-        <TopBar title={t('coach.messages')} sub={unreadLine || undefined} right={more} />
+        {/* B3.9 (VS-13 / RM-33): the coach's one page header — as Today, Clients, Library and Business. */}
+        <header className="mb-4 flex items-start justify-between gap-3 pt-3">
+          <div className="min-w-0">
+            <h1 className="t-title">{t('coach.messages')}</h1>
+            {unreadLine ? <p className="mt-0.5 text-[14px] text-earth-muted" data-testid="inbox-unread-line">{unreadLine}</p> : null}
+          </div>
+          {more}
+        </header>
         {rosterReady && clients.length > 0 && (
           <div className="mb-3">
             <InboxFilters q={q} onQ={setQ} filter={filter} onFilter={setFilter} unreadThreads={inbox.unreadThreads} />
@@ -141,7 +162,7 @@ export function CoachMessages() {
           <div className="shrink-0 space-y-3 border-b border-line-soft px-3 pb-3 pt-3">
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <h1 className="truncate font-display text-[20px] font-semibold leading-tight">{t('coach.messages')}</h1>
+                <h1 className="t-title truncate">{t('coach.messages')}</h1>
                 {unreadLine ? <p className="truncate text-[12.5px] text-earth-muted" data-testid="inbox-unread-line">{unreadLine}</p> : null}
               </div>
               {more}
@@ -187,8 +208,12 @@ function SplitMessages({ list, thread, extra }: { list: ReactNode; thread: React
 /** Phones: the conversation is a full-screen task above the shell (no tab bar), ending at the top of the on-screen keyboard. */
 function PhoneThreadScreen({ label, children }: { label: string; children: ReactNode }) {
   const keyboard = useKeyboardInset(true);
+  // B3.9 (AX-05): a full-screen task — Tab stays in the conversation; Back (not Escape) leaves it.
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, { active: true, onEscape: () => {} });
   return (
     <div
+      ref={ref}
       className="fixed inset-x-0 top-0 z-ui-task flex flex-col bg-surface"
       style={{ bottom: keyboard }}
       role="dialog"

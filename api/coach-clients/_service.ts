@@ -3,7 +3,8 @@ import type { ClientSession } from 'mongodb';
 import { getDb, withDbTransaction } from '../_lib/mongodb.js';
 import { TRPCError } from '@trpc/server';
 import type { UserDoc } from '../_lib/types.js';
-import { addMonths, capError, buildSubscription, coachClientsCol, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
+import { capError, buildSubscription, coachClientsCol, DESTINATION_CAP_REASONS, relId, releaseClientSlot, reserveClientSlot } from './_data.js';
+import { applyCorrection, archiveForRenewal, buildTerm, calendarOf, extendDated, isRunning, renewalStart, snapToCalendar } from './_terms.js';
 import { CommercialReason } from '../_lib/commercialReason.js';
 import { SUBSCRIPTION_RULE_MESSAGES, applyExtend, applyFreeze, applyUnfreeze, isBackdatedRenewal, snapshotOf, type SubscriptionRuleReason } from './_subscriptionRules.js';
 import type {
@@ -13,7 +14,6 @@ import type {
   SubscriptionDoc,
   SubscriptionEventDoc,
   SubscriptionPeriodDoc,
-  SubscriptionStatus,
   TransferMode,
   TransferSubHandling,
 } from './_types.js';
@@ -27,12 +27,12 @@ import {
 } from '../client/_lib/db.js';
 import type { ArchivedClientDataDoc, ArchivedClientDataKind } from '../client/_lib/types.js';
 
-const SUB_DAY = 86_400_000;
-
 /** A term without its coach's commercial details (B3.4: what a kept subscription carries to another coach). */
 function termOnly(sub: SubscriptionDoc): SubscriptionDoc {
-  const { price: _p, currency: _c, planName: _n, billingCycle: _b, note: _note, ...term } = sub;
-  return term;
+  // B3.8: nor its term id. Payments recorded by the previous coach stay on their term; the new
+  // coach's kept term is a separate economic record with its own id.
+  const { price: _p, currency: _c, planName: _n, billingCycle: _b, note: _note, termId: _t, ...term } = sub;
+  return { ...term, termId: crypto.randomUUID() };
 }
 
 /**
@@ -57,16 +57,16 @@ async function activateRelationship(fresh: CoachClientDoc, now: number, session?
 }
 
 /**
- * In-place mutations of an EXISTING relationship's subscription — the piece
- * the original migration pass left unported (see the frontend
- * `coachClientsApi.ts` gap it called out). Ports `setSubscriptionTerm` /
- * `setSubscriptionPrice` / `freezeSubscription` / `unfreezeSubscription` /
- * `endSubscription` / `cancelSubscription` / `extendSubscription` from that
- * same Firestore-era file, one discriminated action at a time.
+ * In-place mutations of an EXISTING relationship's subscription, one discriminated action at a
+ * time. B3.8 (Fix C, owner decision 2): a term change says what it means — `newTerm`, `renew`
+ * or `correct` (see `SubscriptionIntent`); the server never infers it from the dates. The
+ * pre-B3.8 `setTerm` / `setPrice` are refused with `APP_UPDATE_REQUIRED`.
  */
 export type SubscriptionAction =
-  | { op: 'setTerm'; startAt: number; months?: number; days?: number; price?: number; currency?: string; planName?: string }
-  | { op: 'setPrice'; price: number; currency?: string }
+  | { op: 'newTerm'; status?: 'active' | 'trial'; startDate?: string; zone?: string; months?: number; days?: number; price?: number; planName?: string }
+  | { op: 'renew'; startDate?: string; zone?: string; months?: number; days?: number; price?: number; planName?: string }
+  | { op: 'correct'; reason?: 'correction' | 'changePackage'; startDate?: string; zone?: string; months?: number; days?: number; price?: number | null; planName?: string | null }
+  | { op: 'setTerm' | 'setPrice' }
   | { op: 'freeze'; from: number; until: number; note?: string }
   | { op: 'unfreeze' }
   | { op: 'end' }
@@ -77,17 +77,24 @@ export type SubscriptionAction =
  * Who is changing the subscription (B3.0.1). `requireActive`: the owning
  * coach may only change a relationship that is still active (B3-S05); an
  * admin with `clients.writeAll` may correct an ended one (owner R-2), which
- * the router audits.
+ * the router audits. B3.8: `requestId` makes a retried change idempotent (the
+ * same key is applied once — a renewal retried after a lost response never
+ * books a second term); `expectedTermId` makes a correction fail rather than
+ * edit a term that was renewed meanwhile.
  */
 export interface SubscriptionChangeOptions {
   actorRole: 'coach' | 'admin';
   requireActive: boolean;
+  requestId?: string;
+  expectedTermId?: string;
 }
 
 export interface SubscriptionChangeResult {
   doc: CoachClientDoc;
   before: SubscriptionDoc | null;
   event: SubscriptionEventDoc;
+  /** False for a correction that changed nothing, or a replayed request — nothing was written. */
+  changed: boolean;
 }
 
 /** Keep the audit trail bounded (newest last). */
@@ -97,12 +104,28 @@ function ruleError(reason: SubscriptionRuleReason): TRPCError {
   return new TRPCError({ code: 'CONFLICT', message: SUBSCRIPTION_RULE_MESSAGES[reason], cause: new CommercialReason(reason) });
 }
 
+const TERM_ERRORS = {
+  TERM_EXISTS: 'This client already has a package. Renew it or correct it instead',
+  NO_TERM: 'This client has no package yet. Set their first one',
+  RENEWAL_STARTS_AFTER_TERM: 'A running package is renewed from the day after it ends',
+  RENEWAL_DURING_FREEZE: 'This package has a pause that has not finished. Renew it once the pause is over, or end the pause first',
+} as const;
+function termError(reason: keyof typeof TERM_ERRORS): TRPCError {
+  return new TRPCError({ code: 'CONFLICT', message: TERM_ERRORS[reason], cause: new CommercialReason(reason) });
+}
+
+/** A term that is an economic term (not the "set it up later" pending placeholder). */
+const hasTerm = (sub: SubscriptionDoc | undefined): sub is SubscriptionDoc => !!sub && sub.status !== 'pending';
+
 export async function updateSubscription(
   coachId: string,
   clientId: string,
   action: SubscriptionAction,
   opts: SubscriptionChangeOptions = { actorRole: 'coach', requireActive: true },
 ): Promise<SubscriptionChangeResult> {
+  if (action.op === 'setTerm' || action.op === 'setPrice') {
+    throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Update Forma to change this package', cause: new CommercialReason('APP_UPDATE_REQUIRED') });
+  }
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
   const existing = await col.findOne({ _id: id });
@@ -111,48 +134,67 @@ export async function updateSubscription(
   if (opts.requireActive && existing.status !== 'active') {
     throw new TRPCError({ code: 'CONFLICT', message: 'This client is no longer yours', cause: new CommercialReason('RELATIONSHIP_ENDED') });
   }
+  // B3.8: a retried request (same key) that was already applied returns what it produced.
+  if (opts.requestId) {
+    const done = (existing.subscriptionEvents ?? []).find((e) => e.requestId === opts.requestId);
+    if (done) return { doc: existing, before: null, event: done, changed: false };
+  }
   const now = Date.now();
   const cur: SubscriptionDoc = existing.subscription ?? { startAt: now, endAt: now, status: 'pending', frozenFrom: null, frozenUntil: null, updatedAt: now };
 
   let next: SubscriptionDoc;
+  let archive: SubscriptionPeriodDoc | null = null;
   switch (action.op) {
-    case 'setTerm': {
-      const start = action.startAt;
-      const base: SubscriptionDoc = {
-        ...cur,
-        startAt: start,
-        status: 'active',
-        frozenFrom: null,
-        frozenUntil: null,
-        // A renewal starts unfrozen; a scheduled freeze ends with the old term (S07 §0.6).
-        freezeCredit: null,
-        updatedAt: now,
-        ...(typeof action.price === 'number' ? { price: action.price } : {}),
-        ...(action.currency ? { currency: action.currency } : {}),
-        ...(action.planName ? { planName: action.planName } : {}),
-      };
-      if (typeof action.days === 'number' && action.days > 0) {
-        next = { ...base, endAt: start + action.days * SUB_DAY, months: undefined };
-      } else {
-        const months = action.months ?? 1;
-        next = { ...base, months, endAt: addMonths(start, months) };
-      }
+    case 'newTerm': {
+      if (hasTerm(existing.subscription)) throw termError('TERM_EXISTS');
+      const status = action.status ?? 'active';
+      next = buildTerm(
+        {
+          status,
+          startDate: action.startDate,
+          zone: action.zone,
+          ...(status === 'trial' ? { trialDays: action.days } : { days: action.days, months: action.months }),
+          price: action.price,
+          planName: action.planName,
+        },
+        now,
+      );
       break;
     }
-    case 'setPrice':
-      next = { ...cur, price: action.price, ...(action.currency ? { currency: action.currency } : {}), updatedAt: now };
+    case 'renew': {
+      if (!hasTerm(existing.subscription)) throw termError('NO_TERM');
+      // A pause (scheduled or running) belongs to the running term; renewing over it would drop it.
+      if (isRunning(cur, now) && cur.status === 'frozen' && cur.frozenUntil != null && cur.frozenUntil > now) throw termError('RENEWAL_DURING_FREEZE');
+      const zone = calendarOf(cur, action.zone).zone;
+      const start = renewalStart(cur, action.startDate, zone, now);
+      if (!start.ok) throw termError(start.reason);
+      next = buildTerm({ status: 'active', startDate: start.startDate, zone, days: action.days, months: action.months, price: action.price, planName: action.planName }, now);
+      // The renewed term moves to the history with its real end (B3.8 / BE-3).
+      archive = archiveForRenewal(cur, now);
       break;
+    }
+    case 'correct': {
+      if (!hasTerm(existing.subscription)) throw termError('NO_TERM');
+      if (opts.expectedTermId && cur.termId && opts.expectedTermId !== cur.termId) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'The package changed meanwhile. Reload and try again', cause: new CommercialReason('SUBSCRIPTION_CHANGED') });
+      }
+      const r = applyCorrection(cur, { startDate: action.startDate, days: action.days, months: action.months, price: action.price, planName: action.planName, zone: action.zone }, now);
+      // A save that changes nothing writes nothing: no event, no second term.
+      if (!r.changed) return { doc: existing, before: cur, event: { at: now, op: 'correct', actorRole: opts.actorRole, before: snapshotOf(cur), after: snapshotOf(cur) }, changed: false };
+      next = r.next;
+      break;
+    }
     case 'freeze': {
       // B3-S07 (F-C): scheduled, compensated, finite, inside the term.
       const r = applyFreeze(existing.subscription, action.from, action.until, action.note, now);
       if (!r.ok) throw ruleError(r.reason);
-      next = r.next;
+      next = snapToCalendar(r.next);
       break;
     }
     case 'unfreeze': {
       const r = applyUnfreeze(existing.subscription, now);
       if (!r.ok) throw ruleError(r.reason);
-      next = r.next;
+      next = snapToCalendar(r.next);
       break;
     }
     case 'end':
@@ -162,27 +204,29 @@ export async function updateSubscription(
       next = { ...cur, status: 'cancelled', cancelledAt: now, updatedAt: now };
       break;
     case 'extend': {
-      // B3-S07 (E2): max(now, end) + days; terminal terms need a renewal.
+      // B3-S07 (E2): max(now, end) + days; terminal terms need a renewal. B3.8: on calendar days.
       const r = applyExtend(existing.subscription, action.days, now);
       if (!r.ok) throw ruleError(r.reason);
-      next = r.next;
+      const dated = extendDated(cur, action.days, now);
+      next = dated ? { ...r.next, ...dated } : r.next;
       break;
     }
   }
+  // B3.8: every economic term has an id (payments point at it). A term written before B3.8 gets
+  // one on its first change.
+  if (next.status !== 'pending' && !next.termId) next = { ...next, termId: crypto.randomUUID() };
 
-  // B0 / CO-15: a term change (renewal / new term) ARCHIVES the outgoing term
-  // instead of overwriting it, so the coach's billing history and revenue keep
-  // every previous term. Price edits, freezes and extensions change the
-  // current term and are not archived. Atomic with the update itself.
-  const archive = action.op === 'setTerm' && existing.subscription ? archivedTerm(existing.subscription, now) : null;
   // B3.0.1: every change leaves an auditable event in the same write.
+  const startsTerm = action.op === 'newTerm' || action.op === 'renew' || (action.op === 'correct' && next.startAt !== cur.startAt);
   const event: SubscriptionEventDoc = {
     at: now,
     op: action.op,
     actorRole: opts.actorRole,
     before: existing.subscription ? snapshotOf(existing.subscription) : null,
     after: snapshotOf(next),
-    ...(action.op === 'setTerm' && isBackdatedRenewal(existing.subscription, action.startAt, now) ? { backdated: true as const } : {}),
+    ...(startsTerm && isBackdatedRenewal(existing.subscription, next.startAt, now) ? { backdated: true as const } : {}),
+    ...(action.op === 'correct' ? { reason: action.reason ?? 'correction' } : {}),
+    ...(opts.requestId ? { requestId: opts.requestId } : {}),
   };
   // Compare-and-set on the term we read: two concurrent changes (e.g. a freeze
   // and an extension) must not both apply their date arithmetic to the same
@@ -196,7 +240,13 @@ export async function updateSubscription(
     },
   });
   if (written.matchedCount === 0) {
-    throw new TRPCError({ code: 'CONFLICT', message: 'The subscription changed meanwhile — reload and try again', cause: new CommercialReason('SUBSCRIPTION_CHANGED') });
+    // A concurrent retry of this same request may have won: return its result, not an error.
+    if (opts.requestId) {
+      const again = await col.findOne({ _id: id });
+      const done = (again?.subscriptionEvents ?? []).find((e) => e.requestId === opts.requestId);
+      if (again && done) return { doc: again, before: null, event: done, changed: false };
+    }
+    throw new TRPCError({ code: 'CONFLICT', message: 'The subscription changed meanwhile. Reload and try again', cause: new CommercialReason('SUBSCRIPTION_CHANGED') });
   }
   return {
     doc: {
@@ -208,22 +258,7 @@ export async function updateSubscription(
     },
     before: existing.subscription ?? null,
     event,
-  };
-}
-
-/** The outgoing term as a history entry, with the state it ended in. */
-function archivedTerm(cur: SubscriptionDoc, now: number): SubscriptionPeriodDoc {
-  const lapsed = cur.endAt <= now;
-  const status: SubscriptionStatus =
-    cur.status === 'active' || cur.status === 'trial' || cur.status === 'frozen' ? (lapsed ? 'expired' : 'ended') : cur.status;
-  return {
-    startAt: cur.startAt,
-    endAt: Math.min(cur.endAt, Math.max(now, cur.startAt)),
-    ...(cur.months != null ? { months: cur.months } : {}),
-    ...(cur.price != null ? { price: cur.price } : {}),
-    ...(cur.currency ? { currency: cur.currency } : {}),
-    status,
-    endedAt: now,
+    changed: true,
   };
 }
 
@@ -263,11 +298,6 @@ export async function assignExistingClient(
   const existing = await col.findOne({ _id: id });
   if (existing && existing.status === 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship already exists' });
 
-  // Atomic cap gate — reserve the slot BEFORE the relationship exists, give it
-  // back if anything after this point fails (see `reserveClientSlot`).
-  const cap = await reserveClientSlot(coachId);
-  if (cap !== 'ok') throw capError(cap);
-
   const now = Date.now();
   const subscription = buildSubscription(sub, now);
   const rel: CoachClientDoc = {
@@ -280,16 +310,19 @@ export async function assignExistingClient(
     createdAt: now,
     updatedAt: now,
   };
-  let saved: CoachClientDoc;
-  try {
+  // B3.9 (one active coach per client): ONE transaction — claim the client with a compare-and-set
+  // on its assignment, take the slot (`reserveClientSlot`), open the relationship. Two coaches adding
+  // the same client at the same moment write the same user document: one transaction wins, the
+  // other aborts (write conflict → retried) and then finds the client taken. An abort hands the
+  // slot back, so a lost race never costs capacity.
+  return withDbTransaction(async (session) => {
+    const claimed = await users.updateOne({ _id: clientId, role: 'client', $or: [{ assignedCoachId: { $exists: false } }, { assignedCoachId: null }] } as never, { $set: { assignedCoachId: coachId, updatedAt: now } }, { session });
+    if (claimed.matchedCount === 0) throw new TRPCError({ code: 'CONFLICT', message: 'Client already has an assigned coach' });
+    const cap = await reserveClientSlot(coachId, session);
+    if (cap !== 'ok') throw capError(cap);
     // B3-S13: a returning client starts a clean stint; the previous one is archived, not merged.
-    saved = await activateRelationship(rel, now);
-    await users.updateOne({ _id: clientId }, { $set: { assignedCoachId: coachId, updatedAt: now } });
-  } catch (e) {
-    await releaseClientSlot(coachId).catch((err) => console.warn('[coach-clients] slot release after failed assign failed:', err));
-    throw e;
-  }
-  return saved;
+    return activateRelationship(rel, now, session);
+  });
 }
 
 /**
@@ -306,20 +339,25 @@ export async function endRelationship(
 ): Promise<CoachClientDoc> {
   const col = await coachClientsCol();
   const id = relId(coachId, clientId);
-  const existing = await col.findOne({ _id: id });
-  if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
-  if (existing.status !== 'active') throw new TRPCError({ code: 'CONFLICT', message: 'Relationship is not active' });
-
   const now = Date.now();
-  await col.updateOne({ _id: id }, { $set: { status: 'ended', endedAt: now, endedBy, endReason, updatedAt: now } });
-  const db = await getDb();
-  const users = db.collection<UserDoc>('users');
-  await users.updateOne({ _id: clientId }, { $set: { updatedAt: now }, $unset: { assignedCoachId: '' } });
-  // Best-effort, same as before: the relationship IS ended at this point; a
-  // counter miss is repairable (scripts/reconcile-active-client-counts.mjs).
-  await releaseClientSlot(coachId).catch((e) => console.warn('[coach-clients] slot release failed (non-fatal):', e));
-
-  return { ...existing, status: 'ended', endedAt: now, endedBy, endReason, updatedAt: now };
+  // B3.9 (concurrency-safe, idempotent): ONE transaction with a compare-and-set on `active` — two
+  // racing releases end the relationship and free its slot exactly once; the client's assignment
+  // is cleared only while it still points at THIS coach (a release racing a transfer never clears
+  // the new coach's). Releasing an already released relationship again changes nothing and returns
+  // it; one that ended by a transfer meanwhile is refused.
+  return withDbTransaction(async (session) => {
+    const ended = await col.findOneAndUpdate({ _id: id, status: 'active' }, { $set: { status: 'ended', endedAt: now, endedBy, endReason, updatedAt: now } }, { session, returnDocument: 'after' });
+    if (!ended) {
+      const existing = await col.findOne({ _id: id }, { session });
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
+      if (existing.status === 'ended' && (existing.endReason === 'released' || existing.endReason === 'unassigned')) return existing;
+      throw new TRPCError({ code: 'CONFLICT', message: 'Relationship is not active' });
+    }
+    const users = (await getDb()).collection<UserDoc>('users');
+    await users.updateOne({ _id: clientId, assignedCoachId: coachId }, { $set: { updatedAt: now }, $unset: { assignedCoachId: '' } }, { session });
+    await releaseClientSlot(coachId, session);
+    return ended;
+  });
 }
 
 /**
@@ -425,7 +463,7 @@ export async function transferClientWithMode(
     if (movingCoaches || !fromCoachId) {
       const cap = await reserveClientSlot(toCoachId, session);
       if (cap !== 'ok') {
-        throw capError(cap, 'Destination coach: ');
+        throw capError(cap, 'Destination coach: ', DESTINATION_CAP_REASONS);
       }
     }
 

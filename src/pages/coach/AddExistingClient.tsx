@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { SearchField, TextAreaField } from '@/components/ui/Field';
@@ -16,30 +17,19 @@ import {
   getTransferRequest,
   submitTransferRequest,
 } from '@/services/platform/transferApi';
-import { useSession } from '@/services/auth/sessionStore';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { CoachClientRelationship } from '@/types';
 import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
+import { todayKey } from '@/lib/subscription';
+import { errorMessage } from '@/lib/errorMessage';
+import { isolate } from '@/lib/format';
+import { ACCOUNT_TONE, SUBSCRIPTION_TONE, TONE_TEXT } from '@/lib/statusTone';
 
-/** Text-colour tone per account status (rendered as a coloured dot + label, not a chip). */
-const ACCT_TONE: Record<string, string> = {
-  active: 'text-success',
-  pending: 'text-warn',
-  suspended: 'text-danger',
-  disabled: 'text-danger',
-};
-/** Text-colour tone per subscription status. */
-const SUB_TONE: Record<string, string> = {
-  trial: 'text-brand',
-  active: 'text-success',
-  pending: 'text-warn',
-  expired: 'text-danger',
-  cancelled: 'text-danger',
-  frozen: 'text-warn',
-  ended: 'text-danger',
-};
+/** Text-colour tone per account / subscription status (a coloured dot + label, not a chip) — the shared vocabulary (VS-10). */
+const ACCT_TONE = (s: string) => TONE_TEXT[ACCOUNT_TONE[s] ?? 'mute'];
+const SUB_TONE = (s: string) => TONE_TEXT[SUBSCRIPTION_TONE[s] ?? 'mute'];
 
 /** One lookup result; `rel` is only ever OUR OWN relationship (the server never says who else coaches them). */
 interface ResultRow {
@@ -188,7 +178,7 @@ export function AddExistingClient({
                 <Avatar name={r.user.displayName || term} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{r.user.displayName || term}</span>
-                  <span className="block truncate text-[11px] text-earth-subtle">{coachingLabel(r.user.coaching, t)}</span>
+                  <span className="block truncate text-[12px] text-earth-subtle">{coachingLabel(r.user.coaching, t)}</span>
                 </span>
                 <Icon name="chevron" size={18} />
               </button>
@@ -221,13 +211,14 @@ function ClientResultDetail({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
+  // B3.8 (P2): asking to take a client on is a coaching write — off with a lapsed Forma plan.
+  const gate = useWriteGate();
   const qc = useQueryClient();
   const c = row.user;
   const mine = c.coaching === 'you';
   const ownedByOther = c.coaching === 'another';
   const unassigned = c.coaching === 'none';
 
-  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
   const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   const [reason, setReason] = useState('');
 
@@ -239,13 +230,15 @@ function ClientResultDetail({
   });
 
   const assign = useMutation({
-    mutationFn: () => assignExistingClient(meId, c.id, meId, { ...sub, ...(currency ? { currency } : {}) }),
+    // B3.8: the term starts today on this device's calendar, in EGP (the server stores the currency).
+    mutationFn: () => assignExistingClient(meId, c.id, meId, { ...sub, startDate: todayKey() }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachPlan', meId] }); // the server's client count (B3.8, D5)
+      void qc.invalidateQueries({ queryKey: ['coachBusiness', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
       void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
-      showToast({ title: t('coach.addClient'), variant: 'success' });
+      showToast({ title: t('existing.added', { name: isolate(c.displayName) }), variant: 'success' });
       onDone();
     },
     onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
@@ -266,20 +259,21 @@ function ClientResultDetail({
       void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] });
       void qc.invalidateQueries({ queryKey: ['outgoingTransferRequests', meId] });
     },
-    onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: errorMessage(e, t) }),
   });
   // A coach who somehow lands on their own client can release them straight from here.
   const release = useMutation({
     mutationFn: () => releaseClient(meId, c.id, meId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachPlan', meId] }); // the server's client count (B3.8, D5)
+      void qc.invalidateQueries({ queryKey: ['coachBusiness', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
       void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
       showToast({ title: t('common.removed'), variant: 'success' });
       onDone();
     },
-    onError: (e) => void alertDialog({ title: t('release.confirm'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('release.confirm'), message: errorMessage(e, t) }),
   });
 
   const pendingReq = myReq.data && myReq.data.status === 'pending' ? myReq.data : null;
@@ -297,8 +291,8 @@ function ClientResultDetail({
         </div>
         <div className="grid grid-cols-2 gap-2 text-[12px]">
           <Field label={t('existing.currentCoach')} value={mine ? t('trust.existing.coachYou') : ownedByOther ? t('trust.existing.coachAnother') : t('existing.unassigned')} />
-          {c.accountStatus && <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} tone={ACCT_TONE[c.accountStatus]} />}
-          {mine && <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} tone={row.rel?.subscription ? SUB_TONE[row.rel.subscription.status] : undefined} />}
+          {c.accountStatus && <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} tone={ACCT_TONE(c.accountStatus)} />}
+          {mine && <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} tone={row.rel?.subscription ? SUB_TONE(row.rel.subscription.status) : undefined} />}
         </div>
       </div>
 
@@ -328,7 +322,7 @@ function ClientResultDetail({
             <ClientCapBlocked maxClients={maxClients} testId="existing-assign-blocked" />
           ) : (
             <>
-              <SubscriptionPlanPicker coachId={meId} currency={currency} onChange={setSub} testId="existing-assign-sub" />
+              <SubscriptionPlanPicker coachId={meId} onChange={setSub} testId="existing-assign-sub" />
               <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-assign" disabled={assign.isPending} onClick={() => assign.mutate()}>
                 {assign.isPending ? t('auth.working') : t('existing.assignToMe')}
               </button>
@@ -361,7 +355,7 @@ function ClientResultDetail({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />
-              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-request-transfer" disabled={request.isPending || !reason.trim()} onClick={() => request.mutate()}>
+              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-request-transfer" disabled={request.isPending || !reason.trim() || !gate.canWrite} title={gate.reason} onClick={() => request.mutate()}>
                 {request.isPending ? t('auth.working') : t('transferReq.request')}
               </button>
               <p className="text-[12px] text-earth-subtle">{t('existing.waitUntilReleased')}</p>
@@ -376,7 +370,7 @@ function ClientResultDetail({
 function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="min-w-0 rounded-lg border border-line-soft px-2.5 py-1.5">
-      <p className="text-[11px] text-earth-subtle">{label}</p>
+      <p className="text-[12px] text-earth-subtle">{label}</p>
       <p className={`mt-0.5 flex items-center gap-1.5 font-medium ${tone ?? ''}`}>
         {tone && <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-current" />}
         <span className="truncate">{value}</span>

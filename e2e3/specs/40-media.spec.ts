@@ -29,6 +29,16 @@ async function imgLoads(page: Page, url: string) {
   );
 }
 
+/**
+ * B3.9.0: pick an avatar the way a person does — the avatar button opens the (hidden) file input's chooser. Replaces
+ * `avatar-upload` → `xpath=..` → `input[type=file]`, which depended on the input being the button's sibling.
+ */
+async function pickAvatar(page: Page, file: { name: string; mimeType: string; buffer: Buffer }) {
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByTestId('avatar-upload').click();
+  await (await chooser).setFiles(file);
+}
+
 async function onePut(db: Db, env: E2EEnv, before: number, prefix: RegExp) {
   await expect.poll(async () => (await putsSince(db, before)).length, { timeout: 20_000 }).toBeGreaterThan(0);
   await new Promise((r) => setTimeout(r, 500));
@@ -58,7 +68,7 @@ for (const who of [
     await ready(page);
     const before = (await db.bunnyPuts()).length;
     await expect(page.getByTestId('avatar-upload')).toBeEnabled();
-    await page.getByTestId('avatar-upload').locator('xpath=..').locator('input[type=file]').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: png(600, 400) });
+    await pickAvatar(page, { name: 'me.png', mimeType: 'image/png', buffer: png(600, 400) });
     await expect(page.getByTestId('avatar-cropper')).toBeVisible();
     await shot(page, testInfo, 'cropper');
     await page.getByTestId('avatar-crop-save').click();
@@ -90,7 +100,7 @@ test('avatar: oversized (>2 MB) photo is downscaled on the device, never stored 
   const big = png(1400, 1400, true);
   expect(big.length).toBeGreaterThan(2 * MB);
   const before = (await db.bunnyPuts()).length;
-  await page.getByTestId('avatar-upload').locator('xpath=..').locator('input[type=file]').setInputFiles({ name: 'big.png', mimeType: 'image/png', buffer: big });
+  await pickAvatar(page, { name: 'big.png', mimeType: 'image/png', buffer: big });
   await page.getByTestId('avatar-crop-save').click();
   await expect.poll(async () => (await putsSince(db, before)).length, { timeout: 20_000 }).toBe(1);
   const [put] = await putsSince(db, before);
@@ -108,7 +118,7 @@ test('avatar: SVG file is never stored as SVG (rasterised or refused)', async ({
   await ready(page);
   const before = (await db.bunnyPuts()).length;
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="red"/><script>alert(1)</script></svg>';
-  await page.getByTestId('avatar-upload').locator('xpath=..').locator('input[type=file]').setInputFiles({ name: 'x.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) });
+  await pickAvatar(page, { name: 'x.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) });
   const cropper = page.getByTestId('avatar-cropper');
   await expect(cropper).toBeVisible();
   const save = page.getByTestId('avatar-crop-save');

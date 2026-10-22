@@ -3,9 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page, type Route } from '@playwright/test';
 import { test, expect, ready, shot, type Db } from '../fixtures';
-import { allowDevModuleStorm, insertMany } from './_c-helpers';
+import { allowDevModuleStorm, insertMany, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmYes } from './_b-helpers';
 import { procsOf } from './_d-helpers';
+import { addDays, anchorAt, dayRolled, weekStartOf, type DayAnchor } from './_dates';
 
 /**
  * B3.3 — the coach's Clients directory (blueprint §6.2, owner brief
@@ -28,24 +29,15 @@ const ar = JSON.parse(fs.readFileSync('src/i18n/ar.json', 'utf8'));
 const phone = { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } };
 const sized = (width: number, height = 900) => ({ viewport: { width, height } });
 
-/** Day keys in the app's time zone (the browser runs in Africa/Cairo). */
-const dayKey = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
-const plusDays = (k: string, n: number) => {
-  const [y, m, d] = k.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-};
-/** The Saturday on or before the day — the app's Saturday → Friday training week. */
-const weekStartOf = (k: string) => {
-  const [y, m, d] = k.split('-').map(Number);
-  return plusDays(k, -((new Date(Date.UTC(y, m - 1, d)).getUTCDay() - 6 + 7) % 7));
-};
+/** Day keys in the app's time zone (the browser runs in Africa/Cairo) — B3.9.0: the shared `_dates.ts` helpers (`weekStartOf` = the Saturday → Friday week). */
+const plusDays = addDays;
 
 type CheckInFixture = 'mineSubmitted' | 'mineRequested' | 'mineOverdue' | 'mineReviewed' | 'otherCoach';
 interface ClientFixture {
   id: string;
   name: string;
-  /** null = no package at all. */
-  sub?: Record<string, unknown> | null;
+  /** The package, built from the instant the roster is written; null = no package at all. */
+  sub?: ((now: number) => Record<string, unknown>) | null;
   /** Days ago of each finished workout. */
   workouts?: number[];
   plans?: { w: boolean; n: boolean };
@@ -58,19 +50,21 @@ interface ClientFixture {
 
 // ---- the mixed roster (25) ---------------------------------------------------------
 
-const now0 = Date.now();
-const term = (daysLeft: number, extra: Record<string, unknown> = {}) => ({ status: 'active', startAt: now0 - 10 * DAY, endAt: now0 + daysLeft * DAY - HOUR, ...extra });
+// B3.9.0: packages are built from the instant the roster is WRITTEN (they used a module-load `now0`, which the
+// tests that run long after it drift from). "Ends in N days" is elapsed time — ceil((endAt − now) ÷ 24 h) — so
+// `now + N days − 1 h` reads exactly N for the next 23 hours.
+const term = (now: number, daysLeft: number, extra: Record<string, unknown> = {}) => ({ status: 'active', startAt: now - 10 * DAY, endAt: now + daysLeft * DAY - HOUR, ...extra });
 const M = {
   review: { id: `${PFX}review`, name: 'Nadia Hassan', workouts: [0, 2, 4], checkIn: 'mineSubmitted' },
   awaiting: { id: `${PFX}awaiting`, name: 'Omar Fathy', workouts: [1, 3], checkIn: 'mineRequested' },
   overdue: { id: `${PFX}overdue`, name: 'Farah Adel', workouts: [2], checkIn: 'mineOverdue' },
   done: { id: `${PFX}done`, name: 'Tarek Samir', workouts: [0, 1, 2, 3, 5], checkIn: 'mineReviewed' },
-  trial: { id: `${PFX}trial`, name: 'Rana Mostafa', workouts: [1], sub: term(12, { status: 'trial' }) },
-  expiring: { id: `${PFX}expiring`, name: 'Laila Ibrahim', workouts: [0], sub: term(3) },
-  paused: { id: `${PFX}paused`, name: 'Fady George', workouts: [9], sub: term(27, { status: 'frozen', frozenFrom: now0 - 2 * DAY, frozenUntil: now0 + 5 * DAY, freezeCredit: 7 * DAY }) },
-  expired: { id: `${PFX}expired`, name: 'Hana Youssef', workouts: [6], sub: { status: 'active', startAt: now0 - 35 * DAY, endAt: now0 - 5 * DAY } },
+  trial: { id: `${PFX}trial`, name: 'Rana Mostafa', workouts: [1], sub: (now: number) => term(now, 12, { status: 'trial' }) },
+  expiring: { id: `${PFX}expiring`, name: 'Laila Ibrahim', workouts: [0], sub: (now: number) => term(now, 3) },
+  paused: { id: `${PFX}paused`, name: 'Fady George', workouts: [9], sub: (now: number) => term(now, 27, { status: 'frozen', frozenFrom: now - 2 * DAY, frozenUntil: now + 5 * DAY, freezeCredit: 7 * DAY }) },
+  expired: { id: `${PFX}expired`, name: 'Hana Youssef', workouts: [6], sub: (now: number) => ({ status: 'active', startAt: now - 35 * DAY, endAt: now - 5 * DAY }) },
   none: { id: `${PFX}none`, name: 'Youssef Adham', sub: null },
-  pending: { id: `${PFX}pending`, name: 'Salma Reda', sub: { status: 'pending', startAt: now0 + 2 * DAY, endAt: now0 + 32 * DAY } },
+  pending: { id: `${PFX}pending`, name: 'Salma Reda', sub: (now: number) => ({ status: 'pending', startAt: now + 2 * DAY, endAt: now + 32 * DAY }) },
   noPlan: { id: `${PFX}noplan`, name: 'Nour Ali', plans: { w: false, n: false } },
   noNutrition: { id: `${PFX}nonutrition`, name: 'Karim Wael', workouts: [1, 2], plans: { w: true, n: false } },
   // Taken over 3 days ago, mid-week: the previous coach's check-ins (last week's submitted, this week's requested) are not this coach's.
@@ -109,9 +103,10 @@ const MANY: ClientFixture[] = Array.from({ length: FIRST.length * LAST.length },
 }));
 const MANY_SORTED = MANY.map((c) => c.name).sort((a, b) => a.localeCompare(b));
 
-async function insertRoster(clients: ClientFixture[]) {
-  const now = Date.now();
-  const today = dayKey(now);
+/** Writes the roster for one instant and returns it (B3.9.0: the expectations derive from the same anchor). */
+async function insertRoster(clients: ClientFixture[]): Promise<DayAnchor> {
+  const anchor = anchorAt();
+  const { now, today } = anchor;
   const w0 = weekStartOf(today);
   const users: object[] = [];
   const rels: object[] = [];
@@ -127,7 +122,7 @@ async function insertRoster(clients: ClientFixture[]) {
       role: 'client', accountStatus: c.acct ?? 'active', permissions: [], featureFlags: {}, assignedCoachId: COACH, phone: `+2012200${String(i).padStart(5, '0')}`,
       passwordHash: 'not-a-login', createdBy: 'e2e-dir', createdAt: now - 40 * DAY, updatedAt: now,
     });
-    const sub = c.sub === undefined ? term(20) : c.sub;
+    const sub = c.sub === undefined ? term(now, 20) : c.sub ? c.sub(now) : null;
     rels.push({
       _id: `${COACH}__${c.id}`, coachId: COACH, clientId: c.id, status: 'active', createdBy: COACH, createdAt: now - (c.since ?? 20) * DAY, updatedAt: now,
       ...(sub ? { subscription: { months: 1, price: 900, currency: 'EGP', frozenFrom: null, frozenUntil: null, updatedAt: now, ...sub } } : {}),
@@ -137,7 +132,7 @@ async function insertRoster(clients: ClientFixture[]) {
     if (plans.w) workoutPlans.push({ _id: c.id, clientId: c.id, id: `wp-${c.id}`, name: 'Upper / lower', days: [{ id: 'd1', name: 'Upper', exerciseIds: [] }], exercises: {}, updatedAt: now - 15 * DAY });
     if (plans.n) nutritionPlans.push({ _id: c.id, clientId: c.id, name: 'Cut', targets: { calories: 2100 }, meals: [{ id: 'm1', name: { en: 'Breakfast', ar: 'فطار' }, items: [] }], updatedAt: now - 15 * DAY });
     for (const ago of c.workouts ?? []) {
-      const date = dayKey(now - ago * DAY);
+      const date = plusDays(today, -ago); // B3.9.0: N calendar days back on the key (not `now − N × 24 h`, which a DST change shifts)
       logs.push({ _id: `${c.id}__workoutLogs__${date}`, clientId: c.id, collection: 'workoutLogs', recordId: date, data: { date, finished: true }, updatedAt: now, syncedAt: now, rev: 1 });
     }
     const base = { clientId: c.id, progressPhotos: {}, updatedAt: now };
@@ -155,6 +150,16 @@ async function insertRoster(clients: ClientFixture[]) {
   for (const [col, docs] of [['users', users], ['coachClients', rels], ['clientProfiles', profiles], ['clientWorkoutPlans', workoutPlans], ['clientNutritionPlans', nutritionPlans], ['syncRecords', logs], ['checkIns', checkIns], ['messages', messages]] as const) {
     if (docs.length) await insertMany(col, docs as object[]);
   }
+  return anchor;
+}
+
+/**
+ * The server keeps `coachPlans.activeClientCount` in step with every assign / release (`reserveClientSlot`); a roster
+ * inserted straight into the database sets it the same way — it is the count every coach screen shows (B3.8, D5).
+ */
+async function syncCounter(db: Db) {
+  const n = await db.count('coachClients', { coachId: COACH, status: 'active' });
+  await db.updateOne('coachPlans', { _id: COACH }, { $set: { activeClientCount: n } });
 }
 
 async function removeRoster(db: Db) {
@@ -173,8 +178,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 
 async function openClients(page: Page, qs = '') {
@@ -375,12 +379,25 @@ test.describe('B3.3 Clients — no clients, one client, old URLs', () => {
 });
 
 test.describe('B3.3 Clients — a mixed roster of 25', () => {
+  let counter = 0;
+  let anchor: DayAnchor | null = null;
   test.beforeAll(async ({ db }) => {
     await removeRoster(db); // a crashed earlier run must not leak into this one
-    await insertRoster(MIXED);
+    counter = (await db.findOne<{ activeClientCount?: number }>('coachPlans', { _id: COACH }))?.activeClientCount ?? 0;
+    anchor = await insertRoster(MIXED);
+    await syncCounter(db);
+  });
+  // B3.9.0: the roster is day-relative (workouts N days ago, this week's check-ins). If the run crossed Cairo midnight
+  // since it was written, write it again for the new day — the fixture and the app must agree on "today".
+  test.beforeEach(async ({ db }) => {
+    if (!dayRolled(anchor)) return;
+    await removeRoster(db);
+    anchor = await insertRoster(MIXED);
+    await syncCounter(db);
   });
   test.afterAll(async ({ db }) => {
     await removeRoster(db);
+    await db.updateOne('coachPlans', { _id: COACH }, { $set: { activeClientCount: counter } });
   });
 
   test('every state comes from stored data: package, account, check-in, activity, plans', async ({ as, audit }, testInfo) => {
@@ -661,7 +678,7 @@ test.describe('B3.3 Clients — a mixed roster of 25', () => {
     const widths: [number, number][] = [[360, 780], [390, 844], [430, 932], [768, 1024], [1024, 800], [1440, 900]];
     for (const lang of ['en', 'ar', 'ar-eg'] as const) {
       for (const [w, h] of lang === 'ar-eg' ? widths.filter(([x]) => x === 390 || x === 1440) : widths) {
-        const { page } = await as('coachPro', w === 390 ? phone : sized(w, h));
+        const { context, page } = await as('coachPro', w === 390 ? phone : sized(w, h));
         if (lang !== 'en') await setLanguage(page, lang === 'ar' ? 'العربية' : 'مصري');
         try {
           await openClients(page);
@@ -679,6 +696,8 @@ test.describe('B3.3 Clients — a mixed roster of 25', () => {
           }
         } finally {
           if (lang !== 'en') await setLanguage(page, 'English').catch(() => undefined);
+          // B3.8 completion: close each window when done — the matrix used to keep a dozen live coach apps open at once.
+          await context.close();
         }
       }
     }
@@ -687,7 +706,7 @@ test.describe('B3.3 Clients — a mixed roster of 25', () => {
 
   test('weekly check-ins: this coach\'s groups; the bulk request reaches only eligible clients; review in order', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
-    const w0 = weekStartOf(dayKey(Date.now()));
+    const w0 = weekStartOf(anchor!.today); // B3.9.0: the week the roster was written for (the beforeEach keeps it today's)
     const { page } = await as('coachPro', sized(1440));
     await openClients(page, '?view=checkins');
     const group = (g: string) => page.getByTestId(`checkins-group-${g}`).getByTestId('checkins-row');
@@ -739,10 +758,11 @@ test.describe('B3.3 Clients — 210 clients', () => {
     plan = await db.findOne('coachPlans', { _id: COACH });
     await db.updateOne('coachPlans', { _id: COACH }, { $set: { maxClients: 250, baseMaxClients: 250 } });
     await insertRoster(MANY);
+    await syncCounter(db);
   });
   test.afterAll(async ({ db }) => {
     await removeRoster(db);
-    if (plan) await db.updateOne('coachPlans', { _id: COACH }, { $set: { maxClients: plan.maxClients, baseMaxClients: plan.baseMaxClients } });
+    if (plan) await db.updateOne('coachPlans', { _id: COACH }, { $set: { maxClients: plan.maxClients, baseMaxClients: plan.baseMaxClients, activeClientCount: plan.activeClientCount ?? 0 } });
   });
 
   test('desktop: pages of 50; sorting spans every page; no horizontal scroll; payload stays small', async ({ as, audit }, testInfo) => {

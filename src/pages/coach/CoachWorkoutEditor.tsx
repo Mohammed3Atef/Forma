@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
+import { useHistoryParam } from '@/components/coach/editor/useHistoryParam';
 import { TrainingBuilder } from '@/components/coach/editor/TrainingBuilder';
 import { LibraryAddPrompt } from '@/components/coach/editor/LibraryAddPrompt';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
@@ -64,7 +65,7 @@ export function CoachWorkoutEditor() {
   const { plan, setPlan, dirty, save } = ed;
   dirtyRef.current = dirty;
   const [asTemplate, setAsTemplate] = useState(false);
-  const [history, setHistory] = useState(false);
+  const [history, setHistory] = useHistoryParam(); // B3.9 (D10): ?history=1 opens it
   const [dayId, setDayId] = useState<string | null>(null);
   const selectDay = useCallback((id: string | null) => setDayId(id), []);
   // B3.7 "Use in a client plan": an exercise handed over from the Library, added only once the coach

@@ -35,8 +35,12 @@ const BannerFields = z.object({
 const PLACEMENTS: BannerPlacement[] = ['all', 'client_home', 'coach_dashboard'];
 
 export const bannersRouter = router({
-  /** Any signed-in active user (targeting/scheduling filter is client-side, not a security boundary). */
-  list: protectedProcedure.query(async () => {
+  /**
+   * Every banner — inactive, scheduled and admin-targeted ones, with their authors — for the admin
+   * Banners page only. B3.9 (audit): gated to `flags.manage` (coaches and clients read their own
+   * through `forViewer`; unreleased promotions and admin ids are not theirs to see).
+   */
+  list: permissionProcedure('flags.manage').query(async () => {
     const col = await bannersCol();
     const docs = await col.find({}).sort({ updatedAt: -1 }).toArray();
     return docs.map(toPublicBanner);

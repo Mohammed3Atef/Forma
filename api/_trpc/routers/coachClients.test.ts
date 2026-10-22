@@ -274,6 +274,7 @@ describe('coachClients router', () => {
     const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await givePlan(coachDoc._id);
+    await givePlan(otherCoach._id); // B38F-R3: a real coach with a live plan — the refusal below is ownership
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
     await asCoach.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
 
@@ -382,6 +383,9 @@ describe('invites router', () => {
   it('only the owning coach or an admin with coaches.assign may revoke', async () => {
     const coachA = await insertUser({ _id: 'coach-a', role: 'coach' });
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
+    // B38F-R3: real coaches with live plans — the refusal below is ownership, not the plan.
+    await givePlan(coachA._id);
+    await givePlan(coachB._id);
     const asCoachA = appRouter.createCaller(ctxFor(authedUser(coachA)));
     const invite = await asCoachA.invites.create({});
 
@@ -428,6 +432,7 @@ describe('transfers router', () => {
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await givePlan(coachA._id);
+    await givePlan(coachB._id); // B38F-R3: a real coach with a live plan
     const asCoachA = appRouter.createCaller(ctxFor(authedUser(coachA)));
     await asCoachA.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
 

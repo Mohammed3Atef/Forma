@@ -1,4 +1,5 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
+import { deviceZone } from '@/lib/subscription';
 import type {
   BillingCycle,
   CoachClientRelationship,
@@ -117,26 +118,50 @@ export async function getRelationship(coachId: string, clientId: string): Promis
   }
 }
 
-async function patchSubscription(coachId: string, clientId: string, sub: Parameters<typeof trpc.coachClients.updateSubscription.mutate>[0]['sub']): Promise<void> {
-  await trpc.coachClients.updateSubscription.mutate({ id: relId(coachId, clientId), sub });
-}
-
-/** Set (or reset) the subscription term: starts active, ends after `months`/`days`. */
-export async function setSubscriptionTerm(
+async function patchSubscription(
   coachId: string,
   clientId: string,
-  startAt: number,
-  term: { months?: number; days?: number },
-  price?: number,
-  currency?: string,
-  planName?: string,
+  sub: Parameters<typeof trpc.coachClients.updateSubscription.mutate>[0]['sub'],
+  meta: { requestId?: string; expectedTermId?: string } = {},
 ): Promise<void> {
-  await patchSubscription(coachId, clientId, { op: 'setTerm', startAt, ...term, price, currency, planName });
+  await trpc.coachClients.updateSubscription.mutate({ id: relId(coachId, clientId), sub, ...meta });
 }
 
-/** Set/update the subscription price in place. */
-export async function setSubscriptionPrice(coachId: string, clientId: string, price: number, currency?: string): Promise<void> {
-  await patchSubscription(coachId, clientId, { op: 'setPrice', price, currency });
+/**
+ * B3.8 (Fix C) — the three term changes, each saying what it means. Dates are calendar days
+ * (`YYYY-MM-DD`) meant in this device's zone; one month is 30 days; amounts are EGP (the server
+ * stores the currency). `requestId` (one per sheet opening) makes a retry after a lost response
+ * apply once.
+ */
+export interface TermChoice {
+  startDate?: string;
+  months?: number;
+  days?: number;
+  price?: number;
+  planName?: string;
+}
+
+/** The client's FIRST package (no term yet, or one left "to set up later"). */
+export async function startFirstTerm(coachId: string, clientId: string, term: TermChoice & { status?: 'active' | 'trial' }, requestId: string): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'newTerm', zone: deviceZone(), ...term }, { requestId });
+}
+
+/** The NEXT package: from the day after a running one ends, else from `startDate` (default today). */
+export async function renewSubscription(coachId: string, clientId: string, term: TermChoice, requestId: string): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'renew', zone: deviceZone(), ...term }, { requestId });
+}
+
+/**
+ * Edit the CURRENT package in place — a mistake fixed, or the client switching package mid-term
+ * (`changePackage`). Same economic term; recorded payments stay with it. `price: null` makes it free.
+ */
+export async function correctSubscription(
+  coachId: string,
+  clientId: string,
+  patch: { startDate?: string; months?: number; days?: number; price?: number | null; planName?: string | null; reason: 'correction' | 'changePackage' },
+  meta: { requestId: string; expectedTermId?: string },
+): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'correct', zone: deviceZone(), ...patch }, meta);
 }
 
 /** Freeze the subscription for [from, until). */
@@ -173,14 +198,14 @@ export async function extendSubscription(coachId: string, clientId: string, days
  */
 export interface ClientSubscriptionInput {
   status: SubscriptionStatus; // 'trial' | 'active' | 'pending' (others valid for transfer)
-  months?: number; // active term length in months
+  months?: number; // active term length in months (B3.8: 1 month = 30 days)
   days?: number; // active term length in days (coach plan with unit='days'); takes priority over months
   trialDays?: number; // trial length (default 14)
-  price?: number;
-  currency?: string;
+  price?: number; // EGP (B3.8: the only currency)
   planName?: string;
   billingCycle?: BillingCycle;
-  startAt?: number; // defaults to now
+  /** B3.8: the first calendar day (default today); the device zone is sent with it. */
+  startDate?: string;
 }
 
 /**
@@ -211,7 +236,7 @@ export async function assignExistingClient(
   _createdBy: string,
   sub: ClientSubscriptionInput,
 ): Promise<void> {
-  await trpc.coachClients.assign.mutate({ clientId, coachId, subscription: sub });
+  await trpc.coachClients.assign.mutate({ clientId, coachId, subscription: { ...sub, zone: deviceZone() } });
 }
 
 /**
@@ -248,6 +273,6 @@ export async function transferClientWithMode(
     toCoachId,
     mode,
     subscriptionHandling,
-    ...(newSub ? { newSubscription: newSub } : {}),
+    ...(newSub ? { newSubscription: { ...newSub, zone: deviceZone() } } : {}),
   });
 }

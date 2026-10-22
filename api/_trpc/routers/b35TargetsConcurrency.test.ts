@@ -111,6 +111,7 @@ describe('daily targets — per-field compare-and-set (B35-R2)', () => {
   it('authorization is unchanged: the client and an unrelated coach are refused; an admin may write; bad input is refused', async () => {
     const { a, x } = await people();
     const z = await insertUser({ _id: 'coach-z', role: 'coach' });
+    await givePlan(z._id); // B38F-R3: a real coach with a live plan — the refusal is ownership
     const admin = await insertUser({ _id: 'admin-1', role: 'admin', permissions: ['clients.writeAll'] as never });
     expect(await outcome(caller(x).coachTargets.update({ patch: { steps: 1 }, expected: { steps: null } }))).toBe('FORBIDDEN');
     expect(await outcome(caller(z).coachTargets.update({ clientId: x._id, patch: { steps: 1 }, expected: { steps: null } }))).toBe('FORBIDDEN');

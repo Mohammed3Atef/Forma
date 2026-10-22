@@ -1,4 +1,5 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
+import { deviceZone } from '@/lib/subscription';
 import type { BillingCycle, PublicInvite, SignupInvite, SubscriptionStatus } from '@/types';
 
 /**
@@ -85,11 +86,12 @@ export async function createInvite(coachId: string, input: CreateInviteInput = {
     subStatus: input.subStatus ?? 'trial',
     ...(input.subPlanName?.trim() ? { subPlanName: input.subPlanName.trim() } : {}),
     ...(input.subPrice != null ? { subPrice: input.subPrice } : {}),
-    ...(input.subCurrency?.trim() ? { subCurrency: input.subCurrency.trim() } : {}),
     ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
     ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
     ...(input.subDays != null ? { subDays: input.subDays } : {}),
     ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
+    // B3.8: the claimed term's calendar days are meant in this device's zone; the price is EGP.
+    subZone: deviceZone(),
     ttlMs: input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs,
   };
   const doc = await trpc.invites.create.mutate(body);

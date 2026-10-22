@@ -6,6 +6,8 @@ import { CheckInReviewForm } from '@/components/coach/CheckInReview';
 import { TransferRequestCard } from '@/components/coach/TransferRequestCard';
 import { formatDate } from '@/lib/format';
 import type { TodayItem } from '@/lib/coachToday';
+import type { DirectoryRow } from '@/lib/coachDirectory';
+import { StatePill, useActivityText } from '@/pages/coach/clients/parts';
 import type { ClientTransferRequest } from '@/types';
 import type { TodayPerson } from './TodayRow';
 
@@ -24,6 +26,7 @@ export function TodayDetail({
   coachId,
   onResolved,
   compact = false,
+  context,
 }: {
   item: TodayItem;
   person: TodayPerson;
@@ -33,15 +36,20 @@ export function TodayDetail({
   onResolved: () => void;
   /** Inside a phone sheet: no header (the sheet has the client's name). */
   compact?: boolean;
+  /** B3.9: the client at a glance (desktop panel) — Today's own directory row, no extra reads. */
+  context?: DirectoryRow;
 }) {
   const { t, i18n } = useTranslation();
+  const activity = useActivityText();
+  // B3.9: content-width actions in the wide desktop panel; full-width only inside a phone sheet.
+  const grow = compact ? 'flex-1' : '';
   const primary = (to: string, label: string, testId = 'today-detail-primary') => (
-    <Link to={to} className="btn-primary flex-1 justify-center" data-testid={testId}>
+    <Link to={to} className={`btn-primary justify-center ${grow}`} data-testid={testId}>
       {label}
     </Link>
   );
   const secondary = (to: string, label: string, testId: string) => (
-    <Link to={to} className="btn-ghost flex-1 justify-center" data-testid={testId}>
+    <Link to={to} className={`btn-ghost justify-center ${grow}`} data-testid={testId}>
       {label}
     </Link>
   );
@@ -115,6 +123,26 @@ export function TodayDetail({
           </div>
         </div>
       )}
+      {context && !compact ? (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-ui-control border border-line-soft p-3 text-[13px] 2xl:grid-cols-4" data-testid="today-detail-context">
+          <div className="min-w-0">
+            <dt className="text-[12px] text-earth-subtle">{t('coachClients.col.package')}</dt>
+            <dd className="mt-1">{context.state ? <StatePill row={context} /> : '—'}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[12px] text-earth-subtle">{t('coachClients.col.lastWorkout')}</dt>
+            <dd className="mt-1 truncate">{activity(context)}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[12px] text-earth-subtle">{t('coachClients.col.workouts')}</dt>
+            <dd className="mt-1 tabular-nums">{context.workouts7d ?? '—'}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[12px] text-earth-subtle">{t('checkin.title')}</dt>
+            <dd className="mt-1 truncate">{context.checkIn ? t(`coachClients.checkin.${context.checkIn}`) : '—'}</dd>
+          </div>
+        </dl>
+      ) : null}
       {body}
     </div>
   );

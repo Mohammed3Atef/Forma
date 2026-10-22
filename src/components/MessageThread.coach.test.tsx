@@ -355,6 +355,17 @@ describe('coach view — composer', () => {
   });
 });
 
+describe('coach view — a lapsed Forma plan (B3.8, P2)', () => {
+  it('the composer gives way to the read-only notice; nothing can be queued or edited', async () => {
+    renderCoach({ readOnly: <p>read-only: renew Forma</p> });
+    await settle();
+    expect(screen.queryByTestId('message-composer')).toBeNull();
+    expect(screen.queryByTestId('message-input')).toBeNull();
+    expect(screen.getByTestId('message-readonly')).toHaveTextContent('read-only: renew Forma');
+    expect(queueMessage).not.toHaveBeenCalled();
+  });
+});
+
 describe('coach view — the relationship ends while the thread is open', () => {
   it('hides every message, removes the composer, says why, and tells the page', async () => {
     const onAccessLost = vi.fn();

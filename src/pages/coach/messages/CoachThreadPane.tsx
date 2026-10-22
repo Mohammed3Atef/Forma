@@ -7,7 +7,6 @@ import { Icon } from '@/components/Icon';
 import { MessageThread } from '@/components/MessageThread';
 import { ActionMenu, type ActionMenuItem } from '@/components/ui/ActionMenu';
 import { IconButton } from '@/components/ui/Button';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { messageDraftKey } from '@/data/messageDrafts';
 import { requestCheckIn } from '@/services/platform/checkInApi';
 import { alertDialog } from '@/stores/dialogStore';
@@ -16,6 +15,8 @@ import { confirmLeave } from '@/stores/navGuardStore';
 import { bulkCheckInEligible, type DirectoryRow } from '@/lib/coachDirectory';
 import { addDays, today as todayKey, weekRange } from '@/lib/utils';
 import { AccountPill, StatePill, useActivityText } from '@/pages/coach/clients/parts';
+import { PlanReadOnlyNotice, useWriteGate } from '@/components/coach/CoachPlanProvider';
+import { errorMessage } from '@/lib/errorMessage';
 
 /** Navigation state the thread and the client workspace leave for each other (NAV-K07). */
 export interface ThreadNavState {
@@ -56,8 +57,9 @@ export function CoachThreadPane({
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
-  const online = useOnlineStatus();
   const activity = useActivityText();
+  // B3.8 (P2): a lapsed Forma plan = read-only conversations (the server refuses every send).
+  const gate = useWriteGate();
   const [accessLost, setAccessLost] = useState(false);
   const notAssigned = (rosterReady && !row) || accessLost;
   // Once the relationship ends mid-visit the row leaves the roster; keep naming whom this was (never another client).
@@ -75,7 +77,7 @@ export function CoachThreadPane({
       void qc.invalidateQueries({ queryKey: ['checkIns', clientId] });
       showToast({ title: t('workspace.summary.checkinRequested'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('checkin.request'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('checkin.request'), message: errorMessage(e, t) }),
   });
 
   // NAV-K07: thread ↔ client never ping-pongs — going back to the workspace we came from pops history.
@@ -90,7 +92,7 @@ export function CoachThreadPane({
 
   const menu: ActionMenuItem[] = [
     ...(row && !notAssigned && bulkCheckInEligible(row)
-      ? [{ key: 'checkin', label: t('workspace.summary.requestCheckin'), icon: 'calendar' as const, disabled: !online || request.isPending, testId: 'thread-request-checkin', onSelect: () => request.mutate() }]
+      ? [{ key: 'checkin', label: t('workspace.summary.requestCheckin'), icon: 'calendar' as const, disabled: !gate.canWrite || request.isPending, testId: 'thread-request-checkin', onSelect: () => request.mutate() }]
       : []),
     ...(!notAssigned ? [{ key: 'client', label: t('messages.openClient'), icon: 'user' as const, testId: 'thread-menu-open-client', onSelect: openClient }] : []),
   ];
@@ -161,6 +163,7 @@ export function CoachThreadPane({
               onAccessChanged?.();
             }}
             onMarkedRead={onMarkedRead}
+            readOnly={gate.planBlocked ? <PlanReadOnlyNotice /> : undefined}
           />
         )}
       </div>

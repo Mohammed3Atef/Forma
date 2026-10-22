@@ -15,6 +15,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { FoodGroup } from '@/types';
 import { DetailSheet, ListBody, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { errorMessage } from '@/lib/errorMessage';
 
 /**
  * Library › Foods › Swap groups (B3.7): sets of interchangeable foods a client may swap between —
@@ -57,7 +58,7 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
       void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] });
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('coachFoods.newGroup'), message: e instanceof Error ? e.message : t('common.savedFailed') }),
+    onError: (e) => void alertDialog({ title: t('coachFoods.newGroup'), message: errorMessage(e, t, 'common.savedFailed') }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteFoodGroup(coachId, id),
@@ -66,7 +67,7 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
       void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] });
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (g: FoodGroup) => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: gname(g) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(g.id);

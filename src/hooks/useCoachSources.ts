@@ -21,7 +21,7 @@ export const TODAY_REFRESH_MS = 60_000;
 const TODAY_STALE_MS = 10_000;
 
 function fromQuery<T>(q: UseQueryResult<T>): SourceState<T> {
-  return { data: q.data, error: q.isError || (q.data !== undefined && q.isRefetchError) };
+  return { data: q.data, error: q.isError || (q.data !== undefined && q.isRefetchError), paused: q.fetchStatus === 'paused' };
 }
 
 function useCoachThreads(coachId: string): { state: SourceState<CoachThreadSummary[]>; updatedAt: number } {
@@ -74,7 +74,7 @@ export function useCoachSources(coachId: string): CoachSourcesData {
       freezeRequests: fromQuery(freezeRequests),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [roster.data, roster.isError, roster.isRefetchError, relationships.data, relationships.isError, relationships.isRefetchError, summaries.data, summaries.isError, summaries.isRefetchError, checkIns.data, checkIns.isError, checkIns.isRefetchError, transfers.data, transfers.isError, transfers.isRefetchError, freezeRequests.data, freezeRequests.isError, freezeRequests.isRefetchError, threads.state],
+    [roster.data, roster.isError, roster.isRefetchError, roster.fetchStatus, relationships.data, relationships.isError, relationships.isRefetchError, summaries.data, summaries.isError, summaries.isRefetchError, checkIns.data, checkIns.isError, checkIns.isRefetchError, transfers.data, transfers.isError, transfers.isRefetchError, freezeRequests.data, freezeRequests.isError, freezeRequests.isRefetchError, threads.state],
   );
 
   const stamps = [...queries.map((q) => q.dataUpdatedAt), threads.updatedAt];

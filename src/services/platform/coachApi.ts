@@ -203,6 +203,15 @@ export async function fetchClientDay(clientId: string, date: string): Promise<Cl
   };
 }
 
+/**
+ * One client's nutrition log for one day (B3.9, PF-22): the Nutrition view refreshes this every
+ * 15 s while open — one procedure, where the whole day (five) used to be polled to read one field.
+ */
+export async function fetchClientNutritionDay(clientId: string, date: string): Promise<NutritionLog | null> {
+  const n = await trpc.logsNutrition.get.query({ clientId, date });
+  return n ? withId<NutritionLog>(n, date, { dirty: false }) : null;
+}
+
 // ---- client data for the read-only "view as client" screens ----------------
 
 /** A client's full body-measurement history (oldest → newest by date). */
@@ -225,6 +234,19 @@ export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto
 /** A client's bodyweight history (newest first). */
 export async function fetchClientWeightLogs(clientId: string, max = 120): Promise<WeightLog[]> {
   return fetchClientLogs<WeightLog>(clientId, 'weightLogs', max);
+}
+
+/**
+ * B3.9 (PF-07 / RM-84): ONE cache entry for a client's weigh-ins — the workspace header (latest),
+ * Summary (28-day change) and Progress › Body (trend + list) read the same 120 newest entries, where
+ * each used to fetch its own window under its own key.
+ */
+export function clientWeightLogsQuery(clientId: string) {
+  return {
+    queryKey: ['clientLogs', clientId, 'weightLogs', 120] as const,
+    queryFn: () => fetchClientWeightLogs(clientId, 120),
+    enabled: !!clientId,
+  };
 }
 
 /**

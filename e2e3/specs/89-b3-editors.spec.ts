@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot, type Db } from '../fixtures';
-import { allowDevModuleStorm, insertMany } from './_c-helpers';
+import { allowDevModuleStorm, insertMany, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmNo, confirmYes } from './_b-helpers';
 
 /**
@@ -23,6 +23,7 @@ const C = {
   fresh: { id: `${PFX}fresh`, name: 'Karim Adel' },
 };
 const ar = JSON.parse(fs.readFileSync('src/i18n/ar.json', 'utf8'));
+const en = JSON.parse(fs.readFileSync('src/i18n/en.json', 'utf8'));
 const phone = { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } };
 const sized = (width: number, height = 900) => ({ viewport: { width, height } });
 
@@ -110,8 +111,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 async function openEditor(page: Page, kind: 'workout' | 'nutrition' | 'cardio', id = C.full.id) {
   await page.goto(`/coach/client/${id}/${kind}`);
@@ -163,8 +163,14 @@ test.describe('B3.5 plan editors', () => {
     await page.getByTestId('ex-progression').fill('Add a rep each week');
     await page.getByTestId('ex-save').click();
     // A named warm-up section; move the deadlift into it, then above the squat.
+    // B3.9.0: the NEW section is the one whose id was not there before (it was `builder-section` nth(1) — order-dependent).
+    const sectionIds = () => page.getByTestId('builder-section').evaluateAll((els) => els.map((e) => e.getAttribute('data-section-id') ?? ''));
+    const idsBefore = await sectionIds();
     await page.getByTestId('builder-add-section').click();
-    const warm = page.getByTestId('builder-section').nth(1);
+    await expect.poll(async () => (await sectionIds()).length).toBe(idsBefore.length + 1);
+    const newId = (await sectionIds()).find((id) => !idsBefore.includes(id));
+    expect(newId, 'the added section').toBeTruthy();
+    const warm = page.locator(`[data-testid="builder-section"][data-section-id="${newId}"]`);
     await warm.getByTestId('section-title').fill('Warm-up');
     await warm.getByTestId('section-kind').selectOption('warmup');
     await page.getByRole('button', { name: 'Options for Romanian deadlift' }).click();
@@ -231,7 +237,9 @@ test.describe('B3.5 plan editors', () => {
     await page.getByTestId('supp-dose-ar').getByRole('button').click();
     await page.getByTestId('supp-dose-ar-input').fill('5 جم يوميًا');
     await page.getByTestId('supp-save').click();
-    await page.getByTestId('policy-requireCoachApproval').click();
+    // B3.9 (CO-19, owner D6): the swap-review flag had no review action anywhere — it is gone.
+    await expect(page.getByTestId('policy-requireCoachApproval')).toHaveCount(0);
+    await page.getByTestId('policy-allowCustomFoods').click();
     // A delete asks first; "No" keeps it.
     await page.getByRole('button', { name: 'Delete Creatine' }).click();
     await confirmNo(page);
@@ -248,7 +256,7 @@ test.describe('B3.5 plan editors', () => {
     expect(doc!.generalNotes).toEqual([{ en: 'Eat slowly, sit down', ar: 'Eat slowly, sit down' }]);
     expect(doc!.beverageNotes).toEqual(orig.beverageNotes);
     expect(doc!.supplements).toEqual([{ id: 's-cr', name: 'Creatine', dose: { en: '5 g daily', ar: '5 جم يوميًا' } }]);
-    expect(doc!.substitutionPolicy).toEqual({ ...orig.substitutionPolicy, requireCoachApproval: true });
+    expect(doc!.substitutionPolicy).toEqual({ ...orig.substitutionPolicy, allowCustomFoods: true }); // the stored legacy flag is kept as it was
     expect(doc!.targets).toEqual(orig.targets);
     expect(doc!.waterTargetMl).toBe(3500);
   });
@@ -260,7 +268,10 @@ test.describe('B3.5 plan editors', () => {
     await expect(page.getByTestId('cardio-target-steps')).toHaveValue('8000');
     await page.getByTestId('cardio-target-steps').fill('10000');
     await page.getByTestId('cardio-target-minutes').fill('25');
-    await page.getByRole('button', { name: /Move Cycling · 20 min up/ }).click();
+    // B3.9.0: the button's name is built from the app's own strings and the fixture (was the hard-coded English copy).
+    const bike = CARDIO(0).sessions[1];
+    const bikeLabel = `${en.cardio.types[bike.type]} · ${en.coachEditor.minutes.replace('{{n}}', String(bike.durationMin))}`;
+    await page.getByTestId('cardio-session-row').filter({ hasText: bikeLabel }).getByRole('button', { name: en.coachEditor.moveSessionUp.replace('{{name}}', bikeLabel), exact: true }).click();
     await page.getByTestId('cardio-save').click();
     await expect(page.getByTestId('cardio-saved')).toBeVisible();
     const targets = await db.findOne<Record<string, unknown>>('coachTargets', { _id: C.full.id });
@@ -327,6 +338,23 @@ test.describe('B3.5 plan editors', () => {
     await expect(page.getByTestId('nutrition-plan-name')).toHaveValue('Lean bulk');
     await expect(page.getByTestId('nutrition-clean')).toBeVisible();
     expect((await db.findOne<{ name: string }>('clientNutritionPlans', { _id: C.full.id }))!.name).toBe('Lean bulk');
+  });
+
+  test('B3.9 (owner D10): the old version-history URL and the Plan section’s History open the editor with its History sheet — the page is gone', async ({ as, audit }) => {
+    allowDevModuleStorm(audit);
+    const { page } = await as('coachPro', sized(1440));
+    await page.goto(`/coach/client/${C.full.id}/versions/nutrition`);
+    await ready(page);
+    await expect(page).toHaveURL(new RegExp(`/coach/client/${C.full.id}/nutrition$`)); // the parameter is dropped once read
+    await expect(page.getByTestId('coach-nutrition-editor')).toBeVisible();
+    await expect(page.getByTestId('plan-history-sheet')).toBeVisible();
+    await page.getByTestId('sheet-close').last().click();
+    await expect(page.getByTestId('plan-history-sheet')).toHaveCount(0);
+    await page.goto(`/coach/client/${C.full.id}/plan`);
+    await ready(page);
+    await page.getByTestId('plan-history-workout').click();
+    await expect(page.getByTestId('coach-workout-editor')).toBeVisible();
+    await expect(page.getByTestId('plan-history-sheet')).toBeVisible();
   });
 
   test('no plan yet: create is deliberate, "Start from a template" goes to the templates; the picker filters, remembers recent picks and ends with "Create new"', async ({ as, audit }) => {
@@ -601,7 +629,7 @@ test.describe('B3.5 plan editors', () => {
     for (const w of [360, 430, 768, 1024]) for (const lang of ['en', 'ar'] as const) plan.push({ w, lang, kinds: ['workout', 'nutrition'] });
     for (const w of [390, 1440]) plan.push({ w, lang: 'ar-eg', kinds: ['workout'] });
     for (const p of plan) {
-      const { page } = await as('coachPro', p.w <= 430 ? { ...devices['Pixel 7'], viewport: { width: p.w, height: 844 } } : sized(p.w));
+      const { context, page } = await as('coachPro', p.w <= 430 ? { ...devices['Pixel 7'], viewport: { width: p.w, height: 844 } } : sized(p.w));
       if (p.lang !== 'en') await setLanguage(page, p.lang === 'ar' ? 'العربية' : 'مصري');
       try {
         for (const kind of p.kinds) {
@@ -618,6 +646,8 @@ test.describe('B3.5 plan editors', () => {
         }
       } finally {
         if (p.lang !== 'en') await setLanguage(page, 'English').catch(() => undefined);
+        // B3.8 completion: close each window when done — the matrix used to keep a dozen live coach apps open at once.
+        await context.close();
       }
     }
     fs.writeFileSync(path.join(outDir, 'shots.json'), JSON.stringify(shots, null, 2));

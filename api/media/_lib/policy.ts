@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { LAPSED_MESSAGES, coachWriteState } from '../../_lib/coachEntitlement.js';
 import { TRPCError } from '@trpc/server';
 import type { AuthedUser } from '../../_trpc/context.js';
 import { resolveThreadViewer } from '../../messages/_data.js';
@@ -119,6 +120,13 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   const ownerId = assertId(user.id, 'user id');
   if (!MEDIA_CATEGORIES.includes(meta.category as MediaCategory)) throw new MediaError(400, 'badRequest', 'Unknown media category');
   const category = meta.category as MediaCategory;
+  // B3.8 (P2): a coach whose Forma plan lapsed, was suspended or is missing may still change their own photo,
+  // and upload nothing else (message attachments, library media, client files) — checked when the
+  // upload starts, so a chunked upload is refused before any byte is stored.
+  if (user.role === 'coach' && category !== 'avatar') {
+    const state = await coachWriteState(user.id);
+    if (state !== 'ok') throw new MediaError(403, state === 'suspended' ? 'planSuspended' : state === 'none' ? 'noPlan' : 'planLapsed', LAPSED_MESSAGES[state]);
+  }
 
   const mimeType = (meta.mimeType || '').toLowerCase().split(';')[0].trim();
   if (!mimeType || BLOCKED_MIME.has(mimeType)) throw new MediaError(415, 'badType', 'Unsupported file type');

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CurrencyInputSchema, DateKeySchema, PriceSchema, TermDaysSchema, TermMonthsSchema, TimeZoneSchema, assertSupportedCurrency } from '../../_lib/termInputs.js';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
@@ -39,7 +40,11 @@ export const transfersRouter = router({
       return col.find({ status: 'pending' }).sort({ requestedAt: -1 }).toArray();
     }
     if (input.type === 'incoming') {
-      return col.find({ fromCoachId: ctx.user.id, status: 'pending' }).sort({ requestedAt: -1 }).toArray();
+      // B3.9 (audit): only requests about clients this coach CURRENTLY coaches — after a release the
+      // former coach no longer sees who asked for that client, or why.
+      const mine = await (await coachClientsCol()).find({ coachId: ctx.user.id, status: 'active' }, { projection: { clientId: 1 } }).toArray();
+      if (mine.length === 0) return [];
+      return col.find({ fromCoachId: ctx.user.id, status: 'pending', clientId: { $in: mine.map((r) => r.clientId) } }).sort({ requestedAt: -1 }).toArray();
     }
     // B3.3 / CO-03: the requesting coach is never told who currently coaches the client.
     return (await col.find({ toCoachId: ctx.user.id }, { projection: { fromCoachId: 0 } }).sort({ requestedAt: -1 }).toArray()) as Omit<ClientTransferRequestDoc, 'fromCoachId'>[];
@@ -62,7 +67,9 @@ export const transfersRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.user.role !== 'coach') throw new TRPCError({ code: 'FORBIDDEN' });
-      const fromCoachId = input.fromCoachId ?? (await (await coachClientsCol()).findOne({ clientId: input.clientId, status: 'active' }, { projection: { coachId: 1 } }))?.coachId;
+      // B3.9 (audit, CO-03): the client's current coach is ALWAYS derived on the server — a coach-supplied
+      // `fromCoachId` is ignored, so the answer can never confirm or deny who coaches a client.
+      const fromCoachId = (await (await coachClientsCol()).findOne({ clientId: input.clientId, status: 'active' }, { projection: { coachId: 1 } }))?.coachId;
       if (!fromCoachId) throw new TRPCError({ code: 'CONFLICT', message: 'This client has no current coach — add them directly' });
       if (fromCoachId === ctx.user.id) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You already coach this client' });
       await assertCurrentCoach(fromCoachId, input.clientId);
@@ -114,19 +121,23 @@ export const transfersRouter = router({
         newSubscription: z
           .object({
             status: z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']),
-            months: z.number().int().positive().optional(),
-            days: z.number().int().positive().optional(),
-            trialDays: z.number().int().positive().optional(),
-            price: z.number().nonnegative().optional(),
-            currency: z.string().trim().max(10).optional(),
+            months: TermMonthsSchema.optional(),
+            days: TermDaysSchema.optional(),
+            trialDays: TermDaysSchema.optional(),
+            price: PriceSchema.optional(),
+            currency: CurrencyInputSchema,
             planName: z.string().trim().max(120).optional(),
             billingCycle: z.enum(['weekly', 'monthly', 'quarterly', 'custom']).optional(),
             startAt: z.number().optional(),
+            // B3.8: calendar-day terms in the deciding user's zone (see coachClients).
+            startDate: DateKeySchema.optional(),
+            zone: TimeZoneSchema.optional(),
           })
           .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      assertSupportedCurrency(input.newSubscription?.currency);
       const col = await transfersCol();
       const reqDoc = await col.findOne({ _id: input.id });
       if (!reqDoc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Transfer request not found' });
@@ -146,6 +157,9 @@ export const transfersRouter = router({
       }
 
       if (ctx.user.id !== reqDoc.fromCoachId && !canAssign) throw new TRPCError({ code: 'FORBIDDEN' });
+      // B3.9 (audit): the client's coach decides only while they ARE the client's coach — a former
+      // coach can no longer reject (or accept) a request about a client they released.
+      if (ctx.user.id === reqDoc.fromCoachId && !canAssign) await assertCurrentCoach(reqDoc.fromCoachId, reqDoc.clientId);
       const outcome = input.action === 'accept' ? ('accepted' as const) : ('rejected' as const);
       const effectiveMode = input.mode ?? reqDoc.mode ?? 'keep_plans';
       const effectiveSub = input.subscriptionHandling ?? reqDoc.subscriptionHandling ?? 'keep';

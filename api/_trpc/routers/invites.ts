@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
+import { CurrencyInputSchema, SUPPORTED_CURRENCY, TermDaysSchema, TermMonthsSchema, TimeZoneSchema, assertSupportedCurrency } from '../../_lib/termInputs.js';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
@@ -13,9 +14,16 @@ import { DEFAULT_TTL_MS, buildClaimSubscription, generateInviteCode, invitesCol,
 import type { SignupInviteDoc } from '../../coach-clients/_handlers/invites-types.js';
 import { sendClientInviteEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { enforceRateLimit, getClientIp } from '../../_lib/rateLimit.js';
+import { tryTrustedAppOrigin } from '../../_lib/appUrl.js';
 
 /** B3.0.1 / B3-S03: per-IP limits on the two public invite procedures (codes are ~40-bit random; this stops scraping). */
 const LOOKUP_MAX = 30;
+/**
+ * B36-R4 / B39A-S01 — proposed operational limits for `invites.create`: 30 invites per creating
+ * account per hour (a coach onboarding a whole group fits), 5 invites per destination address per
+ * 24 hours across all coaches.
+ */
+export const INVITE_CREATE_LIMIT = { perActor: 30, actorWindowMs: 60 * 60_000, perAddress: 5, addressWindowMs: 24 * 60 * 60_000 } as const;
 const CLAIM_MAX = 10;
 const INVITE_WINDOW_MS = 10 * 60 * 1000;
 
@@ -65,7 +73,11 @@ export const invitesRouter = router({
       if (status !== 'all') filter.status = status;
       const docs = await col.find(filter).sort({ createdAt: -1 }).toArray();
       const now = Date.now();
-      return status === 'pending' ? docs.filter((i) => i.expiresAt == null || i.expiresAt > now) : docs;
+      if (status === 'pending') return docs.filter((i) => i.expiresAt == null || i.expiresAt > now);
+      // B3.9 (audit; B3-S01b residual): a claimed invite's email / phone are the client's contact
+      // details — a coach's own list keeps the invite, not the contact (a current client's contact is
+      // on the roster; a former client's is no longer the coach's). Admins with coaches.assign keep it.
+      return canAssign ? docs : docs.map((i) => (i.status === 'pending' ? i : (({ email: _e, phone: _p, ...rest }) => rest)(i as typeof i & { phone?: string })));
     }),
 
   /** Coach generates a new pending invite (with the client's billing/subscription settings applied on claim). */
@@ -78,11 +90,13 @@ export const invitesRouter = router({
         subStatus: SubscriptionStatusEnum.optional(),
         subPlanName: z.string().trim().max(120).optional(),
         subPrice: z.number().nonnegative().optional(),
-        subCurrency: z.string().trim().max(10).optional(),
+        subCurrency: CurrencyInputSchema,
         subBillingCycle: BillingCycleEnum.optional(),
-        subMonths: z.number().int().positive().optional(),
-        subDays: z.number().int().positive().optional(),
-        subTrialDays: z.number().int().positive().optional(),
+        subMonths: TermMonthsSchema.optional(),
+        subDays: TermDaysSchema.optional(),
+        subTrialDays: TermDaysSchema.optional(),
+        /** B3.8: the coach device's zone — the claimed term's calendar days are meant in it. */
+        subZone: TimeZoneSchema.optional(),
         ttlMs: z.number().int().positive().nullable().optional(),
         coachId: z.string().trim().min(1).optional(),
       }),
@@ -97,10 +111,17 @@ export const invitesRouter = router({
       } else {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
+      assertSupportedCurrency(input.subCurrency);
 
       const users = await usersCol();
       const coach = await users.findOne({ _id: coachId });
       if (!coach) throw new TRPCError({ code: 'NOT_FOUND', message: 'Coach not found' });
+
+      // B36-R4 / B39A-S01: an invite can mail a Forma-branded email — bounded per creating account
+      // and, across every coach, per destination address (a throwaway trial coach cannot flood an
+      // inbox). Checked before anything is written; refusals carry RATE_LIMITED + retryAfter.
+      await enforceRateLimit('invites.create', ctx.user.id, INVITE_CREATE_LIMIT.perActor, INVITE_CREATE_LIMIT.actorWindowMs, 'Too many invites in a short time — please wait a bit and try again.');
+      if (input.email) await enforceRateLimit('invites.email', input.email, INVITE_CREATE_LIMIT.perAddress, INVITE_CREATE_LIMIT.addressWindowMs, 'This address was invited too many times today — please try again tomorrow.');
 
       const col = await invitesCol();
       const now = Date.now();
@@ -124,11 +145,13 @@ export const invitesRouter = router({
           subStatus: input.subStatus ?? 'trial',
           ...(input.subPlanName ? { subPlanName: input.subPlanName } : {}),
           ...(input.subPrice != null ? { subPrice: input.subPrice } : {}),
-          ...(input.subCurrency ? { subCurrency: input.subCurrency } : {}),
+          // B3.8: EGP-only — a priced invite is in EGP whatever an older app sent (checked above).
+          ...(input.subPrice != null ? { subCurrency: SUPPORTED_CURRENCY } : {}),
           ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
           ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
           ...(input.subDays != null ? { subDays: input.subDays } : {}),
           ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
+          ...(input.subZone ? { subZone: input.subZone } : {}),
         };
         try {
           await col.insertOne(invite);
@@ -140,14 +163,15 @@ export const invitesRouter = router({
       if (!created) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Could not allocate a unique invite code' });
       // Best-effort — the code/link is also shown in-app for manual copy/share
       // regardless, so a delivery failure here must never fail invite creation.
-      if (created.email) {
-        const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
+      // B39A-S01: the link is on the trusted origin only, never the request's Origin / Host.
+      const appUrl = created.email ? tryTrustedAppOrigin('[invites] invite email') : null;
+      if (created.email && appUrl) {
         sendClientInviteEmail(created.email, {
           coachName: coach.displayName || 'Your coach',
           inviteUrl: `${appUrl}/invite/${created._id}`,
           inviteCode: created._id,
           appUrl,
-        }).catch((e) => console.error('[invites] failed to send invite email:', e));
+        }).catch(() => console.error('[invites] failed to send an invite email'));
       }
       return created;
     }),
@@ -303,8 +327,8 @@ export const invitesRouter = router({
 
       const session = await issueSession(ctx.res, { id: clientId, role: 'client', accountStatus: 'active' });
       // Best-effort — a delivery failure must never fail the join itself.
-      const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
-      sendWelcomeEmail(email, claimName, appUrl).catch((e) => console.error('[invites.claim] failed to send welcome email:', e));
+      const appUrl = tryTrustedAppOrigin('[invites.claim] welcome email');
+      if (appUrl) sendWelcomeEmail(email, claimName, appUrl).catch(() => console.error('[invites.claim] failed to send the welcome email'));
       return { user: toPublicUser(userDoc), accessToken: session.accessToken, relationship: relDoc };
     }),
 });

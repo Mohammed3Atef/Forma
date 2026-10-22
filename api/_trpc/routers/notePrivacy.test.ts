@@ -5,6 +5,7 @@ import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * B0 / CO-02, CO-21 — private coach notes never reach the client API. Only a
@@ -28,6 +29,7 @@ async function user(_id: string, role: UserDoc['role']): Promise<AuthedUser> {
   const now = Date.now();
   const doc: UserDoc = { _id, email: `${_id}@t.test`, emailLower: `${_id}@t.test`, passwordHash: 'x', displayName: _id, role, accountStatus: 'active', permissions: [], featureFlags: {}, createdBy: 'system', createdAt: now, updatedAt: now };
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return { id: _id, role, accountStatus: 'active', permissions: [], doc };
 }
 const ctx = (u: AuthedUser): Context => ({ req: {} as VercelRequest, res: { setHeader: () => undefined } as unknown as VercelResponse, user: u });

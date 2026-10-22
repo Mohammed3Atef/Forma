@@ -82,13 +82,13 @@ export function PaymentRequestsTab() {
     <div data-testid="payment-requests">
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
-          <button key={f.key} type="button" className={`chip ${filter === f.key ? 'chip-on' : ''}`} onClick={() => setFilter(f.key)} data-testid={`requests-filter-${f.key}`}>
+          <button key={f.key} type="button" aria-pressed={filter === f.key} className={`chip ${filter === f.key ? 'chip-on' : ''}`} onClick={() => setFilter(f.key)} data-testid={`requests-filter-${f.key}`}>
             {t(`forma.admin.filter.${f.key}`)}
           </button>
         ))}
         <span className="mx-1 w-px bg-line" aria-hidden />
         {(['all', 'subscription', 'capacity'] as const).map((k) => (
-          <button key={k} type="button" className={`chip ${kind === k ? 'chip-on' : ''}`} onClick={() => setKind(k)} data-testid={`requests-kind-${k}`}>
+          <button key={k} type="button" aria-pressed={kind === k} className={`chip ${kind === k ? 'chip-on' : ''}`} onClick={() => setKind(k)} data-testid={`requests-kind-${k}`}>
             {t(`forma.admin.kind.${k}`)}
           </button>
         ))}

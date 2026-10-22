@@ -79,7 +79,7 @@ export function AdminAudit() {
       {categories.length > 1 && (
         <div className="mb-4 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categories.map((c) => (
-            <button key={c} type="button" onClick={() => setCat(c)} className={`chip shrink-0 ${cat === c ? 'chip-on' : ''}`}>
+            <button key={c} type="button" onClick={() => setCat(c)} aria-pressed={cat === c} className={`chip shrink-0 ${cat === c ? 'chip-on' : ''}`}>
               {c === 'all' ? t('common.all') : c}
             </button>
           ))}

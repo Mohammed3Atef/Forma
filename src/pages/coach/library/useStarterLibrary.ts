@@ -4,7 +4,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { seedStarterLibrary } from '@/services/platform/starterLibraryApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 
-const KEYS = ['exerciseLibrary', 'foods', 'foodGroups', 'supplements', 'workoutTemplates', 'coachDashboard', 'coachTemplatesCount'];
+const KEYS = ['exerciseLibrary', 'foods', 'foodGroups', 'supplements', 'workoutTemplates', 'coachTemplatesCount'];
 
 /**
  * "Add the starter library": copies the starter set (exercises, foods, swap groups, supplements,

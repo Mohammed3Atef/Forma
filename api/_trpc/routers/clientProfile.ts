@@ -9,7 +9,8 @@ import { usersCol } from '../../_lib/mongodb.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
 import type { AuthedUser } from '../context.js';
-import type { AssessmentStatus, ClientAssessmentFields, ClientProfileDoc, ClientProfileFields } from '../../client/_lib/types.js';
+import type { AssessmentStatus, ClientAssessmentFields, ClientProfileDoc, ClientProfileFields } from '../../client/_lib/types.js';
+import { CommercialReason } from '../../_lib/commercialReason.js';
 
 const ProfileFieldsSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -145,7 +146,11 @@ export const assessmentRouter = router({
       if (!isActiveSelf(ctx.user, clientId)) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await clientProfilesCol();
       const now = Date.now();
-      const set: Record<string, unknown> = { clientId, updatedAt: now, 'assessment.status': 'in_progress', 'assessment.completed': false, 'assessment.updatedAt': now };
+      // B3.9 (B3-S09): a draft never downgrades a REVIEWED assessment back to "in progress" (that
+      // silently undid the coach's review); the client's resubmission marks it updated_after_review.
+      const prev = (await col.findOne({ _id: clientId }, { projection: { 'assessment.status': 1 } }))?.assessment?.status;
+      const reviewed = prev === 'reviewed' || prev === 'updated_after_review';
+      const set: Record<string, unknown> = { clientId, updatedAt: now, 'assessment.updatedAt': now, ...(reviewed ? {} : { 'assessment.status': 'in_progress', 'assessment.completed': false }) };
       for (const [k, v] of Object.entries(patch)) {
         if (v !== undefined) set[`assessment.${k}`] = v;
       }
@@ -247,17 +252,26 @@ export const assessmentRouter = router({
       return await assessmentForViewer(updated, ctx.user);
     }),
 
-  /** Coach marks the assessment reviewed (locks further client edits until reset). */
+  /**
+   * Coach marks the assessment reviewed (locks further client edits until reset). B3.9 (B3-S09):
+   * only a SUBMITTED (or resubmitted) assessment can be reviewed — a compare-and-set, never an upsert
+   * (a client with no assessment, or a draft, is refused `ASSESSMENT_NOT_SUBMITTED`); reviewing an
+   * already reviewed one changes and notifies nothing.
+   */
   review: authedProcedure.input(z.object({ clientId: z.string().optional() })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await clientProfilesCol();
     const now = Date.now();
-    await col.updateOne(
-      { _id: clientId },
-      { $set: { clientId, updatedAt: now, 'assessment.status': 'reviewed', 'assessment.reviewedAt': now, 'assessment.reviewedBy': ctx.user.id, 'assessment.updatedAt': now } },
-      { upsert: true },
+    const done = await col.updateOne(
+      { _id: clientId, 'assessment.status': { $in: ['submitted', 'updated_after_review'] } },
+      { $set: { updatedAt: now, 'assessment.status': 'reviewed', 'assessment.reviewedAt': now, 'assessment.reviewedBy': ctx.user.id, 'assessment.updatedAt': now } },
     );
+    if (done.modifiedCount === 0) {
+      const current = await col.findOne({ _id: clientId });
+      if (current?.assessment?.status === 'reviewed') return await assessmentForViewer(current, ctx.user);
+      throw new TRPCError({ code: 'CONFLICT', message: 'The client has not submitted the assessment yet', cause: new CommercialReason('ASSESSMENT_NOT_SUBMITTED') });
+    }
     await notify({ clientId, forRole: 'client', type: 'assessment_reviewed', route: '/coach-notes', createdBy: ctx.user.id });
     await resolveNotifications({ clientId, forRole: 'coach', type: 'assessment_submitted' });
     const updated = await col.findOne({ _id: clientId });

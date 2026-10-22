@@ -68,6 +68,7 @@ const PARENTS: [pattern: string, parent: string][] = [
   // B3.1 coach IA: Library › Programs; Me (Business, Forma subscription,
   // Account) → Me → Today; every other section → Today.
   ['/coach/templates', '/coach/library?tab=programs'],
+  ['/coach/business', '/coach/me'],
   ['/coach/plan', '/coach/me'],
   ['/coach/settings', '/coach/me'],
   ['/coach/revenue', '/coach/me'],

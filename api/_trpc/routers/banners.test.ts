@@ -5,6 +5,7 @@ import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * Real Mongo round-trips via `mongodb-memory-server` (no mocks) — proves the
@@ -29,6 +30,8 @@ afterAll(async () => {
 beforeEach(async () => {
   const db = await getDb();
   await db.dropDatabase();
+  // B38F-R3: the coach these tests act as is a real coach, so it has a Forma plan.
+  await ensureCoachPlan('coach-1');
 });
 
 function userDoc(overrides: Partial<UserDoc>): UserDoc {
@@ -70,9 +73,9 @@ const admin = authedUser({ _id: 'admin-1', role: 'admin' });
 const baseFields = { style: 'info' as const, placement: 'all' as const, roles: [], segment: 'all' as const, active: true };
 
 describe('banners router', () => {
-  it('list starts empty', async () => {
-    const caller = appRouter.createCaller(ctxFor(coach));
-    expect(await caller.banners.list()).toEqual([]);
+  it('list starts empty — and the full list is admin-only (B3.9: coaches read their own through forViewer)', async () => {
+    expect(await appRouter.createCaller(ctxFor(admin)).banners.list()).toEqual([]);
+    await expect(appRouter.createCaller(ctxFor(coach)).banners.list()).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   it('rejects create from a user without flags.manage', async () => {

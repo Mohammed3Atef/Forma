@@ -10,17 +10,16 @@ export interface GrowthData {
   newPrevWeek: number;
   newThisMonth: number;
   signupSeries: GrowthPoint[];
-  clientMrr: number;
-  currency: string;
   subBreakdown: Record<SubscriptionStatus | 'none', number>;
   /** Active/trial client subscriptions ending within 7 days (soonest first). */
   expiringClients: ExpiringClient[];
 }
 
 /**
- * Platform growth + money aggregate for the admin: weekly signup trend (last 8
- * weeks), new-member deltas, client-subscription MRR + breakdown, and clients
- * whose subscription ends within 7 days. Computed server-side by `adminGrowth.get`.
+ * Platform growth aggregate for the admin: weekly signup trend (last 8 weeks),
+ * new-member deltas, the client-subscription status breakdown, and clients whose
+ * subscription ends within 7 days. Computed server-side by `adminGrowth.get`.
+ * B3.8 final (B38F-R1): no coach-client money — coaches' packages are their business.
  */
 export async function fetchGrowth(): Promise<GrowthData> {
   return trpc.adminGrowth.get.query();

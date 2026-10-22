@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { emitPlanLapsed } from './planLapseSignal';
 import { create } from 'zustand';
 import { getAttachmentKind, type AttachmentKind } from '@/lib/attachmentKind';
 import { getAccessToken, refreshSession } from '@/services/platformApi';
@@ -22,7 +23,7 @@ import { trpc } from '@/services/trpc';
  */
 
 /** `forbidden` (B3.0.1): the server refused this upload for this account / conversation — retrying cannot help. */
-export type UploadErrorCode = 'notConfigured' | 'badType' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'forbidden' | 'failed' | 'cancelled';
+export type UploadErrorCode = 'notConfigured' | 'badType' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'forbidden' | 'planLapsed' | 'planSuspended' | 'noPlan' | 'failed' | 'cancelled';
 
 export class UploadError extends Error {
   code: UploadErrorCode;
@@ -184,6 +185,11 @@ function assertOk(r: RawResponse): Record<string, unknown> {
   if (r.status === 413 && code.startsWith('tooLarge')) throw new UploadError(code as UploadErrorCode, message);
   if (r.status === 415) throw new UploadError('badType', message);
   if (r.status === 503) throw new UploadError('notConfigured', message);
+  // B3.8 (P2): the coach's Forma plan lapsed / was suspended — said as such, not "forbidden".
+  if (r.status === 403 && (code === 'planLapsed' || code === 'planSuspended' || code === 'noPlan')) {
+    emitPlanLapsed(code === 'planSuspended' ? 'SUBSCRIPTION_SUSPENDED' : code === 'noPlan' ? 'NO_SUBSCRIPTION' : 'SUBSCRIPTION_EXPIRED');
+    throw new UploadError(code, message);
+  }
   if (r.status === 403) throw new UploadError('forbidden', message);
   throw new UploadError('failed', message);
 }

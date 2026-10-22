@@ -25,6 +25,8 @@ export interface SignupInviteDoc {
   subMonths?: number;
   subDays?: number;
   subTrialDays?: number;
+  /** B3.8: the coach device's IANA zone at invite time — the claimed term's days are meant in it. */
+  subZone?: string;
   status: SignupInviteStatus;
   claimedByUid?: string | null;
   createdAt: number;

@@ -29,6 +29,10 @@ export const colors = {
   violet: '#8B7CF0', // data-differentiation accent (e.g. nutrition/macro charts)
   teal: '#2FB8B0', // data-differentiation accent
   rose: '#EF5D8F', // data-differentiation accent
+  // B3.8 Business analytics: the two-series pair (booked vs collected), validated on the dark card
+  // surface — lightness band, chroma floor, CVD ΔE 24.5 (protan), normal-vision ΔE 26.6, contrast ≥ 3:1.
+  chartBooked: '#6E8FD8',
+  chartCollected: '#D9730D',
 } as const;
 
 export type ColorToken = keyof typeof colors;

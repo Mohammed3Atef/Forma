@@ -10,10 +10,13 @@ export async function uiLogin(page: Page, email: string, password: string) {
   await page.getByTestId('login-submit').click();
 }
 
-/** Coach sign-out from `/coach/settings` (RoleAccount → confirm dialog). */
+/**
+ * Coach sign-out from the Me hub (`/coach/me` → `me-sign-out` → confirm dialog). B3.9.0: was the LAST "Sign out"
+ * button on the legacy `/coach/settings` page — English copy and DOM order, both fragile.
+ */
 export async function coachSignOut(page: Page) {
-  await page.goto('/coach/settings');
-  await page.getByRole('button', { name: 'Sign out' }).last().click();
+  await page.goto('/coach/me');
+  await page.getByTestId('me-sign-out').click();
   await page.getByTestId('confirm-accept').click();
 }
 

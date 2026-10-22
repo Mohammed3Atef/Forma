@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { CheckInSummary } from '@/components/CheckInSummary';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { TextAreaField } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { reviewCheckIn } from '@/services/platform/checkInApi';
+import { reviewCheckIn, writeReviewToCache } from '@/services/platform/checkInApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { shortDate } from '@/lib/utils';
 import type { WeeklyCheckIn } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 /** "vs last check-in": weight and training adherence, only when both weeks have them. */
 export function CheckInComparison({ latest, previous }: { latest: WeeklyCheckIn; previous: WeeklyCheckIn | null | undefined }) {
@@ -68,18 +70,17 @@ export function CheckInReviewForm({
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const [feedback, setFeedback] = useState(checkIn.coachFeedback ?? '');
+  // B3.8 (P2): reviewing is a coaching write — off with a lapsed Forma plan.
+  const gate = useWriteGate();
 
   const review = useMutation({
     mutationFn: () => reviewCheckIn(clientId, checkIn.weekStart, feedback.trim()),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['checkIns', clientId] });
-      void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
+      writeReviewToCache(qc, clientId, coachId, checkIn.weekStart, feedback.trim());
       showToast({ title: t('checkin.reviewed'), variant: 'success' });
       onReviewed();
     },
-    onError: (e) => void alertDialog({ title: t('checkin.reviewed'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('checkin.reviewed'), message: errorMessage(e, t) }),
   });
 
   const submit = async () => {
@@ -115,7 +116,7 @@ export function CheckInReviewForm({
             {t('checkin.skipForNow')}
           </button>
         ) : null}
-        <SubmitButton type="button" className="flex-1" data-testid="review-mark-next" pending={review.isPending} onClick={() => void submit()}>
+        <SubmitButton type="button" className="flex-1" data-testid="review-mark-next" pending={review.isPending} disabled={!gate.canWrite} title={gate.reason} onClick={() => void submit()}>
           {primaryLabel ?? t('checkin.markReviewed')}
         </SubmitButton>
       </div>

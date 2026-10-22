@@ -16,6 +16,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { LibrarySupplement, LocalizedText } from '@/types';
 import { DetailSheet, ListBody, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { errorMessage } from '@/lib/errorMessage';
 
 interface SuppForm {
   id: string | null;
@@ -81,7 +82,7 @@ export default function SupplementsSegment({ coachId, query, setQuery, createSig
       void qc.invalidateQueries({ queryKey: ['supplements', coachId] });
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('coachSupps.newSupp'), message: e instanceof Error ? e.message : t('common.savedFailed') }),
+    onError: (e) => void alertDialog({ title: t('coachSupps.newSupp'), message: errorMessage(e, t, 'common.savedFailed') }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteSupplement(coachId, id),
@@ -90,7 +91,7 @@ export default function SupplementsSegment({ coachId, query, setQuery, createSig
       void qc.invalidateQueries({ queryKey: ['supplements', coachId] });
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (s: LibrarySupplement) => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: sname(s) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(s.id);

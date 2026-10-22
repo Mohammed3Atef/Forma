@@ -6,6 +6,8 @@ import { resolveTransferRequest } from '@/services/platform/transferApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { ClientTransferRequest } from '@/types';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { errorMessage } from '@/lib/errorMessage';
 
 /**
  * One incoming transfer request with its decision (B3.2: shared by Clients'
@@ -16,6 +18,8 @@ import type { ClientTransferRequest } from '@/types';
  */
 export function TransferRequestCard({ req, coachId, clientName, onResolved }: { req: ClientTransferRequest; coachId: string; clientName: string; onResolved?: () => void }) {
   const { t } = useTranslation();
+  // Resolving stays allowed on a lapsed plan (it protects the client); it needs the connection.
+  const online = useOnlineStatus();
   const qc = useQueryClient();
   const requester = useQuery({ queryKey: ['user', req.toCoachId], queryFn: () => fetchUser(req.toCoachId), enabled: !!req.toCoachId });
   const requesterName = requester.data?.displayName || requester.data?.email || t('timeline.unknownCoach');
@@ -23,8 +27,9 @@ export function TransferRequestCard({ req, coachId, clientName, onResolved }: { 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['incomingTransferRequests', coachId] });
     void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+    void qc.invalidateQueries({ queryKey: ['coachPlan', coachId] }); // the server's client count (B3.8, D5)
     void qc.invalidateQueries({ queryKey: ['coachRelationships', coachId] });
-    void qc.invalidateQueries({ queryKey: ['coachDashboard', coachId] });
+    void qc.invalidateQueries({ queryKey: ['coachBusiness', coachId] });
     void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', coachId] });
   };
   const decide = useMutation({
@@ -34,7 +39,7 @@ export function TransferRequestCard({ req, coachId, clientName, onResolved }: { 
       showToast({ title: t(outcome === 'accepted' ? 'transferReq.approveDone' : 'transferReq.rejectDone'), variant: 'success' });
       onResolved?.();
     },
-    onError: (e, outcome) => void alertDialog({ title: t(outcome === 'accepted' ? 'transferReq.approve' : 'transferReq.reject'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e, outcome) => void alertDialog({ title: t(outcome === 'accepted' ? 'transferReq.approve' : 'transferReq.reject'), message: errorMessage(e, t) }),
   });
 
   const ask = async (outcome: 'accepted' | 'rejected') => {
@@ -58,10 +63,10 @@ export function TransferRequestCard({ req, coachId, clientName, onResolved }: { 
       </div>
       {req.reason && <p className="mt-1.5 whitespace-pre-wrap text-[13px] text-earth-muted">{req.reason}</p>}
       <div className="mt-2 flex gap-2">
-        <button type="button" data-testid="incoming-transfer-approve" className="btn-ghost h-9 flex-1 text-[13px] disabled:opacity-40" disabled={decide.isPending} onClick={() => void ask('accepted')}>
+        <button type="button" data-testid="incoming-transfer-approve" className="btn-ghost btn-sm flex-1 disabled:opacity-40" disabled={decide.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void ask('accepted')}>
           {t('transferReq.approve')}
         </button>
-        <button type="button" data-testid="incoming-transfer-reject" className="btn-ghost h-9 flex-1 text-[13px] text-danger disabled:opacity-40" disabled={decide.isPending} onClick={() => void ask('rejected')}>
+        <button type="button" data-testid="incoming-transfer-reject" className="btn-ghost btn-sm flex-1 text-danger disabled:opacity-40" disabled={decide.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void ask('rejected')}>
           {t('transferReq.reject')}
         </button>
       </div>

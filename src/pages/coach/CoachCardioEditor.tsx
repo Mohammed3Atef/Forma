@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
+import { useHistoryParam } from '@/components/coach/editor/useHistoryParam';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { useDailyTargetsEditor } from '@/hooks/useDailyTargetsEditor';
@@ -23,6 +24,7 @@ import { uid } from '@/lib/utils';
 import { move } from '@/lib/workoutPlanModel';
 import { getClientCardioPlan, saveClientCardioPlan } from '@/services/platform/planApi';
 import type { CardioPlan, CardioSession, CardioType } from '@/types';
+import { focusItem, rovingIndex } from '@/lib/rovingKeys';
 
 const TYPES: CardioType[] = ['walking', 'treadmill', 'running', 'cycling', 'other'];
 
@@ -67,7 +69,7 @@ export function CoachCardioEditor() {
   });
   const { plan, setPlan, save } = ed;
   const [editing, setEditing] = useState<SessForm | null>(null);
-  const [history, setHistory] = useState(false);
+  const [history, setHistory] = useHistoryParam(); // B3.9 (D10): ?history=1 opens it
 
   // Daily targets: their own read, draft and compare-and-set; a failed read only disables the targets.
   const tg = useDailyTargetsEditor({ clientId, coachId });
@@ -116,7 +118,7 @@ export function CoachCardioEditor() {
     setEditing(isDesktop ? formOf(s) : null);
   };
   const removeSession = async (s: CardioSession) => {
-    if (!(await confirmDelete(`${t(`cardio.types.${s.type}`)} · ${t('coachEditor.minutes', { n: s.durationMin })}`))) return;
+    if (!(await confirmDelete(`${t(`cardio.types.${s.type}`, { defaultValue: t('cardio.types.other') })} · ${t('coachEditor.minutes', { n: s.durationMin })}`))) return;
     setPlan((p) => ({ ...p, sessions: p.sessions.filter((x) => x.id !== s.id) }));
     if (editing?.orig?.id === s.id) setEditing(null);
   };
@@ -126,9 +128,26 @@ export function CoachCardioEditor() {
       <div>
         <div className="label mb-1.5">{t('coachEditor.cardioType')}</div>
         <div className="flex flex-wrap gap-2" data-testid="cardio-type-options" role="radiogroup" aria-label={t('coachEditor.cardioType')}>
-          {TYPES.map((ty) => (
-            <button key={ty} type="button" role="radio" aria-checked={editing.type === ty} data-testid={`cardio-type-${ty}`} onClick={() => setEditing({ ...editing, type: ty })} className={`chip min-h-ui-hit ${editing.type === ty ? 'chip-on' : ''}`}>
-              {t(`cardio.types.${ty}`)}
+          {TYPES.map((ty, i) => (
+            <button
+              key={ty}
+              type="button"
+              role="radio"
+              aria-checked={editing.type === ty}
+              tabIndex={editing.type === ty ? 0 : -1}
+              data-testid={`cardio-type-${ty}`}
+              onClick={() => setEditing({ ...editing, type: ty })}
+              // B3.9 (AX-05): one tab stop; arrows move the choice.
+              onKeyDown={(e) => {
+                const next = rovingIndex(e, i, TYPES.length, 'both');
+                if (next < 0) return;
+                e.preventDefault();
+                focusItem(e, next, '[role="radio"]');
+                setEditing({ ...editing, type: TYPES[next] });
+              }}
+              className={`chip min-h-ui-hit ${editing.type === ty ? 'chip-on' : ''}`}
+            >
+              {t(`cardio.types.${ty}`, { defaultValue: t('cardio.types.other') })}
             </button>
           ))}
         </div>
@@ -153,7 +172,7 @@ export function CoachCardioEditor() {
       ) : (
         <ul className="divide-y divide-line-soft">
           {plan.sessions.map((s, i) => {
-            const label = `${t(`cardio.types.${s.type}`)} · ${t('coachEditor.minutes', { n: s.durationMin })}`;
+            const label = `${t(`cardio.types.${s.type}`, { defaultValue: t('cardio.types.other') })} · ${t('coachEditor.minutes', { n: s.durationMin })}`;
             const active = isDesktop && editing?.orig?.id === s.id;
             return (
               <li key={s.id} className={`flex items-center gap-1 py-1.5 ${active ? 'rounded-ui-control bg-brand/10' : ''}`} data-testid="cardio-session-row">
@@ -199,7 +218,7 @@ export function CoachCardioEditor() {
           <p className="mt-1 text-[13px] text-earth-muted">{t('coachEditor.targetsConflictBody')}</p>
           <table className="mt-2 w-full text-[13px]">
             <thead>
-              <tr className="text-start text-[11.5px] uppercase tracking-wide text-earth-subtle">
+              <tr className="text-start text-[12px] uppercase tracking-wide text-earth-subtle">
                 <th className="py-1 text-start font-medium" scope="col">
                   <span className="sr-only">{t('coachEditor.target')}</span>
                 </th>

@@ -26,6 +26,7 @@ import { NumericField } from '@/components/ui/NumericField';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Switch } from '@/components/ui/Switch';
 import { IconTile, ListGroup, ListRow, Section } from '@/components/ui/ListRow';
+import { SaveStatusBadge, useSaveStatus } from '@/components/ui/SaveStatus';
 import { useMyCoach } from '@/hooks/useMyCoach';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import type { AssessmentStatus } from '@/types';
@@ -41,40 +42,6 @@ const ASSESS_CLASS: Record<AssessmentStatus, string> = {
 
 type Tab = 'profile' | 'preferences' | 'account';
 const TABS: Tab[] = ['profile', 'preferences', 'account'];
-
-type SaveStatusValue = 'idle' | 'saving' | 'saved' | 'error';
-
-/** Tracks saving/saved/failed for a group of autosaved fields (e.g. one per section). */
-function useSaveStatus() {
-  const [status, setStatus] = useState<SaveStatusValue>('idle');
-  const resetTimer = useRef<number | undefined>(undefined);
-  const run = async (fn: () => Promise<void>) => {
-    window.clearTimeout(resetTimer.current);
-    setStatus('saving');
-    try {
-      await fn();
-      setStatus('saved');
-      resetTimer.current = window.setTimeout(() => setStatus('idle'), 2000);
-    } catch {
-      setStatus('error');
-      resetTimer.current = window.setTimeout(() => setStatus('idle'), 3000);
-    }
-  };
-  return { status, run };
-}
-
-/** Small subtle indicator — "Saving…" / "Saved" / "Couldn't save", auto-clears. */
-function SaveStatusBadge({ status }: { status: SaveStatusValue }) {
-  const { t } = useTranslation();
-  if (status === 'idle') return null;
-  return (
-    <span className={`inline-flex items-center gap-1 text-[13px] ${status === 'error' ? 'text-warn' : 'text-earth-muted'}`} role={status === 'error' ? 'alert' : 'status'}>
-      {status === 'saving' && <Icon name="rotate" size={13} className="animate-spin" />}
-      {status === 'saved' && <Icon name="check" size={13} className="text-success" />}
-      {status === 'saving' ? t('settings.saving') : status === 'saved' ? t('common.saved') : t('settings.saveFailed')}
-    </span>
-  );
-}
 
 /** Local mirror of a store value, committed after `delay` ms without further changes. */
 function useDebouncedField<T>(storeValue: T, commit: (v: T) => Promise<void>, status: ReturnType<typeof useSaveStatus>, delay = 600) {

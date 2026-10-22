@@ -43,7 +43,7 @@ export function dayKeyOf(value: Date | number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const cache = new Map<string, Intl.DateTimeFormat | Intl.NumberFormat | Intl.RelativeTimeFormat | Intl.PluralRules>();
+const cache = new Map<string, Intl.DateTimeFormat | Intl.NumberFormat | Intl.RelativeTimeFormat | Intl.PluralRules | Intl.DisplayNames>();
 function cached<T>(key: string, make: () => T): T {
   let v = cache.get(key) as T | undefined;
   if (!v) {
@@ -126,6 +126,50 @@ export function formatCurrency(amount: number, currency: string, lang: AppLangua
     return cached(`c|${loc}|${currency}`, () => new Intl.NumberFormat(loc, { style: 'currency', currency, maximumFractionDigits: 2 })).format(amount);
   } catch {
     return `${formatNumber(amount, lang, { maxFractionDigits: 2 })} ${currency}`; // not an ISO currency code
+  }
+}
+
+/**
+ * B3.8 (EGP-only, owner decision 8): an amount of Egyptian pounds the way each language writes it —
+ * "EGP 1,899" (English), "1,899 ج.م." (Arabic, Latin digits per the digit policy). Whole pounds
+ * show no decimals; anything else shows piastres ("EGP 1,899.50").
+ */
+export function formatEgp(amount: number, lang: AppLanguage | undefined): string {
+  if (!Number.isFinite(amount)) return '';
+  const loc = intlLocale(lang);
+  const whole = Math.abs(Math.round(amount * 100)) % 100 === 0;
+  return cached(`egp|${loc}|${whole}`, () => new Intl.NumberFormat(loc, { style: 'currency', currency: 'EGP', minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })).format(amount);
+}
+
+/** An amount stored in piastres (EGP minor units — payments, B3.8). */
+export function formatEgpMinor(minor: number, lang: AppLanguage | undefined): string {
+  return formatEgp(minor / 100, lang);
+}
+
+/** Chart axes and tight tiles: "EGP 12K" / "12 ألف ج.م." (compact, Latin digits). */
+export function formatEgpCompact(amount: number, lang: AppLanguage | undefined): string {
+  if (!Number.isFinite(amount)) return '';
+  const loc = intlLocale(lang);
+  return cached(`egpc|${loc}`, () => new Intl.NumberFormat(loc, { style: 'currency', currency: 'EGP', notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 })).format(amount);
+}
+
+/** An amount in its own currency: EGP the B3.8 way; a pre-B3.8 test record in another code keeps that code. */
+export function formatMoney(amount: number, currency: string | undefined, lang: AppLanguage | undefined): string {
+  const c = (currency ?? '').trim().toUpperCase();
+  if (!c || c === 'EGP') return formatEgp(amount, lang);
+  return formatCurrency(amount, c, lang);
+}
+
+/** "EGP — Egyptian pound" / "EGP — جنيه مصري": a currency named in the reader's language, its code kept (B3.8, CO-31). */
+export function formatCurrencyName(code: string, lang: AppLanguage | undefined): string {
+  const c = code.trim().toUpperCase();
+  if (!c) return '';
+  try {
+    const loc = intlLocale(lang);
+    const name = cached(`cn|${loc}`, () => new Intl.DisplayNames(loc, { type: 'currency' })).of(c);
+    return name && name.toUpperCase() !== c ? `${c} — ${name}` : c;
+  } catch {
+    return c; // not an ISO code, or no DisplayNames
   }
 }
 

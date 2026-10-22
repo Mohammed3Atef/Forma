@@ -245,6 +245,8 @@ describe('tenant isolation', () => {
   it("an unassigned coach cannot read or write a client's data; the assigned coach can; a different client never can", async () => {
     const coachA = await insertUser({ _id: 'coachA', role: 'coach' });
     const coachB = await insertUser({ _id: 'coachB', role: 'coach' });
+    // B38F-R3: coachB is a real coach with a live plan, so the refusals below are the ownership checks.
+    await givePlan(coachB._id);
     const clientA = await insertUser({ _id: 'clientA', role: 'client' });
     const clientB = await insertUser({ _id: 'clientB', role: 'client' });
     await assign(coachA._id, clientA._id);
@@ -334,14 +336,14 @@ describe('transfer requests — ownership is asserted, not trusted', () => {
     return { coachA, coachB, coachC, client };
   }
 
-  it('create refuses a fromCoachId that does not currently coach the client (the collusion/hijack path)', async () => {
+  it('a coach-named fromCoachId is never trusted (the collusion/hijack path): the request is filed against the REAL current coach, and the named one cannot accept it', async () => {
     const { coachA, coachB, coachC, client } = await scenario();
-    await expect(
-      caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachB._id, reason: 'x' }),
-    ).rejects.toMatchObject({ code: 'CONFLICT' });
-    // Naming the REAL coach works.
-    const req = await caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachC._id, reason: 'x' });
+    // B3.9 (audit, CO-03): the server always derives the current coach — naming another one neither
+    // redirects the request to a colluding coach nor reveals (by a refusal) who coaches the client.
+    const req = await caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachB._id, reason: 'x' });
     expect(req.status).toBe('pending');
+    expect((await (await getDb()).collection('transferRequests').findOne({ _id: req._id as never }))?.fromCoachId).toBe(coachC._id);
+    expect(await code(caller(coachB).transfers.resolve({ id: req._id, action: 'accept' }))).toBe('FORBIDDEN');
   });
 
   it('accept re-checks the relationship at approval time and rolls the request back if the move fails', async () => {
@@ -397,6 +399,7 @@ describe('idempotency and races', () => {
 
   it('seedStarterLibrary: two concurrent seeds never duplicate a row (unique {coachId,id}) and converge to one full library', async () => {
     const coach = await insertUser({ _id: 'coach', role: 'coach' });
+    await givePlan(coach._id); // B38F-R3: a real coach always has a plan
     await Promise.allSettled([caller(coach).coachAssets.seedStarterLibrary(), caller(coach).coachAssets.seedStarterLibrary()]);
     const third = await caller(coach).coachAssets.seedStarterLibrary(); // fills any gap the race left
     expect(third.exercises.inserted).toBe(0);
@@ -581,7 +584,15 @@ describe('rate limits, validation, error semantics', () => {
   it('error semantics: a coach with NO plan is told that, not "at their client limit"; an already-resolved request is CONFLICT, not NOT_FOUND', async () => {
     const coachNoPlan = await insertUser({ _id: 'coach', role: 'coach' });
     const client = await insertUser({ _id: 'client', role: 'client' });
+    // B38F-R3: a coach with no plan is read-only — told it has no plan (NO_SUBSCRIPTION), never "at the limit".
     await expect(caller(coachNoPlan).coachClients.assign({ clientId: client._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
+      code: 'PRECONDITION_FAILED',
+      message: expect.stringMatching(/no Forma plan/),
+      cause: { reason: 'NO_SUBSCRIPTION' },
+    });
+    // An admin assigning a client to that coach hits the capacity gate's own no-plan answer — also never "at the limit".
+    const assigner = await insertUser({ _id: 'assigner', role: 'admin' });
+    await expect(caller(assigner).coachClients.assign({ clientId: client._id, coachId: coachNoPlan._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'This coach has no active Forma subscription yet',
     });

@@ -21,14 +21,9 @@ import { showToast } from '@/stores/toastStore';
 import { confirmDialog } from '@/stores/dialogStore';
 import { setNavGuard } from '@/stores/navGuardStore';
 import { shortDate } from '@/lib/utils';
-import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { CheckInStatus } from '@/types';
+import { Pill } from '@/components/ui/Pill';
+import { CHECKIN_TONE as TONE } from '@/lib/statusTone';
 
-const TONE: Record<CheckInStatus, PillTone> = {
-  requested: 'warn',
-  submitted: 'brand',
-  reviewed: 'ok',
-};
 
 const STEPS = ['body', 'training', 'nutrition', 'notes'] as const;
 type Step = (typeof STEPS)[number];
@@ -264,7 +259,7 @@ export function CheckIn() {
         {checkIn.status === 'reviewed' && checkIn.coachFeedback && (
           <div className="card border border-brand/30">
             <p className="label">{t('checkin.coachFeedback')}</p>
-            <p className="whitespace-pre-wrap text-sm">{checkIn.coachFeedback}</p>
+            <p className="whitespace-pre-wrap text-sm" dir="auto">{checkIn.coachFeedback}</p>
           </div>
         )}
         <div className="card">

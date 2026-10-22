@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, resolveClientId } from '../../client/_lib/access.js';
-import { clientCardioPlansCol, clientNutritionPlansCol, clientWorkoutPlansCol, planCollectionForKind, planVersionsCol } from '../../client/_lib/db.js';
+import { clientCardioPlansCol, clientNutritionPlansCol, clientWorkoutPlansCol, coachClientsCol, planCollectionForKind, planVersionsCol } from '../../client/_lib/db.js';
 import type { ClientPlanDoc, PlanVersionDoc, PlanVersionKind } from '../../client/_lib/types.js';
 
 /**
@@ -179,6 +179,22 @@ async function writeActivePlan(clientId: string, kind: PlanVersionKind, snapshot
  * Saving/restoring a version also mirrors the snapshot into the singleton
  * plan doc (`clientWorkoutPlans` etc.) — the doc the client reads day to day.
  */
+/**
+ * B3.9 (owner rule O-16): a coach sees and restores only the plan versions of THEIR CURRENT stint
+ * with the client — on or after the day the active relationship began. After a transfer (fresh
+ * start or not) or a release and re-assignment, the earlier versions — another coach's plans and
+ * reasons — stay out of reach. The client and admins keep the whole history. Null = no limit.
+ */
+async function coachStintStart(user: { id: string; role: string }, clientId: string): Promise<number | null> {
+  if (user.role !== 'coach') return null;
+  const rel = await (await coachClientsCol()).findOne({ coachId: user.id, clientId, status: 'active' }, { projection: { createdAt: 1 } });
+  // A relationship without a start date (data from before B3) sets no boundary — as before.
+  return Number(rel?.createdAt ?? 0);
+}
+
+/** The newest versions are what the History sheet shows; older ones stay stored. */
+const VERSION_LIST_LIMIT = 200;
+
 export const planVersionsRouter = router({
   list: authedProcedure
     .input(z.object({ clientId: z.string().optional(), kind: KindEnum.optional() }).optional())
@@ -188,7 +204,9 @@ export const planVersionsRouter = router({
       const col = await planVersionsCol();
       const filter: Record<string, unknown> = { clientId };
       if (input?.kind) filter.kind = input.kind;
-      return col.find(filter).sort({ versionNumber: -1 }).toArray();
+      const since = await coachStintStart(ctx.user, clientId);
+      if (since != null) filter.createdAt = { $gte: since };
+      return col.find(filter).sort({ versionNumber: -1 }).limit(VERSION_LIST_LIMIT).toArray();
     }),
 
   /**
@@ -223,7 +241,9 @@ export const planVersionsRouter = router({
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
 
       const col = await planVersionsCol();
-      const version = await col.findOne({ _id: input.versionId, clientId });
+      const since = await coachStintStart(ctx.user, clientId);
+      const version = await col.findOne({ _id: input.versionId, clientId, ...(since != null ? { createdAt: { $gte: since } } : {}) });
+      // Another stint's version answers exactly like a missing one (no probing of earlier coaches' work).
       if (!version) throw new TRPCError({ code: 'NOT_FOUND', message: 'Version not found' });
       const planCol = await planCollectionForKind(version.kind);
       const current = await planCol.findOne({ _id: clientId });

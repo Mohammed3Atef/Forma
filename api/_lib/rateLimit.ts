@@ -1,6 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
 import type { Collection } from 'mongodb';
 import { TRPCError } from '@trpc/server';
+import { CommercialReason } from './commercialReason.js';
 import { getDb } from './mongodb.js';
 
 /**
@@ -40,19 +41,28 @@ export function getClientIp(req: VercelRequest): string {
  * have been recorded for `key` within the current `windowMs`-long window.
  * Call this *before* doing the sensitive work (password check, token
  * creation, etc.), not after.
+ *
+ * Shared by every server instance (one atomic `$inc` per call on one document), so N concurrent
+ * calls are counted N times. The refusal carries `reason: 'RATE_LIMITED'` and `retryAfter` (seconds
+ * until the window resets) — the app waits and retries instead of reading it as a failure.
  */
-export async function enforceRateLimit(bucket: string, key: string, max: number, windowMs: number): Promise<void> {
+export async function enforceRateLimit(bucket: string, key: string, max: number, windowMs: number, message = 'Too many attempts — please wait a bit and try again.'): Promise<void> {
   const col = await rateLimitsCol();
   const now = Date.now();
   const windowStart = Math.floor(now / windowMs) * windowMs;
   const _id = `${bucket}:${key}:${windowStart}`;
-  await col.updateOne(
-    { _id },
-    { $inc: { count: 1 }, $setOnInsert: { windowStart, expiresAt: new Date(windowStart + windowMs) } },
-    { upsert: true },
-  );
-  const doc = await col.findOne({ _id });
+  const hit = () => col.findOneAndUpdate({ _id }, { $inc: { count: 1 }, $setOnInsert: { windowStart, expiresAt: new Date(windowStart + windowMs) } }, { upsert: true, returnDocument: 'after' });
+  let doc: RateLimitDoc | null;
+  try {
+    doc = await hit();
+  } catch (e) {
+    // Two first hits of a new window race to insert the same document: the loser retries once,
+    // as an update of the document the winner created.
+    if ((e as { code?: number }).code !== 11000) throw e;
+    doc = await hit();
+  }
   if ((doc?.count ?? 0) > max) {
-    throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Too many attempts — please wait a bit and try again.' });
+    const retryAfter = Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000));
+    throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message, cause: new CommercialReason('RATE_LIMITED', { retryAfter }) });
   }
 }

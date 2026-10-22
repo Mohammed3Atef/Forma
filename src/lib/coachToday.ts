@@ -1,5 +1,5 @@
 import type { CoachClientRelationship, WeeklyCheckIn } from '@/types';
-import { effectiveSubscriptionStatus } from './subscription';
+import { effectiveSubscriptionStatus, termLastDay } from './subscription';
 import { diffDays } from './utils';
 
 /**
@@ -53,6 +53,8 @@ export const TODAY_SECTIONS: readonly TodaySection[] = ['reviews', 'requests', '
 export interface SourceState<T> {
   data: T | undefined;
   error: boolean;
+  /** B3.9 (CO-18): the read is paused offline (React Query) — no data yet means offline, never loading. */
+  paused?: boolean;
 }
 
 export interface TodayClient {
@@ -164,6 +166,8 @@ export type KindStatus = 'ready' | 'loading' | 'error';
 export interface ComingUpItem {
   clientId: string;
   endAt: number;
+  /** B3.8: the term's LAST covered calendar day (the end is exclusive). */
+  lastDay: string;
   days: number;
   trial: boolean;
   to: string;
@@ -296,7 +300,7 @@ export function buildTodayQueue(sources: TodaySources, opts: { coachId: string; 
       if (RUNNING.has(eff) && left > 0 && left <= RENEWAL_WINDOW_MS) {
         push({ kind: 'renewal', clientId: rel.clientId, to, at: sub.endAt, days: Math.ceil(left / DAY_MS), ...(eff === 'trial' ? { flag: 'trial' as const } : {}) });
       } else if (RUNNING.has(eff) && left > RENEWAL_WINDOW_MS && left <= COMING_UP_MS) {
-        comingUp.push({ clientId: rel.clientId, endAt: sub.endAt, days: Math.ceil(left / DAY_MS), trial: eff === 'trial', to });
+        comingUp.push({ clientId: rel.clientId, endAt: sub.endAt, lastDay: termLastDay(sub), days: Math.ceil(left / DAY_MS), trial: eff === 'trial', to });
       } else if (eff === 'expired' && sub.status !== 'cancelled' && sub.status !== 'ended' && now - sub.endAt <= LAPSED_WINDOW_MS) {
         // Only a term that ran out on its own: a cancelled / ended term was the coach's explicit decision.
         push({ kind: 'lapsed', clientId: rel.clientId, to, at: sub.endAt, days: Math.max(0, Math.floor((now - sub.endAt) / DAY_MS)) });

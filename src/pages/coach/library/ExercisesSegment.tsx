@@ -16,6 +16,7 @@ import { showToast } from '@/stores/toastStore';
 import type { Exercise } from '@/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DetailSheet, ListBody, SelectFilter, StarterPanel, ToggleFilter, Toolbar, UseInPlanSheet, useBulkDelete, useCanEdit, usePaged, useSyncIssues, type SegmentProps } from './parts';
+import { errorMessage } from '@/lib/errorMessage';
 
 // The detail view and the form load when first opened (they are not needed to browse).
 const ExerciseView = lazy(() => import('@/components/workout/ExerciseView').then((m) => ({ default: m.ExerciseView })));
@@ -80,9 +81,9 @@ export default function ExercisesSegment({ coachId, query, setQuery, createSigna
       invalidate();
       sync.record(ex.id, ex.name, res.status === 'failed');
       // A failed template sync is the persistent notice (with Retry), not a toast that vanishes.
-      if (res.status !== 'failed') showToast({ title: t('common.saved'), body: res.affectedTemplates > 0 ? t('coachLib.templatesUpdated', { n: res.affectedTemplates }) : undefined, variant: 'success' });
+      if (res.status !== 'failed') showToast({ title: t('common.saved'), body: res.affectedTemplates > 0 ? t('coachLib.templatesUpdated', { count: res.affectedTemplates }) : undefined, variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('coachLib.newExercise'), message: e instanceof Error ? e.message : t('common.savedFailed') }),
+    onError: (e) => void alertDialog({ title: t('coachLib.newExercise'), message: errorMessage(e, t, 'common.savedFailed') }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteExercise(coachId, id),
@@ -91,7 +92,7 @@ export default function ExercisesSegment({ coachId, query, setQuery, createSigna
       void qc.invalidateQueries({ queryKey: ['exerciseLibrary', coachId] });
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (ex: Exercise) => {
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: ex.name }), danger: true, confirmLabel: t('common.delete') })) del.mutate(ex.id);

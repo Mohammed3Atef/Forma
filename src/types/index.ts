@@ -527,12 +527,25 @@ export interface Subscription {
   freezeCredit?: number | null;
   note?: string; // coach note (e.g. why frozen)
   updatedAt: number;
+  /**
+   * B3.8 (fixed-day terms, Fix C, payments) — absent on terms written before B3.8, which work
+   * from `startAt` / `endAt` alone. `termId`: the economic term (corrections keep it, a renewal
+   * starts a new one, payments point at it). `startDate` / `endDate`: the term's calendar days
+   * `[startDate, endDate)` in `zone` — `endDate` is EXCLUSIVE (30 days from 1 Oct covers 1–30 Oct,
+   * the next term starts 31 Oct). `days`: the booked length (1 month = 30 days).
+   */
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
 }
 
 /**
  * An archived subscription term, kept on the relationship's `subscriptionHistory`
- * so coach and client can see how long / how much the client has subscribed. A
- * prior term is archived when the coach starts a new term (different start date).
+ * so coach and client can see how long / how much the client has subscribed.
+ * B3.8: only a RENEWAL archives (`archivedBy: 'renew'`), with the term's real end;
+ * entries without it were archived by the pre-B3.8 "Set term" and are kept as they are.
  */
 export interface SubscriptionPeriod {
   startAt: number;
@@ -540,8 +553,47 @@ export interface SubscriptionPeriod {
   months?: number;
   price?: number;
   currency?: string;
-  status: SubscriptionStatus; // terminal state when archived (typically 'ended')
-  endedAt: number; // when this period was closed/archived
+  status: SubscriptionStatus; // 'expired' = it had run out; 'ended' = renewed (or replaced) while running
+  endedAt: number; // when this period was archived
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
+  planName?: string;
+  archivedBy?: 'renew';
+}
+
+/** B3.8 — how the coach says a client paid them (manual record; Forma verifies nothing). */
+export type PaymentMethod = 'cash' | 'mobile_wallet' | 'instapay';
+
+/**
+ * B3.8 (owner decision 1) — a payment a coach RECORDED (or the reversal of one). Amounts are whole
+ * piastres (EGP minor units). Never edited or deleted: a mistake is reversed (`reversedById`), a
+ * correction is a reversal plus a new payment (`correctsId`). Coach-only; clients never read these.
+ */
+export interface ClientPayment {
+  id: string;
+  kind: 'payment' | 'reversal';
+  coachId: string;
+  clientId: string;
+  relationshipId: string;
+  termId: string | null;
+  amountMinor: number;
+  currency: 'EGP';
+  method: PaymentMethod;
+  paidAt: number;
+  reference?: string;
+  note?: string;
+  reversesId?: string;
+  reversedById?: string;
+  reversedAt?: number;
+  reason?: string;
+  correctsId?: string;
+  requestId: string;
+  createdBy: string;
+  createdByRole: 'coach' | 'admin';
+  createdAt: number;
 }
 
 /**
@@ -1149,7 +1201,8 @@ export interface MealPlan {
 export interface SubstitutionPolicy {
   allowClientSubstitutions: boolean;
   allowCustomFoods: boolean;
-  requireCoachApproval: boolean;
+  /** Legacy (B3.9, owner D6): no longer offered or read — kept so stored plans round-trip unchanged. */
+  requireCoachApproval?: boolean;
 }
 
 /** The three plan kinds that can be versioned. */

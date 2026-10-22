@@ -51,7 +51,7 @@ export function MetricCard({
         </span>
         {delta ? (
           <span
-            className={`inline-flex items-center gap-1 font-mono text-[11px] ${deltaColor}`}
+            className={`inline-flex items-center gap-1 font-mono text-[12px] ${deltaColor}`}
           >
             {delta.dir !== "flat" ? (
               <Icon
@@ -67,7 +67,7 @@ export function MetricCard({
       <div className="font-mono text-[30px] font-medium leading-[0.95] tracking-[-0.03em] text-earth">
         {value}
       </div>
-      <div className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.06em] text-earth-muted">
+      <div className="mt-1.5 font-mono text-[12px] uppercase tracking-[0.06em] text-earth-muted">
         {label}
       </div>
       {hint ? (

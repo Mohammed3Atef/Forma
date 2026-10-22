@@ -15,6 +15,7 @@ import { showToast } from '@/stores/toastStore';
 
 import type { FeatureFlag, FeatureFlagScope, Role } from '@/types';
 import { formatDate } from '@/lib/format';
+import { errorMessage } from '@/lib/errorMessage';
 
 // Client-first column order, matching the design's role×capability matrix exactly.
 const ROLES: Role[] = ['client', 'coach', 'admin', 'super_admin'];
@@ -48,7 +49,7 @@ export function GovernanceSections() {
       void qc.invalidateQueries({ queryKey: ['featureFlags'] });
       showToast({ title: t(flag.enabled ? 'admin.flagDisabled' : 'admin.flagEnabled', { id: flag.id }), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('admin.featureFlags'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('admin.featureFlags'), message: errorMessage(e, t) }),
   });
   const doToggle = async (f: FeatureFlag) => {
     const ok = await confirmDialog({
@@ -94,7 +95,7 @@ export function GovernanceSections() {
                 type="button"
                 disabled={!canFlags || toggle.isPending}
                 onClick={() => void doToggle(f)}
-                className={`chip ${f.enabled ? 'chip-on' : ''} disabled:opacity-40`}
+                aria-pressed={f.enabled} className={`chip ${f.enabled ? 'chip-on' : ''} disabled:opacity-40`}
               >
                 {t(f.enabled ? 'admin.on' : 'admin.off')}
               </button>
@@ -182,7 +183,7 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         updatedAt: Date.now(),
       }),
     onSuccess: () => { showToast({ title: t('common.saved'), variant: 'success' }); onDone(); },
-    onError: (e) => void alertDialog({ title: t('admin.addFlag'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('admin.addFlag'), message: errorMessage(e, t) }),
   });
   const scopes: FeatureFlagScope[] = ['global', 'coach', 'client'];
   return (
@@ -198,7 +199,7 @@ function FlagForm({ onDone }: { onDone: () => void }) {
         <div className="label mb-2">{t('admin.scope')}</div>
         <div className="flex gap-2">
           {scopes.map((s) => (
-            <button key={s} type="button" onClick={() => setForm({ ...form, scope: s })} className={`chip ${form.scope === s ? 'chip-on' : ''}`}>
+            <button key={s} type="button" onClick={() => setForm({ ...form, scope: s })} aria-pressed={form.scope === s} className={`chip ${form.scope === s ? 'chip-on' : ''}`}>
               {t(`platform.scopes.${s}`)}
             </button>
           ))}

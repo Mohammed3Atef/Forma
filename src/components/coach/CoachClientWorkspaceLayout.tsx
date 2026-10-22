@@ -19,8 +19,9 @@ import { showToast } from '@/stores/toastStore';
 import { clientStateOf } from '@/lib/coachDirectory';
 import { semanticParent } from '@/lib/navContract';
 import { samePlaceFor, sectionOf, sectionPath, WORKSPACE_SECTIONS, type WorkspaceSection } from '@/lib/coachWorkspace';
-import { STATE_TONE, toneText } from '@/pages/coach/clients/parts';
+import { CLIENT_STATE_TONE as STATE_TONE } from '@/lib/statusTone';
 import type { ThreadNavState } from '@/pages/coach/messages/CoachThreadPane';
+import { errorMessage } from '@/lib/errorMessage';
 
 /**
  * How a section opens (B3.4): the four sections REPLACE the history entry, so Back always returns
@@ -66,7 +67,7 @@ export function CoachClientWorkspaceLayout() {
   const release = useMutation({
     mutationFn: () => releaseClient(coachId, clientId, coachId),
     onSuccess: () => {
-      for (const key of ['myClients', 'coachRelationships', 'coachDashboardSummaries', 'coachCheckInSummaries', 'coachDashboard', 'coachFreezeRequests']) {
+      for (const key of ['myClients', 'coachRelationships', 'coachDashboardSummaries', 'coachCheckInSummaries', 'coachBusiness', 'coachPlan', 'coachFreezeRequests']) {
         void qc.invalidateQueries({ queryKey: [key, coachId] });
       }
       void qc.invalidateQueries({ queryKey: ['relationship', coachId, clientId] });
@@ -74,7 +75,7 @@ export function CoachClientWorkspaceLayout() {
       // The workspace is gone for this coach: replace it, so Back never lands on a dead page (NAV-K09).
       navigate('/coach/clients', { replace: true });
     },
-    onError: (e) => void alertDialog({ title: t('workspace.release.failedTitle'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('workspace.release.failedTitle'), message: errorMessage(e, t) }),
   });
   // NAV-K07: Message from a workspace the thread opened returns to that thread (history pops) instead of
   // pushing thread → client → thread → … ; otherwise the thread is a task opened from here (push).
@@ -135,7 +136,7 @@ export function CoachClientWorkspaceLayout() {
               </span>
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {state ? (
-                  <Pill tone={STATE_TONE[state.state]} className={toneText(STATE_TONE[state.state])} testId="workspace-package">
+                  <Pill tone={STATE_TONE[state.state]} testId="workspace-package">
                     {state.state === 'expiring' && state.daysLeft != null ? t('coachClients.endsIn', { count: state.daysLeft }) : t(`coachClients.state.${state.state}`)}
                   </Pill>
                 ) : null}

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { IconButton } from '@/components/ui/Button';
 import { BannerRegion } from '@/components/ui/Banner';
-import { SideRail, TabBar, type NavDestination } from '@/components/ui/TabBar';
+import { SideRail, TabBar, type NavDestination, type RailNavGroup } from '@/components/ui/TabBar';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { GlobalSearch } from '@/components/ui/GlobalSearch';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -16,7 +16,9 @@ import { useSession } from '@/services/auth/sessionStore';
 import { useCommandStore } from '@/stores/commandStore';
 import { useLayoutStore } from '@/stores/layoutStore';
 import { confirmLeave, hasNavGuard } from '@/stores/navGuardStore';
-import { COACH_ME, COACH_TABS, coachAreaFor, coachShellShowsBack, coachTabFor, isCoachRoot } from '@/config/coachNav';
+import { COACH_ME, COACH_TABS, coachAreaFor, coachRailGroups, coachShellShowsBack, coachTabFor, isCoachRoot } from '@/config/coachNav';
+import { useAppSurface } from '@/hooks/useAppSurface';
+import { MAIN_ID, SkipLink, useRouteFocus } from '@/components/shell/SkipLink';
 
 /**
  * The coach app shell (B3.1 / blueprint §5.2). One navigation system for every
@@ -39,8 +41,10 @@ import { COACH_ME, COACH_TABS, coachAreaFor, coachShellShowsBack, coachTabFor, i
  * message still pops up wherever the coach is.
  */
 export function CoachShell({ banners, children }: { banners?: ReactNode; children: ReactNode }) {
+  useAppSurface();
+  useRouteFocus();
   const { t } = useTranslation();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const account = useSession((s) => s.account);
   const goBack = useBack();
@@ -51,6 +55,22 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
 
   const tab = coachTabFor(pathname);
   const inMe = coachAreaFor(pathname) === 'me';
+  // B3.8 (owner decision 7): the desktop sidebar names Business, Forma subscription and Account
+  // itself, so its footer "Me" is lit only on the Me hub (phones keep the avatar for the whole area).
+  const onMeHub = pathname.replace(/\/+$/, '') === COACH_ME;
+  const groups: RailNavGroup[] = coachRailGroups(pathname, search).map((g) => ({
+    key: g.key,
+    label: t(g.label),
+    items: g.links.map((l) => ({
+      key: l.key,
+      to: l.to,
+      icon: l.icon,
+      label: t(l.label),
+      active: l.active,
+      badge: l.key === 'messages' ? unread : 0,
+      ...(l.children ? { children: l.children.map((c) => ({ ...c, label: t(c.label) })) } : {}),
+    })),
+  }));
   const items: NavDestination[] = COACH_TABS.map((d) => ({
     key: d.key,
     to: d.to,
@@ -85,12 +105,14 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
   return (
     // `--desktop-topbar-h`: sticky panels (DetailPanel) clear the coach's 56 px header, not the admin's 64 px top bar.
     <div className="min-h-dvh md:ps-[72px] lg:ps-60" data-testid="app-shell" style={{ ['--desktop-topbar-h' as string]: '3.5rem' }}>
+      <SkipLink />
       <SideRail
         className="hidden md:flex"
         testId="coach-rail"
         collapsible
         badgeTone="solid"
         items={items}
+        groups={groups}
         label={t('coachNav.primary')}
         onNavigate={onNavigate}
         header={
@@ -104,10 +126,10 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
             type="button"
             onClick={goMe}
             data-testid="rail-me"
-            aria-current={inMe ? 'page' : undefined}
+            aria-current={onMeHub ? 'page' : undefined}
             aria-label={t('coachNav.me')}
             title={t('coachNav.me')}
-            className={`flex min-h-ui-hit w-full items-center justify-center gap-3 rounded-ui-control px-0 text-start lg:justify-start lg:px-2 ${inMe ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]'}`}
+            className={`flex min-h-ui-hit w-full items-center justify-center gap-3 rounded-ui-control px-0 text-start lg:justify-start lg:px-2 ${onMeHub ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]'}`}
           >
             <Avatar name={name} photoUrl={account?.photoUrl} size="sm" />
             <span className="hidden min-w-0 flex-1 lg:block">
@@ -118,6 +140,8 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
         }
       />
       <AppHeader
+        // B3.8 (owner decision 6): the header's row lines up with the content column below it.
+        innerClassName={fullBleed ? 'md:px-4' : 'md:max-w-screen-2xl md:px-4 lg:px-6'}
         start={
           coachShellShowsBack(pathname) ? (
             <IconButton icon="chevronLeft" label={t('common.back')} onClick={goBack} className="border-transparent" data-testid="shell-back" />
@@ -133,7 +157,7 @@ export function CoachShell({ banners, children }: { banners?: ReactNode; childre
           </>
         }
       />
-      <main className={`mx-auto w-full max-w-md overflow-x-clip px-5 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-1 md:px-6 md:pb-8 md:pt-4 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
+      <main id={MAIN_ID} tabIndex={-1} className={`mx-auto w-full max-w-md overflow-x-clip outline-none px-5 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-1 md:px-6 md:pb-8 md:pt-4 lg:px-8 ${fullBleed ? 'md:max-w-none' : 'md:max-w-screen-2xl'}`}>
         {banners ? <BannerRegion className="mt-2 md:mt-0">{banners}</BannerRegion> : null}
         {/* The shell stays up while a lazy screen loads (CL-06 for the coach). */}
         <Suspense fallback={<LoadingState variant="cards" count={4} />}>{children}</Suspense>

@@ -4,7 +4,6 @@
     "email": "Email",
     "phone": "Phone",
     "price": "Price",
-    "currency": "Currency",
     "months": "Months",
     "notes": "Notes",
     "reason": "Reason",
@@ -220,6 +219,8 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "kg": "kg",
+    "cm": "cm",
+    "km": "km",
     "reps": "reps",
     "min": "min",
     "sets": "sets",
@@ -272,6 +273,8 @@
       "done": "{{ok}} updated"
     },
     "kcal": "kcal",
+    "g": "g",
+    "ml": "ml",
     "secShort": "s",
     "actions": "Actions",
     "yesterday": "Yesterday"
@@ -280,7 +283,8 @@
     "open": "Search",
     "placeholder": "Search…",
     "commands": "Commands",
-    "noResults": "No results"
+    "noResults": "No results",
+    "navigate": "Go to"
   },
   "starter": {
     "load": "Add the starter library",
@@ -318,6 +322,10 @@
     "offline": "You're offline and this hasn't been saved on this device yet. It will load when you're back online.",
     "staleOffline": "Offline — showing what's saved on this device.",
     "staleFailed": "Couldn't refresh — showing the last loaded version.",
+    "partialFailed": "Some of this couldn't load.",
+    "lineFailed": "Couldn't load",
+    "lineOffline": "Offline — not on this device yet",
+    "transfersFailed": "Couldn't load transfer requests.",
     "emptyTitle": "Nothing here yet"
   },
   "coachInfo": {
@@ -426,7 +434,10 @@
     "selectHint": "Choose a conversation from the list to read and reply.",
     "youWroteSr": "You wrote:",
     "senderSr": "{{name}} wrote:",
-    "offlineComposer": "You’re offline — what you send now waits on this device and goes out when you’re back online."
+    "offlineComposer": "You’re offline — what you send now waits on this device and goes out when you’re back online.",
+    "planLapsed": "Not sent: your Forma subscription has ended. Renew it, then retry.",
+    "planSuspended": "Not sent: your Forma subscription is suspended.",
+    "planMissing": "Not sent: you don't have a Forma plan yet."
   },
   "home": {
     "steps": "Steps",
@@ -644,8 +655,6 @@
     "email": "Email",
     "password": "Password",
     "phone": "Phone number",
-    "timezone": "Timezone",
-    "currency": "Default currency",
     "preferences": "Preferences",
     "tools": "Tools",
     "tabs": {
@@ -864,6 +873,7 @@
     "resetSent": "Password reset link sent to {{email}}.",
     "changePassword": "Change password",
     "currentPassword": "Current password",
+    "currentPasswordWrong": "Your current password isn't right. Check it and try again.",
     "newPassword": "New password",
     "pwChanged": "Your password has been changed.",
     "mustChangeTitle": "Set your password",
@@ -1173,14 +1183,14 @@
     "noMeta": "No details",
     "noResults": "No exercises match your search",
     "empty": "Create your first exercise",
-    "templatesUpdated": "{{n}} template updated",
-    "templatesUpdated_other": "{{n}} templates updated",
+    "templatesUpdated_one": "{{count}} template updated",
+    "templatesUpdated_other": "{{count}} templates updated",
     "linkedToLibrary": "Linked to library",
     "customOverride": "Custom override — automatic library updates are disabled for this exercise",
+    "customOverrideTitle": "Now a custom version for this client",
     "updateFromLibrary": "Update from library",
     "reconnectToLibrary": "Reconnect to library",
     "sourceMissing": "Source exercise is no longer available in your library",
-    "detachConfirmTitle": "Make this a custom override?",
     "dataAttribution": "Exercise data provided by wger.de (CC BY-SA)"
   },
   "coachFoods": {
@@ -1211,7 +1221,6 @@
     "noGroup": "None",
     "approvedSubstitution": "Approved swap",
     "customSubstitution": "Custom swap",
-    "needsReview": "Needs review",
     "substitutions": "Substitutions"
   },
   "adminMembers": {
@@ -1246,9 +1255,6 @@
   },
   "adminGrowth": {
     "newSignups": "New signups (8 weeks)",
-    "coachMrr": "Coach plans (MRR)",
-    "clientMrr": "Client subscriptions (MRR)",
-    "totalMrr": "Total tracked MRR",
     "coachTrial": "Coach trial",
     "clientSub": "Client subscription"
   },
@@ -1325,11 +1331,14 @@
     "daysLeftLabel": "Days left",
     "renews": "Renews / ends",
     "renew": "Renew +30d",
+    "renewed": "Coach plan renewed for 30 days",
     "requestPending": "Request",
     "accountStatus": "Account",
     "suspend": "Suspend coach",
+    "suspended": "Coach suspended",
     "confirmSuspend": "Suspend this coach? They lose access until reactivated.",
     "reactivate": "Reactivate coach",
+    "reactivated": "Coach reactivated",
     "state": {
       "trial": "Trial",
       "active": "Active",
@@ -1339,58 +1348,19 @@
     }
   },
   "coachDash": {
-    "tabs": {
-      "reports": "Reports"
-    },
-    "thisMonth": "This month",
-    "export": "Export",
-    "exportClients": "Clients CSV",
-    "exportSubscriptions": "Subscriptions CSV",
-    "exportRevenue": "Revenue CSV",
-    "revenue": "Revenue (tracked)",
-    "revenueThisMonth": "Revenue this month",
-    "revenueHint": "Collected + upcoming due (each term counted in its renewal month)",
-    "collectedThisMonth": "Collected this month",
-    "dueThisMonth": "Due (upcoming)",
-    "lapsedThisMonth": "Lost this month",
-    "renewalsTitle": "Renewals this month",
-    "renewalDate": "Renewal date",
-    "renewalAmount": "Amount",
-    "noRenewals": "No upcoming renewals this month",
-    "subscriptions": "Subscriptions",
-    "expiring": "Expiring 7 / 30d",
-    "growth": "Growth & retention",
-    "newClients": "New clients (30d)",
-    "newHint": "{{today}} today · {{week}} this week",
-    "retention": "Retention (30d)",
-    "churn": "Churn (30d)",
-    "templates": "Templates",
-    "pendingAssessments": "Pending assessments",
-    "adherence": "Avg adherence",
-    "avgWorkoutsLabel": "Avg workouts / wk",
-    "recentActivity": "Recent activity",
     "addClient": "Add client",
     "createTemplate": "Create template",
     "openLibrary": "Open library",
     "reviewAssessments": "Review assessments",
     "workoutsThisWeek": "{{n}} this week",
-    "noClients": "No clients yet.",
-    "reportsTitle": "Reports",
-    "missedCheckins": "Pending check-ins",
-    "ranking": "Adherence ranking",
     "selectClient": "Select a client",
     "selectConversation": "Select a conversation",
-    "message": "Message",
-    "openWorkspace": "Open workspace",
-    "planCapacity": "{{used}} of {{cap}} clients",
-    "atCapacity": "At client capacity — add client capacity to take on more clients.",
-    "upgradePlan": "Add client capacity"
+    "message": "Message"
   },
   "coachSettings": {
     "substitutions": "Substitutions",
     "allowClientSubstitutions": "Allow client substitutions",
-    "allowCustomFoods": "Allow custom foods",
-    "requireCoachApproval": "Flag custom swaps for review"
+    "allowCustomFoods": "Allow custom foods"
   },
   "workoutTemplate": {
     "untitled": "Untitled template",
@@ -1495,18 +1465,14 @@
     "noneTitle": "No subscription yet",
     "noneBodyHasCoach": "Your coach hasn't set up your subscription yet. Check back soon.",
     "noneBodyNoCoach": "You don't have a coach yet — your subscription will be set up once you're matched with one.",
-    "confirmExtend": "Extend by {{n}} days? New end date: {{date}}.",
     "daysLeft": "{{n}} days left",
     "frozenUntil": "frozen until {{date}}",
-    "setTerm": "Set term",
     "freeze": "Freeze",
     "unfreeze": "Unfreeze",
     "end": "End subscription",
     "confirmEnd": "End this client's subscription now?",
     "confirmUnfreeze": "Resume this client's subscription now?",
     "startDate": "Start date",
-    "renews": "Renews",
-    "months": "Months",
     "from": "From",
     "until": "Until",
     "notePlaceholder": "Note (optional)…",
@@ -1549,16 +1515,11 @@
     "pendingBody": "Your coach is setting up your subscription. You'll get full access as soon as it's active. In the meantime you can message your coach.",
     "contactCoach": "Message your coach",
     "price": "Price",
-    "setPrice": "Set price",
-    "currency": "Currency",
     "noPrice": "No price set",
     "viewHistory": "View history ({{n}})",
     "hideHistory": "Hide history",
-    "renewedMonths": "Renewed · {{n}} months",
     "term": "Term",
     "current": "Current",
-    "totalMonths": "{{n}} months total",
-    "totalPaid": "{{amount}} paid",
     "requestDatesHint": "Choose the dates you'd like to pause your subscription.",
     "editDatesHint": "Adjust the freeze dates before accepting.",
     "setByCoach": "Set by your coach — message them for term or price changes.",
@@ -1570,11 +1531,61 @@
     "confirmBackdated": "This term starts on {{date}}, before today. Workouts, meals and cardio your client logged from {{date}} until now — including entries that were blocked because the subscription had ended — will sync to their record. Continue?",
     "moreActions": "More package actions",
     "endPackage": "End package now",
-    "cancelPackage": "Cancel package"
+    "cancelPackage": "Cancel package",
+    "firstTermTitle": "Set the first package",
+    "setFirstTerm": "Set package",
+    "renewTitle": "Renew package",
+    "correctTitle": "Edit current package",
+    "editTerm": "Edit current package",
+    "firstTermDone": "Package set",
+    "renewDone": "Package renewed",
+    "correctDone": "Package updated",
+    "renewFromEnd": "Starts {{date}}, the day after the current package ends.",
+    "monthIs30": "1 month = 30 days",
+    "priceEgp": "Price (EGP)",
+    "priceInvalid": "Enter an amount in pounds, with at most 2 decimals.",
+    "correctWhat": "What's changing?",
+    "correctMistake": "Fix a mistake in this package",
+    "changePackage": "The client is switching package",
+    "correctHint": "It stays the same package: it is never counted twice, and the payments recorded for it stay with it.",
+    "noChanges": "Change something to save.",
+    "lastDay": "Last day",
+    "length": "Length",
+    "package": "Package",
+    "confirmExtendDay": "Extend by {{n}} days? The new last day: {{date}}.",
+    "renewedPill": "Renewed",
+    "packagesTotal": "Packages: {{amount}}",
+    "covers_one": "Covers {{from}} – {{to}} · {{count}} day",
+    "covers_other": "Covers {{from}} – {{to}} · {{count}} days",
+    "lengthMonths_one": "{{count}} month ({{days}} days)",
+    "lengthMonths_other": "{{count}} months ({{days}} days)",
+    "lengthDays_one": "{{count}} day",
+    "lengthDays_other": "{{count}} days",
+    "totalDays_one": "{{count}} day in total",
+    "totalDays_other": "{{count}} days in total",
+    "done": {
+      "frozen": "Subscription frozen until {{date}}",
+      "unfrozen": "Subscription unfrozen",
+      "ended": "Subscription ended",
+      "cancelled": "Subscription cancelled",
+      "extended_one": "Subscription extended by {{count}} day",
+      "extended_other": "Subscription extended by {{count}} days",
+      "pauseAccepted": "Pause accepted — subscription frozen",
+      "pauseDeclined": "Pause request declined"
+    }
   },
   "coachView": {
     "photoNotUploaded": "Not uploaded",
-    "noProgress": "No progress data yet."
+    "noProgress": "No progress data yet.",
+    "weightChange": "Change",
+    "sinceDate": "Since {{date}}",
+    "bodyFailed": "Couldn't load the client's weigh-ins and measurements.",
+    "cardioPlan": "Cardio plan",
+    "cardioLogged": "Logged that day",
+    "notLogged": "Not logged",
+    "photoAlt": "{{pose}} photo · {{date}}",
+    "noPhotos": "No progress photos yet.",
+    "openPhoto": "Open {{pose}} photo · {{date}}"
   },
   "notes": {
     "addNote": "Add note",
@@ -1701,6 +1712,7 @@
     "editAssessment": "Edit assessment",
     "viewAssessment": "View assessment",
     "markReviewed": "Mark reviewed",
+    "notSubmittedYet": "The client hasn't submitted the assessment yet — you can review it once they do.",
     "reviewed": "Reviewed",
     "reset": "Reset assessment",
     "confirmReset": "Re-open this assessment for the client to edit and resubmit?",
@@ -1768,6 +1780,7 @@
     "activities": {
       "sedentary": "Sedentary",
       "light": "Lightly active",
+      "moderate": "Moderately active",
       "active": "Active",
       "very_active": "Very active"
     },
@@ -1820,20 +1833,23 @@
     },
     "commitmentQ": "How committed are you to reaching your goal?",
     "photosHint": "Optional — add progress photos so your coach can track changes.",
-    "photosSoon": "Upload coming soon",
     "welcome": "Welcome, {{name}}. Your coach builds your plan from these answers — about 5 minutes. Your answers are kept on this device as you go, and “Save progress” stores them on your account.",
     "welcomeNoName": "Welcome. Your coach builds your plan from these answers — about 5 minutes. Your answers are kept on this device as you go, and “Save progress” stores them on your account.",
     "saveProgressFailed": "Couldn’t save to your account just now. Your answers are still on this device — try again in a moment."
   },
   "admin": {
     "controlCenter": "Control center",
-    "trackedRevenue": "Tracked revenue",
+    "formaRecurringRevenue": "Forma recurring revenue",
     "perMonth": "/mo",
     "recentCoaches": "Recently registered",
     "planUsage": "Plan & client usage",
     "revenueByCoach": "Top coaches by clients",
     "noRevenueByCoach": "No coaches with clients yet",
     "pricingNote": "Confirmed payments only — subscriptions and add-ons are confirmed manually by a Super Admin.",
+    "revenueUnconfirmed_one": "{{count}} active paid plan has no confirmed payment and is not counted.",
+    "revenueUnconfirmed_other": "{{count}} active paid plans have no confirmed payment and are not counted.",
+    "revenueGranted_one": "{{count}} add-on granted without a payment is not revenue.",
+    "revenueGranted_other": "{{count}} add-ons granted without a payment are not revenue.",
     "noRequests": "No pending plan requests.",
     "needsAction": "Needs action · {{n}}",
     "review": "Review",
@@ -1869,6 +1885,7 @@
     "noAccounts": "No accounts found",
     "noAccountsMessage": "Try a different search term, or clear the role/status filters.",
     "createAccount": "Create account",
+    "accountCreated": "Account created",
     "newAccount": "New account",
     "tempPassword": "Temporary password",
     "changeRole": "Change role",
@@ -1993,19 +2010,26 @@
     "limitReached": "Client limit reached"
   },
   "coachPlan": {
-    "viewPlan": "View plan",
+    "viewPlan": "View Forma subscription",
     "lockedTitle": "Your Forma subscription has ended",
-    "lockedSuspendedTitle": "Your plan is suspended",
-    "lockedBody": "Renew Forma to keep creating and editing. Your clients are unaffected."
+    "lockedSuspendedTitle": "Your Forma subscription is suspended",
+    "lockedNoPlanTitle": "You don't have a Forma plan yet",
+    "lockedBody": "Renew Forma to keep coaching: until then, messages, plans, the library, packages and payments are read-only. Your clients keep their app and can still message you.",
+    "lockedNoPlanBody": "Start your Forma trial or subscribe to start coaching: until then, messages, plans, the library, packages and payments are read-only.",
+    "readOnly": "Your Forma subscription has ended, so you're in read-only mode: you can read everything, but messages, plans, the library, packages and payments can't be changed until you renew.",
+    "readOnlySuspended": "Your Forma subscription is suspended, so you're in read-only mode: you can read everything, but nothing can be changed. Contact the Forma team.",
+    "readOnlyNoPlan": "You don't have a Forma plan yet, so you're in read-only mode: you can read everything, but messages, plans, the library, packages and payments can't be changed until you start your trial or subscribe.",
+    "lapsedToast": "Your Forma subscription has ended. You're in read-only mode.",
+    "lapsedToastSuspended": "Your Forma subscription is suspended. You're in read-only mode.",
+    "lapsedToastNoPlan": "You don't have a Forma plan yet. You're in read-only mode."
   },
   "coachPlans": {
-    "title": "Client Plans",
-    "hint": "Create reusable subscription plans (duration + price). Pick one when assigning a client — or customise the term per client.",
-    "add": "Add plan",
-    "edit": "Edit plan",
-    "delete": "Delete",
-    "confirmDelete": "Delete the \"{{name}}\" plan? Clients already on it keep their subscription.",
-    "name": "Plan name",
+    "hint": "The packages you offer — length and price. Pick one when inviting or adding a client, or when setting a term; you can still adjust a term per client.",
+    "add": "New package",
+    "edit": "Edit package",
+    "delete": "Delete package",
+    "confirmDelete": "Delete the “{{name}}” package? Clients already on it keep their term and its history.",
+    "name": "Package name",
     "namePlaceholder": "e.g. 3 Months, Premium",
     "duration": "Duration",
     "unitLabel": "Unit",
@@ -2016,12 +2040,16 @@
     "price": "Price",
     "isTrial": "Free trial",
     "trial": "Trial",
-    "order": "Order",
-    "none": "No plans yet — create your first.",
+    "none": "No packages yet — create your first.",
     "free": "Free",
     "custom": "Custom…",
-    "untitled": "Untitled",
-    "usePlan": "Use a plan"
+    "usePlan": "Use a package",
+    "length": {
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    }
   },
   "existing": {
     "title": "Add Existing Client",
@@ -2039,7 +2067,8 @@
     "subscription": "Subscription",
     "alreadyYours": "This client is already yours.",
     "assignToMe": "Assign to me",
-    "waitUntilReleased": "If the current coach releases them, you can add them straight away."
+    "waitUntilReleased": "If the current coach releases them, you can add them straight away.",
+    "added": "{{name}} added to your clients"
   },
   "release": {
     "action": "Release client",
@@ -2097,6 +2126,7 @@
     "confirmFreshStart": "Start fresh for {{name}} under {{coach}}? Their current workout, nutrition, and cardio plans, targets, and coach notes will be archived and hidden from the new coach — this can't be undone from here.",
     "freshStartLocked": "Fresh-start clearing is available to super-admins only.",
     "confirm": "Transfer client",
+    "done": "Client transferred",
     "next": "Next",
     "back": "Back"
   },
@@ -2161,6 +2191,8 @@
       "seeProgress": "Progress",
       "thisWeek": "This week",
       "ofPlanned": "{{done}} of {{planned}}",
+      "sessionsThisWeek_one": "{{count}} workout this week",
+      "sessionsThisWeek_other": "{{count}} workouts this week",
       "last7": "Last 7 days",
       "last28": "Last 28 days",
       "lastWorkout": "Last workout {{date}}",
@@ -2218,7 +2250,7 @@
       "thisWeek": "This week",
       "weekOf": "Week of {{date}}",
       "loadFailed": "Couldn't load this week.",
-      "weekWorkoutsOfPlan": "{{done}} of {{planned}} planned workouts",
+      "weekPlanDays": "{{done}} of {{planned}} plan days done",
       "workoutDone": "Workout done",
       "noWorkout": "No workout",
       "mealsShort": "Meals {{eaten}}/{{planned}}",
@@ -2244,7 +2276,7 @@
     "inviteUnavailable": "This coach can't take on new clients right now. Please contact your coach — your invite stays valid.",
     "renewalBody": "Request a renewal at {{price}} {{currency}} / month (up to {{n}} clients). Your current subscription ends {{ends}}; once payment is confirmed it is extended through {{through}} — you keep every remaining day.",
     "renewalPreview": "Current subscription ends {{ends}} · renewal will extend through {{through}}",
-    "myPlan": "My Plan",
+    "myPlan": "Forma subscription",
     "product": "Forma",
     "status": "Status",
     "phase": {
@@ -2267,7 +2299,7 @@
     "yourPrice": "Your price",
     "priceAfterTrial": "Price after the Trial",
     "renew": "Renew Forma",
-    "viewPlan": "View My Plan",
+    "viewPlan": "View Forma subscription",
     "addCapacity": "Add client capacity",
     "requestSubscription": "Subscribe to Forma",
     "requestRenewal": "Renew subscription",
@@ -2289,7 +2321,8 @@
       "active": "Your Forma subscription is active — every feature included. Renewing early never costs you days: the new month is added after your current end date.",
       "trialEnded": "Your Free Trial has ended. Your account and clients are safe — subscribe to keep adding clients and editing plans.",
       "expired": "Your Forma subscription has ended. Your account and clients are safe — renew to keep adding clients and editing plans.",
-      "suspended": "Your account is suspended. Contact the Forma team."
+      "suspended": "Your account is suspended. Contact the Forma team.",
+      "none": "You don't have a Forma subscription yet. Forma is {{price}} {{currency}} / month with every feature included."
     },
     "capacity": {
       "clients": "clients",
@@ -2312,12 +2345,14 @@
       "requestBody": "Request {{name}} (+{{n}} clients) for {{price}}? Your capacity increases once the Forma team confirms payment.",
       "requestRenewBody": "Renew {{name}} (+{{n}} clients) for {{price}}? The new period is added once payment is confirmed.",
       "limitBody": "You've reached your client capacity of {{max}}. Add client capacity to take on more clients.",
-      "limitOver": "You're over your client capacity ({{max}}) by {{over}}. Existing clients stay — add capacity to take on more."
+      "limitOver": "You're over your client capacity ({{max}}) by {{over}}. Existing clients stay — add capacity to take on more.",
+      "usageLabel": "Clients used of your capacity",
+      "usageValue": "{{used}} of {{limit}} clients"
     },
     "banner": {
-      "trialEnded": "Your Free Trial has ended — subscribe to keep adding clients.",
-      "expired": "Your Forma subscription has ended — renew to keep adding clients.",
-      "suspended": "Your account is suspended — contact the Forma team.",
+      "trialEnded": "Your Free Trial has ended. You're in read-only mode; subscribe to keep coaching.",
+      "expired": "Your Forma subscription has ended. You're in read-only mode; renew to keep coaching.",
+      "suspended": "Your Forma subscription is suspended. You're in read-only mode; contact the Forma team.",
       "endingSoon": "Your Forma term ends in {{n}} day(s) — request a renewal to avoid interruption.",
       "overCapacity": "{{used}} / {{limit}} clients — over capacity by {{over}}. Existing clients stay; add capacity to take on more.",
       "requestAwaiting": "{{count}} request(s) awaiting payment confirmation."
@@ -2341,8 +2376,8 @@
     },
     "reason": {
       "NO_SUBSCRIPTION": "This coach has no Forma subscription yet.",
-      "SUBSCRIPTION_EXPIRED": "Your Forma subscription has ended — renew it to add clients. Existing clients are not affected.",
-      "SUBSCRIPTION_SUSPENDED": "This account is suspended — contact the Forma team.",
+      "SUBSCRIPTION_EXPIRED": "Your Forma subscription has ended. Renew it to keep coaching; you can still read everything.",
+      "SUBSCRIPTION_SUSPENDED": "Your Forma subscription is suspended. Contact the Forma team; you can still read everything.",
       "CLIENT_CAPACITY_REACHED": "Client capacity reached — add client capacity to take on more clients.",
       "CAPACITY_REQUEST_PENDING": "A request for this add-on is already awaiting payment confirmation.",
       "SUBSCRIPTION_REQUEST_PENDING": "A subscription request is already awaiting payment confirmation.",
@@ -2357,7 +2392,22 @@
       "SUBSCRIPTION_CHANGED": "The subscription changed meanwhile — reload and try again.",
       "ACCOUNT_NOT_ACTIVE": "Your account isn't active.",
       "CONVERSATION_CLOSED": "This conversation has ended.",
-      "NO_ACTIVE_COACH": "You don't have a coach right now."
+      "NO_ACTIVE_COACH": "You don't have a coach right now.",
+      "UNSUPPORTED_CURRENCY": "Forma works in Egyptian pounds (EGP) only.",
+      "APP_UPDATE_REQUIRED": "Update Forma to change packages: reload the app.",
+      "TERM_EXISTS": "This client already has a package. Renew or edit it instead.",
+      "NO_TERM": "This client has no package yet. Set the first one.",
+      "RENEWAL_STARTS_AFTER_TERM": "A running package is renewed from the day after it ends.",
+      "RENEWAL_DURING_FREEZE": "This package has a pause that hasn't finished. Renew once the pause is over, or end the pause first.",
+      "PAYMENT_EXCEEDS_BALANCE": "This is more than what is left to pay on this package.",
+      "PAYMENT_ALREADY_REVERSED": "This payment was already reversed.",
+      "PAYMENT_NOT_FOUND": "This payment no longer exists. Reload and try again.",
+      "TERM_NOT_FOUND": "That package is not one of this client's packages.",
+      "CHECKIN_NOT_SUBMITTED": "The client hasn't sent this check-in yet.",
+      "CHECKIN_ANSWERED": "The client already answered this check-in, so it can't be withdrawn.",
+      "ASSESSMENT_NOT_SUBMITTED": "The client hasn't sent this assessment yet.",
+      "DESTINATION_CAPACITY_REACHED": "The receiving coach has no free client places, so the transfer can't complete. Nothing changed.",
+      "DESTINATION_NOT_ACCEPTING": "The receiving coach can't take on clients right now (their Forma plan isn't active). Nothing changed."
     },
     "hist": {
       "subscription_confirmed": "Subscription confirmed",
@@ -2522,7 +2572,9 @@
       "revenueSubscription": "Forma subscriptions",
       "revenueCapacity": "Capacity add-ons",
       "noRevenue": "No confirmed revenue yet."
-    }
+    },
+    "olderRequests_one": "{{count}} older request",
+    "olderRequests_other": "{{count}} older requests"
   },
   "trust": {
     "planEditor": {
@@ -2660,7 +2712,6 @@
     },
     "subscription": {
       "loadFailed": "Couldn't load this client's subscription.",
-      "endsOn": "Ends {{date}}",
       "priceKept": "Prefilled from the current term — change it if the price changed."
     },
     "numbers": {
@@ -2871,16 +2922,18 @@
     "library": "Library",
     "me": "Me",
     "primary": "Coach navigation",
-    "openMessages": "Open messages"
+    "openMessages": "Open messages",
+    "groups": {
+      "workspace": "Workspace",
+      "content": "Planning & content",
+      "business": "Business",
+      "account": "Account"
+    }
   },
   "coachMe": {
     "business": "Business",
-    "revenue": "Revenue & renewals",
-    "revenueMeta": "Collected, due and lapsed this month",
-    "packages": "Client packages",
+    "packages": "Packages",
     "packagesMeta": "The terms and prices you offer",
-    "reports": "Reports & exports",
-    "reportsMeta": "Client, subscription and revenue CSVs",
     "forma": "Forma",
     "formaSubscription": "Forma subscription",
     "planState": {
@@ -2896,7 +2949,9 @@
     "accountRow": "Account & preferences",
     "accountMeta": "Profile, language, password",
     "help": "Help & support",
-    "helpMeta": "Chat with the Forma team on WhatsApp"
+    "helpMeta": "Chat with the Forma team on WhatsApp",
+    "businessRow": "Figures & renewals",
+    "businessMeta": "Booked, due and lost this month · exports"
   },
   "coachToday": {
     "summary_one": "{{count}} thing needs you",
@@ -3015,7 +3070,8 @@
       "lapsed_other": "Package ended {{count}} days ago — not renewed",
       "inactive_one": "No workout in {{count}} day · last on {{date}}",
       "inactive_other": "No workout in {{count}} days · last on {{date}}"
-    }
+    },
+    "comingUpAll": "All renewals"
   },
   "coachClients": {
     "title": "Clients",
@@ -3196,7 +3252,7 @@
     "loadFailed": "This part of your library couldn't be loaded.",
     "noMatch": "Nothing matches",
     "noMatchHint": "Try another word or clear the filters.",
-    "planLapsed": "Renew your Forma plan to make changes.",
+    "planLapsed": "Your Forma subscription has ended. Renew it to make changes.",
     "defaults": "Defaults when added to a plan",
     "source": "Source:",
     "bulkPartial": "{{ok}} deleted; {{failed}} couldn't be deleted. Try those again.",
@@ -3313,5 +3369,331 @@
       "defaultsHint": "Where a plan starts when you add this exercise. Each plan can change them."
     },
     "filters": "Filter & sort"
+  },
+  "business": {
+    "title": "Business",
+    "subtitle": "What clients booked and paid, who to renew, your packages and exports.",
+    "sections": "Business sections",
+    "tabs": {
+      "overview": "Overview",
+      "renewals": "Renewals",
+      "packages": "Packages",
+      "exports": "Exports"
+    },
+    "loadFailed": "Couldn't load your business figures.",
+    "formerClient": "Former client",
+    "commandKeywords": "revenue renewals reports exports packages money booked collected payments outstanding due lost",
+    "commandRenewals": "Renewals to act on",
+    "commandPackages": "Packages",
+    "month": {
+      "title": "This month",
+      "range": "{{from}} – {{to}}",
+      "terms_one": "{{count}} term",
+      "terms_other": "{{count}} terms"
+    },
+    "counts": {
+      "title": "Current clients by package",
+      "hint": "Opens Clients filtered",
+      "empty": "No current clients yet."
+    },
+    "renewals": {
+      "upcoming": "Ending in the next 30 days",
+      "upcomingHint": "Current clients, soonest first",
+      "lapsed": "Ran out in the last 30 days",
+      "lapsedHint": "Not renewed (cancelled ones are not listed)",
+      "noUpcoming": "No package ends in the next 30 days.",
+      "noLapsed": "No package ran out in the last 30 days.",
+      "endedToday": "Ran out today",
+      "renew": "Renew",
+      "renewFor": "Renew {{name}}'s package",
+      "free": "Free",
+      "caption": "Packages to renew",
+      "col": {
+        "client": "Client",
+        "ends": "Ends",
+        "ended": "Ran out",
+        "package": "Package",
+        "price": "Price",
+        "action": "Action"
+      },
+      "endsIn_one": "Ends in {{count}} day",
+      "endsIn_other": "Ends in {{count}} days",
+      "endedAgo_one": "Ran out {{count}} day ago",
+      "endedAgo_other": "Ran out {{count}} days ago"
+    },
+    "packages": {
+      "archived": "Archived",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "reorder": "Reorder packages",
+      "reorderFailed": "The new order couldn't be saved. The list shows what is saved — try again.",
+      "caption": "Your packages",
+      "col": {
+        "name": "Package",
+        "length": "Length",
+        "price": "Price",
+        "type": "Type",
+        "order": "Order"
+      },
+      "title": "Packages of current clients",
+      "other": "Other packages",
+      "custom": "Custom term",
+      "value": "{{amount}} booked",
+      "empty": "No current client has a running package.",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients"
+    },
+    "exports": {
+      "title": "Exports",
+      "failed": "The file couldn't be made. Try again.",
+      "phoneHint": "Exports are made for a computer. On this phone the file opens your share sheet — save it to Files or send it.",
+      "range": "Dates",
+      "from": "From",
+      "to": "To",
+      "clearRange": "Clear dates",
+      "rangeHint": "Leave both empty for every date. Clients are filtered by the date they joined you; package terms by the date they started.",
+      "rangeBad": "“From” is after “To”.",
+      "clientsTitle": "Clients",
+      "clientsBody": "One row per current client: contact, package with its dates and price, the date they joined you, their last workout and assessment.",
+      "clientsNone": "No clients in these dates",
+      "termsTitle": "Package terms",
+      "termsBody": "One row per package term — current and past terms, current and former clients — with its dates, status, package and price.",
+      "termsNone": "No terms in these dates",
+      "done": {
+        "clients_one": "{{count}} client exported",
+        "clients_other": "{{count}} clients exported",
+        "terms_one": "{{count}} term exported",
+        "terms_other": "{{count}} terms exported",
+        "payments_one": "{{count}} payment record exported",
+        "payments_other": "{{count}} payment records exported"
+      },
+      "currentClient": "Current client",
+      "formerClient": "Former client — left {{date}}",
+      "currentTerm": "Current term",
+      "pastTerm": "Past term",
+      "col": {
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "state": "Package status",
+        "package": "Package",
+        "start": "First day",
+        "end": "Last day",
+        "price": "Price",
+        "currency": "Currency",
+        "since": "Client since",
+        "lastWorkout": "Last workout",
+        "workouts7d": "Workouts (last 7 days)",
+        "assessment": "Assessment",
+        "client": "Client",
+        "clientId": "Client ID",
+        "clientStatus": "Client status",
+        "term": "Term",
+        "status": "Status",
+        "days": "Days",
+        "termId": "Package ID"
+      },
+      "clientsCta_one": "Export {{count}} client",
+      "clientsCta_other": "Export {{count}} clients",
+      "termsCta_one": "Export {{count}} term",
+      "termsCta_other": "Export {{count}} terms",
+      "paymentsTitle": "Payments",
+      "paymentsBody": "Every payment you recorded and every reversal inside the range: date, client, method, amount in EGP, package and reference.",
+      "paymentsNone": "No payments in this range",
+      "payment": {
+        "recorded": "Recorded",
+        "reversal": "Reversal",
+        "col": {
+          "date": "Date",
+          "client": "Client",
+          "clientId": "Client ID",
+          "status": "Status",
+          "method": "Method",
+          "amount": "Amount",
+          "currency": "Currency",
+          "package": "Package (first day)",
+          "termId": "Package ID",
+          "reference": "Reference",
+          "note": "Note / reason",
+          "paymentId": "Record ID",
+          "relatedId": "Reverses / corrects",
+          "recordedOn": "Recorded on"
+        }
+      },
+      "paymentsCta_one": "Export {{count}} payment record",
+      "paymentsCta_other": "Export {{count}} payment records"
+    },
+    "paymentsFailed": "Couldn't load your recorded payments, so collected and outstanding amounts aren't shown.",
+    "figure": {
+      "booked": "Booked",
+      "collected": "Collected",
+      "bookedMonth": "Booked",
+      "collectedMonth": "Collected",
+      "due": "Due by month end",
+      "lost": "Lost",
+      "notLoaded": "Not loaded",
+      "outstanding": "Outstanding",
+      "overdue": "{{amount}} overdue",
+      "notYetDue": "{{amount}} not due yet",
+      "credit": "{{amount}} paid beyond the price (credit)",
+      "bookedAll": "Total booked revenue · all time",
+      "collectedAll": "Total recorded collections · all time",
+      "activePaying": "Active paying clients",
+      "activePayingSub": "A running, priced package (not a trial)",
+      "collectedNotLoaded": "Collected amounts are hidden until your payments load.",
+      "payments_one": "{{count}} payment",
+      "payments_other": "{{count}} payments",
+      "reversedMonth_one": "{{count}} payment ({{amount}}) was reversed this month and is not counted.",
+      "reversedMonth_other": "{{count}} payments ({{amount}}) were reversed this month and are not counted."
+    },
+    "overall": {
+      "title": "Overall"
+    },
+    "coverage": {
+      "untracked_one": "{{count}} package from before payments could be recorded is not part of Outstanding.",
+      "untracked_other": "{{count}} packages from before payments could be recorded are not part of Outstanding.",
+      "otherCurrency_one": "{{count}} older package in another currency is not counted (Forma works in EGP).",
+      "otherCurrency_other": "{{count}} older packages in another currency are not counted (Forma works in EGP).",
+      "unlinked_one": "{{count}} payment ({{amount}}) isn't linked to a package: it's in Collected but not taken off Outstanding. Link it with Correct on the client's Payments card.",
+      "unlinked_other": "{{count}} payments ({{amount}}) aren't linked to a package: they're in Collected but not taken off Outstanding. Link them with Correct on each client's Payments card."
+    },
+    "chart": {
+      "title": "Booked vs collected · last 12 months",
+      "legend": "Series",
+      "soFar": "so far",
+      "showTable": "Show as a table",
+      "showChart": "Show as a chart",
+      "caption": "Booked and collected per month, in EGP",
+      "month": "Month",
+      "empty": "Nothing booked or collected in the last 12 months yet."
+    },
+    "methods": {
+      "title": "Collections by method",
+      "scope": "Period",
+      "month": "This month",
+      "all": "All time",
+      "empty": "No payments recorded in this period."
+    },
+    "pipeline": {
+      "title": "Renewal pipeline",
+      "overdue": "Overdue (ran out)",
+      "week": "Ends within 7 days",
+      "twoWeeks": "Ends in 8–14 days",
+      "month": "Ends in 15–30 days",
+      "empty": "No package ends within 30 days or ran out recently.",
+      "count_one": "{{count}} client",
+      "count_other": "{{count}} clients"
+    },
+    "definitions": {
+      "title": "What these figures mean",
+      "booked": {
+        "term": "Booked",
+        "text": "is package prices clients agreed to, in the month each package starts (renewals included, an edited package counted once). It is not money received."
+      },
+      "collected": {
+        "term": "Collected",
+        "text": "is the payments you recorded (cash, mobile wallet, InstaPay) in the month you received them. Forma does not see or verify them; reversed payments are not counted."
+      },
+      "outstanding": {
+        "term": "Outstanding",
+        "text": "is what is still owed on each package: its price minus the payments recorded for it, never below zero. It is overdue once the package has started."
+      },
+      "due": {
+        "term": "Due by month end",
+        "text": "is the prices of current clients' running packages that end by {{to}}: what renewing at the same price would book."
+      },
+      "lost": {
+        "term": "Lost",
+        "text": "is the prices of packages that ran out or were cancelled this month without a renewal (releasing or transferring a client is not counted)."
+      },
+      "reversed": {
+        "term": "Reversed",
+        "text": "payments were recorded by mistake and voided; they stay listed but count nowhere."
+      },
+      "profit": {
+        "term": "Profit",
+        "text": "isn't shown: Forma doesn't know your costs."
+      }
+    }
+  },
+  "account": {
+    "nameRequired": "Your name can't be empty — it's what your clients see.",
+    "timeZone": "Time zone",
+    "timeZoneDevice": "Dates follow this device's time zone.",
+    "currency": "Currency"
+  },
+  "payments": {
+    "title": "Payments",
+    "record": "Record payment",
+    "recordTitle": "Record a payment",
+    "correctTitle": "Correct a payment",
+    "reverseTitle": "Reverse a payment",
+    "correct": "Correct",
+    "reverse": "Reverse",
+    "price": "Package price",
+    "recorded": "Recorded",
+    "outstanding": "Outstanding",
+    "credit": "Credit",
+    "empty": "No payments recorded for this client yet.",
+    "notVerified": "Recorded by you. Forma does not see or verify payments.",
+    "loadFailed": "Couldn't load this client's payments.",
+    "method": {
+      "cash": "Cash",
+      "mobile_wallet": "Mobile Wallet",
+      "instapay": "InstaPay"
+    },
+    "methodLabel": "Paid by",
+    "amount": "Amount (EGP)",
+    "date": "Date received",
+    "dateFuture": "A payment cannot be dated in the future.",
+    "term": "For package",
+    "termCurrent": "Current package",
+    "termFrom": "Package from {{date}}",
+    "olderTerm": "An earlier package",
+    "noTerm": "Not linked to a package",
+    "noTermHint": "This client has no package to link it to yet, so it will be recorded as not linked to a package. You can link it later with Correct.",
+    "unlinkedNote": "{{amount}} was recorded without a package: it counts as collected but isn't taken off what this client owes. Use Correct on a payment to link it to a package.",
+    "left": "{{amount}} left",
+    "tooMuch": "More than what is left to pay ({{amount}}).",
+    "reference": "Reference (optional)",
+    "referenceHint": "e.g. the InstaPay or wallet transaction number",
+    "note": "Note (optional)",
+    "reason": "Why?",
+    "confirmRecord": "Record this payment?",
+    "confirmCorrect": "Correct this payment?",
+    "confirmBody": "{{amount}} paid by {{method}} on {{date}}.",
+    "confirmReverse": "Reverse this payment?",
+    "confirmReverseBody": "{{amount}} will stop counting anywhere. It stays in the list, marked as reversed.",
+    "reverseHint": "Use this for a payment recorded by mistake. To fix its amount, method or date, use Correct instead.",
+    "recordedToast": "Payment recorded",
+    "correctedToast": "Payment corrected",
+    "reversedToast": "Payment reversed",
+    "reversed": "Reversed",
+    "reversedBecause": "Reversed: {{reason}}",
+    "correction": "Correction",
+    "actionsFor": "Actions for the payment of {{amount}}",
+    "planLapsed": "Your Forma subscription has lapsed. Renew it to record payments."
+  },
+  "errors": {
+    "network": "Couldn't reach Forma. Check your connection and try again.",
+    "rateLimited": "Too many tries in a short time. Wait a moment and try again.",
+    "rateLimitedFor_one": "Too many tries in a short time. Try again in {{count}} minute.",
+    "rateLimitedFor_other": "Too many tries in a short time. Try again in {{count}} minutes.",
+    "session": "Your session has ended. Sign in again to continue.",
+    "server": "Forma had a problem on its side. Try again in a moment.",
+    "forbidden": "You can't do this from this account.",
+    "notFound": "This no longer exists. Reload and try again.",
+    "conflict": "This changed meanwhile. Reload and try again.",
+    "tooLarge": "This is too large to send.",
+    "invalid": "Some of this isn't valid. Check it and try again.",
+    "notNow": "This can't be done right now."
+  },
+  "a11y": {
+    "skipToContent": "Skip to content"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong.",
+    "body": "Reloading usually fixes this. If it keeps happening, please contact support.",
+    "reload": "Reload"
   }
 }

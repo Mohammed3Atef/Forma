@@ -2,21 +2,18 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
-import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { ClientState, DirectoryRow } from '@/lib/coachDirectory';
+import { Pill } from '@/components/ui/Pill';
+import type { DirectoryRow } from '@/lib/coachDirectory';
+import { CLIENT_STATE_TONE as STATE_TONE, ACCOUNT_TONE as ACCT_TONE } from '@/lib/statusTone';
 import { useTodayReason } from '@/pages/coach/today/TodayRow';
 
-export const STATE_TONE: Record<ClientState, PillTone> = { active: 'ok', trial: 'brand', expiring: 'warn', paused: 'warn', expired: 'bad', pending: 'warn', none: 'mute' };
-const ACCT_TONE: Record<string, PillTone> = { pending: 'warn', suspended: 'bad', disabled: 'bad' };
-/** The shared `bad` pill's red text is under AA on its tint (~4.1:1); these screens use the AA-safe text token (B3.9 fixes the shared style). */
-export const toneText = (tone: PillTone) => (tone === 'bad' ? 'text-danger-text' : '');
 
 /** The package state; unknown (its source failed) renders nothing — never a guess. */
 export function StatePill({ row }: { row: DirectoryRow }) {
   const { t } = useTranslation();
   if (!row.state) return null;
   return (
-    <Pill testId="client-coaching-state" tone={STATE_TONE[row.state]} className={toneText(STATE_TONE[row.state])}>
+    <Pill testId="client-coaching-state" tone={STATE_TONE[row.state]}>
       {row.state === 'expiring' && row.daysLeft != null ? t('coachClients.endsIn', { count: row.daysLeft }) : t(`coachClients.state.${row.state}`)}
     </Pill>
   );
@@ -30,7 +27,7 @@ export function AccountPill({ row }: { row: DirectoryRow }) {
   const { t } = useTranslation();
   if (row.accountStatus === 'active') return null;
   return (
-    <Pill testId="client-account-warning" tone={ACCT_TONE[row.accountStatus] ?? 'warn'} className={toneText(ACCT_TONE[row.accountStatus] ?? 'warn')}>
+    <Pill testId="client-account-warning" tone={ACCT_TONE[row.accountStatus] ?? 'warn'}>
       {t(`coachClients.account.${row.accountStatus}`, { defaultValue: t(`subscription.acct.${row.accountStatus}`) })}
     </Pill>
   );

@@ -69,6 +69,8 @@ export interface Directory {
   /** Whether the roster itself loaded. */
   rosterReady: boolean;
   rosterError: boolean;
+  /** B3.9 (CO-18): no roster on this device and its read is paused offline — offline, not loading. */
+  rosterOffline: boolean;
   /** Check-ins and plans are known (their sources loaded). */
   checkInsKnown: boolean;
   activityKnown: boolean;
@@ -174,6 +176,7 @@ export function buildDirectory(
     status: queue.status,
     rosterReady: sources.roster.data !== undefined,
     rosterError: sources.roster.data === undefined && sources.roster.error,
+    rosterOffline: sources.roster.data === undefined && !!sources.roster.paused,
     checkInsKnown: ciKnown,
     activityKnown: sumKnown,
     stale: queue.stale,

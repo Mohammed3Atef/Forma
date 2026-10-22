@@ -476,3 +476,200 @@ Checked on every shot:
 ### 5. Not covered
 
 Physical devices; screen readers beyond axe and the roles / names checked in tests; video playback inside the detail sheet (the e2e stack has no reachable video host — the player's own states are covered by the B0 video tests).
+
+## B3.8 — Coach Me / Business (2026-10-21)
+
+**Scope reviewed:**
+- Me › Business: Overview (this month per currency with the definitions, to act on, current clients by package), Renewals (ending within 30 days, lapsed within 30 days, Renew on the row and its term sheet), Packages (table / list, Move up / down, the package sheet), Exports (the date range, both exports, the phone hint);
+- Me › Forma subscription (the status card, capacity, add-ons, offers, recent and folded requests);
+- Me › Account & preferences (identity, the profile fields with their save states, the time-zone picker, named currencies, language, password, sign out) — _the B3.8 completion later removed the time-zone and currency pickers (device zone read-only, EGP only)_;
+- the Me hub;
+- English, Arabic and Egyptian Arabic, 360–1440 px.
+
+Fixtures: a coach the spec creates (`e2e-biz-coach`, 4 of 4 clients) with four current clients — EGP and USD terms, one ending within 7 days, one lapsed this month, a disabled account — a client released this month, three packages (one archived) and two Forma requests (recent and 60 days old); re-seeded before every test, removed afterwards.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/93-b3-business.spec.ts
+```
+
+The matrix test writes `e2e-out/<run>/b38-visual/{business-overview,business-renewals,business-packages,business-exports,forma,account,me}-<width>-<lang>.png` (full page) and `b38-business.json` (overflow, `dir`), and fails on any horizontal overflow or wrong direction. The other tests attach their own shots (overview 1440, renewals 390, packages 1440, Forma subscription 390, a failed account save at 390, Arabic / Egyptian Arabic renewals at 390) and two axe reports (`axe-b38-en.json`, `axe-b38-ar.json`).
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 360 · 390 (Pixel 7) · 430 · 768 · 1024 · 1440 |
+| Languages | English · Arabic · Egyptian Arabic (390 / 1440) |
+| Screens | Business Overview, Renewals and Packages, Forma subscription and Account at every width; Business Exports and the Me hub at 390 and 1440 |
+
+**Result:** 82 matrix shots (overview, renewals, packages, Forma subscription and account 14 each; exports and Me 6 each; EN 34 · AR 34 · AR-EG 14), **0 px horizontal overflow and the right `dir` on every shot** (in the certification of the final tree, `e2e-out/b38-cert/b38-visual/`, and in the focused run before it, `e2e-out/b38-focus2/b38-visual/`). axe (WCAG 2.1 A / AA) on the four Business tabs, a package sheet, Forma subscription, Account and Me — EN and AR at 390 and 1440, 32 scans: **0 violations** (after #1 below).
+
+Checked on every shot:
+- the four tab labels whole at every width and language; the month's dates printed; each currency its own card, never a total across currencies; the three definitions under the figures;
+- phones: each figure on its own row with the amount whole (no "1,899 E…"); the Renew button beside the row, never inside it; package rows with labelled Move up / down; the export hint on touch devices;
+- Forma subscription: one status card with the state chip, end date and price, then capacity with its progress bar, add-ons, offers, recent requests and the folded history;
+- Account: each field's status beside its label; the time zone as a picker with its offset; currencies named; the language buttons wrap below the label at 360;
+- Arabic: figures in Latin digits, amounts and Latin names isolated (`<bdi>` / `dir="ltr"`), tables and chevrons mirrored; Egyptian Arabic copy ("الشغل", "ضايع") fits the same layouts.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| 1 | axe `definition-list` / `dlitem`: a wrapper `div` inside the figures' `dl` (introduced by #2's first attempt) | Overview | `dt` / `dd` direct children again; the phone layout from a two-column grid on the figure |
+| 2 | "1,899 E…" — three figure columns cut the amounts off at 390 | Overview | phones: one row per figure (label + term count, amount at the end); three columns from `sm` |
+| 3 | "1 client's package ran out in t…" — the to-act-on titles truncated | Overview | shorter titles ("1 lapsed package"), the detail in the second line |
+| 4 | "Opens Clients filtered" wrapping beside its heading | Overview | the hint shows from `sm` (the rows' chevrons say it) |
+| 5 | "Omar Biz=" — a Latin name with a leading symbol reordered inside Arabic | Renewals | names in `<bdi>` (list and table) |
+| 6 | the phone meta line cut ("… USD") | Renewals | phone meta: when · price (the date is in the desktop table and the term sheet) |
+| 7 | the packages hint squeezed into five lines beside the button | Packages | the hint on its own row on phones, the button under it |
+| 8 | "1 Months" | Packages, both package pickers | real plurals ("1 month", "3 months"; Arabic forms) — CO-22 |
+| 9 | "Business" twice in the Me hub (section and row) | Me | the row is "Figures & renewals"; its meta shortened (it was cut in Egyptian Arabic) |
+| 10 | "Language" running into its buttons at 390 | Account | the row wraps |
+
+### 4. Still deviating (owned by later milestones)
+- The shared `TopBar` header ("FORMA / Account") on Account & preferences — kept for the admin shell it is shared with (VS-13 residual → B3.9).
+- The avatar picker keeps its B1 look (B2-R03 → B3.9, shared with the client).
+
+### 5. Not covered
+- Physical devices (R-17 stays open); the share sheet on a real iPhone (the browser test checks the touch hint, the desktop download and the CSV content).
+
+## B3.8 completion — payments, analytics, read-only mode, widths, sidebar (2026-10-22)
+
+**Scope reviewed:**
+- Business › Overview rebuilt as analytics: this month (booked / collected / due / lost), overall (outstanding with overdue, all-time booked and collected, active paying clients), booked vs collected over 12 months with its table twin, collections by method, the renewal pipeline, packages of current clients, clients by package, the definitions;
+- the client's package screen: the package card (first and last day, price, length, package), the history, the **payments card** and the **payment sheet**;
+- the **grouped desktop sidebar** (Workspace / Planning & content / Business / Account, sub-pages while a section is open, Me in the footer) and the 72 px tablet rail;
+- **read-only mode (P2)** for an expired Forma coach: the message thread and the package screen;
+- the desktop widths (wide pages vs reading width) at 1280 / 1440 / 1728 / 1920;
+- English, Arabic and Egyptian Arabic, 390–1920 px.
+
+Fixtures (spec 95): a coach the spec creates (`e2e-b38v-coach`) with four current clients — Monthly, Quarterly, an unnamed package; one ending within 7 days, one lapsed this month — each with a renewed earlier term, seven payments (cash, mobile wallet, InstaPay, one reversed with its reason); removed afterwards. For the read-only shots the coach's Forma plan is expired for the last part of the test.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5199 E2E_STUB_PORT=5299 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/95-b38c-visual.spec.ts
+```
+
+Writes `e2e-out/<run>/b38c-visual/{business-overview,package-payments,payment-sheet,sidebar-library,p2-thread,p2-package}-<width>-<lang>.png` (full page) and `b38c-visual.json` (overflow, `dir`); fails on any horizontal overflow or wrong direction. Spec 94 adds the widths test (1280 / 1440 / 1728 / 1920: the column used by wide pages, 768 px for reading pages, the header aligned, no overflow, no `100vw`) and two axe reports (EN, AR).
+
+### 2. Coverage and result
+
+| Dimension | Values |
+|---|---|
+| Widths | 390 · 768 · 1024 · 1280 · 1440 · 1728 · 1920 (EN) · 390 · 768 · 1024 · 1440 · 1920 (AR) · 390 · 1440 (AR-EG) |
+| Screens | Business Overview and the package + payments screen at every width; the payment sheet at 390 / 1440; the sidebar (Library open) from 1024; read-only thread and package at 390 / 1440 (EN) |
+
+**Result:** **47 matrix shots, 0 px horizontal overflow and the right `dir` on every shot** (EN 21 · AR 15 · AR-EG 7 · read-only 4) — in the certification of the final tree (`e2e-out/b38c-final-e2e2/b38c-visual/`) and in the focused run before it (`e2e-out/b38c-vqa3/b38c-visual/`). axe (WCAG 2.1 A / AA) on the payments card and sheet, the analytics overview and the grouped sidebar, EN and AR at 390 and 1440 (16 scans, with the overview's table view): **0 violations**.
+
+Checked on every shot:
+- the figures by hand against the fixture: booked EGP 11,000 all time / 1,000 this month, collected 6,800 / 600, outstanding 4,200 (all overdue), lost 800 (the lapsed client), due 1,000, the pipeline buckets, InstaPay 600 this month; the reversed payment counted nowhere;
+- the chart: one axis, a legend, booked blue / collected orange (validated pair), months right-to-left in Arabic, "Show as a table";
+- money in Latin digits ("EGP 1,899" / "1,899 ج.م."), no currency other than EGP anywhere;
+- the package card's first and **last** day ("12 Oct 2026 · 10 Nov 2026" for 30 days); the history with its last days; Recorded / Outstanding beside the price; "Recorded by you. Forma does not see or verify payments.";
+- the payment sheet: package, amount prefilled with what is left, the three methods as labelled radios, date, reference, note;
+- the sidebar: four group labels, Library's five pages listed while open, one lit section and sub-page, the long "Account & preferences" wrapping, mirrored in Arabic;
+- read-only: the banner and the thread's notice with "Renew Forma", every write control dimmed with the reason.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| 1 | "Account & preferences" cut off in the sidebar | sidebar (EN, 1024+) | rail labels wrap instead of truncating |
+| 2 | a payment method's focus ring invisible (the radio is visually hidden) | payment sheet | the label shows the ring (`has-[:focus-visible]`) |
+| 3 | the visual matrices of specs 86–89 kept every context open (up to 12 live apps) — it slowed and destabilised the full run on a low-memory machine | specs 86–89 | each context closed after its shots (the shots and guarantees unchanged) |
+| 4 | the method scope switch squeezed into its heading ("THIS MONTH" on two lines; "الشهر ده" spilling out of its segment) and the card pushed 15 px below the chart's | Overview | the switch inside the card, neutral (`seg-quiet`) |
+| 5 | "20 يوم متبقٍ" — the package card's days left without an Arabic plural | package screen (AR / AR-EG) | the plural-aware string the workspace header uses (English unchanged) |
+| 6 | the "‹ Profile" back chip with its chevron above the word (since B3.4) | package screen | `inline-flex` |
+| 7 | 1024 px: three 224 px columns — "Overdue (ran ou…" clipped, "Collections by method" and "Current clients by package" on two lines | Overview | chart + methods full width below 1280; pipeline and packages two-up at 1024, three-up from 1280; bar labels wrap, never cut |
+
+### 4. Still deviating (owned by later milestones)
+- The mono face on Arabic "days left" shows a wide space between words (global RTL fallback; pre-existing) → B3.9 polish. _Resolved in B3.9: Arabic `font-mono` text uses the Arabic face inside the app._
+- The nutrition editor's meal-name field is narrow at 1024 px (B3.5 screen, not in this scope) → B3.9 polish. _Resolved in B3.9: name and slot stack at 1024–1279 px._
+
+### 5. Not covered
+- Physical devices (R-17 stays open).
+
+## B3.8 final review — payments not linked to a package (2026-10-22)
+
+The matrix of spec 95 now seeds one payment recorded without a package (EGP 250, Salma) and asserts both new notes on every shot: Business › Overview › Overall ("1 payment (EGP 250) isn't linked to a package: it's in Collected but not taken off Outstanding…") and the client's Payments card ("EGP 250 was recorded without a package…", the row labelled "Not linked to a package").
+
+**Result (`e2e-out/b38f-focus-1/b38c-visual/`):** 47 shots, 0 px horizontal overflow, the right `dir` on every shot (25 LTR, 22 RTL). Checked by eye: the Overview note under the Overall figures (EN 1440), the card note and row label in Arabic at 390 (wraps inside the card, Latin digits, «تصحيح» quoted); Collected EGP 850 = 600 + the unlinked 250, Outstanding unchanged at EGP 4,200. No other screen changed.
+
+## B3.9 — coach blueprint completion: certification matrix (2026-10-22)
+
+**Scope reviewed:** every coach screen after the B3.9 changes:
+- Today, Clients, the workspace (Summary, Plan, Progress › Week and › Body, Profile, Subscription), the nutrition editor;
+- Messages and a thread, Library, Business, Me, Account.
+
+**Features exercised:**
+- the shared primitives: real `btn-sm`, 44 px hit areas, 12 px floor, selected chips, status tones, `Metric` / `MetricGroup`, chart tokens;
+- the Summary / Business hierarchy, Today 5 : 7, and the rebuilt progress views.
+
+**Languages and widths:** English, Arabic and Egyptian Arabic, 360–1920 px.
+
+Fixtures: the seeded coach A (Coach Amira) and client Aya — nothing written.
+
+### 1. How to reproduce
+
+```
+E2E_RUN_ID=<run> E2E_PORT=5197 E2E_STUB_PORT=5297 \
+  npx playwright test -c playwright.e2e3.config.ts --project=chromium-1440 e2e3/specs/97-b39-certification.spec.ts
+```
+
+**Three tests:**
+- **axe + overflow:** 15 screens × 390 / 768 / 1024 / 1440 / 1920 × EN / AR / AR-EG, plus the failed-read state at 390 / 1440 per language. The attachment is `axe-matrix.json`.
+- **tap targets:** every visible control, at 390 and 1440, must be ≥ 44 × 44 px — its box, or its `::before` hit area unless the element clips its overflow. Inline links in a sentence are exempt (WCAG 2.5.8). The attachment is `tap-targets.json`.
+- **visual matrix:** 15 screens at 360 / 390 / 430 / 768 / 1024 / 1280 / 1440 / 1728 / 1920 (EN) and 390 / 1440 / 1920 (AR, AR-EG), written to `e2e-out/<run>/b39-visual/<screen>-<width>-<lang>.png`.
+
+### 2. Result
+
+- **axe (WCAG 2.1 A / AA): 0 violations** in 225 screen scans + 6 error-state scans; **0 px horizontal overflow** at every width and language.
+- **Visual matrix: 225 shots, 0 px overflow.** The run is `e2e-out/b39-cert-1/b39-visual/` on the frozen copy; the final certification run repeats it.
+- **Tap targets:** the first audit found 14 control kinds under 44 px:
+  - the rail sub-pages (36 px);
+  - the Clients table sort headers and the name link;
+  - the package history toggle;
+  - every measurement "Add note";
+  - the thread's per-message actions trigger.
+
+  All were fixed (§3). The full certification run then found more, on controls that exist only with full data: the Library sort headers, its goal filter, the editor switches, the client-context toggle. They were fixed too, plus a minimum width for the Clients "Name" sort button. **Final audit on the final tree: PASS** (`b39-tap-final`). The axe and visual matrices were re-run green on the final tree (`b39-final-rerun`).
+
+**Checked by eye:**
+- Summary 1440 (EN): one hero box ("Needs you"), unboxed Training / Body, one grouped Plan / Check-in / Note surface.
+- Business 1440: two metric strips with hairline dividers; the rail sub-pages at 44 px.
+- Today 1920: 5 : 7, the client context row (package pill, last workout, 7-day workouts, check-in), a content-width primary.
+- Body 390 AR: right-to-left, units on every value, "—" placeholders, 44 px note buttons.
+
+### 3. Found during review and changed
+
+| # | Finding | Where | Change |
+|---|---|---|---|
+| 1 | Rail sub-pages 36 px tall | sidebar (Business, Library) | 44 px rows |
+| 2 | Clients table sort headers 18 px; the name link 21 px (truncating — a `::before` area would be clipped) | Clients desktop table | centred hit areas on the headers; the link gets a 44 px line box |
+| 3 | Package "Show history" 20 px | package screen | 44 px row |
+| 4 | Measurement "Add note" 18 px under each field (a centred area would cover the field above) | Body (both roles) | 44 px buttons |
+| 5 | Per-message actions trigger 24 px (absolutely placed) | thread (desktop) | a centred 44 px `::before` (`.hit-44` would have unplaced it) |
+| 6 | The running-trial banner in brand orange beside the one orange action | Today / Me | information tone (VS-05); expired text on the AA-safe danger token |
+| 7 | Small text actions on Summary / Business / Exports / the editor draft notice with no hit area | those screens | `hit-44` |
+| 8 | Library table sort headers 18 px; the goal filter 36 px (only with a loaded library) | Library | 44 px header cells with full-height, ≥ 44 px-wide sort buttons (a centred area would be clipped by the table); a 44 px filter |
+| 9 | Plan-editor switches 42 × 25; the "Client context" toggle 40 px | nutrition editor | `hit-44` on `Switch`; a 44 px toggle |
+| 10 | Clients "Name" sort button 37 px wide | Clients desktop table | 44 px minimum width |
+
+### 4. Still deviating (carried by ID)
+
+| Item | Detail | Carried to |
+|---|---|---|
+| VS-06 | System-wide surface ladder | B5 |
+| VS-15 | A chip used as a Back control in Progress › Day | B5 |
+| CD-06 | Big boxes with little in them on other screens | B5 |
+| Admin KPI tile | Admin keeps `MetricCard` (CD-02 / RM-31) | B5 |
+
+### 5. Not covered
+
+- Physical devices (R-17 and the R-checks stay open).
+- The client app beyond the shared components (its B2 suites run in the full certification).

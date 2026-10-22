@@ -171,7 +171,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.getByTestId('ex-reps').fill('5');
   await page.getByTestId('ex-save').click();
   await expect(section).toContainText('5 × 5');
-  await expect(page.getByTestId('toast').filter({ hasText: 'Make this a custom override?' })).toHaveCount(0); // programming edit never detaches
+  await expect(page.getByTestId('toast').filter({ hasText: 'Now a custom version for this client' })).toHaveCount(0); // programming edit never detaches
   await page.getByTestId('template-save').click();
   await expect(page).toHaveURL(/\/coach\/templates\/(?!new$)[^/]+$/);
   await expect(page.getByTestId('template-preview')).toBeVisible();
@@ -245,7 +245,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   const custom = `${base} (my cue)`;
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-save').click();
-  await expectToast(page, 'Make this a custom override?');
+  await expectToast(page, 'Now a custom version for this client');
   await page.getByTestId('template-save').click();
   // A template that has received a library sync must still be saveable (E-B-2).
   await expect(page.getByText(/invalid_type/)).toHaveCount(0);
@@ -305,7 +305,7 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-working-sets').fill('4');
   await page.getByTestId('ex-save').click();
-  await expectToast(page, 'Make this a custom override?');
+  await expectToast(page, 'Now a custom version for this client');
   await page.getByTestId('template-save').click();
   await expect(page.getByTestId('template-preview')).toBeVisible();
   const tplId = (await db.findOne<{ id: string }>('coachWorkoutTemplates', { coachId: A, name: tplName }))!.id;

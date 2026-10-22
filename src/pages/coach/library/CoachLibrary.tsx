@@ -9,6 +9,7 @@ import { useSession } from '@/services/auth/sessionStore';
 import { LIBRARY_SEGMENTS, libraryParams, parseLibraryQuery, segmentQuery, type LibraryQuery, type LibrarySegment } from '@/lib/libraryModel';
 import { SyncIssuesNotice, useCanEdit, type SegmentProps } from './parts';
 import { useStarterLibrary } from './useStarterLibrary';
+import { StarterShownContext } from './starterSignal';
 
 // Each segment is its own chunk: opening the Library loads only the one on screen (budget §9).
 const ProgramsSegment = lazy(() => import('./ProgramsSegment'));
@@ -37,6 +38,7 @@ export function CoachLibrary() {
   const query = useMemo(() => parseLibraryQuery(params), [params]);
   const { canEdit, reason } = useCanEdit();
   const starter = useStarterLibrary();
+  const [starterShown, setStarterShown] = useState(false);
 
   // One-shot intents carried by the URL, removed as soon as they are read (Back / reload never repeat them).
   // A pending "New …" request: > 0 until the segment on screen has opened its form (then back to 0,
@@ -48,10 +50,11 @@ export function CoachLibrary() {
     const open = params.get('open');
     const legacy = params.get('tab') === 'groups';
     if (!isNew && !open && !legacy) return;
-    if (isNew) setCreateSignal((n) => n + 1);
+    // B3.8 (P2): never open a creation form a lapsed Forma plan could not save.
+    if (isNew && canEdit) setCreateSignal((n) => n + 1);
     if (open) setOpenId(open);
     setParams(libraryParams(parseLibraryQuery(params)), { replace: true });
-  }, [params, setParams]);
+  }, [params, setParams, canEdit]);
   const onOpened = useCallback(() => setOpenId(null), []);
   const onCreateHandled = useCallback(() => setCreateSignal(0), []);
 
@@ -72,14 +75,14 @@ export function CoachLibrary() {
   const Segment = SEGMENT_VIEW[seg];
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-6 pt-3" data-testid="coach-library" data-segment={seg}>
+    <div className="w-full pb-6 pt-3" data-testid="coach-library" data-segment={seg}>
       <header className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="t-title">{t('coachLib.title')}</h1>
           <p className="mt-0.5 hidden text-[14px] text-earth-muted sm:block">{t('library.subtitle')}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button icon="plus" data-testid={newTestId} aria-label={newLabel} title={reason} disabled={!canEdit} onClick={() => setCreateSignal((n) => n + 1)}>
+          <Button icon="plus" variant={starterShown ? 'secondary' : 'primary'} data-testid={newTestId} aria-label={newLabel} title={reason} disabled={!canEdit} onClick={() => setCreateSignal((n) => n + 1)}>
             <span className="hidden sm:inline">{newLabel}</span>
           </Button>
           <ActionMenu
@@ -113,7 +116,9 @@ export function CoachLibrary() {
             </div>
           }
         >
-          <Segment key={seg} coachId={coachId} query={query} setQuery={setQuery} createSignal={createSignal} onCreateHandled={onCreateHandled} openId={openId} onOpened={onOpened} />
+          <StarterShownContext.Provider value={setStarterShown}>
+            <Segment key={seg} coachId={coachId} query={query} setQuery={setQuery} createSignal={createSignal} onCreateHandled={onCreateHandled} openId={openId} onOpened={onOpened} />
+          </StarterShownContext.Provider>
         </Suspense>
       </div>
     </div>

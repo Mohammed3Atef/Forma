@@ -102,11 +102,11 @@ export function CollectionTable<T>({
                 <th
                   key={c.key}
                   scope="col"
-                  className={`px-3 py-2.5 font-medium ${alignClass(c)} ${c.className ?? ''}`}
+                  className={`h-11 px-3 py-0 font-medium ${alignClass(c)} ${c.className ?? ''}`}
                   aria-sort={c.sortKey ? (active ? (dir === 'desc' ? 'descending' : 'ascending') : 'none') : undefined}
                 >
                   {c.sortKey && onSort ? (
-                    <button type="button" className={`inline-flex max-w-full items-center gap-1 uppercase hover:text-earth ${active ? 'text-earth' : ''}`} data-testid={`sort-${c.sortKey}`} onClick={() => onSort(c.sortKey!)}>
+                    <button type="button" className={`inline-flex min-h-ui-hit min-w-11 max-w-full items-center gap-1 uppercase hover:text-earth ${active ? 'text-earth' : ''}`} data-testid={`sort-${c.sortKey}`} onClick={() => onSort(c.sortKey!)}>
                       <span className="truncate">{c.header}</span>
                       {active ? <Icon name="chevronDown" size={13} className={`shrink-0 ${dir === 'desc' ? '' : 'rotate-180'}`} /> : null}
                     </button>
@@ -179,8 +179,11 @@ export function CollectionList<T>({
   selection,
   testId,
   rowTestId = 'lib-row',
+  action,
 }: Common<T> & {
   render: (row: T) => { title: ReactNode; meta?: ReactNode; trailing?: ReactNode };
+  /** One visible action beside the row (B3.8 — e.g. "Renew"); a real button, never inside the open button. */
+  action?: (row: T) => ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -209,8 +212,9 @@ export function CollectionList<T>({
                 {r.meta ? <span className="mt-0.5 block truncate text-[12.5px] text-earth-subtle">{r.meta}</span> : null}
               </span>
               {r.trailing}
-              {!selecting && <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />}
+              {!selecting && !action && <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />}
             </button>
+            {action && !selecting ? <span className="shrink-0 pe-3">{action(row)}</span> : null}
           </li>
         );
       })}

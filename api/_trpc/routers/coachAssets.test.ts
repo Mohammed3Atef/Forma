@@ -5,6 +5,7 @@ import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 let mongod: MongoMemoryServer;
 
@@ -21,6 +22,8 @@ afterAll(async () => {
 beforeEach(async () => {
   const db = await getDb();
   await db.dropDatabase();
+  // B38F-R3: the coaches these tests act as are real coaches, so they have a Forma plan.
+  for (const id of ['coach-a', 'coach-b']) await ensureCoachPlan(id);
 });
 
 function userDoc(overrides: Partial<UserDoc>): UserDoc {

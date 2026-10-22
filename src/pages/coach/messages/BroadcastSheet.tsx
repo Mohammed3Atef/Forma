@@ -12,6 +12,7 @@ import { MAX_MESSAGE_CHARS } from '@/components/MessageThread';
 import { confirmDialog } from '@/stores/dialogStore';
 import { uid } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
+import { focusItem, rovingIndex } from '@/lib/rovingKeys';
 
 const CATEGORIES: Exclude<MessageCategory, 'message'>[] = ['announcement', 'offer', 'reminder', 'update'];
 type Audience = 'all' | 'chosen';
@@ -169,14 +170,23 @@ export function BroadcastSheet({ open, onClose, coachId, clients, onSent }: { op
           <fieldset className="space-y-2">
             <legend className="label">{t('messages.recipients')}</legend>
             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('messages.recipients')}>
-              {(['all', 'chosen'] as const).map((a) => (
+              {(['all', 'chosen'] as const).map((a, i, all) => (
                 <button
                   key={a}
                   type="button"
                   role="radio"
                   aria-checked={audience === a}
+                  tabIndex={audience === a ? 0 : -1}
                   data-testid={`broadcast-audience-${a}`}
                   onClick={() => setAudience(a)}
+                  // B3.9 (AX-05): one tab stop; arrows move the choice.
+                  onKeyDown={(e) => {
+                    const next = rovingIndex(e, i, all.length, 'both');
+                    if (next < 0) return;
+                    e.preventDefault();
+                    focusItem(e, next, '[role="radio"]');
+                    setAudience(all[next]);
+                  }}
                   className={`rounded-ui-control border px-3 py-2.5 text-start text-[14px] ${audience === a ? 'border-brand/70 bg-brand/10 font-semibold text-earth' : 'border-line text-earth-muted hover:bg-white/[0.04]'}`}
                 >
                   {a === 'all' ? t('broadcast.allClients', { count: clients.length }) : t('broadcast.choose')}
@@ -223,7 +233,7 @@ export function BroadcastSheet({ open, onClose, coachId, clients, onSent }: { op
             <div className="space-y-1.5" data-testid="broadcast-preview">
               <p className="label">{t('broadcast.preview')}</p>
               <div className="w-fit max-w-full rounded-2xl rounded-es-[5px] border border-brand/60 bg-brand/15 px-3 py-2 text-sm text-earth">
-                <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide opacity-80">{t(`messages.category.${category}`)}</span>
+                <span className="mb-0.5 block text-[12px] font-semibold uppercase tracking-wide opacity-80">{t(`messages.category.${category}`)}</span>
                 <p className="whitespace-pre-wrap break-words"><bdi>{text}</bdi></p>
               </div>
             </div>

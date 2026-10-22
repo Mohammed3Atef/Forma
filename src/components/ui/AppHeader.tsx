@@ -12,12 +12,15 @@ export function AppHeader({
   end,
   testId = 'app-header',
   className = '',
+  innerClassName = 'md:px-4',
 }: {
   start?: ReactNode;
   title?: ReactNode;
   end?: ReactNode;
   testId?: string;
   className?: string;
+  /** B3.8: the content row's width / padding — a shell aligns it with its main column. */
+  innerClassName?: string;
 }) {
   return (
     <header
@@ -25,7 +28,7 @@ export function AppHeader({
       className={`sticky top-0 z-ui-header border-b border-white/[0.06] bg-surface/95 backdrop-blur-md ${className}`}
       style={{ paddingTop: 'var(--shell-safe-top)', marginTop: 'calc(-1 * var(--shell-safe-top))' }}
     >
-      <div className="mx-auto flex h-14 w-full items-center gap-2 px-2 md:px-4">
+      <div className={`mx-auto flex h-14 w-full items-center gap-2 px-2 ${innerClassName}`}>
         {start ? <div className="flex shrink-0 items-center">{start}</div> : <span className="w-2" />}
         <div className="min-w-0 flex-1 truncate text-[17px] font-semibold leading-tight">{title}</div>
         {end ? <div className="flex shrink-0 items-center gap-1">{end}</div> : null}

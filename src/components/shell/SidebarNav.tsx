@@ -58,7 +58,7 @@ export function SidebarNav({ items }: { items: NavItem[] | NavGroup[] }) {
             {g.group && (
               <>
                 {expandedAtDesktop && (
-                  <p className={`hidden truncate px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.09em] text-earth-subtle lg:block ${gi === 0 ? 'pt-0' : 'pt-3'}`}>
+                  <p className={`hidden truncate px-3 pb-1 font-mono text-[12px] uppercase tracking-[0.09em] text-earth-subtle lg:block ${gi === 0 ? 'pt-0' : 'pt-3'}`}>
                     {t(`nav.${g.group}`)}
                   </p>
                 )}

@@ -7,6 +7,7 @@ import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import { maskEmail } from './invites.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * B3.0.1 — B3-S01 / S01b (relationship records and contact details), B3-S02
@@ -34,6 +35,7 @@ function userDoc(o: Partial<UserDoc>): UserDoc {
 async function insertUser(o: Partial<UserDoc>): Promise<AuthedUser> {
   const doc = userDoc(o);
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return { id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc };
 }
 const ctxFor = (user: AuthedUser | null, ip = '203.0.113.7'): Context => ({
@@ -116,13 +118,14 @@ describe('B3-S01 — coachClients.list({ clientId })', () => {
     expect((await reasonOf(as(stranger).coachClients.list({ clientId: client.id }))).code).toBe('FORBIDDEN');
   });
 
-  it('the client themself and users.read admins still get every record in full', async () => {
+  it('the client themself gets every record in full; users.read admins get every record without the coaches’ package economics (B38F-R2)', async () => {
     const { client, admin } = await world();
-    for (const u of [client, admin]) {
-      const rows = await as(u).coachClients.list({ clientId: client.id });
-      expect(rows).toHaveLength(2);
-      expect(rows.every((r) => r.subscription?.price === 1200)).toBe(true);
-    }
+    const own = await as(client).coachClients.list({ clientId: client.id });
+    expect(own).toHaveLength(2);
+    expect(own.every((r) => r.subscription?.price === 1200)).toBe(true);
+    const adminRows = await as(admin).coachClients.list({ clientId: client.id });
+    expect(adminRows).toHaveLength(2);
+    expect(adminRows.every((r) => r.subscription?.price === undefined && typeof r.subscription?.endAt === 'number')).toBe(true);
   });
 });
 
@@ -283,7 +286,7 @@ describe('B3-S02 — the assessment private note is per author', () => {
 describe('B3-S03 — public invite lookup', () => {
   async function invite(o: Record<string, unknown> = {}) {
     const coach = await insertUser({ _id: 'coach-a', role: 'coach' });
-    await (await getDb()).collection('coachPlans').insertOne({ _id: 'coach-a', plan: 'trial', status: 'active', maxClients: 5, activeClientCount: 0, endsAt: null } as never);
+    await (await getDb()).collection('coachPlans').updateOne({ _id: 'coach-a' as never }, { $set: { plan: 'trial', status: 'active', maxClients: 5, activeClientCount: 0, endsAt: null } }, { upsert: true });
     const created = await as(coach).invites.create({ email: 'mona.client@gmail.com', displayName: 'Mona', phone: '+201234', subPrice: 1500, subStatus: 'active', subMonths: 1, ...o });
     return { coach, code: created._id };
   }
@@ -332,17 +335,17 @@ describe('B3-S05 — an ended relationship is no longer the former coach\'s to c
     await transfer(coachA.id, coachB.id, client.id);
     const id = `${coachA.id}__${client.id}`;
     const before = await (await coachClients()).findOne({ _id: id });
-    for (const sub of [{ op: 'extend' as const, days: 5 }, { op: 'setPrice' as const, price: 1 }, { op: 'setTerm' as const, startAt: Date.now() }, { op: 'cancel' as const }]) {
+    for (const sub of [{ op: 'extend' as const, days: 5 }, { op: 'correct' as const, price: 1 }, { op: 'renew' as const }, { op: 'cancel' as const }]) {
       expect(await reasonOf(as(coachA).coachClients.updateSubscription({ id, sub }))).toEqual({ code: 'CONFLICT', reason: 'RELATIONSHIP_ENDED' });
     }
     expect((await (await coachClients()).findOne({ _id: id }))?.subscription).toEqual(before?.subscription);
 
-    const corrected = await as(superAdmin).coachClients.updateSubscription({ id, sub: { op: 'setPrice', price: 999 } });
+    const corrected = await as(superAdmin).coachClients.updateSubscription({ id, sub: { op: 'correct', price: 999 } });
     expect(corrected.subscription?.price).toBe(999);
-    const audit = await (await getDb()).collection('adminAuditLogs').findOne({ action: 'subscription.setPrice' });
+    const audit = await (await getDb()).collection('adminAuditLogs').findOne({ action: 'subscription.correct' });
     expect(audit).toMatchObject({ actorId: superAdmin.id, targetUserId: client.id, metadata: { relationshipId: id, relationshipStatus: 'ended' } });
-    expect(corrected.subscriptionEvents?.at(-1)).toMatchObject({ op: 'setPrice', actorRole: 'admin' });
+    expect(corrected.subscriptionEvents?.at(-1)).toMatchObject({ op: 'correct', actorRole: 'admin' });
     // The active coach is unaffected.
-    await expect(as(coachB).coachClients.updateSubscription({ id: `${coachB.id}__${client.id}`, sub: { op: 'setPrice', price: 1300 } })).resolves.toBeTruthy();
+    await expect(as(coachB).coachClients.updateSubscription({ id: `${coachB.id}__${client.id}`, sub: { op: 'correct', price: 1300 } })).resolves.toBeTruthy();
   });
 });

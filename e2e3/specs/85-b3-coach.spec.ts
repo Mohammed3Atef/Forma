@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot } from '../fixtures';
-import { allowDevModuleStorm } from './_c-helpers';
+import { allowDevModuleStorm, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmNo, confirmYes, fullAssessment, openPlanBuilder } from './_b-helpers';
 
 /**
@@ -25,8 +25,7 @@ async function setCoachLanguage(page: Page, label: 'English' | 'العربية')
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en/ : /^ar/);
-  await page.waitForTimeout(600); // the profile save lands before we navigate away
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: the profile save lands before we navigate away (was a fixed 600 ms)
 }
 
 test.describe('B3.1 coach shell', () => {
@@ -65,7 +64,8 @@ test.describe('B3.1 coach shell', () => {
     await expect(page).toHaveURL(/\/coach\/me$/);
     await expect(page.getByTestId('coach-me')).toBeVisible();
     // B3.2: assessments to review live on Today (no Me row).
-    for (const row of ['me-revenue', 'me-packages', 'me-reports', 'me-forma', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
+    // B3.8: Revenue, Reports and Client Plans are one row, Business (+ a direct Packages row).
+    for (const row of ['me-business', 'me-packages', 'me-forma', 'me-account', 'me-help', 'me-sign-out']) await expect(page.getByTestId(row)).toBeVisible();
     await expect(page.getByTestId('me-assessments')).toHaveCount(0);
     await expect(page.getByTestId('me-help')).toHaveAttribute('href', /wa\.me|whatsapp/);
     await expect(page.getByTestId('me-button')).toHaveAttribute('aria-current', 'page');
@@ -109,9 +109,12 @@ test.describe('B3.1 coach shell', () => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachA', sized(1440));
     const cases: [string, string, string | null][] = [
-      ['/coach/plan', 'rail-me', '/coach/me'],
-      ['/coach/settings', 'rail-me', '/coach/me'],
-      ['/coach/revenue', 'rail-me', '/coach/me'],
+      // B3.8 completion (owner decision 7): the desktop sidebar names these sections itself.
+      ['/coach/plan', 'rail-forma', '/coach/me'],
+      ['/coach/settings', 'rail-account', '/coach/me'],
+      ['/coach/revenue', 'rail-business', '/coach/me'], // B3.8: redirects to Me › Business
+      ['/coach/business', 'rail-business', '/coach/me'],
+      ['/coach/me', 'rail-me', null],
       ['/coach/templates', 'rail-library', null], // B3.7: redirects to Library › Programs, a root (no Back)
       ['/coach/clients?view=checkins', 'rail-clients', null], // B3.3: weekly check-ins live in Clients
       [`/coach/messages/${CA}`, 'rail-messages', null],

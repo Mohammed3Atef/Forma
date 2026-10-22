@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sheet } from '@/components/Sheet';
 import { Icon, type IconName } from '@/components/Icon';
 import { IconButton } from './Button';
+import { rovingIndex } from '@/lib/rovingKeys';
 
 export interface ActionMenuItem {
   key: string;
@@ -53,6 +54,15 @@ export function ActionMenu({
         onClick={() => {
           setOpen(false);
           it.onSelect();
+        }}
+        // B3.9 (AX-05): Up / Down / Home / End move between the enabled items.
+        onKeyDown={(e) => {
+          const menu = e.currentTarget.closest('[role="menu"]');
+          const enabled = menu ? Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')) : [];
+          const next = rovingIndex(e, enabled.indexOf(e.currentTarget), enabled.length, 'vertical');
+          if (next < 0) return;
+          e.preventDefault();
+          enabled[next]?.focus();
         }}
         className={`flex min-h-ui-hit w-full items-center gap-3 rounded-ui-control px-3 text-start text-[15px] font-medium transition-colors hover:bg-white/[0.05] disabled:opacity-40 ${
           it.danger ? 'text-danger' : 'text-earth'

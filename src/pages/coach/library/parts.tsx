@@ -14,11 +14,12 @@ import { BulkActionBar } from '@/components/ui/BulkActionBar';
 import { usePagination } from '@/hooks/usePagination';
 import { useSelection } from '@/hooks/useSelection';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import type { LibraryQuery, SortKey } from '@/lib/libraryModel';
 import { readSyncIssues, withSyncResult, writeSyncIssues, type SyncIssue } from '@/data/librarySyncIssues';
 import type { BulkResult } from '@/services/platform/coachAssetsApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
+import { errorMessage } from '@/lib/errorMessage';
 
 /** What every segment gets from the Library screen. */
 export interface SegmentProps {
@@ -36,10 +37,9 @@ export interface SegmentProps {
 
 /** Writes are off when the coach's own Forma plan has lapsed or the device is offline. */
 export function useCanEdit(): { canEdit: boolean; online: boolean; reason: string | undefined } {
-  const { t } = useTranslation();
-  const { canWrite } = useCoachPlan();
-  const online = useOnlineStatus();
-  return { canEdit: canWrite && online, online, reason: !online ? t('offline.actionDisabled') : !canWrite ? t('library.planLapsed') : undefined };
+  // B3.8 (P2): the coach app's one write gate (plan + connection).
+  const { canWrite, online, reason } = useWriteGate();
+  return { canEdit: canWrite, online, reason };
 }
 
 // ---- toolbar ------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ export function ToggleFilter({ on, onChange, label, testId }: { on: boolean; onC
 /** A compact select filter ("Any muscle" …). */
 export function SelectFilter({ value, onChange, label, anyLabel, options, testId }: { value: string; onChange: (v: string) => void; label: string; anyLabel: string; options: { value: string; label: string }[]; testId: string }) {
   return (
-    <select className={`input h-9 w-auto min-w-0 max-w-[11rem] py-0 pe-8 text-[13px] leading-normal ${value ? 'border-brand/50 text-earth' : ''}`} aria-label={label} data-testid={testId} value={value} onChange={(e) => onChange(e.target.value)}>
+    <select className={`input h-11 w-auto min-w-0 max-w-[11rem] py-0 pe-8 text-[13px] leading-normal ${value ? 'border-brand/50 text-earth' : ''}`} aria-label={label} data-testid={testId} value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{anyLabel}</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -328,7 +328,7 @@ export function useBulkDelete(run: (ids: string[]) => Promise<BulkResult>, onDon
       onDone();
       if (res.failed > 0) void alertDialog({ title: t('common.delete'), message: t('library.bulkPartial', { ok: res.ok, failed: res.failed }) });
     },
-    onError: (e) => void alertDialog({ title: t('common.delete'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const setSelecting = (on: boolean) => {
     setSelectingState(on);

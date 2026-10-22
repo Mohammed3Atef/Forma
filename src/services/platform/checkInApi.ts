@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { trpc } from '@/services/trpc';
 import type { WeeklyCheckIn } from '@/types';
 
@@ -98,6 +99,21 @@ export async function submitCheckIn(clientId: string, id: string, data: CheckInS
 /** Coach reviews a submitted check-in with feedback. The backend notifies the client. */
 export async function reviewCheckIn(clientId: string, id: string, feedback: string): Promise<void> {
   await trpc.checkIns.review.mutate({ clientId, weekStart: id, feedback });
+}
+
+/**
+ * After a confirmed review (B3.9, PF-12): the client's check-in list is updated in place — no refetch
+ * of it — and only marked stale for the next natural refresh. The coach-wide summaries (Today, the
+ * directory) are recomputed by the server, so those are refreshed.
+ */
+export function writeReviewToCache(qc: QueryClient, clientId: string, coachId: string, weekStart: string, feedback: string) {
+  const now = Date.now();
+  qc.setQueryData<WeeklyCheckIn[]>(['checkIns', clientId], (list) =>
+    list?.map((c) => (c.id === weekStart || c.weekStart === weekStart ? { ...c, status: 'reviewed' as const, coachFeedback: feedback, reviewedAt: c.reviewedAt ?? now, updatedAt: now } : c)),
+  );
+  void qc.invalidateQueries({ queryKey: ['checkIns', clientId], refetchType: 'none' });
+  void qc.invalidateQueries({ queryKey: ['coachCheckInSummaries', coachId] });
+  void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries'] });
 }
 
 export interface CheckInTrendPoint {

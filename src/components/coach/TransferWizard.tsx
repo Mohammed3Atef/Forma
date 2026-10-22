@@ -10,6 +10,7 @@ import { confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { parseDecimal } from '@/lib/utils';
 import type { SubscriptionStatus, TransferMode, TransferSubHandling, UserRecord } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 const NEW_SUB_STATUSES: SubscriptionStatus[] = ['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen'];
 
@@ -62,7 +63,6 @@ export function TransferWizard({
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>('pending');
   const [months, setMonths] = useState('1');
   const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('');
 
   const targets = coaches.filter((c) => c.id !== fromCoachId);
   const toCoachName = coaches.find((c) => c.id === toCoachId)?.displayName || coaches.find((c) => c.id === toCoachId)?.email || '';
@@ -75,7 +75,6 @@ export function TransferWizard({
     const sub: ClientSubscriptionInput = { status: subStatus };
     if (subStatus === 'active') sub.months = Math.max(1, Math.round(parseDecimal(months) || 1));
     if (price.trim()) sub.price = parseDecimal(price) || undefined;
-    if (currency.trim()) sub.currency = currency.trim();
     return sub;
   };
 
@@ -86,10 +85,10 @@ export function TransferWizard({
         ? resolveTransferRequest(fromRequest.toCoachId, client.id, actorId, 'accepted', undefined, { mode, subscriptionHandling: subHandling, newSubscription: buildSub() })
         : transferClientWithMode(client.id, fromCoachId, toCoachId!, mode, subHandling, actorId, buildSub()),
     onSuccess: () => {
-      showToast({ title: t('transfer.confirm'), variant: 'success' });
+      showToast({ title: t('transfer.done'), variant: 'success' });
       onDone();
     },
-    onError: (e) => setRunError(e instanceof Error ? e.message : t('common.errorGeneric')),
+    onError: (e) => setRunError(errorMessage(e, t)),
   });
   const doRun = async () => {
     setRunError(null);
@@ -233,19 +232,16 @@ export function TransferWizard({
                   helper={monthsInvalid ? undefined : t('transfer.monthsHelper')}
                 />
               )}
-              <div className="flex gap-2">
-                <TextInput
-                  label={t('field.price')}
-                  fieldClassName="flex-1"
-                  inputMode="decimal"
-                  data-testid="transfer-sub-price"
-                  placeholder={t('invite.priceOptional')}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  error={priceInvalid ? t('transfer.priceInvalid') : undefined}
-                />
-                <TextInput label={t('field.currency')} fieldClassName="w-24" data-testid="transfer-sub-currency" placeholder="EGP" value={currency} onChange={(e) => setCurrency(e.target.value)} />
-              </div>
+              {/* B3.8: EGP-only — the price is in Egyptian pounds; there is no currency to choose. */}
+              <TextInput
+                label={t('subscription.priceEgp')}
+                inputMode="decimal"
+                data-testid="transfer-sub-price"
+                placeholder={t('invite.priceOptional')}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                error={priceInvalid ? t('transfer.priceInvalid') : undefined}
+              />
             </div>
           )}
         </div>
@@ -258,11 +254,11 @@ export function TransferWizard({
           {mode === 'fresh_start' && (
             <div className="grid grid-cols-1 gap-2">
               <div className="rounded-lg border border-danger/40 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-danger">{t('transfer.archived')}</p>
+                <p className="text-[12px] font-medium uppercase tracking-wide text-danger">{t('transfer.archived')}</p>
                 <p className="text-[12px] text-earth-muted">{t('transfer.archivedList')}</p>
               </div>
               <div className="rounded-lg border border-success/40 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-success">{t('transfer.kept')}</p>
+                <p className="text-[12px] font-medium uppercase tracking-wide text-success">{t('transfer.kept')}</p>
                 <p className="text-[12px] text-earth-muted">{t('transfer.keptList')}</p>
               </div>
             </div>

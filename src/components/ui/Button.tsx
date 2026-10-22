@@ -121,7 +121,7 @@ export function CountBadge({ count, max = 9, className = '', testId, tone = 'dan
   return (
     <span
       data-testid={testId}
-      className={`t-numeric flex h-[18px] min-w-[18px] items-center justify-center rounded-ui-pill ${tone === 'solid' ? 'bg-danger-solid' : 'bg-danger'} px-1 text-[11px] font-bold leading-none text-white ${className}`}
+      className={`t-numeric flex h-[18px] min-w-[18px] items-center justify-center rounded-ui-pill ${tone === 'solid' ? 'bg-danger-solid' : 'bg-danger'} px-1 text-[12px] font-bold leading-none text-white ${className}`}
     >
       {count > max ? `${max}+` : count}
     </span>

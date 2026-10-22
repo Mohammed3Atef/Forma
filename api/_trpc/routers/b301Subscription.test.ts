@@ -2,11 +2,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../router.js';
+import { addDays, todayIn } from '../../_lib/civilDate.js';
 import type { AuthedUser, Context } from '../context.js';
 import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc, SubscriptionDoc } from '../../coach-clients/_types.js';
 import { effectiveSubscriptionStatus } from '../../admin/_lib/subscription.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 /**
  * B3.0.1 — B3-S07 at the API (owner: Extend E2, Freeze F-C, auditable events,
@@ -34,6 +36,7 @@ function userDoc(o: Partial<UserDoc>): UserDoc {
 async function insertUser(o: Partial<UserDoc>): Promise<AuthedUser> {
   const doc = userDoc(o);
   await (await getDb()).collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return { id: doc._id, role: doc.role, accountStatus: doc.accountStatus, permissions: doc.permissions, doc };
 }
 const as = (u: AuthedUser) => appRouter.createCaller({ req: {} as VercelRequest, res: { setHeader: () => undefined } as unknown as VercelResponse, user: u } as Context);
@@ -48,6 +51,8 @@ const reasonOf = async (p: Promise<unknown>): Promise<{ code: string; reason?: s
 };
 const rel = async () => (await (await getDb()).collection<CoachClientDoc>('coachClients').findOne({ _id: REL }))!;
 const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+/** B3.8: terms are set on calendar days in the coach's zone (Egypt by default). */
+const cairoDaysAgo = (n: number) => addDays(todayIn('Africa/Cairo'), -n);
 const utcMidnight = (ms: number) => Date.UTC(new Date(ms).getUTCFullYear(), new Date(ms).getUTCMonth(), new Date(ms).getUTCDate());
 
 async function world(sub: Partial<SubscriptionDoc> | null) {
@@ -110,12 +115,13 @@ describe('B3-S07 — Extend (E2) through the API', () => {
 });
 
 describe('back-dated renewals are flagged in the audit event (owner, B3.0.1)', () => {
-  it('renewing a lapsed term from 8 days ago is flagged; re-saving a running term at its own start is not', async () => {
+  it('renewing a lapsed term from 8 days ago is flagged; correcting a running term without moving its start is not', async () => {
     const { coach } = await world({ startAt: Date.now() - 40 * DAY, endAt: Date.now() - 10 * DAY });
-    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'setTerm', startAt: Date.now() - 8 * DAY, months: 1 } });
-    expect((await rel()).subscriptionEvents?.at(-1)).toMatchObject({ op: 'setTerm', backdated: true });
+    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'renew', startDate: cairoDaysAgo(8), months: 1 } });
+    expect((await rel()).subscriptionEvents?.at(-1)).toMatchObject({ op: 'renew', backdated: true });
     const running = (await rel()).subscription!;
-    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'setTerm', startAt: running.startAt, months: 2 } });
+    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'correct', startDate: running.startDate, months: 2 } });
+    expect((await rel()).subscriptionEvents?.at(-1)).toMatchObject({ op: 'correct', reason: 'correction' });
     expect((await rel()).subscriptionEvents?.at(-1)).not.toHaveProperty('backdated');
   });
 });
@@ -138,7 +144,9 @@ describe('B3-S07 — Freeze (F-C) through the API', () => {
     const { coach } = await world({});
     const call = (from: number, until: number) => reasonOf(as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'freeze', from, until } }));
     expect(await call(Date.now() - 2 * DAY, Date.now() + DAY)).toEqual({ code: 'CONFLICT', reason: 'FREEZE_INVALID_WINDOW' });
-    expect(await call(Date.now() + 2 * DAY, Date.now() + 2 * DAY)).toEqual({ code: 'CONFLICT', reason: 'FREEZE_INVALID_WINDOW' });
+    // One instant for both ends (two Date.now() calls can differ by a millisecond under load, making a valid window).
+    const same = Date.now() + 2 * DAY;
+    expect(await call(same, same)).toEqual({ code: 'CONFLICT', reason: 'FREEZE_INVALID_WINDOW' });
     expect(await call(Date.now() + 20 * DAY, Date.now() + 40 * DAY)).toEqual({ code: 'CONFLICT', reason: 'FREEZE_OUT_OF_TERM' });
     await (await getDb()).collection('coachClients').updateOne({ _id: REL } as never, { $set: { 'subscription.status': 'trial' } });
     expect(await call(Date.now() + DAY, Date.now() + 2 * DAY)).toEqual({ code: 'CONFLICT', reason: 'FREEZE_NOT_ALLOWED' });
@@ -215,11 +223,12 @@ describe('B3-S06 — read-only enforcement in sync.push (activity date, never ar
   it('renewal gap: days between a lapse and the renewal are refused; a back-dated renewal covers them, and the refused log is then accepted on retry', async () => {
     const { coach, client } = await world({ startAt: Date.now() - 40 * DAY, endAt: Date.now() - 10 * DAY });
     const gapDay = dayOf(Date.now() - 5 * DAY);
-    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'setTerm', startAt: Date.now(), months: 1 } });
+    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'renew', months: 1 } });
     expect((await push(client, 'workoutLogs', [workout(gapDay)])).rejected).toEqual([{ id: gapDay, reason: 'SUBSCRIPTION_READ_ONLY' }]);
     expect((await push(client, 'workoutLogs', [workout(dayOf(Date.now()))])).rejected).toEqual([]);
-    // The coach decides the renewal should have started 8 days ago: the same record now syncs.
-    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'setTerm', startAt: Date.now() - 8 * DAY, months: 1 } });
+    // The coach decides the renewal should have started 8 days ago (B3.8: a correction of the
+    // renewal's start, not a third term): the same record now syncs.
+    await as(coach).coachClients.updateSubscription({ id: REL, sub: { op: 'correct', startDate: cairoDaysAgo(8) } });
     const retry = await push(client, 'workoutLogs', [workout(gapDay)]);
     expect(retry.rejected).toEqual([]);
     expect(retry.accepted.map((a) => a.id)).toEqual([gapDay]);

@@ -5,6 +5,8 @@ import { listClientCoachHistory } from '@/services/platform/coachClientsApi';
 import { fetchUser } from '@/services/platform/accountsApi';
 import type { CoachClientRelationship } from '@/types';
 import { formatDate } from '@/lib/format';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { OfflineState, useQueryScreen } from '@/components/ui/ScreenState';
 
 const fmt = (ms: number | undefined, lang: string) => (ms ? formatDate(ms, lang, 'medium') : '');
 
@@ -41,6 +43,8 @@ export function CoachTimeline({ clientId, compact = false }: { clientId: string;
   });
 
   const rows = q.data ?? [];
+  // B3.9 (CO-18): a failed or offline read is never "no history".
+  const screen = useQueryScreen(q);
   const current = rows.find((r) => r.rel.status === 'active') ?? null;
   // B3.4 / B3-S13: a returning client's earlier stints with the same coach are archived on that
   // relationship — each is its own row (when it ran, how it ended), newest first.
@@ -49,7 +53,9 @@ export function CoachTimeline({ clientId, compact = false }: { clientId: string;
     ...rows.flatMap((r) => (r.rel.previousStints ?? []).map((s) => ({ rel: { ...r.rel, ...s, id: `${r.rel.id}#${s.archivedAt}` } as CoachClientRelationship, coachName: r.coachName }))),
   ].sort((a, b) => b.rel.createdAt - a.rel.createdAt);
 
-  if (q.isLoading) return <p className="py-2 text-sm text-earth-muted">{t('auth.working')}</p>;
+  if (screen.status === 'offline') return <OfflineState onRetry={screen.retry} testId="timeline-offline" />;
+  if (screen.status === 'error') return <ErrorState onRetry={screen.retry} testId="timeline-error" />;
+  if (screen.status === 'loading') return <div className="sk h-16 rounded-xl" aria-busy="true" />;
   if (rows.length === 0) return <p className="py-2 text-sm text-earth-muted" data-testid="timeline-empty">{t('timeline.none')}</p>;
 
   return (
@@ -58,7 +64,7 @@ export function CoachTimeline({ clientId, compact = false }: { clientId: string;
         <div className="card flex items-center gap-3" data-testid="timeline-current">
           <span className="row-av h-9 w-9 shrink-0 bg-success/15 text-success"><Icon name="check" size={16} /></span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] uppercase tracking-wide text-earth-subtle">{t('timeline.current')}</span>
+            <span className="block text-[12px] uppercase tracking-wide text-earth-subtle">{t('timeline.current')}</span>
             <span className="block truncate font-medium">{current.coachName ?? t('timeline.unknownCoach')}</span>
             <span className="block text-[12px] text-earth-subtle">{t('timeline.since', { date: fmt(current.rel.createdAt, lang) })}</span>
           </span>
@@ -77,8 +83,8 @@ export function CoachTimeline({ clientId, compact = false }: { clientId: string;
                   <span className="block text-[12px] text-earth-subtle">{t('timeline.range', { from: fmt(r.rel.createdAt, lang), to: fmt(r.rel.endedAt, lang) || '—' })}</span>
                 </span>
                 <span className="flex flex-col items-end gap-1">
-                  {r.rel.endReason && <span className="chip border-line text-[10.5px] text-earth-subtle">{t(`timeline.reason.${r.rel.endReason}`)}</span>}
-                  {r.rel.mode && <span className="chip border-line text-[10.5px] text-earth-subtle">{t(`timeline.mode.${r.rel.mode}`)}</span>}
+                  {r.rel.endReason && <span className="chip border-line text-[12px] text-earth-subtle">{t(`timeline.reason.${r.rel.endReason}`)}</span>}
+                  {r.rel.mode && <span className="chip border-line text-[12px] text-earth-subtle">{t(`timeline.mode.${r.rel.mode}`)}</span>}
                 </span>
               </div>
             ))}

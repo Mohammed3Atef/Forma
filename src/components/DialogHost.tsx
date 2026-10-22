@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDialog } from '@/stores/dialogStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 /** Renders the active confirm/alert popup. Mounted once at the app root. */
 export function DialogHost() {
@@ -17,37 +18,19 @@ export function DialogHost() {
   // scroll is locked, initial focus goes to the least-destructive action
   // (Cancel, or Accept when there isn't one), and focus returns to whatever
   // triggered the dialog once it closes.
+  // B3.9: the shared trap — over a sheet, Escape cancels only this dialog.
+  useFocusTrap(panelRef, { active: open, onEscape: () => respond(false) });
   useEffect(() => {
     if (!open) return;
     restoreFocusRef.current = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        respond(false);
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     (cancelRef.current ?? acceptRef.current)?.focus();
     return () => {
-      document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
       restoreFocusRef.current?.focus();
     };
-  }, [open, respond]);
+  }, [open]);
 
   if (!open) return null;
 

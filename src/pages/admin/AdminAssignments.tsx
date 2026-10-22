@@ -20,6 +20,7 @@ import { TransferWizard } from '@/components/coach/TransferWizard';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { ClientTransferRequest, UserRecord } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 const DAY_MS = 86_400_000;
 const REQ_FLAG_DAYS = 3; // surface requests waiting longer than this
@@ -138,7 +139,7 @@ export function AdminAssignments() {
       setSelected(null);
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('admin.assignClient'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('admin.assignClient'), message: errorMessage(e, t) }),
   });
   const unassignMut = useMutation({
     mutationFn: (client: UserRecord) => unassignClient(client.id, client.assignedCoachId!, actorId),
@@ -147,12 +148,12 @@ export function AdminAssignments() {
       setSelected(null);
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('admin.unassign'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('admin.unassign'), message: errorMessage(e, t) }),
   });
   const rejectReqMut = useMutation({
     mutationFn: (r: ClientTransferRequest) => resolveTransferRequest(r.toCoachId, r.clientId, actorId, 'rejected'),
     onSuccess: () => { refresh(); showToast({ title: t('transferReq.rejectDone'), variant: 'success' }); },
-    onError: (e) => void alertDialog({ title: t('transferReq.reject'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('transferReq.reject'), message: errorMessage(e, t) }),
   });
   const doRejectReq = async (r: ClientTransferRequest, requesterName: string) => {
     if (await confirmDialog({ title: t('transferReq.reject'), message: t('transferReq.confirmReject', { coach: requesterName }), danger: true })) {
@@ -232,13 +233,13 @@ export function AdminAssignments() {
                     <button
                       type="button"
                       data-testid="admin-transfer-review"
-                      className="btn-primary h-9 flex-1 text-[13px] disabled:opacity-40"
+                      className="btn-primary btn-sm flex-1 disabled:opacity-40"
                       disabled={!client}
                       onClick={() => client && setWizard({ client, presetCoachId: req.toCoachId, request: req })}
                     >
                       {t('transfer.action')}
                     </button>
-                    <button type="button" data-testid="admin-transfer-reject" className="btn-ghost h-9 flex-1 text-[13px] text-danger" disabled={rejectReqMut.isPending} onClick={() => void doRejectReq(req, requesterName)}>
+                    <button type="button" data-testid="admin-transfer-reject" className="btn-ghost btn-sm flex-1 text-danger" disabled={rejectReqMut.isPending} onClick={() => void doRejectReq(req, requesterName)}>
                       {t('transferReq.reject')}
                     </button>
                   </div>

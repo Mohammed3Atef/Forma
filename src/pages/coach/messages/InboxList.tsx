@@ -72,7 +72,7 @@ export const InboxRowView = memo(function InboxRowView({ row, selected, onOpen }
         aria-current={selected ? 'true' : undefined}
         data-testid="thread-row"
         data-client-id={row.id}
-        className={`flex min-h-[4.25rem] w-full items-center gap-3 px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/70 ${
+        className={`flex min-h-[4.25rem] w-full items-center gap-3 px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ui-focus ${
           selected ? 'bg-brand/[0.12]' : 'hover:bg-white/[0.04]'
         }`}
       >
@@ -89,7 +89,7 @@ export const InboxRowView = memo(function InboxRowView({ row, selected, onOpen }
               <PreviewText p={row.preview} />
             </span>
             {unread ? (
-              <span data-testid="thread-unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-brand px-1.5 font-mono text-[10.5px] font-bold text-brand-ink">
+              <span data-testid="thread-unread-badge" className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-brand px-1.5 font-mono text-[12px] font-bold text-brand-ink">
                 <span aria-hidden="true">{unreadBadge(row.unread)}</span>
                 <span className="sr-only">{t('messages.unreadCount', { count: row.unread })}</span>
               </span>

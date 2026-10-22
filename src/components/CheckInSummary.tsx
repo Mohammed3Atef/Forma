@@ -27,7 +27,7 @@ export function CheckInSummary({ checkIn }: { checkIn: WeeklyCheckIn }) {
       {checkIn.notes && (
         <div>
           <p className="label">{t('checkin.notes')}</p>
-          <p className="whitespace-pre-wrap text-sm text-earth-muted">{checkIn.notes}</p>
+          <p className="whitespace-pre-wrap text-sm text-earth-muted" dir="auto">{checkIn.notes}</p>
         </div>
       )}
       {poses.length > 0 && (

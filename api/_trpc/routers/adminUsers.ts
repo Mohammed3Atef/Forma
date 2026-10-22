@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, permissionProcedure, roleProcedure } from '../trpc.js';
-import { usersCol } from '../../_lib/mongodb.js';
+import { usersCol, withDbTransaction } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
 import { ALL_PERMISSIONS, hasPermission } from '../../_lib/rbac.js';
 import { toPublicUser, type Permission, type PublicUser, type Role, type UserDoc } from '../../_lib/types.js';
@@ -134,11 +134,13 @@ export const adminUsersRouter = router({
         createdAt: now,
         updatedAt: now,
       };
-      await users.insertOne(doc);
-      // Every coach, however created, always has a real (Trial-at-minimum)
-      // plan — no admin-created coach action here needs a paid CoachPlanRequest;
-      // an admin assigning a paid tier directly is the existing `setCoachTier`.
-      if (doc.role === 'coach') await ensureTrialPlan(doc._id);
+      // Every coach, however created, always has a real (Trial-at-minimum) plan. B3.8 final
+      // (B38F-R3): the account and its trial are written in ONE transaction, as `auth.signup`
+      // does, so a failure can never leave a coach without a plan document.
+      await withDbTransaction(async (session) => {
+        await users.insertOne(doc, { session });
+        if (doc.role === 'coach') await ensureTrialPlan(doc._id, session);
+      });
       await writeAudit(ctx.user, 'user.create', doc._id, { role: doc.role });
       return toPublicUser(doc);
     }),
@@ -310,9 +312,13 @@ export const adminUsersRouter = router({
       if ((target.role === 'admin' || target.role === 'super_admin') && ctx.user.role !== 'super_admin') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot modify an admin account' });
       }
-      await users.updateOne({ _id: input.id }, { $set: { role: input.role as Role, updatedAt: Date.now() } });
-      // Idempotent — a no-op if this user already has a valid plan (never resets one).
-      if (input.role === 'coach') await ensureTrialPlan(input.id);
+      // Idempotent — a no-op if this user already has a plan (never resets one, so a coach who was
+      // demoted and promoted again gets no second trial). One transaction with the role change
+      // (B38F-R3): a coach never exists without a plan document.
+      await withDbTransaction(async (session) => {
+        await users.updateOne({ _id: input.id }, { $set: { role: input.role as Role, updatedAt: Date.now() } }, { session });
+        if (input.role === 'coach') await ensureTrialPlan(input.id, session);
+      });
       await writeAudit(ctx.user, 'user.updateRole', input.id, { from: target.role, to: input.role });
       const updated = await users.findOne({ _id: input.id });
       return toPublicUser(updated!);

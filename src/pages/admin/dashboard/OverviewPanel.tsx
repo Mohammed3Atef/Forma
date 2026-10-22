@@ -68,7 +68,7 @@ export function OverviewPanel() {
 
       {isSuper && coaches.data ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard icon="bolt" value={coaches.data.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="brand" />
+          <MetricCard icon="bolt" value={coaches.data.trackedRevenue + coaches.data.capacityRevenue} label={t('admin.formaRecurringRevenue')} hint={t('admin.perMonth')} tone="brand" />
           <MetricCard icon="trophy" value={coaches.data.activeCoaches} label={t('adminCoaches.active')} />
           <MetricCard icon="timer" value={coaches.data.trialCoaches} label={t('adminCoaches.trial')} />
           <MetricCard icon="target" value={`${coaches.data.conversionRate}%`} label={t('adminCoaches.conversion')} tone="brand" />

@@ -28,6 +28,9 @@ const weekOfKey = (key: string) => key.split('__')[0];
  * legacy, no `coachId` — it was created after the coach's current relationship began. Never
  * invented: a legacy record from before the relationship belongs to nobody the coach can see.
  */
+/** How many recent check-ins per client the coach overview reads (B3.9, PF-14) — latest + the previous answered one, with room. */
+const CHECKINS_PER_CLIENT = 12;
+
 function ownedBy(doc: WeeklyCheckInDoc, coachId: string, relationshipStart: number | null): boolean {
   if (doc.coachId) return doc.coachId === coachId;
   return relationshipStart != null && (doc.submittedAt ?? doc.createdAt ?? 0) >= relationshipStart;
@@ -175,14 +178,23 @@ export const checkInsRouter = router({
       const coachId = input.coachId ?? ctx.user.id;
       if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
       const relCol = await coachClientsCol();
-      const rels = await relCol.find({ coachId, status: 'active' }).toArray();
+      const rels = await relCol.find({ coachId, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).toArray();
       const clientIds = [...new Set(rels.map((r) => r.clientId))];
       if (clientIds.length === 0) return [];
       const relStart = new Map(rels.map((r) => [r.clientId, Number(r.createdAt ?? 0)]));
 
+      // B3.9 (PF-14): the newest few check-ins per client, chosen in the database ($topN) — the screen
+      // shows the latest and the previous answered one; every check-in ever used to be sent here.
+      // Only this coach's records (or legacy ones without a coach) are candidates; `ownedBy` then
+      // applies the relationship start exactly as before.
       const col = await checkInsCol();
-      const found = await col.find({ clientId: { $in: clientIds } }).sort({ clientId: 1, weekStart: -1, createdAt: -1 }).toArray();
-      const docs = found.filter((d) => ownedBy(d, coachId, relStart.get(d.clientId) ?? null));
+      const grouped = await col
+        .aggregate<{ _id: string; top: WeeklyCheckInDoc[] }>([
+          { $match: { clientId: { $in: clientIds }, $or: [{ coachId }, { coachId: { $exists: false } }, { coachId: null }] } },
+          { $group: { _id: '$clientId', top: { $topN: { n: CHECKINS_PER_CLIENT, sortBy: { weekStart: -1, createdAt: -1 }, output: '$$ROOT' } } } },
+        ])
+        .toArray();
+      const docs = grouped.flatMap((g) => g.top).filter((d) => ownedBy(d, coachId, relStart.get(d.clientId) ?? null));
       const byClient = new Map<string, WeeklyCheckInDoc[]>();
       for (const d of docs) {
         const arr = byClient.get(d.clientId);
@@ -338,31 +350,65 @@ export const checkInsRouter = router({
       return updated;
     }),
 
-  /** Coach reviews a submitted check-in with feedback. B3.4: only their own record (a previous coach's is never touched). */
-  review: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string(), feedback: z.string() })).mutation(async ({ ctx, input }) => {
+  /**
+   * Coach reviews a submitted check-in with feedback. B3.4: only their own record (a previous
+   * coach's is never touched). B3.9 (B3-S09): only a SUBMITTED check-in can be reviewed — a still
+   * requested one is refused (`CHECKIN_NOT_SUBMITTED`), so a review can never lock the client out
+   * of answering. The first review is a compare-and-set on `submitted` (two racing reviews notify the
+   * client once); a reviewed check-in may have its feedback edited (compare-and-set on its last
+   * update), and repeating the same feedback writes and notifies nothing.
+   */
+  review: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string().max(80), feedback: z.string().max(4000) })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await checkInsCol();
     const now = Date.now();
     const target = ctx.user.role === 'coach' ? await ownWeekDoc(clientId, input.weekStart, ctx.user.id) : await col.findOne({ _id: checkInId(clientId, input.weekStart) });
     if (!target) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
+    if (target.status !== 'submitted' && target.status !== 'reviewed') {
+      throw new TRPCError({ code: 'CONFLICT', message: 'This check-in has not been answered yet', cause: new CommercialReason('CHECKIN_NOT_SUBMITTED') });
+    }
     const _id = target._id;
     const key = keyOf(target);
-    await col.updateOne({ _id }, { $set: { status: 'reviewed', reviewedAt: now, coachFeedback: input.feedback.trim(), updatedAt: now } });
+    const feedback = input.feedback.trim();
+    let changed: boolean;
+    if (target.status === 'submitted') {
+      const first = await col.updateOne({ _id, status: 'submitted' }, { $set: { status: 'reviewed', reviewedAt: now, coachFeedback: feedback, updatedAt: now } });
+      changed = first.modifiedCount === 1;
+      if (!changed) {
+        // Lost a race with another review: the same feedback is the same review (idempotent).
+        const now2 = await col.findOne({ _id });
+        if (now2?.status !== 'reviewed' || (now2.coachFeedback ?? '') !== feedback) throw new TRPCError({ code: 'CONFLICT', message: 'This check-in changed meanwhile. Reload and try again', cause: new CommercialReason('CHECKIN_STALE') });
+      }
+    } else if ((target.coachFeedback ?? '') === feedback) {
+      changed = false;
+    } else {
+      const edit = await col.updateOne({ _id, status: 'reviewed', updatedAt: target.updatedAt }, { $set: { coachFeedback: feedback, updatedAt: now } });
+      if (edit.matchedCount === 0) throw new TRPCError({ code: 'CONFLICT', message: 'This check-in changed meanwhile. Reload and try again', cause: new CommercialReason('CHECKIN_STALE') });
+      changed = true;
+    }
     const updated = await col.findOne({ _id });
     if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: 'Check-in not found' });
-    await notify({ clientId, forRole: 'client', type: 'checkin_reviewed', body: input.feedback.trim().slice(0, 140), entityType: 'checkin', entityId: key, route: `/check-in/${key}`, createdBy: ctx.user.id });
-    await resolveNotifications({ clientId, forRole: 'coach', type: 'checkin_submitted', entityId: key });
+    if (changed) {
+      await notify({ clientId, forRole: 'client', type: 'checkin_reviewed', body: feedback.slice(0, 140), entityType: 'checkin', entityId: key, route: `/check-in/${key}`, createdBy: ctx.user.id });
+      await resolveNotifications({ clientId, forRole: 'coach', type: 'checkin_submitted', entityId: key });
+    }
     return updated;
   }),
 
-  /** Coach/admin only (no client delete rule). B3.4: a coach deletes only their own record. */
-  delete: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string() })).mutation(async ({ ctx, input }) => {
+  /**
+   * Coach/admin only (no client delete rule). B3.4: a coach deletes only their own record. B3.9: only
+   * an unanswered request can be withdrawn — an answered check-in holds the client's answers and
+   * photos and is never deleted (`CHECKIN_ANSWERED`).
+   */
+  delete: authedProcedure.input(z.object({ clientId: z.string().optional(), weekStart: z.string().max(80) })).mutation(async ({ ctx, input }) => {
     const clientId = resolveClientId(input.clientId, ctx.user);
     if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
     const col = await checkInsCol();
     const target = ctx.user.role === 'coach' ? await ownWeekDoc(clientId, input.weekStart, ctx.user.id) : await col.findOne({ _id: checkInId(clientId, input.weekStart) });
-    if (target) await col.deleteOne({ _id: target._id });
+    if (!target) return;
+    const gone = await col.deleteOne({ _id: target._id, status: 'requested' });
+    if (gone.deletedCount === 0) throw new TRPCError({ code: 'CONFLICT', message: 'An answered check-in is kept — it holds the client’s answers', cause: new CommercialReason('CHECKIN_ANSWERED') });
   }),
 });
 
@@ -509,20 +555,31 @@ export const subscriptionRequestRouter = router({
     return updated;
   }),
 
-  /** Assigned coach / admin(writeAll) decides. */
+  /**
+   * Assigned coach / admin(writeAll) decides. B3.9 (audit): a compare-and-set on a PENDING request —
+   * a cancelled, already decided or missing request is refused (`REQUEST_ALREADY_RESOLVED` /
+   * NOT_FOUND), nothing is created (no upsert), and a coach decides only a request made during their
+   * own stint with the client (never one filed under a previous coach), as `pendingForCoach` lists.
+   */
   decide: authedProcedure
-    .input(z.object({ clientId: z.string().optional(), outcome: z.enum(['accepted', 'rejected']), coachNote: z.string() }))
+    .input(z.object({ clientId: z.string().optional(), outcome: z.enum(['accepted', 'rejected']), coachNote: z.string().max(500) }))
     .mutation(async ({ ctx, input }) => {
       const clientId = resolveClientId(input.clientId, ctx.user);
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await subscriptionRequestsCol();
       const now = Date.now();
-      await col.updateOne(
-        { _id: clientId },
-        { $set: { clientId, status: input.outcome, decidedAt: now, decidedBy: ctx.user.id, coachNote: input.coachNote.trim(), updatedAt: now } },
-        { upsert: true },
-      );
-      const updated = await col.findOne({ _id: clientId });
+      const filter: Record<string, unknown> = { _id: clientId, status: 'pending' };
+      if (ctx.user.role === 'coach') {
+        const rel = await (await coachClientsCol()).findOne({ coachId: ctx.user.id, clientId, status: 'active' }, { projection: { createdAt: 1 } });
+        filter.requestedAt = { $gte: Number(rel?.createdAt ?? 0) };
+      }
+      const decided = await col.findOneAndUpdate(filter as never, { $set: { status: input.outcome, decidedAt: now, decidedBy: ctx.user.id, coachNote: input.coachNote.trim(), updatedAt: now } }, { returnDocument: 'after' });
+      if (!decided) {
+        const existing = await col.findOne({ _id: clientId });
+        if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'There is no request to decide' });
+        throw new TRPCError({ code: 'CONFLICT', message: 'This request was already decided or withdrawn', cause: new CommercialReason('REQUEST_ALREADY_RESOLVED') });
+      }
+      const updated = decided;
       await notify({ clientId, forRole: 'client', type: 'freeze_decided', body: input.coachNote.trim().slice(0, 140), route: '/coach-notes', createdBy: ctx.user.id });
       await resolveNotifications({ clientId, forRole: 'coach', type: 'freeze_requested' });
       return updated;

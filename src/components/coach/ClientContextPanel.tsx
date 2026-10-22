@@ -26,7 +26,7 @@ export function ClientContextPanel({ clientId }: { clientId: string }) {
 
   return (
     <div className="rounded-xl border border-line-soft" data-testid="client-context-panel">
-      <button type="button" className="flex w-full items-center justify-between px-3 py-2.5" onClick={() => setOpen((v) => !v)} data-testid="client-context-toggle">
+      <button type="button" className="flex min-h-ui-hit w-full items-center justify-between px-3 py-2.5" onClick={() => setOpen((v) => !v)} data-testid="client-context-toggle">
         <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium">
           <Icon name="user" size={16} className="shrink-0 text-earth-muted" />
           <span className="truncate">{t('coachEditor.clientContext')}{name ? ` · ${name}` : ''}</span>
@@ -38,28 +38,28 @@ export function ClientContextPanel({ clientId }: { clientId: string }) {
         <div className="grid grid-cols-2 gap-3 border-t border-line-soft px-3 py-3 text-[13px]">
           {goal && (
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-earth-subtle">{t('settings.goal')}</p>
+              <p className="text-[12px] uppercase tracking-wide text-earth-subtle">{t('settings.goal')}</p>
               <p>{t(`settings.goals.${goal}`)}</p>
             </div>
           )}
           {currentWeightKg != null && (
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-earth-subtle">{t('coachEditor.currentWeight')}</p>
+              <p className="text-[12px] uppercase tracking-wide text-earth-subtle">{t('coachEditor.currentWeight')}</p>
               <p>{currentWeightKg} {t('common.kg')}</p>
             </div>
           )}
           <div className={hasInjuries ? 'text-danger' : ''}>
-            <p className="text-[11px] uppercase tracking-wide text-earth-subtle">{t('assessment.injuriesQ')}</p>
+            <p className="text-[12px] uppercase tracking-wide text-earth-subtle">{t('assessment.injuriesQ')}</p>
             <p>{injuryText}</p>
             {assessment?.health.injuryDetails && <p className="text-[12px] text-earth-subtle">{assessment.health.injuryDetails}</p>}
           </div>
           <div className={allergies.length ? 'text-danger' : ''}>
-            <p className="text-[11px] uppercase tracking-wide text-earth-subtle">{t('assessment.allergies')}</p>
+            <p className="text-[12px] uppercase tracking-wide text-earth-subtle">{t('assessment.allergies')}</p>
             <p>{allergies.length ? allergies.join(', ') : t('assessment.injuries.none')}</p>
           </div>
           {mustHave.length > 0 && (
             <div className="col-span-2">
-              <p className="text-[11px] uppercase tracking-wide text-earth-subtle">{t('assessment.mustHave')}</p>
+              <p className="text-[12px] uppercase tracking-wide text-earth-subtle">{t('assessment.mustHave')}</p>
               <p>{mustHave.join(', ')}</p>
             </div>
           )}

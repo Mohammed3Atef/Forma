@@ -125,7 +125,7 @@ export function Nutrition() {
     setEditorSaving(true);
     setEditorError(null);
     try {
-      if (editor.type === 'replace') await replaceItem(editor.itemId, food, { source: 'client_custom_substitution', pendingApproval: !!policy?.requireCoachApproval });
+      if (editor.type === 'replace') await replaceItem(editor.itemId, food, { source: 'client_custom_substitution' });
       else if (editor.mealId) await addMealItem(editor.mealId, food);
       else await addCustomFood(food);
       setEditor(null);
@@ -440,7 +440,7 @@ export function Nutrition() {
                     : [
                         (replacement ?? item).quantity,
                         `${formatNumber((replacement ?? item).calories, lang)} kcal`,
-                        sub ? (sub.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')) + (sub.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : '') : null,
+                        sub ? (sub.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')) : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')

@@ -9,7 +9,7 @@ import { CoachPlanBanner } from '@/components/coach/CoachPlanBanner';
 import { BannerHost } from '@/components/BannerHost';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { queryClient } from '@/services/platform/queryClient';
-import { legacyViewTarget } from '@/lib/coachWorkspace';
+import { legacyViewTarget, versionsTarget } from '@/lib/coachWorkspace';
 // Eager: lightweight shared pages (Clients is no longer the landing — Today is, since B3.1).
 import { RoleAccount } from '@/pages/RoleAccount';
 import { SignedInInterstitial } from '@/pages/auth/SignedInInterstitial';
@@ -28,21 +28,18 @@ const WorkspaceProgress = lazy(() => import('@/pages/coach/workspace/WorkspacePr
 const WorkspaceProfile = lazy(() => import('@/pages/coach/workspace/WorkspaceProfile').then((m) => ({ default: m.WorkspaceProfile })));
 const ProfileSection = lazy(() => import('@/pages/coach/workspace/WorkspaceProfile').then((m) => ({ default: m.ProfileSection })));
 const CoachClientAssessment = lazy(() => import('@/pages/coach/CoachClientAssessment').then((m) => ({ default: m.CoachClientAssessment })));
-const CoachReports = lazy(() => import('@/pages/coach/CoachReports').then((m) => ({ default: m.CoachReports })));
 const CoachPlan = lazy(() => import('@/pages/coach/CoachPlan').then((m) => ({ default: m.CoachPlan })));
-const CoachSubscriptionPlans = lazy(() => import('@/pages/coach/CoachSubscriptionPlans').then((m) => ({ default: m.CoachSubscriptionPlans })));
 const CoachWorkoutEditor = lazy(() => import('@/pages/coach/CoachWorkoutEditor').then((m) => ({ default: m.CoachWorkoutEditor })));
 const CoachNutritionEditor = lazy(() => import('@/pages/coach/CoachNutritionEditor').then((m) => ({ default: m.CoachNutritionEditor })));
 const CoachCardioEditor = lazy(() => import('@/pages/coach/CoachCardioEditor').then((m) => ({ default: m.CoachCardioEditor })));
 // B3.7 Library: Programs · Exercises · Foods · Supplements; a template opens read-first in its editor (RM-27).
 const CoachWorkoutTemplateEditor = lazy(() => import('@/pages/coach/CoachWorkoutTemplateEditor').then((m) => ({ default: m.CoachWorkoutTemplateEditor })));
 const CoachLibrary = lazy(() => import('@/pages/coach/library/CoachLibrary').then((m) => ({ default: m.CoachLibrary })));
-const PlanVersionHistory = lazy(() => import('@/pages/coach/PlanVersionHistory').then((m) => ({ default: m.PlanVersionHistory })));
 const CoachMessages = lazy(() => import('@/pages/coach/CoachMessages').then((m) => ({ default: m.CoachMessages })));
 const CoachClientNotes = lazy(() => import('@/pages/coach/CoachClientNotes').then((m) => ({ default: m.CoachClientNotes })));
 const CoachClientSubscriptionTab = lazy(() => import('@/pages/coach/CoachClientSubscriptionTab').then((m) => ({ default: m.CoachClientSubscriptionTab })));
 const CoachClientHistory = lazy(() => import('@/pages/coach/CoachClientHistory').then((m) => ({ default: m.CoachClientHistory })));
-const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) => ({ default: m.CoachRevenue })));
+const CoachBusiness = lazy(() => import('@/pages/coach/business/CoachBusiness').then((m) => ({ default: m.CoachBusiness })));
 
 /**
  * Coach portal (B3.1): one `CoachShell` for every width — Today · Clients ·
@@ -55,6 +52,8 @@ const CoachRevenue = lazy(() => import('@/pages/coach/CoachRevenue').then((m) =>
  * coach notification feed fold into it (blueprint §5.3, O-5) and redirect;
  * B3.3: the weekly check-ins page and the adherence ranking live in Clients
  * (`?view=checkins`, `?sort=workouts`); their old URLs redirect there.
+ * B3.8: Revenue, Reports and Client Plans are one screen, Me › Business
+ * (`/coach/business?tab=…`); their old URLs redirect there.
  */
 export function CoachApp() {
   const shell = (node: ReactNode) => (
@@ -84,10 +83,12 @@ export function CoachApp() {
         <Route path="/coach/clients" element={shell(<CoachClients />)} />
         <Route path="/coach/assessments" element={<Navigate to="/coach/dashboard?focus=assessments" replace />} />
         <Route path="/coach/checkins" element={<Navigate to="/coach/clients?view=checkins" replace />} />
-        <Route path="/coach/reports" element={shell(<CoachReports />)} />
-        <Route path="/coach/revenue" element={shell(<CoachRevenue />)} />
+        <Route path="/coach/business" element={shell(<CoachBusiness />)} />
+        {/* B3.8: Revenue, Reports and Client Plans are Me › Business now; their URLs keep working. */}
+        <Route path="/coach/revenue" element={<Navigate to="/coach/business" replace />} />
+        <Route path="/coach/reports" element={<Navigate to="/coach/business?tab=exports" replace />} />
+        <Route path="/coach/subscription-plans" element={<Navigate to="/coach/business?tab=packages" replace />} />
         <Route path="/coach/plan" element={shell(<CoachPlan />)} />
-        <Route path="/coach/subscription-plans" element={shell(<CoachSubscriptionPlans />)} />
 
         {/* B3.4 client workspace (blueprint §6.3): one header + Summary · Plan · Progress · Profile.
             Profile's sections and Progress › Check-ins keep the URLs stored notifications point at;
@@ -109,9 +110,9 @@ export function CoachApp() {
         {/* The retired "view as client" pages live in Progress now (RM-20); their URLs redirect. */}
         <Route path="/coach/client/:clientId/view" element={<LegacyViewRedirect />} />
         <Route path="/coach/client/:clientId/view/:tab" element={<LegacyViewRedirect />} />
-        {/* Plan version history (from the editors; becomes a sheet in B3.5). */}
-        {/* B3-C02: restoring a version is editing — the same plan gate as the editors (the editors' History sheet is the usual way in). */}
-        <Route path="/coach/client/:clientId/versions/:kind" element={gated(<PlanVersionHistory />)} />
+        {/* B3.9 (owner D10): the old version-history page is the editor's History sheet now — its URL redirects there
+            (the editors stay behind the plan gate, B3-C02). */}
+        <Route path="/coach/client/:clientId/versions/:kind" element={<VersionsRedirect />} />
         <Route path="/coach/library" element={shell(<CoachLibrary />)} />
         {/* B3.7: Templates is Library › Programs; the list URL redirects, the editor URLs stay.
             A template's own URL opens it read-first (viewing stays open when the coach's plan has lapsed). */}
@@ -136,6 +137,12 @@ export function CoachApp() {
       </SiteIconSet>
     </QueryClientProvider>
   );
+}
+
+/** `…/versions/:kind` (the retired version-history page) → that editor with History open (B3.9, D10). */
+function VersionsRedirect() {
+  const { clientId = '', kind } = useParams();
+  return <Navigate to={versionsTarget(clientId, kind)} replace />;
 }
 
 /** `…/view`, `…/view/:tab` (the retired "view as client" pages) → the matching Progress view (B3.4). */

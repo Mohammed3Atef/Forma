@@ -58,6 +58,13 @@ export function classifyError(e: unknown): ClassifiedError {
         return { kind: 'unavailable', code: up, retryable: true };
       case 'failed':
         return { kind: 'network', code: up, retryable: true };
+      // B3.8 (P2): the coach's Forma plan — the same reason a refused tRPC write carries.
+      case 'planLapsed':
+        return { kind: 'permanent', code: up, reason: 'SUBSCRIPTION_EXPIRED', retryable: false };
+      case 'planSuspended':
+        return { kind: 'permanent', code: up, reason: 'SUBSCRIPTION_SUSPENDED', retryable: false };
+      case 'noPlan':
+        return { kind: 'permanent', code: up, reason: 'NO_SUBSCRIPTION', retryable: false };
       default:
         return { kind: 'permanent', code: up, retryable: false }; // badType / tooLarge*
     }

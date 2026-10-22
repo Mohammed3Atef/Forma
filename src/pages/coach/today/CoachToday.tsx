@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
@@ -11,13 +11,15 @@ import { OfflineState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CoachChecklist } from '@/pages/coach/onboarding/CoachChecklist';
 import { CoachTrialBanner } from '@/pages/coach/onboarding/CoachTrialBanner';
+import { useCapacityFollowsRoster } from '@/components/coach/CoachPlanProvider';
 import { useSession } from '@/services/auth/sessionStore';
 import { coachPlanQuery } from '@/services/platform/coachPlanApi';
 import { listWorkoutTemplates } from '@/services/platform/coachAssetsApi';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { formatDate, formatTime } from '@/lib/format';
-import { today as todayKey } from '@/lib/utils';
+import { today as todayKey, weekRange } from '@/lib/utils';
+import { buildDirectory } from '@/lib/coachDirectory';
 import { buildTodayQueue, parseFocus, SECTION_OF, TODAY_KINDS, TODAY_SECTIONS, type TodayItem, type TodayKind, type TodaySection } from '@/lib/coachToday';
 import { useCoachSources } from '@/hooks/useCoachSources';
 import { SECTION_ICON, TodayRow, useTodayReason, type TodayPerson } from './TodayRow';
@@ -54,10 +56,17 @@ export function CoachToday() {
     return () => clearInterval(id);
   }, []);
   const queue = useMemo(() => buildTodayQueue(sources, { coachId, now, todayKey: todayKey() }), [sources, coachId, now]);
+  // B3.9: the desktop panel's client context — the same directory rows Clients shows, from sources already loaded.
+  const contextRows = useMemo(() => {
+    if (!desktop) return null;
+    const day = todayKey();
+    return new Map(buildDirectory(sources, { coachId, now, todayKey: day, weekStart: weekRange(day).weekStart }).rows.map((r) => [r.id, r]));
+  }, [desktop, sources, coachId, now]);
   const reasonOf = useTodayReason();
 
   const plan = useQuery(coachPlanQuery(coachId));
   const rosterSize = queue.rosterSize;
+  useCapacityFollowsRoster(rosterSize); // the trial banner's count is the server's (B3.8, D5)
   const templates = useQuery({
     queryKey: ['workoutTemplates', coachId],
     queryFn: () => listWorkoutTemplates(coachId),
@@ -141,10 +150,13 @@ export function CoachToday() {
   );
   if (!sources.roster.data) {
     return (
-      <div className="mx-auto w-full max-w-3xl pb-6 pt-3" data-testid="coach-today" data-state={sources.roster.error ? (online ? 'error' : 'offline') : 'loading'}>
+      <div className="mx-auto w-full max-w-3xl pb-6 pt-3" data-testid="coach-today" data-state={!online || sources.roster.paused ? 'offline' : sources.roster.error ? 'error' : 'loading'}>
         {header}
-        {sources.roster.error ? (
-          online ? <ErrorState onRetry={refresh} testId="today-error" /> : <OfflineState message={t('coachToday.offlineEmpty')} onRetry={refresh} testId="today-offline" />
+        {/* B3.9 (CO-18 / PF-21): a read paused offline is offline — never an endless skeleton. */}
+        {!online || sources.roster.paused ? (
+          <OfflineState message={t('coachToday.offlineEmpty')} onRetry={refresh} testId="today-offline" />
+        ) : sources.roster.error ? (
+          <ErrorState onRetry={refresh} testId="today-error" />
         ) : (
           <div className="space-y-2" aria-busy="true" data-testid="today-loading">
             {Array.from({ length: 5 }, (_, i) => (
@@ -156,8 +168,7 @@ export function CoachToday() {
     );
   }
 
-  const usedClients = rosterSize ?? 0;
-  const notices = plan.data ? <CoachTrialBanner plan={plan.data} usedClients={usedClients} /> : null;
+  const notices = plan.data ? <CoachTrialBanner plan={plan.data} /> : null;
   const checklist =
     rosterSize !== null && rosterSize < CHECKLIST_MAX_CLIENTS && templates.data ? <CoachChecklist totalClients={rosterSize} templatesCreated={templates.data.length} /> : null;
 
@@ -254,14 +265,19 @@ export function CoachToday() {
 
   const comingUp =
     queue.comingUp.length > 0 && !focus ? (
-      <Section testId="today-coming-up" title={<span className="flex items-center gap-2"><Icon name="clock" size={17} className="text-earth-muted" />{t('coachToday.comingUp')}</span>}>
+      <Section
+        testId="today-coming-up"
+        title={<span className="flex items-center gap-2"><Icon name="clock" size={17} className="text-earth-muted" />{t('coachToday.comingUp')}</span>}
+        // Today shows at most five; every renewal of the next 30 days is in Me › Business (B3.8).
+        action={<Link to="/coach/business?tab=renewals" className="hit-44 text-[13px] font-semibold text-brand hover:underline" data-testid="today-coming-up-all">{t('coachToday.comingUpAll')}</Link>}
+      >
         <ListGroup>
           {queue.comingUp.slice(0, SECTION_CAP).map((c) => (
             <button key={c.clientId} type="button" onClick={() => navigate(c.to)} className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-start hover:bg-white/[0.03]" data-testid="today-coming-up-row">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-semibold leading-snug">{person(c.clientId).name}</span>
                 <span className="mt-0.5 block truncate text-[13px] text-earth-muted">
-                  {t(c.trial ? 'coachToday.reason.trialEnds' : 'coachToday.reason.renewal', { count: c.days, date: formatDate(c.endAt, lang, 'weekdayDayMonth') })}
+                  {t(c.trial ? 'coachToday.reason.trialEnds' : 'coachToday.reason.renewal', { count: c.days, date: formatDate(c.lastDay, lang, 'weekdayDayMonth') })}
                 </span>
               </span>
               <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
@@ -296,7 +312,7 @@ export function CoachToday() {
   // Two panes only on desktop with something to show; otherwise one reading column for everything (header included).
   const twoPane = desktop && shown.length > 0;
   return (
-    <div className={`mx-auto w-full pb-6 pt-3 ${twoPane ? 'max-w-6xl' : 'max-w-2xl'}`} data-testid="coach-today" data-state={total ? 'queue' : trustworthyEmpty ? 'clear' : 'incomplete'}>
+    <div className={`mx-auto w-full pb-6 pt-3 ${twoPane ? '' : 'max-w-2xl'}`} data-testid="coach-today" data-state={total ? 'queue' : trustworthyEmpty ? 'clear' : 'incomplete'}>
       {header}
       <div className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -341,7 +357,8 @@ export function CoachToday() {
 
       {twoPane ? (
         // 1024–1279 px: the labelled rail leaves ~720 px, so the panes split evenly (each about a phone sheet wide).
-        <div className="grid grid-cols-2 gap-5 xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] xl:gap-6">
+        // B3.9: from 1280 px a 5 : 7 split — the queue rows stop wrapping and the panel keeps the client's context.
+        <div className="grid grid-cols-2 gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:gap-6">
           {queueColumn}
           <aside
             className="sticky top-[calc(var(--desktop-topbar-h,3.5rem)+1rem)] max-h-[calc(100dvh-var(--desktop-topbar-h,3.5rem)-2rem)] self-start overflow-y-auto rounded-ui-surface border border-white/[0.07] bg-surface-card p-5"
@@ -349,7 +366,7 @@ export function CoachToday() {
             data-testid="today-panel"
           >
             {selected ? (
-              <TodayDetail key={selected.key} item={selected} person={person(selected.clientId)} reason={reasonOf(selected, now)} coachId={coachId} onResolved={selectNext} />
+              <TodayDetail key={selected.key} item={selected} person={person(selected.clientId)} reason={reasonOf(selected, now)} coachId={coachId} onResolved={selectNext} context={contextRows?.get(selected.clientId)} />
             ) : null}
             <p className="mt-5 text-[12px] text-earth-subtle">{t('coachToday.detail.keyboard')}</p>
           </aside>

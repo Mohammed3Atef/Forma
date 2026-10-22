@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { TextAreaField } from '@/components/ui/Field';
@@ -28,6 +29,8 @@ export function CoachClientNotes() {
 
   const notes = useQuery({ queryKey: ['coachNotes', clientId], queryFn: () => listCoachNotes(clientId), enabled: !!clientId });
   const [open, setOpen] = useState(false);
+  // B3.8 (P2): a lapsed Forma plan makes notes read-only (the server refuses them too).
+  const gate = useWriteGate();
   const [body, setBody] = useState('');
   const [visibility, setVisibility] = useState<NoteVisibility>('private');
   const openSheet = () => {
@@ -46,10 +49,11 @@ export function CoachClientNotes() {
   });
 
   return (
-    <div>
+    // B3.8: reading width inside the (wide) client workspace.
+    <div className="max-w-3xl">
       <div className="mb-3 flex items-center justify-between">
         <p className="ui-label">{t('coach.notes')}</p>
-        <button type="button" className="btn-tonal btn-sm" data-testid="coach-notes-add" onClick={openSheet}>
+        <button type="button" className="btn-tonal btn-sm disabled:opacity-40" data-testid="coach-notes-add" disabled={!gate.canWrite} title={gate.reason} onClick={openSheet}>
           <Icon name="plus" size={14} /> {t('coach.addNote')}
         </button>
       </div>
@@ -61,7 +65,7 @@ export function CoachClientNotes() {
           <button type="button" className="btn-ghost btn-sm mt-2" onClick={() => void notes.refetch()}>{t('common.retry')}</button>
         </div>
       ) : !notes.data?.length ? (
-        <EmptyState icon="edit" title={t('coach.noNotes')} action={<button type="button" className="btn-primary" onClick={openSheet}>{t('coach.addNote')}</button>} />
+        <EmptyState icon="edit" title={t('coach.noNotes')} action={gate.canWrite ? <button type="button" className="btn-primary" onClick={openSheet}>{t('coach.addNote')}</button> : undefined} />
       ) : (
         <div className="card divide-y divide-line-soft">
           {notes.data.map((n) => (
@@ -69,7 +73,7 @@ export function CoachClientNotes() {
               <p className="whitespace-pre-wrap text-sm">{n.body}</p>
               <div className="mt-1 flex items-center gap-2">
                 <NoteVisibilityBadge visibility={n.visibility} />
-                <span className="font-mono text-[10.5px] text-earth-subtle">{formatDate(n.createdAt, i18n.language, 'medium')}</span>
+                <span className="font-mono text-[12px] text-earth-subtle">{formatDate(n.createdAt, i18n.language, 'medium')}</span>
               </div>
             </div>
           ))}
@@ -87,7 +91,7 @@ export function CoachClientNotes() {
         />
         <NoteVisibilityToggle value={visibility} onChange={setVisibility} />
         {add.isError && <p className="mt-2 text-sm text-danger" role="alert">{t('trust.notes.saveFailed')}</p>}
-        <button type="button" data-testid="coach-note-save" disabled={!body.trim() || add.isPending} onClick={() => add.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
+        <button type="button" data-testid="coach-note-save" disabled={!body.trim() || add.isPending || !gate.canWrite} onClick={() => add.mutate()} className="btn-primary mt-3 w-full disabled:opacity-40">
           {t('common.save')}
         </button>
       </Sheet>

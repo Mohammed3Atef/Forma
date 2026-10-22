@@ -6,7 +6,9 @@ import { listMyClients } from '@/services/platform/coachApi';
 import { CommandPalette, type CommandItem } from '@/components/ui/CommandPalette';
 import { useCommandStore } from '@/stores/commandStore';
 import { useSession } from '@/services/auth/sessionStore';
+import { coachPlanState } from '@/services/platform/coachPlanApi';
 import type { Exercise, LibraryFood, WorkoutTemplate } from '@/types';
+import type { CoachPlan } from '@/types';
 import type { CoachAdminData } from '@/services/platform/adminCoachesApi';
 
 /**
@@ -48,17 +50,39 @@ export function CommandHost() {
     const ents: CommandItem[] = [];
 
     if (role === 'coach') {
+      // B3.8 (P2): with a lapsed / suspended Forma plan the coach app is read-only — no "create"
+      // command is offered (the server would refuse it anyway).
+      const lapsed = ['expired', 'suspended'].includes(coachPlanState(qc.getQueryData<CoachPlan>(['coachPlan', coachId]) ?? null));
+      if (!lapsed) {
+        cmds.push(
+          { id: 'c-add-client', label: t('coachDash.addClient'), icon: 'plus', group: cmd, always: true, run: go('/coach/clients?new=1') },
+          { id: 'c-create-template', label: t('coachDash.createTemplate'), icon: 'list', group: cmd, always: true, run: go('/coach/templates/new') },
+          // B3.7 / DT-08: "New exercise / New food" open the creation form itself, not just the tab.
+          { id: 'c-create-exercise', label: t('coachLib.newExercise'), icon: 'plus', group: cmd, always: true, run: go('/coach/library?tab=exercises&new=1') },
+          { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods&new=1') },
+        );
+      }
+      // B3.8: every section of the desktop sidebar, and every tab of Library and Business, by name.
+      const nav = t('search.navigate');
       cmds.push(
-        { id: 'c-add-client', label: t('coachDash.addClient'), icon: 'plus', group: cmd, always: true, run: go('/coach/clients?new=1') },
-        { id: 'c-create-template', label: t('coachDash.createTemplate'), icon: 'list', group: cmd, always: true, run: go('/coach/templates/new') },
-        { id: 'c-open-library', label: t('coachDash.openLibrary'), icon: 'dumbbell', group: cmd, always: true, run: go('/coach/library') },
-        // B3.7 / DT-08: "New exercise / New food" open the creation form itself, not just the tab.
-        { id: 'c-create-exercise', label: t('coachLib.newExercise'), icon: 'plus', group: cmd, always: true, run: go('/coach/library?tab=exercises&new=1') },
-        { id: 'c-create-food', label: t('coachFoods.newFood'), icon: 'meal', group: cmd, always: true, run: go('/coach/library?tab=foods&new=1') },
+        { id: 'c-today', label: t('coachNav.today'), icon: 'home', group: nav, always: true, run: go('/coach/dashboard') },
+        { id: 'c-clients', label: t('coachNav.clients'), icon: 'users', group: nav, always: true, run: go('/coach/clients') },
+        { id: 'c-open-library', label: t('coachDash.openLibrary'), icon: 'dumbbell', group: nav, always: true, run: go('/coach/library') },
+        { id: 'c-lib-programs', label: `${t('coachNav.library')} › ${t('coachLib.tabs.programs')}`, icon: 'list', group: nav, run: go('/coach/library?tab=programs') },
+        { id: 'c-lib-exercises', label: `${t('coachNav.library')} › ${t('coachLib.tabs.exercises')}`, icon: 'dumbbell', group: nav, run: go('/coach/library?tab=exercises') },
+        { id: 'c-lib-foods', label: `${t('coachNav.library')} › ${t('coachLib.tabs.foods')}`, icon: 'meal', group: nav, run: go('/coach/library?tab=foods') },
+        { id: 'c-lib-supplements', label: `${t('coachNav.library')} › ${t('coachLib.tabs.supplements')}`, icon: 'list', group: nav, run: go('/coach/library?tab=supplements') },
+        { id: 'c-lib-groups', label: `${t('coachNav.library')} › ${t('library.views.groups')}`, icon: 'meal', group: nav, run: go('/coach/library?tab=foods&view=groups') },
         // Honest labels (DT-08): this opens the inbox — broadcasting is a step inside it.
         { id: 'c-messages', label: t('coachNav.openMessages'), icon: 'chat', group: cmd, always: true, run: go('/coach/messages') },
         { id: 'c-review-assess', label: t('coachDash.reviewAssessments'), icon: 'check', group: cmd, always: true, run: go('/coach/dashboard?focus=assessments') },
-        { id: 'c-reports', label: t('coachDash.tabs.reports'), icon: 'chart', group: cmd, always: true, run: go('/coach/reports') },
+        // B3.8: Revenue and Reports are Me › Business; renewals and exports are tabs of it.
+        { id: 'c-business', label: t('business.title'), icon: 'chart', group: cmd, always: true, keywords: t('business.commandKeywords'), run: go('/coach/business') },
+        { id: 'c-renewals', label: t('business.commandRenewals'), icon: 'calendar', group: cmd, always: true, run: go('/coach/business?tab=renewals') },
+        { id: 'c-packages', label: t('business.commandPackages'), icon: 'list', group: cmd, always: true, run: go('/coach/business?tab=packages') },
+        { id: 'c-exports', label: `${t('business.title')} › ${t('business.tabs.exports')}`, icon: 'download', group: nav, run: go('/coach/business?tab=exports') },
+        { id: 'c-forma', label: t('forma.myPlan'), icon: 'bolt', group: nav, always: true, run: go('/coach/plan') },
+        { id: 'c-account', label: t('coachMe.accountRow'), icon: 'settings', group: nav, always: true, run: go('/coach/settings') },
         { id: 'c-me', label: t('coachNav.me'), icon: 'user', group: cmd, always: true, run: go('/coach/me') },
       );
       roster.data?.forEach((c) =>

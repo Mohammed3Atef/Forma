@@ -37,7 +37,10 @@ const h = vi.hoisted(() => ({
 }));
 vi.mock('@/hooks/useMediaQuery', () => ({ useIsDesktop: () => h.desktop, useIsTabletUp: () => h.desktop, useMediaQuery: () => h.desktop }));
 vi.mock('@/hooks/useOnlineStatus', () => ({ useOnlineStatus: () => true }));
-vi.mock('@/components/coach/CoachPlanProvider', () => ({ useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }) }));
+vi.mock('@/components/coach/CoachPlanProvider', async () => {
+  const { useTranslation } = await import('react-i18next');
+  return { useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }), useWriteGate: () => { const { t } = useTranslation(); const reason = !(true) ? t('coachPlan.readOnly') : !(navigator.onLine) ? t('offline.actionDisabled') : undefined; return { canWrite: (true) && (navigator.onLine), planBlocked: !(true), online: navigator.onLine, reason }; } };
+});
 vi.mock('@/services/platform/coachApi', async (orig) => ({ ...(await orig<typeof import('@/services/platform/coachApi')>()), listMyClients: h.listMyClients }));
 vi.mock('@/services/platform/coachAssetsApi', async (orig) => ({
   ...(await orig<typeof import('@/services/platform/coachAssetsApi')>()),

@@ -3,6 +3,7 @@ import { Icon } from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
 import { useCanEdit } from './parts';
 import { useStarterLibrary } from './useStarterLibrary';
+import { useReportStarterShown } from './starterSignal';
 
 /**
  * The first-run panel (CO-23, EX-08, EX-23): what the starter library is — honestly — and one
@@ -12,6 +13,7 @@ export default function StarterPanel({ createLabel, onCreate, createTestId }: { 
   const { t } = useTranslation();
   const { canEdit, reason } = useCanEdit();
   const starter = useStarterLibrary();
+  useReportStarterShown();
   return (
     <section className="rounded-ui-surface border border-brand/25 bg-brand/[0.06] p-5 sm:p-6" data-testid="lib-starter">
       <div className="flex items-start gap-3">

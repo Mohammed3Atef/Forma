@@ -21,6 +21,8 @@ import { useDay } from '@/stores/dayStore';
 import { CLIENT_TABS, COACH_SECTIONS, clientTabFor, clientTitleFor, isClientTabRoot, isClientTaskFlow } from '@/config/clientNav';
 import { ResumeBar, useWorkoutInProgress } from './ResumeBar';
 import { CoachIdentity } from './CoachNav';
+import { useAppSurface } from '@/hooks/useAppSurface';
+import { MAIN_ID, SkipLink, useRouteFocus } from '@/components/shell/SkipLink';
 
 /**
  * The client app shell (B2 / doc 16 + 17). One navigation system: five equal
@@ -37,6 +39,8 @@ import { CoachIdentity } from './CoachNav';
  *   cancels exactly that — B1 known limit).
  */
 export function ClientShell({ children }: { children: ReactNode }) {
+  useAppSurface();
+  useRouteFocus();
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -49,7 +53,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const workoutRunning = useWorkoutInProgress();
 
   if (isClientTaskFlow(pathname)) {
-    return <main className="mx-auto min-h-dvh w-full max-w-xl px-4 pb-6 pt-1 md:px-6">{children}</main>;
+    return <main id={MAIN_ID} tabIndex={-1} className="mx-auto min-h-dvh w-full max-w-xl px-4 pb-6 pt-1 outline-none md:px-6">{children}</main>;
   }
 
   const tab = clientTabFor(pathname);
@@ -89,6 +93,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh lg:ps-60" data-testid="app-shell">
+      <SkipLink />
       <SideRail
         className="hidden lg:flex"
         items={items}
@@ -129,7 +134,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
           </>
         }
       />
-      <main className="mx-auto w-full max-w-xl overflow-x-clip px-4 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-3 md:px-6 lg:max-w-3xl lg:px-8 xl:max-w-5xl">
+      <main id={MAIN_ID} tabIndex={-1} className="mx-auto w-full max-w-xl overflow-x-clip outline-none px-4 pb-[calc(var(--bottomnav-h)+2.5rem)] pt-3 md:px-6 lg:max-w-3xl lg:px-8 xl:max-w-5xl">
         <BannerRegion className="mt-1">
           <SyncConflictNotice />
           <SubscriptionBanner />

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '@/components/Icon';
 import { IconTile, ListGroup, ListRow, Section } from '@/components/ui/ListRow';
-import { Pill, type PillTone } from '@/components/ui/Pill';
+import { Pill } from '@/components/ui/Pill';
 import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useSession } from '@/services/auth/sessionStore';
@@ -14,10 +14,8 @@ import { assessmentStatus } from '@/lib/assessment';
 import { clientStateOf } from '@/lib/coachDirectory';
 import { sectionPath, workspaceBase } from '@/lib/coachWorkspace';
 import { formatDate } from '@/lib/format';
-import { STATE_TONE, toneText } from '@/pages/coach/clients/parts';
-import type { AssessmentStatus } from '@/types';
+import { ASSESSMENT_TONE as ASSESS_TONE, CLIENT_STATE_TONE as STATE_TONE } from '@/lib/statusTone';
 
-const ASSESS_TONE: Record<AssessmentStatus, PillTone> = { not_started: 'mute', in_progress: 'warn', submitted: 'brand', reviewed: 'ok', updated_after_review: 'warn' };
 
 /**
  * Client › Profile (B3.4 / blueprint §6.3): the client's record with this coach — assessment,
@@ -69,7 +67,7 @@ export function WorkspaceProfile() {
             leading={tile('calendar')}
             title={t('workspace.profile.package')}
             meta={state && state.daysLeft != null ? t('coachClients.daysLeft', { count: state.daysLeft }) : undefined}
-            trailing={state ? <Pill tone={STATE_TONE[state.state]} className={toneText(STATE_TONE[state.state])}>{state.state === 'expiring' && state.daysLeft != null ? t('coachClients.endsIn', { count: state.daysLeft }) : t(`coachClients.state.${state.state}`)}</Pill> : null}
+            trailing={state ? <Pill tone={STATE_TONE[state.state]}>{state.state === 'expiring' && state.daysLeft != null ? t('coachClients.endsIn', { count: state.daysLeft }) : t(`coachClients.state.${state.state}`)}</Pill> : null}
             chevron
             onClick={() => open('subscription')}
           />
@@ -112,7 +110,7 @@ export function ProfileSection({ children }: { children: ReactNode }) {
   const { clientId = '' } = useParams();
   return (
     <div className="space-y-3">
-      <button type="button" className="chip" data-testid="profile-back" onClick={() => navigate(sectionPath(clientId, 'profile'), { replace: true })}>
+      <button type="button" className="chip inline-flex items-center gap-1" data-testid="profile-back" onClick={() => navigate(sectionPath(clientId, 'profile'), { replace: true })}>
         <Icon name="chevronLeft" size={14} /> {t('workspace.section.profile')}
       </button>
       {children}

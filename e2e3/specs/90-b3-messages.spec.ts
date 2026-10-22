@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { devices, type Browser, type Page, type TestInfo } from '@playwright/test';
 import { test, expect, ready, shot, type Db, type E2EEnv } from '../fixtures';
-import { allowDevModuleStorm, insertMany, makePng, pollDb } from './_c-helpers';
+import { allowDevModuleStorm, insertMany, makePng, pollDb, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 import { confirmYes } from './_b-helpers';
 
 /**
@@ -105,8 +105,7 @@ async function setLanguage(page: Page, label: 'English' | 'العربية' | 'م
   await page.goto('/coach/settings');
   await ready(page);
   await page.getByRole('button', { name: label, exact: true }).click();
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(label === 'English' ? /^en$/ : label === 'مصري' ? /^ar-eg$/ : /^ar$/);
-  await page.waitForTimeout(600);
+  await waitForLocaleSaved(page, LOCALE_OF[label]); // B3.9.0: <html lang> + the stored settings, instead of a fixed 600 ms
 }
 
 /** A browser context signed in as one of this spec's own clients (the client app needs their profile). */

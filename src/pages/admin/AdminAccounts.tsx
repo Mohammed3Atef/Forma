@@ -30,6 +30,7 @@ import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { passwordError } from '@/lib/password';
 import type { AccountStatus, Role, UserRecord } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 const ROLE_FILTERS: (Role | 'all')[] = ['all', 'super_admin', 'admin', 'coach', 'client'];
 const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'pending', 'suspended', 'disabled'];
@@ -168,7 +169,7 @@ export function AdminAccounts() {
       setSelected(null);
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
+    onError: (e) => setActionError(errorMessage(e, t)),
   });
   const roleMut = useMutation({
     mutationFn: ({ target, role }: { target: UserRecord; role: Role }) => setRole(target, role),
@@ -177,7 +178,7 @@ export function AdminAccounts() {
       setSelected(null);
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
+    onError: (e) => setActionError(errorMessage(e, t)),
   });
   const deleteMut = useMutation({
     mutationFn: (target: UserRecord) => deleteUser(target),
@@ -186,7 +187,7 @@ export function AdminAccounts() {
       setSelected(null);
       showToast({ title: t('common.removed'), variant: 'success' });
     },
-    onError: (e) => setActionError(e instanceof Error ? e.message : 'Failed'),
+    onError: (e) => setActionError(errorMessage(e, t)),
   });
   const bulkStatusMut = useMutation({
     mutationFn: ({ targets, status }: { targets: UserRecord[]; status: AccountStatus }) => bulkSetAccountStatus(targets, status),
@@ -198,7 +199,7 @@ export function AdminAccounts() {
     onError: (e, vars) =>
       void alertDialog({
         title: t(`platform.status.${vars.status}`),
-        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+        message: errorMessage(e, t),
       }),
   });
 
@@ -262,7 +263,7 @@ export function AdminAccounts() {
             key={r}
             type="button"
             onClick={() => setRoleFilter(r)}
-            className={`chip whitespace-nowrap ${roleFilter === r ? 'chip-on' : ''}`}
+            aria-pressed={roleFilter === r} className={`chip whitespace-nowrap ${roleFilter === r ? 'chip-on' : ''}`}
           >
             {r === 'all' ? t('admin.allRoles') : t(`roles.${r}`)}
           </button>
@@ -275,7 +276,7 @@ export function AdminAccounts() {
             type="button"
             data-testid={`status-filter-${s}`}
             onClick={() => setStatusFilter(s)}
-            className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}
+            aria-pressed={statusFilter === s} className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}
           >
             {s === 'all' ? t('admin.allStatuses') : t(`platform.status.${s}`)}
           </button>
@@ -474,7 +475,7 @@ function AccountActions({
                 data-testid={`set-role-${r}`}
                 disabled={busy}
                 onClick={() => void changeRole(r)}
-                className={`chip ${target.role === r ? 'chip-on' : ''}`}
+                aria-pressed={target.role === r} className={`chip ${target.role === r ? 'chip-on' : ''}`}
               >
                 {t(`roles.${r}`)}
               </button>
@@ -494,7 +495,7 @@ function AccountActions({
                 data-testid={`set-status-${s}`}
                 disabled={busy}
                 onClick={() => void changeStatus(s)}
-                className={`chip ${target.accountStatus === s ? 'chip-on' : ''}`}
+                aria-pressed={target.accountStatus === s} className={`chip ${target.accountStatus === s ? 'chip-on' : ''}`}
               >
                 {t(`platform.status.${s}`)}
               </button>
@@ -543,10 +544,10 @@ function CreateAccountForm({
         createdBy,
       }),
     onSuccess: () => {
-      showToast({ title: t('admin.createAccount'), variant: 'success' });
+      showToast({ title: t('admin.accountCreated'), variant: 'success' });
       onDone();
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Failed'),
+    onError: (e) => setError(errorMessage(e, t)),
   });
 
   const valid = form.email.trim().length > 3 && form.phone.trim().length > 0 && !passwordError(form.password);
@@ -570,7 +571,7 @@ function CreateAccountForm({
         <div className="label mb-2">{t('platform.role')}</div>
         <div className="flex flex-wrap gap-2" data-testid="create-role-options">
           {roles.map((r) => (
-            <button key={r} type="button" data-testid={`create-role-${r}`} onClick={() => setForm({ ...form, role: r })} className={`chip ${form.role === r ? 'chip-on' : ''}`}>
+            <button key={r} type="button" data-testid={`create-role-${r}`} onClick={() => setForm({ ...form, role: r })} aria-pressed={form.role === r} className={`chip ${form.role === r ? 'chip-on' : ''}`}>
               {t(`roles.${r}`)}
             </button>
           ))}

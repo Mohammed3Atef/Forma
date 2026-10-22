@@ -3,8 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { CommercialReason } from '../_lib/commercialReason.js';
 import { getDb } from '../_lib/mongodb.js';
 import type { ClientSubscriptionInput, CoachClientDoc, CoachPlanDoc, SubscriptionDoc } from './_types.js';
-
-const SUB_DAY = 86_400_000;
+import { buildTerm } from './_terms.js';
 
 export async function coachClientsCol(): Promise<Collection<CoachClientDoc>> {
   return (await getDb()).collection<CoachClientDoc>('coachClients');
@@ -20,40 +19,14 @@ export function relId(coachId: string, clientId: string): string {
   return `${coachId}__${clientId}`;
 }
 
-/** Calendar-accurate `startAt + months` → end timestamp (same as `src/lib/subscription.ts`). */
-export function addMonths(startAt: number, months: number): number {
-  const d = new Date(startAt);
-  d.setMonth(d.getMonth() + months);
-  return d.getTime();
-}
-
 /**
  * Build a concrete `Subscription` from a coach's chosen term (no undefined
- * fields written to Mongo) — exact port of `buildSubscription()` in
- * `src/services/platform/coachClientsApi.ts`.
+ * fields written to Mongo). B3.8: fixed-day calendar terms (1 month = 30 days)
+ * anchored to the coach device's zone — see `buildTerm` in `_terms.ts`. The
+ * server's own zone (UTC on Vercel) is never used for date arithmetic.
  */
 export function buildSubscription(input: ClientSubscriptionInput, now: number): SubscriptionDoc {
-  const start = input.startAt ?? now;
-  const base: SubscriptionDoc = {
-    startAt: start,
-    endAt: start,
-    status: input.status,
-    frozenFrom: null,
-    frozenUntil: null,
-    updatedAt: now,
-    ...(typeof input.price === 'number' ? { price: input.price } : {}),
-    ...(input.currency ? { currency: input.currency } : {}),
-    ...(input.planName ? { planName: input.planName } : {}),
-    ...(input.billingCycle ? { billingCycle: input.billingCycle } : {}),
-  };
-  if (input.status === 'trial') return { ...base, endAt: start + (input.trialDays ?? 14) * SUB_DAY };
-  if (input.status === 'active') {
-    // Days-based term (coach plan with unit='days') takes priority; else months.
-    if (typeof input.days === 'number' && input.days > 0) return { ...base, endAt: start + input.days * SUB_DAY };
-    const months = input.months ?? 1;
-    return { ...base, months, endAt: addMonths(start, months) };
-  }
-  return base; // pending / expired / cancelled / frozen / ended: no term math
+  return buildTerm(input, now);
 }
 
 /**
@@ -107,14 +80,25 @@ export const CAP_MESSAGES: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
 };
 
 /** The TRPCError every join path throws when the cap gate refuses. */
-export function capError(status: Exclude<CoachCapStatus, 'ok'>, prefix = ''): TRPCError {
+/**
+ * The same refusals when the coach who can't take the client is the RECEIVING coach of a transfer
+ * (B3.9): the approving coach must not read them as their own capacity or plan.
+ */
+export const DESTINATION_CAP_REASONS: Record<Exclude<CoachCapStatus, 'ok'>, string> = {
+  no_plan: 'DESTINATION_NOT_ACCEPTING',
+  at_cap: 'DESTINATION_CAPACITY_REACHED',
+  expired: 'DESTINATION_NOT_ACCEPTING',
+  suspended: 'DESTINATION_NOT_ACCEPTING',
+};
+
+export function capError(status: Exclude<CoachCapStatus, 'ok'>, prefix = '', reasons: Record<Exclude<CoachCapStatus, 'ok'>, string> = CAP_REASONS): TRPCError {
   const msg = CAP_MESSAGES[status];
   return new TRPCError({
     // Capacity / no-plan refusals stay CONFLICT (pre-refactor contract); a
     // lapsed or suspended subscription is a precondition the coach must fix.
     code: status === 'at_cap' || status === 'no_plan' ? 'CONFLICT' : 'PRECONDITION_FAILED',
     message: prefix ? `${prefix}${msg.charAt(0).toLowerCase()}${msg.slice(1)}` : msg,
-    cause: new CommercialReason(CAP_REASONS[status]),
+    cause: new CommercialReason(reasons[status]),
   });
 }
 

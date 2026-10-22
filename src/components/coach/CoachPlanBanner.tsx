@@ -30,7 +30,8 @@ export function CoachPlanBanner() {
   const uid = useSession((s) => s.uid);
   const { pathname } = useLocation();
   const onToday = pathname === '/coach' || pathname === '/coach/dashboard';
-  const reqQ = useQuery({ queryKey: ['coachPlanRequests', 'mine', uid], queryFn: getMyPlanRequests, refetchInterval: 60_000 });
+  // B3.9 (PF-22): the request banner shows on Today only — so the request list is read (and polled) there only.
+  const reqQ = useQuery({ queryKey: ['coachPlanRequests', 'mine', uid], queryFn: getMyPlanRequests, enabled: onToday, refetchInterval: onToday ? 60_000 : false });
   const openReqs = (reqQ.data ?? []).filter(isActionable);
   const cap = capacityOf(plan);
 

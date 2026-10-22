@@ -1,6 +1,7 @@
 import { test, expect, shot } from '../fixtures';
 import type { Db } from '../fixtures';
 import { appReady, confirmYes, expectToast, fullAssessment, openPlanBuilder, refocus, uniq } from './_b-helpers';
+import { addDays, cairoDay } from './_dates';
 
 test.setTimeout(120_000);
 
@@ -131,10 +132,11 @@ test('Add Existing: search clientFree by email → Assign to me', async ({ as, d
   // Subscription: custom 1 month at 900.
   const sub = page.getByTestId('existing-assign-sub');
   await expect(sub).toHaveValue('custom');
-  await page.getByTestId('plan-custom').locator('input').nth(1).fill('900');
+  // B3.9.0 (B3-C07): the price field by its label (it was the custom row's 2nd <input> — any new field would shift it).
+  await page.getByTestId('plan-custom').getByLabel('Price (EGP)', { exact: true }).fill('900');
   await shot(page, testInfo, '01-existing-detail');
   await page.getByTestId('existing-assign').click();
-  await expectToast(page, 'Add client');
+  await expectToast(page, 'added to your clients'); // B3.9 (TS-06): toast titles say the outcome
   await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await shot(page, testInfo, '02-roster-has-free');
 
@@ -289,7 +291,7 @@ test('workspace: request a check-in → client sees it', async ({ as, db }, test
   const btn = page.getByTestId('checkin-request');
   await expect(btn).toBeEnabled();
   await btn.click();
-  await expectToast(page, 'Request Weekly Check-In');
+  await expectToast(page, 'Check-in requested'); // B3.9 (TS-06)
   await expect(btn).toBeDisabled();
   await expect(page.getByTestId('checkin-row')).toHaveCount(1);
   await shot(page, testInfo, '01-coach-requested');
@@ -307,8 +309,9 @@ test('workspace: subscription extend / freeze / unfreeze update without reload',
   await appReady(page, 'sub-status');
   const status = page.getByTestId('sub-status');
   await expect(status).toHaveText('Active');
-  const relBefore = await db.findOne<{ subscription: { endAt: number } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
-  const renews = page.getByTestId('coach-subscription').locator('p.font-mono.font-medium').first();
+  const relBefore = await db.findOne<{ subscription: { endAt: number; endDate?: string } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
+  // B3.8: the package card names the LAST covered day (a semantic test id — B3-C07).
+  const renews = page.getByTestId('sub-last-day');
   const renewBefore = await renews.textContent();
 
   // Extend 30 days — confirm dialog. (B3.4 / CO-14-R: Extend lives in "More package actions".)
@@ -316,18 +319,25 @@ test('workspace: subscription extend / freeze / unfreeze update without reload',
   await page.getByTestId('sub-extend').click();
   await expect(page.getByTestId('confirm-dialog')).toContainText('30');
   await confirmYes(page);
-  await expectToast(page, 'Extend');
+  await expectToast(page, 'Subscription extended'); // B3.9 (TS-06)
   await expect(renews).not.toHaveText(renewBefore ?? '');
-  const relExt = await db.findOne<{ subscription: { endAt: number } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
-  expect(relExt!.subscription.endAt - relBefore!.subscription.endAt).toBe(30 * 86_400_000);
+  const relExt = await db.findOne<{ subscription: { endAt: number; endDate?: string } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
+  // B3.8: 30 CALENDAR days (a DST change in between makes it 30 × 24 h ± 1 h); a pre-B3.8 term: 30 × 24 h.
+  if (relBefore!.subscription.endDate && relExt!.subscription.endDate) {
+    expect((Date.parse(`${relExt!.subscription.endDate}T00:00:00Z`) - Date.parse(`${relBefore!.subscription.endDate}T00:00:00Z`)) / 86_400_000).toBe(30);
+  } else {
+    expect(relExt!.subscription.endAt - relBefore!.subscription.endAt).toBe(30 * 86_400_000);
+  }
   await shot(page, testInfo, '01-extended');
 
   // Freeze from today until +7 days.
   await page.getByTestId('sub-freeze').click();
-  const until = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  // B3.9.0: the date field is a Cairo calendar day (the browser's); `toISOString()` gave the UTC day (yesterday's
+  // Cairo date for the first hours after Cairo midnight) of an instant stepped 7 × 24 h.
+  const until = addDays(cairoDay(Date.now()), 7);
   await page.getByTestId('freeze-until').fill(until);
   await page.getByTestId('freeze-save').click();
-  await expectToast(page, 'Freeze');
+  await expectToast(page, 'Subscription frozen until'); // B3.9 (TS-06)
   await expect(status).toHaveText('Frozen');
   await expect(page.getByTestId('sub-unfreeze')).toBeVisible();
   await shot(page, testInfo, '02-frozen');

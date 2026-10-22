@@ -12,6 +12,7 @@ import { showToast } from '@/stores/toastStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getFormaConfig, saveFormaConfig } from '@/services/platform/coachPlanTiersApi';
 import type { FormaConfig } from '@/types';
+import { errorMessage } from '@/lib/errorMessage';
 
 interface Form {
   trialEnabled: boolean;
@@ -99,7 +100,7 @@ export function FormaPlanTab() {
       const raised = res.raisedTrialCoaches + res.raisedPaidCoaches;
       showToast({ title: t('common.saved'), body: raised ? t('forma.admin.raisedCoaches', { count: raised }) : undefined, variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('forma.admin.tabForma'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('forma.admin.tabForma'), message: errorMessage(e, t) }),
   });
 
   if (q.isError && !q.data) return <ErrorState onRetry={() => void q.refetch()} testId="forma-config-error" />;

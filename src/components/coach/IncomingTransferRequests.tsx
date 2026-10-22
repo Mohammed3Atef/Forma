@@ -18,6 +18,15 @@ export function IncomingTransferRequests({ coachId }: { coachId: string }) {
   const roster = useQuery({ queryKey: ['myClients', coachId], queryFn: () => listMyClients(coachId), enabled: !!coachId });
   const names = new Map((roster.data ?? []).map((u) => [u.id, u.displayName || u.email]));
 
+  // B3.9 (CO-18): a failed read is said (with Retry) — never silently "no requests".
+  if (q.isError && q.data === undefined) {
+    return (
+      <p className="mb-4 flex flex-wrap items-center gap-2 text-[13px] text-earth-muted" role="alert" data-testid="incoming-transfers-error">
+        {t('states.transfersFailed')}
+        <button type="button" className="sec-link" onClick={() => void q.refetch()}>{t('common.retry')}</button>
+      </p>
+    );
+  }
   const items = (q.data ?? []).filter((r) => r.status === 'pending');
   if (items.length === 0) return null;
 

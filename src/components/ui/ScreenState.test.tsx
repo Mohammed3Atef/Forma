@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ScreenState, screenStatus } from './ScreenState';
+import { ScreenState, queryScreen, screenStatus } from './ScreenState';
 
 const setOnline = (v: boolean) => Object.defineProperty(navigator, 'onLine', { value: v, configurable: true });
 afterEach(() => setOnline(true));
@@ -30,5 +30,38 @@ describe('screen-state model (B1.5)', () => {
     rerender(<ScreenState loading={false} error hasData testId="list3">rows</ScreenState>);
     expect(screen.getByText('rows')).toBeTruthy();
     expect(screen.getByTestId('stale-notice')).toBeTruthy();
+  });
+});
+
+/** B3.9 (CO-18 / PF-21): React Query PAUSES a fetch it thinks can't reach the network — that is offline, never an endless skeleton. */
+describe('paused reads (B3.9)', () => {
+  const q = (over: Partial<Parameters<typeof queryScreen>[0]> = {}) => ({ data: undefined, isPending: true, isError: false, fetchStatus: 'idle' as const, refetch: () => undefined, ...over });
+
+  it('a paused read with nothing on this device is offline, even while the browser reports online', () => {
+    expect(screenStatus({ loading: false, hasData: false, online: true, paused: true })).toEqual({ status: 'offline', stale: false });
+    expect(screenStatus({ loading: false, hasData: true, online: true, paused: true })).toEqual({ status: 'ready', stale: true });
+  });
+
+  it('queryScreen maps a React Query result: paused is not loading; a real fetch is', () => {
+    const paused = queryScreen(q({ fetchStatus: 'paused' }));
+    expect(paused).toMatchObject({ loading: false, paused: true, hasData: false });
+    expect(screenStatus({ ...paused, online: true }).status).toBe('offline');
+    const fetching = queryScreen(q({ fetchStatus: 'fetching' }));
+    expect(screenStatus({ ...fetching, online: true }).status).toBe('loading');
+    const failed = queryScreen(q({ isPending: false, isError: true }));
+    expect(screenStatus({ ...failed, online: true }).status).toBe('error');
+  });
+
+  it('queryScreen: isEmpty decides "loaded, nothing there"; Retry refetches', () => {
+    let refetched = 0;
+    const empty = queryScreen<number[]>(q({ data: [] as number[], isPending: false, refetch: () => (refetched += 1) }) as Parameters<typeof queryScreen<number[]>>[0], (d) => d.length === 0);
+    expect(screenStatus({ ...empty, online: true }).status).toBe('empty');
+    empty.onRetry();
+    expect(refetched).toBe(1);
+  });
+
+  it('renders offline for a paused read', () => {
+    render(<ScreenState loading={false} hasData={false} paused testId="paused">rows</ScreenState>);
+    expect(screen.getByTestId('paused-offline')).toBeTruthy();
   });
 });

@@ -27,7 +27,10 @@ vi.mock('@/services/platform/coachAssetsApi', async (orig) => ({
   duplicateWorkoutTemplate: h.duplicateWorkoutTemplate,
   deleteWorkoutTemplate: h.deleteWorkoutTemplate,
 }));
-vi.mock('@/components/coach/CoachPlanProvider', () => ({ useCoachPlan: () => ({ canWrite: h.canWrite, state: h.canWrite ? 'active' : 'expired', daysLeft: 0, plan: null }) }));
+vi.mock('@/components/coach/CoachPlanProvider', async () => {
+  const { useTranslation } = await import('react-i18next');
+  return { useCoachPlan: () => ({ canWrite: h.canWrite, state: h.canWrite ? 'active' : 'expired', daysLeft: 0, plan: null }), useWriteGate: () => { const { t } = useTranslation(); const reason = !(h.canWrite) ? t('coachPlan.readOnly') : !(true) ? t('offline.actionDisabled') : undefined; return { canWrite: (h.canWrite) && (true), planBlocked: !(h.canWrite), online: true, reason }; } };
+});
 vi.mock('@/hooks/useOnlineStatus', () => ({ useOnlineStatus: () => true }));
 
 import { useSession } from '@/services/auth/sessionStore';

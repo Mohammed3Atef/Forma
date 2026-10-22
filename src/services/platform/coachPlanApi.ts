@@ -42,13 +42,15 @@ export function trialDaysLeft(plan: Pick<CoachPlan, "endsAt">, now = Date.now())
   return Math.ceil((plan.endsAt - now) / DAY_MS);
 }
 
-/** Effective state with the end date folded in (mirrors the server's `planStateOf`). */
-export function coachPlanState(plan: Pick<CoachPlan, "plan" | "status" | "endsAt"> | null, now = Date.now()): CoachPlanState {
+/**
+ * Effective state: the server's `state` (computed at read time from `phase`, `status` and the end
+ * date), with an end date that passed since that read folded in. B3.8 (owner D6): the coach UI never
+ * reads the legacy tier field `plan.plan` — the server's `state` / `phase` are the only sources.
+ */
+export function coachPlanState(plan: Pick<CoachPlan, "state" | "endsAt"> | null, now = Date.now()): CoachPlanState {
   if (!plan) return "none";
-  if (plan.status === "suspended") return "suspended";
-  if (plan.endsAt != null && now >= plan.endsAt) return "expired";
-  if (plan.status !== "active") return "expired";
-  return plan.plan === "trial" ? "trial" : "active";
+  if ((plan.state === "trial" || plan.state === "active") && plan.endsAt != null && now >= plan.endsAt) return "expired";
+  return plan.state;
 }
 
 /** Capacity usage for display: used / limit, and how far over it is (never negative). */

@@ -1,6 +1,8 @@
-import { createTRPCClient, httpBatchLink, TRPCClientError } from '@trpc/client';
+import { createTRPCClient, httpBatchLink, TRPCClientError, type TRPCLink } from '@trpc/client';
+import { observable } from '@trpc/server/observable';
 import type { AppRouter } from '../../api/_trpc/router';
 import { getAccessToken, refreshSession } from './platformApi';
+import { emitPlanLapsed } from './platform/planLapseSignal';
 
 /**
  * Vanilla (non-React-Query) tRPC client. The `src/services/platform/*.ts`
@@ -61,8 +63,26 @@ async function trpcFetch(input: RequestInfo | URL, init: RequestInit | undefined
   return res;
 }
 
+/**
+ * B3.8 (P2): every write the server refuses because the coach's Forma plan lapsed or was suspended
+ * is announced (`planLapseSignal`), whoever made it — the coach app then re-reads the plan and turns
+ * read-only everywhere. The error itself still reaches the caller unchanged.
+ */
+const planLapseLink: TRPCLink<AppRouter> = () => ({ next, op }) =>
+  observable((observer) =>
+    next(op).subscribe({
+      next: (value) => observer.next(value),
+      error: (err) => {
+        if (op.type === 'mutation') emitPlanLapsed((err as { data?: { reason?: unknown } }).data?.reason as string | undefined);
+        observer.error(err);
+      },
+      complete: () => observer.complete(),
+    }),
+  );
+
 export const trpc = createTRPCClient<AppRouter>({
   links: [
+    planLapseLink,
     httpBatchLink({
       url: '/api/trpc',
       fetch: (input, init) => trpcFetch(input, init),

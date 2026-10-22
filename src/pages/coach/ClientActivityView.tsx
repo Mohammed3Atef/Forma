@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
-import { StatTile } from '@/components/StatTile';
+import { Metric, MetricGroup } from '@/components/ui/Metric';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { OfflineState, StaleNotice, useQueryScreen } from '@/components/ui/ScreenState';
 import { EntityNotes } from '@/components/EntityNotes';
 import { fetchClientDay } from '@/services/platform/coachApi';
 import { getClientMealPlan, getClientWorkoutPlan } from '@/services/platform/planApi';
@@ -36,6 +38,9 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
   const day = useQuery({ queryKey: ['clientDay', clientId, date], queryFn: () => fetchClientDay(clientId, date), enabled: !!clientId });
   const wPlan = useQuery({ queryKey: ['clientWorkoutPlan', clientId], queryFn: () => getClientWorkoutPlan(clientId), enabled: !!clientId });
   const mPlan = useQuery({ queryKey: ['clientMealPlan', clientId], queryFn: () => getClientMealPlan(clientId), enabled: !!clientId });
+  // B3.9 (CO-18): the day's log decides what this screen may say — a failed or offline read is said,
+  // never shown as an empty day.
+  const dayScreen = useQueryScreen(day);
 
   const d = day.data;
   const exerciseName = (id: string) => wPlan.data?.exercises[id]?.name ?? id;
@@ -62,8 +67,8 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
           <Icon name="chevronLeft" size={20} />
         </button>
         <div className="text-center">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-brand">{date === todayKey ? t('common.today') : label}</div>
-          {date !== todayKey && <div className="text-[11px] text-earth-subtle">{label}</div>}
+          <div className="font-mono text-[12px] uppercase tracking-[0.08em] text-brand">{date === todayKey ? t('common.today') : label}</div>
+          {date !== todayKey && <div className="text-[12px] text-earth-subtle">{label}</div>}
         </div>
         <button
           type="button"
@@ -76,10 +81,15 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
         </button>
       </div>
 
-      {day.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
+      {dayScreen.status === 'loading' ? (
+        <div className="sk h-40 rounded-ui-surface" aria-busy="true" />
+      ) : dayScreen.status === 'offline' ? (
+        <OfflineState onRetry={dayScreen.retry} testId="day-offline" />
+      ) : dayScreen.status === 'error' ? (
+        <ErrorState onRetry={dayScreen.retry} testId="day-error" />
       ) : (
         <div className="space-y-4">
+          {dayScreen.stale ? <StaleNotice online={dayScreen.online} /> : null}
           {/* Workout — per-set weight × reps */}
           <section>
             <h2 className="h2 mb-2">{t('nav.workout')}</h2>
@@ -87,14 +97,14 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
               <div className="card">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="font-medium">{wPlan.data?.days.find((dy) => dy.id === d.workout!.dayId)?.title ?? t('activity.session')}</span>
-                  <span className={`font-mono text-[10.5px] uppercase ${d.workout.finished ? 'text-success' : 'text-warn'}`}>
+                  <span className={`font-mono text-[12px] uppercase ${d.workout.finished ? 'text-success' : 'text-warn'}`}>
                     {d.workout.finished ? t('activity.finished') : t('activity.inProgress')}
                   </span>
                 </div>
                 <div className="mb-3 grid grid-cols-3 gap-2 text-center">
                   <Mini label={t('gt.setsDone')} value={logSetCount(d.workout)} />
                   <Mini label={t('gt.volume')} value={`${(logVolume(d.workout) / 1000).toFixed(1)}t`} />
-                  <Mini label={t('gt.duration')} value={`${Math.round(d.workout.durationSec / 60)}m`} />
+                  <Mini label={t('gt.duration')} value={`${Math.round(d.workout.durationSec / 60)} ${t('common.min')}`} />
                 </div>
                 <div className="divide-y divide-line-soft">
                   {(() => {
@@ -113,11 +123,11 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
                           <div key={id} className="py-2.5">
                             <div className="mb-1.5 flex items-center justify-between gap-2">
                               <span className="min-w-0 flex-1 truncate text-sm font-medium">{exerciseName(id)}</span>
-                              <span className="font-mono text-[11px] text-earth-subtle">{done}/{logEx.sets.length}</span>
+                              <span className="font-mono text-[12px] text-earth-subtle">{done}/{logEx.sets.length}</span>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                               {logEx.sets.map((s, i) => (
-                                <span key={i} className={`chip text-[11px] ${s.done ? 'chip-on' : s.type === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
+                                <span key={i} className={`chip text-[12px] ${s.done ? 'chip-on' : s.type === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
                                   {s.type === 'warmup' && <span className="me-1 opacity-70">{t('coachEditor.warmupShort')}</span>}
                                   {s.weightKg != null ? `${s.weightKg}${t('common.kg')}` : '—'} × {s.actualReps ?? (s.targetReps || '—')}
                                 </span>
@@ -135,11 +145,11 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
                         <div key={id} className="py-2.5 opacity-70">
                           <div className="mb-1.5 flex items-center justify-between gap-2">
                             <span className="min-w-0 flex-1 truncate text-sm font-medium">{exerciseName(id)}</span>
-                            <span className="font-mono text-[11px] text-earth-subtle">0/{placeholders.length}</span>
+                            <span className="font-mono text-[12px] text-earth-subtle">0/{placeholders.length}</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {placeholders.map((typ, i) => (
-                              <span key={i} className={`chip text-[11px] ${typ === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
+                              <span key={i} className={`chip text-[12px] ${typ === 'warmup' ? 'border-warn/60 bg-warn/10 text-warn' : ''}`}>
                                 {typ === 'warmup' && <span className="me-1 opacity-70">{t('coachEditor.warmupShort')}</span>}
                                 — × {planEx?.repRange && planEx.repRange !== '-' ? planEx.repRange : '—'}
                               </span>
@@ -180,7 +190,6 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
                           <span className="min-w-0 truncate">{repl ? repl.name.en : t('nutrition.removed')}</span>
                           <Pill tone={tag.source === 'approved_substitution' ? 'ok' : 'warn'}>
                             {tag.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')}
-                            {tag.pendingApproval ? ` · ${t('nutritionSub.needsReview')}` : ''}
                           </Pill>
                         </div>
                       );
@@ -196,12 +205,13 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
           {/* Activity / body */}
           <section>
             <h2 className="h2 mb-2">{t('activity.activityBody')}</h2>
-            <div className="grid grid-cols-2 gap-2.5">
-              <StatTile icon="steps" value={formatNumber(totalSteps, i18n.language, { maxFractionDigits: 0 })} label={t('cardio.steps')} />
-              <StatTile icon="activity" value={totalCardioMin} unit={t('common.min')} label={t('cardio.minutes')} />
-              <StatTile icon="water" value={d?.nutrition?.waterMl ?? 0} unit="ml" label={t('nutrition.water')} />
-              <StatTile icon="scale" value={d?.weight?.weightKg ?? '—'} unit={d?.weight ? t('common.kg') : undefined} label={t('coach.lastWeight')} />
-            </div>
+            {/* B3.9 (CD-02): the coach app's one metric tile, as one grouped surface. */}
+            <MetricGroup testId="day-activity">
+              <Metric label={t('cardio.steps')} value={formatNumber(totalSteps, i18n.language, { maxFractionDigits: 0 })} />
+              <Metric label={t('cardio.minutes')} value={formatNumber(totalCardioMin, i18n.language)} unit={t('common.min')} />
+              <Metric label={t('nutrition.water')} value={formatNumber(d?.nutrition?.waterMl ?? 0, i18n.language)} unit={t('common.ml')} />
+              <Metric label={t('coach.lastWeight')} value={d?.weight ? formatNumber(d.weight.weightKg, i18n.language) : '—'} unit={d?.weight ? t('common.kg') : undefined} />
+            </MetricGroup>
           </section>
 
           {/* Checklist */}
@@ -223,7 +233,7 @@ export function ClientActivityView({ clientId, date: controlledDate, onDateChang
 function Mini({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <div className="font-mono text-lg">{value}</div>
+      <div className="text-lg font-semibold tabular-nums">{value}</div>
       <div className="stat-label">{label}</div>
     </div>
   );

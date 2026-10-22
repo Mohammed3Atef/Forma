@@ -122,7 +122,7 @@ export function EntityNotes({
           type="button"
           data-testid={`add-note-${entityType}-${entityId}`}
           onClick={() => onAdd({ screen, date, entityType, entityId, label })}
-          className="inline-flex justify-end items-center gap-1 text-[12px] font-medium text-brand-light"
+          className="inline-flex min-h-ui-hit justify-end items-center gap-1 text-[12px] font-medium text-brand-light"
         >
           <Icon name="edit" size={12} /> {t("notes.addNote")}
         </button>

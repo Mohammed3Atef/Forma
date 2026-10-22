@@ -124,7 +124,7 @@ test('transfer failure: destination at cap → error shown, nothing moves, reque
   // Error is surfaced (alert dialog), no success toast.
   const alert = a.getByTestId('confirm-dialog');
   await expect(alert).toBeVisible();
-  await expect(alert).toContainText(/Destination coach/i);
+  await expect(alert).toContainText(/receiving coach/i); // B3.9 (TS-02): translated, and says whose capacity it is
   await shot(a, testInfo, '02-coachA-error');
   await expect(a.getByTestId('toast').filter({ hasText: 'Approved' })).toHaveCount(0);
   await alert.getByTestId('confirm-accept').click();

@@ -1,6 +1,7 @@
 import { devices, type Page } from '@playwright/test';
 import { test, expect, ready, shot } from '../fixtures';
 import { allowDevModuleStorm, pollDb } from './_c-helpers';
+import { addDays, cairoDay, cairoNoon } from './_dates';
 import { confirmYes, expectToast } from './_b-helpers';
 
 /**
@@ -25,7 +26,7 @@ const REL = `${PRO}__${FREE}`;
 const DAY = 86_400_000;
 const mobile = () => ({ ...devices['Pixel 7'], viewport: { width: 390, height: 844 } });
 /** A date as the Cairo-time date picker shows it. */
-const cairoDay = (ms: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
+// B3.9.0: `cairoDay` / `addDays` / `cairoNoon` come from the shared `_dates.ts`.
 const bubble = (page: Page, text: string) => page.getByTestId('message-bubble').filter({ hasText: text });
 
 test.describe('B3.0.1 security & ownership (browser)', () => {
@@ -123,10 +124,13 @@ test.describe('B3.0.1 security & ownership (browser)', () => {
     await expect(status).toHaveText('Active', { timeout: 20_000 });
 
     await page.getByTestId('sub-freeze').click();
-    await page.getByTestId('freeze-from').fill(cairoDay(Date.now() + 3 * DAY));
-    await page.getByTestId('freeze-until').fill(cairoDay(Date.now() + 6 * DAY));
+    // B3.9.0: calendar days stepped on the key — `cairoDay(now + 6 × 24 h)` is a day short when Egypt's 25-hour
+    // DST-end day lies in between (and the freeze credit then is 2 days, not 3).
+    const today = cairoDay(Date.now());
+    await page.getByTestId('freeze-from').fill(addDays(today, 3));
+    await page.getByTestId('freeze-until').fill(addDays(today, 6));
     await page.getByTestId('freeze-save').click();
-    await expectToast(page, 'Freeze');
+    await expectToast(page, 'Subscription frozen until'); // B3.9 (TS-06)
     await expect(status).toHaveText('Active');
     await expect(page.getByTestId('sub-freeze-scheduled')).toBeVisible();
     await expect(page.getByTestId('sub-unfreeze')).toBeVisible();
@@ -155,20 +159,22 @@ test.describe('B3.0.1 security & ownership (browser)', () => {
     await ready(page);
     await expect(page.getByTestId('sub-status')).toHaveText('Expired', { timeout: 20_000 });
     await page.getByTestId('sub-set-term').click();
-    const start = cairoDay(now - 5 * DAY);
+    const start = addDays(cairoDay(now), -5); // B3.9.0: 5 calendar days back on the key (not `now − 5 × 24 h`)
     await page.getByTestId('term-start').fill(start);
     await page.getByTestId('term-save').click();
     const dialog = page.getByTestId('confirm-dialog');
     await expect(dialog).toContainText('Start in the past?');
-    await expect(dialog).toContainText(start);
+    // B3.8: the day is written the way the app writes dates ("16 Oct 2026").
+    await expect(dialog).toContainText(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(cairoNoon(start)))); // B3.9.0: the very day typed above
     await expect(dialog).toContainText('will sync');
     await shot(page, testInfo, '04-backdated-renewal-confirm');
     await confirmYes(page);
     const rel = await pollDb(
       () => db.findOne<{ subscriptionEvents?: { op: string; backdated?: boolean }[] }>('coachClients', { _id: REL }),
-      (r) => r?.subscriptionEvents?.at(-1)?.op === 'setTerm',
+      (r) => r?.subscriptionEvents?.at(-1)?.op === 'renew',
     );
-    expect(rel?.subscriptionEvents?.at(-1)).toMatchObject({ op: 'setTerm', backdated: true });
+    // B3.8 (Fix C): an explicit renewal, still flagged as back-dated over the lapse.
+    expect(rel?.subscriptionEvents?.at(-1)).toMatchObject({ op: 'renew', backdated: true });
     await expect(page.getByTestId('sub-status')).toHaveText('Active');
   });
 });

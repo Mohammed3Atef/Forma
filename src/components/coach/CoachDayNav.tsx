@@ -17,8 +17,8 @@ export function CoachDayNav({ date, onChange }: { date: string; onChange: (next:
         <Icon name="chevronLeft" size={20} />
       </button>
       <div className="text-center">
-        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-brand">{date === todayKey ? t('common.today') : label}</div>
-        {date !== todayKey && <div className="text-[11px] text-earth-subtle">{label}</div>}
+        <div className="font-mono text-[12px] uppercase tracking-[0.08em] text-brand">{date === todayKey ? t('common.today') : label}</div>
+        {date !== todayKey && <div className="text-[12px] text-earth-subtle">{label}</div>}
       </div>
       <button
         type="button"

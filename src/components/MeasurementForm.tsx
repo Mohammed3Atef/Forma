@@ -38,6 +38,7 @@ export function MeasurementForm({
   onSave,
   saving,
   extras,
+  readOnly,
 }: {
   date: string;
   existing?: MeasurementLog | null;
@@ -45,6 +46,8 @@ export function MeasurementForm({
   onSave: (date: string, values: Record<string, number>, clear: string[]) => Promise<void> | void;
   saving?: boolean;
   extras?: (key: MeasurementKey) => React.ReactNode;
+  /** B3.8 (P2): shown, not editable (a coach whose Forma plan lapsed); this node replaces Save. */
+  readOnly?: React.ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const customMeasurements = useSettings((s) => s.settings?.customMeasurements);
@@ -102,16 +105,20 @@ export function MeasurementForm({
 
   return (
     <div className="card">
-      <h2 className="mb-1 font-bold">{t('measure.forDay')}</h2>
-      <p className="mb-3 text-xs text-slate-400">{shortDate(date, i18n.language)} · cm</p>
-      <div className="grid grid-cols-3 gap-2">
+      {/* B3.9 (B2-R03): rebuilt once for both roles — no "0" placeholders that read as values, the unit
+          on every field, the 12 px floor, tokens instead of slate. */}
+      <h2 className="mb-1 text-[17px] font-semibold">{t('measure.forDay')}</h2>
+      <p className="mb-3 text-[12px] text-earth-subtle">{shortDate(date, i18n.language)} · {t('common.cm')}</p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
         {MEASUREMENT_KEYS.map((k) => (
           <div key={k}>
-            <label className="label truncate" htmlFor={`measure-${k}`}>{labelOf(k)}</label>
+            <label className="mb-1 block truncate text-[12px] font-medium text-earth-muted" htmlFor={`measure-${k}`}>{labelOf(k)}</label>
             <NumericField
               id={`measure-${k}`}
               invalid="flag"
-              placeholder="0"
+              disabled={!!readOnly}
+              placeholder="—"
+              suffix={t('common.cm')}
               value={form[k] ?? null}
               error={invalid.includes(k)}
               onValidityChange={(valid) => setUnreadable((cur) => ({ ...cur, [k]: !valid }))}
@@ -121,7 +128,7 @@ export function MeasurementForm({
               }}
             />
             {invalid.includes(k) && (
-              <p className="mt-0.5 text-[11px] text-danger" role="alert" data-testid={`measure-invalid-${k}`}>
+              <p className="mt-0.5 text-[12px] text-danger-text" role="alert" data-testid={`measure-invalid-${k}`}>
                 {t('trust.numbers.invalid')}
               </p>
             )}
@@ -130,9 +137,13 @@ export function MeasurementForm({
         ))}
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-danger">{t('common.savedFailed')}</p>}
-      <SubmitButton type="button" onClick={() => void submit()} pending={busy || !!saving} className="mt-3" fullWidth size="lg">
-        {t('common.save')}
-      </SubmitButton>
+      {readOnly ? (
+        <div className="mt-3">{readOnly}</div>
+      ) : (
+        <SubmitButton type="button" onClick={() => void submit()} pending={busy || !!saving} className="mt-3" fullWidth size="lg">
+          {t('common.save')}
+        </SubmitButton>
+      )}
     </div>
   );
 }

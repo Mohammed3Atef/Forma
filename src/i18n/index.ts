@@ -18,7 +18,19 @@ void i18n.use(initReactI18next).init({
   // ar-eg → MSA → English fallback chain (ar-eg is complete, this is a safety net).
   fallbackLng: { 'ar-eg': ['ar', 'en'], default: ['en'] },
   lowerCaseLng: true, // so the hyphenated 'ar-eg' code resolves to its resource (not 'ar-EG')
-  interpolation: { escapeValue: false },
+  interpolation: {
+    escapeValue: false,
+    // B3.9 (RTL-09): in Arabic, every interpolated piece of text (a client's Latin name, a template
+    // title, a date) is isolated (FSI … PDI) so its punctuation never reorders the Arabic sentence —
+    // inside the signed-in app only (`useAppSurface`); the website keeps its own copy as is. Counts
+    // and other numbers pass through untouched (plural selection is unaffected).
+    alwaysFormat: true,
+    // (i18next types the result as a string; a number passed through is stringified by i18next itself.)
+    format: (value: string, _format?: string, lng?: string) =>
+      typeof value === 'string' && value !== '' && lng?.startsWith('ar') && typeof document !== 'undefined' && document.documentElement.dataset.surface === 'app'
+        ? `\u2068${value}\u2069`
+        : value,
+  },
   returnNull: false,
 });
 

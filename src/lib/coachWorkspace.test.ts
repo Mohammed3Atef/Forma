@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { legacyViewTarget, progressViewOf, samePlaceFor, sectionOf, sectionPath, trainingStats, weekRows, weightTrend } from './coachWorkspace';
+import { legacyViewTarget, progressViewOf, samePlaceFor, sectionOf, sectionPath, trainingStats, weekRows, versionsTarget, weekTraining, weightTrend } from './coachWorkspace';
 import type { CardioLog, MealPlan, NutritionLog, WeightLog, WorkoutLog, WorkoutPlan } from '@/types';
 
 const wl = (date: string, over: Partial<WorkoutLog> = {}): WorkoutLog =>
@@ -14,6 +14,11 @@ describe('workspace routes (B3.4)', () => {
     expect(sectionOf('/coach/client/c1/', c)).toBe('summary');
     expect(sectionOf('/coach/client/c1/plan', c)).toBe('plan');
     expect(sectionOf('/coach/client/c1/versions/workout', c)).toBe('plan');
+    // B3.9 (D10): the old version-history URL opens the editor's History sheet.
+    expect(versionsTarget('c1', 'workout')).toBe('/coach/client/c1/workout?history=1');
+    expect(versionsTarget('c1', 'nutrition')).toBe('/coach/client/c1/nutrition?history=1');
+    expect(versionsTarget('c1', 'cardio')).toBe('/coach/client/c1/cardio?history=1');
+    expect(versionsTarget('c1', 'bogus')).toBe('/coach/client/c1/plan');
     for (const e of ['workout', 'nutrition', 'cardio']) expect(sectionOf(`/coach/client/c1/${e}`, c)).toBe('editor');
     for (const p of ['progress', 'checkins', 'view', 'view/photos']) expect(sectionOf(`/coach/client/c1/${p}`, c)).toBe('progress');
     for (const p of ['profile', 'assessment', 'notes', 'subscription', 'history']) expect(sectionOf(`/coach/client/c1/${p}`, c)).toBe('profile');
@@ -58,12 +63,25 @@ describe('Summary numbers come from the logs, each with its window', () => {
       wl('2026-10-20', { dayId: 'c', finished: false }), // in progress — not a workout yet
     ];
     const s = trainingStats(logs, plan(['a', 'b', 'c']), today, week);
-    expect(s).toEqual({ doneThisWeek: 2, planDays: 3, last7: 4, last28: 6, lastWorkout: '2026-10-21' });
+    expect(s).toEqual({ doneThisWeek: 2, sessionsThisWeek: 3, planDays: 3, last7: 4, last28: 6, lastWorkout: '2026-10-21' });
   });
 
   it('no plan → no "of planned"; no logs → zeros and no last workout (never a guess)', () => {
     expect(trainingStats([wl('2026-10-20', { dayId: 'x' })], null, today, week)).toMatchObject({ doneThisWeek: 1, planDays: null, last7: 1 });
-    expect(trainingStats([], plan(['a']), today, week)).toEqual({ doneThisWeek: 0, planDays: 1, last7: 0, last28: 0, lastWorkout: null });
+    expect(trainingStats([], plan(['a']), today, week)).toEqual({ doneThisWeek: 0, sessionsThisWeek: 0, planDays: 1, last7: 0, last28: 0, lastWorkout: null });
+  });
+
+  it('B3.9 — one weekly rule: distinct plan days done ÷ plan days, never more done than planned; sessions beside it', () => {
+    // Four sessions on a 3-day plan: day a twice, day b, and a workout that isn't a plan day.
+    const logs = [wl('2026-10-17', { dayId: 'a' }), wl('2026-10-18', { dayId: 'b' }), wl('2026-10-19', { dayId: 'a' }), wl('2026-10-20', { dayId: 'extra' })];
+    expect(weekTraining(logs, plan(['a', 'b', 'c']), week, today)).toEqual({ done: 2, planned: 3, sessions: 4 });
+    // A past week is bounded by its own last day.
+    expect(weekTraining(logs, plan(['a', 'b', 'c']), week, '2026-10-18')).toEqual({ done: 2, planned: 3, sessions: 2 });
+    // No plan (or an empty one) has no denominator.
+    expect(weekTraining(logs, null, week, today)).toEqual({ done: 3, planned: null, sessions: 4 });
+    expect(weekTraining(logs, plan([]), week, today).planned).toBeNull();
+    // Unfinished workouts never count.
+    expect(weekTraining([wl('2026-10-20', { dayId: 'a', finished: false })], plan(['a']), week, today)).toEqual({ done: 0, planned: 1, sessions: 0 });
   });
 
   it('weight: the latest weigh-in, and the change from the earliest weigh-in within 28 days', () => {

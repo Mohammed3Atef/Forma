@@ -66,9 +66,10 @@ export function TemplateReadView({ body: stored, details }: { body: PlanBody; de
             return (
               <li key={d.id} className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4" data-testid="template-read-day">
                 <div className="mb-1 flex items-baseline justify-between gap-3">
-                  <h3 className="min-w-0 truncate font-semibold">
+                  {/* B3.9 (AX-11): days are h2 under the page h1, their sections h3 — no skipped level. */}
+                  <h2 className="min-w-0 truncate font-semibold">
                     <bdi>{d.title || `${t('coachEditor.day')} ${i + 1}`}</bdi>
-                  </h3>
+                  </h2>
                   <span className="shrink-0 text-[12px] text-earth-subtle">{t('coachEditor.exercisesCount', { count: n })}</span>
                 </div>
                 {d.focus ? (
@@ -83,9 +84,9 @@ export function TemplateReadView({ body: stored, details }: { body: PlanBody; de
                 ) : (
                   (d.sections ?? []).map((s) => (
                     <section key={s.id} className="mt-2">
-                      <h4 className="text-[11.5px] font-medium uppercase tracking-wide text-earth-subtle">
+                      <h3 className="text-[12px] font-medium uppercase tracking-wide text-earth-subtle">
                         <bdi>{s.title || kindLabel(s.kind)}</bdi>
-                      </h4>
+                      </h3>
                       {s.exerciseIds.length ? <ul className="divide-y divide-line-soft">{s.exerciseIds.map(row)}</ul> : <p className="py-1.5 text-[12.5px] text-earth-subtle">{t('coachEditor.noExercisesYet')}</p>}
                     </section>
                   ))

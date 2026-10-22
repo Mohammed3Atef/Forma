@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useToasts, type Toast, type ToastVariant } from '@/stores/toastStore';
 import { Avatar } from './Avatar';
@@ -21,16 +22,20 @@ const AUTO_DISMISS_MS = 5000;
 export function ToastHost() {
   const toasts = useToasts((s) => s.toasts);
   if (toasts.length === 0) return null;
-  return (
+  // B3.9: on <body>, outside the app root — an open sheet or dialog makes the page behind it inert,
+  // and a toast raised meanwhile must still be announced and tappable (`data-trap-keep`).
+  return createPortal(
     <div
       className="pointer-events-none fixed inset-x-0 z-[55] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:end-4 sm:items-end"
       style={{ top: 'max(0.75rem, env(safe-area-inset-top))' }}
       data-testid="toast-host"
+      data-trap-keep=""
     >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
