@@ -3,26 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useWorkout } from '@/stores/workoutStore';
 import { useDay } from '@/stores/dayStore';
-import { Icon } from '@/components/Icon';
-import { TopBar } from '@/components/TopBar';
-import { logVolume, logSetCount, logExerciseCount } from '@/lib/calc';
-import { formatDuration, weekdayOffset } from '@/lib/utils';
-import { useBack } from '@/hooks/useBack';
+import { IconButton } from '@/components/ui/Button';
+import { ListGroup, ListRow, Section } from '@/components/ui/ListRow';
+import { logSetCount, logExerciseCount } from '@/lib/calc';
+import { weekdayInitials, weekdayOffset } from '@/lib/utils';
+import { formatDate, formatDuration, formatNumber } from '@/lib/format';
 
-// Week starts on Saturday: Sat, Sun, Mon, Tue, Wed, Thu, Fri.
-const WEEKDAYS = ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
-
+/*
+ * TRAIN › HISTORY (B2.3): a month calendar (finished days marked — not
+ * tonnage intensity, RM-45) and the month's sessions. Opening a session shows
+ * it read-only; the app-wide day returns to today on the next tab tap or after
+ * 30 minutes (B0), and Today always shows today.
+ */
 export function History() {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const navigate = useNavigate();
   const plan = useWorkout((s) => s.plan);
   const logs = useWorkout((s) => s.logs);
   const setDay = useDay((s) => s.setDay);
-  const goBack = useBack('/progress');
 
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
-
   const finished = useMemo(() => logs.filter((l) => l.finished), [logs]);
   const monthPrefix = `${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}`;
   const isCurrentMonth = cursor.y === now.getFullYear() && cursor.m === now.getMonth();
@@ -35,63 +37,33 @@ export function History() {
     });
     return m;
   }, [finished, monthPrefix]);
-
-  // Heatmap intensity (0–1) by that day's logged volume relative to the
-  // month's busiest day — a binary "did they train" highlight can't show
-  // whether a day was a light or heavy session.
-  const maxDayVolume = useMemo(() => Math.max(1, ...[...workoutDays.values()].map((l) => logVolume(l))), [workoutDays]);
-
-  const monthSessions = useMemo(
-    () => finished.filter((l) => l.date.startsWith(monthPrefix)).sort((a, b) => b.date.localeCompare(a.date)),
-    [finished, monthPrefix],
-  );
-  const monthVolume = monthSessions.reduce((v, l) => v + logVolume(l), 0);
+  const monthSessions = useMemo(() => finished.filter((l) => l.date.startsWith(monthPrefix)).sort((a, b) => b.date.localeCompare(a.date)), [finished, monthPrefix]);
 
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
   const leadingBlanks = weekdayOffset(new Date(cursor.y, cursor.m, 1).getDay());
   const cells: (number | null)[] = [...Array(leadingBlanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-
-  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
-
-  const shift = (delta: number) => {
+  const monthLabel = formatDate(new Date(cursor.y, cursor.m, 1), lang, 'monthYear');
+  const shift = (delta: number) =>
     setCursor((c) => {
       const d = new Date(c.y, c.m + delta, 1);
       return { y: d.getFullYear(), m: d.getMonth() };
     });
-  };
-
   const openDay = (date: string) => {
     setDay(date);
     navigate('/workout/session');
   };
 
   return (
-    <div className="anim-rise">
-      <TopBar title={t('gt.history')} eyebrow={t('gt.yourLog')} onBack={goBack} />
-
-      {/* Calendar */}
-      <div className="card">
+    <div className="space-y-7" data-testid="client-history">
+      <section className="rounded-ui-surface border border-white/[0.07] bg-surface-card p-4">
         <div className="mb-3 flex items-center justify-between">
-          <button type="button" onClick={() => shift(-1)} className="icon-btn h-9 w-9" aria-label={t('common.previousMonth')}>
-            <Icon name="chevronLeft" size={18} />
-          </button>
-          <span className="font-display text-base font-semibold">{monthLabel}</span>
-          <button
-            type="button"
-            onClick={() => !isCurrentMonth && shift(1)}
-            disabled={isCurrentMonth}
-            className="icon-btn h-9 w-9 disabled:opacity-30"
-            aria-label={t('common.nextMonth')}
-          >
-            <Icon name="chevron" size={18} />
-          </button>
+          <IconButton icon="chevronLeft" label={t('common.previousMonth')} onClick={() => shift(-1)} className="border-transparent" />
+          <span className="text-[16px] font-semibold">{monthLabel}</span>
+          <IconButton icon="chevron" label={t('common.nextMonth')} onClick={() => shift(1)} disabled={isCurrentMonth} className="border-transparent disabled:opacity-30" />
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {WEEKDAYS.map((d, i) => (
-            <div key={i} className="pb-1 text-center font-mono text-[10px] uppercase tracking-[0.04em] text-earth-subtle">
+          {weekdayInitials(lang).map((d, i) => (
+            <div key={i} className="pb-1 text-center text-[12px] font-medium text-earth-subtle">
               {d}
             </div>
           ))}
@@ -100,67 +72,51 @@ export function History() {
             const date = `${monthPrefix}-${String(day).padStart(2, '0')}`;
             const log = workoutDays.get(day);
             const isToday = date === todayKey;
-            // Floor at 0.22 so even a light day stays visibly distinct from
-            // a rest day, instead of fading to nearly invisible.
-            const intensity = log ? Math.max(0.22, logVolume(log) / maxDayVolume) : 0;
             return (
               <button
                 key={i}
                 type="button"
                 disabled={!log}
                 onClick={() => log && openDay(date)}
-                title={log ? `${(logVolume(log) / 1000).toFixed(1)}t` : undefined}
-                aria-label={log ? `${day} · ${(logVolume(log) / 1000).toFixed(1)}t` : String(day)}
-                className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm ${
-                  log ? 'font-medium text-white' : 'text-earth-muted'
-                } ${isToday ? 'ring-1.5 ring-brand' : ''}`}
-                style={{
-                  background: log ? `rgba(255,139,2,${intensity})` : undefined,
-                  boxShadow: isToday ? 'inset 0 0 0 1.5px #FF8B02' : undefined,
-                }}
+                aria-label={log ? `${formatDate(date, lang, 'weekdayDayMonth')} · ${plan?.days.find((x) => x.id === log.dayId)?.title ?? t('workout.session')}` : String(day)}
+                className={`relative flex aspect-square min-h-10 flex-col items-center justify-center rounded-ui-control text-[14px] tabular-nums ${
+                  log ? 'bg-success/[0.16] font-semibold text-earth' : 'text-earth-muted'
+                } ${isToday ? 'ring-1 ring-inset ring-brand/70' : ''}`}
               >
-                {day}
-                {/* A visible marker independent of the intensity color, for
-                    anyone who can't reliably distinguish the copper shades. */}
-                {log && <span className="mt-0.5 h-1 w-1 rounded-full bg-white/80" />}
+                {formatNumber(day, lang)}
+                {log && <span className="mt-0.5 h-1 w-1 rounded-full bg-success" aria-hidden="true" />}
               </button>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Month sessions */}
-      <div className="sec-head">
-        <h2 className="h2">{t('gt.workoutsN', { n: monthSessions.length })}</h2>
-        <span className="font-mono text-[12px] text-brand">{(monthVolume / 1000).toFixed(1)}t</span>
-      </div>
-      {monthSessions.length === 0 ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('progress.noData')}</p>
-      ) : (
-        <div className="card divide-y divide-line-soft p-0">
-          {monthSessions.map((l) => {
-            const d = new Date(cursor.y, cursor.m, Number(l.date.slice(8, 10)));
-            const day = plan?.days.find((x) => x.id === l.dayId);
-            return (
-              <button key={l.id} type="button" onClick={() => openDay(l.date)} className="rowline w-full text-start">
-                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-raised">
-                  <span className="font-mono text-sm font-medium leading-none">{Number(l.date.slice(8, 10))}</span>
-                  <span className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-earth-subtle">
-                    {d.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }).slice(0, 3)}
-                  </span>
-                </span>
-                <div className="grow min-w-0">
-                  <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{day?.title ?? t('workout.session')}</p>
-                  <p className="font-mono text-[11.5px] text-earth-muted">
-                    {logExerciseCount(l)} {t('gt.exercises').toLowerCase()} · {logSetCount(l)} {t('common.sets')} · {formatDuration(l.durationSec)}
-                  </p>
-                </div>
-                <span className="shrink-0 font-mono text-[12px] text-brand">{(logVolume(l) / 1000).toFixed(1)}t</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <Section title={t('history.count', { count: monthSessions.length })}>
+        {monthSessions.length === 0 ? (
+          <p className="text-[15px] text-earth-muted">{t('history.empty')}</p>
+        ) : (
+          <ListGroup>
+            {monthSessions.map((l) => {
+              const day = plan?.days.find((x) => x.id === l.dayId);
+              return (
+                <ListRow
+                  key={l.id}
+                  onClick={() => openDay(l.date)}
+                  leading={
+                    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-ui-control bg-white/[0.06]">
+                      <span className="font-mono text-[15px] font-semibold leading-none">{formatNumber(Number(l.date.slice(8, 10)), lang)}</span>
+                      <span className="mt-0.5 text-[11px] text-earth-muted">{formatDate(l.date, lang, 'weekdayAbbrev')}</span>
+                    </span>
+                  }
+                  title={day?.title ?? t('workout.session')}
+                  meta={`${t('today.exercises', { count: logExerciseCount(l) })} · ${t('today.sets', { count: logSetCount(l) })} · ${formatDuration(l.durationSec)}`}
+                  chevron
+                />
+              );
+            })}
+          </ListGroup>
+        )}
+      </Section>
     </div>
   );
 }

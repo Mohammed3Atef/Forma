@@ -2,19 +2,16 @@ import { normalizeAssessment } from '@/lib/assessment';
 import { trpc } from '@/services/trpc';
 import { writeAudit } from './auditApi';
 import type {
-  AssignedPlan,
   CardioLog,
   ClientAssessment,
   CoachNote,
-  CoachTargets,
   DailyChecklist,
   FreezeRequest,
   MeasurementLog,
   NoteEntityType,
   NoteScreen,
+  NoteVisibility,
   NutritionLog,
-  PlanKind,
-  PlanTemplate,
   ProgressPhoto,
   Role,
   UserProfile,
@@ -57,6 +54,13 @@ export interface ClientDashboardSummary {
   assessment: 'not_started' | 'in_progress' | 'submitted' | 'reviewed' | 'updated_after_review';
   fullName: string | null;
   toReview: boolean;
+  /**
+   * B3.2 (O-7): the client's training / nutrition plan has content (≥ 1 day /
+   * ≥ 1 meal). Optional — a server without the field must make Today omit
+   * the plan-based items, never guess.
+   */
+  hasWorkoutPlan?: boolean;
+  hasNutritionPlan?: boolean;
 }
 
 /**
@@ -102,6 +106,32 @@ export async function getClientFreezeRequest(clientId: string): Promise<FreezeRe
   return doc ? withId<FreezeRequest>(doc, 'current') : null;
 }
 
+/** A pending freeze request as Today lists it (B3.2 / B32-P1). */
+export interface PendingFreezeRequest {
+  clientId: string;
+  from: number | null;
+  until: number | null;
+  reason: string;
+  requestedAt: number;
+}
+
+/**
+ * Every pending freeze request among the coach's active clients, from the
+ * canonical request documents (server-scoped to the current relationship).
+ * Walks every page — bounded requests, never a silently truncated list.
+ */
+export async function listPendingFreezeRequests(coachId: string): Promise<PendingFreezeRequest[]> {
+  const out: PendingFreezeRequest[] = [];
+  let cursor: { requestedAt: number; clientId: string } | undefined;
+  for (let page = 0; page < 1000; page += 1) {
+    const res = await trpc.subscriptionRequest.pendingForCoach.query({ coachId, cursor, limit: 200 });
+    out.push(...res.items);
+    if (!res.nextCursor) return out;
+    cursor = res.nextCursor;
+  }
+  throw new Error('pendingForCoach: too many pages');
+}
+
 /** Coach records the decision on a client's freeze request (applying the freeze is done separately). The backend notifies the client. */
 export async function resolveFreezeRequest(
   clientId: string,
@@ -110,11 +140,6 @@ export async function resolveFreezeRequest(
   coachNote: string,
 ): Promise<void> {
   await trpc.subscriptionRequest.decide.mutate({ clientId, outcome, coachNote });
-}
-
-/** Coach sets the client's initial fitness profile (optional, at creation). */
-export async function saveClientProfile(clientId: string, profile: UserProfile): Promise<void> {
-  await trpc.profile.save.mutate({ clientId, ...profile });
 }
 
 // ---- raw fitness logs (coach read-only oversight) --------------------------
@@ -178,6 +203,15 @@ export async function fetchClientDay(clientId: string, date: string): Promise<Cl
   };
 }
 
+/**
+ * One client's nutrition log for one day (B3.9, PF-22): the Nutrition view refreshes this every
+ * 15 s while open — one procedure, where the whole day (five) used to be polled to read one field.
+ */
+export async function fetchClientNutritionDay(clientId: string, date: string): Promise<NutritionLog | null> {
+  const n = await trpc.logsNutrition.get.query({ clientId, date });
+  return n ? withId<NutritionLog>(n, date, { dirty: false }) : null;
+}
+
 // ---- client data for the read-only "view as client" screens ----------------
 
 /** A client's full body-measurement history (oldest → newest by date). */
@@ -197,14 +231,22 @@ export async function fetchClientPhotos(clientId: string): Promise<ProgressPhoto
   return list.map((d) => withId<ProgressPhoto>(d as Record<string, unknown>, (d as { id: string }).id, { dirty: false }));
 }
 
-/** A client's cardio history (newest first). */
-export async function fetchClientCardioLogs(clientId: string, max = 120): Promise<CardioLog[]> {
-  return fetchClientLogs<CardioLog>(clientId, 'cardioLogs', max);
-}
-
 /** A client's bodyweight history (newest first). */
 export async function fetchClientWeightLogs(clientId: string, max = 120): Promise<WeightLog[]> {
   return fetchClientLogs<WeightLog>(clientId, 'weightLogs', max);
+}
+
+/**
+ * B3.9 (PF-07 / RM-84): ONE cache entry for a client's weigh-ins — the workspace header (latest),
+ * Summary (28-day change) and Progress › Body (trend + list) read the same 120 newest entries, where
+ * each used to fetch its own window under its own key.
+ */
+export function clientWeightLogsQuery(clientId: string) {
+  return {
+    queryKey: ['clientLogs', clientId, 'weightLogs', 120] as const,
+    queryFn: () => fetchClientWeightLogs(clientId, 120),
+    enabled: !!clientId,
+  };
 }
 
 /**
@@ -238,18 +280,24 @@ export interface NoteAnchor {
   entityId?: string;
 }
 
-/** The backend notifies the client itself (author/role are taken from the authenticated session). */
+/**
+ * Notes are PRIVATE unless `visibility: 'client'` is passed (B0 / CO-02). The
+ * backend notifies the client only for shared notes (author/role are taken
+ * from the authenticated session).
+ */
 export async function addCoachNote(
   clientId: string,
   body: string,
   _author: Author,
   kind: 'note' | 'announcement' = 'note',
   anchor?: NoteAnchor,
+  visibility: NoteVisibility = 'private',
 ): Promise<void> {
   await trpc.coachNotes.create.mutate({
     clientId,
     body,
     kind,
+    visibility,
     screen: anchor?.screen,
     date: anchor?.date,
     entityType: anchor?.entityType,
@@ -257,59 +305,3 @@ export async function addCoachNote(
   });
 }
 
-/** Sends an announcement note to every client in the list. */
-export async function broadcastAnnouncement(clientIds: string[], body: string, author: Author): Promise<void> {
-  await Promise.all(clientIds.map((id) => addCoachNote(id, body, author, 'announcement')));
-}
-
-// ---- assigned plans & templates (legacy — no backend route) ---------------
-//
-// These collections (`workoutPlans`/`nutritionPlans` "assigned plan" cards and
-// top-level `planTemplates`) have no procedure under the tRPC `client.*`
-// namespace — they were superseded by the singleton coach-authored plan +
-// version history model (see planApi.ts / planVersionsApi.ts). Nothing in the
-// app currently calls these besides `assignTemplate`, so they resolve to safe
-// no-ops.
-
-export async function listAssignedPlans(_clientId: string, _kind: PlanKind): Promise<AssignedPlan[]> {
-  return [];
-}
-
-export async function assignPlan(
-  _clientId: string,
-  _data: { kind: PlanKind; title: string; description: string; assignedBy: string },
-): Promise<void> {}
-
-export async function deleteAssignedPlan(_clientId: string, _kind: PlanKind, _id: string): Promise<void> {}
-
-export async function listTemplates(_coachId: string): Promise<PlanTemplate[]> {
-  return [];
-}
-
-export async function createTemplate(
-  _coachId: string,
-  _data: { kind: PlanKind; title: string; description: string },
-): Promise<void> {}
-
-export async function deleteTemplate(_id: string): Promise<void> {}
-
-/** Copies a template onto a client as an assigned plan. */
-export async function assignTemplate(template: PlanTemplate, clientId: string, assignedBy: string): Promise<void> {
-  await assignPlan(clientId, { kind: template.kind, title: template.title, description: template.description, assignedBy });
-}
-
-// ---- coach targets ---------------------------------------------------------
-
-export async function getCoachTargets(clientId: string): Promise<CoachTargets | null> {
-  const doc = await trpc.coachTargets.get.query({ clientId });
-  return doc ? withId<CoachTargets>(doc, 'current') : null;
-}
-
-/** The backend notifies the client itself. */
-export async function setCoachTargets(
-  clientId: string,
-  targets: Pick<CoachTargets, 'waterMl' | 'steps' | 'cardioMin' | 'calories' | 'protein'>,
-  _updatedBy: string,
-): Promise<void> {
-  await trpc.coachTargets.set.mutate({ clientId, ...targets });
-}

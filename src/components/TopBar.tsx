@@ -44,7 +44,7 @@ export function TopBar({ title, eyebrow, sub, right, onBack, onTitleClick, stick
       <div className="flex min-w-0 items-center gap-3">
         {onBack && (
           <button type="button" onClick={onBack} className={`icon-btn ${dense ? 'h-9 w-9' : 'h-11 w-11'}`} aria-label={t('common.back')}>
-            <Icon name="chevronLeft" size={20} className={rtl ? 'rotate-180' : ''} />
+            <Icon name="chevronLeft" size={20} />
           </button>
         )}
         {avatar && <Avatar name={avatar.name} photoUrl={avatar.photoUrl} size="sm" rounded="rounded-full" className="shrink-0" />}
@@ -53,7 +53,7 @@ export function TopBar({ title, eyebrow, sub, right, onBack, onTitleClick, stick
           {onTitleClick ? (
             <button type="button" onClick={onTitleClick} data-testid="topbar-title" className="flex min-w-0 items-center gap-1.5 text-start">
               <h1 className={titleClass}>{title}</h1>
-              <Icon name="chevron" size={18} className={`shrink-0 text-earth-subtle ${rtl ? 'rotate-180' : ''}`} />
+              <Icon name="chevron" size={18} className="shrink-0 text-earth-subtle" />
             </button>
           ) : (
             <h1 className={titleClass}>{title}</h1>

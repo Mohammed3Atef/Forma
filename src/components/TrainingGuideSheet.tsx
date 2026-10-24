@@ -53,9 +53,9 @@ const RPE_RIR: { rir: number; rpe: number; desc: LocalizedText }[] = [
   { rir: 0, rpe: 10, desc: { en: 'Maximum effort — no rep left after the required reps (muscular failure).', ar: 'أقصى جهد — مش ممكن تجيب ولا عدة بعد العدات المطلوبة (الفشل العضلي).' } },
   { rir: 1, rpe: 9, desc: { en: '1 more rep left in the tank.', ar: 'فيه عدة في طاقتك تقدر تجيبها بعد العدات المطلوبة.' } },
   { rir: 2, rpe: 8, desc: { en: '2 more reps left in the tank.', ar: 'فيه عدتين في طاقتك بعد العدات المطلوبة.' } },
-  { rir: 3, rpe: 7, desc: { en: '3 more reps left in the tank.', ar: 'فيه ٣ عدات في طاقتك بعد العدات المطلوبة.' } },
-  { rir: 4, rpe: 6, desc: { en: '4 more reps left in the tank.', ar: 'فيه ٤ عدات في طاقتك بعد العدات المطلوبة.' } },
-  { rir: 5, rpe: 5, desc: { en: '5 more reps left in the tank.', ar: 'فيه ٥ عدات في طاقتك بعد العدات المطلوبة.' } },
+  { rir: 3, rpe: 7, desc: { en: '3 more reps left in the tank.', ar: 'فيه 3 عدات في طاقتك بعد العدات المطلوبة.' } },
+  { rir: 4, rpe: 6, desc: { en: '4 more reps left in the tank.', ar: 'فيه 4 عدات في طاقتك بعد العدات المطلوبة.' } },
+  { rir: 5, rpe: 5, desc: { en: '5 more reps left in the tank.', ar: 'فيه 5 عدات في طاقتك بعد العدات المطلوبة.' } },
 ];
 
 export function TrainingGuideSheet({ open, onClose }: { open: boolean; onClose: () => void }) {

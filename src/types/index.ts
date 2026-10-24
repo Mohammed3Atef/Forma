@@ -49,7 +49,7 @@ export type AccountStatus = 'active' | 'suspended' | 'pending' | 'disabled';
 /**
  * Granular permission keys. Each role implies a baseline set (see
  * `ROLE_PERMISSIONS` in src/services/auth/roles.ts); `UserRecord.permissions`
- * can grant extras beyond that baseline. Firestore rules enforce the same set.
+ * can grant extras beyond that baseline. The server (`api/_lib/rbac.ts`) enforces the same set.
  */
 export type Permission =
   | 'users.read' // list/read other users' identity docs
@@ -66,7 +66,7 @@ export type Permission =
  * Identity / access-control document at `users/{uid}`. Deliberately separate
  * from `UserProfile` (the fitness profile, which lives at
  * `clientData/{uid}/profile`). A user can never elevate their own role,
- * permissions, or status — that is enforced in firestore.rules.
+ * permissions, or status — that is enforced server-side (`auth.updateProfile`).
  */
 export interface UserRecord {
   id: string; // == Firebase Auth uid
@@ -95,16 +95,8 @@ export interface UserRecord {
   /** Coach's default billing currency (e.g. "EGP", "USD"); applied to plans + new terms. */
   currency?: string;
   /** Coach onboarding checklist progress (Phase 1). Derived from real data where possible. */
-  onboarding?: CoachOnboarding;
   createdAt: number;
   updatedAt: number;
-}
-
-/** Coach onboarding checklist state, stored on the coach's own `users/{uid}` doc. */
-export interface CoachOnboarding {
-  profileDone?: boolean;
-  firstClientDone?: boolean;
-  firstTemplateDone?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +182,6 @@ export interface CoachPlan {
   endsAt: number | null;
   /** The confirmed paid term (absent during the Trial). */
   subscription?: SubscriptionTermSnapshot;
-  trialNotified?: { d7?: boolean; d5?: boolean; d3?: boolean; d1?: boolean };
   /** Maintained client-usage counter (server-side). */
   activeClientCount?: number;
   history?: PlanHistoryEntry[];
@@ -351,6 +342,22 @@ export interface AdminCoachCommercial {
 
 export type SignupInviteStatus = 'pending' | 'claimed' | 'revoked';
 
+/**
+ * What the PUBLIC claim screen may learn about an invite (B3.0.1 / B3-S03):
+ * no invitee email or phone, no coach id, no price. `emailHint` is masked
+ * (`m•••@gmail.com`); the server uses the invite's real email on claim.
+ */
+export interface PublicInvite {
+  code: string;
+  status: SignupInviteStatus;
+  claimable: boolean;
+  expiresAt?: number | null;
+  coachName?: string;
+  displayName?: string;
+  hasEmail: boolean;
+  emailHint?: string;
+}
+
 export interface SignupInvite {
   code: string; // == doc id
   coachId: string;
@@ -370,6 +377,9 @@ export interface SignupInvite {
   subDays?: number; // for an 'active' term measured in days (coach plan with unit='days')
   subTrialDays?: number; // for a 'trial' (default 14)
   status: SignupInviteStatus;
+  /** B4.1: what happened to the invite email (absent: no email on the invite). `unconfirmed` = no answer in time. */
+  emailStatus?: 'sent' | 'not-sent' | 'unconfirmed';
+  emailAttemptAt?: number;
   claimedByUid?: string | null;
   createdAt: number;
   claimedAt?: number | null;
@@ -516,14 +526,29 @@ export interface Subscription {
   status: SubscriptionStatus;
   frozenFrom?: number | null;
   frozenUntil?: number | null;
+  /** B3.0.1: compensation (ms) a scheduled freeze added to `endAt`; absent on freezes stored before B3.0.1. */
+  freezeCredit?: number | null;
   note?: string; // coach note (e.g. why frozen)
   updatedAt: number;
+  /**
+   * B3.8 (fixed-day terms, Fix C, payments) — absent on terms written before B3.8, which work
+   * from `startAt` / `endAt` alone. `termId`: the economic term (corrections keep it, a renewal
+   * starts a new one, payments point at it). `startDate` / `endDate`: the term's calendar days
+   * `[startDate, endDate)` in `zone` — `endDate` is EXCLUSIVE (30 days from 1 Oct covers 1–30 Oct,
+   * the next term starts 31 Oct). `days`: the booked length (1 month = 30 days).
+   */
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
 }
 
 /**
  * An archived subscription term, kept on the relationship's `subscriptionHistory`
- * so coach and client can see how long / how much the client has subscribed. A
- * prior term is archived when the coach starts a new term (different start date).
+ * so coach and client can see how long / how much the client has subscribed.
+ * B3.8: only a RENEWAL archives (`archivedBy: 'renew'`), with the term's real end;
+ * entries without it were archived by the pre-B3.8 "Set term" and are kept as they are.
  */
 export interface SubscriptionPeriod {
   startAt: number;
@@ -531,8 +556,47 @@ export interface SubscriptionPeriod {
   months?: number;
   price?: number;
   currency?: string;
-  status: SubscriptionStatus; // terminal state when archived (typically 'ended')
-  endedAt: number; // when this period was closed/archived
+  status: SubscriptionStatus; // 'expired' = it had run out; 'ended' = renewed (or replaced) while running
+  endedAt: number; // when this period was archived
+  termId?: string;
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+  zone?: string;
+  planName?: string;
+  archivedBy?: 'renew';
+}
+
+/** B3.8 — how the coach says a client paid them (manual record; Forma verifies nothing). */
+export type PaymentMethod = 'cash' | 'mobile_wallet' | 'instapay';
+
+/**
+ * B3.8 (owner decision 1) — a payment a coach RECORDED (or the reversal of one). Amounts are whole
+ * piastres (EGP minor units). Never edited or deleted: a mistake is reversed (`reversedById`), a
+ * correction is a reversal plus a new payment (`correctsId`). Coach-only; clients never read these.
+ */
+export interface ClientPayment {
+  id: string;
+  kind: 'payment' | 'reversal';
+  coachId: string;
+  clientId: string;
+  relationshipId: string;
+  termId: string | null;
+  amountMinor: number;
+  currency: 'EGP';
+  method: PaymentMethod;
+  paidAt: number;
+  reference?: string;
+  note?: string;
+  reversesId?: string;
+  reversedById?: string;
+  reversedAt?: number;
+  reason?: string;
+  correctsId?: string;
+  requestId: string;
+  createdBy: string;
+  createdByRole: 'coach' | 'admin';
+  createdAt: number;
 }
 
 /**
@@ -583,6 +647,11 @@ export interface CoachClientRelationship {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  /**
+   * B3.4 / B3-S13: earlier stints of the same coach ⇄ client pair, archived when the client
+   * returned (oldest first). Another coach sees their facts only (dates, how they ended).
+   */
+  previousStints?: (Omit<CoachClientRelationship, 'id' | 'coachId' | 'clientId' | 'previousStints' | 'createdBy'> & { createdBy?: string; archivedAt: number })[];
 }
 
 /** How a transfer treats the previous coach's plans/content. */
@@ -659,6 +728,9 @@ export interface FeatureFlag {
 /** Which client-app screen a note/notification points at. */
 export type NoteScreen = 'nutrition' | 'workout' | 'cardio' | 'progress' | 'measurements' | 'photos';
 
+/** B0 / CO-02: `private` (default, coach-only) or explicitly shared with the `client`. Missing = private. */
+export type NoteVisibility = 'private' | 'client';
+
 /**
  * The kind of entity a coach note is attached to. Notes are anchored by
  * (entityType, entityId) — NEVER by screen coordinates — so they render next to
@@ -686,6 +758,8 @@ export interface CoachNote {
   body: string;
   /** Distinguishes one-off notes from broadcast announcements. */
   kind?: 'note' | 'announcement';
+  /** Who can read it. The server never returns private notes to the client. */
+  visibility?: NoteVisibility;
   // ---- entity anchoring (all optional; legacy/general notes have none) ----
   /** Client screen the note belongs to (drives notification deep-link). */
   screen?: NoteScreen;
@@ -743,6 +817,9 @@ export interface AppNotification {
   entityId?: string;
   /** Explicit fallback route when there's no screen/entity mapping. */
   route?: string;
+  /** DONE: the task it asked for was completed (B0 / NT-03) — also counts as read. */
+  resolvedAt?: number | null;
+  /** READ: seen by the user — the unread badge counts rows where this is null. */
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
@@ -759,7 +836,7 @@ export type CheckInStatus = 'requested' | 'submitted' | 'reviewed';
  * feedback (`reviewed`). Online read (React Query) — not in the local SyncEngine.
  */
 export interface WeeklyCheckIn {
-  id: string; // == weekStart (YYYY-MM-DD, Monday)
+  id: string; // the record key: weekStart, or `weekStart__coachId` for a second coach's record of that week (B3.4)
   clientId: string;
   coachId: string;
   weekStart: string; // YYYY-MM-DD (Mon)
@@ -776,6 +853,8 @@ export interface WeeklyCheckIn {
   notes?: string;
   progressPhotos: { front?: string; side?: string; back?: string }; // Bunny CDN urls
   coachFeedback?: string;
+  /** B3.4 (client reads only): a previous coach's request left open — it can no longer be answered. */
+  closed?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -801,13 +880,14 @@ export interface MessageAttachment {
 
 /** The fixed set of reactions `messages.react` accepts — keep in sync with `api/messages/_data.ts`'s `REACTION_VALUES`. */
 export const MESSAGE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
-export type MessageReaction = (typeof MESSAGE_REACTIONS)[number];
 /** How long after sending a message its sender may still edit/delete it — mirrors `EDIT_WINDOW_MS` in `api/messages/_data.ts`; the server is the real enforcement, this is only for the client to know when to hide the action. */
 export const MESSAGE_EDIT_WINDOW_MS = 2 * 60 * 1000;
 
 export interface Message {
   id: string;
   clientId: string;
+  /** The conversation (coach id) it belongs to — B3.0.1 / B3-S14. Absent on legacy messages. */
+  coachId?: string;
   fromUserId: string;
   fromRole: Role;
   body: string;
@@ -827,25 +907,6 @@ export interface Message {
   reactions?: Record<string, string>;
 }
 
-export type PlanKind = 'workout' | 'nutrition';
-
-/**
- * A plan a coach assigns to a client. Lives at
- * `clientData/{clientId}/workoutPlans` or `/nutritionPlans`. Kept intentionally
- * simple (title + description) so it's authorable on mobile; the client reads
- * these in their app.
- */
-export interface AssignedPlan {
-  id: string;
-  clientId: string;
-  kind: PlanKind;
-  title: string;
-  description: string;
-  assignedBy: string;
-  assignedAt: number;
-  updatedAt: number;
-}
-
 /** One prescribed cardio session in a coach's cardio plan. */
 export interface CardioSession {
   id: string;
@@ -862,17 +923,6 @@ export interface CardioPlan {
   name: string;
   sessions: CardioSession[];
   meta?: AssignedPlanMeta;
-  updatedAt: number;
-}
-
-/** A coach's reusable plan template at top-level `planTemplates` (owned by coachId). */
-export interface PlanTemplate {
-  id: string;
-  coachId: string;
-  kind: PlanKind;
-  title: string;
-  description: string;
-  createdAt: number;
   updatedAt: number;
 }
 
@@ -895,6 +945,41 @@ export interface CoachTargets {
 // ---------------------------------------------------------------------------
 // Workout plan
 // ---------------------------------------------------------------------------
+
+/** B4 — structured, bilingual technique notes copied from the Forma catalog. */
+export interface CatalogInstructionSet {
+  setup: string[];
+  steps: string[];
+  cues: string[];
+  mistakes: string[];
+  safety: string[];
+}
+
+/** B4 — the credit a demonstration image / video must show wherever it is shown (licence + author + source). */
+export interface MediaCredit {
+  url: string;
+  kind: 'image' | 'video';
+  author: string;
+  license: string;
+  sourcePage?: string;
+}
+
+/**
+ * B4 — what a food row's macros were computed from, when it came from the Forma catalog (or the
+ * Open Food Facts search): values per 100 g, the serving, the state, and the source to credit.
+ */
+export interface FoodProvenance {
+  catalogId?: string;
+  catalogRev?: number;
+  per100g?: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number };
+  /** The serving: a household portion (or `g` for plain grams) × amount = grams. */
+  portion?: { id: string; amount: number; grams: number; label?: LocalizedText };
+  foodState?: 'raw' | 'cooked' | 'dry' | 'prepared' | 'as-sold';
+  /** `recipe-estimate` / `proxy-estimate` are shown as estimates, with `sourceNote`. */
+  verification?: 'source-values' | 'recipe-estimate' | 'proxy-estimate';
+  sourceNote?: LocalizedText;
+  source?: { provider: 'forma-catalog' | 'open-food-facts'; license: string; attribution: string; url?: string };
+}
 
 export interface Exercise {
   id: string;
@@ -930,6 +1015,8 @@ export interface Exercise {
   /** Demo image (e.g. seeded library); coaches may still attach a video. */
   imageUrl?: string | null;
   images?: string[];
+  /** B4.1: the still shown before a catalog demonstration (`videoUrl`) plays. */
+  videoPosterUrl?: string | null;
   // ---- Import provenance (seeded/imported exercises only) -------------------
   /** External catalog id this row was imported from (e.g. a wger exercise id). */
   sourceId?: string;
@@ -947,6 +1034,14 @@ export interface Exercise {
   libraryExerciseId?: string;
   /** Whether this embedded copy still receives auto-sync from the library exercise (see `pickFromLibrary`/`SYNCED_EXERCISE_FIELDS`). */
   librarySyncEnabled?: boolean;
+  // ---- B4: copy taken from the Forma catalog (all optional) ---------------
+  /** The catalog exercise this copy came from, and its revision at that time. */
+  catalogId?: string;
+  catalogRev?: number;
+  /** Bilingual name from the catalog — the UI shows it in the reader's language (`name` stays the fallback). */
+  names?: LocalizedText;
+  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet };
+  mediaCredits?: MediaCredit[];
 }
 
 /** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */
@@ -1080,6 +1175,8 @@ export interface WorkoutLog {
   finished: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1095,7 +1192,7 @@ export interface Macros {
   fats: number;
 }
 
-export interface FoodItem {
+export interface FoodItem extends FoodProvenance {
   id: string;
   name: LocalizedText;
   quantity: string;
@@ -1110,6 +1207,29 @@ export interface FoodItem {
   allowedAlternatives?: FoodItem[];
   /** Whether the client may swap this item for a free-text custom food. */
   allowCustomSubstitution?: boolean;
+  /** B4.1: the food's picture — a copy, so a plan keeps the picture it was built with. */
+  image?: FoodImageRef | null;
+}
+
+/**
+ * B4.1 — a food's picture as a library food or a plan item carries it: the coach's own upload
+ * (sanitized, in their `foods` folder) or an approved Forma catalog picture of that catalog food.
+ * Who may use which picture is enforced by the server on every save.
+ */
+export interface FoodImageRef {
+  source: 'upload' | 'forma-catalog';
+  url: string;
+  thumbUrl: string;
+  width?: number;
+  height?: number;
+  alt?: LocalizedText;
+  catalogFoodId?: string;
+  author?: string;
+  license?: string;
+  sourcePage?: string;
+  /** A replacement is a new file (new rev): earlier plans keep showing the picture they were saved with. */
+  rev: number;
+  uploadedAt: number;
 }
 
 export interface Meal {
@@ -1152,10 +1272,11 @@ export interface MealPlan {
 export interface SubstitutionPolicy {
   allowClientSubstitutions: boolean;
   allowCustomFoods: boolean;
-  requireCoachApproval: boolean;
+  /** Legacy (B3.9, owner D6): no longer offered or read — kept so stored plans round-trip unchanged. */
+  requireCoachApproval?: boolean;
 }
 
-/** The three plan kinds that can be versioned (cardio is not a `PlanKind`). */
+/** The three plan kinds that can be versioned. */
 export type PlanVersionKind = 'workout' | 'nutrition' | 'cardio';
 
 /**
@@ -1202,6 +1323,8 @@ export interface NutritionLog {
   creatineTaken: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1220,6 +1343,8 @@ export interface CardioLog {
   steps: number | null;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export interface WeightLog {
@@ -1228,6 +1353,8 @@ export interface WeightLog {
   weightKg: number;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export type MeasurementKey =
@@ -1262,32 +1389,8 @@ export interface MeasurementLog {
   values: Record<string, number>;
   updatedAt: number;
   dirty: boolean;
-}
-
-// ---------------------------------------------------------------------------
-// Video
-// ---------------------------------------------------------------------------
-
-export type VideoKind = 'file' | 'youtube' | 'unknown';
-export type VideoStatus =
-  | 'link-pending'
-  | 'not-downloaded'
-  | 'downloading'
-  | 'downloaded'
-  | 'failed';
-
-export interface VideoAsset {
-  id: string;
-  exerciseId: string;
-  title: string;
-  sourceUrl: string | null;
-  kind: VideoKind;
-  status: VideoStatus;
-  localKey?: string;
-  sizeBytes?: number;
-  /** Set when the user pasted their own URL — seed upgrades won't replace it. */
-  userEdited?: boolean;
-  updatedAt: number;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1308,23 +1411,13 @@ export interface ProgressPhoto {
   note?: string;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 // ---------------------------------------------------------------------------
 // Habit / daily checklist / streaks / reminders
 // ---------------------------------------------------------------------------
-
-/**
- * Checklist item keys. Meal items are dynamic: `meal:<mealId>`.
- */
-export type ChecklistKey =
-  | 'workout'
-  | 'supplements'
-  | 'water'
-  | 'steps'
-  | 'cardio'
-  | 'creatine'
-  | `meal:${string}`;
 
 export interface ChecklistItemState {
   done: boolean;
@@ -1340,6 +1433,8 @@ export interface DailyChecklist {
   fullyComplete: boolean;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export type ReminderKind =
@@ -1362,6 +1457,8 @@ export interface Reminder {
   lastFiredDate?: DayKey;
   updatedAt: number;
   dirty: boolean;
+  /** Server revision this copy is based on (B0 / PWA-06; managed by the SyncEngine). */
+  _rev?: number;
 }
 
 export interface StreakValue {
@@ -1407,9 +1504,3 @@ export interface AppSettings {
   updatedAt: number;
 }
 
-export interface TimerLog {
-  id: string;
-  kind: 'session' | 'rest' | 'cardio';
-  startedAt: number;
-  durationSec: number;
-}

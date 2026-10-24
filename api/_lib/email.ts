@@ -63,22 +63,25 @@ function fromAddress(): string {
   return process.env.RESEND_FROM_EMAIL || 'Forma <onboarding@resend.dev>';
 }
 
-async function send(to: string, subject: string, html: string, logFallback: string): Promise<void> {
+/** `true` once the provider accepted the email; `false` when email is disabled here (nothing sent). Throws on a provider failure. */
+async function send(to: string, subject: string, html: string, logFallback: string): Promise<boolean> {
   const r = resend();
   if (!r) {
     console.warn(`[email] RESEND_API_KEY is not set — ${logFallback}`);
-    return;
+    return false;
   }
   const { error } = await r.emails.send({ from: fromAddress(), to, subject, html });
   if (error) {
     console.error(`[email] Resend failed to send "${subject}" to ${to}:`, error);
     throw new Error(`Failed to send email: ${subject}`);
   }
+  return true;
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   const html = render(loadPasswordResetTemplate(), { resetUrl });
-  await send(to, 'Reset your Forma password', html, `password reset link for ${to} was not delivered: ${resetUrl}`);
+  // B39A-S01: never log the link — it carries the reset token.
+  await send(to, 'Reset your Forma password', html, 'a password reset email was not delivered (email is disabled)');
 }
 
 /** Sent right after a new account is created (self-signup or invite-claim). */
@@ -88,10 +91,12 @@ export async function sendWelcomeEmail(to: string, name: string, appUrl: string)
 }
 
 /** Sent when a coach creates an invite WITH an email address (the code/link is still shown in-app for manual copy/share either way). */
-export async function sendClientInviteEmail(to: string, opts: { coachName: string; inviteUrl: string; inviteCode: string; appUrl: string }): Promise<void> {
+/** B4.1: resolves `true` when the provider accepted it, `false` when email is disabled; throws when delivery failed. */
+export async function sendClientInviteEmail(to: string, opts: { coachName: string; inviteUrl: string; inviteCode: string; appUrl: string }): Promise<boolean> {
   const coachInitial = (opts.coachName.trim().charAt(0) || 'F').toUpperCase();
   const html = render(loadClientInviteTemplate(), { ...opts, coachInitial });
-  await send(to, `${opts.coachName} invited you to Forma`, html, `client invite email for ${to} was not delivered: ${opts.inviteUrl}`);
+  // Never log the invite link: its code lets anyone claim the invite.
+  return send(to, `${opts.coachName} invited you to Forma`, html, 'a client invite email was not delivered (email is disabled)');
 }
 
 /**

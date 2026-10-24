@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { emitPlanLapsed } from './planLapseSignal';
 import { create } from 'zustand';
 import { getAttachmentKind, type AttachmentKind } from '@/lib/attachmentKind';
 import { getAccessToken, refreshSession } from '@/services/platformApi';
@@ -21,7 +22,8 @@ import { trpc } from '@/services/trpc';
  * server-side; the pre-checks here only exist for instant feedback.
  */
 
-export type UploadErrorCode = 'notConfigured' | 'badType' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'failed' | 'cancelled';
+/** `forbidden` (B3.0.1): the server refused this upload for this account / conversation — retrying cannot help. */
+export type UploadErrorCode = 'notConfigured' | 'badType' | 'badDimensions' | 'tooLarge' | 'tooLargeVideo' | 'tooLargeAudio' | 'tooLargeFile' | 'forbidden' | 'planLapsed' | 'planSuspended' | 'noPlan' | 'failed' | 'cancelled';
 
 export class UploadError extends Error {
   code: UploadErrorCode;
@@ -39,8 +41,10 @@ export interface UploadResult {
 
 export type UploadTarget =
   | { category: 'avatar' | 'progress' | 'assessment' | 'exercise' }
+  /** B4.1: a coach's food photo — stored under their own foods folder, sanitized by the server. */
+  | { category: 'food' }
   | { category: 'checkin'; checkInId: string }
-  | { category: 'message'; clientId: string };
+  | { category: 'message'; clientId: string; /** B3.0.1: the conversation the attachment was composed in. */ coachId?: string };
 
 export interface UploadOptions {
   /** Display name to keep with the file (defaults to `File.name`). */
@@ -182,14 +186,24 @@ function assertOk(r: RawResponse): Record<string, unknown> {
   const message = typeof r.json.message === 'string' ? r.json.message : `Upload failed (${r.status})`;
   if (r.status === 413 && code.startsWith('tooLarge')) throw new UploadError(code as UploadErrorCode, message);
   if (r.status === 415) throw new UploadError('badType', message);
+  if (r.status === 422 && code === 'badDimensions') throw new UploadError('badDimensions', message);
   if (r.status === 503) throw new UploadError('notConfigured', message);
+  // B3.8 (P2): the coach's Forma plan lapsed / was suspended — said as such, not "forbidden".
+  if (r.status === 403 && (code === 'planLapsed' || code === 'planSuspended' || code === 'noPlan')) {
+    emitPlanLapsed(code === 'planSuspended' ? 'SUBSCRIPTION_SUSPENDED' : code === 'noPlan' ? 'NO_SUBSCRIPTION' : 'SUBSCRIPTION_EXPIRED');
+    throw new UploadError(code, message);
+  }
+  if (r.status === 403) throw new UploadError('forbidden', message);
   throw new UploadError('failed', message);
 }
 
 function targetParams(target: UploadTarget): Record<string, string> {
   const p: Record<string, string> = { category: target.category };
   if (target.category === 'checkin') p.checkInId = target.checkInId;
-  if (target.category === 'message') p.clientId = target.clientId;
+  if (target.category === 'message') {
+    p.clientId = target.clientId;
+    if (target.coachId) p.coachId = target.coachId;
+  }
   return p;
 }
 
@@ -197,6 +211,8 @@ interface UploadResponse extends UploadResult {
   kind: AttachmentKind;
   name: string;
   mimeType: string;
+  /** Storage path of the object (B1.11 media seam) — absent from servers older than B1. */
+  path?: string;
 }
 
 function toResult(json: Record<string, unknown>): UploadResponse {
@@ -206,6 +222,7 @@ function toResult(json: Record<string, unknown>): UploadResponse {
     kind: (json.kind as AttachmentKind) ?? 'file',
     name: String(json.name ?? ''),
     mimeType: String(json.mimeType ?? ''),
+    ...(typeof json.path === 'string' && json.path ? { path: json.path } : {}),
   };
 }
 
@@ -251,6 +268,18 @@ export async function uploadImage(file: Blob, target: UploadTarget, opts: Upload
   if (file.size > MAX_IMAGE_BYTES) throw new UploadError('tooLarge');
   const { url, size } = await uploadFile(file, target, opts);
   return { url, size };
+}
+
+/**
+ * B4.1 — a coach's food photo (already prepared on the device: scaled, re-encoded, no metadata —
+ * `lib/foodImageProcess`): the picture, then its thumbnail, each sanitized again by the server and
+ * stored under the coach's own foods folder. Progress covers both; a failure leaves nothing referenced.
+ */
+export async function uploadFoodPhoto(photo: { full: Blob; thumb: Blob }, opts: Pick<UploadOptions, 'onProgress' | 'signal'> = {}): Promise<{ url: string; thumbUrl: string }> {
+  const ext = (b: Blob) => (b.type === 'image/webp' ? 'webp' : 'jpg');
+  const full = await uploadFile(photo.full, { category: 'food' }, { name: `food.${ext(photo.full)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(Math.round(p * 0.85)) });
+  const thumb = await uploadFile(photo.thumb, { category: 'food' }, { name: `food-thumb.${ext(photo.thumb)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(85 + Math.round(p * 0.15)) });
+  return { url: full.url, thumbUrl: thumb.url };
 }
 
 // ---- super-admin gallery (now server-side) ---------------------------------

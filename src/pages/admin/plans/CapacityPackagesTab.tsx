@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { parseNumber } from '@/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -17,6 +18,8 @@ import { listCapacityPackages, reorderCapacityPackages, saveCapacityPackage, set
 import { useCapacityPrice } from '@/lib/formaFormat';
 import type { CapacityPackage } from '@/types';
 import { ToggleRow } from './ToggleRow';
+import { dayKeyOf } from '@/lib/format';
+import { errorMessage } from '@/lib/errorMessage';
 
 interface Form {
   id?: string;
@@ -39,7 +42,7 @@ interface Form {
   targetCoachIds: string; // comma/newline separated
 }
 
-const dateIn = (at?: number | null) => (at ? new Date(at).toISOString().slice(0, 10) : '');
+const dateIn = (at?: number | null) => (at ? dayKeyOf(at) : ''); // local day for <input type=date>
 const dateOut = (v: string, endOfDay = false) => (v ? new Date(`${v}T${endOfDay ? '23:59:59' : '00:00:00'}`).getTime() : null);
 
 const blank = (): Form => ({
@@ -71,14 +74,14 @@ export function CapacityPackagesTab() {
   const q = useQuery({ queryKey: ['capacityPackages', showArchived], queryFn: () => listCapacityPackages(showArchived) });
   const rows = q.data ?? [];
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['capacityPackages'] });
-  const fail = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const fail = (title: string) => (e: unknown) => void alertDialog({ title, message: errorMessage(e, t) });
 
   const errors = form
     ? {
         nameEn: !form.nameEn.trim() ? t('forma.admin.errRequired') : undefined,
-        additionalClients: !(Math.floor(Number(form.additionalClients)) >= 1) ? t('forma.admin.errMin1') : undefined,
-        price: form.price.trim() === '' || !(Number(form.price) >= 0) ? t('forma.admin.errPrice') : undefined,
-        durationMonths: form.billingInterval === 'month' && !(Math.floor(Number(form.durationMonths)) >= 1) ? t('forma.admin.errMin1') : undefined,
+        additionalClients: !(Math.floor(parseNumber(form.additionalClients)) >= 1) ? t('forma.admin.errMin1') : undefined,
+        price: form.price.trim() === '' || !(parseNumber(form.price) >= 0) ? t('forma.admin.errPrice') : undefined,
+        durationMonths: form.billingInterval === 'month' && !(Math.floor(parseNumber(form.durationMonths)) >= 1) ? t('forma.admin.errMin1') : undefined,
         validUntil: form.validFrom && form.validUntil && form.validUntil < form.validFrom ? t('forma.admin.errDates') : undefined,
       }
     : {};
@@ -91,11 +94,11 @@ export function CapacityPackagesTab() {
         name: { en: f.nameEn, ar: f.nameAr },
         description: { en: f.descEn, ar: f.descAr },
         badge: { en: f.badgeEn, ar: f.badgeAr },
-        additionalClients: Math.floor(Number(f.additionalClients)),
-        price: Number(f.price),
+        additionalClients: Math.floor(parseNumber(f.additionalClients)),
+        price: parseNumber(f.price),
         currency: f.currency.trim() || 'EGP',
         billingInterval: f.billingInterval,
-        durationMonths: f.billingInterval === 'month' ? Math.floor(Number(f.durationMonths)) || 1 : undefined,
+        durationMonths: f.billingInterval === 'month' ? Math.floor(parseNumber(f.durationMonths)) || 1 : undefined,
         active: f.active,
         coachVisible: f.coachVisible,
         promotional: f.promotional,
@@ -132,7 +135,7 @@ export function CapacityPackagesTab() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-[13px] text-earth-muted">{t('forma.admin.packagesHint')}</p>
         <div className="flex items-center gap-2">
-          <button type="button" className={`chip ${showArchived ? 'chip-on' : ''}`} onClick={() => setShowArchived((v) => !v)} data-testid="packages-show-archived">
+          <button type="button" aria-pressed={showArchived} className={`chip ${showArchived ? 'chip-on' : ''}`} onClick={() => setShowArchived((v) => !v)} data-testid="packages-show-archived">
             {t('forma.admin.showArchived')}
           </button>
           <button type="button" className="btn-primary btn-sm" onClick={() => setForm(blank())} data-testid="package-add">

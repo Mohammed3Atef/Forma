@@ -7,7 +7,7 @@ import { trpc } from '@/services/trpc';
 import { getInvite, isClaimable } from '@/services/platform/inviteApi';
 import { passwordError } from '@/lib/password';
 import { commercialReason } from '@/services/platform/coachPlanRequestsApi';
-import type { SignupInvite } from '@/types';
+import type { PublicInvite } from '@/types';
 
 type Phase = 'loading' | 'invalid' | 'ready' | 'joining' | 'done';
 
@@ -34,7 +34,7 @@ export function AcceptInvite() {
   const hydrate = useSession((s) => s.hydrate);
 
   const [phase, setPhase] = useState<Phase>('loading');
-  const [invite, setInvite] = useState<SignupInvite | null>(null);
+  const [invite, setInvite] = useState<PublicInvite | null>(null);
   const [coachName, setCoachName] = useState<string>('');
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +54,13 @@ export function AcceptInvite() {
         // creation time so this works PRE-AUTH (no users read possible here).
         if (inv!.coachName) setCoachName(inv!.coachName);
         if (!mounted) return;
+        // B3.0.1 / B3-S03: the lookup no longer returns the invitee's email or
+        // phone. An emailed invite shows its masked address (read-only — the
+        // server claims with the invite's own email); the phone is typed in.
         setForm((f) => ({
           ...f,
           name: f.name || (inv!.displayName ?? ''),
-          email: f.email || (inv!.email ?? ''),
-          phone: f.phone || (inv!.phone ?? ''),
+          email: inv!.hasEmail ? (inv!.emailHint ?? '') : f.email,
         }));
         setPhase('ready');
       } catch {
@@ -91,11 +93,12 @@ export function AcceptInvite() {
     if (localErr) { setError(localErr); return; }
     if (!invite) return;
     setPhase('joining');
-    const email = (invite.email?.trim() || form.email.trim());
+    // An emailed invite is claimed with its own email (server-side); only a no-email invite sends the typed one.
+    const email = invite.hasEmail ? undefined : form.email.trim();
     try {
       const { user, accessToken } = await trpc.invites.claim.mutate({
         code: invite.code,
-        email,
+        ...(email ? { email } : {}),
         phone: form.phone.trim(),
         password: form.password,
         ...(form.name.trim() ? { displayName: form.name.trim() } : {}),
@@ -142,11 +145,11 @@ export function AcceptInvite() {
               data-testid="invite-form"
               onSubmit={(e) => { e.preventDefault(); void join(); }}
             >
-              <input className="input" data-testid="invite-name" placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <input className="input" type="email" autoComplete="email" data-testid="invite-email" placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} readOnly={!!invite?.email} />
-              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="invite-phone" placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              <input className="input" type="password" autoComplete="new-password" data-testid="invite-password" placeholder={t('settings.password')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-              <input className="input" type="password" autoComplete="new-password" data-testid="invite-confirm" placeholder={t('auth.confirmPassword')} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
+              <input className="input" data-testid="invite-name" aria-label={t('settings.name')} placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input className="input" type="email" autoComplete="email" data-testid="invite-email" aria-label={t('settings.email')} placeholder={t('settings.email')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} readOnly={!!invite?.hasEmail} />
+              <input className="input" type="tel" inputMode="tel" dir="ltr" data-testid="invite-phone" aria-label={t('settings.phone')} placeholder={t('settings.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input className="input" type="password" autoComplete="new-password" data-testid="invite-password" aria-label={t('settings.password')} placeholder={t('settings.password')} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <input className="input" type="password" autoComplete="new-password" data-testid="invite-confirm" aria-label={t('auth.confirmPassword')} placeholder={t('auth.confirmPassword')} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
               <p className="text-[12px] text-earth-subtle">{t('auth.pwHint')}</p>
               {error && <p className="text-sm text-danger" data-testid="invite-error">{error}</p>}
               {phase === 'joining' && <p className="text-sm text-earth-muted">{t('auth.working')}</p>}

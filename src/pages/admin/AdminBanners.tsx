@@ -115,8 +115,8 @@ export function AdminBanners() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Pill tone={b.active ? 'ok' : 'mute'}>{b.active ? t('adminBanners.on') : t('adminBanners.off')}</Pill>
-                  <button type="button" disabled={toggle.isPending} className="btn-ghost h-8 px-3 text-[11px] disabled:opacity-40" onClick={() => toggle.mutate(b)}>{b.active ? t('adminBanners.disable') : t('adminBanners.enable')}</button>
-                  <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => { setEditing(b); setSubmitAttempted(false); }}>{t('common.edit')}</button>
+                  <button type="button" disabled={toggle.isPending} className="btn-ghost btn-sm disabled:opacity-40" onClick={() => toggle.mutate(b)}>{b.active ? t('adminBanners.disable') : t('adminBanners.enable')}</button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => { setEditing(b); setSubmitAttempted(false); }}>{t('common.edit')}</button>
                 </div>
               </div>
             </div>
@@ -206,7 +206,7 @@ function BannerForm({ value, onChange, onSave, submitAttempted, onSubmitAttempt 
         <p className="label mb-2">{t('adminBanners.audience')}</p>
         <div className="flex flex-wrap gap-2">
           {roleOpts.map((r) => (
-            <button type="button" key={r} onClick={() => toggleRole(r)} className={`chip ${value.roles.includes(r) ? 'chip-on' : ''}`}>{t(`roles.${r}`)}</button>
+            <button type="button" key={r} onClick={() => toggleRole(r)} aria-pressed={value.roles.includes(r)} className={`chip ${value.roles.includes(r) ? 'chip-on' : ''}`}>{t(`roles.${r}`)}</button>
           ))}
         </div>
         <p className="mt-1 text-[12px] text-earth-subtle">{t('adminBanners.audienceHint')}</p>

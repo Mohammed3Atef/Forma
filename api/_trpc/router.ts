@@ -11,6 +11,7 @@ import { coachPlanRequestsRouter } from './routers/coachPlanRequests.js';
 import { coachPlanTiersRouter } from './routers/coachPlanTiers.js';
 import { coachCommercialRouter } from './routers/coachCommercial.js';
 import { coachClientsRouter } from './routers/coachClients.js';
+import { clientPaymentsRouter } from './routers/clientPayments.js';
 import { invitesRouter } from './routers/invites.js';
 import { transfersRouter } from './routers/transfers.js';
 import { profileRouter, assessmentRouter } from './routers/clientProfile.js';
@@ -25,6 +26,7 @@ import { adminUsersRouter } from './routers/adminUsers.js';
 import { authRouter } from './routers/auth.js';
 import { syncRouter } from './routers/sync.js';
 import { foodSearchRouter } from './routers/foodSearch.js';
+import { catalogRouter } from './routers/catalog.js';
 import { mediaRouter } from './routers/media.js';
 import { contactRouter } from './routers/contact.js';
 
@@ -49,6 +51,7 @@ export const appRouter = router({
   coachPlanTiers: coachPlanTiersRouter,
   coachCommercial: coachCommercialRouter,
   coachClients: coachClientsRouter,
+  clientPayments: clientPaymentsRouter,
   invites: invitesRouter,
   transfers: transfersRouter,
   profile: profileRouter,
@@ -77,6 +80,7 @@ export const appRouter = router({
   auth: authRouter,
   sync: syncRouter,
   foodSearch: foodSearchRouter,
+  catalog: catalogRouter,
   media: mediaRouter,
   contact: contactRouter,
 });

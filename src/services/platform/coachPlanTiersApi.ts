@@ -40,8 +40,3 @@ export async function saveFormaConfig(input: FormaConfigInput): Promise<{ config
   });
 }
 
-/** Locale-aware pick from a bilingual field. */
-export function pickLocalized(v: LocalizedText | null | undefined, lang: string): string {
-  if (!v) return '';
-  return (lang.startsWith('ar') ? v.ar : v.en) || v.en || v.ar || '';
-}

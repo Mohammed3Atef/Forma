@@ -1,0 +1,1993 @@
+{
+ "generatedAt": "2026-10-23T15:06:08.824Z",
+ "kind": "exercises",
+ "summary": [
+  {
+   "lang": "all",
+   "queries": 95,
+   "newTop3": 100,
+   "oldTop3": 44.2
+  },
+  {
+   "lang": "en",
+   "queries": 55,
+   "newTop3": 100,
+   "oldTop3": 70.9
+  },
+  {
+   "lang": "ar",
+   "queries": 7,
+   "newTop3": 100,
+   "oldTop3": 0
+  },
+  {
+   "lang": "eg",
+   "queries": 23,
+   "newTop3": 100,
+   "oldTop3": 0
+  },
+  {
+   "lang": "typo",
+   "queries": 10,
+   "newTop3": 100,
+   "oldTop3": 30
+  }
+ ],
+ "latencyMs": {
+  "p50": 0.8405999999999949,
+  "p95": 1.3558000000000447
+ },
+ "rows": [
+  {
+   "q": "bench press",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_bench_press",
+    "fx_incline_barbell_bench_press",
+    "fx_decline_barbell_bench_press",
+    "fx_dumbbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press",
+    "fx_close_grip_bench_press"
+   ],
+   "newTop3": [
+    "fx_barbell_bench_press",
+    "fx_close_grip_bench_press",
+    "fx_decline_barbell_bench_press"
+   ],
+   "newHit": true,
+   "newTotal": 11,
+   "oldTop3": [
+    "wger-73",
+    "wger-2536",
+    "wger-76"
+   ],
+   "oldHit": true,
+   "ms": 1.470299999999952
+  },
+  {
+   "q": "incline bench press",
+   "lang": "en",
+   "expected": [
+    "fx_incline_barbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press"
+   ],
+   "newTop3": [
+    "fx_incline_barbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-538",
+    "wger-537",
+    "wger-539"
+   ],
+   "oldHit": true,
+   "ms": 0.8421999999999343
+  },
+  {
+   "q": "dumbbell bench press",
+   "lang": "en",
+   "expected": [
+    "fx_dumbbell_bench_press",
+    "fx_incline_dumbbell_press"
+   ],
+   "newTop3": [
+    "fx_dumbbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_seated_dumbbell_shoulder_press"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.1190000000000282
+  },
+  {
+   "q": "chest fly",
+   "lang": "en",
+   "expected": [
+    "fx_dumbbell_fly",
+    "fx_cable_crossover",
+    "fx_low_to_high_cable_fly",
+    "fx_pec_deck"
+   ],
+   "newTop3": [
+    "fx_dumbbell_fly",
+    "fx_cable_crossover",
+    "fx_low_to_high_cable_fly"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "wger-926",
+    "wger-1922"
+   ],
+   "oldHit": true,
+   "ms": 1.0855999999999995
+  },
+  {
+   "q": "cable crossover",
+   "lang": "en",
+   "expected": [
+    "fx_cable_crossover",
+    "fx_low_to_high_cable_fly"
+   ],
+   "newTop3": [
+    "fx_cable_crossover",
+    "fx_cable_rear_delt_fly",
+    "fx_low_to_high_cable_fly"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.074200000000019
+  },
+  {
+   "q": "push up",
+   "lang": "en",
+   "expected": [
+    "fx_push_up",
+    "fx_decline_push_up",
+    "fx_diamond_push_up",
+    "fx_pike_push_up",
+    "fx_handstand_push_up"
+   ],
+   "newTop3": [
+    "fx_push_up",
+    "fx_decline_push_up",
+    "fx_diamond_push_up"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [
+    "wger-1777",
+    "wger-386",
+    "wger-2529"
+   ],
+   "oldHit": true,
+   "ms": 0.9107000000000198
+  },
+  {
+   "q": "dips",
+   "lang": "en",
+   "expected": [
+    "fx_chest_dip",
+    "fx_bench_dip"
+   ],
+   "newTop3": [
+    "fx_chest_dip",
+    "fx_bench_dip"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1320",
+    "wger-1774",
+    "wger-194"
+   ],
+   "oldHit": true,
+   "ms": 0.34019999999998163
+  },
+  {
+   "q": "pec deck",
+   "lang": "en",
+   "expected": [
+    "fx_pec_deck",
+    "fx_reverse_pec_deck"
+   ],
+   "newTop3": [
+    "fx_pec_deck",
+    "fx_reverse_pec_deck"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1904",
+    "wger-1775"
+   ],
+   "oldHit": true,
+   "ms": 0.48289999999997235
+  },
+  {
+   "q": "pullover",
+   "lang": "en",
+   "expected": [
+    "fx_dumbbell_pullover"
+   ],
+   "newTop3": [
+    "fx_dumbbell_pullover",
+    "fx_straight_arm_pulldown"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-161",
+    "wger-1137",
+    "wger-1273"
+   ],
+   "oldHit": true,
+   "ms": 0.7083000000000084
+  },
+  {
+   "q": "pull up",
+   "lang": "en",
+   "expected": [
+    "fx_pull_up",
+    "fx_chin_up"
+   ],
+   "newTop3": [
+    "fx_pull_up",
+    "fx_chin_up",
+    "fx_hanging_knee_raise"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [
+    "wger-1545",
+    "wger-979",
+    "wger-477"
+   ],
+   "oldHit": false,
+   "ms": 0.8395000000000437
+  },
+  {
+   "q": "chin up",
+   "lang": "en",
+   "expected": [
+    "fx_chin_up",
+    "fx_pull_up"
+   ],
+   "newTop3": [
+    "fx_chin_up"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-152"
+   ],
+   "oldHit": true,
+   "ms": 0.8228000000000293
+  },
+  {
+   "q": "lat pulldown",
+   "lang": "en",
+   "expected": [
+    "fx_lat_pulldown",
+    "fx_close_grip_lat_pulldown",
+    "fx_straight_arm_pulldown"
+   ],
+   "newTop3": [
+    "fx_lat_pulldown",
+    "fx_close_grip_lat_pulldown",
+    "fx_straight_arm_pulldown"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-1470",
+    "wger-1127",
+    "wger-1659"
+   ],
+   "oldHit": false,
+   "ms": 0.5552000000000135
+  },
+  {
+   "q": "seated cable row",
+   "lang": "en",
+   "expected": [
+    "fx_seated_cable_row",
+    "fx_single_arm_cable_row",
+    "fx_machine_row"
+   ],
+   "newTop3": [
+    "fx_seated_cable_row",
+    "fx_single_arm_cable_row"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1117"
+   ],
+   "oldHit": true,
+   "ms": 0.9755000000000109
+  },
+  {
+   "q": "barbell row",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_bent_over_row",
+    "fx_t_bar_row"
+   ],
+   "newTop3": [
+    "fx_barbell_bent_over_row",
+    "fx_upright_row",
+    "fx_t_bar_row"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "wger-1698",
+    "wger-1699"
+   ],
+   "oldHit": true,
+   "ms": 0.7472999999999956
+  },
+  {
+   "q": "dumbbell row",
+   "lang": "en",
+   "expected": [
+    "fx_one_arm_dumbbell_row",
+    "fx_chest_supported_dumbbell_row"
+   ],
+   "newTop3": [
+    "fx_one_arm_dumbbell_row",
+    "fx_chest_supported_dumbbell_row"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-81",
+    "wger-1283",
+    "wger-310"
+   ],
+   "oldHit": true,
+   "ms": 0.7925999999999931
+  },
+  {
+   "q": "t bar row",
+   "lang": "en",
+   "expected": [
+    "fx_t_bar_row"
+   ],
+   "newTop3": [
+    "fx_t_bar_row"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.4394999999999527
+  },
+  {
+   "q": "face pull",
+   "lang": "en",
+   "expected": [
+    "fx_face_pull"
+   ],
+   "newTop3": [
+    "fx_face_pull"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1639",
+    "wger-1732"
+   ],
+   "oldHit": false,
+   "ms": 1.167599999999993
+  },
+  {
+   "q": "deadlift",
+   "lang": "en",
+   "expected": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift",
+    "fx_sumo_deadlift",
+    "fx_trap_bar_deadlift",
+    "fx_rack_pull"
+   ],
+   "newTop3": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [
+    "wger-1700",
+    "wger-184",
+    "wger-189"
+   ],
+   "oldHit": true,
+   "ms": 1.527400000000057
+  },
+  {
+   "q": "romanian deadlift",
+   "lang": "en",
+   "expected": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newTop3": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-1700",
+    "wger-1652",
+    "wger-507"
+   ],
+   "oldHit": true,
+   "ms": 0.7305999999999813
+  },
+  {
+   "q": "rdl",
+   "lang": "en",
+   "expected": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newTop3": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-1700",
+    "wger-1688",
+    "wger-2639"
+   ],
+   "oldHit": true,
+   "ms": 0.5179000000000542
+  },
+  {
+   "q": "hyperextension",
+   "lang": "en",
+   "expected": [
+    "fx_back_extension"
+   ],
+   "newTop3": [
+    "fx_back_extension"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-301",
+    "wger-1809"
+   ],
+   "oldHit": true,
+   "ms": 0.4153999999999769
+  },
+  {
+   "q": "squat",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_back_squat",
+    "fx_front_squat",
+    "fx_goblet_squat",
+    "fx_bodyweight_squat",
+    "fx_smith_machine_squat",
+    "fx_hack_squat",
+    "fx_pistol_squat",
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_burpee",
+    "fx_front_squat",
+    "fx_hack_squat"
+   ],
+   "newHit": true,
+   "newTotal": 10,
+   "oldTop3": [
+    "wger-1948",
+    "wger-1801",
+    "wger-43"
+   ],
+   "oldHit": true,
+   "ms": 1.044399999999996
+  },
+  {
+   "q": "front squat",
+   "lang": "en",
+   "expected": [
+    "fx_front_squat"
+   ],
+   "newTop3": [
+    "fx_front_squat",
+    "fx_burpee"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1361",
+    "wger-1640",
+    "wger-257"
+   ],
+   "oldHit": true,
+   "ms": 1.2538999999999305
+  },
+  {
+   "q": "goblet squat",
+   "lang": "en",
+   "expected": [
+    "fx_goblet_squat"
+   ],
+   "newTop3": [
+    "fx_goblet_squat"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-203"
+   ],
+   "oldHit": true,
+   "ms": 0.8460999999999785
+  },
+  {
+   "q": "leg press",
+   "lang": "en",
+   "expected": [
+    "fx_leg_press",
+    "fx_leg_press_calf_raise"
+   ],
+   "newTop3": [
+    "fx_leg_press",
+    "fx_leg_press_calf_raise",
+    "fx_push_press"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-146",
+    "wger-371",
+    "wger-375"
+   ],
+   "oldHit": true,
+   "ms": 0.7527000000000044
+  },
+  {
+   "q": "hack squat",
+   "lang": "en",
+   "expected": [
+    "fx_hack_squat"
+   ],
+   "newTop3": [
+    "fx_hack_squat",
+    "fx_front_squat",
+    "fx_barbell_back_squat"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "wger-43",
+    "wger-1466",
+    "wger-1414"
+   ],
+   "oldHit": true,
+   "ms": 1.5021999999999025
+  },
+  {
+   "q": "lunges",
+   "lang": "en",
+   "expected": [
+    "fx_walking_lunge",
+    "fx_reverse_lunge",
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_walking_lunge",
+    "fx_reverse_lunge",
+    "fx_hip_flexor_stretch"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [
+    "wger-1102",
+    "wger-46",
+    "wger-802"
+   ],
+   "oldHit": true,
+   "ms": 1.071299999999951
+  },
+  {
+   "q": "bulgarian split squat",
+   "lang": "en",
+   "expected": [
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_bulgarian_split_squat"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-988",
+    "wger-989"
+   ],
+   "oldHit": false,
+   "ms": 0.6965000000000146
+  },
+  {
+   "q": "leg curl",
+   "lang": "en",
+   "expected": [
+    "fx_lying_leg_curl",
+    "fx_seated_leg_curl"
+   ],
+   "newTop3": [
+    "fx_lying_leg_curl",
+    "fx_seated_leg_curl"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-364",
+    "wger-1603",
+    "wger-365"
+   ],
+   "oldHit": true,
+   "ms": 0.8083000000000311
+  },
+  {
+   "q": "leg extension",
+   "lang": "en",
+   "expected": [
+    "fx_leg_extension"
+   ],
+   "newTop3": [
+    "fx_leg_extension"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-369",
+    "wger-2535",
+    "wger-71"
+   ],
+   "oldHit": true,
+   "ms": 0.5606000000000222
+  },
+  {
+   "q": "hip thrust",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_hip_thrust",
+    "fx_glute_bridge"
+   ],
+   "newTop3": [
+    "fx_barbell_hip_thrust"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1642",
+    "wger-1234",
+    "wger-294"
+   ],
+   "oldHit": true,
+   "ms": 0.7373000000000047
+  },
+  {
+   "q": "glute bridge",
+   "lang": "en",
+   "expected": [
+    "fx_glute_bridge",
+    "fx_barbell_hip_thrust"
+   ],
+   "newTop3": [
+    "fx_glute_bridge",
+    "fx_side_plank"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-265",
+    "wger-1686",
+    "wger-1740"
+   ],
+   "oldHit": true,
+   "ms": 1.2947000000000344
+  },
+  {
+   "q": "calf raise",
+   "lang": "en",
+   "expected": [
+    "fx_standing_calf_raise",
+    "fx_seated_calf_raise",
+    "fx_leg_press_calf_raise"
+   ],
+   "newTop3": [
+    "fx_standing_calf_raise",
+    "fx_leg_press_calf_raise",
+    "fx_seated_calf_raise"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-1466",
+    "wger-148",
+    "wger-1203"
+   ],
+   "oldHit": false,
+   "ms": 1.3379999999999654
+  },
+  {
+   "q": "shoulder press",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_overhead_press",
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_machine_shoulder_press",
+    "fx_arnold_press",
+    "fx_push_press"
+   ],
+   "newTop3": [
+    "fx_machine_shoulder_press",
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_arnold_press"
+   ],
+   "newHit": true,
+   "newTotal": 6,
+   "oldTop3": [
+    "wger-20",
+    "wger-193",
+    "wger-1716"
+   ],
+   "oldHit": true,
+   "ms": 0.8405999999999949
+  },
+  {
+   "q": "ohp",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_overhead_press"
+   ],
+   "newTop3": [
+    "fx_barbell_overhead_press",
+    "fx_overhead_dumbbell_triceps_extension"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1441",
+    "wger-1439",
+    "wger-1440"
+   ],
+   "oldHit": false,
+   "ms": 0.6426000000000158
+  },
+  {
+   "q": "lateral raise",
+   "lang": "en",
+   "expected": [
+    "fx_dumbbell_lateral_raise",
+    "fx_cable_lateral_raise",
+    "fx_machine_lateral_raise"
+   ],
+   "newTop3": [
+    "fx_dumbbell_lateral_raise",
+    "fx_machine_lateral_raise",
+    "fx_rear_delt_fly"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "wger-1754",
+    "wger-1807",
+    "wger-82"
+   ],
+   "oldHit": false,
+   "ms": 0.7382000000000062
+  },
+  {
+   "q": "front raise",
+   "lang": "en",
+   "expected": [
+    "fx_dumbbell_front_raise"
+   ],
+   "newTop3": [
+    "fx_dumbbell_front_raise",
+    "fx_dumbbell_lateral_raise",
+    "fx_cable_lateral_raise"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "wger-2622",
+    "wger-1745",
+    "wger-1731"
+   ],
+   "oldHit": false,
+   "ms": 1.255800000000022
+  },
+  {
+   "q": "rear delt fly",
+   "lang": "en",
+   "expected": [
+    "fx_rear_delt_fly",
+    "fx_cable_rear_delt_fly",
+    "fx_reverse_pec_deck"
+   ],
+   "newTop3": [
+    "fx_rear_delt_fly",
+    "fx_cable_rear_delt_fly",
+    "fx_reverse_pec_deck"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-822",
+    "wger-1775"
+   ],
+   "oldHit": true,
+   "ms": 1.3558000000000447
+  },
+  {
+   "q": "shrugs",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_shrug",
+    "fx_dumbbell_shrug"
+   ],
+   "newTop3": [
+    "fx_barbell_shrug",
+    "fx_dumbbell_shrug"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-575",
+    "wger-571",
+    "wger-572"
+   ],
+   "oldHit": true,
+   "ms": 1.0738000000000056
+  },
+  {
+   "q": "bicep curl",
+   "lang": "en",
+   "expected": [
+    "fx_barbell_curl",
+    "fx_dumbbell_curl",
+    "fx_alternating_dumbbell_curl",
+    "fx_cable_curl",
+    "fx_ez_bar_curl",
+    "fx_preacher_curl",
+    "fx_concentration_curl",
+    "fx_incline_dumbbell_curl",
+    "fx_hammer_curl",
+    "fx_reverse_curl"
+   ],
+   "newTop3": [
+    "fx_barbell_curl",
+    "fx_cable_curl",
+    "fx_dumbbell_curl"
+   ],
+   "newHit": true,
+   "newTotal": 10,
+   "oldTop3": [
+    "wger-1012",
+    "wger-1226",
+    "wger-1225"
+   ],
+   "oldHit": true,
+   "ms": 2.187599999999975
+  },
+  {
+   "q": "hammer curl",
+   "lang": "en",
+   "expected": [
+    "fx_hammer_curl"
+   ],
+   "newTop3": [
+    "fx_hammer_curl"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1567",
+    "wger-1502",
+    "wger-272"
+   ],
+   "oldHit": true,
+   "ms": 0.8953000000000202
+  },
+  {
+   "q": "preacher curl",
+   "lang": "en",
+   "expected": [
+    "fx_preacher_curl"
+   ],
+   "newTop3": [
+    "fx_preacher_curl"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1658",
+    "wger-1657",
+    "wger-2539"
+   ],
+   "oldHit": false,
+   "ms": 0.7661999999999125
+  },
+  {
+   "q": "tricep pushdown",
+   "lang": "en",
+   "expected": [
+    "fx_triceps_pushdown",
+    "fx_rope_pushdown"
+   ],
+   "newTop3": [
+    "fx_rope_pushdown",
+    "fx_triceps_pushdown",
+    "fx_straight_arm_pulldown"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-805"
+   ],
+   "oldHit": true,
+   "ms": 1.0226000000000113
+  },
+  {
+   "q": "skull crusher",
+   "lang": "en",
+   "expected": [
+    "fx_ez_bar_skullcrusher",
+    "fx_dumbbell_skullcrusher"
+   ],
+   "newTop3": [
+    "fx_ez_bar_skullcrusher",
+    "fx_dumbbell_skullcrusher"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1468"
+   ],
+   "oldHit": false,
+   "ms": 0.48430000000007567
+  },
+  {
+   "q": "plank",
+   "lang": "en",
+   "expected": [
+    "fx_plank",
+    "fx_side_plank"
+   ],
+   "newTop3": [
+    "fx_plank",
+    "fx_side_plank"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "wger-1911",
+    "wger-1288",
+    "wger-1307"
+   ],
+   "oldHit": true,
+   "ms": 1.010599999999954
+  },
+  {
+   "q": "crunches",
+   "lang": "en",
+   "expected": [
+    "fx_crunch",
+    "fx_cable_crunch"
+   ],
+   "newTop3": [
+    "fx_crunch",
+    "fx_cable_crunch",
+    "fx_dead_bug"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-165",
+    "wger-1412",
+    "wger-167"
+   ],
+   "oldHit": true,
+   "ms": 0.8238000000000056
+  },
+  {
+   "q": "leg raise",
+   "lang": "en",
+   "expected": [
+    "fx_hanging_leg_raise",
+    "fx_lying_leg_raise",
+    "fx_hanging_knee_raise"
+   ],
+   "newTop3": [
+    "fx_lying_leg_raise",
+    "fx_bird_dog",
+    "fx_hanging_leg_raise"
+   ],
+   "newHit": true,
+   "newTotal": 6,
+   "oldTop3": [
+    "wger-1889",
+    "wger-283",
+    "wger-376"
+   ],
+   "oldHit": false,
+   "ms": 0.7204000000000406
+  },
+  {
+   "q": "russian twist",
+   "lang": "en",
+   "expected": [
+    "fx_russian_twist"
+   ],
+   "newTop3": [
+    "fx_russian_twist"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1193"
+   ],
+   "oldHit": true,
+   "ms": 0.7213999999999032
+  },
+  {
+   "q": "burpees",
+   "lang": "en",
+   "expected": [
+    "fx_burpee"
+   ],
+   "newTop3": [
+    "fx_burpee"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-997",
+    "wger-132",
+    "wger-998"
+   ],
+   "oldHit": true,
+   "ms": 0.8249000000000706
+  },
+  {
+   "q": "jumping jacks",
+   "lang": "en",
+   "expected": [
+    "fx_jumping_jack"
+   ],
+   "newTop3": [
+    "fx_jumping_jack"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-320"
+   ],
+   "oldHit": true,
+   "ms": 0.7042000000000144
+  },
+  {
+   "q": "kettlebell swing",
+   "lang": "en",
+   "expected": [
+    "fx_kettlebell_swing"
+   ],
+   "newTop3": [
+    "fx_kettlebell_swing"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-9",
+    "wger-960",
+    "wger-331"
+   ],
+   "oldHit": true,
+   "ms": 0.5851999999999862
+  },
+  {
+   "q": "farmers walk",
+   "lang": "en",
+   "expected": [
+    "fx_farmers_carry"
+   ],
+   "newTop3": [
+    "fx_farmers_carry"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8768000000000029
+  },
+  {
+   "q": "treadmill",
+   "lang": "en",
+   "expected": [
+    "fx_treadmill"
+   ],
+   "newTop3": [
+    "fx_treadmill"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-2549",
+    "wger-530",
+    "wger-1615"
+   ],
+   "oldHit": true,
+   "ms": 0.6614000000000715
+  },
+  {
+   "q": "hip flexor stretch",
+   "lang": "en",
+   "expected": [
+    "fx_hip_flexor_stretch"
+   ],
+   "newTop3": [
+    "fx_hip_flexor_stretch",
+    "fx_pigeon_stretch",
+    "fx_quad_stretch"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "wger-1867",
+    "wger-1960",
+    "wger-1839"
+   ],
+   "oldHit": true,
+   "ms": 0.7702999999999065
+  },
+  {
+   "q": "foam roller",
+   "lang": "en",
+   "expected": [
+    "fx_foam_roll_quads"
+   ],
+   "newTop3": [
+    "fx_foam_roll_quads"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "wger-1854",
+    "wger-1860",
+    "wger-1856"
+   ],
+   "oldHit": false,
+   "ms": 1.106999999999971
+  },
+  {
+   "q": "بنش",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_bench_press",
+    "fx_incline_barbell_bench_press",
+    "fx_decline_barbell_bench_press",
+    "fx_dumbbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press",
+    "fx_close_grip_bench_press"
+   ],
+   "newTop3": [
+    "fx_barbell_bench_press",
+    "fx_bench_dip",
+    "fx_close_grip_bench_press"
+   ],
+   "newHit": true,
+   "newTotal": 27,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.2717999999999847
+  },
+  {
+   "q": "بنش عالي",
+   "lang": "eg",
+   "expected": [
+    "fx_incline_barbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press"
+   ],
+   "newTop3": [
+    "fx_incline_barbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press"
+   ],
+   "newHit": true,
+   "newTotal": 17,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.716199999999958
+  },
+  {
+   "q": "ضغط",
+   "lang": "eg",
+   "expected": [
+    "fx_push_up",
+    "fx_decline_push_up",
+    "fx_diamond_push_up",
+    "fx_pike_push_up",
+    "fx_barbell_bench_press"
+   ],
+   "newTop3": [
+    "fx_push_up",
+    "fx_barbell_bench_press",
+    "fx_close_grip_bench_press"
+   ],
+   "newHit": true,
+   "newTotal": 24,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.24959999999998672
+  },
+  {
+   "q": "عقلة",
+   "lang": "eg",
+   "expected": [
+    "fx_pull_up",
+    "fx_chin_up"
+   ],
+   "newTop3": [
+    "fx_pull_up",
+    "fx_chin_up",
+    "fx_hanging_knee_raise"
+   ],
+   "newHit": true,
+   "newTotal": 78,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0339999999999918
+  },
+  {
+   "q": "متوازي",
+   "lang": "eg",
+   "expected": [
+    "fx_chest_dip",
+    "fx_bench_dip"
+   ],
+   "newTop3": [
+    "fx_chest_dip",
+    "fx_bench_dip"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8606999999999516
+  },
+  {
+   "q": "سحب أمامي",
+   "lang": "eg",
+   "expected": [
+    "fx_lat_pulldown",
+    "fx_close_grip_lat_pulldown"
+   ],
+   "newTop3": [
+    "fx_lat_pulldown",
+    "fx_close_grip_lat_pulldown",
+    "fx_upright_row"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.5990000000000464
+  },
+  {
+   "q": "سحب أرضي",
+   "lang": "eg",
+   "expected": [
+    "fx_seated_cable_row",
+    "fx_single_arm_cable_row",
+    "fx_machine_row"
+   ],
+   "newTop3": [
+    "fx_seated_cable_row",
+    "fx_machine_row",
+    "fx_single_arm_cable_row"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6185999999999012
+  },
+  {
+   "q": "تجديف بالبار",
+   "lang": "ar",
+   "expected": [
+    "fx_barbell_bent_over_row",
+    "fx_t_bar_row"
+   ],
+   "newTop3": [
+    "fx_barbell_bent_over_row",
+    "fx_t_bar_row",
+    "fx_inverted_row"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0060000000000855
+  },
+  {
+   "q": "ديدلفت",
+   "lang": "eg",
+   "expected": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift",
+    "fx_sumo_deadlift",
+    "fx_trap_bar_deadlift",
+    "fx_rack_pull"
+   ],
+   "newTop3": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8686999999999898
+  },
+  {
+   "q": "الرفعة الميتة",
+   "lang": "ar",
+   "expected": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift",
+    "fx_sumo_deadlift",
+    "fx_trap_bar_deadlift",
+    "fx_rack_pull"
+   ],
+   "newTop3": [
+    "fx_deadlift",
+    "fx_rack_pull",
+    "fx_sumo_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.3379999999999654
+  },
+  {
+   "q": "سكوات",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_back_squat",
+    "fx_front_squat",
+    "fx_goblet_squat",
+    "fx_bodyweight_squat",
+    "fx_smith_machine_squat",
+    "fx_hack_squat",
+    "fx_pistol_squat",
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_barbell_back_squat",
+    "fx_front_squat",
+    "fx_hack_squat"
+   ],
+   "newHit": true,
+   "newTotal": 10,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9905999999999722
+  },
+  {
+   "q": "القرفصاء بالبار",
+   "lang": "ar",
+   "expected": [
+    "fx_barbell_back_squat",
+    "fx_front_squat",
+    "fx_smith_machine_squat"
+   ],
+   "newTop3": [
+    "fx_barbell_back_squat",
+    "fx_front_squat"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.21550000000002
+  },
+  {
+   "q": "ليج بريس",
+   "lang": "eg",
+   "expected": [
+    "fx_leg_press",
+    "fx_leg_press_calf_raise"
+   ],
+   "newTop3": [
+    "fx_leg_press",
+    "fx_leg_press_calf_raise"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.5545999999999367
+  },
+  {
+   "q": "طعن",
+   "lang": "ar",
+   "expected": [
+    "fx_walking_lunge",
+    "fx_reverse_lunge",
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_walking_lunge",
+    "fx_reverse_lunge",
+    "fx_bulgarian_split_squat"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.233600000000024
+  },
+  {
+   "q": "رفرفة جانبي",
+   "lang": "eg",
+   "expected": [
+    "fx_dumbbell_lateral_raise",
+    "fx_cable_lateral_raise",
+    "fx_machine_lateral_raise"
+   ],
+   "newTop3": [
+    "fx_dumbbell_lateral_raise",
+    "fx_cable_lateral_raise",
+    "fx_machine_lateral_raise"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0125999999999067
+  },
+  {
+   "q": "ضغط كتف",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_overhead_press",
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_machine_shoulder_press",
+    "fx_arnold_press",
+    "fx_push_press"
+   ],
+   "newTop3": [
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_barbell_overhead_press",
+    "fx_pike_push_up"
+   ],
+   "newHit": true,
+   "newTotal": 19,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.4815999999999576
+  },
+  {
+   "q": "شرجز",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_shrug",
+    "fx_dumbbell_shrug"
+   ],
+   "newTop3": [
+    "fx_barbell_shrug",
+    "fx_dumbbell_shrug"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8800999999999704
+  },
+  {
+   "q": "باي",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_curl",
+    "fx_dumbbell_curl",
+    "fx_alternating_dumbbell_curl",
+    "fx_cable_curl",
+    "fx_ez_bar_curl",
+    "fx_preacher_curl",
+    "fx_concentration_curl",
+    "fx_incline_dumbbell_curl",
+    "fx_hammer_curl",
+    "fx_reverse_curl"
+   ],
+   "newTop3": [
+    "fx_barbell_curl",
+    "fx_cable_curl",
+    "fx_dumbbell_curl"
+   ],
+   "newHit": true,
+   "newTotal": 26,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.2577999999999747
+  },
+  {
+   "q": "تراي",
+   "lang": "eg",
+   "expected": [
+    "fx_triceps_pushdown",
+    "fx_rope_pushdown",
+    "fx_overhead_cable_triceps_extension",
+    "fx_ez_bar_skullcrusher",
+    "fx_dumbbell_skullcrusher",
+    "fx_overhead_dumbbell_triceps_extension",
+    "fx_dumbbell_kickback",
+    "fx_bench_dip",
+    "fx_close_grip_bench_press",
+    "fx_diamond_push_up"
+   ],
+   "newTop3": [
+    "fx_ez_bar_skullcrusher",
+    "fx_dumbbell_skullcrusher",
+    "fx_dumbbell_kickback"
+   ],
+   "newHit": true,
+   "newTotal": 54,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9637000000000171
+  },
+  {
+   "q": "هامر",
+   "lang": "eg",
+   "expected": [
+    "fx_hammer_curl"
+   ],
+   "newTop3": [
+    "fx_hammer_curl"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9261999999999944
+  },
+  {
+   "q": "بلانك",
+   "lang": "eg",
+   "expected": [
+    "fx_plank",
+    "fx_side_plank"
+   ],
+   "newTop3": [
+    "fx_plank",
+    "fx_side_plank"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0096999999999525
+  },
+  {
+   "q": "كرانش",
+   "lang": "eg",
+   "expected": [
+    "fx_crunch",
+    "fx_cable_crunch"
+   ],
+   "newTop3": [
+    "fx_crunch",
+    "fx_cable_crunch"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0045999999999822
+  },
+  {
+   "q": "سمانة",
+   "lang": "eg",
+   "expected": [
+    "fx_standing_calf_raise",
+    "fx_seated_calf_raise",
+    "fx_leg_press_calf_raise"
+   ],
+   "newTop3": [
+    "fx_standing_calf_raise",
+    "fx_leg_press_calf_raise",
+    "fx_seated_calf_raise"
+   ],
+   "newHit": true,
+   "newTotal": 18,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9932999999999765
+  },
+  {
+   "q": "ليج كيرل",
+   "lang": "eg",
+   "expected": [
+    "fx_lying_leg_curl",
+    "fx_seated_leg_curl"
+   ],
+   "newTop3": [
+    "fx_lying_leg_curl"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.5122000000000071
+  },
+  {
+   "q": "هيب ثرست",
+   "lang": "eg",
+   "expected": [
+    "fx_barbell_hip_thrust",
+    "fx_glute_bridge"
+   ],
+   "newTop3": [
+    "fx_barbell_hip_thrust"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.49919999999997344
+  },
+  {
+   "q": "فلاي",
+   "lang": "eg",
+   "expected": [
+    "fx_dumbbell_fly",
+    "fx_cable_crossover",
+    "fx_low_to_high_cable_fly",
+    "fx_pec_deck"
+   ],
+   "newTop3": [
+    "fx_dumbbell_fly",
+    "fx_cable_crossover",
+    "fx_farmers_carry"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9087999999999283
+  },
+  {
+   "q": "كروس",
+   "lang": "eg",
+   "expected": [
+    "fx_cable_crossover",
+    "fx_low_to_high_cable_fly"
+   ],
+   "newTop3": [
+    "fx_cable_crossover",
+    "fx_cable_rear_delt_fly",
+    "fx_low_to_high_cable_fly"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8828000000000884
+  },
+  {
+   "q": "نط الحبل",
+   "lang": "ar",
+   "expected": [
+    "fx_jump_rope"
+   ],
+   "newTop3": [
+    "fx_jump_rope"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.46690000000000964
+  },
+  {
+   "q": "ضغط الدمبل على البنش المائل",
+   "lang": "ar",
+   "expected": [
+    "fx_incline_dumbbell_press"
+   ],
+   "newTop3": [
+    "fx_incline_dumbbell_press"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6828999999999041
+  },
+  {
+   "q": "تمرين البطن",
+   "lang": "ar",
+   "expected": [
+    "fx_crunch",
+    "fx_plank",
+    "fx_cable_crunch",
+    "fx_hanging_leg_raise",
+    "fx_lying_leg_raise",
+    "fx_hanging_knee_raise",
+    "fx_russian_twist",
+    "fx_ab_wheel_rollout",
+    "fx_dead_bug",
+    "fx_hollow_hold",
+    "fx_side_plank",
+    "fx_mountain_climber",
+    "fx_dumbbell_side_bend",
+    "fx_pallof_press",
+    "fx_bird_dog"
+   ],
+   "newTop3": [
+    "fx_crunch",
+    "fx_ab_wheel_rollout",
+    "fx_bird_dog"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.0288000000000466
+  },
+  {
+   "q": "bench pres",
+   "lang": "typo",
+   "expected": [
+    "fx_barbell_bench_press",
+    "fx_incline_barbell_bench_press",
+    "fx_decline_barbell_bench_press",
+    "fx_dumbbell_bench_press",
+    "fx_incline_dumbbell_press",
+    "fx_smith_incline_press",
+    "fx_close_grip_bench_press"
+   ],
+   "newTop3": [
+    "fx_barbell_bench_press",
+    "fx_close_grip_bench_press",
+    "fx_decline_barbell_bench_press"
+   ],
+   "newHit": true,
+   "newTotal": 12,
+   "oldTop3": [
+    "wger-73",
+    "wger-2536",
+    "wger-76"
+   ],
+   "oldHit": true,
+   "ms": 1.0801999999999907
+  },
+  {
+   "q": "squaat",
+   "lang": "typo",
+   "expected": [
+    "fx_barbell_back_squat",
+    "fx_front_squat",
+    "fx_goblet_squat",
+    "fx_bodyweight_squat",
+    "fx_smith_machine_squat",
+    "fx_hack_squat",
+    "fx_pistol_squat",
+    "fx_bulgarian_split_squat"
+   ],
+   "newTop3": [
+    "fx_front_squat",
+    "fx_hack_squat",
+    "fx_barbell_back_squat"
+   ],
+   "newHit": true,
+   "newTotal": 10,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8404000000000451
+  },
+  {
+   "q": "dedlift",
+   "lang": "typo",
+   "expected": [
+    "fx_deadlift",
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift",
+    "fx_sumo_deadlift",
+    "fx_trap_bar_deadlift",
+    "fx_rack_pull"
+   ],
+   "newTop3": [
+    "fx_romanian_deadlift",
+    "fx_deadlift",
+    "fx_dumbbell_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7098999999999478
+  },
+  {
+   "q": "lateral rase",
+   "lang": "typo",
+   "expected": [
+    "fx_dumbbell_lateral_raise",
+    "fx_cable_lateral_raise",
+    "fx_machine_lateral_raise"
+   ],
+   "newTop3": [
+    "fx_dumbbell_lateral_raise",
+    "fx_rear_delt_fly",
+    "fx_cable_lateral_raise"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7432999999999765
+  },
+  {
+   "q": "bicep curls",
+   "lang": "typo",
+   "expected": [
+    "fx_barbell_curl",
+    "fx_dumbbell_curl",
+    "fx_alternating_dumbbell_curl",
+    "fx_cable_curl",
+    "fx_ez_bar_curl",
+    "fx_preacher_curl",
+    "fx_concentration_curl",
+    "fx_incline_dumbbell_curl",
+    "fx_hammer_curl",
+    "fx_reverse_curl"
+   ],
+   "newTop3": [
+    "fx_barbell_curl",
+    "fx_cable_curl",
+    "fx_dumbbell_curl"
+   ],
+   "newHit": true,
+   "newTotal": 10,
+   "oldTop3": [
+    "wger-1012",
+    "wger-1225"
+   ],
+   "oldHit": true,
+   "ms": 1.298400000000015
+  },
+  {
+   "q": "triceps push down",
+   "lang": "typo",
+   "expected": [
+    "fx_triceps_pushdown",
+    "fx_rope_pushdown"
+   ],
+   "newTop3": [
+    "fx_triceps_pushdown",
+    "fx_rope_pushdown",
+    "fx_straight_arm_pulldown"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9660000000000082
+  },
+  {
+   "q": "pullups",
+   "lang": "typo",
+   "expected": [
+    "fx_pull_up",
+    "fx_chin_up"
+   ],
+   "newTop3": [
+    "fx_pull_up",
+    "fx_chin_up",
+    "fx_hanging_knee_raise"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.887299999999982
+  },
+  {
+   "q": "shoulder pres",
+   "lang": "typo",
+   "expected": [
+    "fx_barbell_overhead_press",
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_machine_shoulder_press",
+    "fx_arnold_press",
+    "fx_push_press"
+   ],
+   "newTop3": [
+    "fx_machine_shoulder_press",
+    "fx_seated_dumbbell_shoulder_press",
+    "fx_arnold_press"
+   ],
+   "newHit": true,
+   "newTotal": 6,
+   "oldTop3": [
+    "wger-20",
+    "wger-193",
+    "wger-1716"
+   ],
+   "oldHit": true,
+   "ms": 1.2063999999999169
+  },
+  {
+   "q": "hip thust",
+   "lang": "typo",
+   "expected": [
+    "fx_barbell_hip_thrust",
+    "fx_glute_bridge"
+   ],
+   "newTop3": [
+    "fx_barbell_hip_thrust"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7744999999999891
+  },
+  {
+   "q": "romanian dead lift",
+   "lang": "typo",
+   "expected": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newTop3": [
+    "fx_romanian_deadlift",
+    "fx_dumbbell_romanian_deadlift",
+    "fx_single_leg_romanian_deadlift"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7063000000000557
+  }
+ ]
+}

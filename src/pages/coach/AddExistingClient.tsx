@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useWriteGate } from '@/components/coach/CoachPlanProvider';
 import { Avatar } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { SearchField, TextAreaField } from '@/components/ui/Field';
 import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
-import { searchClients, fetchUser } from '@/services/platform/accountsApi';
+import { searchClients, type ClientLookup } from '@/services/platform/accountsApi';
 import {
   assignExistingClient,
   getClientAssignment,
@@ -16,46 +17,30 @@ import {
   getTransferRequest,
   submitTransferRequest,
 } from '@/services/platform/transferApi';
-import { useSession } from '@/services/auth/sessionStore';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import type { CoachClientRelationship, UserRecord } from '@/types';
+import type { CoachClientRelationship } from '@/types';
 import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
+import { todayKey } from '@/lib/subscription';
+import { errorMessage } from '@/lib/errorMessage';
+import { isolate } from '@/lib/format';
+import { ACCOUNT_TONE, SUBSCRIPTION_TONE, TONE_TEXT } from '@/lib/statusTone';
 
-/** Format a millisecond timestamp as a short localized date (joined date). */
-const fmtJoined = (ms: number, lang: string) =>
-  new Date(ms).toLocaleDateString(lang.startsWith('ar') ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+/** Text-colour tone per account / subscription status (a coloured dot + label, not a chip) — the shared vocabulary (VS-10). */
+const ACCT_TONE = (s: string) => TONE_TEXT[ACCOUNT_TONE[s] ?? 'mute'];
+const SUB_TONE = (s: string) => TONE_TEXT[SUBSCRIPTION_TONE[s] ?? 'mute'];
 
-/** Text-colour tone per account status (rendered as a coloured dot + label, not a chip). */
-const ACCT_TONE: Record<string, string> = {
-  active: 'text-success',
-  pending: 'text-warn',
-  suspended: 'text-danger',
-  disabled: 'text-danger',
-};
-/** Text-colour tone per subscription status. */
-const SUB_TONE: Record<string, string> = {
-  trial: 'text-brand',
-  active: 'text-success',
-  pending: 'text-warn',
-  expired: 'text-danger',
-  cancelled: 'text-danger',
-  frozen: 'text-warn',
-  ended: 'text-danger',
-};
-
-/** One search result, with its current coaching assignment resolved (no ids exposed). */
+/** One lookup result; `rel` is only ever OUR OWN relationship (the server never says who else coaches them). */
 interface ResultRow {
-  user: UserRecord;
-  coachId: string | null;
-  coachName: string | null;
+  user: ClientLookup;
   rel: CoachClientRelationship | null;
 }
 
 /**
- * "Add Existing Client" — search an existing Forma client by email / phone / name
- * and assign or request a transfer. NEVER creates a new account or Auth user.
+ * "Add Existing Client" — find an existing Forma client by their EXACT email or
+ * phone (B0 / CO-03) and assign or request a transfer. NEVER creates a new
+ * account or Auth user.
  */
 export function AddExistingClient({
   coachId,
@@ -73,52 +58,27 @@ export function AddExistingClient({
   /** Report the current back handler to the parent sheet (null = at list root). */
   registerBack: (fn: (() => void) | null) => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [term, setTerm] = useState(''); // submitted query
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const results = useQuery({
-    queryKey: ['existingClientSearch', term],
+    queryKey: ['existingClientSearch', coachId, term],
     enabled: term.trim().length > 0,
     queryFn: async (): Promise<ResultRow[]> => {
       const users = await searchClients(term.trim());
-      // Who coaches each result comes from the search row itself
-      // (`assignedCoachId`, maintained by assign/end/transfer). Reading the
-      // relationship (`coachClients.list({clientId})`) is FORBIDDEN for a coach
-      // with no relationship to that client — the old code swallowed that
-      // error as "unassigned", which offered "Assign to me" for every other
-      // coach's client (server CONFLICT) and made the request-transfer panel
-      // unreachable. Only OUR OWN relationship is fetched (allowed).
-      const assignments = await Promise.all(
-        users.map(async (u) => {
-          const owner = u.assignedCoachId ?? null;
-          if (!owner) return null;
-          if (owner !== coachId) return { coachId: owner, rel: null };
-          const mine = await getClientAssignment(u.id).catch((e) => {
+      // Only OUR OWN relationship is read (allowed); another coach's is never exposed.
+      return Promise.all(
+        users.map(async (user) => {
+          if (user.coaching !== 'you') return { user, rel: null };
+          const mine = await getClientAssignment(user.id).catch((e) => {
             console.warn('[AddExistingClient] own relationship read failed:', e);
             return null;
           });
-          return { coachId: owner, rel: mine?.rel ?? null };
+          return { user, rel: mine?.rel ?? null };
         }),
       );
-      // Resolve coach display names once (dedupe). `adminUsers.get` is redacted
-      // for unrelated users but still returns the display name.
-      const coachIds = Array.from(new Set(assignments.map((a) => a?.coachId).filter(Boolean) as string[]));
-      const coachMap = new Map<string, string>();
-      await Promise.all(
-        coachIds.map(async (cid) => {
-          const c = await fetchUser(cid).catch((e) => {
-            console.warn('[AddExistingClient] fetchUser failed for coach label:', e);
-            return null;
-          });
-          if (c) coachMap.set(cid, c.displayName || c.email);
-        }),
-      );
-      return users.map((user, i) => {
-        const a = assignments[i];
-        return { user, coachId: a?.coachId ?? null, coachName: a ? coachMap.get(a.coachId) ?? null : null, rel: a?.rel ?? null };
-      });
     },
   });
 
@@ -156,24 +116,24 @@ export function AddExistingClient({
       <ClientResultDetail
         row={detail}
         meId={coachId}
+        searched={term.trim()}
         atLimit={atLimit}
         maxClients={maxClients}
         onDone={onDone}
-        i18nLang={i18n.language}
       />
     );
   }
 
   return (
     <div className="space-y-4" data-testid="add-existing-panel">
-      <p className="text-sm text-earth-muted">{t('existing.hint')}</p>
+      <p className="text-sm text-earth-muted">{t('trust.existing.hint')}</p>
 
       <div className="flex gap-2">
         <SearchField
           fieldClassName="flex-1"
           aria-label={t('existing.search')}
           data-testid="existing-search"
-          placeholder={t('existing.searchPlaceholder')}
+          placeholder={t('trust.existing.searchPlaceholder')}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
@@ -184,12 +144,19 @@ export function AddExistingClient({
       </div>
 
       {!term.trim() ? (
-        <p className="py-8 text-center text-sm text-earth-subtle" data-testid="existing-empty">{t('existing.emptyState')}</p>
+        <p className="py-8 text-center text-sm text-earth-subtle" data-testid="existing-empty">{t('trust.existing.emptyState')}</p>
       ) : results.isLoading ? (
         <p className="py-8 text-center text-sm text-earth-muted" data-testid="existing-searching">{t('existing.searching')}</p>
+      ) : results.isError ? (
+        <div className="card space-y-3 py-6 text-center" role="alert" data-testid="existing-search-error">
+          <p className="text-sm text-danger">
+            {(results.error as { data?: { code?: string } } | null)?.data?.code === 'TOO_MANY_REQUESTS' ? t('trust.existing.tooMany') : t('trust.existing.searchFailed')}
+          </p>
+          <button type="button" className="btn-ghost w-full" onClick={() => void results.refetch()}>{t('common.retry')}</button>
+        </div>
       ) : rows.length === 0 ? (
         <div className="card space-y-3 py-8 text-center" data-testid="existing-no-account">
-          <p className="text-sm text-earth-muted">{t('existing.noAccount')}</p>
+          <p className="text-sm text-earth-muted">{t('trust.existing.noAccount')}</p>
           <div className="flex flex-col gap-2">
             <button type="button" className="btn-primary w-full" data-testid="existing-create-new" onClick={onCreateNew}>{t('existing.createNew')}</button>
             <button type="button" className="btn-ghost w-full" onClick={() => setTerm('')}>{t('existing.searchAgain')}</button>
@@ -208,13 +175,10 @@ export function AddExistingClient({
                 onClick={() => setSelectedId(r.user.id)}
                 className="row w-full text-start"
               >
-                <Avatar name={r.user.displayName || r.user.email} photoUrl={r.user.photoUrl} />
+                <Avatar name={r.user.displayName || term} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
-                  <span className="block truncate text-[13px] text-earth-muted">{r.user.email}</span>
-                  <span className="block truncate text-[11px] text-earth-subtle">
-                    {r.coachName ? t('existing.coachedBy', { name: r.coachName }) : t('existing.unassigned')}
-                  </span>
+                  <span className="block truncate font-medium">{r.user.displayName || term}</span>
+                  <span className="block truncate text-[12px] text-earth-subtle">{coachingLabel(r.user.coaching, t)}</span>
                 </span>
                 <Icon name="chevron" size={18} />
               </button>
@@ -226,29 +190,35 @@ export function AddExistingClient({
   );
 }
 
+function coachingLabel(c: ClientLookup['coaching'], t: (k: string) => string): string {
+  return c === 'you' ? t('existing.alreadyYours') : c === 'another' ? t('trust.existing.hasCoach') : t('existing.unassigned');
+}
+
 function ClientResultDetail({
   row,
   meId,
+  searched,
   atLimit,
   maxClients,
   onDone,
-  i18nLang,
 }: {
   row: ResultRow;
   meId: string;
+  /** The exact email/phone the coach typed — echoed back instead of any stored contact data. */
+  searched: string;
   atLimit: boolean;
   maxClients: number;
   onDone: () => void;
-  i18nLang: string;
 }) {
   const { t } = useTranslation();
+  // B3.8 (P2): asking to take a client on is a coaching write — off with a lapsed Forma plan.
+  const gate = useWriteGate();
   const qc = useQueryClient();
   const c = row.user;
-  const mine = row.coachId === meId;
-  const ownedByOther = !!row.coachId && row.coachId !== meId;
-  const unassigned = !row.coachId;
+  const mine = c.coaching === 'you';
+  const ownedByOther = c.coaching === 'another';
+  const unassigned = c.coaching === 'none';
 
-  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
   const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
   const [reason, setReason] = useState('');
 
@@ -260,59 +230,69 @@ function ClientResultDetail({
   });
 
   const assign = useMutation({
-    mutationFn: () => assignExistingClient(meId, c.id, meId, { ...sub, ...(currency ? { currency } : {}) }),
+    // B3.8: the term starts today on this device's calendar, in EGP (the server stores the currency).
+    mutationFn: () => assignExistingClient(meId, c.id, meId, { ...sub, startDate: todayKey() }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachPlan', meId] }); // the server's client count (B3.8, D5)
+      void qc.invalidateQueries({ queryKey: ['coachBusiness', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
-      showToast({ title: t('coach.addClient'), variant: 'success' });
+      void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
+      showToast({ title: t('existing.added', { name: isolate(c.displayName) }), variant: 'success' });
       onDone();
     },
     onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
   });
 
   const request = useMutation({
-    mutationFn: () => submitTransferRequest({ toCoachId: meId, clientId: c.id, fromCoachId: row.coachId!, reason }),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }); showToast({ title: t('transferReq.pending'), variant: 'success' }); },
+    mutationFn: () => submitTransferRequest({ toCoachId: meId, clientId: c.id, reason }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] });
+      void qc.invalidateQueries({ queryKey: ['outgoingTransferRequests', meId] });
+      showToast({ title: t('transferReq.pending'), variant: 'success' });
+    },
     onError: (e) => void alertDialog({ title: t('transferReq.request'), message: commercialErrorMessage(e, t) }),
   });
   const cancelReq = useMutation({
     mutationFn: () => cancelTransferRequest(meId, c.id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] }),
-    onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transferReq', meId, c.id] });
+      void qc.invalidateQueries({ queryKey: ['outgoingTransferRequests', meId] });
+    },
+    onError: (e) => void alertDialog({ title: t('transferReq.cancel'), message: errorMessage(e, t) }),
   });
   // A coach who somehow lands on their own client can release them straight from here.
   const release = useMutation({
     mutationFn: () => releaseClient(meId, c.id, meId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['myClients', meId] });
-      void qc.invalidateQueries({ queryKey: ['coachDashboard', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachPlan', meId] }); // the server's client count (B3.8, D5)
+      void qc.invalidateQueries({ queryKey: ['coachBusiness', meId] });
       void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', meId] });
+      void qc.invalidateQueries({ queryKey: ['coachRelationships', meId] });
       showToast({ title: t('common.removed'), variant: 'success' });
       onDone();
     },
-    onError: (e) => void alertDialog({ title: t('release.confirm'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('release.confirm'), message: errorMessage(e, t) }),
   });
 
   const pendingReq = myReq.data && myReq.data.status === 'pending' ? myReq.data : null;
 
   return (
     <div className="space-y-4" data-testid="existing-detail">
-      {/* Result card — never shows technical ids. */}
+      {/* Result card — only what the add/transfer decision needs (no contact data, no ids). */}
       <div className="card space-y-3">
         <div className="flex items-center gap-3">
-          <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} size="lg" />
+          <Avatar name={c.displayName || searched} size="lg" />
           <div className="min-w-0">
-            <p className="truncate font-semibold">{c.displayName || c.email}</p>
-            <p className="truncate text-[12px] text-earth-subtle">{c.email}</p>
-            {c.phone && <p className="truncate text-[12px] text-earth-subtle">{c.phone}</p>}
+            <p className="truncate font-semibold">{c.displayName || searched}</p>
+            <p className="truncate text-[12px] text-earth-subtle">{t('trust.existing.searchedFor')}: <span dir="ltr">{searched}</span></p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-[12px]">
-          <Field label={t('existing.currentCoach')} value={row.coachName ?? t('existing.unassigned')} />
-          <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} tone={ACCT_TONE[c.accountStatus]} />
-          <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} tone={row.rel?.subscription ? SUB_TONE[row.rel.subscription.status] : undefined} />
-          <Field label={t('existing.joined')} value={fmtJoined(c.createdAt, i18nLang)} />
+          <Field label={t('existing.currentCoach')} value={mine ? t('trust.existing.coachYou') : ownedByOther ? t('trust.existing.coachAnother') : t('existing.unassigned')} />
+          {c.accountStatus && <Field label={t('subscription.accountTitle')} value={t(`subscription.acct.${c.accountStatus}`)} tone={ACCT_TONE(c.accountStatus)} />}
+          {mine && <Field label={t('existing.subscription')} value={row.rel?.subscription ? t(`subscription.status.${row.rel.subscription.status}`) : '—'} tone={row.rel?.subscription ? SUB_TONE(row.rel.subscription.status) : undefined} />}
         </div>
       </div>
 
@@ -342,7 +322,7 @@ function ClientResultDetail({
             <ClientCapBlocked maxClients={maxClients} testId="existing-assign-blocked" />
           ) : (
             <>
-              <SubscriptionPlanPicker coachId={meId} currency={currency} onChange={setSub} testId="existing-assign-sub" />
+              <SubscriptionPlanPicker coachId={meId} onChange={setSub} testId="existing-assign-sub" />
               <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-assign" disabled={assign.isPending} onClick={() => assign.mutate()}>
                 {assign.isPending ? t('auth.working') : t('existing.assignToMe')}
               </button>
@@ -354,7 +334,7 @@ function ClientResultDetail({
       {/* CASE 2 — owned by another coach → request transfer / wait */}
       {ownedByOther && (
         <div className="space-y-2" data-testid="existing-transfer-panel">
-          <p className="text-sm text-earth-muted">{t('existing.ownedByOther', { name: row.coachName ?? '' })}</p>
+          <p className="text-sm text-earth-muted">{t('trust.existing.ownedByOther')}</p>
           {pendingReq ? (
             <div className="space-y-2">
               <p className="chip border-warn/50 text-warn">{t('transferReq.pending')}</p>
@@ -375,7 +355,7 @@ function ClientResultDetail({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />
-              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-request-transfer" disabled={request.isPending || !reason.trim()} onClick={() => request.mutate()}>
+              <button type="button" className="btn-primary w-full disabled:opacity-40" data-testid="existing-request-transfer" disabled={request.isPending || !reason.trim() || !gate.canWrite} title={gate.reason} onClick={() => request.mutate()}>
                 {request.isPending ? t('auth.working') : t('transferReq.request')}
               </button>
               <p className="text-[12px] text-earth-subtle">{t('existing.waitUntilReleased')}</p>
@@ -390,7 +370,7 @@ function ClientResultDetail({
 function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="min-w-0 rounded-lg border border-line-soft px-2.5 py-1.5">
-      <p className="text-[11px] text-earth-subtle">{label}</p>
+      <p className="text-[12px] text-earth-subtle">{label}</p>
       <p className={`mt-0.5 flex items-center gap-1.5 font-medium ${tone ?? ''}`}>
         {tone && <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-current" />}
         <span className="truncate">{value}</span>

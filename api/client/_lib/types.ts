@@ -66,6 +66,18 @@ export interface ClientProfileDoc {
   clientId: string;
   profile?: ClientProfileFields;
   assessment?: ClientAssessmentFields;
+  /**
+   * Coach-only notes; stored OUTSIDE `assessment` so no client-bound read can include them (B0 / CO-02).
+   * B3.0.1 / B3-S02: one private note PER AUTHOR (`assessmentByAuthor[authorId]`) so a new coach can
+   * neither read nor overwrite an earlier coach's note. `assessment` / `updatedBy` / `updatedAt` are the
+   * legacy single note (kept as written; superseded by its author's first new write).
+   */
+  privateNotes?: {
+    assessment?: string;
+    updatedAt?: number;
+    updatedBy?: string;
+    assessmentByAuthor?: Record<string, { text: string; updatedAt: number }>;
+  };
   updatedAt: number;
 }
 
@@ -73,13 +85,6 @@ export interface ClientProfileDoc {
 // clientSettings — singleton per client, fully client-owned (coach/admin may
 // only read via the recursive clientData read rule; there is no coach write).
 // ---------------------------------------------------------------------------
-
-export interface ClientSettingsDoc {
-  _id: string; // == clientId
-  clientId: string;
-  settings: Record<string, unknown>;
-  updatedAt: number;
-}
 
 // ---------------------------------------------------------------------------
 // clientWorkoutPlans / clientNutritionPlans / clientCardioPlans — coach-authored
@@ -115,6 +120,8 @@ export interface PlanVersionDoc {
   reason?: string;
   snapshot: Record<string, unknown>;
   active: boolean;
+  /** `updatedAt` of the plan doc this version was written as / captured from (B0 / CO-01). */
+  planUpdatedAt?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,6 +149,12 @@ export interface CoachNoteDoc {
   authorRole: Role;
   body: string;
   kind?: 'note' | 'announcement';
+  /**
+   * B0 / CO-02, CO-21: who may read this note. `private` (the default) is
+   * coach-only and is NEVER returned to the client; `client` is explicitly
+   * shared. Legacy docs without this field are treated as private.
+   */
+  visibility?: 'private' | 'client';
   screen?: NoteScreen;
   date?: string;
   entityType?: NoteEntityType;
@@ -203,6 +216,8 @@ export interface WeeklyCheckInDoc {
   weekEnd: string;
   status: CheckInStatus;
   submittedAt?: number;
+  /** Outbox operation id of the submission (B1.6) — makes a replayed submit idempotent. */
+  submitOpId?: string;
   reviewedAt?: number;
   currentWeight?: number;
   adherenceTraining?: number;
@@ -235,25 +250,8 @@ export interface MeasurementLogDoc {
 // coach-bound alerts, coach writes client-bound alerts; both may mark seen).
 // ---------------------------------------------------------------------------
 
-export type NotificationType =
-  | 'coach_note'
-  | 'plan_assigned'
-  | 'targets_updated'
-  | 'subscription_updated'
-  | 'freeze_decided'
-  | 'measurement_added'
-  | 'assessment_reviewed'
-  | 'freeze_requested'
-  | 'assessment_submitted'
-  | 'checkin_requested'
-  | 'checkin_submitted'
-  | 'checkin_reviewed'
-  | 'message_received'
-  | 'trial_expiring'
-  | 'plan_change_requested'
-  | 'plan_decided'
-  | 'coach_assigned'
-  | 'client_released';
+import type { NotificationType } from '../../_lib/notificationTypes.js';
+export type { NotificationType };
 
 export interface AppNotificationDoc {
   _id: string;
@@ -266,6 +264,12 @@ export interface AppNotificationDoc {
   entityType?: NoteEntityType;
   entityId?: string;
   route?: string;
+  /** coach_note only: set when the note was explicitly shared with the client (its excerpt may be shown). */
+  noteVisibility?: 'client';
+  /** B3.0.1: for a coach-bound notification, the coach it is FOR (the client's coach when it was raised). */
+  coachId?: string;
+  /** DONE: the task this asked for was completed (see notifications-data.ts). */
+  resolvedAt?: number | null;
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
@@ -318,52 +322,5 @@ export interface ExerciseLogFields {
   done: boolean;
 }
 
-export interface WorkoutLogDoc {
-  _id: string; // == `${clientId}__${date}`
-  clientId: string;
-  date: string;
-  dayId: string;
-  startedAt: number | null;
-  endedAt: number | null;
-  durationSec: number;
-  exercises: ExerciseLogFields[];
-  finished: boolean;
-  updatedAt: number;
-}
-
-export interface NutritionLogDoc {
-  _id: string; // == `${clientId}__${date}`
-  clientId: string;
-  date: string;
-  mealsEaten: Record<string, boolean>;
-  supplementsTaken: Record<string, boolean>;
-  customFoods: Record<string, unknown>[];
-  itemOverrides: Record<string, Record<string, unknown> | null>;
-  substitutions?: Record<string, { source: 'approved_substitution' | 'client_custom_substitution'; pendingApproval?: boolean }>;
-  extraItems: Record<string, Record<string, unknown>[]>;
-  waterMl: number;
-  creatineTaken: boolean;
-  updatedAt: number;
-}
-
 export type CardioType = 'walking' | 'treadmill' | 'running' | 'cycling' | 'other';
 
-export interface CardioLogDoc {
-  _id: string; // client-provided id, or server-generated
-  clientId: string;
-  date: string;
-  type: CardioType;
-  durationSec: number;
-  distanceKm: number | null;
-  caloriesBurned: number | null;
-  steps: number | null;
-  updatedAt: number;
-}
-
-export interface WeightLogDoc {
-  _id: string; // == `${clientId}__${date}`
-  clientId: string;
-  date: string;
-  weightKg: number;
-  updatedAt: number;
-}

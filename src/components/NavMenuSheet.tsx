@@ -6,7 +6,7 @@ import { useGuardedNav } from '@/hooks/useGuardedNav';
 import { useSession } from '@/services/auth/sessionStore';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
-import { ADMIN_SIDEBAR, CLIENT_MENU, COACH_SIDEBAR, SUPER_ADMIN_SIDEBAR, type NavGroup, type NavItem } from '@/config/nav';
+import { ADMIN_SIDEBAR, CLIENT_MENU, SUPER_ADMIN_SIDEBAR, type NavGroup, type NavItem } from '@/config/nav';
 
 /**
  * Full-navigation sheet — every destination for the current role, including
@@ -50,19 +50,13 @@ export function NavMenuSheet({ open, onClose }: { open: boolean; onClose: () => 
             {badge > 9 ? '9+' : badge}
           </span>
         )}
-        <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle rtl:rotate-180" />
+        <Icon name="chevron" size={16} className="shrink-0 text-earth-subtle" />
       </button>
     );
   };
 
-  const groups: NavGroup[] =
-    role === 'coach'
-      ? COACH_SIDEBAR
-      : role === 'super_admin'
-        ? SUPER_ADMIN_SIDEBAR
-        : role === 'admin'
-          ? ADMIN_SIDEBAR
-          : CLIENT_MENU;
+  // The coach has no menu sheet since B3.1 (CoachShell: tabs / rail + Me).
+  const groups: NavGroup[] = role === 'super_admin' ? SUPER_ADMIN_SIDEBAR : role === 'admin' ? ADMIN_SIDEBAR : CLIENT_MENU;
 
   return (
     <Sheet open={open} onClose={onClose} title={t('nav.menu')}>

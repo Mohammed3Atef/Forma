@@ -167,7 +167,9 @@ test.describe('plain admin', () => {
     const { context: _c9398, page } = await as('admin'); await noHmr(_c9398);
     await page.goto('/admin');
     await settled(page);
-    const sidebar = page.getByTestId('coach-sidebar');
+    // B3.9.0: the admin shell's sidebar still carries the legacy test id `coach-sidebar`; pin it to the ADMIN's by its
+    // overview link, so a coach sidebar could never satisfy this (an `admin-sidebar` test id is requested from the app).
+    const sidebar = page.getByTestId('coach-sidebar').filter({ has: page.getByTestId('sidebar-adminOverview') });
     await expect(sidebar).toBeVisible();
     for (const k of FORBIDDEN_KEYS) await expect(sidebar.getByTestId(`sidebar-${k}`)).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: FORBIDDEN_LABELS })).toHaveCount(0);

@@ -16,6 +16,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // B1.2 semantic tokens — the ONLY colours new components use (values in
+        // src/styles/tokens.css). Legacy keys below keep existing screens rendering.
+        ui: {
+          bg: 'rgb(var(--ui-bg) / <alpha-value>)',
+          surface: 'rgb(var(--ui-surface) / <alpha-value>)',
+          raised: 'rgb(var(--ui-surface-raised) / <alpha-value>)',
+          interactive: 'rgb(var(--ui-surface-interactive) / <alpha-value>)',
+          'border-subtle': 'var(--ui-border-subtle)',
+          border: 'var(--ui-border)',
+          'border-strong': 'var(--ui-border-strong)',
+          primary: 'rgb(var(--ui-text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--ui-text-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--ui-text-muted) / <alpha-value>)',
+          accent: 'rgb(var(--ui-accent) / <alpha-value>)',
+          'accent-hover': 'rgb(var(--ui-accent-hover) / <alpha-value>)',
+          'accent-pressed': 'rgb(var(--ui-accent-pressed) / <alpha-value>)',
+          'accent-ink': 'rgb(var(--ui-accent-ink) / <alpha-value>)',
+          success: 'rgb(var(--ui-success) / <alpha-value>)',
+          warning: 'rgb(var(--ui-warning) / <alpha-value>)',
+          error: 'rgb(var(--ui-error) / <alpha-value>)',
+          info: 'rgb(var(--ui-info) / <alpha-value>)',
+          offline: 'rgb(var(--ui-offline) / <alpha-value>)',
+          syncing: 'rgb(var(--ui-syncing) / <alpha-value>)',
+          conflict: 'rgb(var(--ui-conflict) / <alpha-value>)',
+          focus: 'rgb(var(--ui-focus-ring) / <alpha-value>)',
+        },
         black: '#000000',
         ink: '#0C0A09',
         // App surfaces — layered warm charcoal (depth: bg → sunken → card → raised → hover → strong)
@@ -65,7 +91,13 @@ const config: Config = {
           DEFAULT: '#3FB27F', // single "ok" green — text/border/tint and solid fills alike
           light: '#3FB27F',
         },
-        danger: '#F0483E', // unchanged — already matched the new spec's --bad
+        danger: {
+          DEFAULT: '#F0483E', // unchanged — already matched the new spec's --bad
+          // B3.3: danger TEXT on a danger tint (status pills) — #F0483E reads ~4.1:1 there, this ≥ 5:1 (WCAG AA).
+          text: '#FF6B62',
+          // B3.6: a solid fill that carries white 11 px text at ≥ 5:1 (the coach's unread badges; #F0483E is ~3.6:1).
+          solid: '#CF3329',
+        },
         warn: '#F5A623', // unchanged — already matched the new spec's --warn
         info: '#5B8DEF', // informational blue (distinct from brand orange)
         // Data-differentiation accents (macro breakdowns, chart series) — sparing use
@@ -105,6 +137,7 @@ const config: Config = {
         },
       },
       backgroundImage: {
+        'ui-accent': 'var(--ui-accent-gradient)',
         'gradient-brand': 'linear-gradient(135deg, #FFB208 0%, #FF8B02 48%, #FF4C01 100%)',
         'gradient-brand-soft': 'linear-gradient(135deg, rgba(255,178,8,0.16), rgba(255,76,1,0.06))',
         'gradient-surface': 'linear-gradient(160deg, #1C1815 0%, #141110 100%)',
@@ -118,19 +151,27 @@ const config: Config = {
         display: ['Poppins', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono: ['DM Mono', 'ui-monospace', 'SF Mono', 'Menlo', 'monospace'],
         serif: ['Lora', 'Georgia', 'Times New Roman', 'serif'],
-        arabic: ['Cairo', 'Tajawal', 'system-ui', 'sans-serif'],
+        // B1.8 / RTL-01: one Arabic face shared with the approved website (Cairo stays as fallback).
+        arabic: ['IBM Plex Sans Arabic', 'Cairo', 'system-ui', 'sans-serif'],
         // Public website's Arabic face (the design's --f-ar).
         'site-ar': ['IBM Plex Sans Arabic', 'Poppins', 'sans-serif'],
       },
-      spacing: {
-        touch: '3.5rem', // 56px — gym-friendly large touch target
-      },
       borderRadius: {
+        // B1.2 — four radius levels for new components.
+        'ui-control': 'var(--ui-radius-control)',
+        'ui-surface': 'var(--ui-radius-surface)',
+        'ui-surface-lg': 'var(--ui-radius-surface-lg)',
+        'ui-pill': 'var(--ui-radius-pill)',
         xl2: '18px', // cards
         hero: '20px',
         sheet: '30px', // mobile bottom sheet — matches the new spec's --r-2xl
       },
       boxShadow: {
+        // B1.2 — elevation only where something floats.
+        'ui-menu': 'var(--ui-shadow-menu)',
+        'ui-sheet': 'var(--ui-shadow-sheet)',
+        'ui-dialog': 'var(--ui-shadow-dialog)',
+        'ui-sticky': 'var(--ui-shadow-sticky)',
         card: '0 1px 2px rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.34)',
         elevated: '0 4px 14px rgba(0,0,0,0.34), 0 12px 34px rgba(0,0,0,0.44)',
         featured: '0 12px 34px rgba(0,0,0,0.44), inset 0 1px 0 rgba(255,238,228,0.06)',
@@ -144,6 +185,43 @@ const config: Config = {
       },
       transitionTimingFunction: {
         card: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        ui: 'var(--ui-ease)',
+        'ui-emphasized': 'var(--ui-ease-emphasized)',
+      },
+      transitionDuration: {
+        'ui-fast': 'var(--ui-dur-fast)',
+        'ui-base': 'var(--ui-dur-base)',
+        'ui-slow': 'var(--ui-dur-slow)',
+      },
+      spacing: {
+        // B1.2 semantic steps (responsive values live in tokens.css).
+        'ui-gutter': 'var(--ui-gutter)',
+        'ui-section': 'var(--ui-section)',
+        'ui-stack': 'var(--ui-stack)',
+        'ui-inset': 'var(--ui-inset)',
+        'ui-inset-compact': 'var(--ui-inset-compact)',
+        'ui-hit': 'var(--ui-hit)',
+        'ui-hit-workout': 'var(--ui-hit-workout)',
+        'ui-dense': 'var(--ui-control-dense)',
+      },
+      zIndex: {
+        'ui-sticky': 'var(--ui-z-sticky)',
+        'ui-header': 'var(--ui-z-header)',
+        'ui-nav': 'var(--ui-z-nav)',
+        'ui-banner': 'var(--ui-z-banner)',
+        'ui-task': 'var(--ui-z-task)',
+        'ui-overlay': 'var(--ui-z-overlay)',
+        'ui-toast': 'var(--ui-z-toast)',
+        'ui-dialog': 'var(--ui-z-dialog)',
+        'ui-media': 'var(--ui-z-media)',
+        'ui-palette': 'var(--ui-z-palette)',
+      },
+      minHeight: {
+        'ui-hit': 'var(--ui-hit)',
+        'ui-hit-workout': 'var(--ui-hit-workout)',
+      },
+      minWidth: {
+        'ui-hit': 'var(--ui-hit)',
       },
     },
   },

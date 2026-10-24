@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TopBar } from '@/components/TopBar';
-import { StatTile } from '@/components/StatTile';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/Avatar';
@@ -30,16 +30,12 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useFullBleed } from '@/hooks/useFullBleed';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { shortDate } from '@/lib/utils';
-import { Pill, type PillTone } from '@/components/ui/Pill';
 
-const STATE_TONE: Record<string, PillTone> = {
-  trial: 'brand',
-  active: 'ok',
-  expired: 'bad',
-  suspended: 'bad',
-  none: 'mute',
-};
+import { Pill } from '@/components/ui/Pill';
+import { formatDate } from '@/lib/format';
+import { COACH_PLAN_TONE as STATE_TONE } from '@/lib/statusTone';
+import { errorMessage } from '@/lib/errorMessage';
+
 
 /** Super-admin: SaaS control panel — all coaches, their plan tier, usage & status. */
 export function AdminCoaches() {
@@ -75,7 +71,7 @@ export function AdminCoaches() {
     mutationFn: (coachId: string) => renewCoachSubscription(coachId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['coachAdmin'] });
-      showToast({ title: t('adminCoaches.renew'), variant: 'success' });
+      showToast({ title: t('adminCoaches.renewed'), variant: 'success' });
     },
     onError: (e) =>
       void alertDialog({
@@ -92,10 +88,10 @@ export function AdminCoaches() {
       // same user record (AdminAccounts, AdminAssignments) from going stale.
       void qc.invalidateQueries({ queryKey: ['users'] });
       void qc.invalidateQueries({ queryKey: ['usersByRole', 'coach'] });
-      showToast({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), variant: 'success' });
+      showToast({ title: t(status === 'suspended' ? 'adminCoaches.suspended' : 'adminCoaches.reactivated'), variant: 'success' });
     },
     onError: (e, { status }) =>
-      void alertDialog({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+      void alertDialog({ title: t(status === 'suspended' ? 'adminCoaches.suspend' : 'adminCoaches.reactivate'), message: errorMessage(e, t) }),
   });
   const sel = useSelection();
   const rows = q.data?.rows ?? [];
@@ -126,7 +122,7 @@ export function AdminCoaches() {
     onError: (e, vars) =>
       void alertDialog({
         title: t(`platform.status.${vars.status}`),
-        message: e instanceof Error ? e.message : t('common.errorGeneric'),
+        message: errorMessage(e, t),
       }),
   });
   const runBulk = async (status: 'active' | 'suspended') => {
@@ -149,7 +145,7 @@ export function AdminCoaches() {
     if (r.state === 'expired' || r.state === 'suspended') return <span className="text-[12px] font-medium text-danger">{t('adminCoaches.expired')}</span>;
     const left = trialDaysLeft(r.plan);
     if (left != null && left <= 5) return <span className="text-[12px] font-medium text-warn">{t('subscription.daysLeft', { n: Math.max(0, left) })}</span>;
-    return <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.plan.endsAt).toISOString().slice(0, 10), i18n.language)}</span>;
+    return <span className="text-[12px] text-earth-subtle">{formatDate(r.plan.endsAt, i18n.language, 'weekdayShort')}</span>;
   };
 
   const columns: Column<CoachAdminRow>[] = [
@@ -167,7 +163,7 @@ export function AdminCoaches() {
       return <span className={`font-mono text-sm ${over ? 'text-warn' : ''}`} title={over ? t('forma.capacity.overBy', { n: over }) : undefined}>{r.clientCount}/{r.plan.maxClients}</span>;
     }, className: 'text-end' },
     { key: 'renews', header: t('adminCoaches.renews'), cell: renewsCell },
-    { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.coach.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'reg', header: t('adminCoaches.registered'), cell: (r) => <span className="text-[12px] text-earth-subtle">{formatDate(r.coach.createdAt, i18n.language, 'weekdayShort')}</span> },
     { key: 'attn', header: '', className: 'text-end', cell: (r) => {
       const needsRenew = !!r.plan && (r.state === 'expired' || r.state === 'suspended' || (trialDaysLeft(r.plan) ?? 99) <= 5);
       const hasReq = pendingSet.has(r.coach.id);
@@ -175,7 +171,7 @@ export function AdminCoaches() {
       return (
         <span className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {hasReq && <span className="chip border-brand/50 text-[10.5px] text-brand">{t('adminCoaches.requestPending')}</span>}
-          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost h-8 px-3 text-[11px]" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void askRenew(r)}>{t('adminCoaches.renew')}</button>}
+          {needsRenew && <button type="button" data-testid="coach-renew" className="btn-ghost btn-sm" disabled={renew.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void askRenew(r)}>{t('adminCoaches.renew')}</button>}
         </span>
       );
     } },
@@ -249,12 +245,12 @@ export function AdminCoaches() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
-            <StatTile icon="trophy" value={d.totalCoaches} label={t('adminCoaches.totalCoaches')} />
-            <StatTile icon="timer" value={d.trialCoaches} label={t('adminCoaches.trial')} />
-            <StatTile icon="user" value={d.activeCoaches} label={t('adminCoaches.active')} />
-            <StatTile icon="info" value={d.expiredCoaches} label={t('adminCoaches.expired')} />
-            <StatTile icon="dumbbell" value={d.totalClients} label={t('adminCoaches.totalClients')} />
-            <StatTile icon="bolt" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} />
+            <MetricCard icon="trophy" value={d.totalCoaches} label={t('adminCoaches.totalCoaches')} />
+            <MetricCard icon="timer" value={d.trialCoaches} label={t('adminCoaches.trial')} />
+            <MetricCard icon="user" value={d.activeCoaches} label={t('adminCoaches.active')} />
+            <MetricCard icon="info" value={d.expiredCoaches} label={t('adminCoaches.expired')} />
+            <MetricCard icon="dumbbell" value={d.totalClients} label={t('adminCoaches.totalClients')} />
+            <MetricCard icon="bolt" value={`${d.conversionRate}%`} label={t('adminCoaches.conversion')} />
           </div>
           <SearchField aria-label={t('adminCoaches.searchCoaches')} placeholder={t('adminCoaches.searchCoaches')} value={search} onChange={(e) => setSearch(e.target.value)} />
           {isDesktop ? (
@@ -352,9 +348,9 @@ function CoachPreview({
 
       <div className="space-y-2 text-sm">
         <PreviewRow label={t('adminCoaches.renews')}>
-          {row.plan?.endsAt ? shortDate(new Date(row.plan.endsAt).toISOString().slice(0, 10), i18n.language) : '—'}
+          {row.plan?.endsAt ? formatDate(row.plan.endsAt, i18n.language, 'weekdayShort') : '—'}
         </PreviewRow>
-        <PreviewRow label={t('adminCoaches.registered')}>{shortDate(new Date(c.createdAt).toISOString().slice(0, 10), i18n.language)}</PreviewRow>
+        <PreviewRow label={t('adminCoaches.registered')}>{formatDate(c.createdAt, i18n.language, 'weekdayShort')}</PreviewRow>
       </div>
 
       <div className="flex flex-col gap-2">

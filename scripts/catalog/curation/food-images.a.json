@@ -1,0 +1,453 @@
+{
+  "_reviewer": "group a — sheets 01, 02",
+  "ff_rice_white_medium_cooked": {
+    "status": "approved",
+    "file": "File:Bowl of white rice 01.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Bowl_of_white_rice_01.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Bowl_of_white_rice_01.jpg",
+    "width": 3544,
+    "height": 3000,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Douglas Perkins",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of plain cooked white rice",
+      "ar": "وعاء من الأرز الأبيض المطبوخ السادة"
+    },
+    "note": "Plain boiled short/medium-grain white rice in a white bowl, nothing added; matches the cooked medium-grain state. CC0."
+  },
+  "ff_rice_white_long_cooked": {
+    "status": "missing",
+    "reason": "Reviewed two licensed candidates: the steamed basmati photo has a heavy orange colour cast and readable text on the serving spoon; Basmati Rice 2 actually shows uncooked (parboiled) grains. No clean licensed photo of plain cooked long-grain rice found within the search budget."
+  },
+  "ff_rice_white_dry": {
+    "status": "approved",
+    "file": "File:WhiteRice.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:WhiteRice.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7f/WhiteRice.jpg",
+    "width": 1194,
+    "height": 798,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Sanjay Acharya",
+    "credit": "Own work",
+    "alt": {
+      "en": "Uncooked white rice grains",
+      "ar": "حبوب أرز أبيض غير مطبوخ"
+    },
+    "note": "Close-up of dry, uncooked polished white rice grains on a dark background; matches the dry state. Borderline: grains look medium-to-long rather than clearly medium-grain, and the original is 1194x798 (just under 800 px short side)."
+  },
+  "ff_rice_brown_cooked": {
+    "status": "missing",
+    "reason": "Bowl of Cooked Brown Rice actually shows white rice mixed with red rice; Cooked Brown rice.jpg is plain brown rice but under cling film with reflections and other dishes in frame. No clean licensed photo of plain cooked brown rice found."
+  },
+  "ff_pasta_cooked": {
+    "status": "approved",
+    "file": "File:Cooked spaghetti (horizontal).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_spaghetti_(horizontal).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Cooked_spaghetti_%28horizontal%29.jpg",
+    "width": 3840,
+    "height": 2527,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Kevin Todora",
+    "credit": "",
+    "alt": {
+      "en": "Close-up of plain boiled spaghetti",
+      "ar": "لقطة قريبة لسباغيتي مسلوقة سادة"
+    },
+    "note": "Frame-filling close-up of plain spaghetti boiled in water, no sauce or oil; matches the cooked, no-added-fat state."
+  },
+  "ff_pasta_dry": {
+    "status": "missing",
+    "reason": "Searches for dry/uncooked pasta returned mostly cooked dishes, shop displays and spaghetti-bridge craft photos; both penne candidates viewed were cooked dishes with sauce (one with a date stamp). No licensed photo of plain dry pasta found within the search budget."
+  },
+  "ff_pasta_whole_wheat_cooked": {
+    "status": "missing",
+    "reason": "The only plain cooked spaghetti found under a wholemeal title visibly shows regular (pale) pasta, not whole-wheat; the other candidate shows cooked and uncooked penne side by side. No licensed photo of plain cooked whole-wheat pasta found."
+  },
+  "ff_oats_dry": {
+    "status": "approved",
+    "file": "File:Rolled oats in bowl 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Rolled_oats_in_bowl_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Rolled_oats_in_bowl_2.jpg",
+    "width": 5152,
+    "height": 3864,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Bodhi Peace",
+    "credit": "Own work",
+    "alt": {
+      "en": "Dry rolled oats in a ceramic bowl",
+      "ar": "رقائق شوفان جافة في وعاء خزفي"
+    },
+    "note": "A half-cup serving of dry, uncooked rolled oats in a plain ceramic bowl; matches the dry state."
+  },
+  "ff_oatmeal_cooked": {
+    "status": "missing",
+    "reason": "Licensed oatmeal photos all carry toppings (fruit, nuts, chia, sugar); the one plain bowl of porridge sits on a placemat with large readable text. No clean licensed photo of plain oatmeal cooked in water found."
+  },
+  "ff_bulgur_cooked": {
+    "status": "missing",
+    "reason": "Cooked bulgur on Commons appears only as pilafs with meat, chickpeas or vermicelli, or alongside other dishes. No licensed photo of plain cooked bulgur found."
+  },
+  "ff_bulgur_dry": {
+    "status": "approved",
+    "file": "File:Bulgur close-up.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Bulgur_close-up.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Bulgur_close-up.jpg",
+    "width": 5184,
+    "height": 3888,
+    "mime": "image/jpeg",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "author": "VSerebrenikov",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of dry bulgur wheat",
+      "ar": "لقطة قريبة لبرغل جاف"
+    },
+    "note": "Macro shot of dry, uncooked coarse bulgur grains (hard, unswollen); matches the dry state. Found via the cooked-bulgur search, so no extra API call."
+  },
+  "ff_couscous_cooked": {
+    "status": "approved",
+    "file": "File:Liat Portal for Foodie Disorder - Couscous (Prepared).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Liat_Portal_for_Foodie_Disorder_-_Couscous_(Prepared).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+    "width": 3024,
+    "height": 4032,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "HaJunkiyada",
+    "credit": "Own work",
+    "alt": {
+      "en": "Plain prepared couscous in a white bowl",
+      "ar": "كسكسي مطهو سادة في وعاء أبيض"
+    },
+    "note": "Plain couscous with nothing added, photographed (per its description) freshly prepared before the soup was poured on; matches the cooked state. Borderline: fluffed couscous and dry couscous look alike at this distance, so the cooked state rests on the file description; the uploader account (HaJunkiyada) states it is the photographer Liat Portal own work."
+  },
+  "ff_quinoa_cooked": {
+    "status": "approved",
+    "file": "File:Quinoa 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Quinoa_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Quinoa_2.jpg",
+    "width": 3920,
+    "height": 2204,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "ProjectManhattan",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of plain cooked quinoa",
+      "ar": "وعاء من الكينوا المطبوخة السادة"
+    },
+    "note": "Plain cooked quinoa in a white bowl, the released germ rings showing it is cooked; a white and red quinoa mix, nothing else added. Matches the cooked state."
+  },
+  "ff_barley_cooked": {
+    "status": "missing",
+    "reason": "Four searches found only dry pearl barley (several in branded packaging), barley soup, rice-and-barley mixes and barley sugar. No licensed photo of plain cooked pearl barley found."
+  },
+  "ff_popcorn_air": {
+    "status": "approved",
+    "file": "File:Air-Popped Popcorn (45813595124).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Air-Popped_Popcorn_(45813595124).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg",
+    "width": 7106,
+    "height": 4709,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Tony Webster from Minneapolis, Minnesota, United States",
+    "credit": "Air-Popped Popcorn",
+    "alt": {
+      "en": "Close-up of plain air-popped popcorn",
+      "ar": "لقطة قريبة لفشار سادة محضّر بالهواء الساخن"
+    },
+    "note": "Close-up of plain white popcorn from an air popper, no butter or coating visible; matches the air-popped state."
+  },
+  "ff_rice_cakes_plain": {
+    "status": "approved",
+    "file": "File:Puffed Rice Cakes.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Puffed_Rice_Cakes.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Puffed_Rice_Cakes.jpg",
+    "width": 1450,
+    "height": 1210,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "author": "BD2412",
+    "credit": "Own work",
+    "alt": {
+      "en": "A stack of plain puffed rice cakes",
+      "ar": "كومة من كعك الأرز المنفوخ السادة"
+    },
+    "note": "Unbranded, unflavoured round puffed rice cakes on a wooden table, as sold; no packaging or text. Public domain (own work, PD-self). The brown flecks suggest whole-grain rice, but brown vs white rice cannot be confirmed from the photo."
+  },
+  "ff_bread_pita_white": {
+    "status": "approved",
+    "file": "File:Pita Bread.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Pita_Bread.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Pita_Bread.jpg",
+    "width": 2560,
+    "height": 1920,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Azure Dragon of the East",
+    "credit": "Own work",
+    "alt": {
+      "en": "Folded white pita bread in a basket",
+      "ar": "خبز بيتا أبيض مطوي في سلة"
+    },
+    "note": "Plain white Arabic/pita pocket bread, folded in a bread basket on paper; unbranded, as served. Matches the as-sold white pita."
+  },
+  "ff_bread_pita_whole_wheat": {
+    "status": "missing",
+    "reason": "Three searches found only whole-wheat pita used as a pizza base and two small brown-bread PNGs (about 520x570, under the size floor). No licensed photo of plain whole-wheat pita found."
+  },
+  "ff_baladi_bread": {
+    "status": "approved",
+    "file": "File:Eish baladi.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Eish_baladi.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Eish_baladi.jpg",
+    "width": 1200,
+    "height": 1600,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "dustinpsmith",
+    "credit": "Flickr",
+    "alt": {
+      "en": "Loaves of Egyptian baladi bread cooling on a rack",
+      "ar": "أرغفة عيش بلدي مصري على قفص التبريد"
+    },
+    "note": "Freshly baked Egyptian aish baladi: puffed, bran-dusted round loaves cooling on a traditional palm-reed bread rack. Authentic Egyptian baladi bread, as sold; no people or text."
+  },
+  "ff_fino_roll": {
+    "status": "missing",
+    "reason": "Four searches (English and Arabic) found no photo of Egyptian fino bread on Commons; the only hit is a cheese sandwich in a Cairo restaurant. A generic Western roll would not honestly show fino."
+  },
+  "ff_bread_white": {
+    "status": "approved",
+    "file": "File:Tin Loaf - one slash in the crust.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tin_Loaf_-_one_slash_in_the_crust.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg",
+    "width": 4752,
+    "height": 3168,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Mike Finn",
+    "credit": "https://www.flickr.com/photos/mwf2005/8387284738/",
+    "alt": {
+      "en": "A sliced white bread loaf on a wooden board",
+      "ar": "رغيف خبز أبيض مقطع إلى شرائح على لوح خشبي"
+    },
+    "note": "A white tin loaf, half cut into slices, on a wooden board; plain white sandwich-style bread, unbranded. Borderline: a bakery/home tin loaf with a darker, thicker crust than soft packaged toast bread, but it shows the same food (sliced white loaf)."
+  },
+  "ff_bread_whole_wheat": {
+    "status": "approved",
+    "file": "File:Whole Wheat Bread 01.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Whole_Wheat_Bread_01.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Whole_Wheat_Bread_01.jpg",
+    "width": 4000,
+    "height": 3000,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Rebecca Siegel",
+    "credit": "https://www.flickr.com/photos/grongar/4451489113",
+    "alt": {
+      "en": "Cut loaf of whole-wheat bread showing the brown crumb",
+      "ar": "رغيف خبز قمح كامل مقطوع يظهر لبّه الأسمر"
+    },
+    "note": "Cross-section of a whole-wheat loaf on a wooden board, showing the brown whole-grain crumb; plain, unbranded bread. Background is blurred and carries no text."
+  },
+  "ff_bread_french": {
+    "status": "approved",
+    "file": "File:Brot 001 2016 07 03.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Brot_001_2016_07_03.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/09/Brot_001_2016_07_03.jpg",
+    "width": 4460,
+    "height": 3149,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Friedrich Haag",
+    "credit": "Self-photographed",
+    "alt": {
+      "en": "Slices of French baguette in a bread basket",
+      "ar": "شرائح خبز باجيت فرنسي في سلة خبز"
+    },
+    "note": "A plain white baguette cut into slices in a woven bread basket, showing crust and open crumb; unbranded, as sold. Only a sliver of patterned napkin at the corners, no readable text."
+  },
+  "ff_fava_beans_boiled": {
+    "status": "missing",
+    "reason": "The licensed Egyptian ful photos all show dressed ful: one is a full breakfast plate (eggs, olives, bread, salad), the other an authentic Alexandria ful plate sitting in a visible pool of oil. The catalog item is plain ful boiled with no oil, so these would misstate it. No licensed photo of plain boiled ful found."
+  },
+  "ff_fava_beans_canned": {
+    "status": "missing",
+    "reason": "No unbranded photo of canned fava beans found; searches returned fresh pods, dried beans and botanical plates. A labelled can would be branded."
+  },
+  "ff_fava_beans_dry": {
+    "status": "approved",
+    "file": "File:Fava Beans Dried.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fava_Beans_Dried.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Fava_Beans_Dried.JPG",
+    "width": 2816,
+    "height": 2112,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Miansari66",
+    "credit": "Own work",
+    "alt": {
+      "en": "Dried brown fava beans on a white plate",
+      "ar": "حبوب فول بني جاف في طبق أبيض"
+    },
+    "note": "Small dried brown fava beans of the kind used for ful medames (Egyptian ful tadmees), uncooked, on a plain white plate; matches the dried state. Found via the canned-fava search, so no extra API call."
+  },
+  "ff_lentils_boiled": {
+    "status": "missing",
+    "reason": "Four searches found cooked lentils only as dishes (topped with caramelized onions, cooked with goose fat under other foods, dal, curries, soups, lentils with rice). No licensed photo of plain boiled brown lentils found."
+  },
+  "ff_lentils_brown_dry": {
+    "status": "approved",
+    "file": "File:Brown lentils.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Brown_lentils.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/01/Brown_lentils.JPG",
+    "width": 4676,
+    "height": 3110,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Illustratedjc",
+    "credit": "Own work",
+    "alt": {
+      "en": "A small heap of dry brown lentils",
+      "ar": "كومة صغيرة من العدس البني الجاف"
+    },
+    "note": "Whole, uncooked light-brown lentils on a plain white surface; matches the dry state."
+  },
+  "ff_lentils_red_dry": {
+    "status": "approved",
+    "file": "File:Red lentils - jules (cropped).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Red_lentils_-_jules_(cropped).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Red_lentils_-_jules_%28cropped%29.jpg",
+    "width": 2832,
+    "height": 2837,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "jules / stone soup",
+    "credit": "red lentils",
+    "alt": {
+      "en": "Dry split red lentils in a white ramekin",
+      "ar": "عدس أحمر مجروش جاف في وعاء أبيض صغير"
+    },
+    "note": "Uncooked split red lentils (the Egyptian yellow/soup lentil) in a white ramekin on a white background; matches the dry state."
+  },
+  "ff_chickpeas_boiled": {
+    "status": "approved",
+    "file": "File:Boiled sanag alu27.11.13. (74).JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_sanag_alu27.11.13._(74).JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/41/Boiled_sanag_alu27.11.13._%2874%29.JPG",
+    "width": 2592,
+    "height": 1944,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Bhaskaranaidu",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of plain boiled chickpeas",
+      "ar": "لقطة قريبة لحمص مسلوق سادة"
+    },
+    "note": "Frame-filling close-up of plain boiled (kabuli) chickpeas with nothing added; matches the boiled state. Borderline on quality: dim light with a yellow-green cast, slightly soft, and a spoon edge in two corners."
+  },
+  "ff_chickpeas_canned": {
+    "status": "missing",
+    "reason": "The only canned-chickpea photos found show a branded can with a readable label; no unbranded photo of drained canned chickpeas found."
+  },
+  "ff_white_beans_boiled": {
+    "status": "missing",
+    "reason": "Four searches found white beans only in stews, cholent and breakfasts, or dry beans. No licensed photo of plain boiled white beans found."
+  },
+  "ff_kidney_beans_boiled": {
+    "status": "missing",
+    "reason": "Cooked kidney beans on Commons appear only in stews (Argentine red bean stew series, rajma curry, red beans and rice). No licensed photo of plain boiled red kidney beans found."
+  },
+  "ff_green_peas_cooked": {
+    "status": "missing",
+    "reason": "The only plain boiled-pea photo shows dried (olive-yellow) peas in dark cooking water, not cooked green garden peas; the rest are mixed dishes. No licensed photo of plain cooked green peas found."
+  },
+  "ff_hummus": {
+    "status": "approved",
+    "file": "File:Lebanese style hummus.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Lebanese_style_hummus.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Lebanese_style_hummus.jpg",
+    "width": 2848,
+    "height": 1602,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Beyrouthhh at English Wikipedia",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of hummus with olive oil and whole chickpeas",
+      "ar": "طبق حمص بالطحينة مع زيت الزيتون وحبات الحمص"
+    },
+    "note": "Classic hummus bi tahina in a ceramic bowl, finished with olive oil, a few whole chickpeas and a sprinkle of paprika; matches the prepared home-recipe hummus. No text or people."
+  },
+  "ff_tahini": {
+    "status": "missing",
+    "reason": "Tahini with oil.JPG looks like whipped/diluted tahini sauce rather than the undiluted paste the catalog item describes; the other tahini photos show production machinery with labelled jars, tahini sauce dishes, or Chinese toasted sesame paste. No licensed photo of plain raw tahini paste found."
+  },
+  "ff_falafel_chickpea": {
+    "status": "approved",
+    "file": "File:Falafels 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Falafels_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/57/Falafels_2.jpg",
+    "width": 4160,
+    "height": 2340,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Popo le Chien",
+    "credit": "Own work",
+    "alt": {
+      "en": "Rows of deep-fried chickpea falafel",
+      "ar": "صفوف من أقراص الفلافل بالحمص المقلية"
+    },
+    "note": "Rows of freshly deep-fried Lebanese-style chickpea falafel, nothing else on the plate; matches the prepared, deep-fried chickpea falafel. Warm, slightly dim light but sharp."
+  },
+  "ff_taameya": {
+    "status": "approved",
+    "file": "File:Tameya Karoleen Lindberg.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tameya_Karoleen_Lindberg.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/55/Tameya_Karoleen_Lindberg.jpg",
+    "width": 2000,
+    "height": 1180,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Losttraveller",
+    "credit": "Own work",
+    "alt": {
+      "en": "Fried Egyptian taameya patties on a white plate",
+      "ar": "أقراص طعمية مصرية مقلية في طبق أبيض"
+    },
+    "note": "Flat, disc-shaped deep-fried Egyptian taameya with sesame seeds and a green-tinged interior showing at the edges: the real Egyptian fava-bean falafel, not the round Levantine chickpea kind. Only a fork tip and a scrap of patterned cloth in one corner, no text."
+  },
+  "ff_lentil_soup": {
+    "status": "missing",
+    "reason": "Reviewed two licensed candidates: the smooth Turkish mercimek (closest to Egyptian shorbet ads) shows a restaurant logo and a placemat with readable text; the jules red lentil soup is a chunky tomato version topped with a dollop of yogurt, not the plain/Egyptian soup. Other hits add dumplings or vegetables. No suitable licensed photo found."
+  }
+}

@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
+import { LAPSED_MESSAGES, coachWriteState } from '../../_lib/coachEntitlement.js';
 import { TRPCError } from '@trpc/server';
 import type { AuthedUser } from '../../_trpc/context.js';
-import { authorizeThreadAccess } from '../../messages/_data.js';
+import { resolveThreadViewer } from '../../messages/_data.js';
 import { MediaError } from './bunny.js';
 
 /**
@@ -22,10 +23,10 @@ import { MediaError } from './bunny.js';
  * the fresh-start archive all keep working.
  */
 
-export type MediaCategory = 'avatar' | 'progress' | 'assessment' | 'checkin' | 'exercise' | 'message';
+export type MediaCategory = 'avatar' | 'progress' | 'assessment' | 'checkin' | 'exercise' | 'message' | 'food';
 export type MediaKind = 'image' | 'video' | 'audio' | 'file';
 
-export const MEDIA_CATEGORIES: readonly MediaCategory[] = ['avatar', 'progress', 'assessment', 'checkin', 'exercise', 'message'];
+export const MEDIA_CATEGORIES: readonly MediaCategory[] = ['avatar', 'progress', 'assessment', 'checkin', 'exercise', 'message', 'food'];
 
 export interface UploadMeta {
   category: string;
@@ -34,6 +35,8 @@ export interface UploadMeta {
   name?: string;
   clientId?: string;
   checkInId?: string;
+  /** B3.0.1: for a `message` attachment, the conversation (coach id) it was composed in. */
+  coachId?: string;
 }
 
 export interface UploadTarget {
@@ -50,6 +53,9 @@ const MB = 1024 * 1024;
 /** Per-kind byte limits — the same numbers the old client enforced (and that the i18n `upload.tooLarge*` strings quote). */
 export const MAX_BYTES: Record<MediaKind, number> = { image: 5 * MB, video: 50 * MB, audio: 10 * MB, file: 25 * MB };
 export const MAX_AVATAR_BYTES = 2 * MB;
+/** B4.1: food photos — one request (sanitized whole on the server), so below the chunk size. */
+export const MAX_FOOD_IMAGE_BYTES = 4 * MB;
+const FOOD_IMAGE_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const STILL_IMAGE_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
@@ -104,7 +110,7 @@ function tooLargeCode(kind: MediaKind): string {
 
 /** Byte limit for a resolved (category, kind) — exported so the handler can cap the request body read at exactly this. */
 export function limitFor(category: MediaCategory, kind: MediaKind): number {
-  return category === 'avatar' ? MAX_AVATAR_BYTES : MAX_BYTES[kind];
+  return category === 'avatar' ? MAX_AVATAR_BYTES : category === 'food' ? MAX_FOOD_IMAGE_BYTES : MAX_BYTES[kind];
 }
 
 /**
@@ -117,6 +123,13 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   const ownerId = assertId(user.id, 'user id');
   if (!MEDIA_CATEGORIES.includes(meta.category as MediaCategory)) throw new MediaError(400, 'badRequest', 'Unknown media category');
   const category = meta.category as MediaCategory;
+  // B3.8 (P2): a coach whose Forma plan lapsed, was suspended or is missing may still change their own photo,
+  // and upload nothing else (message attachments, library media, client files) — checked when the
+  // upload starts, so a chunked upload is refused before any byte is stored.
+  if (user.role === 'coach' && category !== 'avatar') {
+    const state = await coachWriteState(user.id);
+    if (state !== 'ok') throw new MediaError(403, state === 'suspended' ? 'planSuspended' : state === 'none' ? 'noPlan' : 'planLapsed', LAPSED_MESSAGES[state]);
+  }
 
   const mimeType = (meta.mimeType || '').toLowerCase().split(';')[0].trim();
   if (!mimeType || BLOCKED_MIME.has(mimeType)) throw new MediaError(415, 'badType', 'Unsupported file type');
@@ -126,6 +139,7 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
 
   let folder: string;
   let allowedKinds: readonly MediaKind[];
+  let threadViewer: Awaited<ReturnType<typeof resolveThreadViewer>> | null = null;
   switch (category) {
     case 'avatar':
       folder = `Forma/${ownerId}/avatar`;
@@ -150,10 +164,17 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
       folder = `Forma/${ownerId}/exercises`;
       allowedKinds = ['image', 'video'];
       break;
+    case 'food':
+      // B4.1: a coach's own food photos (library foods and plan items) — clients have none. Public
+      // coach content, kept apart from private client media; the stored file is sanitized (handler).
+      if (user.role === 'client') throw new MediaError(403, 'forbidden', 'Only coaches can upload food photos');
+      folder = `Forma/${ownerId}/foods`;
+      allowedKinds = ['image'];
+      break;
     case 'message': {
       const clientId = assertId(meta.clientId, 'client id');
       try {
-        await authorizeThreadAccess(user, clientId);
+        threadViewer = await resolveThreadViewer(user, clientId);
       } catch (e) {
         if (e instanceof TRPCError) throw new MediaError(403, 'forbidden', 'Not a participant in this thread');
         throw e;
@@ -165,6 +186,7 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   }
 
   if (!allowedKinds.includes(kind)) throw new MediaError(415, 'badType', 'Unsupported file type for this upload');
+  if (category === 'food' && !FOOD_IMAGE_MIME.has(mimeType)) throw new MediaError(415, 'badType', 'Only JPEG, PNG or WebP photos can be used');
   // Still images only for the photo categories (no gif/animated for avatars either — same as the old client's allow-list).
   if (kind === 'image' && category !== 'message' && category !== 'exercise' && !STILL_IMAGE_MIME.has(mimeType)) {
     throw new MediaError(415, 'badType', 'Unsupported image type');
@@ -173,6 +195,14 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   const limit = limitFor(category, kind);
   if (!Number.isFinite(meta.size) || meta.size <= 0) throw new MediaError(400, 'badRequest', 'Empty upload');
   if (meta.size > limit) throw new MediaError(413, tooLargeCode(kind), 'File is too large');
+
+  // B3.0.1 / B3-S14: a client's attachment goes to the CURRENT coach's
+  // conversation only — none when they have no coach, and never for a
+  // conversation that has since closed (a queued upload after a transfer).
+  // Checked after the type / size policy so those answers are unchanged.
+  if (threadViewer?.kind === 'client' && (!threadViewer.currentCoachId || (meta.coachId && meta.coachId !== threadViewer.currentCoachId))) {
+    throw new MediaError(403, 'forbidden', 'This conversation is closed');
+  }
 
   const safeName = (meta.name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200) || `${randomKey()}.${ext}`;
   return { path: `${folder}/${randomKey()}.${ext}`, mimeType, kind, name: safeName, size: meta.size, category };

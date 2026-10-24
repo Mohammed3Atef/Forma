@@ -17,9 +17,10 @@ import { listPendingPlanRequests } from '@/services/platform/coachPlanRequestsAp
 import { listPendingTransferRequests } from '@/services/platform/transferApi';
 import { fetchAuditPage } from '@/services/platform/auditApi';
 import { CoachStateBadge } from './CoachStateBadge';
+import { formatDate } from '@/lib/format';
 
 export function OverviewPanel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isSuper = useSession((s) => s.account?.role === 'super_admin');
   const stats = useQuery({ queryKey: ['platformStats'], queryFn: fetchPlatformStats, staleTime: 120_000 });
@@ -67,7 +68,7 @@ export function OverviewPanel() {
 
       {isSuper && coaches.data ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard icon="bolt" value={coaches.data.trackedRevenue} label={t('admin.trackedRevenue')} hint={t('admin.perMonth')} tone="brand" />
+          <MetricCard icon="bolt" value={coaches.data.trackedRevenue + coaches.data.capacityRevenue} label={t('admin.formaRecurringRevenue')} hint={t('admin.perMonth')} tone="brand" />
           <MetricCard icon="trophy" value={coaches.data.activeCoaches} label={t('adminCoaches.active')} />
           <MetricCard icon="timer" value={coaches.data.trialCoaches} label={t('adminCoaches.trial')} />
           <MetricCard icon="target" value={`${coaches.data.conversionRate}%`} label={t('adminCoaches.conversion')} tone="brand" />
@@ -127,7 +128,7 @@ export function OverviewPanel() {
               {recent.data.logs.map((log) => (
                 <div key={log.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                   <span className="truncate text-sm">{t(log.action, { defaultValue: log.action.replace(/\./g, ' ') })}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{new Date(log.createdAt).toLocaleDateString()}</span>
+                  <span className="shrink-0 font-mono text-[11px] text-earth-subtle">{formatDate(log.createdAt, i18n.language, 'medium')}</span>
                 </div>
               ))}
             </div>

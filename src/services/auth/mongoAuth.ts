@@ -1,4 +1,4 @@
-import type { AccountStatus, CoachOnboarding, Permission, Role } from '@/types';
+import type { AccountStatus, Permission, Role } from '@/types';
 import { refreshSession, setAccessToken } from '@/services/platformApi';
 import { trpc } from '@/services/trpc';
 
@@ -30,7 +30,6 @@ export interface MongoUserRecord {
   instagram?: string;
   whatsapp?: string;
   currency?: string;
-  onboarding?: CoachOnboarding;
   createdAt: number;
   updatedAt: number;
 }
@@ -64,9 +63,14 @@ export const mongoAuth = {
     return body.user as MongoUserRecord;
   },
 
-  async signOutUser(): Promise<void> {
-    await trpc.auth.logout.mutate().catch(() => undefined);
+  /** Resolves true when the server revoked the refresh cookie; false when it couldn't be reached (offline). */
+  async signOutUser(): Promise<boolean> {
+    const revoked = await trpc.auth.logout.mutate().then(
+      () => true,
+      () => false,
+    );
     setAccessToken(null);
+    return revoked;
   },
 
   async me(): Promise<MongoUserRecord> {

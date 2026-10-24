@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import type { Page, TestInfo } from '@playwright/test';
 import { test, expect, ready, shot, type Role } from '../fixtures';
 import { overflow } from './_d-helpers';
+import { waitForLocaleSaved } from './_c-helpers';
+import { addDays, cairoDay } from './_dates';
 
 /**
  * Layout + RTL checks shared by `45-layout.responsive.spec.ts` (1280/1024/768/430/390)
@@ -24,13 +26,19 @@ const PAGES: Record<'client' | 'coach' | 'super', { role: Role; pages: Pg[] }> =
       { path: '/coach/client/e2e-client-a', name: 'coach-client-workspace' },
       { path: '/coach/messages/e2e-client-a', name: 'coach-thread' },
       { path: '/coach/plan', name: 'coach-my-plan' },
+      { path: '/coach/library', name: 'coach-library' },
+      { path: '/coach/me', name: 'coach-me' },
+      { path: '/coach/business', name: 'coach-business' },
+      { path: '/coach/settings', name: 'coach-account' },
     ],
   },
   super: { role: 'super', pages: [{ path: '/admin', name: 'admin-overview' }, { path: '/admin/accounts', name: 'admin-accounts' }, { path: '/admin/coaches', name: 'admin-coaches' }, { path: '/admin/plans', name: 'admin-forma-plan' }, { path: '/admin/plans?tab=packages', name: 'admin-capacity-packages' }, { path: '/admin/plans?tab=requests', name: 'admin-payment-requests' }, { path: '/admin/coaches/e2e-coach-pro', name: 'admin-coach-capacity' }] },
 };
 const NAV_KEYS = {
-  client: ['today', 'fuel', 'train', 'progress', 'inbox'],
-  coach: ['coachDashboard', 'coachClients', 'coachMessages', 'coachRevenue'],
+  // B2: Today · Train · Nutrition · Progress · Coach (You behind the avatar).
+  client: ['today', 'train', 'nutrition', 'progress', 'coach'],
+  // B3.1: Today · Clients · Messages · Library (Me behind the avatar / rail footer).
+  coach: ['today', 'clients', 'messages', 'library'],
   super: ['adminOverview', 'adminAccounts', 'adminCoaches'],
 };
 
@@ -39,14 +47,23 @@ async function settle(page: Page) {
   await page.waitForTimeout(400);
 }
 
-/** Bottom nav vs sidebar by breakpoint. Client shell is a phone-width column with the bottom nav at EVERY width (by design, AppShell max-w-md). */
+/** Bottom nav vs sidebar by breakpoint. B2: the client has the bottom tab bar below 1024 px and a side rail (`client-rail`) from 1024 px — never both. */
 async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
   const w = page.viewportSize()!.width;
   const bottom = page.getByTestId('bottom-nav');
-  const side = page.getByTestId('coach-sidebar');
+  // B3.1: the coach has its own rail (`coach-rail`); the admin keeps the old sidebar — still test-id'd `coach-sidebar`,
+  // so B3.9.0 pins it to the ADMIN's by its overview link (a coach sidebar could never match).
+  const side = kind === 'coach' ? page.getByTestId('coach-rail') : page.getByTestId('coach-sidebar').filter({ has: page.getByTestId('sidebar-adminOverview') });
   if (kind === 'client') {
-    await expect(bottom).toBeVisible();
-    return { bottom: true, sidebar: false };
+    const rail = page.getByTestId('client-rail');
+    if (w < 1024) {
+      await expect(bottom).toBeVisible();
+      await expect(rail).toBeHidden();
+    } else {
+      await expect(rail).toBeVisible();
+      await expect(bottom).toBeHidden();
+    }
+    return { bottom: w < 1024, sidebar: w >= 1024 };
   }
   if (w < 768) {
     await expect(bottom).toBeVisible();
@@ -61,7 +78,7 @@ async function navCheck(page: Page, kind: 'client' | 'coach' | 'super') {
 /** Nav labels whose text is cut (overflow hidden + scrollWidth > clientWidth). */
 async function clippedNav(page: Page) {
   return page.evaluate(() =>
-    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *'))
+    Array.from(document.querySelectorAll('[data-testid="bottom-nav"] *, [data-testid="coach-sidebar"] a *, [data-testid="client-rail"] a *, [data-testid="coach-rail"] a *'))
       .filter((el) => {
         const e = el as HTMLElement;
         if (!e.textContent?.trim() || e.children.length > 0 || e.offsetParent === null) return false;
@@ -78,8 +95,10 @@ async function navLabels(page: Page, kind: 'client' | 'coach' | 'super') {
   for (const k of NAV_KEYS[kind]) {
     const b = page.getByTestId(`nav-${k}`);
     const s = page.getByTestId(`sidebar-${k}`);
+    const r = page.getByTestId(`rail-${k}`); // B2 client side rail (≥ 1024 px)
     if (await b.isVisible().catch(() => false)) out[k] = ((await b.innerText()).trim() || (await b.getAttribute('aria-label')) || '').trim();
     else if (await s.isVisible().catch(() => false)) out[k] = ((await s.getAttribute('title')) || (await s.innerText())).trim();
+    else if (await r.isVisible().catch(() => false)) out[k] = (await r.innerText()).trim().split(/\r?\n/)[0].trim() || ((await r.getAttribute('aria-label')) ?? '').trim(); // collapsed coach rail: icon + accessible name
   }
   return out;
 }
@@ -96,8 +115,7 @@ async function switchLanguage(page: Page, kind: 'client' | 'coach' | 'super', lo
     const label = locale === 'en' ? 'English' : locale === 'ar' ? 'العربية' : 'مصري';
     await page.getByRole('button', { name: label, exact: true }).click();
   }
-  await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toMatch(locale === 'en' ? /^en/ : /^ar/);
-  await page.waitForTimeout(600); // let the profile save land before navigating away
+  await waitForLocaleSaved(page, locale); // B3.9.0: <html lang> + the stored settings land before navigating away (was a fixed 600 ms)
 }
 
 async function chevronFlipped(page: Page) {
@@ -109,6 +127,18 @@ async function chevronFlipped(page: Page) {
     const m = t.match(/matrix\(([^,]+),/);
     return { transform: t, flipped: !!m && Number(m[1]) < 0 };
   });
+}
+
+/**
+ * The UI switch back to English happens right before the context closes, so it
+ * may never sync — and since B0 a fresh device adopts the synced language
+ * instead of overwriting it with defaults. Restore the server copy too, so a
+ * later spec doesn't start in Arabic.
+ */
+async function restoreClientLocale(db: { updateOne(collection: string, filter: object, update: object): Promise<void> }) {
+  for (const name of ['settings', 'profile']) {
+    await db.updateOne('syncSingletons', { _id: `e2e-client-a__${name}` }, { $set: { 'data.locale': 'en', 'data.updatedAt': Date.now(), updatedAt: Date.now() } });
+  }
 }
 
 export function defineLayoutTests() {
@@ -170,12 +200,13 @@ export function defineLayoutTests() {
       // Client: three weigh-ins (test-owned sync records, removed after) so /progress draws a real chart.
       const seeded: string[] = [];
       if (kind === 'client') {
+        const today = cairoDay(Date.now()); // B3.9.0: Cairo calendar days stepped on the key (was the UTC day of `now − N × 24 h`)
         for (const daysAgo of [14, 7, 1]) {
-          const date = new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+          const date = addDays(today, -daysAgo);
           const _id = `e2e-client-a__weightLogs__${date}`;
           seeded.push(_id);
           await db.deleteMany('syncRecords', { _id });
-          await db.insertOne('syncRecords', { _id, clientId: 'e2e-client-a', collection: 'weightLogs', data: { id: date, date, weightKg: 70 - daysAgo / 7, updatedAt: Date.now(), dirty: false }, updatedAt: Date.now(), syncedAt: Date.now() });
+          await db.insertOne('syncRecords', { _id, clientId: 'e2e-client-a', collection: 'weightLogs', recordId: date, rev: 1, data: { id: date, date, weightKg: 70 - daysAgo / 7, updatedAt: Date.now() }, updatedAt: Date.now(), syncedAt: Date.now() }); // the real server's shape (recordId, rev)
         }
       }
       const { page } = await as(PAGES[kind].role);
@@ -190,7 +221,7 @@ export function defineLayoutTests() {
           await shot(page, testInfo, `${p.name}-ar`, true);
           const dir = await page.evaluate(() => document.documentElement.dir);
           const labels = await navLabels(page, kind);
-          const leaked = Object.entries(labels).filter(([k, v]) => v === tr(en, `nav.${k}`));
+          const leaked = Object.entries(labels).filter(([k, v]) => v === tr(en, `${kind === 'coach' ? 'coachNav' : 'nav'}.${k}`));
           const r: Record<string, unknown> = { dir, overflow: await overflow(page), labels, leaked, clipped: await clippedNav(page) };
           if (p.path === '/progress') {
             await expect.poll(() => page.locator('main div.relative[dir="ltr"] ul.sr-only li').count(), { timeout: 15_000 }).toBeGreaterThan(1).catch(() => undefined);
@@ -202,7 +233,8 @@ export function defineLayoutTests() {
               return { items: ul ? Array.from(ul.querySelectorAll('li')).map((l) => l.textContent) : [], direction: box ? getComputedStyle(box).direction : null };
             });
           }
-          if (p.path === '/coach/client/e2e-client-a' || p.path === '/coach/messages/e2e-client-a') r.chevron = await chevronFlipped(page);
+          // B3.6: ≥ 768 the conversation is a pane of the Messages split view (no Back); phones draw the thread's own Back.
+          if (p.path === '/coach/client/e2e-client-a' || (p.path === '/coach/messages/e2e-client-a' && (page.viewportSize()?.width ?? 0) < 768)) r.chevron = await chevronFlipped(page);
           if (p.path === '/coach/clients') r.addClientLabel = await page.getByTestId('coach-add-client').getAttribute('aria-label');
           res[p.name] = r;
         }
@@ -219,7 +251,8 @@ export function defineLayoutTests() {
             expect.soft(c.direction, `${n} chart computed direction`).toBe('ltr');
             expect.soft(c.items.length, `${n} chart points`).toBe(3);
             // Seeded 68 kg (14d ago) → 69 (7d) → 69.86 (1d): list order == physical left→right order under dir=ltr.
-            expect.soft(c.items.map((i) => i.match(/(\d+(\.\d+)?)\s/)?.[1]?.slice(0, 2)), `${n} oldest→newest`).toEqual(['68', '69', '69']);
+            // Items read "<date>: <value> <unit>" — the value is after the colon (B1: dates use Latin digits too).
+            expect.soft(c.items.map((i) => i.split(':').pop()?.match(/(\d+(\.\d+)?)/)?.[1]?.slice(0, 2)), `${n} oldest→newest`).toEqual(['68', '69', '69']);
             expect.soft(c.items[2], `${n} newest last`).toMatch(/69\.8/);
           }
           if ('chevron' in r) expect.soft((r.chevron as { flipped: boolean }).flipped, `${n} back chevron mirrored ${JSON.stringify(r.chevron)}`).toBe(true);
@@ -227,12 +260,13 @@ export function defineLayoutTests() {
         }
       } finally {
         await switchLanguage(page, kind, 'en').catch(() => undefined);
+        if (kind === 'client') await restoreClientLocale(db);
         for (const _id of seeded) await db.deleteMany('syncRecords', { _id });
       }
     });
   }
 
-  test('ar-eg on client home + coach dashboard', async ({ as }, testInfo) => {
+  test('ar-eg on client home + coach dashboard', async ({ as, db }, testInfo) => {
     const res: Record<string, unknown> = {};
     for (const [kind, path] of [['client', '/'], ['coach', '/coach/dashboard']] as const) {
       const { page } = await as(PAGES[kind].role);
@@ -244,9 +278,10 @@ export function defineLayoutTests() {
         await settle(page);
         await shot(page, testInfo, `${kind}-ar-eg`, true);
         const labels = await navLabels(page, kind);
-        res[kind] = { dir: await page.evaluate(() => document.documentElement.dir), lang: await page.evaluate(() => document.documentElement.lang), labels, overflow: await overflow(page), leaked: Object.entries(labels).filter(([k, v]) => v === tr(en, `nav.${k}`)) };
+        res[kind] = { dir: await page.evaluate(() => document.documentElement.dir), lang: await page.evaluate(() => document.documentElement.lang), labels, overflow: await overflow(page), leaked: Object.entries(labels).filter(([k, v]) => v === tr(en, `${kind === 'coach' ? 'coachNav' : 'nav'}.${k}`)) };
       } finally {
         await switchLanguage(page, kind, 'en').catch(() => undefined);
+        if (kind === 'client') await restoreClientLocale(db);
       }
     }
     await testInfo.attach('ar-eg.json', { body: JSON.stringify(res, null, 2), contentType: 'application/json' });

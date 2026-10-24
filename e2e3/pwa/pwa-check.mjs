@@ -1,7 +1,8 @@
 /**
  * PWA behaviour check against a LOCAL production build (no deployment needed):
  *   1. build A served with the same cache headers vercel.json sets
- *   2. SW installs and controls the page
+ *   2. SW installs and controls the page; the manifest as Chromium parses it
+ *      (no errors, no shortcuts — RM-79) and Chromium's installability verdict
  *   3. offline → reload still renders (precache) and the offline banner shows
  *   4. "new deploy": build B (index.html + sw precache revision changed) is
  *      swapped in → update detected → reload is DEFERRED while visible, then
@@ -54,6 +55,24 @@ if (!controlled) {
 }
 note('1. SW controls page after install', controlled);
 await page.screenshot({ path: path.join(OUT, '1-online.png') });
+
+// 1b. Manifest as Chromium parses it + its own installability verdict (RM-79: no role-agnostic shortcuts).
+const cdp = await ctx.newCDPSession(page);
+const manifest = await cdp.send('Page.getAppManifest');
+const parsed = JSON.parse(manifest.data || '{}');
+note('1b. manifest parse errors', manifest.errors);
+note('1b. manifest fields', {
+  name: parsed.name,
+  short_name: parsed.short_name,
+  start_url: parsed.start_url,
+  scope: parsed.scope,
+  display: parsed.display,
+  icons: (parsed.icons ?? []).map((i) => `${i.sizes}${i.purpose ? ` ${i.purpose}` : ''}`),
+  shortcuts: parsed.shortcuts ?? null,
+});
+note('1b. installability errors', (await cdp.send('Page.getInstallabilityErrors')).installabilityErrors);
+// Detach: a second DevTools session left attached cancels Playwright's offline emulation in step 2.
+await cdp.detach();
 
 // 2. Offline reload
 await ctx.setOffline(true);

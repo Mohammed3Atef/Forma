@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { viewImages } from '@/stores/imageViewerStore';
+import { viewImages } from '@/stores/mediaViewerStore';
 import type { ClientAssessment } from '@/types';
 
 /** Calendar-accurate age in whole years from an ISO `YYYY-MM-DD` date of birth. */
@@ -33,8 +33,9 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
 
   const Row = ({ label, value }: { label: string; value: ReactNode }) => (
     <div className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
-      <span className="shrink-0 text-[13px] text-earth-muted">{label}</span>
-      <span className="min-w-0 flex-1 break-words text-end text-sm font-medium">{value || '—'}</span>
+      {/* A long question may wrap; it must never squeeze the answer into one character per line (B2.6). */}
+      <span className="min-w-0 max-w-[65%] text-[13px] text-earth-muted">{label}</span>
+      <span className="min-w-[2.5rem] flex-1 break-words text-end text-sm font-medium">{value || '—'}</span>
     </div>
   );
   const Section = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -84,7 +85,7 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
       <Section title={t('assessment.steps.2')}>
         <Row label={t('assessment.occupation')} value={t(`assessment.occupations.${a.lifestyle.occupation}`)} />
         <Row label={t('assessment.sleepHours')} value={`${a.lifestyle.sleepHours} h`} />
-        <Row label={t('assessment.activity')} value={t(`assessment.activities.${a.lifestyle.activityLevel}`)} />
+        <Row label={t('assessment.activity')} value={t(`assessment.activities.${a.lifestyle.activityLevel}`, { defaultValue: '—' })} />
         <Row label={t('assessment.trainingDays')} value={`${a.lifestyle.trainingDaysPerWeek}`} />
       </Section>
       <Section title={t('assessment.steps.3')}>

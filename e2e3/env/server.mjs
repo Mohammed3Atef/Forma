@@ -42,6 +42,17 @@ const ZONE = 'e2e-zone';
 const putLog = [];
 let db; // set once Mongo is up (the control API below needs it)
 const ALLOWED_OPS = new Set(['findOne', 'find', 'countDocuments', 'updateOne', 'updateMany', 'insertOne', 'insertMany', 'deleteOne', 'deleteMany']);
+/** cdnPath → { localFile, mime } from the catalog hosting manifests (exercise media + food pictures). */
+let catalogIndex;
+function catalogFiles() {
+  if (catalogIndex) return catalogIndex;
+  catalogIndex = new Map();
+  for (const m of ['data/catalog-reports/catalog-media-upload.json', 'data/catalog-reports/catalog-media-upload-foods.json']) {
+    if (!fs.existsSync(m)) continue;
+    for (const u of JSON.parse(fs.readFileSync(m, 'utf8')).uploads ?? []) catalogIndex.set(u.cdnPath, { localFile: path.resolve(u.localFile), mime: u.mime });
+  }
+  return catalogIndex;
+}
 const stub = http.createServer((req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${STUB_PORT}`);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -132,6 +143,18 @@ const stub = http.createServer((req, res) => {
       return res.end(JSON.stringify(items));
     }
   }
+  // B4.1: the PUBLIC catalog media zone (FORMA_CATALOG_MEDIA_URL) — only the files the owner's
+  // hosting manifests list, read from the local build cache. Missing cache → 404 (the app falls back).
+  if (url.pathname.startsWith('/catalog-cdn/') && req.method === 'GET') {
+    const entry = catalogFiles().get(decodeURIComponent(url.pathname.slice('/catalog-cdn/'.length)));
+    if (entry && fs.existsSync(entry.localFile)) {
+      res.setHeader('Content-Type', entry.mime);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.end(fs.readFileSync(entry.localFile));
+    }
+    res.statusCode = 404;
+    return res.end('not found');
+  }
   if (url.pathname.startsWith('/cdn/') && req.method === 'GET') {
     const file = path.join(STUB_DIR, decodeURIComponent(url.pathname.slice(5)));
     if (file.startsWith(STUB_DIR) && fs.existsSync(file) && fs.statSync(file).isFile()) {
@@ -182,6 +205,8 @@ const env = {
   BUNNY_CDN_URL: `http://127.0.0.1:${STUB_PORT}/cdn`,
   BUNNY_STORAGE_REGION: '',
   BUNNY_STORAGE_ENDPOINT: `http://127.0.0.1:${STUB_PORT}/storage`,
+  // B4.1: the catalog's public media zone, stood in by the stub (never a real CDN).
+  FORMA_CATALOG_MEDIA_URL: `http://127.0.0.1:${STUB_PORT}/catalog-cdn`,
   APP_BASE_URL: `http://127.0.0.1:${PORT}`,
   E2E_VITE_CACHE_DIR: `node_modules/.vite-e2e-${PORT}`,
 };
@@ -192,6 +217,7 @@ const manifest = {
   jwtSecret: env.JWT_ACCESS_SECRET,
   cronSecret: env.CRON_SECRET,
   bunny: { mode: 'local stand-in (no real zone)', storage: env.BUNNY_STORAGE_ENDPOINT, cdn: env.BUNNY_CDN_URL, zone: ZONE, dir: STUB_DIR },
+  catalogMedia: env.FORMA_CATALOG_MEDIA_URL,
   email: 'disabled (RESEND_API_KEY="")',
   accounts: Object.fromEntries(Object.entries(SEED.users).map(([k, u]) => [k, { id: u._id, email: u.email, role: u.role }])),
   password: SEED.password,

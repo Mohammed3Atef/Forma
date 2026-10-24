@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SelectField, TextInput } from '@/components/ui/Field';
 import { listCoachPlans } from '@/services/platform/coachPlansApi';
-import { parseDecimal } from '@/lib/utils';
+import { parseDecimal, parseNumber } from '@/lib/utils';
+import { formatEgp } from '@/lib/format';
 import type { CoachSubscriptionPlan } from '@/types';
 
 /** Normalised result of the picker — a superset of the fields the assign/invite
- *  flows need. The caller injects its own currency. */
+ *  flows need. B3.8: prices are EGP (the only currency); 1 month = 30 days. */
 export interface PlanPickResult {
   status: 'trial' | 'active' | 'pending';
   months?: number;
@@ -25,25 +26,22 @@ function planResult(p: CoachSubscriptionPlan): PlanPickResult {
 
 /**
  * Subscription chooser used wherever a coach assigns a term (add-existing, invite,
- * per-client term). Lists the coach's own plans; falls back to the legacy
- * Trial/1mo/3mo presets when the coach has none, plus a "Custom" option (free
+ * per-client term). Lists the coach's own plans, plus a "Custom" option (free
  * duration + price) and an optional "Set up later". Emits a {@link PlanPickResult}
  * via `onChange` (pass a stable setter to avoid loops).
  */
 export function SubscriptionPlanPicker({
   coachId,
-  currency,
   includePending = true,
   onChange,
   testId,
 }: {
   coachId: string;
-  currency: string;
   includePending?: boolean;
   onChange: (r: PlanPickResult) => void;
   testId?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const q = useQuery({ queryKey: ['coachPlans', coachId], queryFn: () => listCoachPlans(coachId), enabled: !!coachId });
   const plans = q.data ?? [];
   const hasPlans = plans.length > 0;
@@ -63,7 +61,7 @@ export function SubscriptionPlanPicker({
   const result = useMemo<PlanPickResult>(() => {
     if (sel === 'pending') return { status: 'pending' };
     if (sel === 'custom') {
-      const dur = Math.max(1, Number(cDur) || 1);
+      const dur = Math.max(1, Math.round(parseNumber(cDur) || 1));
       return {
         status: 'active',
         ...(cUnit === 'days' ? { days: dur } : { months: dur }),
@@ -77,7 +75,7 @@ export function SubscriptionPlanPicker({
   useEffect(() => { onChange(result); }, [result, onChange]);
 
   const planLabel = (p: CoachSubscriptionPlan) =>
-    `${p.name} · ${p.duration} ${t(`coachPlans.unit.${p.unit}`)}${p.price != null ? ` · ${p.price} ${currency}` : ''}`;
+    `${p.name} · ${t(`coachPlans.length.${p.unit}`, { count: p.duration })}${p.price != null ? ` · ${formatEgp(p.price, i18n.language)}` : ''}`;
 
   return (
     <div className="space-y-2">
@@ -94,7 +92,8 @@ export function SubscriptionPlanPicker({
             <option value="months">{t('coachPlans.unit.months')}</option>
             <option value="days">{t('coachPlans.unit.days')}</option>
           </SelectField>
-          <TextInput label={`${t('coachPlans.price')} (${currency})`} inputMode="decimal" value={cPrice} onChange={(e) => setCPrice(e.target.value)} />
+          <TextInput label={t('subscription.priceEgp')} inputMode="decimal" value={cPrice} onChange={(e) => setCPrice(e.target.value)} />
+          {cUnit === 'months' && <p className="col-span-3 -mt-1 text-[12px] text-earth-subtle">{t('subscription.monthIs30')}</p>}
         </div>
       )}
     </div>

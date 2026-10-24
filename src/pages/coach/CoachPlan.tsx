@@ -2,38 +2,41 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { DashboardSection } from '@/components/ui/DashboardSection';
-import { MetricCard } from '@/components/ui/MetricCard';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { Section } from '@/components/ui/ListRow';
 import { Icon } from '@/components/Icon';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { capacityOf, trialDaysLeft } from '@/services/platform/coachPlanApi';
 import { cancelPlanRequest, hasDeadline, isActionable, isSubscriptionRequest, submitCapacityRequest, submitSubscriptionRequest } from '@/services/platform/coachPlanRequestsApi';
 import { getMyCommercialOverview } from '@/services/platform/coachCommercialApi';
+import { useSession } from '@/services/auth/sessionStore';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { useLocalized } from '@/hooks/useLocalized';
 import { fmtDate, termPreview, useCapacityPrice } from '@/lib/formaFormat';
 import type { CoachCapacityOffer, CoachPlanRequest } from '@/types';
 
 const HOUR_MS = 3_600_000;
+/** Resolved requests from the last 30 days stay in view; older ones fold into the history. */
+const RECENT_MS = 30 * 86_400_000;
 
 /**
- * Coach "My Plan" — the one Forma subscription:
- *   A. Subscription (phase, status, price, dates, renew)
- *   B. Client capacity (used / effective = base + add-ons + adjustment; over-cap)
- *   C. Active capacity add-ons
- *   D. Available add-ons (offered to this coach — never public)
- *   E. Requests (awaiting / history)
- * One bounded read (`coachCommercial.myOverview`). Nothing a request says
- * is shown as active until a Super Admin confirms payment.
+ * Me › Forma subscription (`/coach/plan`; was "My Plan" — B3.8, blueprint §6.7, CO-32 / RM-55 / CO-36):
+ *   A. one status card — phase, state, end date, price, what happens next, and the one action
+ *      (subscribe / renew, or the request awaiting payment);
+ *   B. client capacity — one count, the server's (`activeClientCount`, the number that gates a new
+ *      client, owner D5), with base / add-ons / adjustment;
+ *   C. active capacity add-ons · D. add-ons offered to this coach (never public);
+ *   E. requests — open and recent ones, older ones in a collapsed history.
+ * One bounded read (`coachCommercial.myOverview`). Nothing a request says is shown as active until a
+ * Super Admin confirms payment. The commercial model is unchanged (C10).
  */
 export function CoachPlan() {
   const { t, i18n } = useTranslation();
   const loc = useLocalized();
   const price = useCapacityPrice();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['coachCommercial', 'mine'], queryFn: getMyCommercialOverview, refetchInterval: 60_000 });
+  const uid = useSession((s) => s.uid);
+  const q = useQuery({ queryKey: ['coachCommercial', 'mine', uid], queryFn: getMyCommercialOverview, refetchInterval: 60_000 });
   const d = q.data;
 
   const refreshAll = () => {
@@ -54,19 +57,24 @@ export function CoachPlan() {
   const addCapacity = useMutation({ mutationFn: (id: string) => submitCapacityRequest(id), onSuccess: refreshAll, onError: fail(t('forma.addCapacity')) });
   const cancel = useMutation({ mutationFn: (id: string) => cancelPlanRequest(id), onSuccess: refreshAll, onError: fail(t('forma.cancelRequest')) });
 
+  const header = (
+    <header className="mb-4">
+      <h1 className="t-title">{t('forma.myPlan')}</h1>
+    </header>
+  );
   if (q.isError && !d) {
     return (
-      <div data-testid="coach-plan">
-        <PageHeader eyebrow={t('platform.coachPortal')} title={t('forma.myPlan')} />
+      <div className="mx-auto w-full max-w-3xl pb-6 pt-3" data-testid="coach-plan">
+        {header}
         <ErrorState onRetry={() => void q.refetch()} testId="coach-plan-error" />
       </div>
     );
   }
   if (!d) {
     return (
-      <div data-testid="coach-plan">
-        <PageHeader eyebrow={t('platform.coachPortal')} title={t('forma.myPlan')} />
-        <LoadingState variant="cards" count={4} />
+      <div className="mx-auto w-full max-w-3xl pb-6 pt-3" data-testid="coach-plan">
+        {header}
+        <LoadingState variant="cards" count={3} />
       </div>
     );
   }
@@ -80,10 +88,15 @@ export function CoachPlan() {
   const openCapacityFor = (packageId: string) => openReqs.find((r) => r.capacitySnapshot?.packageId === packageId);
   const lapsed = state === 'expired' || state === 'suspended';
   const isTrial = p?.phase === 'trial';
-  const statusTone = state === 'active' || state === 'trial' ? 'success' : state === 'none' ? 'default' : 'danger';
+  const stateTone = state === 'active' || state === 'trial' ? 'border-success/50 text-success' : state === 'none' ? '' : 'border-danger/50 text-danger';
   const heldPackageIds = new Set(d.activeEntitlements.map((e) => e.sourcePackageId).filter(Boolean));
+  const now = Date.now();
+  const lastChange = (r: CoachPlanRequest) => Math.max(r.requestedAt, r.confirmedAt ?? 0, r.rejectedAt ?? 0, r.cancelledAt ?? 0, r.expiredAt ?? 0);
+  const recentReqs = d.requests.filter((r) => isActionable(r) || now - lastChange(r) <= RECENT_MS);
+  const olderReqs = d.requests.filter((r) => !recentReqs.includes(r));
 
-  const isRenewal = !isTrial && !lapsed;
+  // A renewal only extends a paid term that is running; with no subscription (or after a lapse) it is a new one.
+  const isRenewal = state === 'active' && !isTrial;
   // What a renewal will do once confirmed (server rule: appended after the current end, never starts "today" early).
   const preview = termPreview(p, isRenewal ? 'renewal' : 'subscription', openSub?.planSnapshot?.termDays ?? d.config.termDays);
   const askSubscription = async () => {
@@ -111,41 +124,66 @@ export function CoachPlan() {
       : t(`forma.requestType.${r.type}`, { defaultValue: t('forma.requestType.subscription') });
   const requestPrice = (r: CoachPlanRequest) =>
     r.capacitySnapshot ? price(r.capacitySnapshot) : r.planSnapshot ? t('forma.pricePerMonth', { price: r.planSnapshot.priceMonthly, currency: r.planSnapshot.currency }) : '';
+  const requestRow = (r: CoachPlanRequest) => {
+    const open = isActionable(r);
+    const hours = open && hasDeadline(r) ? Math.max(0, Math.ceil((r.confirmationDeadline - now) / HOUR_MS)) : null;
+    return (
+      <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3" data-testid="plan-request-row">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{requestLabel(r)}</p>
+          <p className="text-[12px] text-earth-subtle">
+            <span dir="ltr">{requestPrice(r)}</span> · {fmtDate(r.requestedAt, i18n.language)}
+            {hours != null ? ` · ${t('forma.hoursLeft', { count: hours })}` : ''}
+          </p>
+          {r.adminNote && !open ? <p className="text-[12px] text-earth-muted">{r.adminNote}</p> : null}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`chip text-[12px] ${open ? 'border-warn/50 text-warn' : r.status === 'confirmed' ? 'border-success/50 text-success' : ''}`}>{t(`forma.requestStatus.${r.status}`)}</span>
+          {r.status === 'awaiting' && r.type !== 'trial_expired' && (
+            <button type="button" className="hit-44 text-[13px] text-earth-muted hover:text-white" data-testid="plan-request-cancel" disabled={cancel.isPending} onClick={() => cancel.mutate(r.id)}>
+              {t('forma.cancelRequest')}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div data-testid="coach-plan">
-      <PageHeader eyebrow={t('platform.coachPortal')} title={t('forma.myPlan')} />
+    <div className="mx-auto w-full max-w-3xl pb-6 pt-3" data-testid="coach-plan">
+      {header}
       <div className="space-y-6">
-        {/* A. Subscription */}
-        <DashboardSection title={t('forma.section.subscription')} icon="bolt" testId="plan-subscription">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricCard icon="bolt" value={isTrial ? t('forma.phase.trial') : t('forma.phase.forma')} label={t('forma.product')} tone="brand" testId="plan-phase" />
-            <MetricCard icon="check" value={t(`forma.state.${state}`)} label={t('forma.status')} tone={statusTone} testId="plan-state" />
-            <MetricCard
-              icon="calendar"
-              value={p?.endsAt ? fmtDate(p.endsAt, i18n.language) : '—'}
-              hint={daysLeft != null && !lapsed ? t('forma.daysLeft', { count: Math.max(0, daysLeft) }) : undefined}
-              label={isTrial ? t('forma.trialEnds') : t('forma.renewsOn')}
-              tone={daysLeft != null && daysLeft <= 5 ? 'warn' : 'default'}
-              testId="plan-ends"
-            />
-            <MetricCard
-              icon="chart"
-              value={<span dir="ltr">{p?.subscription ? `${p.subscription.priceMonthly} ${p.subscription.currency}` : `${d.config.priceMonthly} ${d.config.currency}`}</span>}
-              label={p?.subscription ? t('forma.yourPrice') : t('forma.priceAfterTrial')}
-              testId="plan-price"
-            />
-          </div>
-          <div className="card mt-3 space-y-3" data-testid="plan-subscription-card">
-            <p className="text-sm text-earth-muted">
-              {state === 'suspended'
-                ? t('forma.explain.suspended')
-                : lapsed
-                  ? t(isTrial ? 'forma.explain.trialEnded' : 'forma.explain.expired')
-                  : isTrial
-                    ? t('forma.explain.trial', { price: d.config.priceMonthly, currency: d.config.currency })
-                    : t('forma.explain.active')}
-            </p>
+        {/* A. Subscription — one status card (was four metric cards + an explanation card, RM-55) */}
+        <Section title={t('forma.section.subscription')} testId="plan-subscription">
+          <div className="card space-y-4" data-testid="plan-subscription-card">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-[19px] font-bold leading-tight" data-testid="plan-phase">{isTrial ? t('forma.phase.trial') : t('forma.phase.forma')}</p>
+                <p className="mt-1 text-sm text-earth-muted">
+                  {state === 'suspended'
+                    ? t('forma.explain.suspended')
+                    : lapsed
+                      ? t(isTrial ? 'forma.explain.trialEnded' : 'forma.explain.expired')
+                      : state === 'none'
+                        ? t('forma.explain.none', { price: d.config.priceMonthly, currency: d.config.currency })
+                        : isTrial
+                          ? t('forma.explain.trial', { price: d.config.priceMonthly, currency: d.config.currency })
+                          : t('forma.explain.active')}
+                </p>
+              </div>
+              <span className={`chip shrink-0 ${stateTone}`} data-testid="plan-state">{t(`forma.state.${state}`)}</span>
+            </div>
+            <dl className="grid grid-cols-2 gap-3 border-t border-line-soft pt-3">
+              <div data-testid="plan-ends">
+                <dt className="text-[12px] uppercase tracking-wide text-earth-subtle">{isTrial ? t('forma.trialEnds') : t('forma.renewsOn')}</dt>
+                <dd className="mt-0.5 font-semibold">{p?.endsAt ? fmtDate(p.endsAt, i18n.language) : '—'}</dd>
+                {daysLeft != null && !lapsed ? <dd className={`text-[12.5px] ${daysLeft <= 5 ? 'text-warn' : 'text-earth-muted'}`}>{t('forma.daysLeft', { count: Math.max(0, daysLeft) })}</dd> : null}
+              </div>
+              <div data-testid="plan-price">
+                <dt className="text-[12px] uppercase tracking-wide text-earth-subtle">{p?.subscription ? t('forma.yourPrice') : t('forma.priceAfterTrial')}</dt>
+                <dd className="mt-0.5 font-semibold" dir="ltr">{p?.subscription ? `${p.subscription.priceMonthly} ${p.subscription.currency}` : `${d.config.priceMonthly} ${d.config.currency}`}</dd>
+              </div>
+            </dl>
             <p className="text-[12px] text-earth-subtle">{t('forma.manualPaymentNote')}</p>
             {state !== 'suspended' &&
               (openSub ? (
@@ -163,13 +201,13 @@ export function CoachPlan() {
                 </button>
               ))}
           </div>
-        </DashboardSection>
+        </Section>
 
-        {/* B. Client capacity */}
-        <DashboardSection title={t('forma.section.capacity')} icon="user" testId="plan-capacity">
+        {/* B. Client capacity — the server's count, the one that gates a new client (D5) */}
+        <Section title={t('forma.section.capacity')} testId="plan-capacity">
           <div className={`card space-y-3 ${cap.over > 0 ? 'border-warn/60' : ''}`} data-testid="plan-capacity-card">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-display text-3xl font-bold" data-testid="plan-capacity-usage">
+              <p className="font-display text-2xl font-bold" data-testid="plan-capacity-usage">
                 <span dir="ltr">{cap.used} / {cap.limit}</span> <span className="text-base font-normal text-earth-muted">{t('forma.capacity.clients')}</span>
               </p>
               {cap.over > 0 ? (
@@ -178,7 +216,15 @@ export function CoachPlan() {
                 <span className="text-sm text-earth-muted">{t('forma.capacity.remaining', { count: cap.remaining })}</span>
               )}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-line-soft" aria-hidden>
+            <div
+              className="h-2 overflow-hidden rounded-full bg-line-soft"
+              role="progressbar"
+              aria-label={t('forma.capacity.usageLabel')}
+              aria-valuemin={0}
+              aria-valuemax={cap.limit}
+              aria-valuenow={Math.min(cap.used, cap.limit)}
+              aria-valuetext={t('forma.capacity.usageValue', { used: cap.used, limit: cap.limit })}
+            >
               <div className={`h-full ${cap.over > 0 ? 'bg-warn' : 'bg-brand'}`} style={{ width: `${cap.limit ? Math.min(100, (cap.used / cap.limit) * 100) : 100}%` }} />
             </div>
             <dl className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-3" data-testid="plan-capacity-breakdown">
@@ -190,16 +236,16 @@ export function CoachPlan() {
             </dl>
             {cap.over > 0 && <p className="text-sm text-warn">{t('forma.capacity.overExplain')}</p>}
           </div>
-        </DashboardSection>
+        </Section>
 
         {/* C. Active add-ons */}
-        <DashboardSection title={t('forma.section.activeAddons')} icon="check" testId="plan-active-addons">
+        <Section title={t('forma.section.activeAddons')} testId="plan-active-addons">
           {d.activeEntitlements.length === 0 ? (
             <p className="card text-sm text-earth-muted">{t('forma.capacity.noActive')}</p>
           ) : (
             <div className="card divide-y divide-line-soft p-0">
               {d.activeEntitlements.map((e) => (
-                <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3" data-testid="plan-active-addon">
+                <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3" data-testid="plan-active-addon">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{loc(e.snapshot.name)} · +{e.snapshot.additionalClients}</p>
                     <p className="text-[12px] text-earth-subtle">{price(e.snapshot)}</p>
@@ -209,23 +255,23 @@ export function CoachPlan() {
               ))}
             </div>
           )}
-        </DashboardSection>
+        </Section>
 
         {/* D. Available add-ons */}
-        <DashboardSection title={t('forma.section.availableAddons')} icon="bolt" testId="plan-available-addons">
+        <Section title={t('forma.section.availableAddons')} testId="plan-available-addons">
           {lapsed ? (
             <p className="card text-sm text-earth-muted">{t('forma.capacity.renewFirst')}</p>
           ) : d.availablePackages.length === 0 ? (
             <p className="card text-sm text-earth-muted">{t('forma.capacity.noneAvailable')}</p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {d.availablePackages.map((o) => {
                 const pending = openCapacityFor(o.id);
                 return (
                   <div key={o.id} className="card flex flex-col gap-2" data-testid="plan-offer">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-display text-xl font-bold">+{o.additionalClients} <span className="text-sm font-normal text-earth-muted">{t('forma.capacity.clients')}</span></p>
-                      {o.badge && loc(o.badge) ? <span className="chip chip-on text-[11px]">{loc(o.badge)}</span> : null}
+                      {o.badge && loc(o.badge) ? <span className="chip chip-on text-[12px]">{loc(o.badge)}</span> : null}
                     </div>
                     <p className="text-sm font-semibold">{loc(o.name)}</p>
                     {o.description && loc(o.description) ? <p className="text-[13px] text-earth-muted">{loc(o.description)}</p> : null}
@@ -243,41 +289,27 @@ export function CoachPlan() {
               })}
             </div>
           )}
-        </DashboardSection>
+        </Section>
 
-        {/* E. Requests */}
-        <DashboardSection title={t('forma.section.requests')} icon="list" testId="plan-requests">
+        {/* E. Requests — open and recent in view; older ones collapsed (CO-32) */}
+        <Section title={t('forma.section.requests')} testId="plan-requests">
           {d.requests.length === 0 ? (
             <p className="card text-sm text-earth-muted">{t('forma.noRequests')}</p>
           ) : (
-            <div className="card divide-y divide-line-soft p-0">
-              {d.requests.map((r) => {
-                const open = isActionable(r);
-                const hours = open && hasDeadline(r) ? Math.max(0, Math.ceil((r.confirmationDeadline - Date.now()) / HOUR_MS)) : null;
-                return (
-                  <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3" data-testid="plan-request-row">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{requestLabel(r)}</p>
-                      <p className="text-[12px] text-earth-subtle">
-                        <span dir="ltr">{requestPrice(r)}</span> · {fmtDate(r.requestedAt, i18n.language)}
-                        {hours != null ? ` · ${t('forma.hoursLeft', { count: hours })}` : ''}
-                      </p>
-                      {r.adminNote && !open ? <p className="text-[12px] text-earth-muted">{r.adminNote}</p> : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`chip text-[11px] ${open ? 'border-warn/50 text-warn' : r.status === 'confirmed' ? 'border-success/50 text-success' : ''}`}>{t(`forma.requestStatus.${r.status}`)}</span>
-                      {r.status === 'awaiting' && r.type !== 'trial_expired' && (
-                        <button type="button" className="text-[13px] text-earth-muted hover:text-white" data-testid="plan-request-cancel" disabled={cancel.isPending} onClick={() => cancel.mutate(r.id)}>
-                          {t('forma.cancelRequest')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-2">
+              {recentReqs.length > 0 ? <div className="card divide-y divide-line-soft p-0">{recentReqs.map(requestRow)}</div> : null}
+              {olderReqs.length > 0 ? (
+                <details className="group" data-testid="plan-requests-older">
+                  <summary className="hit-44 inline-flex cursor-pointer items-center gap-1.5 text-[14px] font-semibold text-earth-muted hover:text-earth">
+                    <Icon name="chevronDown" size={15} className="transition-transform group-open:rotate-180" />
+                    {t('forma.olderRequests', { count: olderReqs.length })}
+                  </summary>
+                  <div className="card mt-2 divide-y divide-line-soft p-0">{olderReqs.map(requestRow)}</div>
+                </details>
+              ) : null}
             </div>
           )}
-        </DashboardSection>
+        </Section>
       </div>
     </div>
   );

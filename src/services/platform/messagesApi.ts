@@ -1,4 +1,6 @@
 import { trpc } from '@/services/trpc';
+import { shareSubscription } from '@/lib/sharedSubscription';
+import { classifyError } from '@/lib/errorKind';
 import type { Message, MessageAttachment, MessageCategory, Role } from '@/types';
 
 /**
@@ -39,7 +41,7 @@ function isTabHidden(): boolean {
 /**
  * The backend's `POST /messages` (`SendBody`) has no `broadcast` field — only
  * `category` — so it's synthesized on read: in this app `category` is set
- * ONLY on broadcast sends (see `broadcast()` below; a plain 1:1 message never
+ * ONLY on broadcast sends (see `sendBroadcast()` below; a plain 1:1 message never
  * sets it), so "has a category" is an exact stand-in for `broadcast`. This
  * keeps `MessageThread`'s existing `m.broadcast && m.category` render check
  * working unchanged.
@@ -70,6 +72,16 @@ export async function listMessages(clientId: string, max = 200): Promise<Message
  * revert-then-restore is exactly the "reaction added, disappears, comes back
  * a few seconds later" symptom.
  */
+/**
+ * The server refused the caller's access to the thread itself (B3.6): for a
+ * coach that means the relationship ended or the client was transferred —
+ * `resolveThreadViewer` answers FORBIDDEN, never a reason code.
+ */
+export function isThreadForbidden(e: unknown): boolean {
+  const data = (e as { data?: { code?: string } | null } | null)?.data;
+  return data?.code === 'FORBIDDEN';
+}
+
 export interface MessageSubscription {
   (): void;
   /** Patch one message in this loop's own cache so the next poll tick doesn't emit a stale copy over a just-applied local change. */
@@ -83,33 +95,55 @@ export function subscribeMessages(
   intervalMs = THREAD_POLL_MS,
   /** Called when a poll fails before any successful load (so the thread can show an error instead of loading forever). Polling keeps retrying. */
   onError?: () => void,
+  /** Skip this tick (someone else is already fetching the same data). The tick after a skip refetches the whole window. */
+  skipTick?: () => boolean,
+  /**
+   * B3.6: the server says the caller may no longer read this thread. Polling
+   * STOPS (no endless 403s every 5 s) and this is called once. Without it a
+   * refusal is treated like any other failed tick.
+   */
+  onForbidden?: () => void,
 ): MessageSubscription {
   let cancelled = false;
+  let interval: ReturnType<typeof setInterval> | undefined;
   let cursor: number | undefined;
   let all: Message[] = [];
   let tick = 0;
+  let resync = false;
 
   const emit = () => cb(all.slice(Math.max(0, all.length - max)));
 
   const poll = async () => {
     if (isTabHidden()) return;
-    const fullRefresh = cursor == null || tick % FULL_REFRESH_EVERY === 0;
+    if (skipTick?.()) {
+      resync = true; // read receipts may have changed meanwhile — a `since` poll wouldn't see them
+      return;
+    }
+    const fullRefresh = cursor == null || resync || tick % FULL_REFRESH_EVERY === 0;
     try {
       const page: MessagesPage = await trpc.messages.list.query(fullRefresh ? { clientId } : { clientId, since: cursor });
       if (cancelled) return;
       const incoming = page.messages.map(withBroadcastFlag);
       all = fullRefresh ? incoming : [...all, ...incoming];
       cursor = page.cursor;
+      if (fullRefresh) resync = false;
       tick += 1;
       emit();
-    } catch {
+    } catch (e) {
+      if (cancelled) return;
+      if (onForbidden && isThreadForbidden(e)) {
+        cancelled = true;
+        clearInterval(interval);
+        onForbidden();
+        return;
+      }
       // Transient network/API error — keep the last known state, retry next tick.
-      if (!cancelled && tick === 0) onError?.();
+      if (tick === 0) onError?.();
     }
   };
 
   void poll();
-  const interval = setInterval(() => void poll(), intervalMs);
+  interval = setInterval(() => void poll(), intervalMs);
   const unsubscribe = (() => {
     cancelled = true;
     clearInterval(interval);
@@ -134,7 +168,7 @@ export async function sendMessage(
   clientId: string,
   _from: { id: string; role: Role },
   body: string,
-  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment; clientMsgId?: string },
+  opts?: { category?: MessageCategory; broadcast?: boolean; attachment?: MessageAttachment; clientMsgId?: string; /** B3.0.1: the conversation it was written in. */ coachId?: string },
 ): Promise<Message> {
   // `_from` is unused: the backend derives the sender's id + role from the
   // authenticated session, not the request body. Kept so this signature (and
@@ -145,6 +179,7 @@ export async function sendMessage(
     ...(opts?.category ? { category: opts.category } : {}),
     ...(opts?.attachment ? { attachment: opts.attachment } : {}),
     ...(opts?.clientMsgId ? { clientMsgId: opts.clientMsgId } : {}),
+    ...(opts?.coachId ? { coachId: opts.coachId } : {}),
   });
   return withBroadcastFlag(doc as Message);
 }
@@ -173,11 +208,50 @@ export async function listOlderMessages(clientId: string, before: number): Promi
   return { messages: page.messages.map(withBroadcastFlag), hasMore: !!page.hasMore };
 }
 
-/** Mark messages from the OTHER party as seen (the reader just opened the thread). */
-export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<void> {
+/*
+ * Open threads (B1.13): while `MessageThread` polls a thread every 5 s, the
+ * passive badge poll for that same thread skips its own 200-message fetch and
+ * takes the open thread's data instead.
+ */
+const openThreads = new Map<string, number>();
+const openThreadLast = new Map<string, Message[]>();
+const openThreadWatchers = new Map<string, Set<(msgs: Message[]) => void>>();
+
+/** The actively-open thread's poll (5 s). Its data also feeds that thread's unread badge. */
+export function subscribeOpenThread(clientId: string, cb: (msgs: Message[]) => void, onError?: () => void, onForbidden?: () => void): MessageSubscription {
+  openThreads.set(clientId, (openThreads.get(clientId) ?? 0) + 1);
+  const sub = subscribeMessages(
+    clientId,
+    (msgs) => {
+      openThreadLast.set(clientId, msgs);
+      cb(msgs);
+      openThreadWatchers.get(clientId)?.forEach((w) => w(msgs));
+    },
+    200,
+    THREAD_POLL_MS,
+    onError,
+    undefined,
+    onForbidden,
+  );
+  const unsubscribe = (() => {
+    sub();
+    const n = (openThreads.get(clientId) ?? 1) - 1;
+    if (n > 0) openThreads.set(clientId, n);
+    else {
+      openThreads.delete(clientId);
+      openThreadLast.delete(clientId);
+    }
+  }) as MessageSubscription;
+  unsubscribe.patch = sub.patch;
+  return unsubscribe;
+}
+
+/** Mark messages from the OTHER party as seen (the reader just opened the thread). Resolves to how many were newly marked. */
+export async function markThreadSeen(clientId: string, _readerRole: Role): Promise<number> {
   // `_readerRole` is unused: the backend infers the reader's role from the
   // authenticated session. Kept for signature compatibility.
-  await trpc.messages.markRead.mutate({ clientId });
+  const r = await trpc.messages.markRead.mutate({ clientId });
+  return r?.updated ?? 0;
 }
 
 export interface ThreadMeta {
@@ -186,30 +260,30 @@ export interface ThreadMeta {
   unreadForClient: number;
 }
 
-/** Last message + unread counts for a thread (for inbox rows / badges). */
-export async function threadMeta(clientId: string): Promise<ThreadMeta> {
-  const msgs = await listMessages(clientId);
-  return {
-    last: msgs[msgs.length - 1] ?? null,
-    unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
-    unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
-  };
-}
-
 /** Polling thread meta (last message + unread counts) for inbox rows. Returns an unsubscribe. */
 export function subscribeThreadMeta(clientId: string, cb: (meta: ThreadMeta) => void): () => void {
-  return subscribeMessages(
-    clientId,
-    (msgs) => {
-      cb({
-        last: msgs[msgs.length - 1] ?? null,
-        unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
-        unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
-      });
-    },
-    200,
-    BADGE_POLL_MS,
-  );
+  // Shared: the client's bottom nav and nav sheet both show this badge (B0 / RM-82).
+  return shareSubscription<ThreadMeta>(`thread-meta:${clientId}`, (emit) => threadMetaPoll(clientId, emit), cb);
+}
+
+function threadMetaPoll(clientId: string, cb: (meta: ThreadMeta) => void): () => void {
+  const toMeta = (msgs: Message[]) =>
+    cb({
+      last: msgs[msgs.length - 1] ?? null,
+      unreadForCoach: msgs.filter((m) => m.fromRole === 'client' && !m.seenAt).length,
+      unreadForClient: msgs.filter((m) => m.fromRole !== 'client' && !m.seenAt).length,
+    });
+  let watchers = openThreadWatchers.get(clientId);
+  if (!watchers) openThreadWatchers.set(clientId, (watchers = new Set()));
+  watchers.add(toMeta);
+  const last = openThreadLast.get(clientId);
+  if (last) toMeta(last);
+  const stop = subscribeMessages(clientId, toMeta, 200, BADGE_POLL_MS, undefined, () => openThreads.has(clientId));
+  return () => {
+    watchers.delete(toMeta);
+    if (watchers.size === 0) openThreadWatchers.delete(clientId);
+    stop();
+  };
 }
 
 export interface CoachThreadSummary {
@@ -240,40 +314,70 @@ export async function coachThreadsSummary(coachId: string): Promise<CoachThreadS
 interface SummaryMuxEntry {
   timer: ReturnType<typeof setInterval>;
   listeners: Set<(rows: CoachThreadSummary[]) => void>;
+  errorListeners: Set<(failed: boolean) => void>;
   lastRows: CoachThreadSummary[] | null;
+  /** The latest tick failed (cleared by the next success). */
+  failed: boolean;
+  poll: () => Promise<void>;
 }
 const summaryMux = new Map<string, SummaryMuxEntry>();
 
-/** Polling version of `coachThreadsSummary` — one interval, one request per tick, shared across every subscriber for the same coach. */
-export function subscribeCoachThreadsSummary(coachId: string, cb: (rows: CoachThreadSummary[]) => void, intervalMs = BADGE_POLL_MS): () => void {
+/**
+ * Polling version of `coachThreadsSummary` — one interval, one request per tick, shared across every subscriber for the same coach.
+ * `onError` (B3.2, optional) hears whether the latest tick failed, so a screen can tell "no unread" from "couldn't load".
+ */
+export function subscribeCoachThreadsSummary(
+  coachId: string,
+  cb: (rows: CoachThreadSummary[]) => void,
+  intervalMs = BADGE_POLL_MS,
+  onError?: (failed: boolean) => void,
+): () => void {
   let entry = summaryMux.get(coachId);
   if (!entry) {
     const listeners = new Set<(rows: CoachThreadSummary[]) => void>();
-    const newEntry: SummaryMuxEntry = { listeners, lastRows: null, timer: null as unknown as ReturnType<typeof setInterval> };
+    const newEntry: SummaryMuxEntry = { listeners, errorListeners: new Set(), lastRows: null, failed: false, poll: async () => undefined, timer: null as unknown as ReturnType<typeof setInterval> };
+    const setFailed = (failed: boolean) => {
+      if (newEntry.failed === failed) return;
+      newEntry.failed = failed;
+      newEntry.errorListeners.forEach((l) => l(failed));
+    };
     const poll = async () => {
       if (isTabHidden()) return;
       try {
         const rows = await coachThreadsSummary(coachId);
         newEntry.lastRows = rows;
+        setFailed(false);
         newEntry.listeners.forEach((l) => l(rows));
       } catch {
         // Transient network/API error — keep the last known state, retry next tick.
+        setFailed(true);
       }
     };
+    newEntry.poll = poll;
     newEntry.timer = setInterval(() => void poll(), intervalMs);
     entry = newEntry;
     summaryMux.set(coachId, entry);
     void poll();
   }
   entry.listeners.add(cb);
+  if (onError) {
+    entry.errorListeners.add(onError);
+    if (entry.failed) onError(true);
+  }
   if (entry.lastRows) cb(entry.lastRows);
   return () => {
     entry!.listeners.delete(cb);
+    if (onError) entry!.errorListeners.delete(onError);
     if (entry!.listeners.size === 0) {
       clearInterval(entry!.timer);
       summaryMux.delete(coachId);
     }
   };
+}
+
+/** Run the shared summary poll now (a screen's Refresh / Retry); no-op when nothing subscribes. */
+export function refreshCoachThreadsSummary(coachId: string): Promise<void> {
+  return summaryMux.get(coachId)?.poll() ?? Promise.resolve();
 }
 
 /** Total unread messages addressed to the coach across all their client threads. */
@@ -284,10 +388,83 @@ export async function coachUnreadCount(coachId: string): Promise<number> {
 
 /** Polling total of unread client→coach messages across all the coach's active threads. */
 export function subscribeCoachUnread(coachId: string, cb: (total: number) => void): () => void {
-  return subscribeCoachThreadsSummary(coachId, (rows) => cb(rows.reduce((sum, r) => sum + r.unreadForCoach, 0)));
+  // Shared: the bottom nav and the sidebar both show this badge (B0 / RM-82).
+  return shareSubscription<number>(
+    `coach-unread:${coachId}`,
+    (emit) => subscribeCoachThreadsSummary(coachId, (rows) => emit(rows.reduce((sum, r) => sum + r.unreadForCoach, 0))),
+    cb,
+  );
 }
 
-/** Send a broadcast message to many clients' threads (announcement/offer/reminder/update). */
-export async function broadcast(clientIds: string[], from: { id: string; role: Role }, body: string, category: MessageCategory): Promise<void> {
-  await Promise.all(clientIds.map((cid) => sendMessage(cid, from, body, { category, broadcast: true })));
+/**
+ * Why one recipient's copy is not confirmed as delivered.
+ *  - `notAssigned` / `accountNotActive` / `rateLimited` / `rejected`: the server
+ *    ANSWERED with a refusal (4xx) — it refuses before writing, so that client
+ *    did not get it (`rateLimited`: the coach's send limit, B36-R4 — retry later);
+ *  - `unknown`: no usable answer (connection lost, timeout, server error) — the
+ *    copy MAY have been stored. Retrying with the same key never stores a second.
+ */
+export type BroadcastFailure = 'notAssigned' | 'accountNotActive' | 'rateLimited' | 'rejected' | 'unknown';
+
+export interface BroadcastResult {
+  clientId: string;
+  ok: boolean;
+  failure?: BroadcastFailure;
+}
+
+/**
+ * The idempotency key of one recipient's copy of one broadcast (B3-C08): the
+ * same batch and recipient always give the same key, so "Retry failed" — or
+ * a retry after a lost answer — can never post a second copy (`messages.send`
+ * dedupes on `clientId + sender + clientMsgId`). Kept within the server's 100
+ * characters.
+ */
+export function broadcastMsgId(batchId: string, clientId: string): string {
+  return `bc_${batchId}_${clientId}`.slice(0, 100);
+}
+
+function broadcastFailure(e: unknown): BroadcastFailure {
+  const c = classifyError(e);
+  const refused = c.kind === 'permanent' || c.kind === 'unauthorized' || c.kind === 'rate_limited';
+  if (!refused) return 'unknown'; // network / timeout / 5xx / cancelled: the outcome is not known
+  if (c.kind === 'rate_limited') return 'rateLimited';
+  if (c.reason === 'ACCOUNT_NOT_ACTIVE') return 'accountNotActive';
+  if (isThreadForbidden(e) || c.reason === 'CONVERSATION_CLOSED') return 'notAssigned';
+  return 'rejected';
+}
+
+/**
+ * Send one announcement / offer / reminder / update to each recipient's own
+ * thread (MS-10 / B3-C08): one `messages.send` per recipient with a
+ * per-recipient `clientMsgId`, written in this coach's conversation (so a
+ * client transferred meanwhile is refused, never reached through a new
+ * coach), at most four at a time. Resolves with a result per recipient;
+ * nothing is thrown for a partial failure.
+ *
+ * Guarantees (B3.6 certification): within ONE batch a recipient is stored at
+ * most once — every retry reuses that recipient's key. It is NOT exactly-once:
+ * an `unknown` result may or may not have been stored, and nothing is kept
+ * once the batch is abandoned (a new broadcast is a new message). B36-R5.
+ */
+export async function sendBroadcast(
+  input: { batchId: string; coachId: string; recipients: string[]; body: string; category: MessageCategory },
+  onResult?: (r: BroadcastResult) => void,
+): Promise<BroadcastResult[]> {
+  const queue = [...input.recipients];
+  const results: BroadcastResult[] = [];
+  const worker = async () => {
+    for (let cid = queue.shift(); cid !== undefined; cid = queue.shift()) {
+      let r: BroadcastResult;
+      try {
+        await sendMessage(cid, { id: input.coachId, role: 'coach' }, input.body, { category: input.category, broadcast: true, clientMsgId: broadcastMsgId(input.batchId, cid), coachId: input.coachId });
+        r = { clientId: cid, ok: true };
+      } catch (e) {
+        r = { clientId: cid, ok: false, failure: broadcastFailure(e) };
+      }
+      results.push(r);
+      onResult?.(r);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, worker));
+  return results;
 }

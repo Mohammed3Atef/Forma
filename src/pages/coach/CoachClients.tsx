@@ -1,78 +1,96 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { TopBar } from '@/components/TopBar';
 import { Icon } from '@/components/Icon';
-import { Avatar } from '@/components/Avatar';
-import { Sheet } from '@/components/Sheet';
-import { TextInput } from '@/components/ui/Field';
-import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
-import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { DetailPanel } from '@/components/ui/DetailPanel';
-import { SplitPane } from '@/components/ui/SplitPane';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { useSession } from '@/services/auth/sessionStore';
-import { listMyClients } from '@/services/platform/coachApi';
-import { getCoachDashboard, type ClientDashboardRow } from '@/services/platform/coachDashboardApi';
-import { getCoachPlan } from '@/services/platform/coachPlanApi';
-import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
-import { commercialErrorMessage } from '@/lib/commercialErrors';
-import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
-import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
-import { AddExistingClient } from '@/pages/coach/AddExistingClient';
+import { ListGroup } from '@/components/ui/ListRow';
+import { OfflineState } from '@/components/ui/ScreenState';
+import { Pagination } from '@/components/ui/Pagination';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { IncomingTransferRequests } from '@/components/coach/IncomingTransferRequests';
-import { useCoachPlan } from '@/components/coach/CoachPlanProvider';
-import { useFullBleed } from '@/hooks/useFullBleed';
+import { useCapacityFollowsRoster, useCoachCapacity, useCoachPlan } from '@/components/coach/CoachPlanProvider';
+import { useCoachSources } from '@/hooks/useCoachSources';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { shortDate } from '@/lib/utils';
-import { alertDialog } from '@/stores/dialogStore';
-import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { AccountStatus, SignupInvite } from '@/types';
+import { usePagination } from '@/hooks/usePagination';
+import { useSession } from '@/services/auth/sessionStore';
+import { today as todayKey, weekRange } from '@/lib/utils';
+import {
+  buildDirectory,
+  filterRows,
+  matchesTask,
+  sortRows,
+  type CheckInState,
+  type ClientState,
+  type DirectoryQuery,
+  type DirectorySort,
+  type DirectoryTask,
+  type PlanFilter,
+} from '@/lib/coachDirectory';
+import { AddClientSheet, type AddMode } from './clients/AddClientSheet';
+import { CheckInsView } from './clients/CheckInsView';
+import { DirectoryTable } from './clients/DirectoryTable';
+import { FiltersSheet } from './clients/FiltersSheet';
+import { OutgoingTransfers } from './clients/OutgoingTransfers';
+import { ClientRow, useRowReason } from './clients/parts';
 
-type AddMode = 'choose' | 'create' | 'existing';
+const TASKS: DirectoryTask[] = ['needs', 'checkin', 'renewal', 'lapsed'];
+const STATES: ClientState[] = ['active', 'trial', 'expiring', 'paused', 'expired', 'pending', 'none'];
+const CHECKINS: CheckInState[] = ['review', 'overdue', 'awaiting', 'notRequested', 'done'];
+const PLANS: PlanFilter[] = ['noWorkout', 'noNutrition'];
+const SORTS: DirectorySort[] = ['needs', 'name', 'lastWorkout', 'daysLeft', 'workouts'];
+const pick = <T extends string>(list: readonly T[], v: string | null): T | null => (v && (list as readonly string[]).includes(v) ? (v as T) : null);
+/** Phones / tablets: progressive "Show more" (TB-07); desktop: pages inside the table. */
+const LIST_STEP = 20;
+const TABLE_PAGE = 50;
 
-const ACCT_TONE: Record<AccountStatus, PillTone> = {
-  active: 'ok',
-  pending: 'warn',
-  suspended: 'bad',
-  disabled: 'bad',
-};
-const SUB_TONE: Record<string, PillTone> = {
-  none: 'mute',
-  trial: 'brand',
-  active: 'ok',
-  pending: 'warn',
-  frozen: 'warn',
-  expired: 'bad',
-  cancelled: 'bad',
-  ended: 'bad',
-};
-const STATUS_FILTERS: (AccountStatus | 'all')[] = ['all', 'active', 'suspended', 'disabled'];
-const PAGE = 20;
-
+/**
+ * Clients (B3.3 / blueprint §6.2, owner brief 2026-10-17): the coach's
+ * directory. Built from the same sources and queue rules as Today
+ * (`buildDirectory`), so "Needs you" here is exactly Today's list. Search
+ * (name, email, phone — searchable, never shown in rows), task chips, filter
+ * & sort (package, this week's check-in, plans; needs / name / last workout /
+ * days left / workouts 7d), weekly check-ins (`?view=checkins`, the old
+ * `/coach/checkins`), incoming and outgoing transfers, and Add client (invite
+ * or existing — both kept, O-3). Every view lives in the URL.
+ */
 export function CoachClients() {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const coachId = useSession((s) => s.account?.id);
-  const coachName = useSession((s) => s.account?.displayName ?? '');
-  const isDesktop = useIsDesktop();
-  const { canWrite } = useCoachPlan(); // false when the coach's own plan has lapsed
-  const online = useOnlineStatus(); // adding a client writes to Firestore — needs connectivity
-  useFullBleed();
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const account = useSession((s) => s.account);
+  const coachId = account?.id ?? '';
+  const desktop = useIsDesktop();
+  const online = useOnlineStatus();
+  const { canWrite } = useCoachPlan();
   const [params, setParams] = useSearchParams();
-  const [search, setSearch] = useState(() => params.get('q') ?? '');
-  const [statusFilter, setStatusFilter] = useState<AccountStatus | 'all'>('all');
-  const [visible, setVisible] = useState(PAGE);
+
+  // ---- URL state --------------------------------------------------------------
+  const query: DirectoryQuery = {
+    q: params.get('q') ?? '',
+    task: pick(TASKS, params.get('task')),
+    state: pick(STATES, params.get('state')),
+    checkin: pick(CHECKINS, params.get('checkin')),
+    plan: pick(PLANS, params.get('plan')),
+    sort: pick(SORTS, params.get('sort')) ?? 'needs',
+    dir: params.get('dir') === 'desc' ? 'desc' : 'asc',
+  };
+  const view = params.get('view') === 'checkins' ? 'checkins' : 'list';
+  const setQuery = (patch: Partial<DirectoryQuery> & { view?: 'list' | 'checkins' }) => {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) {
+      const empty = v === null || v === undefined || v === '' || (k === 'sort' && v === 'needs') || (k === 'dir' && v === 'asc') || (k === 'view' && v === 'list');
+      if (empty) next.delete(k);
+      else next.set(k, String(v));
+    }
+    setParams(next, { replace: true });
+  };
+
+  // `?new=1` (⌘K, Today, the checklist): open the add sheet, then clear the param so Back / refresh never reopens it.
   const [adding, setAdding] = useState(() => params.get('new') === '1');
   const [addMode, setAddMode] = useState<AddMode>('choose');
-  // `?new=1` (the command palette's "add client" shortcut) only worked as a
-  // lazy initializer — a no-op if this page was already mounted. Reacting to
-  // the param directly opens the sheet even when navigating here from itself,
-  // then clears it so it can't reopen on a later back/refresh.
   useEffect(() => {
     if (params.get('new') !== '1') return;
     setAddMode('choose');
@@ -81,496 +99,263 @@ export function CoachClients() {
     next.delete('new');
     setParams(next, { replace: true });
   }, [params, setParams]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Single back affordance for the Add-Client sheet. The "existing" sub-flow
-  // registers a context-aware handler (detail → search list); when it's null we
-  // fall back to returning to the chooser. Keeps ONE back control in the header.
-  const [existingBack, setExistingBack] = useState<(() => void) | null>(null);
+  const openAdd = () => {
+    setAddMode('choose');
+    setAdding(true);
+  };
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const openAdd = () => { setAddMode('choose'); setAdding(true); };
+  // ---- data ---------------------------------------------------------------------
+  const { sources, refresh } = useCoachSources(coachId);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const day = todayKey();
+  const week = weekRange(day).weekStart;
+  const dir = useMemo(() => buildDirectory(sources, { coachId, now, todayKey: day, weekStart: week }), [sources, coachId, now, day, week]);
+  const reasonOf = useRowReason();
+  const rowReason = (r: (typeof dir.rows)[number]) => reasonOf(r, now);
 
-  const clients = useQuery({
-    queryKey: ['myClients', coachId],
-    queryFn: () => listMyClients(coachId!),
-    enabled: !!coachId,
-  });
-  // Mobile used to skip this fetch entirely (`enabled: isDesktop`), so the
-  // phone list only ever had name/email/status — no adherence/attention/
-  // check-in signal to help a coach decide who to look at first.
-  const dash = useQuery({
-    queryKey: ['coachDashboard', coachId],
-    queryFn: () => getCoachDashboard(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
+  const searched = useMemo(() => filterRows(dir.rows, { q: query.q }), [dir.rows, query.q]);
+  const filtered = useMemo(() => sortRows(filterRows(dir.rows, query), query.sort, query.dir), [dir.rows, query.q, query.task, query.state, query.checkin, query.plan, query.sort, query.dir]); // eslint-disable-line react-hooks/exhaustive-deps
+  const taskCount = (task: DirectoryTask) => searched.filter((r) => matchesTask(r, task)).length;
+  const advancedOn = [query.state, query.checkin, query.plan].filter(Boolean).length + (query.sort !== 'needs' ? 1 : 0);
+  const resetKey = JSON.stringify(query);
+  const pager = usePagination(filtered, TABLE_PAGE, resetKey);
+  const [visible, setVisible] = useState(LIST_STEP);
+  useEffect(() => setVisible(LIST_STEP), [resetKey]);
 
-  const plan = useQuery({
-    queryKey: ['coachPlan', coachId],
-    queryFn: () => getCoachPlan(coachId!),
-    enabled: !!coachId,
-    staleTime: 60_000,
-  });
-  const maxClients = plan.data?.maxClients ?? Infinity;
-  // Prefer the REAL client count — the maintained plan counter can drift out of sync.
-  const usedClients = clients.data
-    ? clients.data.filter((c) => c.accountStatus !== 'disabled').length
-    : plan.data?.activeClientCount ?? 0;
-  const lapsed = plan.data?.state === 'expired' || plan.data?.state === 'suspended';
-  const overBy = Number.isFinite(maxClients) ? Math.max(0, usedClients - maxClients) : 0;
-  // Full capacity OR an ended subscription both block new clients (never existing ones).
-  const atLimit = lapsed || (Number.isFinite(maxClients) && usedClients >= maxClients);
+  // ---- capacity (B3.8 D5: the server's count — the one that gates a new client; lapsed or full blocks NEW clients only) ----
+  const capacity = useCoachCapacity();
+  useCapacityFollowsRoster((sources.roster.data as unknown[] | undefined)?.length);
+  const maxClients = capacity.known ? capacity.limit : Infinity;
+  const usedClients = capacity.used;
+  const lapsed = capacity.lapsed;
+  const overBy = capacity.over;
+  const atLimit = capacity.atLimit;
+  const nearLimit = capacity.nearLimit;
 
-  const matches = (name: string, email: string, phone: string | undefined, q: string) =>
-    (name || email).toLowerCase().includes(q) || email.toLowerCase().includes(q) || (phone ?? '').includes(q);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (clients.data ?? []).filter((c) => {
-      if (statusFilter !== 'all' && c.accountStatus !== statusFilter) return false;
-      return !q || matches(c.displayName || '', c.email, c.phone, q);
-    });
-  }, [clients.data, search, statusFilter]);
-
-  const dashRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (dash.data?.clients ?? []).filter((r) => {
-      if (statusFilter !== 'all' && r.client.accountStatus !== statusFilter) return false;
-      return !q || matches(r.client.displayName || '', r.client.email, r.client.phone, q);
-    });
-  }, [dash.data, search, statusFilter]);
-  // Mobile row signal — keyed lookup into the same dashboard rows the desktop
-  // table already uses, so both breakpoints show the coaching signal.
-  const dashByClientId = useMemo(() => {
-    const m = new Map<string, ClientDashboardRow>();
-    (dash.data?.clients ?? []).forEach((r) => m.set(r.client.id, r));
-    return m;
-  }, [dash.data]);
-
-  const hasActiveFilter = search.trim() !== '' || statusFilter !== 'all';
-  const clientsEmpty = (
-    <EmptyState
-      icon={hasActiveFilter ? 'search' : 'user'}
-      title={hasActiveFilter ? t('coach.noClientsFilteredTitle') : t('coach.noClientsTitle')}
-      message={hasActiveFilter ? t('coach.noClientsFilteredMessage') : t('coach.noClientsMessage')}
-      action={hasActiveFilter
-        ? <button type="button" className="btn-tonal btn-sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>{t('common.clearFilters')}</button>
-        : <button type="button" className="btn-primary btn-sm" onClick={openAdd}>{t('coach.addClient')}</button>}
-    />
-  );
-  // DataTable renders `empty` inside a table cell — a plain inline version avoids double card borders.
-  const clientsEmptyInline = (
-    <span className="flex flex-col items-center gap-2 py-4">
-      <span className="font-medium text-earth">{hasActiveFilter ? t('coach.noClientsFilteredTitle') : t('coach.noClientsTitle')}</span>
-      <span className="text-[13px] text-earth-subtle">{hasActiveFilter ? t('coach.noClientsFilteredMessage') : t('coach.noClientsMessage')}</span>
-    </span>
-  );
-
-  useEffect(() => { setVisible(PAGE); }, [search, statusFilter]);
-  const shown = filtered.slice(0, visible);
-  const sentinel = useInfiniteScroll(() => setVisible((v) => v + PAGE), visible < filtered.length);
-
-  const selected = dashRows.find((r) => r.client.id === selectedId) ?? null;
-
-  const columns: Column<ClientDashboardRow>[] = [
-    {
-      key: 'client',
-      header: t('coach.clients'),
-      cell: (r) => (
-        <span className="flex items-center gap-2.5">
-          <Avatar name={r.client.displayName || r.client.email} photoUrl={r.client.photoUrl} size="sm" />
-          <span className="min-w-0">
-            <span className="block truncate font-medium">{r.client.displayName || r.client.email}</span>
-            <span className="block truncate text-[12px] text-earth-subtle">{r.client.email}</span>
-          </span>
-        </span>
-      ),
-    },
-    { key: 'status', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.client.accountStatus]}>{t(`subscription.acct.${r.client.accountStatus}`)}</Pill> },
-    { key: 'assess', header: t('assessment.title'), cell: (r) => <span className="text-[12px] text-earth-subtle">{t(`assessment.status.${r.assessment}`)}</span> },
-    { key: 'last', header: t('coachDash.recentActivity'), cell: (r) => <span className="text-[12px] text-earth-subtle">{r.lastActivity ? shortDate(r.lastActivity, i18n.language) : '—'}</span> },
-    { key: 'added', header: t('coachDash.added'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.addedAt).toISOString().slice(0, 10), i18n.language)}</span> },
-    { key: 'adh', header: t('coach.adherence'), cell: (r) => <span className="font-mono text-sm">{r.workouts7d}<span className="text-earth-subtle"> /7d</span></span>, className: 'text-end' },
-    {
-      key: 'actions',
-      header: '',
-      cell: (r) => (
-        <button type="button" className="btn-ghost h-8 px-3 text-[11px]" onClick={(e) => { e.stopPropagation(); navigate(`/coach/client/${r.client.id}`); }}>
-          {t('coachDash.open')}
-        </button>
-      ),
-      className: 'text-end',
-    },
-  ];
-
-  const searchBar = (
-    <div className="relative mb-3">
-      <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
-        <Icon name="search" size={18} />
-      </span>
-      <input className="input ps-10" data-testid="coach-clients-search" placeholder={t('coach.searchClients')} value={search} onChange={(e) => setSearch(e.target.value)} />
-    </div>
-  );
-  const filterBar = (
-    <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-      {STATUS_FILTERS.map((s) => (
-        <button key={s} type="button" data-testid={`client-status-filter-${s}`} onClick={() => setStatusFilter(s)} className={`chip whitespace-nowrap ${statusFilter === s ? 'chip-on' : ''}`}>
-          {s === 'all' ? t('admin.allStatuses') : t(`subscription.acct.${s}`)}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <div data-testid="coach-clients">
-      <TopBar
-        title={t('coach.clients')}
-        eyebrow={t('platform.coachPortal')}
-        right={
-          <div className="flex items-center gap-1.5">
-            <button type="button" data-testid="coach-add-client" className="icon-btn h-11 w-11" aria-label={t('coach.addClient')} disabled={!canWrite || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={openAdd}>
-              <Icon name="plus" size={20} />
-            </button>
-            <button type="button" className="icon-btn h-11 w-11 md:hidden" aria-label={t('platform.account')} onClick={() => navigate('/coach/settings')}>
-              <Icon name="user" size={20} />
-            </button>
-          </div>
-        }
-      />
-
-      {Number.isFinite(maxClients) && (
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-line-soft px-3 py-2 text-[13px]" data-testid="coach-client-usage">
-          <span className="text-earth-muted">{t('coachTrial.usage', { used: usedClients, max: maxClients })}</span>
-          {overBy > 0 ? (
-            <Link to="/coach/plan" className="text-warn underline-offset-2 hover:underline" data-testid="coach-client-limit">{t('forma.capacity.overBy', { n: overBy })} · {t('forma.addCapacity')}</Link>
-          ) : atLimit ? (
-            <Link to="/coach/plan" className="text-warn underline-offset-2 hover:underline" data-testid="coach-client-limit">{lapsed ? t('forma.renew') : `${t('coachTrial.limitReached')} · ${t('forma.addCapacity')}`}</Link>
+  // ---- render ---------------------------------------------------------------------
+  const header = (
+    <header className="mb-4 flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="t-title">{t('coachClients.title')}</h1>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-earth-muted">
+          {Number.isFinite(maxClients) ? (
+            <span className={`flex flex-wrap items-center gap-x-2 ${atLimit || nearLimit ? 'text-warn' : ''}`} data-testid="coach-client-usage">
+              {t('coachTrial.usage', { used: usedClients, max: maxClients })}
+              {overBy > 0 ? (
+                <Link to="/coach/plan" className="underline-offset-2 hover:underline" data-testid="coach-client-limit">
+                  {t('forma.capacity.overBy', { n: overBy })} · {t('forma.addCapacity')}
+                </Link>
+              ) : atLimit ? (
+                <Link to="/coach/plan" className="underline-offset-2 hover:underline" data-testid="coach-client-limit">
+                  {lapsed ? t('forma.renew') : `${t('coachTrial.limitReached')} · ${t('forma.addCapacity')}`}
+                </Link>
+              ) : null}
+            </span>
+          ) : dir.rosterReady ? (
+            <span data-testid="clients-count">{t('coachClients.count', { count: dir.rows.length })}</span>
           ) : null}
         </div>
-      )}
-
-      {coachId && <IncomingTransferRequests coachId={coachId} />}
-
-      {searchBar}
-      {filterBar}
-
-      {/* A failed roster read is NOT an empty roster — never tell a coach with clients they have none. */}
-      {(clients.isError && !clients.data) || (isDesktop && dash.isError && !dash.data) ? (
-        // Desktop rows come from the dashboard query, mobile from the roster — retry both.
-        <ErrorState message={t('coach.clientsLoadFailed')} onRetry={() => { void clients.refetch(); void dash.refetch(); }} testId="coach-clients-error" />
-      ) : isDesktop ? (
-        <SplitPane
-          main={
-            <DataTable
-              testId="coach-desktop-clients"
-              columns={columns}
-              rows={dashRows}
-              rowKey={(r) => r.client.id}
-              selectedKey={selectedId}
-              onRowClick={(r) => setSelectedId(r.client.id)}
-              empty={dash.isLoading ? t('auth.working') : clientsEmptyInline}
-            />
-          }
-          detail={
-            <DetailPanel testId="coach-desktop-preview" empty={!selected} emptyMessage={t('coachDash.selectClient')}>
-              {selected && <ClientPreview row={selected} onOpen={() => navigate(`/coach/client/${selected.client.id}`)} onMessage={() => navigate(`/coach/messages/${selected.client.id}`)} />}
-            </DetailPanel>
-          }
-        />
-      ) : clients.isLoading ? (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
-      ) : filtered.length === 0 ? (
-        clientsEmpty
-      ) : (
-        <>
-          <div className="card divide-y divide-line-soft">
-            {shown.map((c) => {
-              const row = dashByClientId.get(c.id);
-              const signal = row
-                ? row.toReview
-                  ? { text: t('coachDash.reasonCheckin'), tone: 'text-warn' }
-                  : row.needsAttention
-                    ? { text: t('coachDash.needsAttention'), tone: 'text-danger' }
-                    : row.lastActivity
-                      ? { text: t('coachDash.lastActive', { date: row.lastActivity }), tone: 'text-earth-muted' }
-                      : { text: t('coachDash.noActivity'), tone: 'text-earth-subtle' }
-                : null;
-              return (
-                <button key={c.id} type="button" data-testid="coach-client-row" data-client-id={c.id} onClick={() => navigate(`/coach/client/${c.id}`)} className="row w-full text-start">
-                  <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{c.displayName || c.email}</span>
-                    <span className={`block truncate text-[12.5px] ${signal?.tone ?? 'text-earth-muted'}`}>{signal?.text ?? c.email}</span>
-                  </span>
-                  <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
-                  <Icon name="chevron" size={18} />
-                </button>
-              );
-            })}
-          </div>
-          <div ref={sentinel} />
-          {visible < filtered.length && (
-            <button type="button" className="btn-ghost mt-3 w-full" onClick={() => setVisible((v) => v + PAGE)}>{t('common.showMore')}</button>
-          )}
-        </>
-      )}
-
-      <Sheet
-        open={adding}
-        onClose={() => setAdding(false)}
-        size="lg"
-        title={addMode === 'create' ? t('existing.createNewTitle') : addMode === 'existing' ? t('existing.title') : t('coach.addClient')}
-        onBack={
-          addMode === 'choose'
-            ? undefined
-            : addMode === 'existing'
-              ? existingBack ?? (() => setAddMode('choose'))
-              : () => setAddMode('choose')
-        }
-        backTestId={addMode === 'existing' && existingBack ? 'existing-back' : 'add-mode-back'}
+      </div>
+      <Button
+        icon="plus"
+        data-testid="coach-add-client"
+        aria-label={t('coach.addClient')}
+        title={!online ? t('offline.actionDisabled') : undefined}
+        disabled={!canWrite || !online}
+        onClick={openAdd}
+        className="shrink-0"
       >
-        {adding && addMode === 'choose' && (
-          <AddChooser onCreate={() => setAddMode('create')} onExisting={() => setAddMode('existing')} />
-        )}
-        {adding && addMode === 'create' && <InvitePanel coachId={coachId ?? ''} coachName={coachName} atLimit={atLimit} maxClients={maxClients} />}
-        {adding && addMode === 'existing' && (
-          <AddExistingClient
-            coachId={coachId ?? ''}
-            atLimit={atLimit}
-            maxClients={maxClients}
-            onCreateNew={() => setAddMode('create')}
-            onDone={() => { setAdding(false); void clients.refetch(); }}
-            registerBack={setExistingBack}
-          />
-        )}
-      </Sheet>
-    </div>
+        <span className="hidden sm:inline">{t('coachClients.add')}</span>
+      </Button>
+    </header>
   );
-}
 
-/** First screen of the Add-Client sheet: choose how to add this client. */
-function AddChooser({ onCreate, onExisting }: { onCreate: () => void; onExisting: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="space-y-3" data-testid="add-client-chooser">
-      <p className="text-sm text-earth-muted">{t('existing.chooserHint')}</p>
-      <button type="button" data-testid="add-choose-create" className="card flex w-full items-center gap-3 text-start hover:border-brand/40" onClick={onCreate}>
-        <span className="row-av h-10 w-10 shrink-0 bg-brand/15 text-brand"><Icon name="plus" size={18} /></span>
-        <span className="min-w-0">
-          <span className="block font-medium">{t('existing.createNew')}</span>
-          <span className="block text-[12px] text-earth-subtle">{t('existing.createNewDesc')}</span>
-        </span>
-      </button>
-      <button type="button" data-testid="add-choose-existing" className="card flex w-full items-center gap-3 text-start hover:border-brand/40" onClick={onExisting}>
-        <span className="row-av h-10 w-10 shrink-0 bg-brand/15 text-brand"><Icon name="search" size={18} /></span>
-        <span className="min-w-0">
-          <span className="block font-medium">{t('existing.addExisting')}</span>
-          <span className="block text-[12px] text-earth-subtle">{t('existing.addExistingDesc')}</span>
-        </span>
-      </button>
-    </div>
+  const addSheet = (
+    <AddClientSheet
+      open={adding}
+      mode={addMode}
+      onMode={setAddMode}
+      onClose={() => setAdding(false)}
+      onAdded={() => {
+        void qc.invalidateQueries({ queryKey: ['myClients', coachId] });
+        void qc.invalidateQueries({ queryKey: ['coachRelationships', coachId] });
+        void qc.invalidateQueries({ queryKey: ['coachDashboardSummaries', coachId] });
+      }}
+      coachId={coachId}
+      coachName={account?.displayName ?? ''}
+      atLimit={atLimit}
+      maxClients={maxClients}
+    />
   );
-}
 
-function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: string; coachName: string; atLimit: boolean; maxClients: number }) {
-  const { t } = useTranslation();
-  const qc = useQueryClient();
-  const [copied, setCopied] = useState<string | null>(null);
-  const [prefill, setPrefill] = useState({ name: '', email: '', phone: '' });
-  const currency = useSession((s) => s.account?.currency) ?? 'EGP';
-  const [sub, setSub] = useState<PlanPickResult>({ status: 'trial', trialDays: 14 });
-  // Invites generated in THIS session; on close, revoke any that weren't copied
-  // (abandoned links) so stale links don't pile up. Copying a link = keep it.
-  // An invite created WITH an email is kept too: the server has already
-  // emailed that link, so revoking it here would dead-link the email.
-  const generated = useRef<Set<string>>(new Set());
-  const kept = useRef<Set<string>>(new Set());
-  useEffect(() => () => {
-    for (const code of generated.current) {
-      if (!kept.current.has(code)) void revokeInvite(code).catch(() => undefined);
-    }
-  }, []);
-
-  const pending = useQuery({
-    queryKey: ['pendingInvites', coachId],
-    queryFn: () => listPendingInvites(coachId),
-    enabled: !!coachId,
-    // Always refetch when the Add-client sheet (re)opens so links a client has
-    // already claimed drop out of the list instead of lingering.
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  const gen = useMutation({
-    mutationFn: async () => {
-      const emailed = !!prefill.email.trim();
-      const inv = await createInvite(coachId, {
-        coachName,
-        displayName: prefill.name.trim() || undefined,
-        email: prefill.email.trim() || undefined,
-        phone: prefill.phone.trim() || undefined,
-        subStatus: sub.status,
-        ...(sub.months != null ? { subMonths: sub.months } : {}),
-        ...(sub.days != null ? { subDays: sub.days } : {}),
-        ...(sub.trialDays != null ? { subTrialDays: sub.trialDays } : {}),
-        ...(sub.price != null ? { subPrice: sub.price, subCurrency: currency } : {}),
-        ...(sub.planName ? { subPlanName: sub.planName } : {}),
-      });
-      return { inv, emailed };
-    },
-    onSuccess: ({ inv, emailed }) => {
-      generated.current.add(inv.code);
-      if (emailed) kept.current.add(inv.code);
-      setPrefill({ name: '', email: '', phone: '' });
-      void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] });
-    },
-    onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
-  });
-  const revoke = useMutation({
-    mutationFn: (code: string) => revokeInvite(code),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
-    onError: (e) => void alertDialog({ title: t('invite.revoke'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
-  });
-
-  const copy = async (code: string) => {
-    const link = inviteLink(code);
-    kept.current.add(code);
-    try {
-      await navigator.clipboard?.writeText(link);
-      setCopied(code);
-      setTimeout(() => setCopied((c) => (c === code ? null : c)), 2000);
-    } catch {
-      /* clipboard blocked — the link text is still visible to copy manually */
-    }
-  };
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-  const share = async (code: string) => {
-    kept.current.add(code);
-    const link = inviteLink(code);
-    try {
-      await navigator.share({ title: t('invite.shareTitle'), text: t('invite.shareText', { coach: coachName }), url: link });
-    } catch {
-      /* user cancelled the share sheet — not an error */
-    }
-  };
-  const whatsapp = (code: string) => {
-    kept.current.add(code);
-    const link = inviteLink(code);
-    const text = `${t('invite.shareText', { coach: coachName })} ${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
-  };
-
-  return (
-    <div className="space-y-4" data-testid="coach-invite-panel">
-      <p className="text-sm text-earth-muted">{t('invite.panelHint')}</p>
-
-      {atLimit ? (
-        <ClientCapBlocked maxClients={maxClients} testId="coach-invite-blocked" />
-      ) : (
-        <div className="space-y-2">
-          <TextInput label={t('field.name')} data-testid="coach-invite-name" placeholder={t('invite.optional')} value={prefill.name} onChange={(e) => setPrefill({ ...prefill, name: e.target.value })} />
-          <TextInput label={t('field.email')} type="email" autoComplete="off" data-testid="coach-invite-email" placeholder={t('invite.optional')} value={prefill.email} onChange={(e) => setPrefill({ ...prefill, email: e.target.value })} />
-          <TextInput label={t('field.phone')} type="tel" inputMode="tel" autoComplete="off" data-testid="coach-invite-phone" placeholder={t('invite.optional')} value={prefill.phone} onChange={(e) => setPrefill({ ...prefill, phone: e.target.value })} />
-          <SubscriptionPlanPicker coachId={coachId} currency={currency} onChange={setSub} testId="coach-invite-sub" />
-          <button type="button" data-testid="coach-invite-generate" className="btn-primary w-full disabled:opacity-40" disabled={gen.isPending} onClick={() => gen.mutate()}>
-            {gen.isPending ? t('auth.working') : t('invite.generate')}
-          </button>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <p className="label">{t('invite.pending')}</p>
-        {pending.isLoading ? (
-          <p className="text-sm text-earth-muted">{t('auth.working')}</p>
-        ) : (pending.data ?? []).length === 0 ? (
-          <p className="text-sm text-earth-subtle" data-testid="coach-invite-empty">{t('invite.none')}</p>
+  // Whole-screen states: the roster is every row's base.
+  if (!dir.rosterReady) {
+    return (
+      <div className="w-full pb-6 pt-3" data-testid="coach-clients" data-state={!online || dir.rosterOffline ? 'offline' : dir.rosterError ? 'error' : 'loading'}>
+        {header}
+        {/* B3.9 (CO-18 / PF-21): a read paused offline is offline — never an endless skeleton. */}
+        {!online || dir.rosterOffline ? (
+          <OfflineState onRetry={refresh} testId="coach-clients-offline" />
+        ) : dir.rosterError ? (
+          <ErrorState message={t('coach.clientsLoadFailed')} onRetry={refresh} testId="coach-clients-error" />
         ) : (
-          <div className="card divide-y divide-line-soft">
-            {(pending.data ?? []).map((inv: SignupInvite) => (
-              <div key={inv.code} className="space-y-2 px-3 py-2.5" data-testid="coach-invite-row" data-code={inv.code}>
-                <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="font-mono text-sm">{inv.code}</span>
-                      <span className="chip border-warn/50 px-2 py-0.5 text-[10px] text-warn">{t('invite.statusPending')}</span>
-                      {inv.expiresAt != null && (
-                        <span className="text-[10px] text-earth-subtle">{t('invite.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}</span>
-                      )}
-                    </span>
-                    <span className="block truncate text-[11px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
-                  </span>
-                  <button type="button" data-testid="coach-invite-revoke" disabled={revoke.isPending} className="btn-ghost h-8 px-3 text-[11px] text-danger disabled:opacity-40" onClick={() => revoke.mutate(inv.code)}>
-                    {t('invite.revoke')}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" data-testid="coach-invite-copy" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void copy(inv.code)}>
-                    <Icon name="download" size={13} /> {copied === inv.code ? t('invite.copied') : t('invite.copy')}
-                  </button>
-                  {canShare && (
-                    <button type="button" data-testid="coach-invite-share" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => void share(inv.code)}>
-                      <Icon name="chat" size={13} /> {t('invite.share')}
-                    </button>
-                  )}
-                  <button type="button" data-testid="coach-invite-whatsapp" className="btn-ghost h-8 px-3 text-[11px]" onClick={() => whatsapp(inv.code)}>
-                    <Icon name="chat" size={13} /> {t('invite.whatsapp')}
-                  </button>
-                </div>
-              </div>
+          <div className="space-y-2" aria-busy="true" data-testid="clients-loading">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-ui-surface" />
             ))}
           </div>
         )}
+        {addSheet}
       </div>
+    );
+  }
+
+  const chipBtn = (key: string, label: string, count: number | null, active: boolean, onClick: () => void) => (
+    <button key={key} type="button" className={`chip shrink-0 whitespace-nowrap ${active ? 'chip-on' : ''}`} aria-pressed={active} data-testid={`clients-${key}`} onClick={onClick}>
+      {label}
+      {count != null ? <span className="ms-1.5 tabular-nums">{count}</span> : null}
+    </button>
+  );
+  const notices = (
+    <>
+      {!online || dir.stale ? (
+        <p className="mb-3 flex items-center gap-1.5 text-[12px] text-earth-subtle" role="status" data-testid="clients-stale">
+          <Icon name={online ? 'info' : 'cloud'} size={13} />
+          {t(online ? 'coachClients.stale' : 'coachClients.offline')}
+        </p>
+      ) : null}
+      {online && (!dir.activityKnown || !dir.checkInsKnown) ? (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-[13px] text-earth-muted" role="alert" data-testid="clients-partial">
+          <Icon name="alert" size={15} className="text-warn" />
+          {t('coachClients.partial')}
+          <button type="button" className="hit-44 font-semibold text-brand-hover" onClick={refresh}>
+            {t('common.retry')}
+          </button>
+        </p>
+      ) : null}
+    </>
+  );
+
+  const empty = dir.rows.length === 0;
+  const listBody = empty ? (
+    <EmptyState
+      icon="users"
+      title={t('coach.noClientsTitle')}
+      message={t('coach.noClientsMessage')}
+      testId="clients-empty"
+      action={
+        <Button icon="plus" disabled={!canWrite || !online} onClick={openAdd}>
+          {t('coach.addClient')}
+        </Button>
+      }
+    />
+  ) : filtered.length === 0 ? (
+    <EmptyState
+      icon="search"
+      title={t('coachClients.noMatchTitle')}
+      message={t('coachClients.noMatchMessage')}
+      testId="clients-no-match"
+      action={
+        <Button variant="ghost" onClick={() => setQuery({ q: '', task: null, state: null, checkin: null, plan: null })}>
+          {t('coachClients.clear')}
+        </Button>
+      }
+    />
+  ) : desktop ? (
+    <div className="space-y-3">
+      <DirectoryTable
+        rows={pager.pageItems}
+        sort={query.sort ?? 'needs'}
+        dir={query.dir ?? 'asc'}
+        onSort={(s) => setQuery({ sort: s, dir: query.sort === s && query.dir === 'asc' ? 'desc' : 'asc' })}
+        reasonOf={rowReason}
+      />
+      {pager.totalPages > 1 ? <Pagination page={pager.page} totalPages={pager.totalPages} from={pager.from} to={pager.to} total={pager.total} canPrev={pager.canPrev} canNext={pager.canNext} onPrev={pager.prev} onNext={pager.next} /> : null}
+    </div>
+  ) : (
+    <div>
+      {/* Tablet: two columns, row-major. `divide-y-0` would also zero the row borders, so they are set with `!`; the last row has none. */}
+      <ListGroup className="md:grid md:grid-cols-2 md:divide-y-0 md:[&>*]:border-white/[0.06] md:[&>*]:!border-b md:[&>*:nth-child(odd)]:border-e md:[&>*:nth-last-child(-n+2)]:!border-b-0">
+        {filtered.slice(0, visible).map((r) => (
+          <ClientRow key={r.id} row={r} reason={rowReason(r)} />
+        ))}
+      </ListGroup>
+      {visible < filtered.length ? (
+        <button type="button" className="hit-44 mt-2 w-full text-[14px] font-medium text-earth-muted hover:text-earth" data-testid="clients-load-more" onClick={() => setVisible((v) => v + LIST_STEP)}>
+          {t('coachClients.loadMore')} ({filtered.length - visible})
+        </button>
+      ) : null}
     </div>
   );
-}
 
-function ClientPreview({ row, onOpen, onMessage }: { row: ClientDashboardRow; onOpen: () => void; onMessage: () => void }) {
-  const { t, i18n } = useTranslation();
-  const c = row.client;
-  // `row.subscription` comes from the SAME relationship list `getCoachDashboard`
-  // already fetched (one bounded request) — this used to be its own per-row
-  // `coachClients.get` fetch on every preview-panel open.
-  const sub = row.subscription;
-  const subStatus = effectiveSubscriptionStatus(sub);
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Avatar name={c.displayName || c.email} photoUrl={c.photoUrl} size="lg" />
-        <div>
-          <p className="font-semibold">{c.displayName || c.email}</p>
-          <p className="text-[12px] text-earth-subtle">{c.email}</p>
+    <div className="w-full pb-6 pt-3" data-testid="coach-clients" data-view={view}>
+      {header}
+      {coachId ? <IncomingTransferRequests coachId={coachId} /> : null}
+
+      {!empty ? (
+        <div className="mb-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
+                <Icon name="search" size={18} />
+              </span>
+              <input
+                className="input ps-10"
+                type="search"
+                data-testid="coach-clients-search"
+                aria-label={t('coachClients.search')}
+                placeholder={t('coachClients.search')}
+                value={query.q}
+                onChange={(e) => setQuery({ q: e.target.value })}
+              />
+            </div>
+            {view === 'list' ? (
+              <Button
+                variant="ghost"
+                icon="list"
+                data-testid="clients-filters-button"
+                aria-haspopup="dialog"
+                aria-label={advancedOn ? t('coachClients.filtersOn', { count: advancedOn }) : t('coachClients.filters')}
+                onClick={() => setFiltersOpen(true)}
+              >
+                <span className="hidden sm:inline">{advancedOn ? t('coachClients.filtersOn', { count: advancedOn }) : t('coachClients.filters')}</span>
+                {advancedOn ? <span className="sm:hidden">{advancedOn}</span> : null}
+              </Button>
+            ) : null}
+          </div>
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label={t('coachClients.filters')}>
+            {chipBtn('task-all', t('coachClients.task.all'), searched.length, view === 'list' && !query.task, () => setQuery({ task: null, view: 'list' }))}
+            {TASKS.map((task) => chipBtn(`task-${task}`, t(`coachClients.task.${task}`), taskCount(task), view === 'list' && query.task === task, () => setQuery({ task: query.task === task ? null : task, view: 'list' })))}
+            {chipBtn('view-checkins', t('coachClients.task.checkins'), null, view === 'checkins', () => setQuery({ view: view === 'checkins' ? 'list' : 'checkins' }))}
+          </div>
         </div>
-        <Pill tone={ACCT_TONE[c.accountStatus]}>{t(`subscription.acct.${c.accountStatus}`)}</Pill>
-      </div>
-      <div className="space-y-2 text-sm">
-        <Row label={t('subscription.title')}>
-          <span className="flex items-center gap-2">
-            <Pill testId="preview-sub-status" tone={SUB_TONE[subStatus]}>{t(`subscription.status.${subStatus}`)}</Pill>
-            {sub && subStatus !== 'ended' && (
-              <span className="font-mono text-[11px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>
-            )}
-          </span>
-        </Row>
-        <Row label={t('assessment.title')}>{t(`assessment.status.${row.assessment}`)}</Row>
-        <Row label={t('coach.adherence')}>{t('coachDash.workoutsThisWeek', { n: row.workouts7d })}</Row>
-        <Row label={t('coachDash.recentActivity')}>{row.lastActivity ? shortDate(row.lastActivity, i18n.language) : t('coachDash.neverActive')}</Row>
-        <Row label={t('coachDash.added')}>{shortDate(new Date(row.addedAt).toISOString().slice(0, 10), i18n.language)}</Row>
-        {c.phone && <Row label={t('settings.phone')}>{c.phone}</Row>}
-      </div>
-      <div className="flex flex-col gap-2">
-        <button type="button" className="btn-primary w-full" onClick={onOpen}>{t('coachDash.open')}</button>
-        <button type="button" className="btn-ghost w-full" onClick={onMessage}>{t('coach.messages')}</button>
-      </div>
-    </div>
-  );
-}
+      ) : null}
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-line-soft pb-2">
-      <span className="shrink-0 text-earth-subtle">{label}</span>
-      <span className="min-w-0 text-end font-medium">{children}</span>
+      {notices}
+
+      {view === 'checkins' && !empty ? (
+        <CheckInsView rows={searched} known={dir.checkInsKnown} coachId={coachId} weekStart={week} onRetry={refresh} />
+      ) : (
+        listBody
+      )}
+
+      <div className="mt-8">{coachId ? <OutgoingTransfers coachId={coachId} /> : null}</div>
+
+      <FiltersSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        query={query}
+        onChange={(patch) => setQuery(patch)}
+        checkInsKnown={dir.checkInsKnown}
+        activityKnown={dir.activityKnown}
+      />
+      {addSheet}
     </div>
   );
 }

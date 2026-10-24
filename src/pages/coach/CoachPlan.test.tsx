@@ -158,3 +158,43 @@ describe('Coach My Plan', () => {
     expect(await screen.findByTestId('coach-plan-error')).toBeInTheDocument();
   });
 });
+
+describe('Forma subscription (B3.8 — CO-32 / RM-55 / AX-10)', () => {
+  const req = (id: string, status: string, at: number) => ({ id, coachId: 'c1', type: 'renewal', status, requestedAt: at, confirmationDeadline: at + DAY, planSnapshot: { tierKey: 'forma', label: { en: 'Forma', ar: 'فورما' }, priceMonthly: 499, currency: 'EGP', maxClients: 25, termDays: 30 } });
+
+  it('one status card: phase, state, end date, price and the one action; the title says what it is', async () => {
+    getMyCommercialOverview.mockResolvedValue(overview());
+    renderPage();
+    const card = await screen.findByTestId('plan-subscription-card');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Forma subscription');
+    for (const id of ['plan-phase', 'plan-state', 'plan-ends', 'plan-price', 'plan-request-subscription']) expect(within(card).getByTestId(id)).toBeInTheDocument();
+    expect(within(card).getByTestId('plan-request-subscription')).toHaveTextContent('Renew');
+  });
+
+  it('with no subscription at all it offers to subscribe — never "Renew"', async () => {
+    getMyCommercialOverview.mockResolvedValue(overview({ plan: null as never }));
+    renderPage();
+    expect(await screen.findByTestId('plan-state')).toHaveTextContent('No subscription');
+    expect(screen.getByTestId('plan-request-subscription')).toHaveTextContent('Subscribe to Forma');
+    expect(screen.getByTestId('plan-subscription-card')).toHaveTextContent("You don't have a Forma subscription yet");
+  });
+
+  it('capacity has an accessible value (a progress bar, not a picture)', async () => {
+    getMyCommercialOverview.mockResolvedValue(overview());
+    renderPage();
+    const bar = await screen.findByRole('progressbar', { name: 'Clients used of your capacity' });
+    expect(bar).toHaveAttribute('aria-valuenow', '10');
+    expect(bar).toHaveAttribute('aria-valuemax', '25');
+    expect(bar).toHaveAttribute('aria-valuetext', '10 of 25 clients');
+  });
+
+  it('open and recent requests stay in view; older ones fold into a history', async () => {
+    getMyCommercialOverview.mockResolvedValue(overview({ requests: [req('open', 'awaiting', now - DAY), req('recent', 'rejected', now - 3 * DAY), req('old', 'expired', now - 90 * DAY)] as never }));
+    renderPage();
+    const older = await screen.findByTestId('plan-requests-older');
+    expect(older).toHaveTextContent('1 older request');
+    expect(older).not.toHaveAttribute('open');
+    const visible = within(screen.getByTestId('plan-requests')).getAllByTestId('plan-request-row').filter((r) => !older.contains(r));
+    expect(visible.map((r) => r.textContent)).toEqual([expect.stringContaining('Awaiting payment'), expect.stringContaining('Declined')]);
+  });
+});

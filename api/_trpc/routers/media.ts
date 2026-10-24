@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { router, authedProcedure, roleProcedure } from '../trpc.js';
-import { isBunnyConfigured, listAllImages } from '../../media/_lib/bunny.js';
+import { bunnyConfig, isBunnyConfigured, listAllImages } from '../../media/_lib/bunny.js';
+import { findFoodImageOrphans } from '../../coach-assets/_lib/foodImageOrphans.js';
 
 /**
  * The JSON side of media: whether uploads are enabled at all (so the UI can
@@ -15,5 +16,12 @@ export const mediaRouter = router({
   listImages: roleProcedure('super_admin').query(async () => {
     if (!isBunnyConfigured()) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Media storage is not configured' });
     return listAllImages();
+  }),
+
+  /** B4.1: coach food photos nothing references any more (REPORT ONLY — nothing is deleted). */
+  foodImageOrphans: roleProcedure('super_admin').query(async () => {
+    const cfg = bunnyConfig();
+    if (!cfg) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Media storage is not configured' });
+    return findFoodImageOrphans(cfg.cdnUrl);
   }),
 });

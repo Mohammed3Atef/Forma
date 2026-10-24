@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,13 +9,14 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSession } from '@/services/auth/sessionStore';
-import { markMessageNotificationsSeen, markNotificationSeen } from '@/services/platform/notificationsApi';
+import { markAllNotificationsSeen, markMessageNotificationsSeen, markNotificationSeen } from '@/services/platform/notificationsApi';
 import { listMyClients } from '@/services/platform/coachApi';
 import { fetchMyCoach } from '@/services/platform/clientCoachApi';
-import { cloudAvailable } from '@/data/dataSource';
-import { clientNoteRoute } from '@/lib/noteTarget';
+import { openNotification } from '@/lib/notificationTarget';
+import { coalesceFeed, type FeedRow } from '@/lib/notificationTaxonomy';
 import { useBack } from '@/hooks/useBack';
 import type { AppNotification, NotificationType } from '@/types';
+import { formatRelative } from '@/lib/format';
 
 const ICON: Record<NotificationType, IconName> = {
   coach_note: 'edit',
@@ -38,29 +39,29 @@ const ICON: Record<NotificationType, IconName> = {
   client_released: 'info',
 };
 
-/** A feed row: a single notification, or a collapsed group of messages from one
- *  thread (latest shown, `unreadCount` = how many unread messages from them). */
-interface FeedRow {
-  rep: AppNotification; // the representative (newest) notification
-  count: number;
-  unseen: boolean;
-  unreadCount: number;
-}
-
-function relativeTime(ms: number, t: (k: string, o?: Record<string, unknown>) => string): string {
-  const diff = Date.now() - ms;
-  const m = Math.round(diff / 60000);
-  if (m < 1) return t('notifications.justNow');
-  if (m < 60) return t('notifications.minutesAgo', { n: m });
-  const h = Math.round(m / 60);
-  if (h < 24) return t('notifications.hoursAgo', { n: h });
-  return new Date(ms).toLocaleDateString();
+/** "5 minutes ago" / "yesterday" / "8 Oct" in the app language (B1.8 formatting service). */
+function relativeTime(ms: number, lang: string): string {
+  return formatRelative(ms, lang);
 }
 
 export function Notifications() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { items, isCoach, isAdmin, loading } = useNotifications();
+  const { items, isCoach, isAdmin, loading, error, retry } = useNotifications();
+  const [markingAll, setMarkingAll] = useState(false);
+  const [markAllFailed, setMarkAllFailed] = useState(false);
+  const markAll = async () => {
+    setMarkingAll(true);
+    setMarkAllFailed(false);
+    try {
+      await markAllNotificationsSeen();
+      retry(); // re-poll now so the badge and rows update immediately
+    } catch {
+      setMarkAllFailed(true);
+    } finally {
+      setMarkingAll(false);
+    }
+  };
   const goBack = useBack(() => navigate(isAdmin ? '/admin' : isCoach ? '/coach' : '/'));
   const uid = useSession((s) => s.uid) ?? '';
   const coachId = useSession((s) => s.account?.assignedCoachId);
@@ -70,12 +71,12 @@ export function Notifications() {
   const clientsQ = useQuery({
     queryKey: ['myClients', uid],
     queryFn: () => listMyClients(uid),
-    enabled: cloudAvailable() && isCoach && !!uid,
+    enabled: isCoach && !!uid,
   });
   const coachQ = useQuery({
     queryKey: ['myCoach', coachId],
     queryFn: () => fetchMyCoach(coachId!),
-    enabled: cloudAvailable() && !isCoach && !isAdmin && !!coachId,
+    enabled: !isCoach && !isAdmin && !!coachId,
   });
   const clientInfo = useMemo(() => {
     const m = new Map<string, { name: string; photoUrl?: string }>();
@@ -96,30 +97,10 @@ export function Notifications() {
     return { name: coachQ.data?.displayName || coachQ.data?.email || t('coachInfo.yourCoach'), photoUrl: coachQ.data?.photoUrl };
   };
 
-  // Collapse message notifications by thread (newest kept) so a chatty client
-  // doesn't flood the feed; everything else stays as its own row. `items` are
-  // newest-first, so the first message seen per thread is the one we show.
-  const rows = useMemo<FeedRow[]>(() => {
-    const out: FeedRow[] = [];
-    const threadIdx = new Map<string, number>();
-    for (const n of items) {
-      const unread = n.seenAt ? 0 : 1;
-      if (n.type === 'message_received') {
-        const idx = threadIdx.get(n.clientId);
-        if (idx == null) {
-          threadIdx.set(n.clientId, out.length);
-          out.push({ rep: n, count: 1, unseen: !n.seenAt, unreadCount: unread });
-        } else {
-          out[idx].count += 1;
-          out[idx].unreadCount += unread;
-          out[idx].unseen = out[idx].unseen || !n.seenAt;
-        }
-      } else {
-        out.push({ rep: n, count: 1, unseen: !n.seenAt, unreadCount: unread });
-      }
-    }
-    return out;
-  }, [items]);
+  // Grouped by the notification taxonomy (B1.9): a chatty thread is one row
+  // (newest kept); everything else stays its own row.
+  const rows = useMemo<FeedRow[]>(() => coalesceFeed(items), [items]);
+  const anyUnseen = rows.some((r) => r.unseen);
 
   const pg = usePagination(rows, 15);
 
@@ -128,28 +109,45 @@ export function Notifications() {
     // Admin items are pending plan requests (no stored doc, no seen-state): just
     // deep-link to the coach so the super-admin can review/resolve.
     if (isAdmin) {
-      navigate(n.route ?? '/admin');
+      navigate(openNotification(n, 'admin'));
       return;
     }
+    const viewer = isCoach ? 'coach' : 'client';
     if (n.type === 'message_received') {
       // Clear every message notification for this thread/audience at once.
-      void markMessageNotificationsSeen(n.clientId, isCoach ? 'coach' : 'client');
-      navigate(isCoach ? n.route ?? '/coach' : clientNoteRoute(n));
-      return;
-    }
-    if (!n.seenAt) await markNotificationSeen(n.clientId, n.id).catch(() => undefined);
-    if (isCoach) {
-      navigate(n.route ?? '/coach');
-      return;
-    }
-    navigate(clientNoteRoute(n));
+      void markMessageNotificationsSeen(n.clientId, viewer);
+    } else if (!n.seenAt) await markNotificationSeen(n.clientId, n.id).catch(() => undefined);
+    navigate(openNotification(n, viewer));
   };
 
   return (
     <div className="anim-rise space-y-3">
-      <TopBar title={t('notifications.title')} eyebrow={t('app.name')} onBack={goBack} />
+      <TopBar
+        title={t('notifications.title')}
+        eyebrow={t('app.name')}
+        onBack={goBack}
+        right={
+          !isAdmin && anyUnseen ? (
+            <button type="button" className="btn-ghost btn-sm shrink-0" data-testid="notifications-mark-all" disabled={markingAll} onClick={() => void markAll()}>
+              {t('trust.notifications.markAll')}
+            </button>
+          ) : undefined
+        }
+      />
+      {markAllFailed && (
+        <p className="text-sm text-danger" role="alert">
+          {t('trust.notifications.markAllFailed')}
+        </p>
+      )}
 
-      {loading ? (
+      {error ? (
+        <div className="card space-y-2 text-center" role="alert" data-testid="notifications-error">
+          <p className="text-sm text-danger">{t('trust.notifications.loadFailed')}</p>
+          <button type="button" className="btn-ghost w-full" onClick={retry}>
+            {t('common.retry')}
+          </button>
+        </div>
+      ) : loading ? (
         <p className="py-8 text-center text-sm text-earth-muted">{t('auth.working')}</p>
       ) : rows.length === 0 ? (
         <p className="py-10 text-center text-sm text-earth-muted">{t('notifications.empty')}</p>
@@ -189,10 +187,15 @@ export function Notifications() {
                         </span>
                       )}
                       {row.unseen && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />}
+                      {n.resolvedAt && !isMsg && (
+                        <span className="shrink-0 rounded-full bg-success/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-success" data-testid="notification-done">
+                          {t('trust.notifications.done')}
+                        </span>
+                      )}
                     </span>
                     {who && <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-earth-subtle">{typeLabel}</span>}
                     {n.body && <span className="mt-0.5 block truncate text-[13px] text-earth-muted">{n.body}</span>}
-                    <span className="mt-0.5 block font-mono text-[10.5px] text-earth-subtle">{relativeTime(n.createdAt, t)}</span>
+                    <span className="mt-0.5 block font-mono text-[10.5px] text-earth-subtle">{relativeTime(n.createdAt, i18n.language)}</span>
                   </span>
                   <Icon name="chevron" size={16} className="mt-1 text-earth-subtle" />
                 </button>

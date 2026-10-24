@@ -74,7 +74,22 @@ export function fullAssessment(name: string, now = Date.now()) {
  * without `networkidle` (background polling under load can keep the network
  * busy for a long time; the marker is the real readiness signal).
  */
-export async function appReady(page: Page, marker = 'coach-sidebar') {
-  await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: 45_000 });
+export async function appReady(page: Page, marker?: string) {
+  // Default: the role's navigation is up — the coach rail (B3.1) or the admin sidebar.
+  const target = marker ? page.getByTestId(marker).first() : page.locator('[data-testid="coach-rail"]:visible, [data-testid="coach-sidebar"]:visible').first();
+  await expect(target).toBeVisible({ timeout: 45_000 });
   await expect(page.getByTestId('login-email')).toHaveCount(0);
+}
+
+/**
+ * Open the plan builder on a coach plan editor. Since B0 (CO-01) a client with
+ * no plan shows an explicit "No plan yet" state, and creating one is a
+ * deliberate step — an empty editor is never shown in place of a plan.
+ */
+export async function openPlanBuilder(page: Page, editorMarker = 'builder-plan') {
+  const editor = page.getByTestId(editorMarker);
+  const create = page.getByTestId('plan-editor-create');
+  await expect(editor.or(create).first()).toBeVisible({ timeout: 20_000 });
+  if (await create.isVisible()) await create.click();
+  await expect(editor).toBeVisible();
 }

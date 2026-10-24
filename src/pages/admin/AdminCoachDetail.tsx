@@ -28,7 +28,7 @@ import {
 } from '@/services/platform/coachCommercialApi';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { fmtDate, renewConfirmMessage, termPreview, useCapacityPrice } from '@/lib/formaFormat';
-import { shortDate } from '@/lib/utils';
+import { parseNumber, shortDate } from '@/lib/utils';
 import type { CapacityEntitlement, CoachPlanRequest } from '@/types';
 import { statusTone } from './plans/PaymentRequestsTab';
 
@@ -99,7 +99,7 @@ export function AdminCoachDetail() {
     mutationFn: (f: AddForm) =>
       f.mode === 'package'
         ? grantCapacityPackage(coachId, f.packageId, f.note.trim() || undefined)
-        : grantCustomCapacity({ coachId, additionalClients: Math.floor(Number(f.clients)), billingInterval: f.interval, durationMonths: f.interval === 'month' ? Math.floor(Number(f.months)) || 1 : undefined, price: Number(f.price) || 0, currency: d?.config.currency, note: f.note.trim() }),
+        : grantCustomCapacity({ coachId, additionalClients: Math.floor(parseNumber(f.clients)), billingInterval: f.interval, durationMonths: f.interval === 'month' ? Math.floor(parseNumber(f.months)) || 1 : undefined, price: parseNumber(f.price) || 0, currency: d?.config.currency, note: f.note.trim() }),
     onSuccess: (res) => {
       setAdd(null);
       ok(t('forma.admin.capacityChanged', { from: res.before, to: res.after }))();
@@ -153,8 +153,8 @@ export function AdminCoachDetail() {
   const reqLabel = (r: CoachPlanRequest) => (r.capacitySnapshot ? `${loc(r.capacitySnapshot.name)} · +${r.capacitySnapshot.additionalClients}` : t(`forma.requestType.${r.type}`, { defaultValue: r.type }));
   const reqAmount = (r: CoachPlanRequest) => (r.capacitySnapshot ? price(r.capacitySnapshot) : r.planSnapshot ? t('forma.pricePerMonth', { price: r.planSnapshot.priceMonthly, currency: r.planSnapshot.currency }) : '');
 
-  const addValid = add ? (add.mode === 'package' ? !!add.packageId : Math.floor(Number(add.clients)) >= 1 && add.note.trim().length > 0) : false;
-  const adjustValue = adjust ? Math.floor(Number(adjust.value)) : NaN;
+  const addValid = add ? (add.mode === 'package' ? !!add.packageId : Math.floor(parseNumber(add.clients)) >= 1 && add.note.trim().length > 0) : false;
+  const adjustValue = adjust ? Math.floor(parseNumber(adjust.value)) : NaN;
   const adjustValid = !!adjust && Number.isFinite(adjustValue) && adjust.value.trim() !== '' && adjust.reason.trim().length >= 3;
   const adjustPreview = adjust && Number.isFinite(adjustValue) ? Math.max(0, cap.limit - (p?.manualCapacityAdjustment ?? 0) + adjustValue) : null;
 
@@ -287,8 +287,8 @@ export function AdminCoachDetail() {
         {add && (
           <div className="space-y-3" data-testid="add-capacity-form">
             <div className="flex gap-2">
-              <button type="button" className={`chip ${add.mode === 'package' ? 'chip-on' : ''}`} disabled={!livePackages.length} onClick={() => setAdd({ mode: 'package', packageId: livePackages[0]?.id ?? '', note: add.note })}>{t('forma.admin.fromPackage')}</button>
-              <button type="button" className={`chip ${add.mode === 'custom' ? 'chip-on' : ''}`} data-testid="add-capacity-custom" onClick={() => setAdd({ mode: 'custom', clients: '10', interval: 'month', months: '1', price: '0', note: add.note })}>{t('forma.admin.custom')}</button>
+              <button type="button" aria-pressed={add.mode === 'package'} className={`chip ${add.mode === 'package' ? 'chip-on' : ''}`} disabled={!livePackages.length} onClick={() => setAdd({ mode: 'package', packageId: livePackages[0]?.id ?? '', note: add.note })}>{t('forma.admin.fromPackage')}</button>
+              <button type="button" aria-pressed={add.mode === 'custom'} className={`chip ${add.mode === 'custom' ? 'chip-on' : ''}`} data-testid="add-capacity-custom" onClick={() => setAdd({ mode: 'custom', clients: '10', interval: 'month', months: '1', price: '0', note: add.note })}>{t('forma.admin.custom')}</button>
             </div>
             {add.mode === 'package' ? (
               <SelectField label={t('forma.admin.tabPackages')} value={add.packageId} onChange={(e) => setAdd({ ...add, packageId: e.target.value })} data-testid="add-capacity-package">

@@ -1,4 +1,4 @@
-import { uid } from '@/lib/utils';
+import { uid } from './utils';
 import type { Exercise, SectionKind } from '@/types';
 
 /** Quick set/rep/rest presets the coach can apply to an exercise. */
@@ -70,6 +70,7 @@ export const SYNCED_EXERCISE_FIELDS = [
   'name',
   'notes',
   'videoUrl',
+  'videoPosterUrl',
   'imageUrl',
   'images',
   'targetMuscle',
@@ -79,6 +80,12 @@ export const SYNCED_EXERCISE_FIELDS = [
   'secondaryMuscles',
   'equipmentList',
   'sourceCategory',
+  // B4: a library exercise forked from the catalog carries these to its linked copies too.
+  'catalogId',
+  'catalogRev',
+  'names',
+  'instructions',
+  'mediaCredits',
 ] as const satisfies readonly (keyof Exercise)[];
 
 /** Pick a library exercise into a plan/template being built — the ONE place a `libraryExerciseId` link is created. */

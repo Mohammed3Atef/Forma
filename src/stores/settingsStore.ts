@@ -12,8 +12,6 @@ interface SettingsState {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   updateTargets: (patch: Partial<DailyTargets>) => Promise<void>;
   setLocale: (locale: Locale) => Promise<void>;
-  addMeasurementPart: (label: string) => Promise<void>;
-  removeMeasurementPart: (key: string) => Promise<void>;
 }
 
 export const useSettings = create<SettingsState>((set, get) => ({
@@ -61,20 +59,4 @@ export const useSettings = create<SettingsState>((set, get) => ({
     await get().updateProfile({ locale });
   },
 
-  async addMeasurementPart(label) {
-    const cur = get().settings;
-    const name = label.trim();
-    if (!cur || !name) return;
-    const list = cur.customMeasurements ?? [];
-    const key = `m_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    await get().updateSettings({ customMeasurements: [...list, { key, label: name }] });
-  },
-
-  async removeMeasurementPart(key) {
-    const cur = get().settings;
-    if (!cur) return;
-    await get().updateSettings({
-      customMeasurements: (cur.customMeasurements ?? []).filter((m) => m.key !== key),
-    });
-  },
 }));

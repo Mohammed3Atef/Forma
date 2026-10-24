@@ -1,3 +1,5 @@
+import { formatDate, formatDuration as fmtDuration, weekdayInitials as fmtWeekdayInitials } from './format';
+
 /** Small dependency-free helpers shared across the app. */
 
 /** Local calendar day key `YYYY-MM-DD` for a given Date (defaults to now). */
@@ -19,12 +21,6 @@ export function addDays(key: string, n: number): string {
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + n);
   return dayKey(date);
-}
-
-/** Day-of-week 0 (Sun) - 6 (Sat) for a day key. */
-export function dowOf(key: string): number {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).getDay();
 }
 
 /**
@@ -80,26 +76,14 @@ export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-/** Format seconds as M:SS or H:MM:SS. */
+/** Format seconds as M:SS or H:MM:SS (the formatting service owns it — B1.8). */
 export function formatDuration(totalSec: number): string {
-  const s = Math.max(0, Math.floor(totalSec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  }
-  return `${m}:${String(sec).padStart(2, '0')}`;
+  return fmtDuration(totalSec);
 }
 
-/** Pretty short date label, e.g. "Mon 29 May". */
+/** Pretty short date label for a day key, e.g. "Mon 29 May" (via the formatting service — B1.8). */
 export function shortDate(key: string, locale = 'en'): string {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(locale.startsWith('ar') ? 'ar-EG' : 'en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  return formatDate(key, locale, 'weekdayShort');
 }
 
 export interface Debounced<A extends unknown[]> {
@@ -146,32 +130,58 @@ export function sum(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0);
 }
 
-/**
- * Parse a flexible rest-time input into seconds. Accepts:
- *  - "M:SS"          → minutes:seconds  ("1:30" → 90, "1.5:30" → 120)
- *  - decimal minutes → "1.5"            → 90
- *  - plain seconds   → "90"             → 90
- * Returns null when the input can't be parsed.
- */
-export function parseRestInput(raw: string): number | null {
-  const s = raw.trim();
-  if (!s) return null;
-  if (s.includes(':')) {
-    const [mPart, sPart = '0'] = s.split(':');
-    const mins = Number(mPart);
-    const secs = Number(sPart);
-    if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
-    return Math.max(0, Math.round(mins * 60 + secs));
-  }
-  const n = Number(s);
-  if (Number.isNaN(n)) return null;
-  // A decimal value is interpreted as minutes (1.5 → 90s); an integer as seconds.
-  return Math.max(0, Math.round(s.includes('.') ? n * 60 : n));
-}
-
 export function round(n: number, dp = 0): number {
   const f = 10 ** dp;
   return Math.round(n * f) / f;
+}
+
+/**
+ * The region locale for the app language (B0 / RTL-02): BOTH Arabic locales
+ * (`ar`, `ar-eg`) map to Egyptian Arabic.
+ * @deprecated Format through `@/lib/format` (B1.8) — it also applies the
+ * Latin-digit policy, which a bare `toLocaleDateString(dateLocale(…))` misses.
+ */
+export function dateLocale(lang: string | undefined, fallback = 'en-GB'): string {
+  return (lang ?? '').toLowerCase().startsWith('ar') ? 'ar-EG' : fallback;
+}
+
+/** Saturday-first narrow weekday labels in the app language (via the formatting service — B1.8). */
+export function weekdayInitials(lang: string | undefined): string[] {
+  return fmtWeekdayInitials(lang);
+}
+
+/**
+ * Normalise what a phone keyboard types into a plain ASCII number string
+ * (B0 / RTL-04): Arabic-Indic (٠-٩) and Persian (۰-۹) digits → 0-9, the
+ * Arabic decimal separator / comma (٫ , ،) → ".", and invisible direction
+ * marks removed. Validation then runs on the normalised text.
+ */
+export function normalizeNumericText(raw: string): string {
+  return raw
+    .replace(/[\u200e\u200f\u061c\u2066-\u2069\s]/g, '') // direction marks + isolates (pasted from RTL text)
+    .replace(/\u066c/g, '') // the Arabic thousands separator
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[،,٫]/g, '.');
+}
+
+/**
+ * `Number()` for typed text, through the shared normaliser (B1.8): Arabic-Indic
+ * digits and separators parse; empty or unreadable text is NaN (callers keep
+ * their own `>= 0` / `|| fallback` validation). Before B1 the coach/admin money
+ * and duration fields used bare `Number()`, so an Arabic "١٠٠" became 0.
+ */
+export function parseNumber(raw: string): number {
+  const n = normalizeNumericText(raw ?? '');
+  return n === '' ? Number.NaN : Number(n);
+}
+
+/** Like `parseDecimal`, but `null` for empty or unparseable input (never a silent 0). */
+export function parseDecimalOrNull(raw: string): number | null {
+  const n = normalizeNumericText(raw);
+  if (n === '' || n === '.') return null;
+  const v = Number(n);
+  return Number.isFinite(v) ? v : null;
 }
 
 /**
@@ -180,11 +190,7 @@ export function round(n: number, dp = 0): number {
  * Number() returns NaN for those. Returns 0 when unparseable.
  */
 export function parseDecimal(raw: string): number {
-  const normalized = raw
-    .trim()
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    .replace(/[،,٫]/g, '.');
-  const n = Number(normalized);
+  // One normaliser for every number entry (B1.8): digits, separators, bidi marks.
+  const n = Number(normalizeNumericText(raw));
   return Number.isFinite(n) ? n : 0;
 }

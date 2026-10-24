@@ -4,7 +4,8 @@ import { usersCol } from '../../_lib/mongodb.js';
 import { toPublicUser, type PublicUser, type Role } from '../../_lib/types.js';
 import { coachClientsCol } from '../../admin/_lib/db.js';
 import type { Subscription, SubscriptionStatus } from '../../admin/_lib/types.js';
-import { DAY, WEEK, effectiveSubscriptionStatus, emptySubs, inSegment, monthlyOf, type MemberSegment } from '../../admin/_lib/subscription.js';
+import { DAY, WEEK, effectiveSubscriptionStatus, emptySubs, inSegment, type MemberSegment } from '../../admin/_lib/subscription.js';
+import { subscriptionWithoutEconomics } from '../../coach-clients/_economics.js';
 
 /** Port of `src/services/platform/analyticsApi.ts`'s `fetchPlatformStats()`. */
 export interface PlatformStats {
@@ -57,7 +58,8 @@ export const adminMembersRouter = router({
 
       const now = Date.now();
       const linkByClient = new Map<string, { coachId: string; subscription?: Subscription }>();
-      for (const r of relDocs) linkByClient.set(r.clientId, { coachId: r.coachId, subscription: r.subscription });
+      // B38F-R2: the coach's package economics (price, package, note) stay the coach's — admins get status and dates.
+      for (const r of relDocs) linkByClient.set(r.clientId, { coachId: r.coachId, subscription: subscriptionWithoutEconomics(r.subscription) });
 
       const rowsAll: MemberRow[] = userDocs
         .map((d) => {
@@ -122,8 +124,8 @@ export interface GrowthData {
   newPrevWeek: number;
   newThisMonth: number;
   signupSeries: GrowthPoint[];
-  clientMrr: number;
-  currency: string;
+  // B3.8 final (B38F-R1): no coach-client package value here — a coach's packages and collections
+  // are the coach's business, never Forma revenue, and an admin aggregate of them is not shown.
   subBreakdown: Record<SubscriptionStatus | 'none', number>;
   expiringClients: ExpiringClient[];
 }
@@ -151,8 +153,6 @@ export const adminGrowthRouter = router({
     const newPrevWeek = userDocs.filter((u) => u.createdAt >= now - 2 * WEEK && u.createdAt < now - WEEK).length;
     const newThisMonth = userDocs.filter((u) => u.createdAt >= now - 30 * DAY).length;
 
-    let clientMrr = 0;
-    let currency = 'EGP';
     const subBreakdown = emptySubs();
     const expiringClients: ExpiringClient[] = [];
     for (const r of relDocs) {
@@ -160,9 +160,7 @@ export const adminGrowthRouter = router({
       const st = effectiveSubscriptionStatus(sub, now);
       subBreakdown[st] += 1;
       if (sub) {
-        if (sub.currency) currency = sub.currency;
         if (st === 'trial' || st === 'active') {
-          clientMrr += monthlyOf(sub);
           const left = sub.endAt - now;
           if (left > 0 && left <= WEEK) {
             expiringClients.push({ clientId: r.clientId, name: nameById.get(r.clientId) ?? r.clientId, coachId: r.coachId, endAt: sub.endAt, days: Math.max(0, Math.ceil(left / DAY)) });
@@ -178,8 +176,6 @@ export const adminGrowthRouter = router({
       newPrevWeek,
       newThisMonth,
       signupSeries,
-      clientMrr: Math.round(clientMrr),
-      currency,
       subBreakdown,
       expiringClients,
     };

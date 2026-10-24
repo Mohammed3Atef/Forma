@@ -7,6 +7,7 @@ import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import type { CoachClientDoc } from '../../coach-clients/_types.js';
 import type { MessageDoc } from '../../messages/_data.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 let mongod: MongoMemoryServer;
 
@@ -23,6 +24,8 @@ afterAll(async () => {
 beforeEach(async () => {
   const db = await getDb();
   await db.dropDatabase();
+  // B38F-R3: the coaches these tests act as are real coaches, so they have a Forma plan.
+  for (const id of ['coach-1', 'coach-2']) await ensureCoachPlan(id);
 });
 
 function userDoc(overrides: Partial<UserDoc>): UserDoc {
@@ -89,17 +92,17 @@ describe('messages router', () => {
     expect(page.messages.map((m) => m.body)).toEqual(['Hi coach', 'Hi there']);
   });
 
-  it('a suspended client can still send/list/markRead in their own thread — matches the old REST index.ts/mark-read.ts, which never checked accountStatus at all', async () => {
+  it('a suspended client can still list/markRead their own thread but no longer send (B3.0.1 / B3-S04, owner O-17)', async () => {
     const suspendedClient = authedUser({ _id: 'client-2', role: 'client', accountStatus: 'suspended' });
     await assignCoach(assignedCoach.id, suspendedClient.id);
     const asSuspendedClient = appRouter.createCaller(ctxFor(suspendedClient));
     const asCoach = appRouter.createCaller(ctxFor(assignedCoach));
 
-    await asSuspendedClient.messages.send({ clientId: suspendedClient.id, text: 'Still here' });
+    await expect(asSuspendedClient.messages.send({ clientId: suspendedClient.id, text: 'Still here' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await asCoach.messages.send({ clientId: suspendedClient.id, text: 'Reply' });
     const page = await asSuspendedClient.messages.list({ clientId: suspendedClient.id });
-    expect(page.messages).toHaveLength(2);
-    await expect(asSuspendedClient.messages.markRead({ clientId: suspendedClient.id })).resolves.toMatchObject({ ok: true });
+    expect(page.messages.map((m) => m.body)).toEqual(['Reply']);
+    await expect(asSuspendedClient.messages.markRead({ clientId: suspendedClient.id })).resolves.toMatchObject({ ok: true, updated: 1 });
   });
 
   it('rejects an unrelated coach from reading or sending in the thread', async () => {

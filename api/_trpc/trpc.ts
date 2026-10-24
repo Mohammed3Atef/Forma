@@ -3,6 +3,7 @@ import type { Context } from './context.js';
 import { hasPermission } from '../_lib/rbac.js';
 import type { Permission, Role } from '../_lib/types.js';
 import { CommercialReason } from '../_lib/commercialReason.js';
+import { GATED_IN_HANDLER, LAPSED_COACH_ALLOWED, assertCoachCanWrite } from '../_lib/coachEntitlement.js';
 
 /**
  * Error shape: the default tRPC shape plus `data.reason` — a stable machine
@@ -11,14 +12,31 @@ import { CommercialReason } from '../_lib/commercialReason.js';
  */
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
-    const reason = error.cause instanceof CommercialReason ? error.cause.reason : undefined;
-    return reason ? { ...shape, data: { ...shape.data, reason } } : shape;
+    const cause = error.cause instanceof CommercialReason ? error.cause : undefined;
+    if (!cause) return shape;
+    return { ...shape, data: { ...shape.data, reason: cause.reason, ...(cause.retryAfter != null ? { retryAfter: cause.retryAfter } : {}) } };
   },
 });
 
 export const router = t.router;
 export const middleware = t.middleware;
-export const publicProcedure = t.procedure;
+
+/**
+ * B3.8 (owner decision 4, P2): every MUTATION by an active coach account whose Forma plan has
+ * lapsed or was suspended is refused (`SUBSCRIPTION_EXPIRED` / `SUBSCRIPTION_SUSPENDED`), unless it
+ * is one of the few recovery / read-marker / client-protecting actions in `LAPSED_COACH_ALLOWED`.
+ * Default-deny: a coach write added later is covered without touching this list. Runs before input
+ * parsing, at execution time (a stale tab or an offline queue replay gets the same answer).
+ * Non-active accounts keep their own, earlier refusals (`protectedProcedure`, `ACCOUNT_NOT_ACTIVE`).
+ */
+const coachPlanGate = t.middleware(async ({ ctx, type, path, next }) => {
+  if (type === 'mutation' && ctx.user?.role === 'coach' && ctx.user.accountStatus === 'active' && !LAPSED_COACH_ALLOWED.has(path) && !GATED_IN_HANDLER.has(path)) {
+    await assertCoachCanWrite(ctx.user);
+  }
+  return next();
+});
+
+export const publicProcedure = t.procedure.use(coachPlanGate);
 
 /**
  * Replaces `api/_lib/withAuth.ts`'s bare, throw-based `requireUser()` — same
@@ -30,7 +48,7 @@ export const publicProcedure = t.procedure;
  * `api/sync/_handlers/*.ts`, so a pending/suspended account's offline queue
  * can still flush and its own data can still be read.
  */
-export const authedProcedure = t.procedure.use(({ ctx, next }) => {
+export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
   if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not authenticated' });
   return next({ ctx: { ...ctx, user: ctx.user } });
 });

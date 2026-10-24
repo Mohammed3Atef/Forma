@@ -40,7 +40,9 @@ async function requestTransfer(page: Page, env: E2EEnv, reason: string, testInfo
   await expect(page.getByTestId('existing-detail')).toBeVisible({ timeout: 20_000 });
   const panel = page.getByTestId('existing-transfer-panel');
   await expect(panel).toBeVisible();
-  await expect(panel).toContainText('Currently coached by Coach Amira');
+  // B0 / CO-03: the other coach is never named or identified to the requesting coach.
+  await expect(panel).toContainText('This client already has a coach');
+  await expect(page.getByTestId('existing-detail')).not.toContainText('Coach Amira');
   await expect(page.getByTestId('existing-assign-panel')).toHaveCount(0);
   await expect(page.getByTestId('existing-assign')).toHaveCount(0);
   await expect(page.getByTestId('existing-request-transfer')).toBeDisabled(); // reason required
@@ -83,14 +85,14 @@ test('transfer: coachB requests clientA → coachA approves → client moves', a
   await expectToast(a, 'Approved — the client is now released.');
   await expect(a.getByTestId('confirm-dialog')).toHaveCount(0);
   await expect(a.getByTestId('incoming-transfer-row')).toHaveCount(0);
-  await expect(a.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toHaveCount(0);
+  await expect(a.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toHaveCount(0);
   await expect(a.getByTestId('coach-client-usage')).toContainText('0 / 2 clients used');
   await shot(a, testInfo, '04-coachA-roster');
 
   // coachB sees clientA (fresh navigation to the roster).
   await b.goto('/coach/clients');
   await appReady(b, 'coach-desktop-clients');
-  await expect(b.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toBeVisible({ timeout: 20_000 });
+  await expect(b.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(b.getByTestId('coach-client-usage')).toContainText('2 / 2 clients used');
   await shot(b, testInfo, '05-coachB-roster');
 
@@ -122,13 +124,13 @@ test('transfer failure: destination at cap → error shown, nothing moves, reque
   // Error is surfaced (alert dialog), no success toast.
   const alert = a.getByTestId('confirm-dialog');
   await expect(alert).toBeVisible();
-  await expect(alert).toContainText(/Destination coach/i);
+  await expect(alert).toContainText(/receiving coach/i); // B3.9 (TS-02): translated, and says whose capacity it is
   await shot(a, testInfo, '02-coachA-error');
   await expect(a.getByTestId('toast').filter({ hasText: 'Approved' })).toHaveCount(0);
   await alert.getByTestId('confirm-accept').click();
   // Request still offered (pending), client still on coachA's roster.
   await expect(a.getByTestId('incoming-transfer-row').filter({ hasText: 'Client Aya' })).toBeVisible();
-  await expect(a.getByTestId('coach-desktop-clients').getByText(env.accounts.clientA.email)).toBeVisible();
+  await expect(a.getByTestId('coach-desktop-clients').locator(`[data-client-id="${env.accounts.clientA.id}"]`)).toBeVisible();
   await shot(a, testInfo, '03-coachA-unchanged');
 
   const active = await db.find<Rel>('coachClients', { clientId: CA, status: 'active' });

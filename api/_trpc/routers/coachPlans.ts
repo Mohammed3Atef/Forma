@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, roleProcedure, roleProcedureNoActive } from '../trpc.js';
-import { withDbTransaction } from '../../_lib/mongodb.js';
+import { getDb, withDbTransaction } from '../../_lib/mongodb.js';
+import { CommercialReason } from '../../_lib/commercialReason.js';
 import { writeAuditTx } from '../../admin/_lib/audit.js';
 import { coachPlansCol, ensureTrialPlan, toPublicCoachPlan, type CoachPlanDoc, type PlanHistoryEntry } from '../../coach-plans/_data.js';
 
@@ -18,8 +19,27 @@ export const coachPlansRouter = router({
     return toPublicCoachPlan(doc);
   }),
 
-  /** Idempotent Trial bootstrap (never resets an existing plan). `auth.signup` already does this; kept for legacy callers. */
-  createTrial: roleProcedureNoActive('coach').mutation(async ({ ctx }) => toPublicCoachPlan(await ensureTrialPlan(ctx.user.id))),
+  /**
+   * Idempotent Trial bootstrap (never resets an existing plan) — the recovery path for a coach
+   * account without a plan document (every creation path now writes it in the same transaction).
+   * B3.8 final (B38F-R3): it never hands out a SECOND trial — an account that already has Forma
+   * history (a subscription or capacity request, an add-on, or any client relationship) but no plan
+   * document is refused; it can request a subscription, or the Forma team restores the plan.
+   */
+  createTrial: roleProcedureNoActive('coach').mutation(async ({ ctx }) => {
+    const existing = await (await coachPlansCol()).findOne({ _id: ctx.user.id });
+    if (existing) return toPublicCoachPlan(existing);
+    const db = await getDb();
+    const [requests, addons, relationships] = await Promise.all([
+      db.collection('coachPlanRequests').countDocuments({ coachId: ctx.user.id }, { limit: 1 }),
+      db.collection('coachCapacityEntitlements').countDocuments({ coachId: ctx.user.id }, { limit: 1 }),
+      db.collection('coachClients').countDocuments({ coachId: ctx.user.id }, { limit: 1 }),
+    ]);
+    if (requests + addons + relationships > 0) {
+      throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'This account already used Forma. Request a subscription, or contact the Forma team to restore your plan.', cause: new CommercialReason('NO_SUBSCRIPTION') });
+    }
+    return toPublicCoachPlan(await ensureTrialPlan(ctx.user.id));
+  }),
 
   /**
    * Super Admin: status (suspend / reactivate / expire) and term end date.

@@ -5,6 +5,8 @@ import { TextInput } from '@/components/ui/Field';
 import { useSession } from '@/services/auth/sessionStore';
 import { passwordError } from '@/lib/password';
 import { alertDialog } from '@/stores/dialogStore';
+import { errorMessage } from '@/lib/errorMessage';
+import { classifyError } from '@/lib/errorKind';
 
 /** Sheet to set a new password (current password + new, policy-checked, entered twice). */
 export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -30,7 +32,8 @@ export function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose:
       onClose();
       await alertDialog({ title: t('auth.changePassword'), message: t('auth.pwChanged') });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed');
+      // The server answers a wrong current password with UNAUTHORIZED — that is not a lost session.
+      setErr(classifyError(e).kind === 'unauthorized' ? t('auth.currentPasswordWrong') : errorMessage(e, t));
     } finally {
       setBusy(false);
     }

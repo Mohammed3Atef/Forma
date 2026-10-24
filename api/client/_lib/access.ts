@@ -4,9 +4,9 @@ import type { AuthedUser } from '../../_trpc/context.js';
 import { coachClientsCol } from './db.js';
 
 /**
- * Every function here is a direct port of one clause from `firestore.rules`'
- * `clientData/{clientId}/**` section. Keep this file's shape mirroring that
- * section 1:1 — see the comment on each function for the exact rule it ports.
+ * Every function here was ported from one clause of the retired Firestore
+ * rules (`clientData/{clientId}/**`). This file IS the enforcement point now —
+ * there is no `firestore.rules` file any more.
  */
 
 /** Mirrors `isAssignedCoach(clientId)`: an ACTIVE coach with an ACTIVE relationship doc. */

@@ -1,8 +1,8 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
+import { deviceZone } from '@/lib/subscription';
 import type {
   BillingCycle,
   CoachClientRelationship,
-  CoachSubscriptionPlan,
   Subscription,
   SubscriptionPeriod,
   SubscriptionStatus,
@@ -55,11 +55,6 @@ export function relId(coachId: string, clientId: string): string {
   return `${coachId}__${clientId}`;
 }
 
-export async function listRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
-  const docs = await trpc.coachClients.list.query({ coachId, status: 'active' });
-  return docs.map(fromApiDoc);
-}
-
 /** Every relationship a coach has ever had (active, ended, pending) — for revenue/churn dashboards. */
 export async function listAllRelationshipsForCoach(coachId: string): Promise<CoachClientRelationship[]> {
   const docs = await trpc.coachClients.list.query({ coachId, status: 'all' });
@@ -67,20 +62,13 @@ export async function listAllRelationshipsForCoach(coachId: string): Promise<Coa
 }
 
 /**
- * Writes ONLY the relationship doc — used when a coach creates their own
- * client (the client's `assignedCoachId` is set at account creation).
- *
- * NOTE: the migrated `POST /api/coach-clients` (the only assign endpoint the
- * backend exposes) always ALSO sets the client's `assignedCoachId`, unlike the
- * Firestore-era version of this function — there is no "link only" endpoint.
- * This is unused by any current component; kept for signature compatibility.
+ * B3.3: the coach's ACTIVE relationships without the audit trail, archived
+ * terms or invite code (`view: 'summary'`) — what Today and Clients need,
+ * small enough to refresh every minute on a large roster.
  */
-export async function linkCoachClient(coachId: string, clientId: string, _createdBy: string): Promise<void> {
-  await trpc.coachClients.assign.mutate({
-    clientId,
-    coachId,
-    subscription: { status: 'trial' as SubscriptionStatus, trialDays: 14 },
-  });
+export async function listActiveRelationshipsSummary(coachId: string): Promise<CoachClientRelationship[]> {
+  const docs = await trpc.coachClients.list.query({ coachId, status: 'active', view: 'summary' });
+  return docs.map(fromApiDoc);
 }
 
 /** Assigns a client to a coach (idempotent on the deterministic id). */
@@ -130,26 +118,50 @@ export async function getRelationship(coachId: string, clientId: string): Promis
   }
 }
 
-async function patchSubscription(coachId: string, clientId: string, sub: Parameters<typeof trpc.coachClients.updateSubscription.mutate>[0]['sub']): Promise<void> {
-  await trpc.coachClients.updateSubscription.mutate({ id: relId(coachId, clientId), sub });
-}
-
-/** Set (or reset) the subscription term: starts active, ends after `months`/`days`. */
-export async function setSubscriptionTerm(
+async function patchSubscription(
   coachId: string,
   clientId: string,
-  startAt: number,
-  term: { months?: number; days?: number },
-  price?: number,
-  currency?: string,
-  planName?: string,
+  sub: Parameters<typeof trpc.coachClients.updateSubscription.mutate>[0]['sub'],
+  meta: { requestId?: string; expectedTermId?: string } = {},
 ): Promise<void> {
-  await patchSubscription(coachId, clientId, { op: 'setTerm', startAt, ...term, price, currency, planName });
+  await trpc.coachClients.updateSubscription.mutate({ id: relId(coachId, clientId), sub, ...meta });
 }
 
-/** Set/update the subscription price in place. */
-export async function setSubscriptionPrice(coachId: string, clientId: string, price: number, currency?: string): Promise<void> {
-  await patchSubscription(coachId, clientId, { op: 'setPrice', price, currency });
+/**
+ * B3.8 (Fix C) — the three term changes, each saying what it means. Dates are calendar days
+ * (`YYYY-MM-DD`) meant in this device's zone; one month is 30 days; amounts are EGP (the server
+ * stores the currency). `requestId` (one per sheet opening) makes a retry after a lost response
+ * apply once.
+ */
+export interface TermChoice {
+  startDate?: string;
+  months?: number;
+  days?: number;
+  price?: number;
+  planName?: string;
+}
+
+/** The client's FIRST package (no term yet, or one left "to set up later"). */
+export async function startFirstTerm(coachId: string, clientId: string, term: TermChoice & { status?: 'active' | 'trial' }, requestId: string): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'newTerm', zone: deviceZone(), ...term }, { requestId });
+}
+
+/** The NEXT package: from the day after a running one ends, else from `startDate` (default today). */
+export async function renewSubscription(coachId: string, clientId: string, term: TermChoice, requestId: string): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'renew', zone: deviceZone(), ...term }, { requestId });
+}
+
+/**
+ * Edit the CURRENT package in place — a mistake fixed, or the client switching package mid-term
+ * (`changePackage`). Same economic term; recorded payments stay with it. `price: null` makes it free.
+ */
+export async function correctSubscription(
+  coachId: string,
+  clientId: string,
+  patch: { startDate?: string; months?: number; days?: number; price?: number | null; planName?: string | null; reason: 'correction' | 'changePackage' },
+  meta: { requestId: string; expectedTermId?: string },
+): Promise<void> {
+  await patchSubscription(coachId, clientId, { op: 'correct', zone: deviceZone(), ...patch }, meta);
 }
 
 /** Freeze the subscription for [from, until). */
@@ -186,27 +198,14 @@ export async function extendSubscription(coachId: string, clientId: string, days
  */
 export interface ClientSubscriptionInput {
   status: SubscriptionStatus; // 'trial' | 'active' | 'pending' (others valid for transfer)
-  months?: number; // active term length in months
+  months?: number; // active term length in months (B3.8: 1 month = 30 days)
   days?: number; // active term length in days (coach plan with unit='days'); takes priority over months
   trialDays?: number; // trial length (default 14)
-  price?: number;
-  currency?: string;
+  price?: number; // EGP (B3.8: the only currency)
   planName?: string;
   billingCycle?: BillingCycle;
-  startAt?: number; // defaults to now
-}
-
-/** Map a coach-defined plan (+ the coach's default currency) to an assign input. */
-export function planToSubscriptionInput(plan: CoachSubscriptionPlan, currency?: string): ClientSubscriptionInput {
-  const money = {
-    ...(typeof plan.price === 'number' ? { price: plan.price } : {}),
-    ...(currency ? { currency } : {}),
-    planName: plan.name,
-  };
-  if (plan.isTrial) {
-    return { status: 'trial', trialDays: plan.unit === 'months' ? plan.duration * 30 : plan.duration, ...money };
-  }
-  return { status: 'active', ...(plan.unit === 'days' ? { days: plan.duration } : { months: plan.duration }), ...money };
+  /** B3.8: the first calendar day (default today); the device zone is sent with it. */
+  startDate?: string;
 }
 
 /**
@@ -237,7 +236,7 @@ export async function assignExistingClient(
   _createdBy: string,
   sub: ClientSubscriptionInput,
 ): Promise<void> {
-  await trpc.coachClients.assign.mutate({ clientId, coachId, subscription: sub });
+  await trpc.coachClients.assign.mutate({ clientId, coachId, subscription: { ...sub, zone: deviceZone() } });
 }
 
 /**
@@ -246,22 +245,6 @@ export async function assignExistingClient(
  */
 export async function releaseClient(coachId: string, clientId: string, _by: string): Promise<void> {
   await trpc.coachClients.end.mutate({ id: relId(coachId, clientId), reason: 'released' });
-}
-
-/**
- * FRESH START — archiving + clearing the previous coach's plan/notes/targets
- * content is now handled automatically, SERVER-SIDE, inside
- * `transferClientWithMode` (`api/coach-clients/_service.ts`) as one atomic
- * step of the transfer itself: when `mode === 'fresh_start'`, the backend
- * copies the client's workout/nutrition/cardio plan docs, coach notes, and
- * coach-set targets into the `archivedClientData` collection (tagged with the
- * previous coach id + an archive timestamp), then deletes the live docs,
- * before reassigning the client. There is nothing left for the frontend to
- * trigger — this is a deliberate permanent no-op, kept only so any existing
- * call site still compiles/behaves unchanged. No call site invokes it today.
- */
-export async function archiveAndClearCoachData(_clientId: string, _by: string): Promise<void> {
-  // Intentional no-op — see the doc comment above.
 }
 
 /**
@@ -290,6 +273,6 @@ export async function transferClientWithMode(
     toCoachId,
     mode,
     subscriptionHandling,
-    ...(newSub ? { newSubscription: newSub } : {}),
+    ...(newSub ? { newSubscription: { ...newSub, zone: deviceZone() } } : {}),
   });
 }

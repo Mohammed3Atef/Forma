@@ -128,11 +128,14 @@ describe('authorization matrix — one representative per guard class', () => {
   });
 
   it('authedProcedure: anonymous is UNAUTHORIZED; pending/suspended accounts still reach it (own-data reads + offline flush)', async () => {
-    const pending = await insertUser({ _id: 'p', role: 'coach', accountStatus: 'pending' });
+    const pending = await insertUser({ _id: 'p', role: 'client', accountStatus: 'pending' });
     const suspended = await insertUser({ _id: 's', role: 'client', accountStatus: 'suspended' });
-    expect(await code(caller(null).sync.pull({ collection: 'x' }))).toBe('UNAUTHORIZED');
-    expect(await code(caller(pending).sync.pull({ collection: 'x' }))).toBe('OK');
-    expect(await code(caller(suspended).sync.pull({ collection: 'x' }))).toBe('OK');
+    const coach = await insertUser({ _id: 'k', role: 'coach' });
+    expect(await code(caller(null).sync.pull({ collection: 'weightLogs' }))).toBe('UNAUTHORIZED');
+    expect(await code(caller(pending).sync.pull({ collection: 'weightLogs' }))).toBe('OK');
+    expect(await code(caller(suspended).sync.pull({ collection: 'weightLogs' }))).toBe('OK');
+    // B0 / RM-81: client sync is CLIENT-only — a coach/admin session can't push or pull tracker data.
+    expect(await code(caller(coach).sync.pull({ collection: 'weightLogs' }))).toBe('FORBIDDEN');
     expect(await code(caller(suspended).profile.get())).toBe('OK');
   });
 
@@ -242,6 +245,8 @@ describe('tenant isolation', () => {
   it("an unassigned coach cannot read or write a client's data; the assigned coach can; a different client never can", async () => {
     const coachA = await insertUser({ _id: 'coachA', role: 'coach' });
     const coachB = await insertUser({ _id: 'coachB', role: 'coach' });
+    // B38F-R3: coachB is a real coach with a live plan, so the refusals below are the ownership checks.
+    await givePlan(coachB._id);
     const clientA = await insertUser({ _id: 'clientA', role: 'client' });
     const clientB = await insertUser({ _id: 'clientB', role: 'client' });
     await assign(coachA._id, clientA._id);
@@ -286,16 +291,14 @@ describe('tenant isolation', () => {
     expect(rows[0].clientId).toBe(a._id);
     expect((await caller(b).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(0);
     expect((await caller(a).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
-    await caller(b).sync.wipe();
-    expect((await caller(a).sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1); // B's wipe never touches A
   });
 
-  it('adminUsers.get returns contact details only to self / related users / users.read holders — a name card to everyone else', async () => {
+  it('adminUsers.get returns contact details only to self / ACTIVELY related users / users.read holders — a name card to everyone else', async () => {
     const coachA = await insertUser({ _id: 'coachA', role: 'coach', phone: '111' });
     const coachB = await insertUser({ _id: 'coachB', role: 'coach', phone: '222' });
     const client = await insertUser({ _id: 'client', role: 'client', phone: '333' });
     const admin = await insertUser({ _id: 'admin', role: 'admin' });
-    await assign(coachA._id, client._id, 'ended'); // even an ENDED relationship keeps the two mutually visible
+    await assign(coachA._id, client._id); // an ACTIVE relationship: the two see each other's contacts
 
     const unrelated = await caller(coachB).adminUsers.get({ id: coachA._id });
     expect(unrelated.displayName).toBe(coachA.displayName);
@@ -307,6 +310,14 @@ describe('tenant isolation', () => {
     expect((await caller(client).adminUsers.get({ id: coachB._id })).phone).toBeUndefined();
     expect((await caller(admin).adminUsers.get({ id: coachB._id })).phone).toBe('222');
     expect((await caller(coachB).adminUsers.get({ id: coachB._id })).phone).toBe('222');
+
+    // B3.0.1 / B3-S01b (owner O-16): once the relationship ENDS, neither side keeps the other's contacts — a name card only.
+    await (await getDb()).collection('coachClients').updateOne({ _id: `${coachA._id}__${client._id}` } as never, { $set: { status: 'ended' } });
+    const formerClient = await caller(coachA).adminUsers.get({ id: client._id });
+    expect(formerClient.displayName).toBe(client.displayName);
+    expect(formerClient.phone).toBeUndefined();
+    expect(formerClient.email).toBe('');
+    expect((await caller(client).adminUsers.get({ id: coachA._id })).phone).toBeUndefined();
   });
 });
 
@@ -325,14 +336,14 @@ describe('transfer requests — ownership is asserted, not trusted', () => {
     return { coachA, coachB, coachC, client };
   }
 
-  it('create refuses a fromCoachId that does not currently coach the client (the collusion/hijack path)', async () => {
+  it('a coach-named fromCoachId is never trusted (the collusion/hijack path): the request is filed against the REAL current coach, and the named one cannot accept it', async () => {
     const { coachA, coachB, coachC, client } = await scenario();
-    await expect(
-      caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachB._id, reason: 'x' }),
-    ).rejects.toMatchObject({ code: 'CONFLICT' });
-    // Naming the REAL coach works.
-    const req = await caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachC._id, reason: 'x' });
+    // B3.9 (audit, CO-03): the server always derives the current coach — naming another one neither
+    // redirects the request to a colluding coach nor reveals (by a refusal) who coaches the client.
+    const req = await caller(coachA).transfers.create({ clientId: client._id, fromCoachId: coachB._id, reason: 'x' });
     expect(req.status).toBe('pending');
+    expect((await (await getDb()).collection('transferRequests').findOne({ _id: req._id as never }))?.fromCoachId).toBe(coachC._id);
+    expect(await code(caller(coachB).transfers.resolve({ id: req._id, action: 'accept' }))).toBe('FORBIDDEN');
   });
 
   it('accept re-checks the relationship at approval time and rolls the request back if the move fails', async () => {
@@ -380,12 +391,15 @@ describe('idempotency and races', () => {
 
   it('messages.send: an empty message (no text, no attachment) is rejected server-side', async () => {
     const client = await insertUser({ _id: 'client', role: 'client' });
+    await insertUser({ _id: 'coach', role: 'coach' });
+    await assign('coach', client._id); // B3.0.1: a client message goes to their coach's conversation
     await expect(caller(client).messages.send({ clientId: client._id, text: '   ' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     expect(await code(caller(client).messages.send({ clientId: client._id, text: '', attachment: { url: 'https://x/y.png', kind: 'image' } }))).toBe('OK');
   });
 
   it('seedStarterLibrary: two concurrent seeds never duplicate a row (unique {coachId,id}) and converge to one full library', async () => {
     const coach = await insertUser({ _id: 'coach', role: 'coach' });
+    await givePlan(coach._id); // B38F-R3: a real coach always has a plan
     await Promise.allSettled([caller(coach).coachAssets.seedStarterLibrary(), caller(coach).coachAssets.seedStarterLibrary()]);
     const third = await caller(coach).coachAssets.seedStarterLibrary(); // fills any gap the race left
     expect(third.exercises.inserted).toBe(0);
@@ -560,7 +574,7 @@ describe('rate limits, validation, error semantics', () => {
     expect(await code(c.logsWorkout.list({ clientId: client._id, limit: -1 }))).toBe('BAD_REQUEST');
     expect(await code(c.logsWorkout.list({ clientId: client._id, limit: 1.5 }))).toBe('BAD_REQUEST');
     expect(await code(c.messages.react({ clientId: client._id, id: 'm', value: '🔥' as never }))).toBe('BAD_REQUEST');
-    expect(await code(c.sync.pull({ collection: 'x', since: -1 }))).toBe('BAD_REQUEST');
+    expect(await code(caller(client).sync.pull({ collection: 'x', since: -1 }))).toBe('BAD_REQUEST');
     expect(await code(c.coachClients.end({ id: 'no-separator' }))).toBe('BAD_REQUEST');
     expect(await code(c.foodSearch.search({ query: 'a' }))).toBe('BAD_REQUEST'); // min 2 chars
     // A garbage cursor is tolerated (first page), not a crash.
@@ -570,7 +584,15 @@ describe('rate limits, validation, error semantics', () => {
   it('error semantics: a coach with NO plan is told that, not "at their client limit"; an already-resolved request is CONFLICT, not NOT_FOUND', async () => {
     const coachNoPlan = await insertUser({ _id: 'coach', role: 'coach' });
     const client = await insertUser({ _id: 'client', role: 'client' });
+    // B38F-R3: a coach with no plan is read-only — told it has no plan (NO_SUBSCRIPTION), never "at the limit".
     await expect(caller(coachNoPlan).coachClients.assign({ clientId: client._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
+      code: 'PRECONDITION_FAILED',
+      message: expect.stringMatching(/no Forma plan/),
+      cause: { reason: 'NO_SUBSCRIPTION' },
+    });
+    // An admin assigning a client to that coach hits the capacity gate's own no-plan answer — also never "at the limit".
+    const assigner = await insertUser({ _id: 'assigner', role: 'admin' });
+    await expect(caller(assigner).coachClients.assign({ clientId: client._id, coachId: coachNoPlan._id, subscription: { status: 'trial' } })).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'This coach has no active Forma subscription yet',
     });

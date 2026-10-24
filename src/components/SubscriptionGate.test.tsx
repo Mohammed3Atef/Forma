@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 
 const fetchMyRelationship = vi.fn();
 vi.mock('@/services/platform/clientCoachApi', () => ({ fetchMyRelationship: (...a: unknown[]) => fetchMyRelationship(...a) }));
-vi.mock('@/data/dataSource', () => ({ cloudAvailable: () => true }));
 
 import { useSession } from '@/services/auth/sessionStore';
 import { SubscriptionGate } from './SubscriptionGate';

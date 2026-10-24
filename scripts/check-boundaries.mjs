@@ -30,7 +30,7 @@ const CLIENT_ONLY = new Set([
   'Slider', 'TagInput', 'VideoPlayerSheet',
 ]);
 // Root pages that are shared across roles (everything else at pages/ root is client).
-const SHARED_ROOT_PAGES = new Set(['Notifications', 'RoleAccount', 'RolePlaceholder']);
+const SHARED_ROOT_PAGES = new Set(['Notifications', 'RoleAccount']);
 
 /** Classify a src-relative path (posix) into a bucket. */
 function bucket(rel) {

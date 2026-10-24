@@ -1,14 +1,17 @@
 import { z } from 'zod';
+import { CurrencyInputSchema, DateKeySchema, PriceSchema, TermDaysSchema, TermMonthsSchema, TimeZoneSchema, assertSupportedCurrency } from '../../_lib/termInputs.js';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, authedProcedure } from '../trpc.js';
 import { hasPermission } from '../../_lib/rbac.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
+import { seesPackageEconomics, withoutPackageEconomics } from '../../coach-clients/_economics.js';
 import { assignExistingClient, endRelationship, transferClientWithMode, updateSubscription, type SubscriptionAction } from '../../coach-clients/_service.js';
-import type { ClientSubscriptionInput } from '../../coach-clients/_types.js';
+import type { ClientSubscriptionInput, CoachClientDoc } from '../../coach-clients/_types.js';
 import { usersCol } from '../../_lib/mongodb.js';
+import { writeAudit } from '../../admin/_lib/audit.js';
 import { toPublicUser } from '../../_lib/types.js';
 import { syncRecordsCol } from '../../sync/_data.js';
-import { clientProfilesCol, checkInsCol } from '../../client/_lib/db.js';
+import { clientProfilesCol, checkInsCol, clientWorkoutPlansCol, clientNutritionPlansCol } from '../../client/_lib/db.js';
 import type { ClientAssessmentFields } from '../../client/_lib/types.js';
 
 /** Mirrors `assessmentStatus()` in `src/lib/assessment.ts` — keep in sync. */
@@ -19,37 +22,70 @@ function assessmentStatusOf(a: ClientAssessmentFields | undefined): 'not_started
 
 const cutoff = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
+/**
+ * B3.0.1 / B3-S01: another coach's relationship as the ACTIVE coach may see
+ * it — the timeline facts only (who, when, how it ended). No subscription,
+ * price, history, invite code or creator. Same document shape, fields omitted.
+ */
+function timelineOnly(r: CoachClientDoc): CoachClientDoc {
+  const { _id, coachId, clientId, status, createdAt, endedAt, endReason, mode, updatedAt } = r;
+  // B3.4 / B3-S13: earlier stints of the same pair — their facts only, like the stint itself.
+  const stints = (r.previousStints ?? []).map((p) => ({ status: p.status, createdAt: p.createdAt, updatedAt: p.updatedAt, archivedAt: p.archivedAt, ...(p.endedAt != null ? { endedAt: p.endedAt } : {}), ...(p.endReason ? { endReason: p.endReason } : {}), ...(p.mode ? { mode: p.mode } : {}) }));
+  return { _id, coachId, clientId, status, createdAt, updatedAt, ...(endedAt != null ? { endedAt } : {}), ...(endReason ? { endReason } : {}), ...(mode ? { mode } : {}), ...(stints.length ? { previousStints: stints } : {}) } as CoachClientDoc;
+}
+
 const SubscriptionStatusEnum = z.enum(['trial', 'active', 'pending', 'expired', 'cancelled', 'frozen', 'ended']);
 const BillingCycleEnum = z.enum(['weekly', 'monthly', 'quarterly', 'custom']);
 
+/**
+ * B3.8: a term is set on calendar days (`startDate` in the coach device's `zone`; 1 month = 30
+ * days) and in EGP only. `startAt` is still accepted from apps older than B3.8 (their local
+ * midnight). A currency other than EGP is refused (`UNSUPPORTED_CURRENCY`).
+ */
 const ClientSubscriptionInputSchema = z.object({
   status: SubscriptionStatusEnum,
-  months: z.number().int().positive().optional(),
-  days: z.number().int().positive().optional(),
-  trialDays: z.number().int().positive().optional(),
-  price: z.number().nonnegative().optional(),
-  currency: z.string().trim().max(10).optional(),
+  months: TermMonthsSchema.optional(),
+  days: TermDaysSchema.optional(),
+  trialDays: TermDaysSchema.optional(),
+  price: PriceSchema.optional(),
+  currency: CurrencyInputSchema,
   planName: z.string().trim().max(120).optional(),
   billingCycle: BillingCycleEnum.optional(),
   startAt: z.number().optional(),
+  startDate: DateKeySchema.optional(),
+  zone: TimeZoneSchema.optional(),
 });
 
+const TermFields = {
+  startDate: DateKeySchema.optional(),
+  zone: TimeZoneSchema.optional(),
+  months: TermMonthsSchema.optional(),
+  days: TermDaysSchema.optional(),
+  currency: CurrencyInputSchema,
+};
+
+/**
+ * B3.8 (Fix C): `newTerm` / `renew` / `correct` carry their meaning. `setTerm` / `setPrice` (the
+ * pre-B3.8 operations) still parse so an older app gets `APP_UPDATE_REQUIRED`, not a bare
+ * validation error.
+ */
 const SubscriptionActionSchema = z.discriminatedUnion('op', [
+  z.object({ op: z.literal('newTerm'), status: z.enum(['active', 'trial']).optional(), ...TermFields, price: PriceSchema.optional(), planName: z.string().trim().max(120).optional() }),
+  z.object({ op: z.literal('renew'), ...TermFields, price: PriceSchema.optional(), planName: z.string().trim().max(120).optional() }),
   z.object({
-    op: z.literal('setTerm'),
-    startAt: z.number(),
-    months: z.number().int().positive().optional(),
-    days: z.number().int().positive().optional(),
-    price: z.number().nonnegative().optional(),
-    currency: z.string().trim().max(10).optional(),
-    planName: z.string().trim().max(120).optional(),
+    op: z.literal('correct'),
+    reason: z.enum(['correction', 'changePackage']).optional(),
+    ...TermFields,
+    price: PriceSchema.nullable().optional(),
+    planName: z.string().trim().max(120).nullable().optional(),
   }),
-  z.object({ op: z.literal('setPrice'), price: z.number().nonnegative(), currency: z.string().trim().max(10).optional() }),
+  z.object({ op: z.literal('setTerm') }).passthrough(),
+  z.object({ op: z.literal('setPrice') }).passthrough(),
   z.object({ op: z.literal('freeze'), from: z.number(), until: z.number(), note: z.string().trim().max(500).optional() }),
   z.object({ op: z.literal('unfreeze') }),
   z.object({ op: z.literal('end') }),
   z.object({ op: z.literal('cancel') }),
-  z.object({ op: z.literal('extend'), days: z.number().int().positive() }),
+  z.object({ op: z.literal('extend'), days: TermDaysSchema }),
 ]);
 
 function parseId(id: string): { coachId: string; clientId: string } {
@@ -62,7 +98,10 @@ function parseId(id: string): { coachId: string; clientId: string } {
 export const coachClientsRouter = router({
   /**
    * `?coachId=` : that coach's relationships (self, or `users.read`), filtered by `status` (default `active`).
-   * `?clientId=`: that client's full history, newest first (self, their assigned coach, or `users.read`).
+   * `?clientId=`: that client's history, newest first. Full for the client themself and `users.read`.
+   *               B3.0.1 / B3-S01: a coach with an ACTIVE relationship gets their own records in full
+   *               and other coaches' as timeline facts only; a former coach gets only their own
+   *               records; anyone else FORBIDDEN.
    * neither     : "my own" list — a coach's active roster, or a client's own coaching history.
    */
   list: authedProcedure
@@ -71,18 +110,30 @@ export const coachClientsRouter = router({
         coachId: z.string().trim().min(1).optional(),
         clientId: z.string().trim().min(1).optional(),
         status: z.enum(['active', 'ended', 'pending', 'all']).optional(),
+        /**
+         * B3.3 (additive): `summary` leaves out the audit trail (`subscriptionEvents`, up to 200 per
+         * relationship), the archived terms and the invite code — a roster screen needs the current
+         * term only, and a 100-client roster otherwise ships megabytes on every refresh. Default `full`.
+         */
+        view: z.enum(['full', 'summary']).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
       const col = await coachClientsCol();
+      // B3.4: archived stints (B3-S13) are history too — not part of the summary.
+      const projection = input.view === 'summary' ? { subscriptionEvents: 0, subscriptionHistory: 0, inviteCode: 0, previousStints: 0 } : undefined;
 
       if (input.clientId) {
         const all = await col.find({ clientId: input.clientId }).sort({ createdAt: -1 }).toArray();
-        if (ctx.user.id !== input.clientId && !canReadAll && !all.some((r) => r.coachId === ctx.user.id)) {
-          throw new TRPCError({ code: 'FORBIDDEN' });
-        }
-        return all;
+        if (ctx.user.id === input.clientId) return all;
+        // B38F-R2: another reader (an admin) sees the coaching facts, never a coach's package economics.
+        if (canReadAll) return all.map((r) => (seesPackageEconomics(r, ctx.user.id) ? r : withoutPackageEconomics(r)));
+        const own = all.filter((r) => r.coachId === ctx.user.id);
+        if (own.length === 0) throw new TRPCError({ code: 'FORBIDDEN' });
+        const isActiveCoach = ctx.user.role === 'coach' && own.some((r) => r.status === 'active');
+        if (!isActiveCoach) return own; // a former coach keeps only their own business record
+        return all.map((r) => (r.coachId === ctx.user.id ? r : timelineOnly(r)));
       }
 
       if (input.coachId) {
@@ -90,13 +141,14 @@ export const coachClientsRouter = router({
         const filter: Record<string, unknown> = { coachId: input.coachId };
         if (input.status && input.status !== 'all') filter.status = input.status;
         else if (!input.status) filter.status = 'active';
-        return col.find(filter).sort({ createdAt: -1 }).toArray();
+        const rels = await col.find(filter, { projection }).sort({ createdAt: -1 }).toArray();
+        return ctx.user.id === input.coachId ? rels : rels.map(withoutPackageEconomics);
       }
 
       if (ctx.user.role === 'coach') {
         const filter: Record<string, unknown> = { coachId: ctx.user.id };
         filter.status = input.status && input.status !== 'all' ? input.status : 'active';
-        return col.find(filter).sort({ createdAt: -1 }).toArray();
+        return col.find(filter, { projection }).sort({ createdAt: -1 }).toArray();
       }
       if (ctx.user.role === 'client') {
         return col.find({ clientId: ctx.user.id }).sort({ createdAt: -1 }).toArray();
@@ -118,7 +170,8 @@ export const coachClientsRouter = router({
       const coachId = input.coachId ?? ctx.user.id;
       if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
       const col = await coachClientsCol();
-      const rels = await col.find({ coachId, status: 'active' }).sort({ createdAt: -1 }).toArray();
+      // B3.9 (PF-14): only the ids are needed — not each relationship's history and terms.
+      const rels = await col.find({ coachId, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).sort({ createdAt: -1 }).toArray();
       if (rels.length === 0) return [];
       const clientIds = [...new Set(rels.map((r) => r.clientId))];
       const users = await usersCol();
@@ -139,6 +192,17 @@ export const coachClientsRouter = router({
    * AND `CoachAssessments` (assessment) — one summary, three screens, per the
    * performance closeout's "don't build three near-identical endpoints" ask.
    * Same authorization as `listMyClientUsers`.
+   *
+   * B3.2 (owner O-7, additive): `hasWorkoutPlan` / `hasNutritionPlan` — the
+   * client's plan has content (≥ 1 training day / ≥ 1 meal). A saved plan with
+   * no days or meals counts as no plan. Two more bounded queries on `_id`
+   * (one plan document per client); only the array sizes leave the database.
+   *
+   * B3.3 (owner, 2026-10-17): `toReview` is THIS coach's work only — a
+   * submitted check-in this coach requested (`coachId`), or a legacy one
+   * without `coachId` submitted after this relationship began. A previous
+   * coach's check-in on a transferred client no longer flags the client for
+   * the new coach (same rule as Today's `isMyCheckIn`, `src/lib/coachToday.ts`).
    */
   dashboardSummaries: authedProcedure
     .input(z.object({ coachId: z.string().trim().min(1).optional() }))
@@ -147,29 +211,52 @@ export const coachClientsRouter = router({
       const coachId = input.coachId ?? ctx.user.id;
       if (ctx.user.id !== coachId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
       const relCol = await coachClientsCol();
-      const rels = await relCol.find({ coachId, status: 'active' }).toArray();
+      const rels = await relCol.find({ coachId, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).toArray();
       const clientIds = [...new Set(rels.map((r) => r.clientId))];
       if (clientIds.length === 0) return [];
+      const relStart = new Map(rels.map((r) => [r.clientId, Number(r.createdAt ?? 0)]));
 
       const since = cutoff(7);
       const syncCol = await syncRecordsCol();
       const profilesCol = await clientProfilesCol();
       const checkinsCol = await checkInsCol();
+      const workoutPlans = await clientWorkoutPlansCol();
+      const nutritionPlans = await clientNutritionPlansCol();
+      const sizeOf = (field: string) => ({ $cond: [{ $isArray: `$${field}` }, { $size: `$${field}` }, 0] });
 
-      const [workoutRows, profileDocs, submittedClientIds] = await Promise.all([
+      const finished = { clientId: { $in: clientIds }, collection: 'workoutLogs', 'data.finished': true };
+      const [weekRows, lastRows, profileDocs, submittedCheckIns, workoutPlanRows, nutritionPlanRows] = await Promise.all([
+        // B3.9 (PF-14): the 7-day count reads only the last 7 days (it used to read every workout ever) …
         syncCol
-          .aggregate<{ _id: string; workouts7d: number; lastActivity: string | null }>([
-            { $match: { clientId: { $in: clientIds }, collection: 'workoutLogs', 'data.finished': true } },
-            { $group: { _id: '$clientId', workouts7d: { $sum: { $cond: [{ $gte: ['$data.date', since] }, 1, 0] } }, lastActivity: { $max: '$data.date' } } },
+          .aggregate<{ _id: string; workouts7d: number }>([{ $match: { ...finished, 'data.date': { $gte: since } } }, { $group: { _id: '$clientId', workouts7d: { $sum: 1 } } }])
+          .toArray(),
+        // … and the last workout is each client's newest date, read in the order of the
+        // `clientId_collection_finished_date` index (an index-only scan — no log document is loaded).
+        syncCol
+          .aggregate<{ _id: string; lastActivity: string | null }>([
+            { $match: finished },
+            { $sort: { clientId: 1, collection: 1, 'data.finished': 1, 'data.date': -1 } },
+            { $group: { _id: '$clientId', lastActivity: { $first: '$data.date' } } },
           ])
           .toArray(),
         profilesCol.find({ _id: { $in: clientIds } }).toArray(),
-        checkinsCol.distinct('clientId', { clientId: { $in: clientIds }, status: 'submitted' }),
+        checkinsCol
+          .find({ clientId: { $in: clientIds }, status: 'submitted' }, { projection: { clientId: 1, coachId: 1, submittedAt: 1, createdAt: 1 } })
+          .toArray(),
+        workoutPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('days') } }]).toArray(),
+        nutritionPlans.aggregate<{ _id: string; n: number }>([{ $match: { _id: { $in: clientIds } } }, { $project: { n: sizeOf('meals') } }]).toArray(),
       ]);
 
-      const workoutByClient = new Map(workoutRows.map((r) => [r._id, r]));
+      const weekByClient = new Map(weekRows.map((r) => [r._id, r.workouts7d]));
+      const workoutByClient = new Map(lastRows.map((r) => [r._id, { workouts7d: weekByClient.get(r._id) ?? 0, lastActivity: r.lastActivity }]));
       const profileByClient = new Map(profileDocs.map((d) => [d.clientId, d]));
-      const toReviewSet = new Set(submittedClientIds);
+      const toReviewSet = new Set(
+        submittedCheckIns
+          .filter((c) => (c.coachId ? c.coachId === coachId : (c.submittedAt ?? c.createdAt ?? 0) >= (relStart.get(c.clientId) ?? 0)))
+          .map((c) => c.clientId),
+      );
+      const withWorkoutPlan = new Set(workoutPlanRows.filter((r) => r.n > 0).map((r) => r._id));
+      const withNutritionPlan = new Set(nutritionPlanRows.filter((r) => r.n > 0).map((r) => r._id));
 
       return clientIds.map((clientId) => {
         const w = workoutByClient.get(clientId);
@@ -182,6 +269,8 @@ export const coachClientsRouter = router({
           assessment: assessmentStatusOf(profile?.assessment),
           fullName,
           toReview: toReviewSet.has(clientId),
+          hasWorkoutPlan: withWorkoutPlan.has(clientId),
+          hasNutritionPlan: withNutritionPlan.has(clientId),
         };
       });
     }),
@@ -192,7 +281,7 @@ export const coachClientsRouter = router({
     if (!doc) throw new TRPCError({ code: 'NOT_FOUND', message: 'Relationship not found' });
     const canReadAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'users.read');
     if (ctx.user.id !== doc.coachId && ctx.user.id !== doc.clientId && !canReadAll) throw new TRPCError({ code: 'FORBIDDEN' });
-    return doc;
+    return seesPackageEconomics(doc, ctx.user.id) ? doc : withoutPackageEconomics(doc);
   }),
 
   /** CASE 1 — a coach (or an admin with `coaches.assign`) assigns an UNASSIGNED existing client to a coach, with a required subscription. */
@@ -208,6 +297,7 @@ export const coachClientsRouter = router({
       } else {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
+      assertSupportedCurrency(input.subscription.currency);
       return assignExistingClient(coachId, input.clientId, ctx.user.id, input.subscription as ClientSubscriptionInput);
     }),
 
@@ -223,15 +313,41 @@ export const coachClientsRouter = router({
       return endRelationship(coachId, clientId, ctx.user.id, endReason);
     }),
 
-  /** The owning coach (or an admin with `clients.writeAll`) mutates an EXISTING relationship's subscription in place. */
+  /**
+   * The owning coach (or an admin with `clients.writeAll`) mutates an EXISTING
+   * relationship's subscription in place. B3.0.1: the owning coach only while
+   * the relationship is ACTIVE (B3-S05 → CONFLICT `RELATIONSHIP_ENDED`); an
+   * admin may correct any relationship, and every admin change is audited
+   * (owner R-2). Extend / Freeze / Unfreeze follow the approved S07 rules.
+   */
   updateSubscription: protectedProcedure
-    .input(z.object({ id: z.string().min(1), sub: SubscriptionActionSchema }))
+    .input(
+      z.object({
+        id: z.string().min(1),
+        sub: SubscriptionActionSchema,
+        /** B3.8: idempotency key — a retried change with the same key is applied once. */
+        requestId: z.string().trim().min(8).max(100).optional(),
+        /** B3.8: `correct` only — the term the coach was looking at (refused if it was renewed meanwhile). */
+        expectedTermId: z.string().trim().max(64).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const { coachId, clientId } = parseId(input.id);
       const isOwningCoach = ctx.user.role === 'coach' && coachId === ctx.user.id;
       const canWriteAll = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll');
       if (!isOwningCoach && !canWriteAll) throw new TRPCError({ code: 'FORBIDDEN' });
-      return updateSubscription(coachId, clientId, input.sub as SubscriptionAction);
+      if ('currency' in input.sub) assertSupportedCurrency(input.sub.currency as string | undefined);
+      const actorRole = isOwningCoach ? 'coach' : 'admin';
+      const res = await updateSubscription(coachId, clientId, input.sub as SubscriptionAction, { actorRole, requireActive: isOwningCoach, requestId: input.requestId, expectedTermId: input.expectedTermId });
+      if (actorRole === 'admin' && res.changed) {
+        await writeAudit(ctx.user, `subscription.${input.sub.op}`, clientId, {
+          relationshipId: input.id,
+          relationshipStatus: res.doc.status,
+          before: res.event.before,
+          after: res.event.after,
+        });
+      }
+      return res.doc;
     }),
 
   /** Admin-only reassignment (`coaches.assign`; `clients.writeAll` additionally required for `mode: 'fresh_start'`). */
@@ -247,6 +363,7 @@ export const coachClientsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { coachId, clientId } = parseId(input.id);
+      assertSupportedCurrency(input.newSubscription?.currency);
       const canAssign = hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'coaches.assign');
       if (!canAssign) throw new TRPCError({ code: 'FORBIDDEN' });
       if (input.mode === 'fresh_start' && !hasPermission(ctx.user.role, ctx.user.accountStatus, ctx.user.permissions, 'clients.writeAll')) {

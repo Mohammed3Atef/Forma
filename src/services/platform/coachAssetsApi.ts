@@ -1,13 +1,11 @@
 import { trpc, TRPCClientError } from '@/services/trpc';
 import { uid } from '@/lib/utils';
-import { getClientWorkoutPlan, saveClientMealPlan, saveClientWorkoutPlan } from './planApi';
-import { saveAsNewVersion } from './planVersionsApi';
+import { saveClientWorkoutPlan } from './planApi';
 import type {
   Exercise,
   FoodGroup,
   LibraryFood,
   LibrarySupplement,
-  MealPlan,
   NutritionTemplate,
   WorkoutDay,
   WorkoutPlan,
@@ -145,10 +143,7 @@ export async function duplicateWorkoutTemplate(template: WorkoutTemplate): Promi
  * can always restore it from Plan Version History even after a one-tap assign.
  */
 export async function assignWorkoutTemplate(template: WorkoutTemplate, clientId: string, assignedBy: string): Promise<void> {
-  const existing = await getClientWorkoutPlan(clientId);
-  if (existing) {
-    await saveAsNewVersion(clientId, 'workout', existing, assignedBy, `Auto-saved before assigning template "${template.name}"`);
-  }
+  // The server snapshots the current plan as a version before replacing it (B0 / CO-01).
   const body = snapshotPlanBody({ days: template.days, exercises: template.exercises });
   const now = Date.now();
   const plan: WorkoutPlan = {
@@ -165,7 +160,7 @@ export async function assignWorkoutTemplate(template: WorkoutTemplate, clientId:
     },
     updatedAt: now,
   };
-  await saveClientWorkoutPlan(clientId, plan);
+  await saveClientWorkoutPlan(clientId, plan, { replaceExisting: true, versionReason: `Assigned template "${template.name}"` });
 }
 
 /** Save a (possibly customized) client workout plan back as a new reusable template. */
@@ -272,28 +267,3 @@ export async function listNutritionTemplates(coachId: string): Promise<Nutrition
   return trpc.coachAssets.nutritionTemplates.list.query({ coachId });
 }
 
-export async function saveNutritionTemplate(template: NutritionTemplate): Promise<void> {
-  await trpc.coachAssets.nutritionTemplates.save.mutate(template);
-}
-
-export async function deleteNutritionTemplate(_coachId: string, id: string): Promise<void> {
-  await trpc.coachAssets.nutritionTemplates.delete.mutate({ id });
-}
-
-/** Snapshot a nutrition template into a client's assigned meal plan (independent copy). */
-export async function assignNutritionTemplate(template: NutritionTemplate, clientId: string, assignedBy: string): Promise<void> {
-  const now = Date.now();
-  const plan: MealPlan = {
-    id: uid('mplan'),
-    name: template.name,
-    meals: template.meals.map((m) => ({ ...m, id: uid('meal'), items: m.items.map((it) => ({ ...it, id: uid('food') })) })),
-    targets: { ...template.targets },
-    supplements: template.supplements.map((s) => ({ ...s, id: uid('supp') })),
-    waterTargetMl: template.waterTargetMl,
-    beverageNotes: [],
-    generalNotes: [],
-    meta: { sourceTemplateId: template.id, sourceTemplateName: template.name, assignedAt: now, assignedBy, isCustomized: false },
-    updatedAt: now,
-  };
-  await saveClientMealPlan(clientId, plan);
-}

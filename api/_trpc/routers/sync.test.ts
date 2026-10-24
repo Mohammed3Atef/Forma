@@ -121,27 +121,20 @@ describe('sync module', () => {
     expect(got?.data).toEqual({ theme: 'light' });
   });
 
-  it('wipe deletes ALL of the caller\'s own synced data (records, deletions, singletons) and nothing else\'s', async () => {
+  it('B0 / CL-44: a client cannot wipe the synced history the coach reviews (no wipe procedure exists)', async () => {
     const asClient = appRouter.createCaller(ctxFor(client));
-    const asOtherClient = appRouter.createCaller(ctxFor(otherClient));
     await asClient.sync.push({ collection: 'weightLogs', records: [{ id: '2026-09-01', updatedAt: 100, data: { weightKg: 80 } }] });
-    await asClient.sync.singletonSet({ name: 'settings', data: { theme: 'dark' }, updatedAt: 100 });
-    await asOtherClient.sync.push({ collection: 'weightLogs', records: [{ id: '2026-09-01', updatedAt: 100, data: { weightKg: 70 } }] });
-
-    await asClient.sync.wipe();
-
-    expect((await asClient.sync.pull({ collection: 'weightLogs' })).records).toHaveLength(0);
-    expect(await asClient.sync.singletonGet({ name: 'settings' })).toBeNull();
-    expect((await asOtherClient.sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
+    const syncRouter = asClient.sync as unknown as Record<string, () => Promise<unknown>>;
+    await expect(syncRouter.wipe()).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect((await asClient.sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
   });
 
-  it('a pending or suspended account can still push/pull/wipe its own data — matches the old REST handlers, which never checked accountStatus', async () => {
+  it('a pending or suspended account can still push/pull its own data — matches the old REST handlers, which never checked accountStatus', async () => {
     const asSuspended = appRouter.createCaller(ctxFor(suspendedClient));
     const asPending = appRouter.createCaller(ctxFor(pendingClient));
 
     await asSuspended.sync.push({ collection: 'weightLogs', records: [{ id: '2026-09-01', updatedAt: 100, data: { weightKg: 80 } }] });
     expect((await asSuspended.sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);
-    await asSuspended.sync.wipe();
 
     await asPending.sync.push({ collection: 'weightLogs', records: [{ id: '2026-09-01', updatedAt: 100, data: { weightKg: 60 } }] });
     expect((await asPending.sync.pull({ collection: 'weightLogs' })).records).toHaveLength(1);

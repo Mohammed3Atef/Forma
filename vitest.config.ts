@@ -26,7 +26,7 @@ export default defineConfig({
         test: {
           name: 'api',
           environment: 'node',
-          include: ['api/**/*.test.ts', 'src/lib/**/*.test.ts'],
+          include: ['api/**/*.test.ts', 'src/lib/**/*.test.ts', 'scripts/**/*.test.ts'],
           testTimeout: 30_000, // mongodb-memory-server's first binary download/start can be slow
           hookTimeout: 60_000,
         },

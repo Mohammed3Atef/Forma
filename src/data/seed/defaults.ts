@@ -1,4 +1,4 @@
-import type { AppSettings, Reminder, UserProfile } from '@/types';
+import type { AppSettings, UserProfile } from '@/types';
 
 /**
  * Blank default profile. A fresh install must NOT carry anyone's personal
@@ -27,36 +27,8 @@ export const SEED_SETTINGS: AppSettings = {
   keepAwakeDuringWorkout: true,
   vibrationEnabled: true,
   notificationsEnabled: false,
-  targets: {
-    calories: 1815,
-    protein: 158,
-    carbs: 180,
-    fats: 53,
-    waterMl: 4000,
-    steps: 10000,
-    cardioMinutes: 40,
-  },
+  // No targets until the coach assigns them (Forma is coach-driven).
+  targets: { calories: 0, protein: 0, carbs: 0, fats: 0, waterMl: 0, steps: 0, cardioMinutes: 0 },
   customMeasurements: [],
   updatedAt: 0,
 };
-
-/** Sensible default reminders (disabled until the user opts in). */
-const rem = (
-  id: string,
-  kind: Reminder['kind'],
-  label: string,
-  time: string,
-): Reminder => ({ id, kind, label, time, enabled: false, repeatDays: [], updatedAt: 0, dirty: false });
-
-export const SEED_REMINDERS: Reminder[] = [
-  rem('rem_meal1', 'meal', 'Meal 1 (breakfast)', '08:00'),
-  rem('rem_meal2', 'meal', 'Meal 2 (lunch)', '12:30'),
-  rem('rem_meal3', 'meal', 'Meal 3 (dinner)', '16:30'),
-  rem('rem_meal4', 'meal', 'Meal 4 (snack)', '20:00'),
-  rem('rem_supps', 'supplements', 'Vitamins after breakfast', '08:30'),
-  rem('rem_mag', 'supplements', 'Mag White before sleep', '23:15'),
-  rem('rem_creatine', 'creatine', 'Creatine', '17:00'),
-  rem('rem_water', 'water', 'Drink water', '14:00'),
-  rem('rem_workout', 'workout', 'Workout time', '18:00'),
-  rem('rem_cardio', 'cardio', 'Cardio / walk', '19:00'),
-];

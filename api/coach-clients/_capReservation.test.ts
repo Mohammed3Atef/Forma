@@ -235,10 +235,10 @@ describe('failure after the reservation', () => {
     await givePlan(coach._id, 1);
     const asCoach = appRouter.createCaller(ctxFor(authed(coach)));
 
-    // First `updateOne` after the reservation is the relationship upsert.
-    const original = Collection.prototype.updateOne;
+    // The relationship write after the reservation (B3.4 / B3-S13: a compare-and-set `replaceOne`, was an `updateOne` upsert).
+    const original = Collection.prototype.replaceOne;
     let armed = true;
-    vi.spyOn(Collection.prototype, 'updateOne').mockImplementation(function (this: Collection, ...args: Parameters<typeof original>) {
+    vi.spyOn(Collection.prototype, 'replaceOne').mockImplementation(function (this: Collection, ...args: Parameters<typeof original>) {
       if (armed && this.collectionName === 'coachClients') {
         armed = false;
         return Promise.reject(new Error('simulated write failure'));
@@ -309,6 +309,8 @@ describe('failure after the reservation', () => {
     await expect(transferClientWithMode('client-a', from._id, to._id, 'keep_plans', 'keep', 'sa')).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'Destination coach: client capacity reached — add client capacity to take on more clients',
+      // B3.9: the reason names the receiving coach, so the approving coach's UI says whose capacity it is.
+      cause: { reason: 'DESTINATION_CAPACITY_REACHED' },
     });
     expect((await db.collection<CoachClientDoc>('coachClients').findOne({ _id: `${from._id}__client-a` }))?.status).toBe('active');
     expect(await planCount(from._id)).toBe(1);

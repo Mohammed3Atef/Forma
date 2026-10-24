@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { cloudAvailable } from '@/data/dataSource';
 import { useSession } from '@/services/auth/sessionStore';
 import { fetchMyCoachNotes, fetchMyCoachTargets } from '@/services/platform/clientCoachApi';
 
@@ -10,10 +9,11 @@ import { fetchMyCoachNotes, fetchMyCoachTargets } from '@/services/platform/clie
  */
 export function useCoachContent() {
   const uid = useSession((s) => s.uid);
-  const enabled = cloudAvailable() && !!uid && uid !== 'local-user';
+  const enabled = !!uid;
   const cid = uid ?? '';
 
-  const notes = useQuery({ queryKey: ['myCoachNotes', cid], queryFn: () => fetchMyCoachNotes(cid), enabled });
+  // Same key as ClientNotesProvider — one cache entry, one fetch (B0 / RM-84).
+  const notes = useQuery({ queryKey: ['coachNotes', cid], queryFn: () => fetchMyCoachNotes(cid), enabled });
   const targets = useQuery({ queryKey: ['myCoachTargets', cid], queryFn: () => fetchMyCoachTargets(cid), enabled });
 
   const hasContent = enabled && ((notes.data?.length ?? 0) > 0 || !!targets.data);

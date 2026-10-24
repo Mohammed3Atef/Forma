@@ -1,6 +1,6 @@
-import { Collection } from 'mongodb';
+import type { Collection, Filter } from 'mongodb';
 import { getDb } from '../../_lib/mongodb.js';
-import { getActiveCoachClientIds } from '../_data.js';
+import { coachClientsCol, getAssignedCoachId } from '../_data.js';
 import type { AuthedUser } from '../../_trpc/context.js';
 
 /**
@@ -11,22 +11,8 @@ import type { AuthedUser } from '../../_trpc/context.js';
  * (minus `id`, which Mongo gives us as `_id`) so a future polling-hook swap is
  * a clean drop-in.
  */
-export type NotificationType =
-  | 'coach_note'
-  | 'plan_assigned'
-  | 'targets_updated'
-  | 'subscription_updated'
-  | 'freeze_decided'
-  | 'measurement_added'
-  | 'assessment_reviewed'
-  | 'freeze_requested'
-  | 'assessment_submitted'
-  | 'checkin_requested'
-  | 'checkin_submitted'
-  | 'checkin_reviewed'
-  | 'message_received'
-  | 'trial_expiring'
-  | 'plan_change_requested';
+import type { NotificationType } from '../../_lib/notificationTypes.js';
+export type { NotificationType };
 
 /**
  * Backend-local mirror of `src/types/index.ts`'s `NoteScreen` — kept in sync
@@ -62,6 +48,24 @@ export interface NotificationDoc {
   entityType?: NoteEntityType;
   entityId?: string;
   route?: string;
+  /** coach_note only: set when the note was explicitly shared with the client. */
+  noteVisibility?: 'client';
+  /**
+   * B3.0.1 / B3-S14: for a coach-bound notification, the coach it is FOR (the
+   * client's coach when it was raised). A coach's feed only shows their own;
+   * rows written before B3.0.1 have none and are shown only to the coach whose
+   * current relationship was already active when they were created.
+   */
+  coachId?: string;
+  /**
+   * B0 / NT-03 — three states, one meaning each:
+   *  - `seenAt`     READ: the user saw it (opened it, opened the thread, or "Mark all read").
+   *                 The unread badge counts rows with `seenAt: null`.
+   *  - `resolvedAt` DONE: the task it asked for was completed (check-in submitted /
+   *                 reviewed, freeze decided, assessment reviewed, thread read).
+   *                 Resolving also marks it read, so a finished task never stays unread.
+   */
+  resolvedAt?: number | null;
   seenAt?: number | null;
   createdAt: number;
   createdBy: string;
@@ -70,6 +74,21 @@ export interface NotificationDoc {
 
 /** The exact shape returned to the frontend — same fields as `AppNotification`, `id` instead of `_id`. */
 export type PublicNotification = Omit<NotificationDoc, '_id'> & { id: string };
+
+/**
+ * Marks every open notification matching `match` as DONE (and read) — called
+ * by the handler that completes the task (B0 / NT-03). Best-effort: a failure
+ * here must never fail the primary action.
+ */
+export async function resolveNotifications(match: { clientId: string; forRole: 'client' | 'coach'; type: NotificationType; entityId?: string }): Promise<void> {
+  try {
+    const now = Date.now();
+    const col = await notificationsCol();
+    await col.updateMany({ ...match, resolvedAt: null }, [{ $set: { resolvedAt: now, seenAt: { $ifNull: ['$seenAt', now] }, updatedAt: now } }]);
+  } catch (e) {
+    console.warn('[notifications] resolve failed (non-fatal):', e);
+  }
+}
 
 export function toPublicNotification(doc: NotificationDoc): PublicNotification {
   const { _id, ...rest } = doc;
@@ -110,6 +129,10 @@ export async function createNotification(n: NewNotification): Promise<void> {
     if (n.entityType != null) doc.entityType = n.entityType;
     if (n.entityId != null) doc.entityId = n.entityId;
     if (n.route != null) doc.route = n.route;
+    if (n.forRole === 'coach') {
+      const coachId = n.coachId ?? (await getAssignedCoachId(n.clientId));
+      if (coachId) doc.coachId = coachId;
+    }
     await col.insertOne(doc);
   } catch (e) {
     console.warn('[createNotification] write failed (non-fatal):', e);
@@ -123,14 +146,24 @@ export async function createNotification(n: NewNotification): Promise<void> {
  * own doc (self-addressed alerts). Admin/super_admin have no notifications-
  * collection feed today (their signal is the separate coachPlanChangeRequests
  * flow, out of scope here) — returns `null` for them, meaning "empty feed".
+ *
+ * B3.0.1 / B3-S14: per active client, a coach sees only notifications raised
+ * FOR them (`coachId == me`), plus legacy rows (no `coachId`) created since
+ * their current relationship began — never an earlier coach's previews.
  */
-export async function feedFilter(user: AuthedUser): Promise<{ clientId: string | { $in: string[] }; forRole: 'client' | 'coach' } | null> {
+export async function feedFilter(user: AuthedUser): Promise<Filter<NotificationDoc> | null> {
   if (user.role === 'client') {
     return { clientId: user.id, forRole: 'client' };
   }
   if (user.role === 'coach') {
-    const clientIds = await getActiveCoachClientIds(user.id);
-    return { clientId: { $in: [user.id, ...clientIds] }, forRole: 'coach' };
+    const rels = await (await coachClientsCol()).find({ coachId: user.id, status: 'active' }, { projection: { clientId: 1, createdAt: 1 } }).toArray();
+    return {
+      forRole: 'coach',
+      $or: [
+        { clientId: user.id },
+        ...rels.map((r) => ({ clientId: r.clientId, $or: [{ coachId: user.id }, { coachId: { $exists: false }, createdAt: { $gte: r.createdAt } }] })),
+      ],
+    };
   }
   return null;
 }

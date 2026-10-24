@@ -1,6 +1,7 @@
 import { test, expect, shot } from '../fixtures';
 import type { Db } from '../fixtures';
-import { appReady, confirmYes, expectToast, fullAssessment, refocus, uniq } from './_b-helpers';
+import { appReady, confirmYes, expectToast, fullAssessment, openPlanBuilder, refocus, uniq } from './_b-helpers';
+import { addDays, cairoDay } from './_dates';
 
 test.setTimeout(120_000);
 
@@ -34,17 +35,17 @@ test('E-B-1 probe: plan editor renders for a client with a legacy (partial) asse
   const { page } = await as('coachB');
   await page.goto('/coach/client/e2e-client-b/workout');
   await appReady(page);
-  await expect(page.getByTestId('builder-plan')).toBeVisible({ timeout: 20_000 }).finally(() => shot(page, testInfo, '01-workout-editor-legacy-assessment'));
+  await openPlanBuilder(page).finally(() => shot(page, testInfo, '01-workout-editor-legacy-assessment'));
 });
 
 test('invite → anonymous claim → coach roster updates without reload', async ({ as, anon, db }, testInfo) => {
   test.setTimeout(150_000);
   const { page } = await as('coachPro');
   await page.goto('/coach/dashboard');
-  await appReady(page, 'coach-sidebar');
+  await appReady(page, 'coach-rail');
   await shot(page, testInfo, '01-dashboard');
 
-  await page.getByTestId('sidebar-coachClients').click();
+  await page.getByTestId('rail-clients').click();
   await expect(page).toHaveURL(/\/coach\/clients$/);
   await expect(page.getByTestId('coach-clients')).toBeVisible();
 
@@ -70,7 +71,11 @@ test('invite → anonymous claim → coach roster updates without reload', async
   await anonPage.goto(`/invite/${code}`);
   await expect(anonPage.getByTestId('invite-form')).toBeVisible();
   await expect(anonPage.getByTestId('invite-coach-name')).toContainText('Coach Pro');
-  await expect(anonPage.getByTestId('invite-email')).toHaveValue(email);
+  // B3.0.1 / B3-S03: the public lookup no longer returns the invitee's address — the claim
+  // screen shows a masked hint (read-only) and the server claims with the invite's own email.
+  await expect(anonPage.getByTestId('invite-email')).toHaveValue(`${email.charAt(0)}•••@e2e.test`);
+  await expect(anonPage.getByTestId('invite-email')).toHaveAttribute('readonly', '');
+  await expect(anonPage.getByTestId('invite-phone')).toHaveValue('');
   await anonPage.getByTestId('invite-phone').fill('+201555000111');
   await anonPage.getByTestId('invite-password').fill('Invite-Pass-2026!');
   await anonPage.getByTestId('invite-confirm').fill('Invite-Pass-2026!');
@@ -95,13 +100,15 @@ test('invite → anonymous claim → coach roster updates without reload', async
   //     is covered). Recorded: React Query v5 listens for visibilitychange only.
   await page.waitForTimeout(61_000); // let the 60 s staleTime lapse so a focus refetch is allowed
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  const seenOnWindowFocus = await table.getByText(email).waitFor({ timeout: 4_000 }).then(() => true).catch(() => false);
+  // B3.3: rows show no contact details — find the client by id.
+  const invitedRow = table.locator(`[data-client-id="${newUser!._id}"]`);
+  const seenOnWindowFocus = await invitedRow.waitFor({ timeout: 4_000 }).then(() => true).catch(() => false);
   testInfo.annotations.push({ type: 'window-focus-refetch', description: String(seenOnWindowFocus) });
   // (b) Tab becomes visible again (real tab switch → bubbling visibilitychange).
   let seenAfterMs = -1;
   await expect(async () => {
     await refocus(page);
-    await expect(table.getByText(email)).toBeVisible({ timeout: 2_000 });
+    await expect(invitedRow).toBeVisible({ timeout: 2_000 });
     seenAfterMs = Date.now() - t0;
   }).toPass({ timeout: 15_000, intervals: [1_000, 2_000] });
   testInfo.annotations.push({ type: 'roster-refresh-ms', description: String(seenAfterMs) });
@@ -125,11 +132,12 @@ test('Add Existing: search clientFree by email → Assign to me', async ({ as, d
   // Subscription: custom 1 month at 900.
   const sub = page.getByTestId('existing-assign-sub');
   await expect(sub).toHaveValue('custom');
-  await page.getByTestId('plan-custom').locator('input').nth(1).fill('900');
+  // B3.9.0 (B3-C07): the price field by its label (it was the custom row's 2nd <input> — any new field would shift it).
+  await page.getByTestId('plan-custom').getByLabel('Price (EGP)', { exact: true }).fill('900');
   await shot(page, testInfo, '01-existing-detail');
   await page.getByTestId('existing-assign').click();
-  await expectToast(page, 'Add client');
-  await expect(page.getByTestId('coach-desktop-clients').getByText(env.accounts.clientFree.email)).toBeVisible();
+  await expectToast(page, 'added to your clients'); // B3.9 (TS-06): toast titles say the outcome
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await shot(page, testInfo, '02-roster-has-free');
 
   const u = await db.findOne<{ assignedCoachId?: string }>('users', { _id: FREE });
@@ -148,7 +156,7 @@ test('workspace: workout plan built in PlanBuilder saves and survives reload', a
   const { page } = await as('coachPro');
   await page.goto(`/coach/client/${FREE}/workout`);
   await appReady(page, 'coach-workout-editor');
-  await expect(page.getByTestId('builder-plan')).toBeVisible();
+  await openPlanBuilder(page);
   const planName = uniq('Plan');
   await page.getByTestId('workout-plan-name').fill(planName);
   await page.getByTestId('builder-add-day').click();
@@ -197,6 +205,7 @@ test('workspace: nutrition plan saves and survives reload', async ({ as, db }, t
   await page.goto(`/coach/client/${FREE}/nutrition`);
   await appReady(page, 'coach-nutrition-editor');
   await expect(page.getByTestId('coach-nutrition-editor')).toBeVisible();
+  await openPlanBuilder(page, 'nutrition-plan-name');
   const name = uniq('Meals');
   await page.getByTestId('nutrition-plan-name').fill(name);
   await page.getByTestId('nutrition-target-calories').fill('2100');
@@ -211,10 +220,13 @@ test('workspace: nutrition plan saves and survives reload', async ({ as, db }, t
   await shot(page, testInfo, '01-nutrition-built');
   await page.getByTestId('nutrition-save').click();
   await expect(page.getByTestId('nutrition-saved')).toBeVisible();
-  const doc = await db.findOne<{ name: string; targets: { calories: number }; meals: { items: { name: { en: string } }[] }[] }>('clientNutritionPlans', { _id: FREE });
+  const doc = await db.findOne<{ name: string; targets: { calories: number }; meals: { label: { en: string; ar: string }; items: { name: { en: string } }[] }[] }>('clientNutritionPlans', { _id: FREE });
   expect(doc?.name).toBe(name);
   expect(doc?.targets?.calories).toBe(2100);
   expect(doc?.meals.flatMap((m) => m.items.map((i) => i.name.en))).toContain('E2E Oats');
+  // The added meal's generated name is stored in both languages (B37-R2).
+  const n = doc!.meals.length;
+  expect(doc!.meals[n - 1].label).toEqual({ en: `Meal ${n}`, ar: `وجبة ${n}` });
 
   await page.reload();
   await appReady(page, 'nutrition-plan-name');
@@ -230,6 +242,7 @@ test('workspace: cardio plan saves and survives reload', async ({ as, db }, test
   await page.goto(`/coach/client/${FREE}/cardio`);
   await appReady(page, 'coach-cardio-editor');
   await expect(page.getByTestId('coach-cardio-editor')).toBeVisible();
+  await openPlanBuilder(page, 'cardio-plan-name');
   const name = uniq('Cardio');
   await page.getByTestId('cardio-plan-name').fill(name);
   await page.getByTestId('cardio-add-session').first().click();
@@ -278,7 +291,7 @@ test('workspace: request a check-in → client sees it', async ({ as, db }, test
   const btn = page.getByTestId('checkin-request');
   await expect(btn).toBeEnabled();
   await btn.click();
-  await expectToast(page, 'Request Weekly Check-In');
+  await expectToast(page, 'Check-in requested'); // B3.9 (TS-06)
   await expect(btn).toBeDisabled();
   await expect(page.getByTestId('checkin-row')).toHaveCount(1);
   await shot(page, testInfo, '01-coach-requested');
@@ -296,26 +309,35 @@ test('workspace: subscription extend / freeze / unfreeze update without reload',
   await appReady(page, 'sub-status');
   const status = page.getByTestId('sub-status');
   await expect(status).toHaveText('Active');
-  const relBefore = await db.findOne<{ subscription: { endAt: number } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
-  const renews = page.getByTestId('coach-subscription').locator('p.font-mono.font-medium').first();
+  const relBefore = await db.findOne<{ subscription: { endAt: number; endDate?: string } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
+  // B3.8: the package card names the LAST covered day (a semantic test id — B3-C07).
+  const renews = page.getByTestId('sub-last-day');
   const renewBefore = await renews.textContent();
 
-  // Extend 30 days — confirm dialog.
+  // Extend 30 days — confirm dialog. (B3.4 / CO-14-R: Extend lives in "More package actions".)
+  await page.getByTestId('sub-more').click();
   await page.getByTestId('sub-extend').click();
   await expect(page.getByTestId('confirm-dialog')).toContainText('30');
   await confirmYes(page);
-  await expectToast(page, 'Extend');
+  await expectToast(page, 'Subscription extended'); // B3.9 (TS-06)
   await expect(renews).not.toHaveText(renewBefore ?? '');
-  const relExt = await db.findOne<{ subscription: { endAt: number } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
-  expect(relExt!.subscription.endAt - relBefore!.subscription.endAt).toBe(30 * 86_400_000);
+  const relExt = await db.findOne<{ subscription: { endAt: number; endDate?: string } }>('coachClients', { coachId: PRO, clientId: FREE, status: 'active' });
+  // B3.8: 30 CALENDAR days (a DST change in between makes it 30 × 24 h ± 1 h); a pre-B3.8 term: 30 × 24 h.
+  if (relBefore!.subscription.endDate && relExt!.subscription.endDate) {
+    expect((Date.parse(`${relExt!.subscription.endDate}T00:00:00Z`) - Date.parse(`${relBefore!.subscription.endDate}T00:00:00Z`)) / 86_400_000).toBe(30);
+  } else {
+    expect(relExt!.subscription.endAt - relBefore!.subscription.endAt).toBe(30 * 86_400_000);
+  }
   await shot(page, testInfo, '01-extended');
 
   // Freeze from today until +7 days.
   await page.getByTestId('sub-freeze').click();
-  const until = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  // B3.9.0: the date field is a Cairo calendar day (the browser's); `toISOString()` gave the UTC day (yesterday's
+  // Cairo date for the first hours after Cairo midnight) of an instant stepped 7 × 24 h.
+  const until = addDays(cairoDay(Date.now()), 7);
   await page.getByTestId('freeze-until').fill(until);
   await page.getByTestId('freeze-save').click();
-  await expectToast(page, 'Freeze');
+  await expectToast(page, 'Subscription frozen until'); // B3.9 (TS-06)
   await expect(status).toHaveText('Frozen');
   await expect(page.getByTestId('sub-unfreeze')).toBeVisible();
   await shot(page, testInfo, '02-frozen');
@@ -345,16 +367,17 @@ test('release the invited client → roster drops it, counter decremented', asyn
   const state = { invitedId: inv!._id, invitedEmail: inv!.email };
   const { page } = await as('coachPro');
   await page.goto(`/coach/client/${state.invitedId}`);
-  await appReady(page, 'coach-manage');
-  await page.getByTestId('coach-manage').click();
-  await page.getByTestId('coach-release-client').click();
-  await expect(page.getByText('Release this client?')).toBeVisible();
+  // B3.4 (CO-40 / VS-09): Release is in the workspace header's More menu — destructive, confirmed with its consequences.
+  await appReady(page, 'workspace-more');
+  await page.getByTestId('workspace-more').click();
+  await page.getByTestId('workspace-release').click();
+  await expect(page.getByTestId('confirm-dialog')).toContainText('history and progress stay safe');
   await shot(page, testInfo, '01-release-confirm');
-  await page.getByTestId('release-confirm').click();
-  await expect(page).toHaveURL(/\/coach(\/dashboard)?$/);
-  await page.getByTestId('sidebar-coachClients').click();
-  await expect(page.getByTestId('coach-desktop-clients').getByText(state.invitedEmail!)).toHaveCount(0);
-  await expect(page.getByTestId('coach-desktop-clients').getByText('client.free@e2e.test')).toBeVisible();
+  await confirmYes(page);
+  // The dead workspace is replaced: Clients.
+  await expect(page).toHaveURL(/\/coach\/clients$/);
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${state.invitedId}"]`)).toHaveCount(0);
+  await expect(page.getByTestId('coach-desktop-clients').locator(`[data-client-id="${FREE}"]`)).toBeVisible();
   await expect(page.getByTestId('coach-client-usage')).toContainText('1 / 25 clients used');
   await shot(page, testInfo, '02-roster-after-release');
 
@@ -373,5 +396,11 @@ test('restore seed state (clientFree unassigned, coachPro empty)', async ({ db }
   await db.updateOne('users', { _id: FREE }, { $unset: { assignedCoachId: '' } });
   if (inv) await db.updateOne('users', { _id: inv._id }, { $unset: { assignedCoachId: '' } });
   await db.updateOne('coachPlans', { _id: PRO }, { $set: { activeClientCount: 0 } });
+  // The coach content this file created for clientFree goes too: later specs (80 Journey A)
+  // rely on the seeded "no coach, no plan" client. (Found in the B3.0.1 full run; the same
+  // failure reproduces on the B2 commit be3e357 — a test-isolation gap, not product behaviour.)
+  for (const collection of ['clientWorkoutPlans', 'clientNutritionPlans', 'clientCardioPlans']) await db.deleteMany(collection, { _id: FREE });
+  for (const collection of ['coachNotes', 'checkIns', 'planVersions', 'notifications']) await db.deleteMany(collection, { clientId: FREE });
   expect(await db.count('coachClients', { coachId: PRO, status: 'active' })).toBe(0);
+  expect(await db.count('clientWorkoutPlans', { _id: FREE })).toBe(0);
 });

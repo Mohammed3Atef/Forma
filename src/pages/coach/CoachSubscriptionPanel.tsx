@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
-import { SelectField, TextAreaField } from '@/components/ui/Field';
+import { TextAreaField } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { SubscriptionHistory } from '@/components/SubscriptionHistory';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
@@ -14,48 +15,32 @@ import {
   extendSubscription,
   freezeSubscription,
   getRelationship,
-  setSubscriptionPrice,
-  setSubscriptionTerm,
   unfreezeSubscription,
 } from '@/services/platform/coachClientsApi';
 import { getClientFreezeRequest, resolveFreezeRequest } from '@/services/platform/coachApi';
-import { listCoachPlans } from '@/services/platform/coachPlansApi';
-import { effectiveSubscriptionStatus, subscriptionDaysLeft } from '@/lib/subscription';
-import { parseDecimal } from '@/lib/utils';
-import { useSession } from '@/services/auth/sessionStore';
+import { effectiveSubscriptionStatus, freezePending, freezeScheduled, isRunningTerm, termDaysLeft, termEndDay, termFirstDay, termLastDay, todayKey, unfreezeEndAt } from '@/lib/subscription';
+import { addDays } from '@/lib/civilDate';
+import { formatDate, formatMoney } from '@/lib/format';
 import { useCan } from '@/services/auth/permissions';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { Pill, type PillTone } from '@/components/ui/Pill';
+import { SubscriptionTermSheet, invalidateSubscription, primaryTermMode, toDate, toMs, todayStr, type TermSheetMode } from '@/components/coach/SubscriptionTermSheet';
+import { Pill } from '@/components/ui/Pill';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { ClientPaymentsCard } from '@/components/coach/ClientPaymentsCard';
+import { useCoachPlan, useWriteGate } from '@/components/coach/CoachPlanProvider';
+import { SUBSCRIPTION_TONE as SUB_TONE, ACCOUNT_TONE as ACCT_TONE } from '@/lib/statusTone';
 import type { AccountStatus, UserRecord } from '@/types';
 
-const SUB_TONE: Record<string, PillTone> = {
-  none: 'mute',
-  trial: 'brand',
-  active: 'ok',
-  pending: 'warn',
-  frozen: 'warn',
-  expired: 'bad',
-  cancelled: 'bad',
-  ended: 'bad',
-};
-const ACCT_TONE: Record<AccountStatus, PillTone> = {
-  active: 'ok',
-  pending: 'warn',
-  suspended: 'bad',
-  disabled: 'bad',
-};
 
-const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
-const toDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
-const todayStr = () => new Date().toISOString().slice(0, 10);
 
 /** Coach controls for a client's subscription, account status, and freeze requests. */
 export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientId: string; coachId: string; account: UserRecord | null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const online = useOnlineStatus();
-  const coachCurrency = useSession((s) => s.account?.currency) ?? 'EGP';
-  const [sheet, setSheet] = useState<'term' | 'freeze' | 'price' | null>(null);
+  const [sheet, setSheet] = useState<'freeze' | null>(null);
+  // B3.8 (Fix C): which package change the sheet makes — first package, renewal, or an edit.
+  const [termMode, setTermMode] = useState<TermSheetMode | null>(null);
 
   const rel = useQuery({ queryKey: ['relationship', coachId, clientId], queryFn: () => getRelationship(coachId, clientId), enabled: !!coachId && !!clientId });
   const request = useQuery({ queryKey: ['freezeRequest', clientId], queryFn: () => getClientFreezeRequest(clientId), enabled: !!clientId });
@@ -65,22 +50,19 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
   // (admins reviewing this panel); the coach's own tools are the
   // subscription actions below, which are relationship-gated.
   const canManageStatus = useCan('users.manageStatus');
+  // B3.8 (P2): a lapsed or suspended Forma plan makes the coach's tools read-only.
+  const { canWrite } = useCoachPlan();
+  const gate = useWriteGate();
 
   const sub = rel.data?.subscription;
   const status = effectiveSubscriptionStatus(sub);
   const acctStatus = account?.accountStatus ?? 'active';
-  // Expired/cancelled/ended → the primary action reads "Renew" (still opens the term sheet).
-  const isRenew = status === 'expired' || status === 'cancelled' || status === 'ended';
+  // B3.8: the primary action sets the first package, or renews (a running one from the day after it ends).
+  const primaryMode = primaryTermMode(sub);
+  const fmtDay = (key: string) => formatDate(key, i18n.language);
 
-  const invalidate = () => {
-    void qc.invalidateQueries({ queryKey: ['relationship', coachId, clientId] });
-    void qc.invalidateQueries({ queryKey: ['freezeRequest', clientId] });
-    void qc.invalidateQueries({ queryKey: ['user', clientId] });
-    // Dashboard sub pills / renewals / revenue are derived from the same relationship.
-    void qc.invalidateQueries({ queryKey: ['coachDashboard'] });
-    void qc.invalidateQueries({ queryKey: ['mySubscription'] });
-  };
-  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: e instanceof Error ? e.message : t('common.errorGeneric') });
+  const invalidate = () => invalidateSubscription(qc, coachId, clientId);
+  const onErr = (title: string) => (e: unknown) => void alertDialog({ title, message: commercialErrorMessage(e, t) });
   const succeed = (title: string) => () => {
     invalidate();
     showToast({ title, variant: 'success' });
@@ -91,44 +73,27 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     mutationFn: (s: AccountStatus) => setAccountStatus(account!, s),
     onSuccess: invalidate,
   });
-  const unfreeze = useMutation({ mutationFn: () => unfreezeSubscription(coachId, clientId), onSuccess: succeed(t('subscription.unfreeze')), onError: onErr(t('subscription.unfreeze')) });
-  const end = useMutation({ mutationFn: () => endSubscription(coachId, clientId), onSuccess: succeed(t('subscription.end')), onError: onErr(t('subscription.end')) });
-  const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: succeed(t('subscription.cancel')), onError: onErr(t('subscription.cancel')) });
-  const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: succeed(t('subscription.extend')), onError: onErr(t('subscription.extend')) });
+  const unfreeze = useMutation({ mutationFn: () => unfreezeSubscription(coachId, clientId), onSuccess: succeed(t('subscription.done.unfrozen')), onError: onErr(t('subscription.unfreeze')) });
+  const end = useMutation({ mutationFn: () => endSubscription(coachId, clientId), onSuccess: succeed(t('subscription.done.ended')), onError: onErr(t('subscription.end')) });
+  const cancel = useMutation({ mutationFn: () => cancelSubscription(coachId, clientId), onSuccess: succeed(t('subscription.done.cancelled')), onError: onErr(t('subscription.cancel')) });
+  const extend = useMutation({ mutationFn: (days: number) => extendSubscription(coachId, clientId, days), onSuccess: (_v, days) => succeed(t('subscription.done.extended', { count: days }))(), onError: onErr(t('subscription.extend')) });
   const decide = useMutation({
-    mutationFn: ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) =>
-      resolveFreezeRequest(clientId, coachId, outcome, note).then(async () => {
-        if (outcome === 'accepted') await freezeSubscription(coachId, clientId, from, until, note);
-      }),
-    onSuccess: succeed(t('subscription.pauseTitle')),
+    // B3.0.1: accepting applies the freeze FIRST — the request is marked accepted
+    // only when the freeze itself was accepted (dates in the term, not in the past).
+    mutationFn: async ({ outcome, note, from, until }: { outcome: 'accepted' | 'rejected'; note: string; from: number; until: number }) => {
+      if (outcome === 'accepted') await freezeSubscription(coachId, clientId, from, until, note);
+      await resolveFreezeRequest(clientId, coachId, outcome, note);
+    },
+    onSuccess: (_v, { outcome }) => succeed(t(outcome === 'accepted' ? 'subscription.done.pauseAccepted' : 'subscription.done.pauseDeclined'))(),
     onError: onErr(t('subscription.pauseTitle')),
   });
-  // These three used to be plain unguarded `async` functions passed straight
-  // into the sheets' `onSave` — no pending state, no try/catch, so a failed
-  // write left the coach staring at an unresponsive sheet with no explanation.
-  const setTerm = useMutation({
-    mutationFn: (args: { start: string; term: { months?: number; days?: number }; price?: number; planName?: string }) =>
-      setSubscriptionTerm(coachId, clientId, toMs(args.start), args.term, args.price, coachCurrency, args.planName),
-    onSuccess: () => {
-      invalidate();
-      setSheet(null);
-      showToast({ title: t('subscription.setTerm'), variant: 'success' });
-    },
-  });
+  // Pending state + error handling on every sheet's save (a failed write used to leave an unresponsive sheet).
   const freeze = useMutation({
     mutationFn: (args: { from: string; until: string; note: string }) => freezeSubscription(coachId, clientId, toMs(args.from), toMs(args.until), args.note),
-    onSuccess: () => {
+    onSuccess: (_v, args) => {
       invalidate();
       setSheet(null);
-      showToast({ title: t('subscription.freeze'), variant: 'success' });
-    },
-  });
-  const setPrice = useMutation({
-    mutationFn: (args: { price: number; currency: string }) => setSubscriptionPrice(coachId, clientId, args.price, args.currency),
-    onSuccess: () => {
-      invalidate();
-      setSheet(null);
-      showToast({ title: t('subscription.setPrice'), variant: 'success' });
+      showToast({ title: t('subscription.done.frozen', { date: fmtDay(args.until) }), variant: 'success' });
     },
   });
 
@@ -141,20 +106,23 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
     setStatus.mutate(s);
   };
   const doEnd = async () => {
-    if (await confirmDialog({ title: t('subscription.end'), message: t('subscription.confirmEnd'), danger: true })) end.mutate();
+    if (await confirmDialog({ title: t('subscription.endPackage'), message: t('subscription.confirmEnd'), danger: true })) end.mutate();
   };
   const doExtend = async (days: number) => {
-    const base = sub?.endAt && sub.endAt > Date.now() ? sub.endAt : Date.now();
-    const newEnd = toDate(base + days * 86_400_000);
-    if (await confirmDialog({ title: t('subscription.extend'), message: t('subscription.confirmExtend', { n: days, date: newEnd }) })) extend.mutate(days);
+    if (!sub) return;
+    // B3.8: calendar days — from the day after the term ends, or from today once it has lapsed.
+    const base = isRunningTerm(sub) ? termEndDay(sub) : todayKey();
+    const lastDay = addDays(base, days - 1);
+    if (await confirmDialog({ title: t('subscription.extend'), message: t('subscription.confirmExtendDay', { n: days, date: fmtDay(lastDay) }) })) extend.mutate(days);
   };
 
   const pending = request.data?.status === 'pending';
 
   return (
-    <div className="mt-6 space-y-4" data-testid="coach-subscription">
+    // B3.8 (owner decision 6): wide screens put the package and its payments side by side.
+    <div className="mt-6 grid items-start gap-4 lg:grid-cols-2" data-testid="coach-subscription">
       {/* Pending client freeze request */}
-      {pending && <FreezeRequestCard request={request.data!} onDecide={(outcome, note, from, until) => decide.mutate({ outcome, note, from, until })} busy={decide.isPending} />}
+      {pending && <div className="lg:col-span-2"><FreezeRequestCard request={request.data!} onDecide={(outcome, note, from, until) => decide.mutate({ outcome, note, from, until })} busy={decide.isPending || !gate.canWrite} /></div>}
 
       {/* Subscription */}
       <section>
@@ -162,67 +130,91 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         <div className="card space-y-4">
           <div className="flex items-center justify-between gap-2">
             <Pill testId="sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
-            {sub && status !== 'ended' && <span className="font-mono text-[12px] text-earth-subtle">{t('subscription.daysLeft', { n: subscriptionDaysLeft(sub) })}</span>}
+            {sub && status !== 'ended' && status !== 'pending' && <span className="font-mono text-[12px] text-earth-subtle">{t('coachClients.daysLeft', { count: termDaysLeft(sub) })}</span>}
           </div>
 
-          {sub ? (
+          {rel.isError ? (
+            <div className="space-y-2" role="alert" data-testid="sub-load-error">
+              <p className="text-[13px] text-danger">{t('trust.subscription.loadFailed')}</p>
+              <button type="button" className="btn-ghost w-full" onClick={() => void rel.refetch()}>
+                {t('common.retry')}
+              </button>
+            </div>
+          ) : rel.isPending ? (
+            <div className="sk h-16 rounded-xl" />
+          ) : sub && sub.status !== 'pending' ? (
             <>
-              {/* Clear summary grid (renewal date emphasised) instead of a dense inline line. */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {/* B3.8: the term's calendar days — first and LAST covered day (the end is exclusive). */}
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
-                  <p className="ui-label">{t('subscription.startDate')}</p>
-                  <p className="font-mono text-[13px]">{toDate(sub.startAt) || '—'}</p>
+                  <dt className="ui-label">{t('subscription.startDate')}</dt>
+                  <dd className="text-[13px] tabular-nums" data-testid="sub-start">{fmtDay(termFirstDay(sub))}</dd>
                 </div>
                 <div>
-                  <p className="ui-label">{t('subscription.renews')}</p>
-                  <p className="font-mono text-[13px] font-medium text-earth">{toDate(sub.endAt) || '—'}</p>
+                  <dt className="ui-label">{t('subscription.lastDay')}</dt>
+                  <dd className="text-[13px] font-medium tabular-nums text-earth" data-testid="sub-last-day">{fmtDay(termLastDay(sub))}</dd>
                 </div>
                 <div>
-                  <p className="ui-label">{t('subscription.price')}</p>
-                  <p className="text-[13px]" data-testid="sub-price">
-                    {sub.price != null ? <span className="font-medium">{sub.price}{sub.currency ? ` ${sub.currency}` : ''}</span> : <span className="text-earth-muted">{t('subscription.noPrice')}</span>}
-                  </p>
+                  <dt className="ui-label">{t('subscription.price')}</dt>
+                  <dd className="text-[13px]" data-testid="sub-price">
+                    {sub.price != null ? <span className="font-medium" dir="ltr">{formatMoney(sub.price, sub.currency, i18n.language)}</span> : <span className="text-earth-muted">{t('subscription.noPrice')}</span>}
+                  </dd>
                 </div>
                 <div>
-                  <p className="ui-label">{t('subscription.months')}</p>
-                  <p className="text-[13px]">{sub.months ?? '—'}</p>
+                  <dt className="ui-label">{t('subscription.length')}</dt>
+                  <dd className="text-[13px]" data-testid="sub-length">
+                    {sub.months ? t('subscription.lengthMonths', { count: sub.months, days: sub.days ?? sub.months * 30 }) : sub.days ? t('subscription.lengthDays', { count: sub.days }) : '—'}
+                  </dd>
                 </div>
-              </div>
-              {sub.status === 'frozen' && sub.frozenUntil && (
-                <p className="text-[12px] text-warn">{t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}</p>
+                {sub.planName && (
+                  <div className="col-span-2">
+                    <dt className="ui-label">{t('subscription.package')}</dt>
+                    <dd className="text-[13px]" data-testid="sub-plan-name"><bdi>{sub.planName}</bdi></dd>
+                  </div>
+                )}
+              </dl>
+              {freezeScheduled(sub) ? (
+                <p className="text-[12px] text-warn" data-testid="sub-freeze-scheduled">{t('subscription.freezeScheduled', { from: toDate(sub.frozenFrom), until: toDate(sub.frozenUntil) })}</p>
+              ) : (
+                status === 'frozen' && sub.frozenUntil && <p className="text-[12px] text-warn">{t('subscription.frozenUntil', { date: toDate(sub.frozenUntil) })}</p>
               )}
             </>
           ) : (
             <p className="text-[13px] text-earth-muted">{t('subscription.none')}</p>
           )}
 
-          {/* Primary action (reads "Renew" for expired/cancelled/ended). */}
-          <button type="button" className="btn-primary w-full" data-testid="sub-set-term" onClick={() => setSheet('term')}>
-            {isRenew ? t('subscription.renew') : t('subscription.setTerm')}
+          {/* Primary action (B3.8, Fix C): the first package, or a renewal — only on a loaded relationship. */}
+          <button type="button" className="btn-primary w-full disabled:opacity-40 sm:w-auto sm:min-w-[12rem]" data-testid="sub-set-term" disabled={!rel.isSuccess || !gate.canWrite} title={gate.reason} onClick={() => setTermMode(primaryMode)}>
+            {primaryMode === 'new' ? t('subscription.setFirstTerm') : t('subscription.renew')}
           </button>
 
-          {/* Secondary actions */}
-          {sub && (
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="chip" data-testid="sub-set-price" onClick={() => setSheet('price')}>{t('subscription.setPrice')}</button>
-              {status === 'frozen' ? (
-                <button type="button" className="chip" data-testid="sub-unfreeze" disabled={unfreeze.isPending} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreeze'), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
+          {/* B3.4 (CO-14-R / RM-26): one primary action above; Freeze / Unfreeze is the only other
+              action in view; price, extend and the two terminal actions live in "More package
+              actions", the terminal ones apart and confirmed with their consequences. */}
+          {sub && sub.status !== 'pending' && (
+            <div className="flex flex-wrap items-center gap-2">
+              {freezePending(sub) ? (
+                <button type="button" className="btn-secondary btn-sm" data-testid="sub-unfreeze" disabled={unfreeze.isPending || !gate.canWrite} title={gate.reason} onClick={async () => { if (await confirmDialog({ title: t('subscription.unfreeze'), message: t('subscription.confirmUnfreezeEnd', { date: toDate(unfreezeEndAt(sub)) }), confirmLabel: t('common.yes'), cancelLabel: t('common.no') })) unfreeze.mutate(); }}>{t('subscription.unfreeze')}</button>
               ) : status === 'active' ? (
-                <button type="button" className="chip" data-testid="sub-freeze" onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
+                <button type="button" className="btn-secondary btn-sm disabled:opacity-40" data-testid="sub-freeze" disabled={!gate.canWrite} title={gate.reason} onClick={() => setSheet('freeze')}>{t('subscription.freeze')}</button>
               ) : null}
-              {(status === 'active' || status === 'trial' || status === 'expired' || status === 'cancelled') && (
-                <button type="button" className="chip" data-testid="sub-extend" disabled={extend.isPending} onClick={() => void doExtend(30)}>{t('subscription.extend')}</button>
-              )}
-            </div>
-          )}
-
-          {/* Destructive actions — separated so they're not one tap away from routine ones. */}
-          {sub && status !== 'ended' && (
-            <div className="flex flex-wrap gap-2 border-t border-line-soft pt-3">
-              <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-end" disabled={end.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void doEnd()}>{t('subscription.end')}</button>
-              {(status === 'active' || status === 'trial') && (
-                <button type="button" className="btn-ghost h-9 px-3 text-[13px] text-danger" data-testid="sub-cancel" disabled={cancel.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={async () => { if (await confirmDialog({ title: t('subscription.cancel'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); }}>{t('subscription.cancel')}</button>
-              )}
+              <ActionMenu
+                label={t('subscription.moreActions')}
+                icon="dots"
+                testId="sub-more"
+                items={[
+                  { key: 'edit', label: t('subscription.editTerm'), icon: 'edit', testId: 'sub-edit-term', disabled: !gate.canWrite, onSelect: () => setTermMode('correct') },
+                  ...(sub.status === 'active' || sub.status === 'trial' || sub.status === 'frozen'
+                    ? [{ key: 'extend', label: t('subscription.extend'), icon: 'calendar' as const, testId: 'sub-extend', disabled: extend.isPending || !gate.canWrite, onSelect: () => void doExtend(30) }]
+                    : []),
+                  ...(status !== 'ended'
+                    ? [{ key: 'end', label: t('subscription.endPackage'), icon: 'logout' as const, danger: true, testId: 'sub-end', disabled: end.isPending || !gate.canWrite, onSelect: () => void doEnd() }]
+                    : []),
+                  ...(status === 'active' || status === 'trial'
+                    ? [{ key: 'cancel', label: t('subscription.cancelPackage'), icon: 'logout' as const, danger: true, testId: 'sub-cancel', disabled: cancel.isPending || !gate.canWrite, onSelect: async () => { if (await confirmDialog({ title: t('subscription.cancelPackage'), message: t('subscription.confirmCancel'), danger: true })) cancel.mutate(); } }]
+                    : []),
+                ]}
+              />
             </div>
           )}
 
@@ -230,9 +222,12 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
         </div>
       </section>
 
+      {/* B3.8: payments the coach recorded for this client (manual — Forma verifies nothing). */}
+      <ClientPaymentsCard coachId={coachId} clientId={clientId} rel={rel.data ?? undefined} canWrite={canWrite} />
+
       {/* Account status — admin-only (see `canManageStatus`) */}
       {canManageStatus && (
-      <section>
+      <section className="lg:col-span-2">
         <h2 className="h2 mb-2">{t('subscription.accountTitle')}</h2>
         <div className="card space-y-3">
           <Pill testId="acct-status" tone={ACCT_TONE[acctStatus]}>{t(`subscription.acct.${acctStatus}`)}</Pill>
@@ -240,21 +235,21 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
             {/* Suspend ⇄ Unsuspend (hidden once trashed — restore first). */}
             {acctStatus !== 'disabled' &&
               (acctStatus === 'suspended' ? (
-                <button type="button" data-testid="acct-unfreeze" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost h-9 px-3 text-[13px] disabled:opacity-40">
+                <button type="button" data-testid="acct-unfreeze" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost btn-sm disabled:opacity-40">
                   {t('subscription.acctAction.unfreeze')}
                 </button>
               ) : (
-                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('suspended')} className="btn-ghost h-9 px-3 text-[13px] text-warn disabled:opacity-40">
+                <button type="button" data-testid="acct-freeze" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('suspended')} className="btn-ghost btn-sm text-warn disabled:opacity-40">
                   {t('subscription.acctAction.freeze')}
                 </button>
               ))}
             {/* Trash ⇄ Restore */}
             {acctStatus === 'disabled' ? (
-              <button type="button" data-testid="acct-restore" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost h-9 px-3 text-[13px] disabled:opacity-40">
+              <button type="button" data-testid="acct-restore" disabled={setStatus.isPending} onClick={() => void changeStatus('active')} className="btn-ghost btn-sm disabled:opacity-40">
                 {t('subscription.acctAction.restore')}
               </button>
             ) : (
-              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('disabled')} className="btn-ghost h-9 px-3 text-[13px] text-danger disabled:opacity-40">
+              <button type="button" data-testid="acct-trash" disabled={setStatus.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} onClick={() => void changeStatus('disabled')} className="btn-ghost btn-sm text-danger disabled:opacity-40">
                 {t('subscription.acctAction.trash')}
               </button>
             )}
@@ -265,38 +260,19 @@ export function CoachSubscriptionPanel({ clientId, coachId, account }: { clientI
       </section>
       )}
 
-      {/* Set-term sheet */}
-      <SetTermSheet
-        open={sheet === 'term'}
-        onClose={() => setSheet(null)}
-        initialStart={sub ? toDate(sub.startAt) : todayStr()}
-        initialMonths={sub?.months ?? 3}
-        coachId={coachId}
-        currency={coachCurrency}
-        pending={setTerm.isPending}
-        error={setTerm.isError}
-        onSave={(start, term, price, planName) => setTerm.mutate({ start, term, price, planName })}
-      />
+      {/* First package / renew / edit (B3.8, Fix C) — shared with Me › Business › Renewals */}
+      <SubscriptionTermSheet coachId={coachId} clientId={clientId} sub={sub} mode={termMode ?? primaryMode} open={termMode !== null} onClose={() => setTermMode(null)} />
 
       {/* Freeze sheet */}
       <FreezeSheet
         open={sheet === 'freeze'}
         onClose={() => setSheet(null)}
         pending={freeze.isPending}
-        error={freeze.isError}
+        error={freeze.isError ? commercialErrorMessage(freeze.error, t) : null}
+        maxDate={sub ? termEndDay(sub) : undefined}
         onSave={(from, until, note) => freeze.mutate({ from, until, note })}
       />
 
-      {/* Price sheet */}
-      <PriceSheet
-        open={sheet === 'price'}
-        onClose={() => setSheet(null)}
-        initialPrice={sub?.price != null ? String(sub.price) : ''}
-        initialCurrency={sub?.currency ?? 'EGP'}
-        pending={setPrice.isPending}
-        error={setPrice.isError}
-        onSave={(price, currency) => setPrice.mutate({ price, currency })}
-      />
     </div>
   );
 }
@@ -316,12 +292,12 @@ function FreezeRequestCard({ request, onDecide, busy }: { request: { from?: numb
         <p className="text-[12px] text-earth-subtle">{t('subscription.editDatesHint')}</p>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="label">{t('subscription.from')}</label>
-            <input type="date" className="input" data-testid="freeze-req-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <label className="label" htmlFor="freeze-req-from">{t('subscription.from')}</label>
+            <input type="date" className="input" id="freeze-req-from" data-testid="freeze-req-from" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div>
-            <label className="label">{t('subscription.until')}</label>
-            <input type="date" className="input" data-testid="freeze-req-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+            <label className="label" htmlFor="freeze-req-until">{t('subscription.until')}</label>
+            <input type="date" className="input" id="freeze-req-until" data-testid="freeze-req-until" value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
         </div>
         <TextAreaField label={t('field.notes')} className="min-h-16" data-testid="freeze-note" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -338,119 +314,7 @@ function FreezeRequestCard({ request, onDecide, busy }: { request: { from?: numb
   );
 }
 
-function PriceSheet({ open, onClose, initialPrice, initialCurrency, pending, error, onSave }: { open: boolean; onClose: () => void; initialPrice: string; initialCurrency: string; pending: boolean; error: boolean; onSave: (price: number, currency: string) => void }) {
-  const { t } = useTranslation();
-  const [price, setPrice] = useState(initialPrice);
-  const [currency, setCurrency] = useState(initialCurrency);
-  return (
-    <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setPrice')}>
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="label">{t('subscription.price')}</label>
-            <input className="input" inputMode="decimal" data-testid="price-amount" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">{t('subscription.currency')}</label>
-            <input className="input" data-testid="price-currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
-          </div>
-        </div>
-        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
-        <SubmitButton type="button" fullWidth data-testid="price-save" disabled={!(Number(price) >= 0) || price.trim() === ''} pending={pending} onClick={() => onSave(Number(price), currency.trim())}>
-          {t('common.save')}
-        </SubmitButton>
-      </div>
-    </Sheet>
-  );
-}
-
-function SetTermSheet({
-  open,
-  onClose,
-  initialStart,
-  initialMonths,
-  coachId,
-  currency,
-  pending,
-  error,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  initialStart: string;
-  initialMonths: number;
-  coachId: string;
-  currency: string;
-  pending: boolean;
-  error: boolean;
-  onSave: (start: string, term: { months?: number; days?: number }, price?: number, planName?: string) => void;
-}) {
-  const { t } = useTranslation();
-  const plansQ = useQuery({ queryKey: ['coachPlans', coachId], queryFn: () => listCoachPlans(coachId), enabled: open && !!coachId });
-  const plans = plansQ.data ?? [];
-  const [start, setStart] = useState(initialStart);
-  const [unit, setUnit] = useState<'days' | 'months'>('months');
-  const [duration, setDuration] = useState(String(initialMonths));
-  const [price, setPrice] = useState('');
-  const [planName, setPlanName] = useState<string | undefined>(undefined);
-
-  // Picking a plan prefills the fields; the coach can then tweak them per client.
-  const applyPlan = (id: string) => {
-    const p = plans.find((x) => x.id === id);
-    if (!p) { setPlanName(undefined); return; }
-    setUnit(p.unit);
-    setDuration(String(p.duration));
-    if (p.price != null) setPrice(String(p.price));
-    setPlanName(p.name);
-  };
-
-  const dur = Math.max(1, Number(duration) || 1);
-  return (
-    <Sheet open={open} onClose={onClose} size="md" title={t('subscription.setTerm')}>
-      <div className="space-y-3">
-        {plans.length > 0 && (
-          <SelectField label={t('coachPlans.usePlan')} data-testid="term-plan" defaultValue="" onChange={(e) => applyPlan(e.target.value)}>
-            <option value="">{t('coachPlans.custom')}</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} · {p.duration} {t(`coachPlans.unit.${p.unit}`)}</option>
-            ))}
-          </SelectField>
-        )}
-        <div>
-          <label className="label">{t('subscription.startDate')}</label>
-          <input type="date" className="input" data-testid="term-start" value={start} onChange={(e) => setStart(e.target.value)} />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="label">{t('coachPlans.duration')}</label>
-            <input className="input" inputMode="numeric" data-testid="term-months" value={duration} onChange={(e) => setDuration(e.target.value)} />
-          </div>
-          <SelectField label={t('coachPlans.unitLabel')} data-testid="term-unit" value={unit} onChange={(e) => setUnit(e.target.value as 'days' | 'months')}>
-            <option value="months">{t('coachPlans.unit.months')}</option>
-            <option value="days">{t('coachPlans.unit.days')}</option>
-          </SelectField>
-        </div>
-        <div>
-          <label className="label">{t('coachPlans.price')} ({currency})</label>
-          <input className="input" inputMode="decimal" data-testid="term-price" placeholder={t('invite.priceOptional')} value={price} onChange={(e) => setPrice(e.target.value)} />
-        </div>
-        {error && <p role="alert" className="text-sm text-danger">{t('common.savedFailed')}</p>}
-        <SubmitButton
-          type="button"
-          fullWidth
-          data-testid="term-save"
-          disabled={!start || !(dur > 0)}
-          pending={pending}
-          onClick={() => onSave(start, unit === 'days' ? { days: dur } : { months: dur }, price.trim() ? parseDecimal(price) || 0 : undefined, planName)}
-        >
-          {t('common.save')}
-        </SubmitButton>
-      </div>
-    </Sheet>
-  );
-}
-
-function FreezeSheet({ open, onClose, pending, error, onSave }: { open: boolean; onClose: () => void; pending: boolean; error: boolean; onSave: (from: string, until: string, note: string) => void }) {
+function FreezeSheet({ open, onClose, pending, error, maxDate, onSave }: { open: boolean; onClose: () => void; pending: boolean; error: string | null; maxDate?: string; onSave: (from: string, until: string, note: string) => void }) {
   const { t } = useTranslation();
   const [from, setFrom] = useState(todayStr());
   const [until, setUntil] = useState('');
@@ -460,12 +324,12 @@ function FreezeSheet({ open, onClose, pending, error, onSave }: { open: boolean;
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="label">{t('subscription.from')}</label>
-            <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <label className="label" htmlFor="freeze-from">{t('subscription.from')}</label>
+            <input type="date" className="input" id="freeze-from" data-testid="freeze-from" min={todayStr()} max={maxDate} value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div>
-            <label className="label">{t('subscription.until')}</label>
-            <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+            <label className="label" htmlFor="freeze-until">{t('subscription.until')}</label>
+            <input type="date" className="input" id="freeze-until" data-testid="freeze-until" min={from || todayStr()} max={maxDate} value={until} onChange={(e) => setUntil(e.target.value)} />
           </div>
         </div>
         <TextAreaField label={t('field.notes')} className="min-h-16" placeholder={t('subscription.notePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />

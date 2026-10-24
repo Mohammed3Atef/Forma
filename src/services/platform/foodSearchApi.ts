@@ -24,9 +24,4 @@ export async function searchFoods(query: string, language?: 'en' | 'ar'): Promis
   return trpc.foodSearch.search.query({ query, language }) as Promise<FoodSearchResult[]>;
 }
 
-/** `sourceValue * servingGrams / baseGrams`, rounded for display only — never fed back into `sourceNutrition` itself. */
-export function scaleNutrition(base: FoodSearchResult['sourceNutrition'], servingGrams: number): { calories: number; protein: number; carbs: number; fats: number } {
-  const factor = servingGrams / base.baseGrams;
-  const round1 = (n: number) => Math.round(n * factor * 10) / 10;
-  return { calories: Math.round(base.calories * factor), protein: round1(base.protein), carbs: round1(base.carbs), fats: round1(base.fats) };
-}
+// Servings are computed with the shared rule in `lib/catalogNutrition` (B4 / FD-11).

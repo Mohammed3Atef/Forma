@@ -1,56 +1,72 @@
+import { exerciseDisplayName } from '@/lib/catalogText';
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWorkout, warmupCountOf } from "@/stores/workoutStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Icon } from "@/components/Icon";
-import { TopBar } from "@/components/TopBar";
-import { StatTile } from "@/components/StatTile";
 import { EntityNotes } from "@/components/EntityNotes";
+import { TrainingGuideSheet } from "@/components/TrainingGuideSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useBack } from "@/hooks/useBack";
-import { muscleColor, muscleLabel } from "@/lib/muscle";
+import { Button } from "@/components/ui/Button";
+import { ListGroup } from "@/components/ui/ListRow";
+import { useLocalized } from "@/hooks/useLocalized";
+import { muscleLabel } from "@/lib/muscle";
+import { isPlayableVideoUrl } from "@/lib/videoSource";
+import { formatDuration } from "@/lib/format";
 import type { Exercise, WorkoutDay, WorkoutSection } from "@/types";
+import { daySets } from "./Workout";
 
-/** Build the display sections for a day: real sections, or a single fallback group. */
+/** The day's real sections, or one plain group. */
 function displaySections(day: WorkoutDay): WorkoutSection[] {
   if (day.sections?.length) return day.sections.filter((s) => s.exerciseIds.length > 0);
   return [{ id: "all", title: "", kind: "normal", exerciseIds: day.exerciseIds }];
 }
 
+/*
+ * TRAIN › DAY (B2.3): the one way into a training day (CL-13 — it used to be
+ * an orphan reachable only from notifications). Sections, every exercise with
+ * its prescription, the coach's guidance where it applies (CL-14), a media
+ * indicator only when something can play, and Start in the thumb zone.
+ */
 export function RoutineDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const loc = useLocalized(); // Arabic clients see the coach's Arabic notes (B1.8)
   const navigate = useNavigate();
   const { dayId } = useParams();
   const plan = useWorkout((s) => s.plan);
+  const logs = useWorkout((s) => s.logs);
+  const active = useWorkout((s) => s.active);
   const startSession = useWorkout((s) => s.startSession);
-  const { readOnly, status } = useSubscription();
-  const goBack = useBack("/workout");
+  const beginTimer = useWorkout((s) => s.beginTimer);
+  const { readOnly } = useSubscription();
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const day = plan?.days.find((d) => d.id === dayId);
   if (!plan || !day) {
     return (
-      <div className="anim-rise">
-        <TopBar title={t("workout.session")} onBack={goBack} />
-        <EmptyState
-          icon="dumbbell"
-          title={t("routineDetail.notFoundTitle")}
-          message={t("routineDetail.notFoundMessage")}
-          action={<button type="button" className="btn-tonal btn-sm" onClick={goBack}>{t("common.back")}</button>}
-        />
-      </div>
+      <EmptyState
+        icon="dumbbell"
+        title={t("routineDetail.notFoundTitle")}
+        message={t("routineDetail.notFoundMessage")}
+        action={
+          <Button variant="secondary" onClick={() => navigate("/workout")}>
+            {t("session.backToTrain")}
+          </Button>
+        }
+      />
     );
   }
 
-  const totalSets = day.exerciseIds.reduce((n, id) => {
-    const ex = plan.exercises[id];
-    return n + (ex ? (ex.workingSets > 0 ? ex.workingSets + warmupCountOf(ex) : Math.max(1, warmupCountOf(ex))) : 0);
-  }, 0);
-
+  const running = active && active.startedAt && !active.finished ? active : logs.find((l) => l.startedAt && !l.finished) ?? null;
   const sections = displaySections(day);
   const multi = (day.sections?.length ?? 0) > 0;
 
   const start = async () => {
+    if (readOnly) return;
+    if (running) return navigate("/workout/session");
     await startSession(day.id);
+    beginTimer();
     navigate("/workout/session");
   };
 
@@ -58,83 +74,100 @@ export function RoutineDetail() {
     const ex: Exercise | undefined = plan.exercises[id];
     if (!ex) return null;
     const warm = warmupCountOf(ex);
+    const notes = ex.notes ? loc(ex.notes) : "";
+    const reps = ex.repRange && ex.repRange !== "-" ? ex.repRange : "—";
+    const presc = [
+      warm > 0 ? t("train.warmupSets", { count: warm }) : null,
+      ex.workingSets > 0 ? `${ex.workingSets} × ${reps}` : null,
+      ex.restSec ? t("session.rest", { time: formatDuration(ex.restSec) }) : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     return (
       <div key={id}>
-      <button
-        type="button"
-        onClick={() => navigate(`/workout/exercise/${id}`)}
-        className="row w-full text-start"
-      >
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line"
-          style={{ background: `linear-gradient(150deg, ${muscleColor(ex.targetMuscle)}26, transparent)` }}
+        <button
+          type="button"
+          onClick={() => navigate(`/workout/exercise/${id}`)}
+          className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-white/[0.03]"
+          data-testid={`day-exercise-${id}`}
         >
-          <Icon name="dumbbell" size={17} style={{ color: muscleColor(ex.targetMuscle) }} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{ex.name}</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] text-earth-muted">
-            <span>{muscleLabel(ex.targetMuscle, t)}</span>
-            {warm > 0 && (
-              <span className="pill pill-warn">
-                {warm} {t("workout.warmup")}
-              </span>
-            )}
-            {ex.workingSets > 0 && (
-              <span className="pill pill-brand">
-                {ex.workingSets} {t("workout.working")} × {ex.repRange && ex.repRange !== "-" ? ex.repRange : "—"}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1">
-              <Icon name="timer" size={11} /> {t("workout.rest")} {ex.restSec}s
+          {ex.imageUrl ? (
+            <img src={ex.imageUrl} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-ui-control bg-white/[0.06] object-cover" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+          ) : (
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-ui-control bg-white/[0.06] text-earth-muted" aria-hidden="true">
+              <Icon name="dumbbell" size={20} />
             </span>
-            {ex.videoUrl && <Icon name="video" size={12} className="text-brand" />}
-          </p>
-          {ex.notes?.en && <p className="mt-1 line-clamp-2 text-[12px] text-earth-subtle">{ex.notes.en}</p>}
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[16px] font-semibold leading-snug">{exerciseDisplayName(ex, i18n.language)}</span>
+            <span className="mt-0.5 block text-[13px] text-earth-muted">
+              {muscleLabel(ex.targetMuscle, t)} · {presc}
+              {isPlayableVideoUrl(ex.videoUrl) && (
+                <span className="ms-1.5 inline-flex items-center gap-1 align-middle text-brand-hover">
+                  · <Icon name="play" size={12} /> {t("train.video")}
+                </span>
+              )}
+            </span>
+            {notes && <span className="mt-1.5 line-clamp-2 block border-s-2 border-brand/50 ps-2 text-[13px] leading-snug text-earth">{notes}</span>}
+          </span>
+          <Icon name="chevron" size={18} className="shrink-0 text-earth-subtle" />
+        </button>
+        <div className="px-4 pb-3 ps-[4.75rem] empty:hidden">
+          <EntityNotes screen="workout" entityType="exercise" entityId={id} />
         </div>
-        <Icon name="chevron" size={16} className="text-earth-subtle" />
-      </button>
-        <EntityNotes screen="workout" entityType="exercise" entityId={id} />
       </div>
     );
   };
 
   return (
-    <div className="anim-rise pb-28">
-      <TopBar title={day.title} eyebrow={day.focus} onBack={goBack} />
+    <div className="space-y-6" data-testid="routine-day">
+      <header>
+        <p className="text-[13px] font-medium text-brand-hover">{t("today.dayOf", { n: day.dayIndex + 1, total: plan.days.length })}</p>
+        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.02em]">{day.title}</h1>
+        {day.focus ? <p className="mt-1 text-[15px] text-earth-muted">{day.focus}</p> : null}
+        <p className="mt-2 text-[14px] tabular-nums text-earth-muted">
+          {t("today.exercises", { count: day.exerciseIds.filter((id) => plan.exercises[id]).length })} · {t("today.sets", { count: daySets(day, plan) })}
+        </p>
+      </header>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatTile icon="list" value={day.exerciseIds.length} label={t("gt.exercises")} />
-        <StatTile icon="bolt" value={totalSets} label={t("common.sets")} />
-      </div>
+      <EntityNotes screen="workout" entityType="workout_day" entityId={day.id} />
 
-      <div className="mt-4 space-y-5">
-        {sections.map((section) => (
-          <div key={section.id}>
-            {multi && (
-              <div className="mb-1 flex items-center gap-2 px-1">
-                <h2 className="font-display text-sm font-semibold tracking-[-0.01em]">
-                  {section.title || t(`coachEditor.sectionKinds.${section.kind}`)}
-                </h2>
-                {section.kind !== "normal" && (
-                  <span className="pill pill-mute">
-                    {t(`coachEditor.sectionKinds.${section.kind}`)}
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="card py-1">{section.exerciseIds.map(renderExercise)}</div>
-          </div>
-        ))}
-        <EntityNotes screen="workout" entityType="workout_day" entityId={day.id} />
-      </div>
+      {sections.map((section) => (
+        <section key={section.id}>
+          {multi && (
+            <h2 className="mb-2 text-[16px] font-semibold">
+              {section.title || t(`coachEditor.sectionKinds.${section.kind}`)}
+              {section.title && section.kind !== "normal" ? <span className="ms-2 text-[13px] font-normal text-earth-muted">{t(`coachEditor.sectionKinds.${section.kind}`)}</span> : null}
+            </h2>
+          )}
+          <ListGroup>{section.exerciseIds.map(renderExercise)}</ListGroup>
+        </section>
+      ))}
 
-      {/* Fixed start button with gradient fade */}
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t from-surface from-60% to-transparent px-5 pb-[75px] pt-8">
-        <button type="button" onClick={() => void start()} disabled={readOnly} className="btn-primary w-full disabled:opacity-40">
-          <Icon name="play" size={15} /> {readOnly ? t(`subscription.status.${status}`) : t("gt.startThisWorkout")}
-        </button>
+      <button type="button" onClick={() => setGuideOpen(true)} className="hit-44 flex items-center gap-2 text-[14px] font-medium text-earth-muted hover:text-earth">
+        <Icon name="info" size={18} /> {t("guide.title")}
+      </button>
+
+      {/* Start in the thumb zone, above the tab bar. While a workout runs, the
+          shell's resume bar owns that spot (one resume control, not two). */}
+      <div aria-hidden="true" className="h-20" />
+      {!running && (
+      <div className="fixed inset-x-0 z-ui-sticky bottom-[calc(var(--shell-bottom-clearance)+0.5rem)] px-4 lg:bottom-6 lg:start-60">
+        <div className="mx-auto max-w-xl">
+          {readOnly ? (
+            <p className="rounded-ui-control border border-white/[0.1] bg-surface-raised px-4 py-3 text-[14px] text-earth-muted shadow-ui-sticky" role="status">
+              {t("today.readOnly")}
+            </p>
+          ) : (
+            <Button size="lg" icon="play" className="w-full shadow-ui-sticky" onClick={() => void start()}>
+              {t("gt.startThisWorkout")}
+            </Button>
+          )}
+        </div>
       </div>
+      )}
+
+      <TrainingGuideSheet open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }

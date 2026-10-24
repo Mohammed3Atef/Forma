@@ -3,7 +3,7 @@
 The conventions every new/changed screen follows so the UI stays consistent. **This is a foundation, not a
 redesign** — tokens mirror the existing Tailwind theme; adopt them in new/touched code, don't mass-migrate.
 
-Tokens live in [`src/theme/`](../src/theme) (colors, spacing, radius, typography, elevation, motion, breakpoints)
+Tokens live in `tailwind.config.ts` (source of truth); [`src/theme/colors.ts`](../src/theme/colors.ts) mirrors the colours for charts/inline styles. (The unused spacing/radius/typography/elevation/motion/breakpoint modules were removed in B0 / RM-01.)
 and mirror [`tailwind.config.ts`](../tailwind.config.ts) + [`src/index.css`](../src/index.css). Use Tailwind
 classes in markup; import tokens only where a raw value is needed (charts, inline styles).
 
@@ -13,7 +13,7 @@ classes in markup; import tokens only where a raw value is needed (charts, inlin
   always needs an `aria-label`).
 
 ## Cards
-`.card` (resting) · `.card-elevated` (popovers/raised) · dashboard panels via `DashboardSection` + `DashboardCard`
+`.card` (resting) · `.card-elevated` (popovers/raised) · dashboard panels via `DashboardSection`
 · KPI tiles via `MetricCard` · tappable action cards via `.card-tap` / `.card-hover`.
 
 ## Forms — use the `Field` primitives ([ui/Field.tsx](../src/components/ui/Field.tsx))
@@ -33,9 +33,9 @@ Desktop: `DataTable`. Mobile: `MobileCardList`. Horizontal scroll lives **inside
 page. Wide/data-dense pages opt into full width with `useFullBleed()`.
 
 ## Standard states ([ui/](../src/components/ui))
-`EmptyState` · `LoadingState` / `Skeleton` · `ErrorState` · `PermissionState` · `OfflineState`, plus
+`EmptyState` · `LoadingState` / `Skeleton` · `ErrorState` (the unused `PermissionState` / `OfflineState` were removed in B0 / RM-01), plus
 `SyncStatusIndicator` + the global `OfflineBanner`. Rules: no blank cards; no raw "Loading…" or unstyled errors
-in Coach/Admin; permission denials always explained; offline screens show `OfflineState`, not an endless spinner.
+in Coach/Admin; permission denials always explained; offline screens show an explicit offline state, not an endless spinner.
 
 ## Navigation
 - **Client**: mobile-first bottom nav (`BottomNav`) + brand bar; full menu in `NavMenuSheet`.
@@ -46,7 +46,7 @@ in Coach/Admin; permission denials always explained; offline screens show `Offli
 Single stroke-based set. `size` accepts `xs|sm|md|lg` (14/16/20/24) or a number; `tone` = `muted|brand|success|
 warning|danger|info`. Icons are decorative (`aria-hidden`) — the **action button** carries the `aria-label`.
 
-## Motion ([theme/motion.ts](../src/theme/motion.ts))
+## Motion
 fast 150ms (hover) · normal 200ms (press/tabs) · slow 350ms (modal/sheet/drawer). Easing `--ease-card`
 (emphasized) for entrances. Keep it subtle; always honour `prefers-reduced-motion` (`motion-reduce:` utilities).
 
@@ -54,7 +54,7 @@ fast 150ms (hover) · normal 200ms (press/tabs) · slow 350ms (modal/sheet/drawe
 Logical spacing only (`ms/me/ps/pe/start/end`, `text-start/end`) — no raw `left/right`/`ml/mr` unless unavoidable.
 Arrows/chevrons are direction-aware. Verify dialogs, sidebar border side, table alignment, wizard steps in Arabic.
 
-## Responsive role targets ([theme/breakpoints.ts](../src/theme/breakpoints.ts))
+## Responsive role targets
 - **Client**: mobile-first 390–430; usable but mobile-width on desktop; native later.
 - **Coach**: web/PWA-first — 768 tablet → 1024 → 1280 → 1440+; mobile fallback usable.
 - **Admin**: web/PWA-first — 1024 → 1280 → 1440+ → 1600 wide; mobile usable, not the primary target.

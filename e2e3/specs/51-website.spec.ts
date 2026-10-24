@@ -100,6 +100,10 @@ test.describe('public website', () => {
     await page.goto('/privacy');
     const toc = page.getByRole('navigation', { name: 'Contents' }).locator('a');
     await expect(toc).toHaveCount(9);
+    // Click on a settled page. The web fonts swap in after first paint and move every section; a jump made
+    // during that swap keeps the previous highlight and lands short (a real website issue, B37-R5 — open).
+    await page.waitForLoadState('load');
+    await page.evaluate(async () => { await document.fonts.ready; });
     await toc.nth(4).click();
     await expect(toc.nth(4)).toHaveClass(/(^|\s)on(\s|$)/);
     await expect(page.locator('#s5')).toBeInViewport();

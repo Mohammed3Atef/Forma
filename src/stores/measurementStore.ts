@@ -36,6 +36,8 @@ export const useMeasurements = create<MeasurementState>((set, get) => ({
       values: merged,
       updatedAt: Date.now(),
       dirty: true,
+      // Keep the server revision this day is based on (B0 / PWA-06).
+      ...(existing?._rev != null ? { _rev: existing._rev } : {}),
     };
     await getDataSource().measurementLogs.put(log);
     const others = get().logs.filter((l) => l.id !== date);

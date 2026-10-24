@@ -1,80 +1,71 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { StatTile } from '@/components/StatTile';
+import { Metric, MetricGroup } from '@/components/ui/Metric';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { OfflineState, StaleNotice, useQueryScreen } from '@/components/ui/ScreenState';
 import { LineChart } from '@/components/charts';
-import { fetchClientMeasurements, fetchClientWeightLogs } from '@/services/platform/coachApi';
-import { shortDate } from '@/lib/utils';
+import { clientWeightLogsQuery } from '@/services/platform/coachApi';
+import { formatDate, formatNumber } from '@/lib/format';
 
-/** Coach view of a client's body progress: bodyweight trend + history + latest measurements. */
+/**
+ * Workspace › Progress › Body — the bodyweight half (B3.9 rebuild): the latest weigh-in and the change
+ * over the logged period as one metric group, the trend, and the exact entries. A failed or offline
+ * read is said, never shown as "no data" (CO-18). Measurements follow in `CoachViewMeasurements`.
+ */
 export function CoachViewProgress({ clientId }: { clientId: string }) {
   const { t, i18n } = useTranslation();
-  const weightsQ = useQuery({ queryKey: ['clientWeightLogs', clientId], queryFn: () => fetchClientWeightLogs(clientId), enabled: !!clientId });
-  const measuresQ = useQuery({ queryKey: ['clientMeasurements', clientId], queryFn: () => fetchClientMeasurements(clientId), enabled: !!clientId });
+  const lang = i18n.language;
+  const weightsQ = useQuery(clientWeightLogsQuery(clientId)); // B3.9 (PF-07): shared with the header and Summary
+  const screen = useQueryScreen(weightsQ, (d) => d.length === 0);
 
-  // fetchClientWeightLogs returns newest-first (orderBy updatedAt desc).
-  const weights = weightsQ.data ?? [];
-  const latest = weights[0]?.weightKg;
-  const measures = measuresQ.data ?? [];
-  const lastMeasure = measures[measures.length - 1];
-  // Chart wants oldest→newest; also drives "who's progressing" at a glance
-  // (the raw list below stays for exact per-entry values).
-  const weightTrend = useMemo(
-    () => [...weights].reverse().map((w) => ({ date: w.date, value: w.weightKg })),
-    [weights],
-  );
-  const weightDelta = weightTrend.length >= 2 ? Math.round((weightTrend[weightTrend.length - 1].value - weightTrend[0].value) * 10) / 10 : null;
+  // Newest first from the API; the chart reads oldest → newest.
+  const weights = useMemo(() => weightsQ.data ?? [], [weightsQ.data]);
+  const trend = useMemo(() => [...weights].reverse().map((w) => ({ date: w.date, value: w.weightKg })), [weights]);
+  const latest = weights[0];
+  const first = trend[0];
+  const delta = trend.length >= 2 ? Math.round((trend[trend.length - 1].value - first.value) * 10) / 10 : null;
+  const kg = t('common.kg');
+
+  if (screen.status === 'loading') return <div className="sk h-48 rounded-ui-surface" aria-busy="true" />;
+  if (screen.status === 'offline') return <OfflineState onRetry={screen.retry} testId="body-weights-offline" />;
+  if (screen.status === 'error') return <ErrorState message={t('coachView.bodyFailed')} onRetry={screen.retry} testId="body-weights-error" />;
+  if (screen.status === 'empty') return <p className="py-6 text-center text-[14px] text-earth-muted" data-testid="body-weights-empty">{t('coachView.noProgress')}</p>;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2.5">
-        <StatTile icon="scale" value={latest ?? '—'} unit={latest != null ? t('common.kg') : undefined} label={t('coach.lastWeight')} />
-        <StatTile icon="ruler" value={measures.length} label={t('measure.title')} />
+    <section className="space-y-4" data-testid="body-weights">
+      {screen.stale ? <StaleNotice online={screen.online} /> : null}
+      <MetricGroup cols={2}>
+        <Metric
+          label={t('coach.lastWeight')}
+          value={latest ? formatNumber(latest.weightKg, lang) : '—'}
+          unit={latest ? kg : undefined}
+          sub={latest ? formatDate(latest.date, lang, 'medium') : undefined}
+          testId="body-latest-weight"
+        />
+        <Metric
+          label={t('coachView.weightChange')}
+          value={delta == null ? '—' : `${delta > 0 ? '+' : ''}${formatNumber(delta, lang)}`}
+          unit={delta == null ? undefined : kg}
+          sub={delta == null || !first ? undefined : t('coachView.sinceDate', { date: formatDate(first.date, lang, 'medium') })}
+          testId="body-weight-change"
+        />
+      </MetricGroup>
+
+      <div className="card">
+        <h2 className="mb-2 text-[17px] font-semibold">{t('gt.bodyweight')}</h2>
+        <LineChart data={trend} unit={kg} emptyLabel={t('progress.noData')} locale={lang} />
+        <ul className="mt-3 divide-y divide-white/[0.06] text-[14px]" data-testid="body-weight-list">
+          {weights.slice(0, 20).map((w) => (
+            <li key={w.id} className="flex items-center justify-between py-1.5">
+              <span className="text-earth-muted">{formatDate(w.date, lang, 'medium')}</span>
+              <span className="tabular-nums">
+                <bdi dir="ltr">{formatNumber(w.weightKg, lang)}</bdi> {kg}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      {/* Bodyweight trend + history */}
-      {weights.length > 0 && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t('gt.bodyweight')}</h2>
-          {weightDelta != null && weightDelta !== 0 && (
-            <p className="mb-2 text-sm text-earth">
-              {t(weightDelta < 0 ? 'gt.weightDown' : 'gt.weightUp', { n: Math.abs(weightDelta) })}
-            </p>
-          )}
-          <LineChart data={weightTrend} unit={t('common.kg')} emptyLabel={t('progress.noData')} locale={i18n.language} />
-          <ul className="mt-3 space-y-1 text-sm">
-            {weights.slice(0, 20).map((w) => (
-              <li key={w.id} className="flex items-center justify-between">
-                <span className="text-earth-muted">{shortDate(w.date, i18n.language)}</span>
-                <span className="font-mono">{w.weightKg} {t('common.kg')}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Latest measurements snapshot */}
-      {lastMeasure && (
-        <div className="card">
-          <h2 className="mb-2 font-bold">{t('measure.title')}</h2>
-          <p className="mb-2 text-xs text-earth-subtle">{shortDate(lastMeasure.date, i18n.language)} · cm</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm" dir="ltr">
-            {Object.entries(lastMeasure.values).map(([k, v]) => (
-              <div key={k} className="flex items-center justify-between">
-                <span className="text-earth-muted">{t(`measure.parts.${k}`, { defaultValue: k })}</span>
-                <span className="font-mono">{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {(weightsQ.isLoading || measuresQ.isLoading) && weights.length === 0 && measures.length === 0 && (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('common.loading')}</p>
-      )}
-      {!weightsQ.isLoading && !measuresQ.isLoading && weights.length === 0 && measures.length === 0 && (
-        <p className="py-8 text-center text-sm text-earth-muted">{t('coachView.noProgress')}</p>
-      )}
-    </div>
+    </section>
   );
 }

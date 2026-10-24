@@ -1,0 +1,1769 @@
+{
+ "generatedAt": "2026-10-23T15:06:08.821Z",
+ "kind": "foods",
+ "summary": [
+  {
+   "lang": "all",
+   "queries": 95,
+   "newTop3": 100,
+   "oldTop3": 63.2
+  },
+  {
+   "lang": "en",
+   "queries": 55,
+   "newTop3": 100,
+   "oldTop3": 72.7
+  },
+  {
+   "lang": "ar",
+   "queries": 10,
+   "newTop3": 100,
+   "oldTop3": 80
+  },
+  {
+   "lang": "eg",
+   "queries": 25,
+   "newTop3": 100,
+   "oldTop3": 48
+  },
+  {
+   "lang": "typo",
+   "queries": 5,
+   "newTop3": 100,
+   "oldTop3": 0
+  }
+ ],
+ "latencyMs": {
+  "p50": 1.1363999999999805,
+  "p95": 2.625599999999963
+ },
+ "rows": [
+  {
+   "q": "rice",
+   "lang": "en",
+   "expected": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_white_long_cooked",
+    "ff_rice_white_dry"
+   ],
+   "newTop3": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_cakes_plain",
+    "ff_rice_vermicelli"
+   ],
+   "newHit": true,
+   "newTotal": 20,
+   "oldTop3": [
+    "seed-food-brown-rice",
+    "seed-food-rice-cake",
+    "seed-food-white-rice"
+   ],
+   "oldHit": true,
+   "ms": 4.722199999999987
+  },
+  {
+   "q": "white rice cooked",
+   "lang": "en",
+   "expected": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_white_long_cooked"
+   ],
+   "newTop3": [
+    "ff_rice_white_long_cooked",
+    "ff_rice_white_medium_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 3.519399999999962
+  },
+  {
+   "q": "brown rice",
+   "lang": "en",
+   "expected": [
+    "ff_rice_brown_cooked"
+   ],
+   "newTop3": [
+    "ff_rice_brown_cooked",
+    "ff_rice_cakes_plain",
+    "ff_pasta_whole_wheat_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-brown-rice"
+   ],
+   "oldHit": true,
+   "ms": 2.625599999999963
+  },
+  {
+   "q": "pasta",
+   "lang": "en",
+   "expected": [
+    "ff_pasta_cooked",
+    "ff_pasta_dry"
+   ],
+   "newTop3": [
+    "ff_pasta_cooked",
+    "ff_pasta_dry",
+    "ff_pasta_whole_wheat_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 21,
+   "oldTop3": [
+    "seed-food-pasta"
+   ],
+   "oldHit": true,
+   "ms": 3.7502000000000066
+  },
+  {
+   "q": "spaghetti",
+   "lang": "en",
+   "expected": [
+    "ff_pasta_cooked"
+   ],
+   "newTop3": [
+    "ff_pasta_cooked",
+    "ff_pasta_whole_wheat_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.1759999999999877
+  },
+  {
+   "q": "oats",
+   "lang": "en",
+   "expected": [
+    "ff_oats_dry",
+    "ff_oatmeal_cooked"
+   ],
+   "newTop3": [
+    "ff_oats_dry",
+    "ff_oatmeal_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-oats"
+   ],
+   "oldHit": true,
+   "ms": 0.6849000000000274
+  },
+  {
+   "q": "oatmeal",
+   "lang": "en",
+   "expected": [
+    "ff_oatmeal_cooked",
+    "ff_oats_dry"
+   ],
+   "newTop3": [
+    "ff_oatmeal_cooked",
+    "ff_oats_dry"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.213700000000017
+  },
+  {
+   "q": "pita bread",
+   "lang": "en",
+   "expected": [
+    "ff_bread_pita_white",
+    "ff_bread_pita_whole_wheat"
+   ],
+   "newTop3": [
+    "ff_bread_pita_white",
+    "ff_bread_pita_whole_wheat"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 2.0044000000000324
+  },
+  {
+   "q": "toast",
+   "lang": "en",
+   "expected": [
+    "ff_bread_white",
+    "ff_bread_whole_wheat"
+   ],
+   "newTop3": [
+    "ff_bread_white",
+    "ff_bread_whole_wheat",
+    "ff_beef_round_lean_roasted"
+   ],
+   "newHit": true,
+   "newTotal": 12,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.8145999999999844
+  },
+  {
+   "q": "baladi bread",
+   "lang": "en",
+   "expected": [
+    "ff_baladi_bread"
+   ],
+   "newTop3": [
+    "ff_baladi_bread"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-baladi-bread"
+   ],
+   "oldHit": true,
+   "ms": 1.1497000000000526
+  },
+  {
+   "q": "chicken breast",
+   "lang": "en",
+   "expected": [
+    "ff_chicken_breast_roasted",
+    "ff_chicken_breast_raw"
+   ],
+   "newTop3": [
+    "ff_chicken_breast_raw",
+    "ff_chicken_breast_roasted"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-chicken-breast"
+   ],
+   "oldHit": true,
+   "ms": 0.9623000000000275
+  },
+  {
+   "q": "chicken thigh",
+   "lang": "en",
+   "expected": [
+    "ff_chicken_thigh_roasted"
+   ],
+   "newTop3": [
+    "ff_chicken_thigh_roasted"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.1363999999999805
+  },
+  {
+   "q": "eggs",
+   "lang": "en",
+   "expected": [
+    "ff_egg_whole_raw",
+    "ff_egg_boiled",
+    "ff_egg_fried",
+    "ff_egg_scrambled"
+   ],
+   "newTop3": [
+    "ff_egg_whole_raw",
+    "ff_egg_white_raw",
+    "ff_egg_yolk_raw"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6042000000000485
+  },
+  {
+   "q": "boiled egg",
+   "lang": "en",
+   "expected": [
+    "ff_egg_boiled"
+   ],
+   "newTop3": [
+    "ff_egg_boiled",
+    "ff_eggplant_boiled"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.50750000000005
+  },
+  {
+   "q": "egg white",
+   "lang": "en",
+   "expected": [
+    "ff_egg_white_raw"
+   ],
+   "newTop3": [
+    "ff_egg_white_raw"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-egg-white"
+   ],
+   "oldHit": true,
+   "ms": 0.8074000000000296
+  },
+  {
+   "q": "tuna",
+   "lang": "en",
+   "expected": [
+    "ff_tuna_water",
+    "ff_tuna_oil"
+   ],
+   "newTop3": [
+    "ff_tuna_oil",
+    "ff_tuna_water"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-tuna-can"
+   ],
+   "oldHit": true,
+   "ms": 1.6661000000000286
+  },
+  {
+   "q": "salmon",
+   "lang": "en",
+   "expected": [
+    "ff_salmon_cooked"
+   ],
+   "newTop3": [
+    "ff_salmon_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-salmon"
+   ],
+   "oldHit": true,
+   "ms": 1.5860999999999876
+  },
+  {
+   "q": "tilapia",
+   "lang": "en",
+   "expected": [
+    "ff_tilapia_cooked",
+    "ff_tilapia_raw"
+   ],
+   "newTop3": [
+    "ff_tilapia_cooked",
+    "ff_tilapia_raw"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-tilapia"
+   ],
+   "oldHit": true,
+   "ms": 1.2450000000000045
+  },
+  {
+   "q": "shrimp",
+   "lang": "en",
+   "expected": [
+    "ff_shrimp_cooked"
+   ],
+   "newTop3": [
+    "ff_shrimp_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-shrimp"
+   ],
+   "oldHit": true,
+   "ms": 1.399000000000001
+  },
+  {
+   "q": "ground beef",
+   "lang": "en",
+   "expected": [
+    "ff_beef_ground_90_cooked",
+    "ff_beef_ground_90_raw",
+    "ff_beef_ground_80_raw",
+    "ff_beef_ground_80_cooked"
+   ],
+   "newTop3": [
+    "ff_beef_ground_90_raw",
+    "ff_beef_ground_80_cooked",
+    "ff_beef_ground_80_raw"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.9431000000000722
+  },
+  {
+   "q": "steak",
+   "lang": "en",
+   "expected": [
+    "ff_beef_sirloin_lean_grilled"
+   ],
+   "newTop3": [
+    "ff_beef_sirloin_lean_grilled"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.7069000000000187
+  },
+  {
+   "q": "liver",
+   "lang": "en",
+   "expected": [
+    "ff_beef_liver_fried",
+    "ff_chicken_liver"
+   ],
+   "newTop3": [
+    "ff_beef_liver_fried",
+    "ff_chicken_liver"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-beef-liver"
+   ],
+   "oldHit": true,
+   "ms": 1.6283999999999423
+  },
+  {
+   "q": "lentils",
+   "lang": "en",
+   "expected": [
+    "ff_lentils_boiled",
+    "ff_lentils_brown_dry",
+    "ff_lentils_red_dry"
+   ],
+   "newTop3": [
+    "ff_lentils_boiled",
+    "ff_lentils_brown_dry",
+    "ff_lentils_red_dry"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "seed-food-lentils"
+   ],
+   "oldHit": true,
+   "ms": 1.297900000000027
+  },
+  {
+   "q": "fava beans",
+   "lang": "en",
+   "expected": [
+    "ff_fava_beans_boiled",
+    "ff_fava_beans_canned",
+    "ff_fava_beans_dry"
+   ],
+   "newTop3": [
+    "ff_fava_beans_boiled",
+    "ff_fava_beans_canned",
+    "ff_fava_beans_dry"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.7886999999999489
+  },
+  {
+   "q": "ful medames",
+   "lang": "en",
+   "expected": [
+    "ff_ful_with_oil",
+    "ff_fava_beans_boiled"
+   ],
+   "newTop3": [
+    "ff_ful_with_oil",
+    "ff_fava_beans_boiled"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7486000000000104
+  },
+  {
+   "q": "chickpeas",
+   "lang": "en",
+   "expected": [
+    "ff_chickpeas_boiled",
+    "ff_chickpeas_canned"
+   ],
+   "newTop3": [
+    "ff_chickpeas_boiled",
+    "ff_chickpeas_canned",
+    "ff_falafel_chickpea"
+   ],
+   "newHit": true,
+   "newTotal": 11,
+   "oldTop3": [
+    "seed-food-chickpeas"
+   ],
+   "oldHit": true,
+   "ms": 1.1802000000000135
+  },
+  {
+   "q": "hummus",
+   "lang": "en",
+   "expected": [
+    "ff_hummus"
+   ],
+   "newTop3": [
+    "ff_hummus"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-hummus"
+   ],
+   "oldHit": true,
+   "ms": 1.7637000000000853
+  },
+  {
+   "q": "tahini",
+   "lang": "en",
+   "expected": [
+    "ff_tahini"
+   ],
+   "newTop3": [
+    "ff_tahini"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-tahini"
+   ],
+   "oldHit": true,
+   "ms": 1.6941000000000486
+  },
+  {
+   "q": "falafel",
+   "lang": "en",
+   "expected": [
+    "ff_falafel_chickpea",
+    "ff_taameya"
+   ],
+   "newTop3": [
+    "ff_falafel_chickpea",
+    "ff_taameya"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-falafel"
+   ],
+   "oldHit": true,
+   "ms": 1.296199999999999
+  },
+  {
+   "q": "milk",
+   "lang": "en",
+   "expected": [
+    "ff_milk_whole",
+    "ff_milk_2",
+    "ff_milk_skim"
+   ],
+   "newTop3": [
+    "ff_milk_whole",
+    "ff_milk_chocolate",
+    "ff_greek_yogurt_whole"
+   ],
+   "newHit": true,
+   "newTotal": 9,
+   "oldTop3": [
+    "seed-food-skim-milk",
+    "seed-food-whole-milk"
+   ],
+   "oldHit": true,
+   "ms": 1.89549999999997
+  },
+  {
+   "q": "skim milk",
+   "lang": "en",
+   "expected": [
+    "ff_milk_skim"
+   ],
+   "newTop3": [
+    "ff_milk_skim",
+    "ff_milk_2"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-skim-milk"
+   ],
+   "oldHit": true,
+   "ms": 2.2133999999999787
+  },
+  {
+   "q": "yogurt",
+   "lang": "en",
+   "expected": [
+    "ff_yogurt_plain_whole",
+    "ff_yogurt_plain_lowfat",
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newTop3": [
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole",
+    "ff_yogurt_plain_lowfat"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [
+    "seed-food-greek-yogurt"
+   ],
+   "oldHit": true,
+   "ms": 1.5623999999999114
+  },
+  {
+   "q": "greek yogurt",
+   "lang": "en",
+   "expected": [
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newTop3": [
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-greek-yogurt"
+   ],
+   "oldHit": true,
+   "ms": 2.2309000000000196
+  },
+  {
+   "q": "cottage cheese",
+   "lang": "en",
+   "expected": [
+    "ff_cottage_cheese_4",
+    "ff_cottage_cheese_1"
+   ],
+   "newTop3": [
+    "ff_cottage_cheese_4",
+    "ff_cottage_cheese_1"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-cottage-cheese"
+   ],
+   "oldHit": true,
+   "ms": 0.9886999999999944
+  },
+  {
+   "q": "feta",
+   "lang": "en",
+   "expected": [
+    "ff_feta",
+    "ff_white_cheese_domiati"
+   ],
+   "newTop3": [
+    "ff_feta"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-feta"
+   ],
+   "oldHit": true,
+   "ms": 1.390800000000013
+  },
+  {
+   "q": "cheddar",
+   "lang": "en",
+   "expected": [
+    "ff_cheddar"
+   ],
+   "newTop3": [
+    "ff_cheddar"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-cheese-cheddar"
+   ],
+   "oldHit": true,
+   "ms": 1.0407000000000153
+  },
+  {
+   "q": "mozzarella",
+   "lang": "en",
+   "expected": [
+    "ff_mozzarella_part_skim"
+   ],
+   "newTop3": [
+    "ff_mozzarella_part_skim"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6694999999999709
+  },
+  {
+   "q": "banana",
+   "lang": "en",
+   "expected": [
+    "ff_banana"
+   ],
+   "newTop3": [
+    "ff_banana"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-banana"
+   ],
+   "oldHit": true,
+   "ms": 1.1873999999999114
+  },
+  {
+   "q": "apple",
+   "lang": "en",
+   "expected": [
+    "ff_apple"
+   ],
+   "newTop3": [
+    "ff_apple",
+    "ff_apple_juice",
+    "ff_pineapple"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-apple",
+    "seed-food-pineapple"
+   ],
+   "oldHit": true,
+   "ms": 1.3215999999999894
+  },
+  {
+   "q": "orange",
+   "lang": "en",
+   "expected": [
+    "ff_orange"
+   ],
+   "newTop3": [
+    "ff_orange",
+    "ff_orange_juice"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-orange",
+    "seed-food-orange-juice"
+   ],
+   "oldHit": true,
+   "ms": 1.133199999999988
+  },
+  {
+   "q": "mango",
+   "lang": "en",
+   "expected": [
+    "ff_mango"
+   ],
+   "newTop3": [
+    "ff_mango"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-mango"
+   ],
+   "oldHit": true,
+   "ms": 1.4528999999999996
+  },
+  {
+   "q": "dates",
+   "lang": "en",
+   "expected": [
+    "ff_dates_deglet",
+    "ff_dates_medjool"
+   ],
+   "newTop3": [
+    "ff_dates_deglet",
+    "ff_dates_medjool",
+    "ff_oatmeal_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 9,
+   "oldTop3": [
+    "seed-food-dates"
+   ],
+   "oldHit": true,
+   "ms": 1.0715000000000146
+  },
+  {
+   "q": "watermelon",
+   "lang": "en",
+   "expected": [
+    "ff_watermelon"
+   ],
+   "newTop3": [
+    "ff_watermelon"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-watermelon"
+   ],
+   "oldHit": true,
+   "ms": 0.36099999999999
+  },
+  {
+   "q": "strawberries",
+   "lang": "en",
+   "expected": [
+    "ff_strawberries"
+   ],
+   "newTop3": [
+    "ff_strawberries"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-strawberries"
+   ],
+   "oldHit": true,
+   "ms": 0.37649999999996453
+  },
+  {
+   "q": "potato",
+   "lang": "en",
+   "expected": [
+    "ff_potato_boiled",
+    "ff_potato_baked"
+   ],
+   "newTop3": [
+    "ff_potato_baked",
+    "ff_potato_boiled",
+    "ff_sweet_potato_baked"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-potato",
+    "seed-food-sweet-potato"
+   ],
+   "oldHit": true,
+   "ms": 0.7504000000000133
+  },
+  {
+   "q": "sweet potato",
+   "lang": "en",
+   "expected": [
+    "ff_sweet_potato_baked"
+   ],
+   "newTop3": [
+    "ff_sweet_potato_baked"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-sweet-potato"
+   ],
+   "oldHit": true,
+   "ms": 0.9729999999999563
+  },
+  {
+   "q": "tomato",
+   "lang": "en",
+   "expected": [
+    "ff_tomato_raw"
+   ],
+   "newTop3": [
+    "ff_tomato_paste",
+    "ff_tomato_sauce",
+    "ff_tomato_raw"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-tomato"
+   ],
+   "oldHit": true,
+   "ms": 0.7544000000000324
+  },
+  {
+   "q": "spinach",
+   "lang": "en",
+   "expected": [
+    "ff_spinach_raw",
+    "ff_spinach_boiled"
+   ],
+   "newTop3": [
+    "ff_spinach_boiled",
+    "ff_spinach_raw"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-spinach"
+   ],
+   "oldHit": true,
+   "ms": 0.5655000000000427
+  },
+  {
+   "q": "olive oil",
+   "lang": "en",
+   "expected": [
+    "ff_olive_oil"
+   ],
+   "newTop3": [
+    "ff_olive_oil",
+    "ff_ful_with_oil"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-olive-oil"
+   ],
+   "oldHit": true,
+   "ms": 0.9483000000000175
+  },
+  {
+   "q": "peanut butter",
+   "lang": "en",
+   "expected": [
+    "ff_peanut_butter"
+   ],
+   "newTop3": [
+    "ff_peanut_butter"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-peanut-butter"
+   ],
+   "oldHit": true,
+   "ms": 0.7398000000000593
+  },
+  {
+   "q": "almonds",
+   "lang": "en",
+   "expected": [
+    "ff_almonds"
+   ],
+   "newTop3": [
+    "ff_almonds"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-almonds"
+   ],
+   "oldHit": true,
+   "ms": 0.7755000000000791
+  },
+  {
+   "q": "honey",
+   "lang": "en",
+   "expected": [
+    "ff_honey"
+   ],
+   "newTop3": [
+    "ff_honey",
+    "ff_molasses"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-honey"
+   ],
+   "oldHit": true,
+   "ms": 0.9489999999999554
+  },
+  {
+   "q": "whey protein",
+   "lang": "en",
+   "expected": [
+    "ff_whey_protein"
+   ],
+   "newTop3": [
+    "ff_whey_protein"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-whey"
+   ],
+   "oldHit": true,
+   "ms": 1.5792999999999893
+  },
+  {
+   "q": "koshary",
+   "lang": "en",
+   "expected": [
+    "ff_koshary"
+   ],
+   "newTop3": [
+    "ff_koshary"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.598700000000008
+  },
+  {
+   "q": "basbousa",
+   "lang": "en",
+   "expected": [
+    "ff_basbousa"
+   ],
+   "newTop3": [
+    "ff_basbousa"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6159999999999854
+  },
+  {
+   "q": "رز",
+   "lang": "eg",
+   "expected": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_white_long_cooked",
+    "ff_rice_white_dry"
+   ],
+   "newTop3": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_brown_cooked",
+    "ff_rice_white_long_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 6,
+   "oldTop3": [
+    "seed-food-brown-rice",
+    "seed-food-rice-cake",
+    "seed-food-white-rice"
+   ],
+   "oldHit": true,
+   "ms": 0.1893999999999778
+  },
+  {
+   "q": "أرز أبيض مطبوخ",
+   "lang": "ar",
+   "expected": [
+    "ff_rice_white_medium_cooked",
+    "ff_rice_white_long_cooked",
+    "ff_rice_white_dry"
+   ],
+   "newTop3": [
+    "ff_rice_white_long_cooked",
+    "ff_rice_white_medium_cooked",
+    "ff_rice_white_dry"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.4517000000000735
+  },
+  {
+   "q": "رز بني",
+   "lang": "eg",
+   "expected": [
+    "ff_rice_brown_cooked"
+   ],
+   "newTop3": [
+    "ff_rice_brown_cooked",
+    "ff_rice_cakes_plain"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-brown-rice"
+   ],
+   "oldHit": true,
+   "ms": 0.7257999999999356
+  },
+  {
+   "q": "مكرونة",
+   "lang": "eg",
+   "expected": [
+    "ff_pasta_cooked",
+    "ff_pasta_dry",
+    "ff_pasta_whole_wheat_cooked"
+   ],
+   "newTop3": [
+    "ff_pasta_cooked",
+    "ff_pasta_dry",
+    "ff_pasta_whole_wheat_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 16,
+   "oldTop3": [
+    "seed-food-macaroni-bechamel",
+    "seed-food-pasta"
+   ],
+   "oldHit": true,
+   "ms": 2.41050000000007
+  },
+  {
+   "q": "شوفان",
+   "lang": "ar",
+   "expected": [
+    "ff_oats_dry",
+    "ff_oatmeal_cooked"
+   ],
+   "newTop3": [
+    "ff_oats_dry",
+    "ff_oatmeal_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-oats"
+   ],
+   "oldHit": true,
+   "ms": 3.0656999999999925
+  },
+  {
+   "q": "عيش بلدي",
+   "lang": "eg",
+   "expected": [
+    "ff_baladi_bread"
+   ],
+   "newTop3": [
+    "ff_baladi_bread"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-baladi-bread"
+   ],
+   "oldHit": true,
+   "ms": 0.721300000000042
+  },
+  {
+   "q": "عيش شامي",
+   "lang": "eg",
+   "expected": [
+    "ff_bread_pita_white",
+    "ff_bread_pita_whole_wheat"
+   ],
+   "newTop3": [
+    "ff_bread_pita_white",
+    "ff_bread_pita_whole_wheat"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.5955000000000155
+  },
+  {
+   "q": "صدور فراخ",
+   "lang": "eg",
+   "expected": [
+    "ff_chicken_breast_roasted",
+    "ff_chicken_breast_raw"
+   ],
+   "newTop3": [
+    "ff_chicken_breast_roasted",
+    "ff_chicken_breast_raw"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.4107999999999947
+  },
+  {
+   "q": "صدر دجاج",
+   "lang": "ar",
+   "expected": [
+    "ff_chicken_breast_roasted",
+    "ff_chicken_breast_raw"
+   ],
+   "newTop3": [
+    "ff_chicken_breast_raw",
+    "ff_chicken_breast_roasted",
+    "ff_turkey_breast_roasted"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-chicken-breast"
+   ],
+   "oldHit": true,
+   "ms": 0.6014999999999873
+  },
+  {
+   "q": "بيض مسلوق",
+   "lang": "ar",
+   "expected": [
+    "ff_egg_boiled"
+   ],
+   "newTop3": [
+    "ff_egg_boiled",
+    "ff_white_beans_boiled"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6019999999999754
+  },
+  {
+   "q": "بياض بيض",
+   "lang": "eg",
+   "expected": [
+    "ff_egg_white_raw"
+   ],
+   "newTop3": [
+    "ff_egg_white_raw",
+    "ff_egg_yolk_raw",
+    "ff_egg_fried"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [
+    "seed-food-egg-white"
+   ],
+   "oldHit": true,
+   "ms": 1.3262999999999465
+  },
+  {
+   "q": "تونة",
+   "lang": "ar",
+   "expected": [
+    "ff_tuna_water",
+    "ff_tuna_oil"
+   ],
+   "newTop3": [
+    "ff_tuna_oil",
+    "ff_tuna_water"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-tuna-can"
+   ],
+   "oldHit": true,
+   "ms": 1.2337999999999738
+  },
+  {
+   "q": "بلطي",
+   "lang": "eg",
+   "expected": [
+    "ff_tilapia_cooked",
+    "ff_tilapia_raw"
+   ],
+   "newTop3": [
+    "ff_tilapia_cooked",
+    "ff_tilapia_raw",
+    "ff_ghee"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [
+    "seed-food-tilapia"
+   ],
+   "oldHit": true,
+   "ms": 1.2098000000000866
+  },
+  {
+   "q": "جمبري",
+   "lang": "eg",
+   "expected": [
+    "ff_shrimp_cooked"
+   ],
+   "newTop3": [
+    "ff_shrimp_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-shrimp"
+   ],
+   "oldHit": true,
+   "ms": 1.611599999999953
+  },
+  {
+   "q": "لحمة مفرومة",
+   "lang": "eg",
+   "expected": [
+    "ff_beef_ground_90_cooked",
+    "ff_beef_ground_90_raw",
+    "ff_beef_ground_80_raw",
+    "ff_beef_ground_80_cooked"
+   ],
+   "newTop3": [
+    "ff_beef_ground_80_raw",
+    "ff_beef_ground_80_cooked",
+    "ff_beef_ground_90_cooked"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.3572000000000344
+  },
+  {
+   "q": "كبدة",
+   "lang": "eg",
+   "expected": [
+    "ff_beef_liver_fried",
+    "ff_chicken_liver"
+   ],
+   "newTop3": [
+    "ff_beef_liver_fried",
+    "ff_chicken_liver",
+    "ff_butter"
+   ],
+   "newHit": true,
+   "newTotal": 5,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.198400000000106
+  },
+  {
+   "q": "عدس",
+   "lang": "ar",
+   "expected": [
+    "ff_lentils_boiled",
+    "ff_lentils_brown_dry",
+    "ff_lentils_red_dry",
+    "ff_lentil_soup"
+   ],
+   "newTop3": [
+    "ff_lentils_boiled",
+    "ff_lentils_brown_dry",
+    "ff_lentils_red_dry"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "seed-food-lentils"
+   ],
+   "oldHit": true,
+   "ms": 0.45090000000004693
+  },
+  {
+   "q": "فول",
+   "lang": "eg",
+   "expected": [
+    "ff_fava_beans_boiled",
+    "ff_ful_with_oil",
+    "ff_fava_beans_canned",
+    "ff_fava_beans_dry"
+   ],
+   "newTop3": [
+    "ff_fava_beans_boiled",
+    "ff_fava_beans_canned",
+    "ff_fava_beans_dry"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [
+    "seed-food-full-fava",
+    "seed-food-peanut-butter"
+   ],
+   "oldHit": true,
+   "ms": 0.4289999999999736
+  },
+  {
+   "q": "طعمية",
+   "lang": "eg",
+   "expected": [
+    "ff_taameya"
+   ],
+   "newTop3": [
+    "ff_taameya"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-falafel"
+   ],
+   "oldHit": true,
+   "ms": 1.1894000000000915
+  },
+  {
+   "q": "طحينة",
+   "lang": "ar",
+   "expected": [
+    "ff_tahini"
+   ],
+   "newTop3": [
+    "ff_tahini",
+    "ff_hummus"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-hummus",
+    "seed-food-tahini"
+   ],
+   "oldHit": true,
+   "ms": 1.3094999999999573
+  },
+  {
+   "q": "لبن",
+   "lang": "eg",
+   "expected": [
+    "ff_milk_whole",
+    "ff_milk_2",
+    "ff_milk_skim",
+    "ff_laban_rayeb"
+   ],
+   "newTop3": [
+    "ff_milk_whole",
+    "ff_laban_rayeb",
+    "ff_yogurt_plain_whole"
+   ],
+   "newHit": true,
+   "newTotal": 7,
+   "oldTop3": [
+    "seed-food-labneh",
+    "seed-food-skim-milk",
+    "seed-food-whole-milk"
+   ],
+   "oldHit": true,
+   "ms": 0.43280000000004293
+  },
+  {
+   "q": "زبادي",
+   "lang": "eg",
+   "expected": [
+    "ff_yogurt_plain_whole",
+    "ff_yogurt_plain_lowfat",
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newTop3": [
+    "ff_yogurt_plain_whole",
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [
+    "seed-food-greek-yogurt"
+   ],
+   "oldHit": true,
+   "ms": 1.1882000000000517
+  },
+  {
+   "q": "جبنة قريش",
+   "lang": "eg",
+   "expected": [
+    "ff_areesh_cheese"
+   ],
+   "newTop3": [
+    "ff_areesh_cheese",
+    "ff_cottage_cheese_4"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.363299999999981
+  },
+  {
+   "q": "جبنة بيضا",
+   "lang": "eg",
+   "expected": [
+    "ff_white_cheese_domiati"
+   ],
+   "newTop3": [
+    "ff_white_cheese_domiati"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 1.6292999999999438
+  },
+  {
+   "q": "موز",
+   "lang": "ar",
+   "expected": [
+    "ff_banana"
+   ],
+   "newTop3": [
+    "ff_banana"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [
+    "seed-food-banana"
+   ],
+   "oldHit": true,
+   "ms": 0.17799999999999727
+  },
+  {
+   "q": "تفاح",
+   "lang": "ar",
+   "expected": [
+    "ff_apple"
+   ],
+   "newTop3": [
+    "ff_apple",
+    "ff_apple_juice",
+    "ff_vinegar"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [
+    "seed-food-apple"
+   ],
+   "oldHit": true,
+   "ms": 0.8884000000000469
+  },
+  {
+   "q": "برتقان",
+   "lang": "eg",
+   "expected": [
+    "ff_orange"
+   ],
+   "newTop3": [
+    "ff_orange",
+    "ff_orange_juice"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7833000000000538
+  },
+  {
+   "q": "بلح",
+   "lang": "eg",
+   "expected": [
+    "ff_dates_deglet",
+    "ff_dates_medjool"
+   ],
+   "newTop3": [
+    "ff_dates_deglet",
+    "ff_dates_medjool"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.17189999999993688
+  },
+  {
+   "q": "بطاطس",
+   "lang": "eg",
+   "expected": [
+    "ff_potato_boiled",
+    "ff_potato_baked",
+    "ff_french_fries_oven"
+   ],
+   "newTop3": [
+    "ff_potato_boiled",
+    "ff_french_fries_oven",
+    "ff_potato_baked"
+   ],
+   "newHit": true,
+   "newTotal": 4,
+   "oldTop3": [
+    "seed-food-potato"
+   ],
+   "oldHit": true,
+   "ms": 0.9531000000000631
+  },
+  {
+   "q": "ملوخية",
+   "lang": "eg",
+   "expected": [
+    "ff_molokhia_soup",
+    "ff_jute_leaves_boiled"
+   ],
+   "newTop3": [
+    "ff_jute_leaves_boiled",
+    "ff_molokhia_soup"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.7903999999999769
+  },
+  {
+   "q": "بامية",
+   "lang": "eg",
+   "expected": [
+    "ff_okra_boiled"
+   ],
+   "newTop3": [
+    "ff_okra_boiled"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9717000000000553
+  },
+  {
+   "q": "زيت زيتون",
+   "lang": "ar",
+   "expected": [
+    "ff_olive_oil"
+   ],
+   "newTop3": [
+    "ff_olive_oil",
+    "ff_ful_with_oil"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [
+    "seed-food-olive-oil"
+   ],
+   "oldHit": true,
+   "ms": 0.8451000000000022
+  },
+  {
+   "q": "سمنة",
+   "lang": "eg",
+   "expected": [
+    "ff_ghee"
+   ],
+   "newTop3": [
+    "ff_ghee",
+    "ff_basbousa"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9374000000000251
+  },
+  {
+   "q": "كشري",
+   "lang": "eg",
+   "expected": [
+    "ff_koshary"
+   ],
+   "newTop3": [
+    "ff_koshary"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9021999999999935
+  },
+  {
+   "q": "محشي",
+   "lang": "eg",
+   "expected": [
+    "ff_mahshi_kousa"
+   ],
+   "newTop3": [
+    "ff_mahshi_kousa",
+    "ff_grape_leaves_stuffed",
+    "ff_apple_juice"
+   ],
+   "newHit": true,
+   "newTotal": 3,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.9021999999999935
+  },
+  {
+   "q": "chiken brest",
+   "lang": "typo",
+   "expected": [
+    "ff_chicken_breast_roasted",
+    "ff_chicken_breast_raw"
+   ],
+   "newTop3": [
+    "ff_chicken_breast_raw",
+    "ff_chicken_breast_roasted"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.8515999999999622
+  },
+  {
+   "q": "bannana",
+   "lang": "typo",
+   "expected": [
+    "ff_banana"
+   ],
+   "newTop3": [
+    "ff_banana"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6225999999999203
+  },
+  {
+   "q": "brocoli",
+   "lang": "typo",
+   "expected": [
+    "ff_broccoli_boiled"
+   ],
+   "newTop3": [
+    "ff_broccoli_boiled"
+   ],
+   "newHit": true,
+   "newTotal": 1,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6125999999999294
+  },
+  {
+   "q": "yoghurt",
+   "lang": "typo",
+   "expected": [
+    "ff_yogurt_plain_whole",
+    "ff_yogurt_plain_lowfat",
+    "ff_greek_yogurt_nonfat",
+    "ff_greek_yogurt_whole"
+   ],
+   "newTop3": [
+    "ff_yogurt_plain_whole",
+    "ff_greek_yogurt_nonfat",
+    "ff_yogurt_plain_lowfat"
+   ],
+   "newHit": true,
+   "newTotal": 8,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6142999999999574
+  },
+  {
+   "q": "oatmeel",
+   "lang": "typo",
+   "expected": [
+    "ff_oatmeal_cooked",
+    "ff_oats_dry"
+   ],
+   "newTop3": [
+    "ff_oatmeal_cooked",
+    "ff_oats_dry"
+   ],
+   "newHit": true,
+   "newTotal": 2,
+   "oldTop3": [],
+   "oldHit": false,
+   "ms": 0.6064000000000078
+  }
+ ]
+}

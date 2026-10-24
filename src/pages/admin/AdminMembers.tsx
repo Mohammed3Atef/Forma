@@ -21,22 +21,13 @@ import { fetchMembers, inSegment, type MemberRow, type MemberSegment } from '@/s
 import { bumpUsage } from '@/services/platform/usageApi';
 import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import { shortDate } from '@/lib/utils';
-import { Pill, type PillTone } from '@/components/ui/Pill';
-import type { AccountStatus, Role } from '@/types';
 
-const ACCT_TONE: Record<AccountStatus, PillTone> = {
-  active: 'ok',
-  pending: 'warn',
-  suspended: 'bad',
-  disabled: 'bad',
-};
-const SUB_TONE: Record<string, PillTone> = {
-  none: 'mute', trial: 'brand',
-  active: 'ok', pending: 'warn',
-  frozen: 'warn', expired: 'bad',
-  cancelled: 'bad', ended: 'bad',
-};
+import { Pill } from '@/components/ui/Pill';
+import type { AccountStatus, Role } from '@/types';
+import { formatDate } from '@/lib/format';
+import { ACCOUNT_TONE as ACCT_TONE, SUBSCRIPTION_TONE as SUB_TONE } from '@/lib/statusTone';
+import { errorMessage } from '@/lib/errorMessage';
+
 
 /** Admin member console: every account, join-date segments, client-subscription oversight + control. */
 export function AdminMembers() {
@@ -85,7 +76,7 @@ export function AdminMembers() {
       }
       showToast({ title: t(`platform.status.${next}`), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('adminMembers.suspend'), message: e instanceof Error ? e.message : t('common.errorGeneric') }),
+    onError: (e) => void alertDialog({ title: t('adminMembers.suspend'), message: errorMessage(e, t) }),
   });
 
   const rows = useMemo(() => {
@@ -134,9 +125,9 @@ export function AdminMembers() {
     { key: 'role', header: t('adminMembers.role'), cell: (r) => <span className="text-[13px]">{t(`roles.${r.user.role}`)}</span> },
     { key: 'acct', header: t('subscription.accountTitle'), cell: (r) => <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill> },
     { key: 'sub', header: t('adminMembers.subscription'), cell: (r) => r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <span className="text-earth-subtle">—</span> },
-    { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span> },
+    { key: 'joined', header: t('adminMembers.joined'), cell: (r) => <span className="text-[12px] text-earth-subtle">{formatDate(r.user.createdAt, i18n.language, 'weekdayShort')}</span> },
     { key: 'actions', header: '', className: 'text-end', cell: (r) => canManage(r.user.role) && r.user.id !== actorId ? (
-      <button type="button" disabled={status.isPending} className="btn-ghost h-8 px-3 text-[11px] disabled:opacity-40" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
+      <button type="button" disabled={status.isPending} className="btn-ghost btn-sm disabled:opacity-40" onClick={(e) => { e.stopPropagation(); void quickAction(r); }}>
         {r.user.accountStatus === 'suspended' || r.user.accountStatus === 'disabled' ? t('adminMembers.reactivate') : t('adminMembers.suspend')}
       </button>
     ) : null },
@@ -220,7 +211,7 @@ export function AdminMembers() {
                       <Avatar name={r.user.displayName || r.user.email} photoUrl={r.user.photoUrl} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{r.user.displayName || r.user.email}</span>
-                        <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {shortDate(new Date(r.user.createdAt).toISOString().slice(0, 10), i18n.language)}</span>
+                        <span className="block truncate text-[12px] text-earth-subtle">{t(`roles.${r.user.role}`)} · {formatDate(r.user.createdAt, i18n.language, 'weekdayShort')}</span>
                       </span>
                       {r.user.role === 'client' ? <Pill tone={SUB_TONE[r.subState ?? 'none']}>{t(`subscription.status.${r.subState ?? 'none'}`)}</Pill> : <Pill tone={ACCT_TONE[r.user.accountStatus]}>{t(`subscription.acct.${r.user.accountStatus}`)}</Pill>}
                     </button>

@@ -2,13 +2,23 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, permissionProcedure, roleProcedure } from '../trpc.js';
-import { usersCol } from '../../_lib/mongodb.js';
+import { usersCol, withDbTransaction } from '../../_lib/mongodb.js';
 import { hashPassword } from '../../_lib/password.js';
 import { ALL_PERMISSIONS, hasPermission } from '../../_lib/rbac.js';
 import { toPublicUser, type Permission, type PublicUser, type Role, type UserDoc } from '../../_lib/types.js';
 import { writeAudit } from '../../admin/_lib/audit.js';
+import { enforceRateLimit } from '../../_lib/rateLimit.js';
 import { ensureTrialPlan } from '../../coach-plans/_data.js';
 import { coachClientsCol } from '../../coach-clients/_data.js';
+
+/** What "Add Existing Client" may learn about a client account (B0 / CO-03). */
+export interface ClientLookupResult {
+  id: string;
+  displayName: string;
+  /** Relative to the caller: their own client, another coach's, or unassigned. */
+  coaching: 'you' | 'another' | 'none';
+  accountStatus?: UserDoc['accountStatus'];
+}
 
 const RoleEnum = z.enum(['super_admin', 'admin', 'coach', 'client']);
 const StatusEnum = z.enum(['active', 'suspended', 'pending', 'disabled']);
@@ -124,11 +134,13 @@ export const adminUsersRouter = router({
         createdAt: now,
         updatedAt: now,
       };
-      await users.insertOne(doc);
-      // Every coach, however created, always has a real (Trial-at-minimum)
-      // plan — no admin-created coach action here needs a paid CoachPlanRequest;
-      // an admin assigning a paid tier directly is the existing `setCoachTier`.
-      if (doc.role === 'coach') await ensureTrialPlan(doc._id);
+      // Every coach, however created, always has a real (Trial-at-minimum) plan. B3.8 final
+      // (B38F-R3): the account and its trial are written in ONE transaction, as `auth.signup`
+      // does, so a failure can never leave a coach without a plan document.
+      await withDbTransaction(async (session) => {
+        await users.insertOne(doc, { session });
+        if (doc.role === 'coach') await ensureTrialPlan(doc._id, session);
+      });
       await writeAudit(ctx.user, 'user.create', doc._id, { role: doc.role });
       return toPublicUser(doc);
     }),
@@ -143,36 +155,59 @@ export const adminUsersRouter = router({
     }),
 
   /**
-   * "Add Existing Client" lookup. Open to active coaches explicitly (they hold
-   * no platform-wide permission any more — see rbac.ts) and to `users.read`
-   * holders; clients are refused. Deliberately narrower than `list`/`byRole`:
-   * CLIENT accounts only, matched by exact email/phone or a name prefix.
+   * "Add Existing Client" lookup (B0 / CO-03). A coach can only find a client
+   * whose EXACT email or phone they already know — no name/prefix search, so
+   * the platform's client list can't be enumerated — and gets back only what
+   * the add/transfer decision needs: id, display name and whether the client
+   * already has a coach ("you" / "another" / "none"). Never the other coach's
+   * id, contact details or any internal field. Rate-limited and audited.
+   * `users.read` holders (admins) may additionally match a name prefix.
    */
   searchClients: protectedProcedure
     .input(z.object({ value: z.string(), max: z.number().optional() }))
-    .query(async ({ ctx, input }) => {
+    .query(async ({ ctx, input }): Promise<ClientLookupResult[]> => {
       const u = ctx.user;
-      if (u.role !== 'coach' && !hasPermission(u.role, u.accountStatus, u.permissions, 'users.read')) {
+      const isAdminReader = hasPermission(u.role, u.accountStatus, u.permissions, 'users.read');
+      if (u.role !== 'coach' && !isAdminReader) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
       const raw = input.value.trim();
-      const max = Math.min(Math.max(input.max || 20, 1), 100);
       if (!raw) return [];
+      if (!isAdminReader) await enforceRateLimit('clientLookup', u.id, 30, 10 * 60_000);
+
       const lower = raw.toLowerCase();
-      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const orConds: Record<string, unknown>[] = [{ email: raw }, { phone: raw }, { displayNameLower: { $regex: `^${escapeRegExp(lower)}` } }];
-      if (lower !== raw) orConds.unshift({ email: lower });
+      const phoneDigits = raw.replace(/[\s()-]/g, '');
+      const orConds: Record<string, unknown>[] = [{ emailLower: lower }, { email: raw }, { phone: raw }];
+      if (phoneDigits && phoneDigits !== raw) orConds.push({ phone: phoneDigits });
+      if (isAdminReader) {
+        const escapeRegExp = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        orConds.push({ displayNameLower: { $regex: `^${escapeRegExp(lower)}` } });
+      }
+      const max = isAdminReader ? Math.min(Math.max(input.max || 20, 1), 100) : 5;
 
       const users = await usersCol();
-      const docs = await users.find({ role: 'client', $or: orConds }).limit(max).toArray();
+      const docs = await users
+        .find({ role: 'client', $or: orConds }, { projection: { _id: 1, displayName: 1, accountStatus: 1, assignedCoachId: 1 } })
+        .limit(max)
+        .toArray();
+      const out: ClientLookupResult[] = [];
       const seen = new Set<string>();
-      const out = [];
       for (const d of docs) {
         if (seen.has(d._id)) continue;
         seen.add(d._id);
-        out.push(toPublicUser(d));
+        const coaching: ClientLookupResult['coaching'] = !d.assignedCoachId ? 'none' : d.assignedCoachId === u.id ? 'you' : 'another';
+        out.push({
+          id: d._id,
+          displayName: d.displayName || '',
+          coaching,
+          // Account state matters only when this coach could act on it directly.
+          ...(coaching !== 'another' ? { accountStatus: d.accountStatus } : {}),
+        });
       }
-      return out.slice(0, max);
+      if (!isAdminReader) {
+        await writeAudit(u, 'client.lookup', out[0]?.id ?? '', { kind: raw.includes('@') ? 'email' : 'phone', matches: out.length });
+      }
+      return out;
     }),
 
   bulkSetStatus: permissionProcedure('users.manageStatus')
@@ -203,12 +238,13 @@ export const adminUsersRouter = router({
    * client can load their coach's card and a coach can load a client's.
    *
    * The FULL profile (email/phone/socials/flags) is returned only to the user
-   * themself, a `users.read` holder, or someone who has (or had) a coaching
-   * relationship with the target — either direction, any status, so a
-   * client's timeline still resolves a previous coach. Anyone else (e.g. a
-   * coach looking at the other coach named on a transfer request) gets the
-   * same shape with every contact/control field blanked: a name card, not a
-   * directory entry.
+   * themself, a `users.read` holder, or someone with an ACTIVE coaching
+   * relationship with the target, either direction (B3.0.1 / B3-S01b: a
+   * former coach no longer keeps a client's contact details, nor a former
+   * client the coach's). Anyone else — a former coach or client, or a coach
+   * looking at the other coach named on a transfer request — gets the same
+   * shape with every contact/control field blanked: a name card (name and
+   * photo, so a timeline still names a previous coach), not a directory entry.
    */
   get: protectedProcedure.input(z.object({ id: z.string().trim().min(1) })).query(async ({ ctx, input }) => {
     const users = await usersCol();
@@ -218,7 +254,7 @@ export const adminUsersRouter = router({
     let full = u.id === target._id || hasPermission(u.role, u.accountStatus, u.permissions, 'users.read');
     if (!full) {
       const rels = await coachClientsCol();
-      const related = await rels.findOne({ $or: [{ _id: `${u.id}__${target._id}` }, { _id: `${target._id}__${u.id}` }] }, { projection: { _id: 1 } });
+      const related = await rels.findOne({ _id: { $in: [`${u.id}__${target._id}`, `${target._id}__${u.id}`] }, status: 'active' }, { projection: { _id: 1 } });
       full = !!related;
     }
     const pub = toPublicUser(target);
@@ -276,9 +312,13 @@ export const adminUsersRouter = router({
       if ((target.role === 'admin' || target.role === 'super_admin') && ctx.user.role !== 'super_admin') {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Cannot modify an admin account' });
       }
-      await users.updateOne({ _id: input.id }, { $set: { role: input.role as Role, updatedAt: Date.now() } });
-      // Idempotent — a no-op if this user already has a valid plan (never resets one).
-      if (input.role === 'coach') await ensureTrialPlan(input.id);
+      // Idempotent — a no-op if this user already has a plan (never resets one, so a coach who was
+      // demoted and promoted again gets no second trial). One transaction with the role change
+      // (B38F-R3): a coach never exists without a plan document.
+      await withDbTransaction(async (session) => {
+        await users.updateOne({ _id: input.id }, { $set: { role: input.role as Role, updatedAt: Date.now() } }, { session });
+        if (input.role === 'coach') await ensureTrialPlan(input.id, session);
+      });
       await writeAudit(ctx.user, 'user.updateRole', input.id, { from: target.role, to: input.role });
       const updated = await users.findOne({ _id: input.id });
       return toPublicUser(updated!);

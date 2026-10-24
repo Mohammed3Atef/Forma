@@ -35,6 +35,7 @@ export function TagInput({
           data-testid={testId}
           value={draft}
           placeholder={placeholder}
+          aria-label={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ',') {

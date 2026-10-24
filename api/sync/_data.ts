@@ -17,8 +17,17 @@ export interface SyncRecordDoc {
   collection: string;
   recordId: string;
   data: Record<string, unknown>;
-  updatedAt: number; // the device's own clock at edit time (for last-write-wins)
+  updatedAt: number; // the device's own clock at edit time (informational; NOT used to pick a winner)
   syncedAt: number; // server clock at push time (the pull watermark)
+  /** Record schema version (B1.7 contract, see `_contract.ts`); absent on pre-B1 docs = 1. */
+  sv?: number;
+  /**
+   * Server-managed revision (B0 / PWA-06), +1 on every accepted write. A
+   * device writes only on top of the revision it last saw (`baseRev`); a
+   * mismatch is a conflict returned to the device instead of a silent
+   * overwrite. Legacy docs written before revisions have none (= 0).
+   */
+  rev?: number;
 }
 
 export interface SyncDeletionDoc {

@@ -14,7 +14,8 @@ export function CoachClientHistory() {
   const { t } = useTranslation();
   const { clientId = '' } = useParams();
   return (
-    <div>
+    // B3.8: reading width inside the (wide) client workspace.
+    <div className="max-w-3xl">
       <p className="ui-label mb-3">{t('timeline.title')}</p>
       <CoachTimeline clientId={clientId} />
     </div>

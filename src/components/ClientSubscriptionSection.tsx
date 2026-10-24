@@ -8,17 +8,14 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useSession } from '@/services/auth/sessionStore';
 import { cancelFreezeRequest, fetchMyFreezeRequest, submitFreezeRequest } from '@/services/platform/clientCoachApi';
 import { showToast } from '@/stores/toastStore';
-import { Pill, type PillTone } from '@/components/ui/Pill';
+import { Pill } from '@/components/ui/Pill';
+import { dayKeyOf, formatDate, formatMoney } from '@/lib/format';
+import { SUBSCRIPTION_TONE as SUB_TONE } from '@/lib/statusTone';
+import { termFirstDay, termLastDay } from '@/lib/subscription';
 
-const SUB_TONE: Record<string, PillTone> = {
-  active: 'ok',
-  frozen: 'warn',
-  ended: 'bad',
-  none: 'mute',
-};
-const fmtDate = (ms?: number | null) => (ms ? new Date(ms).toISOString().slice(0, 10) : '');
+const fmtDate = (ms: number | null | undefined, lang: string) => (ms ? formatDate(ms, lang, 'medium') : '');
 const toMs = (d: string) => (d ? new Date(`${d}T00:00:00`).getTime() : 0);
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => dayKeyOf(Date.now()); // local day (the UTC day is off by one east/west of Greenwich)
 
 /**
  * Client-facing subscription card: status + dates + price plus the freeze-request
@@ -27,11 +24,11 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
  * Settings so the request affordance is discoverable.
  */
 export function ClientSubscriptionSection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const uid = useSession((s) => s.uid) ?? '';
   const { sub, history, status, hasCoach } = useSubscription();
-  const req = useQuery({ queryKey: ['myFreezeRequest', uid], queryFn: () => fetchMyFreezeRequest(uid), enabled: !!uid && uid !== 'local-user' });
+  const req = useQuery({ queryKey: ['myFreezeRequest', uid], queryFn: () => fetchMyFreezeRequest(uid), enabled: !!uid });
   const [reason, setReason] = useState('');
   const [from, setFrom] = useState(todayStr());
   const [until, setUntil] = useState('');
@@ -68,11 +65,11 @@ export function ClientSubscriptionSection() {
       <div className="card-featured space-y-2">
         <div className="flex items-center justify-between gap-2">
           <Pill testId="client-sub-status" tone={SUB_TONE[status]}>{t(`subscription.status.${status}`)}</Pill>
-          {sub && <span className="font-mono text-[12px] text-earth-subtle">{fmtDate(sub.startAt)} → {fmtDate(sub.endAt)}</span>}
+          {sub && sub.status !== 'pending' && <span className="text-[12px] tabular-nums text-earth-subtle" data-testid="client-sub-dates">{formatDate(termFirstDay(sub), i18n.language)} → {formatDate(termLastDay(sub), i18n.language)}</span>}
         </div>
         {sub?.price != null && (
           <p className="font-display text-3xl font-bold" data-testid="client-sub-price">
-            {sub.price}<span className="ms-1 text-sm font-normal text-earth-muted">{sub.currency ?? ''}</span>
+            <span dir="ltr">{formatMoney(sub.price, sub.currency, i18n.language)}</span>
           </p>
         )}
         <p className="text-sm text-earth-muted">{t('subscription.setByCoach')}</p>
@@ -85,7 +82,7 @@ export function ClientSubscriptionSection() {
           {pending ? (
             <>
               <p className="text-sm text-warn">{t('subscription.requestPending')}</p>
-              {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from)} → {fmtDate(r.until)}</p>}
+              {r?.from && r?.until && <p className="font-mono text-[12px] text-earth-subtle">{fmtDate(r.from, i18n.language)} → {fmtDate(r.until, i18n.language)}</p>}
               {cancel.isError && <p role="alert" className="text-sm text-danger">{t('common.errorGeneric')}</p>}
               <SubmitButton type="button" variant="ghost" fullWidth data-testid="freeze-cancel" pending={cancel.isPending} onClick={() => cancel.mutate()}>
                 {t('subscription.cancelRequest')}
@@ -98,12 +95,12 @@ export function ClientSubscriptionSection() {
               <p className="text-[13px] text-earth-muted">{t('subscription.requestDatesHint')}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label">{t('subscription.from')}</label>
-                  <input type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  <label className="label" htmlFor="freeze-from">{t('subscription.from')}</label>
+                  <input id="freeze-from" type="date" className="input" data-testid="freeze-from" value={from} onChange={(e) => setFrom(e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">{t('subscription.until')}</label>
-                  <input type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
+                  <label className="label" htmlFor="freeze-until">{t('subscription.until')}</label>
+                  <input id="freeze-until" type="date" className="input" data-testid="freeze-until" value={until} onChange={(e) => setUntil(e.target.value)} />
                 </div>
               </div>
               <div>

@@ -1,4 +1,5 @@
 import { trpc } from '@/services/trpc';
+import { deviceZone } from '@/lib/subscription';
 import type { ClientTransferRequest, TransferMode, TransferSubHandling } from '@/types';
 import type { ClientSubscriptionInput } from './coachClientsApi';
 
@@ -26,7 +27,8 @@ import type { ClientSubscriptionInput } from './coachClientsApi';
 interface ClientTransferRequestApiDoc {
   _id: string;
   clientId: string;
-  fromCoachId: string;
+  /** Absent on the requester's own (outgoing) requests — B3.3 / CO-03. */
+  fromCoachId?: string;
   toCoachId: string;
   mode?: TransferMode;
   subscriptionHandling?: TransferSubHandling;
@@ -40,8 +42,8 @@ interface ClientTransferRequestApiDoc {
 }
 
 function fromApiDoc(doc: ClientTransferRequestApiDoc): ClientTransferRequest {
-  const { _id, ...rest } = doc;
-  return { id: _id, ...rest };
+  const { _id, fromCoachId, ...rest } = doc;
+  return { id: _id, fromCoachId: fromCoachId ?? '', ...rest };
 }
 
 export function transferReqId(toCoachId: string, clientId: string): string {
@@ -52,7 +54,8 @@ export function transferReqId(toCoachId: string, clientId: string): string {
 export async function submitTransferRequest(input: {
   toCoachId: string;
   clientId: string;
-  fromCoachId: string;
+  /** Omit for coach requests — the server derives the client's current coach (B0 / CO-03). */
+  fromCoachId?: string;
   reason: string;
   mode?: TransferMode;
   subscriptionHandling?: TransferSubHandling;
@@ -61,7 +64,7 @@ export async function submitTransferRequest(input: {
   // the endpoint always uses the authenticated user's id, so it isn't sent.
   await trpc.transfers.create.mutate({
     clientId: input.clientId,
-    fromCoachId: input.fromCoachId,
+    ...(input.fromCoachId ? { fromCoachId: input.fromCoachId } : {}),
     reason: input.reason.trim(),
     ...(input.mode ? { mode: input.mode } : {}),
     ...(input.subscriptionHandling ? { subscriptionHandling: input.subscriptionHandling } : {}),
@@ -96,6 +99,11 @@ export async function listIncomingTransferRequests(_coachId: string): Promise<Cl
   return docs.map(fromApiDoc);
 }
 
+/** Query options shared by every screen that lists incoming requests (Clients, Today) — one cache. */
+export function incomingTransfersQuery(coachId: string) {
+  return { queryKey: ['incomingTransferRequests', coachId] as const, queryFn: () => listIncomingTransferRequests(coachId), enabled: !!coachId };
+}
+
 /** Requesting coach: the status of requests I have made. */
 export async function listOutgoingTransferRequests(_coachId: string): Promise<ClientTransferRequest[]> {
   const docs = await trpc.transfers.list.query({ type: 'outgoing' });
@@ -128,6 +136,6 @@ export async function resolveTransferRequest(
     ...(adminNote?.trim() ? { adminNote: adminNote.trim() } : {}),
     ...(overrides?.mode ? { mode: overrides.mode } : {}),
     ...(overrides?.subscriptionHandling ? { subscriptionHandling: overrides.subscriptionHandling } : {}),
-    ...(overrides?.newSubscription ? { newSubscription: overrides.newSubscription } : {}),
+    ...(overrides?.newSubscription ? { newSubscription: { ...overrides.newSubscription, zone: deviceZone() } } : {}),
   });
 }

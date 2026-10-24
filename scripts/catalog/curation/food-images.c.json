@@ -1,0 +1,633 @@
+{
+  "_reviewer": "group c — sheets 05, 07",
+  "ff_tomato_raw": {
+    "status": "approved",
+    "file": "File:Tomato je.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tomato_je.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1800,
+    "height": 1497,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Softeis",
+    "credit": "Own work",
+    "alt": {
+      "en": "Fresh red tomatoes on the vine",
+      "ar": "طماطم حمراء طازجة على العنقود"
+    },
+    "note": "Four whole raw tomatoes with green stems on a white background; clearly fresh and uncut, matching the raw state. (The file's Commons description text is unrelated/vandalised; the image itself is a plain tomato studio shot.)"
+  },
+  "ff_cucumber_raw": {
+    "status": "approved",
+    "file": "File:Cucumbers (Unsplash).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cucumbers_(Unsplash).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Cucumbers_%28Unsplash%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 4160,
+    "height": 3120,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Harshal Hirve harshalhirve",
+    "credit": "https://unsplash.com/photos/2GiRcLP_jkI Image at the Wayback Machine Gallery at the Wayback Machine",
+    "alt": {
+      "en": "Whole fresh cucumbers",
+      "ar": "خيار طازج كامل"
+    },
+    "note": "Close-up of a pile of whole, unpeeled raw cucumbers (the short Middle-Eastern type), no labels or packaging; matches raw cucumber with peel. CC0 (pre-2017 Unsplash release as tagged on Commons)."
+  },
+  "ff_lettuce_romaine": {
+    "status": "approved",
+    "file": "File:Romaine lettuce.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Romaine_lettuce.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Romaine_lettuce.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2136,
+    "height": 2520,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Rainer Zenz",
+    "credit": "Own work Rainer Z ... 14:24, 5 November 2016 (UTC)",
+    "alt": {
+      "en": "A fresh head of romaine lettuce",
+      "ar": "رأس خس روماني طازج"
+    },
+    "note": "A single whole romaine head on a plain grey background; raw, clean, no text. (Rejected a CC0 grocery-shelf shot because of readable price tags.)"
+  },
+  "ff_cabbage_raw": {
+    "status": "approved",
+    "file": "File:A halved head of white cabbage.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:A_halved_head_of_white_cabbage.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b3/A_halved_head_of_white_cabbage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2336,
+    "height": 3253,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Marc-Lautenbacher",
+    "credit": "Own work",
+    "alt": {
+      "en": "A raw white cabbage cut in half",
+      "ar": "رأس كرنب أبيض طازج مقطوع نصفين"
+    },
+    "note": "Tight close-up of the cut face of a raw white cabbage head showing the layered leaves; unmistakably raw. Borderline only on framing (close crop rather than a whole head) - the alternative whole-head photo had a price sticker and brand packaging."
+  },
+  "ff_carrot_raw": {
+    "status": "approved",
+    "file": "File:Vegetable-Carrot-Bundle-wStalks.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Vegetable-Carrot-Bundle-wStalks.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 6700,
+    "height": 3800,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Evan-Amos",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bunch of fresh carrots with green tops",
+      "ar": "حزمة جزر طازج بأوراقه الخضراء"
+    },
+    "note": "Bundle of whole raw carrots with leafy tops on a white background (Evan-Amos, public domain); raw state is obvious."
+  },
+  "ff_carrot_boiled": {
+    "status": "missing",
+    "reason": "4 searches (boiled / cooked / steamed carrots, plain side dish) found only mixed plates, soups, salads or roasted carrots; nothing showing plain boiled carrots alone."
+  },
+  "ff_onion_raw": {
+    "status": "approved",
+    "file": "File:Onion on White.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Onion_on_White.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/25/Onion_on_White.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2793,
+    "height": 2793,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Colin",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole brown onion",
+      "ar": "بصلة كاملة بقشرها"
+    },
+    "note": "One whole raw yellow/brown onion with papery skin on a white background; matches raw onion."
+  },
+  "ff_onion_sauteed": {
+    "status": "approved",
+    "file": "File:Caramelizing onions.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Caramelizing_onions.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Caramelizing_onions.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 4916,
+    "height": 2765,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "ccbarr",
+    "credit": "https://www.flickr.com/photos/30458688@N00/34528388780/",
+    "alt": {
+      "en": "Sliced onions softened in a frying pan",
+      "ar": "شرائح بصل مشوّحة في مقلاة"
+    },
+    "note": "Sliced onions sauteed until soft and lightly golden in a stainless pan - the pan-sauteed state the catalog describes, not crispy deep-fried onion (crispy/fried-onion photos were rejected for that reason)."
+  },
+  "ff_garlic_raw": {
+    "status": "approved",
+    "file": "File:Garlic bulbs and cloves.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Garlic_bulbs_and_cloves.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Garlic_bulbs_and_cloves.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 8256,
+    "height": 5504,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "Garlic bulbs with a peeled clove",
+      "ar": "رؤوس ثوم وفص مقشّر"
+    },
+    "note": "Whole raw garlic bulb, a split bulb and two cloves (one peeled) on a neutral studio background; raw garlic, clean and well lit."
+  },
+  "ff_potato_boiled": {
+    "status": "approved",
+    "file": "File:Pellkartoffeln 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Pellkartoffeln_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Pellkartoffeln_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3240,
+    "height": 3000,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "IgorCalzone1",
+    "credit": "Own work",
+    "alt": {
+      "en": "Potatoes boiled in their skins",
+      "ar": "بطاطس مسلوقة بقشرها"
+    },
+    "note": "Close-up of three 'Pellkartoffeln' (potatoes boiled in their skins), skins moist and split from cooking, on kitchen paper. Matches boiled-in-skin. Borderline: an in-skin boiled potato looks similar to a washed raw one; the cracked, glossy skin is the cooked cue. (A second candidate of peeled potatoes in a cluttered backlit kitchen was not used.)"
+  },
+  "ff_potato_baked": {
+    "status": "missing",
+    "reason": "Every baked/jacket potato found on Commons is topped (cheese, beans, chili, butter, chicken mayo) or part of a restaurant plate; no plain baked potato with skin."
+  },
+  "ff_french_fries_oven": {
+    "status": "approved",
+    "file": "File:Oven roasted french fries (3862654181).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Oven_roasted_french_fries_(3862654181).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Oven_roasted_french_fries_%283862654181%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 4752,
+    "height": 3168,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Keith McDuffee from Northborough, MA, USA",
+    "credit": "Oven roasted french fries",
+    "alt": {
+      "en": "Oven-baked potato fries on a tray",
+      "ar": "أصابع بطاطس مخبوزة في الفرن على صينية"
+    },
+    "note": "Golden oven-roasted fries on a baking tray, no packaging or text. Borderline: these are home-cut fries with a little black pepper, not a frozen product, but they show the oven-baked (not deep-fried) result the catalog item is about. The other candidate showed pale fries before baking (wrong state)."
+  },
+  "ff_sweet_potato_baked": {
+    "status": "missing",
+    "reason": "Only found topped/salad dishes, sweet-potato fries, USDA market-event photos, and a Japanese yakiimo street stall with people and price signs; no clean plain baked sweet potato."
+  },
+  "ff_zucchini_boiled": {
+    "status": "missing",
+    "reason": "4 searches (boiled zucchini, steamed zucchini, cooked courgette, zucchine lesse) returned only mixed dishes, stews and recipes; no plain boiled zucchini."
+  },
+  "ff_eggplant_boiled": {
+    "status": "missing",
+    "reason": "Only boiled 'garden eggs' (Solanum aethiopicum - a different vegetable), salads and curries; no plain boiled aubergine."
+  },
+  "ff_okra_boiled": {
+    "status": "missing",
+    "reason": "The one 'boiled or steamed okra' file actually shows bright, fuzzy, apparently raw pods in a pot - state not verifiable, rejected. No other plain boiled okra found."
+  },
+  "ff_spinach_raw": {
+    "status": "missing",
+    "reason": "Candidates rejected: '1 cup of raw salad leaves' (raw baby spinach, but a measuring cup with readable '1 CUP' text), 'Fresh Spinach leaves' (WLA 2025 - actually amaranth greens held in a hand, not Spinacia), and a series of promotional 'Liat Portal for Foodie Disorder' uploads (brand in title; authorship/licence provenance doubtful)."
+  },
+  "ff_spinach_boiled": {
+    "status": "approved",
+    "file": "File:Boiled spinach.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_spinach.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Boiled_spinach.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1280,
+    "height": 960,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Laurent Nguyen",
+    "credit": "Own work",
+    "alt": {
+      "en": "Boiled spinach on a white plate",
+      "ar": "سبانخ مسلوقة في طبق أبيض"
+    },
+    "note": "Dark green wilted, boiled spinach leaves alone on a white plate; plainly cooked spinach, no seasoning or sauce visible."
+  },
+  "ff_jute_leaves_boiled": {
+    "status": "missing",
+    "reason": "Commons has only the growing Corchorus plant, seeds, botanical plates and finished molokhia soup/stew dishes (Egyptian and Tunisian). Nothing shows plain boiled jute leaves, and the soup must not stand in for the leaves."
+  },
+  "ff_green_beans_boiled": {
+    "status": "missing",
+    "reason": "Only raw trimmed beans, Turkish olive-oil green-bean dishes, mixed plates and a 'boiled beans' shot of dry beans; no plain boiled green beans."
+  },
+  "ff_pepper_green_raw": {
+    "status": "approved",
+    "file": "File:Green-Bell-Pepper.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Green-Bell-Pepper.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Green-Bell-Pepper.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1900,
+    "height": 2660,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Evan-Amos",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole green bell pepper",
+      "ar": "فلفل رومي أخضر كامل"
+    },
+    "note": "Single whole raw green bell pepper on a white background (Evan-Amos, public domain)."
+  },
+  "ff_pepper_red_raw": {
+    "status": "approved",
+    "file": "File:Red-Pepper.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Red-Pepper.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/87/Red-Pepper.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2480,
+    "height": 2420,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Evan-Amos",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole red bell pepper",
+      "ar": "فلفل رومي أحمر كامل"
+    },
+    "note": "Single whole raw red bell pepper on a white background (Evan-Amos, CC0)."
+  },
+  "ff_broccoli_boiled": {
+    "status": "approved",
+    "file": "File:Cooked Broccoli 1 2021-05-06.jpeg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_Broccoli_1_2021-05-06.jpeg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Cooked_Broccoli_1_2021-05-06.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 4032,
+    "height": 3024,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "FASTILY",
+    "credit": "Own work",
+    "alt": {
+      "en": "Cooked broccoli florets in a pan",
+      "ar": "زهرات بروكلي مطبوخة في قدر"
+    },
+    "note": "Bright green cooked broccoli florets and stems in a stainless pan, no sauce or visible oil - reads as boiled/blanched broccoli. Minor clutter (pot lids) in the background."
+  },
+  "ff_cauliflower_boiled": {
+    "status": "missing",
+    "reason": "4 searches found only curries, rice plates, cauliflower 'rice', sauced steamed cauliflower and archival photos; no plain boiled cauliflower."
+  },
+  "ff_beets_boiled": {
+    "status": "approved",
+    "file": "File:Beetroot boiled and peeled.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Beetroot_boiled_and_peeled.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/73/Beetroot_boiled_and_peeled.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2560,
+    "height": 1920,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Nillerdk",
+    "credit": "Own work",
+    "alt": {
+      "en": "Whole boiled and peeled beetroots",
+      "ar": "بنجر مسلوق ومقشّر"
+    },
+    "note": "Seven whole beetroots, boiled and peeled, on a plain cloth; matches boiled beetroot."
+  },
+  "ff_taro_cooked": {
+    "status": "missing",
+    "reason": "Only near-candidate: 'Boiled taro.png' (CC BY-SA 4.0) - plain boiled taro chunks in a bowl, but it is a soft, background-removed cut-out with a clipped bowl edge. Given the rule that Egyptian vegetables must clearly look like the real thing, left missing; a human could reconsider it. Everything else was the plant, leaves, curry or historic book scans."
+  },
+  "ff_corn_boiled": {
+    "status": "approved",
+    "file": "File:Boiled corn on a white plate.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_corn_on_a_white_plate.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/71/Boiled_corn_on_a_white_plate.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3024,
+    "height": 4032,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "TudorTulok",
+    "credit": "Own work",
+    "alt": {
+      "en": "A boiled ear of sweet corn on a plate",
+      "ar": "كوز ذرة حلوة مسلوق في طبق"
+    },
+    "note": "One husked, boiled sweet-corn cob alone on a white plate (uploader states it is regular UK sweet corn, boiled); matches the boiled ear portion."
+  },
+  "ff_mushrooms_raw": {
+    "status": "missing",
+    "reason": "Rejected: a mature brown, soil-covered Agaricus (not the white button mushroom as sold), chopped mushrooms held in a hand, wild/unidentified white mushrooms (unsafe to show as food), and a 1024x768 file below the size floor."
+  },
+  "ff_artichoke_boiled": {
+    "status": "approved",
+    "file": "File:Cooked artichokes.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_artichokes.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Cooked_artichokes.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 4320,
+    "height": 3240,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Mauro Cateb",
+    "credit": "Own work",
+    "alt": {
+      "en": "Whole boiled globe artichokes on a plate",
+      "ar": "خرشوف كامل مسلوق في طبق"
+    },
+    "note": "Four whole globe artichokes after boiling (olive-brown, softened bracts) on a white platter; matches 'artichoke, boiled, medium'. Embroidered tablecloth visible at the edges."
+  },
+  "ff_grape_leaves_raw": {
+    "status": "approved",
+    "file": "File:Grape leaf leaves green.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grape_leaf_leaves_green.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Grape_leaf_leaves_green.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1280,
+    "height": 960,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Jon Sullivan",
+    "credit": "http://www.public-domain-image.com/public-domain-images-pictures-free-stock-photos/nature-landscapes-public-domain-images-pictures/leaf-leaves-public-domain-images-pictures/grape-leaf-leaves-green.jpg",
+    "alt": {
+      "en": "Fresh green grape leaves on the vine",
+      "ar": "أوراق عنب خضراء طازجة على الكرمة"
+    },
+    "note": "Close-up of fresh, raw grape-vine leaves (public domain, Jon Sullivan). Borderline: the leaves are still on the vine rather than picked and stacked for cooking, but it honestly shows raw grape leaves; no harvested-leaf photo with a usable licence was found."
+  },
+  "ff_parsley_fresh": {
+    "status": "approved",
+    "file": "File:Parsley Leaves.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Parsley_Leaves.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Parsley_Leaves.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1920,
+    "height": 2560,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Etopalrux",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bunch of fresh flat-leaf parsley",
+      "ar": "حزمة بقدونس طازج"
+    },
+    "note": "A full bunch of fresh flat-leaf parsley standing in a clear container of water; raw herb, no text. (Flat-leaf matches the parsley used in Egypt.)"
+  },
+  "ff_almonds": {
+    "status": "approved",
+    "file": "File:Almonds - in shell, shell cracked open, shelled, blanched.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Almonds_-_in_shell,_shell_cracked_open,_shelled,_blanched.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 6000,
+    "height": 4000,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "Almonds in the shell, shelled and blanched",
+      "ar": "لوز بقشره ومقشّر ومنزوع الجلد"
+    },
+    "note": "Studio close-up (Ivar Leidus) of almonds: one in shell, one cracked open, one shelled kernel with skin and one blanched kernel. The skin-on kernel is the catalog food; the other forms are context, not a different food. Mild borderline: not a pile of kernels only, but no clean kernels-only photo was found."
+  },
+  "ff_peanuts_roasted": {
+    "status": "missing",
+    "reason": "Both 'roasted peanuts' previews were batter/masala-coated spiced peanuts (wrong food); other hits were in-shell sand-roasted, raw peanuts (Ivar Leidus studio shot is raw, not roasted), a description naming a peanut brand, or tiny FDA recall images. No plain dry-roasted unsalted kernels found."
+  },
+  "ff_peanut_butter": {
+    "status": "approved",
+    "file": "File:PeanutButter.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:PeanutButter.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bc/PeanutButter.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1141,
+    "height": 850,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "PiccoloNamek at English Wikipedia",
+    "credit": "Own work Transferred from en:PeanutButter.jpg",
+    "alt": {
+      "en": "Smooth peanut butter in an open jar",
+      "ar": "زبدة فول سوداني ناعمة في برطمان مفتوح"
+    },
+    "note": "Macro of smooth peanut butter swirled inside an open jar; no label, brand or text visible. Matches smooth peanut butter (salt content is not visible in any photo). File is 1141x850 - above the size floor but on the small side. A sharper jar photo was rejected because a person sits in the background."
+  },
+  "ff_walnuts": {
+    "status": "approved",
+    "file": "File:Whole walnut kernel and shell.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Whole_walnut_kernel_and_shell.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Whole_walnut_kernel_and_shell.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3308,
+    "height": 1916,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Potkettle",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole walnut kernel between its shell halves",
+      "ar": "لبّ جوزة عين جمل كامل بين نصفي قشرتها"
+    },
+    "note": "A walnut kernel removed intact, shown with the two shell halves it came from, on a plain surface. The kernel is the catalog food; the shell is context. Clean, no text."
+  },
+  "ff_cashews_raw": {
+    "status": "approved",
+    "file": "File:CASHEW NUTS.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:CASHEW_NUTS.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b9/CASHEW_NUTS.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 6144,
+    "height": 8160,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Ranjithkumar Murugesan",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pile of raw cashew nuts",
+      "ar": "كومة من الكاجو النيء"
+    },
+    "note": "Frame-filling pile of pale, unroasted whole cashew kernels; colour and matte surface match raw (not roasted) cashews. No packaging or text. (A first candidate showed the same food inside a plastic bag - rejected as packaging.)"
+  },
+  "ff_pistachios": {
+    "status": "missing",
+    "reason": "Previewed two: 'Roasted pistachio.jpg' (CC0, good roasted in-shell pistachios but laid out above a measuring ruler with printed numbers - readable text) and 'Pistachio Nuts (Unsplash).jpg' (CC0, roasted kernels in a small bowl filling only the bottom fifth of a tall frame; any square crop would show blurred city background). Other hits were GFDL-only macros, a branded 'Gold Emblem' sample, fried pistachios, or hand-held. A human could reconsider the Unsplash file with a bottom crop."
+  },
+  "ff_mixed_nuts": {
+    "status": "approved",
+    "file": "File:Mixed nuts small white2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Mixed_nuts_small_white2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Mixed_nuts_small_white2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1268,
+    "height": 1046,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "User:Melchoir",
+    "credit": "Own work",
+    "alt": {
+      "en": "Roasted mixed nuts with peanuts in a glass bowl",
+      "ar": "مكسرات مشكلة محمصة مع فول سوداني في وعاء زجاجي"
+    },
+    "note": "Small glass bowl of roasted mixed nuts on white: peanuts (visible through the glass), cashews, almonds, Brazil nut, pecans and hazelnuts. Matches 'mixed nuts with peanuts, roasted'; no packaging or text."
+  },
+  "ff_sunflower_seeds": {
+    "status": "approved",
+    "file": "File:Sunflower Seeds Kaldari.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Sunflower_Seeds_Kaldari.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/39/Sunflower_Seeds_Kaldari.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 1800,
+    "height": 1200,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Kaldari",
+    "credit": "Own work",
+    "alt": {
+      "en": "A shelled sunflower kernel beside a whole striped seed",
+      "ar": "لبّ عباد الشمس مقشّر بجانب بذرة كاملة مخططة"
+    },
+    "note": "Focus-stacked studio macro on white (Kaldari, public domain): one dehulled sunflower kernel - the catalog food - next to a whole striped seed in its hull for recognition. Borderline on framing: two single seeds rather than a handful of kernels; the only other kernel candidate was actually a flower head."
+  },
+  "ff_pumpkin_seeds": {
+    "status": "missing",
+    "reason": "The catalog item is shelled (green) kernels. The previewed 'Pumpkin seed. img 029' shows whole white in-shell seeds (the unshelled 'lib abyad' snack) - wrong state. Other hits were the in-shell roasted macro, oil-pumpkin plants, people named Pepita and archival scans; no photo of green pumpkin-seed kernels found."
+  },
+  "ff_sesame_seeds": {
+    "status": "approved",
+    "file": "File:Sa white sesame seeds.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Sa_white_sesame_seeds.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Sa_white_sesame_seeds.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3504,
+    "height": 2336,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Sanjay ach",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of white sesame seeds",
+      "ar": "صورة مقرّبة لبذور سمسم بيضاء"
+    },
+    "note": "Magnified white sesame seeds spread on a black background; plain dry seeds, no text. Slight note: the seeds look hulled-white while the USDA record is 'whole, dried' (which runs a little more tan) - visually the same food as sold in Egypt."
+  },
+  "ff_chia_seeds": {
+    "status": "approved",
+    "file": "File:Chia Seeds macro 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Chia_Seeds_macro_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/94/Chia_Seeds_macro_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 5616,
+    "height": 3744,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Daniel Schwen",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of dry chia seeds",
+      "ar": "صورة مقرّبة لبذور الشيا الجافة"
+    },
+    "note": "Frame-filling macro of dry chia seeds (Salvia hispanica), mottled grey-brown with a few white seeds; dry as sold, not soaked. Daniel Schwen, CC BY 3.0."
+  },
+  "ff_flaxseed": {
+    "status": "approved",
+    "file": "File:Brown Flax Seeds.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Brown_Flax_Seeds.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Brown_Flax_Seeds.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3504,
+    "height": 2336,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Sanjay Acharya",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of whole brown flaxseeds",
+      "ar": "صورة مقرّبة لبذور كتان بنية كاملة"
+    },
+    "note": "Frame-filling close-up of whole brown flaxseeds; dry whole seeds as sold (the catalog's default portion is whole seeds). No text or packaging."
+  },
+  "ff_olive_oil": {
+    "status": "approved",
+    "file": "File:Olivenöl Weißbrot und grobes Salz (1).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_(1).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 2360,
+    "height": 1770,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Olivenöl_Weißbrot_und_grobes_Salz.JPG: 4028mdk09 derivative work: Andrzej 22 (talk)",
+    "credit": "Olivenöl_Weißbrot_und_grobes_Salz.JPG",
+    "alt": {
+      "en": "Olive oil in a clear glass jug",
+      "ar": "زيت زيتون في إبريق زجاجي شفاف"
+    },
+    "note": "Golden-green olive oil in a plain, unlabelled glass jug on a white cloth - the plain oil itself, no olives, brand or label. A small dish of coarse salt sits in the foreground (minor extra). Crop of a larger bread-oil-salt photo. A branded jerrycan candidate was rejected; most other hits were branded bottles."
+  },
+  "ff_sunflower_oil": {
+    "status": "missing",
+    "reason": "Previewed two: a labelled supermarket bottle (brand label, nutrition panel, barcode) and a torange.biz styled shot whose subject is a sunflower head with a corner watermark. Other hits were branded bottles, a street vendor (person), a production map and bottling-date close-ups. No plain unlabelled sunflower oil found."
+  },
+  "ff_corn_oil": {
+    "status": "missing",
+    "reason": "The only photo titled 'Corn oil (mais)' is a branded 5-litre supermarket bottle on a shelf (rejected). 'Corn oil.jpg' is 704x1000 (below the size floor) and the rest are Mazola adverts/store shots, production maps and oil wells in corn fields. No plain unlabelled corn oil found."
+  },
+  "ff_butter": {
+    "status": "approved",
+    "file": "File:Block of butter 2020-09-28 2951b.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Block_of_butter_2020-09-28_2951b.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Block_of_butter_2020-09-28_2951b.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3536,
+    "height": 2652,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Salicyna",
+    "credit": "Own work",
+    "alt": {
+      "en": "A block of butter on its opened wrapper",
+      "ar": "قالب زبدة على غلافه المفتوح"
+    },
+    "note": "Three-quarter view of an unwrapped block of butter resting on its opened, plain foil-paper wrapper, in warm side light. Borderline on the 'packaging' rule: the wrapper is only the background, unprinted on this side, with no logo, brand or readable text. Every alternative found was a branded/wrapped pack, a dish being opened by a person, or butter on bread. Salted vs unsalted is not visible in any photo."
+  },
+  "ff_ghee": {
+    "status": "missing",
+    "reason": "Previewed two: 'Ghee 2.jpg' (pale scraped ghee in a tub - unrecognisable, reads as ice cream) and 'Sliced clarified butter.png' (CC BY-SA 4.0, claimed own work; content is right - solid golden clarified butter in a bowl - but it is a recompressed, soft PNG at an odd 1147x867 size that looks lifted from the web, so provenance is doubtful). Other hits were ghee lamps, kettles, sweets and people/places named Ghee. A human could verify the PNG's provenance and reconsider."
+  },
+  "ff_mayonnaise": {
+    "status": "approved",
+    "file": "File:Homemade mayonnaise.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Homemade_mayonnaise.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/79/Homemade_mayonnaise.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "width": 3456,
+    "height": 2304,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Jason Terk from Somerville, MA, US",
+    "credit": "Finished",
+    "alt": {
+      "en": "Thick mayonnaise in a bowl with a whisk",
+      "ar": "مايونيز كثيف في وعاء مع مضرب يدوي"
+    },
+    "note": "Close-up of thick, glossy mayonnaise in a bowl with a wire whisk; no jar, brand or text. Minor note: it is homemade (slightly more yellow than jarred regular mayonnaise) but visually the same food. The first candidate titled 'Mayonnaise in the bowl' was a mislabelled landscape photo."
+  }
+}

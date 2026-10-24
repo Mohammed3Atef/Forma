@@ -94,9 +94,14 @@ export async function capacityEntitlementsCol(): Promise<Collection<CapacityEnti
   return col;
 }
 
+/**
+ * Calendar months for capacity add-ons (a Forma commercial term — unchanged by B3.8's 30-day client
+ * packages). B3.8: computed on the UTC calendar EXPLICITLY, never the server's own zone — on Vercel
+ * that zone is UTC already, so production is unchanged; local development and the tests now match it.
+ */
 export function addMonths(at: number, months: number): number {
   const d = new Date(at);
-  d.setMonth(d.getMonth() + months);
+  d.setUTCMonth(d.getUTCMonth() + months);
   return d.getTime();
 }
 
@@ -156,12 +161,6 @@ export async function recomputeCapacity(coachId: string, session?: ClientSession
   );
   const after = (await plans.findOne({ _id: coachId }, { session, projection: { maxClients: 1 } }))?.maxClients ?? 0;
   return { before, after };
-}
-
-/** Read-only: the effective limit right now (materialized value). */
-export async function getEffectiveCoachClientLimit(coachId: string, session?: ClientSession): Promise<number> {
-  const plan = await (await coachPlansCol()).findOne({ _id: coachId }, { session, projection: { maxClients: 1 } });
-  return plan?.maxClients ?? 0;
 }
 
 /**

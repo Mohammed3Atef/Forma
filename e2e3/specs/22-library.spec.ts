@@ -5,6 +5,12 @@ import { appReady, confirmYes, expectToast, fullAssessment, uniq } from './_b-he
 /**
  * Starter library (two coaches, idempotent re-run) and library → template →
  * client-plan sync semantics on coachA.
+ *
+ * B3.7 selector changes (guarantees unchanged): the Library opens on Programs, so exercises are
+ * `?tab=exercises`; "Add the starter library" is in the Library's menu (`lib-more`) or the
+ * first-run panel (`load-starter-library`) and reports its result in a dialog (both entry points
+ * now behave the same); `/coach/templates` is Library › Programs (a table on desktop); swap groups
+ * are inside Foods; supplements and groups are tables on desktop like the rest.
  */
 
 test.setTimeout(180_000);
@@ -23,20 +29,18 @@ test.beforeAll(async ({ db }) => {
 });
 
 test('starter library: coachA and coachB both load it; shared ids; idempotent re-run', async ({ as, db }, testInfo) => {
-  // coachA — from the Library page.
+  // coachA — from the Library's menu.
   const { page: a } = await as('coachA');
-  await a.goto('/coach/library');
-  await appReady(a, 'lib-load-starter');
-  await a.getByTestId('lib-load-starter').click();
-  await confirmYes(a);
-  await expectToast(a, 'Starter library added');
-  await expect(a.getByTestId('toast').filter({ hasText: /failed|Some categories/i })).toHaveCount(0);
+  await a.goto('/coach/library?tab=exercises');
+  await appReady(a, 'lib-more');
+  await loadStarterFromMenu(a);
   await expect(a.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
   await shot(a, testInfo, '01-coachA-exercises');
 
-  // coachB — from the Templates empty state (LoadStarterLibraryButton).
+  // coachB — from the first-run panel; the old Templates URL is Library › Programs.
   const { page: b } = await as('coachB');
   await b.goto('/coach/templates');
+  await expect(b).toHaveURL(/\/coach\/library\?tab=programs$/);
   await appReady(b, 'load-starter-library');
   await b.getByTestId('load-starter-library').click();
   await confirmYes(b);
@@ -46,19 +50,18 @@ test('starter library: coachA and coachB both load it; shared ids; idempotent re
   await expect(done).not.toContainText(/duplicate key|E11000/i);
   await shot(b, testInfo, '02-coachB-loaded-dialog');
   await done.getByTestId('confirm-accept').click();
-  await expect(b.getByTestId('template-card').first()).toBeVisible();
+  await expect(b.getByTestId('coach-desktop-templates').getByTestId('data-row').first()).toBeVisible();
   await shot(b, testInfo, '03-coachB-templates');
 
-  // Every tab populated (coachB, UI).
-  await b.goto('/coach/library');
-  await appReady(b, 'lib-tab-exercises');
+  // Every segment populated (coachB, UI).
+  await b.getByTestId('lib-tab-exercises').click();
   await expect(b.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
   await b.getByTestId('lib-tab-foods').click();
   await expect(b.getByTestId('coach-desktop-foods').getByTestId('data-row').first()).toBeVisible();
-  await b.getByTestId('lib-tab-groups').click();
-  await expect(b.getByTestId('group-item').first()).toBeVisible();
+  await b.getByTestId('lib-foods-view-groups').click();
+  await expect(b.getByTestId('coach-desktop-groups').getByTestId('data-row').first()).toBeVisible();
   await b.getByTestId('lib-tab-supplements').click();
-  await expect(b.getByTestId('supp-item').first()).toBeVisible();
+  await expect(b.getByTestId('coach-desktop-supplements').getByTestId('data-row').first()).toBeVisible();
   await shot(b, testInfo, '04-coachB-supplements');
 
   // DB: per-coach counts equal, same logical ids.
@@ -76,18 +79,27 @@ test('starter library: coachA and coachB both load it; shared ids; idempotent re
   expect(shared).toBe(idsB.length);
 
   // Re-run for coachA → idempotent.
-  await a.getByTestId('lib-load-starter').click();
-  await confirmYes(a);
-  await expect(a.getByTestId('toast').filter({ hasText: 'Starter library added' }).first()).toBeVisible();
+  await loadStarterFromMenu(a);
   await a.waitForTimeout(1_000);
   for (const c of COLS) expect(await db.count(c, { coachId: A }), `${c} unchanged after re-run`).toBe(counts[c][0]);
   await shot(a, testInfo, '05-coachA-rerun');
 });
 
+/** The Library's menu → "Add the starter library" → confirm → the result dialog (no failed category). */
+async function loadStarterFromMenu(page: Page) {
+  await page.getByTestId('lib-more').click();
+  await page.getByTestId('lib-load-starter').click();
+  await confirmYes(page);
+  const done = page.getByTestId('confirm-dialog');
+  await expect(done).toContainText('Starter library added', { timeout: 60_000 });
+  await expect(done).not.toContainText(/didn't load|failed|E11000/i);
+  await done.getByTestId('confirm-accept').click();
+}
+
 /* ---------------- library sync ---------------- */
 
 async function openLibraryEdit(page: Page, name: string) {
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-search');
   await page.getByTestId('lib-search').fill(name);
   await page.getByTestId('coach-desktop-library').getByTestId('data-row').filter({ hasText: name }).first().click();
@@ -104,12 +116,14 @@ async function editLibrary(page: Page, from: string, to: string, video: string) 
   await expectToast(page, 'Saved');
 }
 
-/** In an open PlanBuilder: day card → "Main" section. */
+/** In an open training editor: the first day — its sections are shown in the day (B3.5: no section level). */
 async function openSection(page: Page) {
   await page.getByTestId('builder-day-card').first().click();
-  await page.getByTestId('builder-day').getByRole('button', { name: /Main/ }).click();
-  await expect(page.getByTestId('builder-section')).toBeVisible();
+  await expect(page.getByTestId('builder-section').first()).toBeVisible();
+  await expect(page.getByTestId('section-title').first()).toHaveValue('Main');
 }
+/** An exercise row's open button (B3.5: its move / options buttons are named after the exercise too). */
+const exerciseRow = (scope: ReturnType<Page['getByTestId']>, name: string) => scope.getByTestId('builder-exercise-open').filter({ hasText: name });
 
 test('library sync: template follows library identity/media, keeps programming; client plan only on "Update from library"; override + reconnect', async ({ as, db }, testInfo) => {
   const { page } = await as('coachA');
@@ -117,7 +131,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   const v1 = 'https://cdn.example.test/v1.mp4';
 
   // 1) A library exercise (own, independent of the starter set).
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-new');
   await page.getByTestId('lib-new').click();
   await page.getByTestId('ex-name').fill(base);
@@ -151,13 +165,13 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.getByTestId('picker-lib-item').filter({ hasText: base }).click();
   await page.getByTestId('picker-add-selected').click();
   const section = page.getByTestId('builder-section');
-  await section.getByRole('button', { name: new RegExp(base) }).click();
+  await exerciseRow(section, base).click();
   await expect(page.getByText('Linked to library')).toBeVisible();
   await page.getByTestId('ex-working-sets').fill('5');
   await page.getByTestId('ex-reps').fill('5');
   await page.getByTestId('ex-save').click();
   await expect(section).toContainText('5 × 5');
-  await expect(page.getByTestId('toast').filter({ hasText: 'Make this a custom override?' })).toHaveCount(0); // programming edit never detaches
+  await expect(page.getByTestId('toast').filter({ hasText: 'Now a custom version for this client' })).toHaveCount(0); // programming edit never detaches
   await page.getByTestId('template-save').click();
   await expect(page).toHaveURL(/\/coach\/templates\/(?!new$)[^/]+$/);
   await expect(page.getByTestId('template-preview')).toBeVisible();
@@ -182,7 +196,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await openSection(page);
   await expect(page.getByTestId('builder-section')).toContainText(v2name);
   await expect(page.getByTestId('builder-section')).toContainText('5 × 5');
-  await expect(page.getByTestId('builder-section')).toContainText('🎬');
+  await expect(page.getByTestId('builder-section').getByTestId('ex-row-video')).toHaveCount(1);
   await shot(page, testInfo, '03-template-follows-library');
 
   // 4) Assign the template to clientA.
@@ -209,28 +223,29 @@ test('library sync: template follows library identity/media, keeps programming; 
   const sec = page.getByTestId('builder-section');
   await expect(sec).toContainText(v2name);
   await shot(page, testInfo, '05-client-plan-before-update');
-  await sec.getByRole('button', { name: new RegExp(v2name) }).click();
+  await exerciseRow(sec, v2name).click();
   await page.getByRole('button', { name: 'Update from library' }).click();
   await expect(sec).toContainText(v3name);
   await expect(sec).toContainText('5 × 5');
-  expect(await planEx()).toMatchObject({ name: v3name, videoUrl: v3, workingSets: 5, repRange: '5', librarySyncEnabled: true });
   await shot(page, testInfo, '06-client-plan-updated');
-  // The refresh is already persisted server-side; record whether the editor still claims unsaved changes.
-  testInfo.annotations.push({ type: 'unsaved-after-update-from-library', description: String(await page.getByTestId('workout-unsaved').isVisible()) });
-  // The coach can still Save the client plan afterwards (E-B-2: nulls written by the refresh).
+  // Since B0 (CO-01) the refresh is an edit in the editor, persisted only by the guarded Save
+  // (the unguarded server-side rewrite was removed) — so it is unsaved until the coach saves.
+  await expect(page.getByTestId('workout-unsaved')).toBeVisible();
+  expect(await planEx()).toMatchObject({ name: v2name, videoUrl: v2 });
   await page.getByTestId('workout-save').click();
-  await expect.soft(page.getByTestId('workout-saved'), 'client plan saves after Update from library').toBeVisible();
+  await expect(page.getByTestId('workout-saved'), 'client plan saves after Update from library').toBeVisible();
+  expect(await planEx()).toMatchObject({ name: v3name, videoUrl: v3, workingSets: 5, repRange: '5', librarySyncEnabled: true });
   await shot(page, testInfo, '06b-client-plan-save-after-update');
 
   // 7) Override (sync off) on the template exercise — link kept.
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(v3name) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), v3name).click();
   const custom = `${base} (my cue)`;
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-save').click();
-  await expectToast(page, 'Make this a custom override?');
+  await expectToast(page, 'Now a custom version for this client');
   await page.getByTestId('template-save').click();
   // A template that has received a library sync must still be saveable (E-B-2).
   await expect(page.getByText(/invalid_type/)).toHaveCount(0);
@@ -247,7 +262,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(custom.replace(/[()]/g, '\\$&')) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), custom).click();
   await expect(page.getByText('Custom override — automatic library updates are disabled for this exercise')).toBeVisible();
   await page.getByRole('button', { name: 'Reconnect to library' }).click();
   await expect(page.getByTestId('builder-section')).toContainText(v4name);
@@ -264,7 +279,7 @@ test('library sync: template follows library identity/media, keeps programming; 
 test('library sync: override on a fresh (never-synced) template → not propagated → reconnect → propagates again', async ({ as, db }, testInfo) => {
   const { page } = await as('coachA');
   const base = uniq('E2E Fresh Lunge');
-  await page.goto('/coach/library');
+  await page.goto('/coach/library?tab=exercises');
   await appReady(page, 'lib-new');
   await page.getByTestId('lib-new').click();
   await page.getByTestId('ex-name').fill(base);
@@ -286,11 +301,11 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.getByTestId('picker-add-selected').click();
   // Override a synced field (name) → sync off, link kept.
   const custom = `${base} custom`;
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(base) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), base).click();
   await page.getByTestId('ex-name').fill(custom);
   await page.getByTestId('ex-working-sets').fill('4');
   await page.getByTestId('ex-save').click();
-  await expectToast(page, 'Make this a custom override?');
+  await expectToast(page, 'Now a custom version for this client');
   await page.getByTestId('template-save').click();
   await expect(page.getByTestId('template-preview')).toBeVisible();
   const tplId = (await db.findOne<{ id: string }>('coachWorkoutTemplates', { coachId: A, name: tplName }))!.id;
@@ -307,7 +322,7 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.goto(`/coach/templates/${tplId}/edit`);
   await appReady(page, 'builder-plan');
   await openSection(page);
-  await page.getByTestId('builder-section').getByRole('button', { name: new RegExp(custom) }).click();
+  await exerciseRow(page.getByTestId('builder-section'), custom).click();
   await expect(page.getByText('Custom override — automatic library updates are disabled for this exercise')).toBeVisible();
   await page.getByRole('button', { name: 'Reconnect to library' }).click();
   await expect(page.getByTestId('builder-section')).toContainText(`${base} L2`);

@@ -22,7 +22,8 @@ export function Switch({
       aria-label={label}
       data-testid={testId}
       onClick={onChange}
-      className={`relative h-[25px] w-[42px] shrink-0 rounded-full border transition-colors ${
+      // B3.9 (AX-01): a 42 × 25 track with a centred 44 × 44 tap area (`hit-44` keeps it relative).
+      className={`hit-44 relative h-[25px] w-[42px] shrink-0 rounded-full border transition-colors ${
         on ? 'border-transparent bg-gradient-brand' : 'border-line bg-surface-strong'
       }`}
     >

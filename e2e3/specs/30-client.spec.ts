@@ -1,6 +1,6 @@
 import { test, expect, ready, shot } from '../fixtures';
 import type { Page } from '@playwright/test';
-import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng, bodyText, allowDevModuleStorm, type SyncRec } from './_c-helpers';
+import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng, bodyText, allowDevModuleStorm, waitForLocaleSaved, type SyncRec } from './_c-helpers';
 
 /**
  * Phase-3 client journeys (clientA). Local-first data → every persistence
@@ -11,7 +11,8 @@ import { CLIENT_A, seedWorkoutPlan, seedNutritionPlan, pollDb, todayKey, makePng
 type SetLog = { setIndex: number; type: string; weightKg: number | null; actualReps: number | null; done: boolean };
 type WorkoutLog = { id: string; dayId: string; startedAt: number | null; finished: boolean; exercises: { exerciseId: string; sets: SetLog[] }[] };
 
-const setRows = (page: Page) => page.locator('section.card li').filter({ has: page.getByRole('button', { name: 'Done' }) });
+// B2.3: set rows are tagged (`set-row`) — the card markup is no longer `section.card li`.
+const setRows = (page: Page) => page.getByTestId('set-row');
 
 test.describe('client journeys', () => {
   test.afterAll(async () => {
@@ -37,8 +38,8 @@ test.describe('client journeys', () => {
     await expect(page).toHaveURL(/\/workout\/session$/);
     await expect(page.getByText('Exercise 1 of 2')).toBeVisible();
     await expect(page.getByText('C Bench Press').first()).toBeVisible();
-    // Begin the timer (first real "record" action).
-    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    // B2.3 / CL-18: "Start this workout" already began the timer — no second Start in the session.
+    await expect(page.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
 
     // 2 working sets, warmupSetCount 0 → exactly 2 rows.
@@ -58,12 +59,8 @@ test.describe('client journeys', () => {
     await page.getByRole('button', { name: 'Skip' }).click();
     await expect(page.getByRole('button', { name: 'Skip' })).toHaveCount(0);
 
-    // Video button on an exercise WITHOUT any video: must not crash; record what it does.
-    await page.getByRole('button', { name: 'Watch video' }).click();
-    await page.waitForTimeout(600);
-    const noVideoPopup = await page.getByTestId('video-popup').count();
-    const noVideoSheet = await page.getByTestId('sheet').count();
-    testInfo.annotations.push({ type: 'video-no-url', description: `popup=${noVideoPopup} sheet=${noVideoSheet} (0/0 = silent no-op)` });
+    // An exercise WITHOUT any video offers no video button at all (B0 / EX-01 — no dead taps).
+    await expect(page.getByRole('button', { name: 'Watch video' })).toHaveCount(0);
     await shot(page, testInfo, '03-video-no-url');
 
     // Next → exercise 2 (has a coach videoUrl) → popup opens and closes.
@@ -152,12 +149,13 @@ test.describe('client journeys', () => {
     const { page } = await as('clientA');
     await page.goto('/nutrition');
     await ready(page);
-    const meal = page.locator('section.card').filter({ hasText: 'C Breakfast' });
-    await expect(meal).toBeVisible();
+    // B2.4: meals are tagged sections (`meal-<id>`) whose eaten state is an attribute, not a class.
+    const meal = page.getByTestId('meal-c-meal-1');
+    await expect(meal).toContainText('C Breakfast');
     await meal.getByRole('button', { name: 'Mark eaten' }).click();
-    await expect(meal).toHaveClass(/border-success/);
+    await expect(meal).toHaveAttribute('data-eaten', 'true');
 
-    await meal.getByRole('button', { name: '+ Add food' }).click();
+    await meal.getByRole('button', { name: 'Add food' }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet).toBeVisible();
     const search = sheet.getByLabel('Search a food database…');
@@ -203,7 +201,7 @@ test.describe('client journeys', () => {
     await page.reload();
     await ready(page);
     await expect(meal.getByText(`+ ${firstName}`)).toBeVisible();
-    await expect(meal).toHaveClass(/border-success/);
+    await expect(meal).toHaveAttribute('data-eaten', 'true');
     expect(await bodyText(page)).not.toMatch(/NaN/);
     await shot(page, testInfo, '04-after-reload');
 
@@ -259,19 +257,19 @@ test.describe('client journeys', () => {
     await ready(page);
     await page.getByRole('button', { name: 'Log activity' }).click();
     const sheet = page.getByRole('dialog');
-    await sheet.getByRole('button', { name: 'Running' }).click();
+    await sheet.getByRole('radio', { name: 'Running' }).click(); // B2.3: the type picker is a radiogroup
     await sheet.locator('input[placeholder="10000"]').fill('4321');
     await sheet.locator('input[placeholder="40"]').fill('25');
     await sheet.getByRole('button', { name: 'Save' }).click();
     await expect(sheet).toHaveCount(0);
-    const row = page.locator('li.card').filter({ hasText: 'Running' });
-    await expect(row).toContainText('25min');
+    const row = page.getByTestId('cardio-entry').filter({ hasText: 'Running' });
+    await expect(row).toContainText('25 min');
     await expect(row).toContainText('4,321');
     await shot(page, testInfo, '01-cardio-logged');
     await page.waitForTimeout(600);
     await page.reload();
     await ready(page);
-    await expect(page.locator('li.card').filter({ hasText: 'Running' })).toContainText('25min');
+    await expect(page.getByTestId('cardio-entry').filter({ hasText: 'Running' })).toContainText('25 min');
     const rec = await pollDb(
       () => db.findOne<SyncRec<{ type: string; durationSec: number; steps: number }>>('syncRecords', { clientId: CLIENT_A, collection: 'cardioLogs' }),
       (r) => !!r,
@@ -342,7 +340,8 @@ test.describe('client journeys', () => {
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'measurementLogs' });
     const day = todayKey();
     const { page } = await as('clientA');
-    const field = (label: string) => page.locator('div').filter({ has: page.locator(`label:text-is("${label}")`) }).locator('> input');
+    // B1: measurement inputs are NumericFields — found by their associated label, not by DOM nesting.
+    const field = (label: string) => page.getByLabel(label, { exact: true });
     await page.goto('/progress/measurements');
     await ready(page);
     await field('Waist').fill('81.5');
@@ -385,7 +384,7 @@ test.describe('client journeys', () => {
     await shot(page, testInfo, '02-cleared-after-reload');
     // Fresh context: server copy only.
     const fresh = await as('clientA');
-    const ff = (label: string) => fresh.page.locator('div').filter({ has: fresh.page.locator(`label:text-is("${label}")`) }).locator('> input');
+    const ff = (label: string) => fresh.page.getByLabel(label, { exact: true });
     await fresh.page.goto('/progress/measurements');
     await ready(fresh.page);
     await expect(ff('Chest')).toHaveValue('99', { timeout: 20_000 });
@@ -397,7 +396,7 @@ test.describe('client journeys', () => {
     test.setTimeout(180_000);
     await db.deleteMany('syncRecords', { clientId: CLIENT_A, collection: 'progressPhotos' });
     const { page } = await as('clientA');
-    await page.goto('/progress/photos');
+    await page.goto('/progress?tab=photos');
     await ready(page);
     const png = await makePng(page, '#3a7bd4', 96);
     await page.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'front.png', mimeType: 'image/png', buffer: png });
@@ -420,7 +419,7 @@ test.describe('client journeys', () => {
     expect((await res.body()).length).toBeGreaterThan(50);
 
     const fresh = await as('clientA');
-    await fresh.page.goto('/progress/photos');
+    await fresh.page.goto('/progress?tab=photos');
     await ready(fresh.page);
     const fimg = fresh.page.locator('img[alt="front"]');
     await expect(fimg).toBeVisible({ timeout: 20_000 });
@@ -460,7 +459,7 @@ test.describe('client journeys', () => {
       await expect(page.locator('html')).toHaveAttribute('lang', /^ar/);
       expect(await bodyText(page)).toMatch(/[\u0600-\u06FF]{3,}/);
       await shot(page, testInfo, '03-arabic-rtl');
-      await page.waitForTimeout(500);
+      await waitForLocaleSaved(page, 'ar'); // B3.9.0: the language is stored on the device before the reload (was a fixed 500 ms)
       await page.reload();
       await ready(page);
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

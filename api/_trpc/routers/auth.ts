@@ -21,6 +21,7 @@ import { sendPasswordResetEmail, sendWelcomeEmail } from '../../_lib/email.js';
 import { verifyGoogleIdToken } from '../../_lib/google.js';
 import { ensureTrialPlan } from '../../coach-plans/_data.js';
 import { getFormaConfig } from '../../coach-plans/_handlers/forma.js';
+import { tryTrustedAppOrigin } from '../../_lib/appUrl.js';
 
 // 5 signups / hour per IP — cheap deterrent against scripted bulk account creation.
 const SIGNUP_MAX_ATTEMPTS = 5;
@@ -100,9 +101,10 @@ export const authRouter = router({
       });
 
       const session = await issueSession(ctx.res, { id: doc._id, role: doc.role, accountStatus: doc.accountStatus });
-      // Best-effort — a delivery failure must never fail signup itself.
-      const appUrl = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
-      sendWelcomeEmail(doc.email, doc.displayName, appUrl).catch((e) => console.error('[auth] failed to send welcome email:', e));
+      // Best-effort — a delivery failure must never fail signup itself. The link is on the trusted
+      // origin only, never the request's Origin / Host (B39A-S01).
+      const appUrl = tryTrustedAppOrigin('[auth] welcome email');
+      if (appUrl) sendWelcomeEmail(doc.email, doc.displayName, appUrl).catch(() => console.error('[auth] failed to send the welcome email'));
       return { user: toPublicUser(doc), accessToken: session.accessToken };
     }),
 
@@ -207,13 +209,17 @@ export const authRouter = router({
 
   requestPasswordReset: publicProcedure
     .input(z.object({ email: z.string().trim().toLowerCase().email() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       await enforceRateLimit('auth.resetRequest', input.email, RESET_MAX_ATTEMPTS, RESET_WINDOW_MS);
       const users = await usersCol();
       const user = await users.findOne({ emailLower: input.email });
       // Always respond ok regardless of whether the account exists, so this
       // endpoint can't be used to enumerate registered emails.
-      if (user) {
+      // B39A-S01 (P0): the link is built on the TRUSTED origin only — never the request's Origin /
+      // Host / X-Forwarded-Host / Forwarded, which an attacker sets to receive the victim's token.
+      // No trusted origin → no token is stored and nothing is sent (the reply stays the same).
+      const origin = user ? tryTrustedAppOrigin('[auth] password reset email') : null;
+      if (user && origin) {
         const raw = generateRawToken();
         const resets = await passwordResetsCol();
         await resets.insertOne({
@@ -223,19 +229,13 @@ export const authRouter = router({
           expiresAt: new Date(Date.now() + RESET_TTL_MS),
           used: false,
         });
-        const origin = ctx.req.headers?.origin || process.env.APP_BASE_URL || 'https://www.useforma.fit';
-        const resetUrl = `${origin}/reset/${raw}`;
-        if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
-          console.info(`[auth] password reset link for ${user.email}: ${resetUrl}`);
-        } else {
-          // Never let a delivery failure change this endpoint's response —
-          // that would reopen the account-enumeration hole the constant
-          // `{ ok: true }` reply exists to close.
-          try {
-            await sendPasswordResetEmail(user.email, resetUrl);
-          } catch (e) {
-            console.error('[auth] failed to send password reset email:', e);
-          }
+        // Never let a delivery failure change this endpoint's response — that would reopen the
+        // account-enumeration hole the constant `{ ok: true }` reply exists to close. The token
+        // and the link are never logged.
+        try {
+          await sendPasswordResetEmail(user.email, `${origin}/reset/${raw}`);
+        } catch {
+          console.error('[auth] failed to send a password reset email');
         }
       }
       return { ok: true };

@@ -1,7 +1,8 @@
 /** Minimal inline icon set (stroke-based, inherits currentColor). */
-import type { SVGProps } from 'react';
+import { createContext, useContext, type ReactNode, type SVGProps } from 'react';
 
 type IconName =
+  | 'cloud'
   | 'home'
   | 'dumbbell'
   | 'meal'
@@ -34,6 +35,7 @@ type IconName =
   | 'trophy'
   | 'bolt'
   | 'arrowUp'
+  | 'arrowDown'
   | 'search'
   | 'ruler'
   | 'list'
@@ -44,9 +46,29 @@ type IconName =
   | 'mic'
   | 'globe'
   | 'shield'
-  | 'columns';
+  | 'columns'
+  // Glyphs that exist only in the approved website set (B2): rendered through
+  // the glyph context below — client screens run inside it.
+  | 'trash'
+  | 'send'
+  | 'dots'
+  | 'alert'
+  | 'logout'
+  | 'lock'
+  | 'mail'
+  | 'phone'
+  | 'clock'
+  | 'arrowR'
+  | 'heart'
+  | 'star'
+  | 'note'
+  | 'file'
+  | 'users'
+  | 'copy'
+  | 'chevU'
+  | 'clip';
 
-const PATHS: Record<IconName, string> = {
+const PATHS: Partial<Record<IconName, string>> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v10h14V10',
   dumbbell: 'M6.5 6.5 17.5 17.5M3 9l3-3 3 3-3 3zM15 15l3-3 3 3-3 3zM9 6l9 9',
   meal: 'M4 3v7a3 3 0 0 0 3 3v8M7 3v6M10 3v6M19 3c-1.5 0-3 2-3 5s1.5 4 3 4v9',
@@ -80,6 +102,7 @@ const PATHS: Record<IconName, string> = {
   trophy: 'M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 19h6M10 14.5V19M14 14.5V19',
   bolt: 'M13 3 4 14h7l-1 7 9-11h-7z',
   arrowUp: 'M12 20V5M6 11l6-6 6 6',
+  arrowDown: 'M12 4v15M6 13l6 6 6-6',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   ruler: 'M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4',
   list: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01',
@@ -89,6 +112,8 @@ const PATHS: Record<IconName, string> = {
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   chat: 'M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z',
   mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+  // Offline / not synced (B1.5): a cloud with a slash.
+  cloud: 'M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.1 4.5 4.5 0 0 0 7 18zM3 3l18 18',
   globe: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18',
   shield: 'M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3zM9.5 12l2 2 3.5-4',
   // Two side-by-side panels — a before/after photo compare, not a chart.
@@ -109,20 +134,41 @@ const ICON_TONES = {
 } as const;
 export type IconTone = keyof typeof ICON_TONES;
 
+/**
+ * Glyphs whose MEANING has a direction (B1.8 / RTL-08): they mirror in
+ * right-to-left layouts by themselves, so call sites never hand-flip them.
+ * `chevron` = forward / next / open, `chevronLeft` = back / previous.
+ * Media glyphs (play) and vertical ones (chevronDown, arrowUp, arrowDown) never mirror.
+ */
+const MIRROR_IN_RTL: ReadonlySet<IconName> = new Set<IconName>(['chevron', 'chevronLeft']);
+
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
   size?: IconSize;
   /** Semantic colour; omit to inherit the parent's text colour. */
   tone?: IconTone;
+  /** Override the per-glyph RTL mirroring (rarely needed). */
+  mirror?: boolean;
 }
 
 /**
  * Decorative by default (`aria-hidden`) — icons convey meaning through their
  * surrounding control, so action buttons carry the `aria-label`, not the icon.
  */
-export function Icon({ name, size = 24, tone, className, ...rest }: IconProps) {
+/**
+ * Glyph set switch (B2 / doc 17 "Icon: adopt the website set"). A provider
+ * supplies the website glyphs (1.75 stroke) for a subtree — the client app —
+ * without the glyph data entering the shared entry bundle or changing the
+ * coach/admin screens before B3. Returns null for a name it doesn't cover.
+ */
+export type IconGlyphRenderer = (name: IconName) => ReactNode | null;
+export const IconGlyphContext = createContext<IconGlyphRenderer | null>(null);
+
+export function Icon({ name, size = 24, tone, className, mirror, ...rest }: IconProps) {
+  const glyph = useContext(IconGlyphContext)?.(name) ?? null;
   const px = typeof size === 'number' ? size : ICON_SIZES[size];
-  const cls = [tone ? ICON_TONES[tone] : '', className].filter(Boolean).join(' ');
+  const flip = mirror ?? MIRROR_IN_RTL.has(name);
+  const cls = [tone ? ICON_TONES[tone] : '', flip ? 'rtl:-scale-x-100' : '', className].filter(Boolean).join(' ');
   return (
     <svg
       width={px}
@@ -130,14 +176,14 @@ export function Icon({ name, size = 24, tone, className, ...rest }: IconProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={glyph ? 1.75 : 2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       className={cls || undefined}
       {...rest}
     >
-      <path d={PATHS[name]} />
+      {glyph ?? <path d={PATHS[name] ?? ''} />}
     </svg>
   );
 }

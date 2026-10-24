@@ -1,0 +1,1951 @@
+{
+ "generatedBy": "scripts/catalog/convert-videos.mjs",
+ "note": "Converted files live in e2e-out/.cache/catalog/converted (not committed, not uploaded). Hosting is an owner step.",
+ "summary": {
+  "candidates": 51,
+  "converted": 46,
+  "skipped": 5,
+  "pendingDownload": 0,
+  "failed": 0,
+  "approved": 0,
+  "sourceBytes": 1387924639,
+  "outputBytes": 145900303
+ },
+ "files": [
+  {
+   "key": "vid:21",
+   "exercise": "fx_barbell_bench_press",
+   "wgerVideo": 21,
+   "sourceUrl": "https://wger.de/media/exercise-video/73/2bdb390c-312c-4497-a722-5eed2c823e5a.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/73/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 1108545,
+    "durationSec": 15.93,
+    "width": 640,
+    "height": 352
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_barbell_bench_press/vid-21.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 640,
+    "height": 352,
+    "durationSec": 15.83,
+    "bytes": 941220,
+    "bitrate": 475543,
+    "sha256": "c24fa04e7909a1be594661a86a9e5cab4b1c44f8f5157cb49e466f09f78b1d22"
+   },
+   "poster": {
+    "file": "fx_barbell_bench_press/vid-21-poster.webp",
+    "width": 640,
+    "height": 352,
+    "bytes": 14676
+   },
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-21.mp4",
+   "posterCdnPath": "catalog/exercises/fx_barbell_bench_press/vid-21-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_barbell_bench_press__vid-21.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:22",
+   "exercise": "fx_barbell_bench_press",
+   "wgerVideo": 22,
+   "sourceUrl": "https://wger.de/media/exercise-video/73/255b3509-e454-48a6-bf66-c7ca482be21a.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/73/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 1422312,
+    "durationSec": 20.78,
+    "width": 640,
+    "height": 352
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_barbell_bench_press/vid-22.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 640,
+    "height": 352,
+    "durationSec": 20.7,
+    "bytes": 1204305,
+    "bitrate": 465431,
+    "sha256": "055835c3ada159a676279dbb2a07eaa4484761090cfe82099d7653b4dff2646b"
+   },
+   "poster": {
+    "file": "fx_barbell_bench_press/vid-22-poster.webp",
+    "width": 640,
+    "height": 352,
+    "bytes": 19538
+   },
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-22.mp4",
+   "posterCdnPath": "catalog/exercises/fx_barbell_bench_press/vid-22-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_barbell_bench_press__vid-22.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:16",
+   "exercise": "fx_incline_barbell_bench_press",
+   "wgerVideo": 16,
+   "sourceUrl": "https://wger.de/media/exercise-video/538/4349a6f6-4cee-4c09-828b-c5e7fc2c1ff1.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/538/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 6205424,
+    "durationSec": 19.92,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_incline_barbell_bench_press/vid-16.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 19.87,
+    "bytes": 3089845,
+    "bitrate": 1244212,
+    "sha256": "622f8249d3bfd1befbcc61603160dec940a9cdab344164fb804e2b8e30f8b793"
+   },
+   "poster": {
+    "file": "fx_incline_barbell_bench_press/vid-16-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 15346
+   },
+   "cdnPath": "catalog/exercises/fx_incline_barbell_bench_press/vid-16.mp4",
+   "posterCdnPath": "catalog/exercises/fx_incline_barbell_bench_press/vid-16-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_incline_barbell_bench_press__vid-16.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:17",
+   "exercise": "fx_dumbbell_bench_press",
+   "wgerVideo": 17,
+   "sourceUrl": "https://wger.de/media/exercise-video/75/080c799b-8afd-4130-8d72-9cef0cd79f54.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/75/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 4543158,
+    "durationSec": 14.16,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_bench_press/vid-17.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 14.1,
+    "bytes": 2409681,
+    "bitrate": 1367194,
+    "sha256": "739dfad0e9615a150934976c8b93303a16319fb4576977b0bf95ebfd313d38eb"
+   },
+   "poster": {
+    "file": "fx_dumbbell_bench_press/vid-17-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 20222
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-17.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-17-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_bench_press__vid-17.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:18",
+   "exercise": "fx_dumbbell_bench_press",
+   "wgerVideo": 18,
+   "sourceUrl": "https://wger.de/media/exercise-video/75/a8263fe5-3015-41e3-9781-2d255adcea63.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/75/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 9894638,
+    "durationSec": 30.09,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_bench_press/vid-18.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 30.03,
+    "bytes": 5333158,
+    "bitrate": 1420565,
+    "sha256": "6fe5ddf26aeb7ab6a78ec004c58ebfbb786e9358ea004632cbc6caa3864c5f34"
+   },
+   "poster": {
+    "file": "fx_dumbbell_bench_press/vid-18-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 24440
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-18.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-18-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_bench_press__vid-18.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:19",
+   "exercise": "fx_dumbbell_bench_press",
+   "wgerVideo": 19,
+   "sourceUrl": "https://wger.de/media/exercise-video/75/9d803f97-0a48-4483-8f1c-ee5b19d6021e.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/75/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 9938046,
+    "durationSec": 28.26,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_bench_press/vid-19.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 28.2,
+    "bytes": 5574250,
+    "bitrate": 1581347,
+    "sha256": "1979123ac41ffc92a6a80cd301daaaf6396e8f763a27ef1d98914d6ba2ae5e62"
+   },
+   "poster": {
+    "file": "fx_dumbbell_bench_press/vid-19-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 26216
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-19.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-19-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_bench_press__vid-19.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:20",
+   "exercise": "fx_dumbbell_bench_press",
+   "wgerVideo": 20,
+   "sourceUrl": "https://wger.de/media/exercise-video/75/c9cbd391-1e22-4014-8794-04630c80665f.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/75/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 4576193,
+    "durationSec": 11.28,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_bench_press/vid-20.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 11.23,
+    "bytes": 2340161,
+    "bitrate": 1666484,
+    "sha256": "3b6f3df9bc13287e89d50f4045de781edf0ead8603a0f50deb694d74941c1584"
+   },
+   "poster": {
+    "file": "fx_dumbbell_bench_press/vid-20-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 24710
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-20.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-20-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_bench_press__vid-20.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:24",
+   "exercise": "fx_incline_dumbbell_press",
+   "wgerVideo": 24,
+   "sourceUrl": "https://wger.de/media/exercise-video/537/b9c937e9-daeb-42a9-be8e-7a77e368478c.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/537/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 10602354,
+    "durationSec": 27.49,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_incline_dumbbell_press/vid-24.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 27.43,
+    "bytes": 5780645,
+    "bitrate": 1685687,
+    "sha256": "9fb6e74a52238dac6ea576d46ec6ce3ce6cf25ecf1e2486327cca676445ca701"
+   },
+   "poster": {
+    "file": "fx_incline_dumbbell_press/vid-24-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 28076
+   },
+   "cdnPath": "catalog/exercises/fx_incline_dumbbell_press/vid-24.mp4",
+   "posterCdnPath": "catalog/exercises/fx_incline_dumbbell_press/vid-24-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_incline_dumbbell_press__vid-24.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:65",
+   "exercise": "fx_chest_dip",
+   "wgerVideo": 65,
+   "sourceUrl": "https://wger.de/media/exercise-video/194/7a6987aa-138d-41e4-8842-5c3e3d970bd9.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/194/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 8340144,
+    "durationSec": 16.37,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_chest_dip/vid-65.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 16.3,
+    "bytes": 4266665,
+    "bitrate": 2094068,
+    "sha256": "a0456336a9b97fd9e7c702303d2e2a9485675c0b1a4a5b86ea49ab05bfce9abe"
+   },
+   "poster": {
+    "file": "fx_chest_dip/vid-65-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 32880
+   },
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-65.mp4",
+   "posterCdnPath": "catalog/exercises/fx_chest_dip/vid-65-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_chest_dip__vid-65.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:66",
+   "exercise": "fx_chest_dip",
+   "wgerVideo": 66,
+   "sourceUrl": "https://wger.de/media/exercise-video/194/dd9a663f-d8ba-4621-823b-13788ccb66bc.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/194/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 4418928,
+    "durationSec": 10.17,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_chest_dip/vid-66.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.13,
+    "bytes": 2217439,
+    "bitrate": 1750494,
+    "sha256": "d43eb50f7cc3c19fc6c94a30b2ed2f4082b7bd4487a38c93ff0f297b3bf583bf"
+   },
+   "poster": {
+    "file": "fx_chest_dip/vid-66-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 31544
+   },
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-66.mp4",
+   "posterCdnPath": "catalog/exercises/fx_chest_dip/vid-66-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_chest_dip__vid-66.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:71",
+   "exercise": "fx_pull_up",
+   "wgerVideo": 71,
+   "sourceUrl": "https://wger.de/media/exercise-video/475/83067ffe-ccb9-4e22-8507-5131b211ce74.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/475/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 57098527,
+    "durationSec": 18.77,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_pull_up/vid-71.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 18.77,
+    "bytes": 2780282,
+    "bitrate": 1185179,
+    "sha256": "4f5914617f776f37e100b173a414cdb0cb6095edb73bf70ef2c5755ff7dd5446"
+   },
+   "poster": {
+    "file": "fx_pull_up/vid-71-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 26010
+   },
+   "cdnPath": "catalog/exercises/fx_pull_up/vid-71.mp4",
+   "posterCdnPath": "catalog/exercises/fx_pull_up/vid-71-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_pull_up__vid-71.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:78",
+   "exercise": "fx_face_pull",
+   "wgerVideo": 78,
+   "sourceUrl": "https://wger.de/media/exercise-video/222/245a824b-cd39-45f2-b251-2c0b7efead0d.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/222/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 21001245,
+    "durationSec": 8.7,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_face_pull/vid-78.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 8.7,
+    "bytes": 1472871,
+    "bitrate": 1354364,
+    "sha256": "7f363a8b3dbab9b6053152df39fd53a91ef0e9d8ebc68bc5ddf23f8eb52405bf"
+   },
+   "poster": {
+    "file": "fx_face_pull/vid-78-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 28180
+   },
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-78.mp4",
+   "posterCdnPath": "catalog/exercises/fx_face_pull/vid-78-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_face_pull__vid-78.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:79",
+   "exercise": "fx_face_pull",
+   "wgerVideo": 79,
+   "sourceUrl": "https://wger.de/media/exercise-video/222/eea93fcc-6a3c-4783-8f70-0234c791a001.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/222/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 20624981,
+    "durationSec": 8.57,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_face_pull/vid-79.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 8.57,
+    "bytes": 1641140,
+    "bitrate": 1532522,
+    "sha256": "1abbf015ef4693c4f14d89ba0c14d5426c42ee82c88744306dab700a57f60120"
+   },
+   "poster": {
+    "file": "fx_face_pull/vid-79-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 28544
+   },
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-79.mp4",
+   "posterCdnPath": "catalog/exercises/fx_face_pull/vid-79-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_face_pull__vid-79.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:12",
+   "exercise": "fx_seated_dumbbell_shoulder_press",
+   "wgerVideo": 12,
+   "sourceUrl": "https://wger.de/media/exercise-video/567/64f33c19-1d96-4b7c-af17-6c6a4941c614.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/567/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 62860017,
+    "durationSec": 23.13,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_seated_dumbbell_shoulder_press/vid-12.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 23.13,
+    "bytes": 4832896,
+    "bitrate": 1671270,
+    "sha256": "5aa030f8a54961c9b4807d42c232d68d776221afc6de214ac8fc6a6e9c5c7812"
+   },
+   "poster": {
+    "file": "fx_seated_dumbbell_shoulder_press/vid-12-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 27452
+   },
+   "cdnPath": "catalog/exercises/fx_seated_dumbbell_shoulder_press/vid-12.mp4",
+   "posterCdnPath": "catalog/exercises/fx_seated_dumbbell_shoulder_press/vid-12-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_seated_dumbbell_shoulder_press__vid-12.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:11",
+   "exercise": "fx_machine_shoulder_press",
+   "wgerVideo": 11,
+   "sourceUrl": "https://wger.de/media/exercise-video/543/dbfd396b-1aab-4a64-a50b-2c31ff0a2cf7.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/543/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 23511495,
+    "durationSec": 12.27,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_machine_shoulder_press/vid-11.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 12.27,
+    "bytes": 2096342,
+    "bitrate": 1367142,
+    "sha256": "18d95e5d6b4ddf89ab6a7a1e37f7db84ae253f8f7b1aa23d5ff23229d125c8ff"
+   },
+   "poster": {
+    "file": "fx_machine_shoulder_press/vid-11-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 15680
+   },
+   "cdnPath": "catalog/exercises/fx_machine_shoulder_press/vid-11.mp4",
+   "posterCdnPath": "catalog/exercises/fx_machine_shoulder_press/vid-11-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_machine_shoulder_press__vid-11.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:6",
+   "exercise": "fx_dumbbell_lateral_raise",
+   "wgerVideo": 6,
+   "sourceUrl": "https://wger.de/media/exercise-video/348/de69928a-8a35-4096-821c-1f46de5e0e03.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/348/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 43874331,
+    "durationSec": 18.26,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_lateral_raise/vid-6.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 18.27,
+    "bytes": 4392163,
+    "bitrate": 1923539,
+    "sha256": "fdd6d758557651030daa2f10db6c1aab2021a57683a58ac9efc908f94511e95a"
+   },
+   "poster": {
+    "file": "fx_dumbbell_lateral_raise/vid-6-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 29182
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_lateral_raise/vid-6.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_lateral_raise/vid-6-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_lateral_raise__vid-6.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:49",
+   "exercise": "fx_barbell_curl",
+   "wgerVideo": 49,
+   "sourceUrl": "https://wger.de/media/exercise-video/91/483f4bff-e108-41f1-8e7b-0caf24952552.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/91/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 22680665,
+    "durationSec": 12.34,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_barbell_curl/vid-49.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 12.33,
+    "bytes": 2215803,
+    "bitrate": 1437199,
+    "sha256": "ed1a989eb1adcc56049dab1ee9a0382ca6c941f7aa267bb768b6f19c010792ee"
+   },
+   "poster": {
+    "file": "fx_barbell_curl/vid-49-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 19812
+   },
+   "cdnPath": "catalog/exercises/fx_barbell_curl/vid-49.mp4",
+   "posterCdnPath": "catalog/exercises/fx_barbell_curl/vid-49-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_barbell_curl__vid-49.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:48",
+   "exercise": "fx_dumbbell_curl",
+   "wgerVideo": 48,
+   "sourceUrl": "https://wger.de/media/exercise-video/92/8bfb917c-3d0d-49b9-8073-5d7e01c1b894.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/92/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 31753930,
+    "durationSec": 10.94,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_curl/vid-48.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.93,
+    "bytes": 1358456,
+    "bitrate": 993931,
+    "sha256": "279cb091eb9289ad88ba23fd9b0948cb8da5b0f5fa306589e821e0eae9c7db6e"
+   },
+   "poster": {
+    "file": "fx_dumbbell_curl/vid-48-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21658
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_curl/vid-48.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_curl/vid-48-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_curl__vid-48.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:51",
+   "exercise": "fx_hammer_curl",
+   "wgerVideo": 51,
+   "sourceUrl": "https://wger.de/media/exercise-video/272/df069052-2173-4f24-855f-a0eebe729f24.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/272/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 30154182,
+    "durationSec": 10.37,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_hammer_curl/vid-51.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.37,
+    "bytes": 1304514,
+    "bitrate": 1006666,
+    "sha256": "5ac91db54ebb89f3bc90d20a71432bcbf8f2c5d780a844deab210eb37f17cefc"
+   },
+   "poster": {
+    "file": "fx_hammer_curl/vid-51-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21554
+   },
+   "cdnPath": "catalog/exercises/fx_hammer_curl/vid-51.mp4",
+   "posterCdnPath": "catalog/exercises/fx_hammer_curl/vid-51-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_hammer_curl__vid-51.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:50",
+   "exercise": "fx_cable_curl",
+   "wgerVideo": 50,
+   "sourceUrl": "https://wger.de/media/exercise-video/95/ab770931-47d3-44fd-aef0-ac7a64c3b794.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/95/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 34233084,
+    "durationSec": 10.45,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_cable_curl/vid-50.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.47,
+    "bytes": 1676659,
+    "bitrate": 1281481,
+    "sha256": "047e08238784f131f0634cca2495e6372f0f0308947ee8b7463ee5b6aefe527b"
+   },
+   "poster": {
+    "file": "fx_cable_curl/vid-50-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 22508
+   },
+   "cdnPath": "catalog/exercises/fx_cable_curl/vid-50.mp4",
+   "posterCdnPath": "catalog/exercises/fx_cable_curl/vid-50-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_cable_curl__vid-50.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:53",
+   "exercise": "fx_preacher_curl",
+   "wgerVideo": 53,
+   "sourceUrl": "https://wger.de/media/exercise-video/465/b64ca95b-c677-4f3b-bb50-f75edc81aa74.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/465/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 56017153,
+    "durationSec": 25.78,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_preacher_curl/vid-53.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 25.77,
+    "bytes": 6147701,
+    "bitrate": 1908705,
+    "sha256": "7bab1d615e57cb78209f19e2656ce01f0cd1ac9a3cc68cf3ba4a8f9a9b6fce81"
+   },
+   "poster": {
+    "file": "fx_preacher_curl/vid-53-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 28274
+   },
+   "cdnPath": "catalog/exercises/fx_preacher_curl/vid-53.mp4",
+   "posterCdnPath": "catalog/exercises/fx_preacher_curl/vid-53-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_preacher_curl__vid-53.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:54",
+   "exercise": "fx_preacher_curl",
+   "wgerVideo": 54,
+   "sourceUrl": "https://wger.de/media/exercise-video/465/5d2339a4-815f-46ba-aa19-8a763cfdeba0.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/465/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 46887882,
+    "durationSec": 14.32,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_preacher_curl/vid-54.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 14.33,
+    "bytes": 2378294,
+    "bitrate": 1327358,
+    "sha256": "06219262bee5c7318cd33a68a3137f7d5e6669e95fbfa88711775c58c4b9d97d"
+   },
+   "poster": {
+    "file": "fx_preacher_curl/vid-54-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 23458
+   },
+   "cdnPath": "catalog/exercises/fx_preacher_curl/vid-54.mp4",
+   "posterCdnPath": "catalog/exercises/fx_preacher_curl/vid-54-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_preacher_curl__vid-54.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:62",
+   "exercise": "fx_ez_bar_skullcrusher",
+   "wgerVideo": 62,
+   "sourceUrl": "https://wger.de/media/exercise-video/246/40ca562f-b46b-45c8-81fa-1ea8d544b1b8.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/246/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 7255486,
+    "durationSec": 18.13,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_ez_bar_skullcrusher/vid-62.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 18.1,
+    "bytes": 3694253,
+    "bitrate": 1632819,
+    "sha256": "7fa990b1d2c55a4bddbcd28b5e5b22aae763709894f5f6dac31d4b3ec4d9d1c1"
+   },
+   "poster": {
+    "file": "fx_ez_bar_skullcrusher/vid-62-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 19270
+   },
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-62.mp4",
+   "posterCdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-62-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_ez_bar_skullcrusher__vid-62.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:63",
+   "exercise": "fx_ez_bar_skullcrusher",
+   "wgerVideo": 63,
+   "sourceUrl": "https://wger.de/media/exercise-video/246/2a194d11-ff5d-4bdf-849e-1c441cf7b0b1.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/246/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 3211377,
+    "durationSec": 10.91,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_ez_bar_skullcrusher/vid-63.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.87,
+    "bytes": 1648637,
+    "bitrate": 1213683,
+    "sha256": "0e0b8285f25bc70ed0af807e145fbaeda6c82b10c52b2c404e58657ef340085d"
+   },
+   "poster": {
+    "file": "fx_ez_bar_skullcrusher/vid-63-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 15628
+   },
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-63.mp4",
+   "posterCdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-63-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_ez_bar_skullcrusher__vid-63.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:60",
+   "exercise": "fx_dumbbell_skullcrusher",
+   "wgerVideo": 60,
+   "sourceUrl": "https://wger.de/media/exercise-video/245/c253303e-9160-4f1f-b4fe-daf1e6c8661d.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/245/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 5813842,
+    "durationSec": 18.72,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_skullcrusher/vid-60.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 18.67,
+    "bytes": 3148169,
+    "bitrate": 1349191,
+    "sha256": "9ea855ae2d0b39feccd54960ce678d172d7e9874b17e15c6b9148a94fc8ddcfd"
+   },
+   "poster": {
+    "file": "fx_dumbbell_skullcrusher/vid-60-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 27492
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_skullcrusher/vid-60.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_skullcrusher/vid-60-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_skullcrusher__vid-60.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:57",
+   "exercise": "fx_overhead_dumbbell_triceps_extension",
+   "wgerVideo": 57,
+   "sourceUrl": "https://wger.de/media/exercise-video/211/85f6eb25-a76c-409e-9af9-497794ac0dfb.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/211/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 11837332,
+    "durationSec": 32.02,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_overhead_dumbbell_triceps_extension/vid-57.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 31.97,
+    "bytes": 6354972,
+    "bitrate": 1590383,
+    "sha256": "34c7e02c20c9d8e938eb449cf40ac9f19ff0f2d8bffeb3667d5738c74dd65c21"
+   },
+   "poster": {
+    "file": "fx_overhead_dumbbell_triceps_extension/vid-57-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 29586
+   },
+   "cdnPath": "catalog/exercises/fx_overhead_dumbbell_triceps_extension/vid-57.mp4",
+   "posterCdnPath": "catalog/exercises/fx_overhead_dumbbell_triceps_extension/vid-57-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_overhead_dumbbell_triceps_extension__vid-57.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:75",
+   "exercise": "fx_dumbbell_kickback",
+   "wgerVideo": 75,
+   "sourceUrl": "https://wger.de/media/exercise-video/655/69e8c1e5-55b2-4da6-8166-092c24b16735.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/655/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 4541168,
+    "durationSec": 12.19,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_kickback/vid-75.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 12.13,
+    "bytes": 2549518,
+    "bitrate": 1680908,
+    "sha256": "50fe315950e195520baf0ce468d0395a4df597423684d4e62e9c7c26588c8c3d"
+   },
+   "poster": {
+    "file": "fx_dumbbell_kickback/vid-75-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 18370
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-75.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-75-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_kickback__vid-75.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:76",
+   "exercise": "fx_dumbbell_kickback",
+   "wgerVideo": 76,
+   "sourceUrl": "https://wger.de/media/exercise-video/655/2d88a05b-bde3-4026-bfbf-524c11068dc5.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/655/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 3407290,
+    "durationSec": 10.26,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_kickback/vid-76.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 10.2,
+    "bytes": 1907856,
+    "bitrate": 1496357,
+    "sha256": "56dce0b7b5ee5e9a1749ced56ba7cedee6b18bf7b49aa45b5fe90615785422fe"
+   },
+   "poster": {
+    "file": "fx_dumbbell_kickback/vid-76-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21128
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-76.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-76-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_kickback__vid-76.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:77",
+   "exercise": "fx_dumbbell_kickback",
+   "wgerVideo": 77,
+   "sourceUrl": "https://wger.de/media/exercise-video/655/f1354a78-539c-4f22-a78f-b1f43f920740.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/655/view/",
+   "source": {
+    "codec": "h264",
+    "container": "mov",
+    "bytes": 4183378,
+    "durationSec": 13.19,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_dumbbell_kickback/vid-77.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 13.1,
+    "bytes": 2227703,
+    "bitrate": 1360429,
+    "sha256": "dd50851edd5578942677ad3aff124ec9c4cc2aad165b803fd34f6b28dc947186"
+   },
+   "poster": {
+    "file": "fx_dumbbell_kickback/vid-77-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21170
+   },
+   "cdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-77.mp4",
+   "posterCdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-77-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_dumbbell_kickback__vid-77.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:25",
+   "exercise": "fx_front_squat",
+   "wgerVideo": 25,
+   "sourceUrl": "https://wger.de/media/exercise-video/257/ad8ac7d9-b04d-415f-ae0e-837942ce2840.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/257/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 54167323,
+    "durationSec": 19.36,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_front_squat/vid-25.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 19.37,
+    "bytes": 4010922,
+    "bitrate": 1656806,
+    "sha256": "1b93e08fc79f36f9e4079ab748c92bdf6b7b3479f6d3cc1a18185a63d08edf46"
+   },
+   "poster": {
+    "file": "fx_front_squat/vid-25-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 22358
+   },
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-25.mp4",
+   "posterCdnPath": "catalog/exercises/fx_front_squat/vid-25-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_front_squat__vid-25.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:26",
+   "exercise": "fx_front_squat",
+   "wgerVideo": 26,
+   "sourceUrl": "https://wger.de/media/exercise-video/257/f8f01bf8-0908-4915-a8f5-cc7bcfefff8c.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/257/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 49899441,
+    "durationSec": 17.04,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_front_squat/vid-26.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 17.03,
+    "bytes": 4415928,
+    "bitrate": 2073935,
+    "sha256": "7bd7c1f5ba45ab2c8d895e051e9ba6b0bc49df013c5ac1aab0a59c0d7c4cc126"
+   },
+   "poster": {
+    "file": "fx_front_squat/vid-26-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 17286
+   },
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-26.mp4",
+   "posterCdnPath": "catalog/exercises/fx_front_squat/vid-26-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_front_squat__vid-26.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:27",
+   "exercise": "fx_front_squat",
+   "wgerVideo": 27,
+   "sourceUrl": "https://wger.de/media/exercise-video/257/93145935-29db-4e52-9d2d-174b1c30c098.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/257/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 27090822,
+    "durationSec": 8.25,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_front_squat/vid-27.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 8.27,
+    "bytes": 1250748,
+    "bitrate": 1210352,
+    "sha256": "57907f7cc816daaf2618e7a4fce1c1959eef04536d3612f440b9246828c70c8e"
+   },
+   "poster": {
+    "file": "fx_front_squat/vid-27-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 19244
+   },
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-27.mp4",
+   "posterCdnPath": "catalog/exercises/fx_front_squat/vid-27-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_front_squat__vid-27.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:28",
+   "exercise": "fx_front_squat",
+   "wgerVideo": 28,
+   "sourceUrl": "https://wger.de/media/exercise-video/257/520b98d4-c767-47dd-83e6-850189217925.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/257/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 46773150,
+    "durationSec": 16.09,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_front_squat/vid-28.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 16.1,
+    "bytes": 2716253,
+    "bitrate": 1349690,
+    "sha256": "a6c24b94778eb5412db30cb0d23a798e750d7995fb4069435861cc99e81abb4b"
+   },
+   "poster": {
+    "file": "fx_front_squat/vid-28-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 19292
+   },
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-28.mp4",
+   "posterCdnPath": "catalog/exercises/fx_front_squat/vid-28-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_front_squat__vid-28.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:44",
+   "exercise": "fx_leg_press",
+   "wgerVideo": 44,
+   "sourceUrl": "https://wger.de/media/exercise-video/371/6aae16b4-01b9-4eb4-935c-3250f84d2c59.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/371/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 57665329,
+    "durationSec": 34.69,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_leg_press/vid-44.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 34.7,
+    "bytes": 6491714,
+    "bitrate": 1496648,
+    "sha256": "4da36618c9dd413b09792503494ac42ee668e59dbfd47b4f74a5452262834958"
+   },
+   "poster": {
+    "file": "fx_leg_press/vid-44-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 27980
+   },
+   "cdnPath": "catalog/exercises/fx_leg_press/vid-44.mp4",
+   "posterCdnPath": "catalog/exercises/fx_leg_press/vid-44-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_leg_press__vid-44.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:45",
+   "exercise": "fx_leg_press",
+   "wgerVideo": 45,
+   "sourceUrl": "https://wger.de/media/exercise-video/371/32601896-b84a-49bf-ae8a-b27a8f57ab21.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/371/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 349345994,
+    "durationSec": 26.36,
+    "width": 3840,
+    "height": 2160
+   },
+   "status": "skipped",
+   "reason": "source file 349 MB > 100 MB cap — the exercise has another demonstration; fetch later if wanted"
+  },
+  {
+   "key": "vid:46",
+   "exercise": "fx_leg_press",
+   "wgerVideo": 46,
+   "sourceUrl": "https://wger.de/media/exercise-video/371/db382bd9-f633-47cd-8b02-c52db835e41d.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/371/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 121381974,
+    "durationSec": 17.64,
+    "width": 3840,
+    "height": 2160
+   },
+   "status": "skipped",
+   "reason": "source file 121 MB > 100 MB cap — the exercise has another demonstration; fetch later if wanted"
+  },
+  {
+   "key": "vid:40",
+   "exercise": "fx_hack_squat",
+   "wgerVideo": 40,
+   "sourceUrl": "https://wger.de/media/exercise-video/375/effa7a81-dbdd-4014-83ee-ddf0fd835301.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/375/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 80419952,
+    "durationSec": 32.11,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_hack_squat/vid-40.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 32.1,
+    "bytes": 6093206,
+    "bitrate": 1518556,
+    "sha256": "9fcc3c7ce1c1a3b299180fb8047b01740f95d1df5ff274d849c4e38ad1f7c043"
+   },
+   "poster": {
+    "file": "fx_hack_squat/vid-40-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 23970
+   },
+   "cdnPath": "catalog/exercises/fx_hack_squat/vid-40.mp4",
+   "posterCdnPath": "catalog/exercises/fx_hack_squat/vid-40-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_hack_squat__vid-40.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:41",
+   "exercise": "fx_hack_squat",
+   "wgerVideo": 41,
+   "sourceUrl": "https://wger.de/media/exercise-video/375/d08a943d-c765-42b5-9ece-b80d90f2aefe.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/375/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 423240483,
+    "durationSec": 32.41,
+    "width": 3840,
+    "height": 2160
+   },
+   "status": "skipped",
+   "reason": "source file 423 MB > 100 MB cap — the exercise has another demonstration; fetch later if wanted"
+  },
+  {
+   "key": "vid:33",
+   "exercise": "fx_walking_lunge",
+   "wgerVideo": 33,
+   "sourceUrl": "https://wger.de/media/exercise-video/206/47a65c45-6fd1-4181-b71a-3a6c882e516b.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/206/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 23850769,
+    "durationSec": 14.31,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_walking_lunge/vid-33.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 14.3,
+    "bytes": 1915933,
+    "bitrate": 1071850,
+    "sha256": "48f2b7cad4b7664e7af799da169bf198bbf498cb319037ff23079289911723d6"
+   },
+   "poster": {
+    "file": "fx_walking_lunge/vid-33-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 23426
+   },
+   "cdnPath": "catalog/exercises/fx_walking_lunge/vid-33.mp4",
+   "posterCdnPath": "catalog/exercises/fx_walking_lunge/vid-33-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_walking_lunge__vid-33.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:2",
+   "exercise": "fx_romanian_deadlift",
+   "wgerVideo": 2,
+   "sourceUrl": "https://wger.de/media/exercise-video/507/307e7276-a14d-4ea0-b579-f5b0dbc6f5af.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/507/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 38136083,
+    "durationSec": 13,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_romanian_deadlift/vid-2.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 13,
+    "bytes": 1771214,
+    "bitrate": 1089977,
+    "sha256": "53adf3fc8af4a319ce0e0bf0fde78ffd661af709f0f54e54d321d1a6a8b14d2a"
+   },
+   "poster": {
+    "file": "fx_romanian_deadlift/vid-2-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 24862
+   },
+   "cdnPath": "catalog/exercises/fx_romanian_deadlift/vid-2.mp4",
+   "posterCdnPath": "catalog/exercises/fx_romanian_deadlift/vid-2-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_romanian_deadlift__vid-2.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:3",
+   "exercise": "fx_romanian_deadlift",
+   "wgerVideo": 3,
+   "sourceUrl": "https://wger.de/media/exercise-video/507/6b6054b5-9236-4a63-8392-6ea7a9010ca6.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/507/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 52134396,
+    "durationSec": 17.69,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_romanian_deadlift/vid-3.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 17.7,
+    "bytes": 2447750,
+    "bitrate": 1106327,
+    "sha256": "4b1023e1de651a81f80d72daf02d844441a34533b056c0f41df4fd5be096fdc7"
+   },
+   "poster": {
+    "file": "fx_romanian_deadlift/vid-3-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 23604
+   },
+   "cdnPath": "catalog/exercises/fx_romanian_deadlift/vid-3.mp4",
+   "posterCdnPath": "catalog/exercises/fx_romanian_deadlift/vid-3-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_romanian_deadlift__vid-3.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:4",
+   "exercise": "fx_romanian_deadlift",
+   "wgerVideo": 4,
+   "sourceUrl": "https://wger.de/media/exercise-video/507/e96295da-58b8-4b6f-921e-4cb1af3c6cfc.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/507/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 390563423,
+    "durationSec": 29.5,
+    "width": 3840,
+    "height": 2160
+   },
+   "status": "skipped",
+   "reason": "source file 391 MB > 100 MB cap — the exercise has another demonstration; fetch later if wanted"
+  },
+  {
+   "key": "vid:35",
+   "exercise": "fx_lying_leg_curl",
+   "wgerVideo": 35,
+   "sourceUrl": "https://wger.de/media/exercise-video/365/becaf013-5044-40d0-bae9-7ed60c973737.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/365/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 31825446,
+    "durationSec": 15.06,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_lying_leg_curl/vid-35.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 15.07,
+    "bytes": 2601037,
+    "bitrate": 1381051,
+    "sha256": "6a854aa3296840894810610888401208a9e3435d2c4ee5def4d94b8c213284ca"
+   },
+   "poster": {
+    "file": "fx_lying_leg_curl/vid-35-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 25998
+   },
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-35.mp4",
+   "posterCdnPath": "catalog/exercises/fx_lying_leg_curl/vid-35-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_lying_leg_curl__vid-35.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:36",
+   "exercise": "fx_lying_leg_curl",
+   "wgerVideo": 36,
+   "sourceUrl": "https://wger.de/media/exercise-video/365/1106bd7a-72cd-45b5-853f-5c9912b936ef.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/365/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 68628304,
+    "durationSec": 23.53,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_lying_leg_curl/vid-36.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 23.53,
+    "bytes": 4882324,
+    "bitrate": 1659666,
+    "sha256": "cf0de8fe6110dbeb6d3c6a8ea2a5fbb217ddde4674d6a8e8ba8b96e5e69161db"
+   },
+   "poster": {
+    "file": "fx_lying_leg_curl/vid-36-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 22526
+   },
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-36.mp4",
+   "posterCdnPath": "catalog/exercises/fx_lying_leg_curl/vid-36-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_lying_leg_curl__vid-36.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:37",
+   "exercise": "fx_seated_leg_curl",
+   "wgerVideo": 37,
+   "sourceUrl": "https://wger.de/media/exercise-video/366/43df4b79-d4c3-4fbf-bcb5-e0d825b84120.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/366/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 72266814,
+    "durationSec": 24.89,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_seated_leg_curl/vid-37.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 24.9,
+    "bytes": 4418770,
+    "bitrate": 1419685,
+    "sha256": "1f258ad275e683f0b7c64f33ecec67ed19507fc55c1ef72a53f2b06091ff28fe"
+   },
+   "poster": {
+    "file": "fx_seated_leg_curl/vid-37-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 24578
+   },
+   "cdnPath": "catalog/exercises/fx_seated_leg_curl/vid-37.mp4",
+   "posterCdnPath": "catalog/exercises/fx_seated_leg_curl/vid-37-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_seated_leg_curl__vid-37.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:72",
+   "exercise": "fx_barbell_hip_thrust",
+   "wgerVideo": 72,
+   "sourceUrl": "https://wger.de/media/exercise-video/294/45bacf4b-1bb6-4d47-8bd1-9f00eddd4019.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/294/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 87548125,
+    "durationSec": 30.19,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_barbell_hip_thrust/vid-72.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 30.2,
+    "bytes": 4383141,
+    "bitrate": 1161096,
+    "sha256": "ab7c576dff44ba11bdf911a8aa457369ab124d0640fe880c4eb7c1332f4a8df5"
+   },
+   "poster": {
+    "file": "fx_barbell_hip_thrust/vid-72-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 16912
+   },
+   "cdnPath": "catalog/exercises/fx_barbell_hip_thrust/vid-72.mp4",
+   "posterCdnPath": "catalog/exercises/fx_barbell_hip_thrust/vid-72-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_barbell_hip_thrust__vid-72.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:73",
+   "exercise": "fx_barbell_hip_thrust",
+   "wgerVideo": 73,
+   "sourceUrl": "https://wger.de/media/exercise-video/294/7d6862eb-8848-4f5d-a288-764b0d113108.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/294/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 157313324,
+    "durationSec": 26.13,
+    "width": 3840,
+    "height": 2160
+   },
+   "status": "skipped",
+   "reason": "source file 157 MB > 100 MB cap — the exercise has another demonstration; fetch later if wanted"
+  },
+  {
+   "key": "vid:74",
+   "exercise": "fx_hip_adduction_machine",
+   "wgerVideo": 74,
+   "sourceUrl": "https://wger.de/media/exercise-video/12/5148c579-5df2-4618-9a7b-a2e29ac4dd7d.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/12/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 60138928,
+    "durationSec": 20.86,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_hip_adduction_machine/vid-74.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 20.87,
+    "bytes": 3266918,
+    "bitrate": 1252472,
+    "sha256": "f2f9f30cd12971fcf98d17fb12be1c42004d4d4a3a8b0aeaed4299df025a3a6a"
+   },
+   "poster": {
+    "file": "fx_hip_adduction_machine/vid-74-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21988
+   },
+   "cdnPath": "catalog/exercises/fx_hip_adduction_machine/vid-74.mp4",
+   "posterCdnPath": "catalog/exercises/fx_hip_adduction_machine/vid-74-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_hip_adduction_machine__vid-74.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:14",
+   "exercise": "fx_standing_calf_raise",
+   "wgerVideo": 14,
+   "sourceUrl": "https://wger.de/media/exercise-video/622/35b7b625-77fd-4c09-8c57-3ad0f2f23175.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/622/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 30336315,
+    "durationSec": 16.79,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_standing_calf_raise/vid-14.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 16.8,
+    "bytes": 1978956,
+    "bitrate": 942360,
+    "sha256": "9a4acee2e6ce66f8f04974ab49f3b3c797b9457e42a4cf9c9b8b74028811224d"
+   },
+   "poster": {
+    "file": "fx_standing_calf_raise/vid-14-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 16694
+   },
+   "cdnPath": "catalog/exercises/fx_standing_calf_raise/vid-14.mp4",
+   "posterCdnPath": "catalog/exercises/fx_standing_calf_raise/vid-14-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_standing_calf_raise__vid-14.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:15",
+   "exercise": "fx_standing_calf_raise",
+   "wgerVideo": 15,
+   "sourceUrl": "https://wger.de/media/exercise-video/622/461171e5-2b16-407d-bf27-27aeef43f105.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/622/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 27311167,
+    "durationSec": 16.43,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_standing_calf_raise/vid-15.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 16.43,
+    "bytes": 2213597,
+    "bitrate": 1077569,
+    "sha256": "50c5d90d446b6d160c9743d28f73b31294e525aa55b136983234687a33eced53"
+   },
+   "poster": {
+    "file": "fx_standing_calf_raise/vid-15-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21626
+   },
+   "cdnPath": "catalog/exercises/fx_standing_calf_raise/vid-15.mp4",
+   "posterCdnPath": "catalog/exercises/fx_standing_calf_raise/vid-15-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_standing_calf_raise__vid-15.png",
+   "review": "pending — look at the review frames"
+  },
+  {
+   "key": "vid:13",
+   "exercise": "fx_seated_calf_raise",
+   "wgerVideo": 13,
+   "sourceUrl": "https://wger.de/media/exercise-video/590/a325ae2e-686b-4a1f-aff2-ba37fa3fa157.MOV",
+   "license": "CC-BY-SA-4.0",
+   "author": "Goulart",
+   "sourcePage": "https://wger.de/en/exercise/590/view/",
+   "source": {
+    "codec": "hevc",
+    "container": "mov",
+    "bytes": 27735168,
+    "durationSec": 20.71,
+    "width": 1920,
+    "height": 1080
+   },
+   "status": "converted",
+   "output": {
+    "file": "fx_seated_calf_raise/vid-13.mp4",
+    "codec": "h264",
+    "profile": "Main",
+    "pixFmt": "yuv420p",
+    "width": 1280,
+    "height": 720,
+    "durationSec": 20.7,
+    "bytes": 2999544,
+    "bitrate": 1159244,
+    "sha256": "299c186e8476cdc99ec145d871ae58bd5bdd5459f2406751670750dcaf04dbd3"
+   },
+   "poster": {
+    "file": "fx_seated_calf_raise/vid-13-poster.webp",
+    "width": 640,
+    "height": 360,
+    "bytes": 21802
+   },
+   "cdnPath": "catalog/exercises/fx_seated_calf_raise/vid-13.mp4",
+   "posterCdnPath": "catalog/exercises/fx_seated_calf_raise/vid-13-poster.webp",
+   "reviewFrames": "e2e-out/.cache/catalog/video-check/converted/fx_seated_calf_raise__vid-13.png",
+   "review": "pending — look at the review frames"
+  }
+ ]
+}

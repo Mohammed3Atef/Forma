@@ -4,38 +4,27 @@ import { getDataSource } from '@/data/dataSource';
 import { blobStore } from '@/data/blobStore';
 import { recordDeletion } from '@/data/sync/tombstones';
 import { today, uid } from '@/lib/utils';
-import { downscaleImage } from '@/lib/image';
-import { ensureUploadConfig, uploadImage } from '@/services/platform/mediaApi';
-import { useSession } from '@/services/auth/sessionStore';
+import { discardOutbox, onOutboxAck, useOutbox, waitForFirstAttempt } from '@/data/outbox/outbox';
+import { queueProgressPhotoUpload } from '@/data/outbox/handlers';
 
 interface PhotoState {
   photos: ProgressPhoto[];
   loaded: boolean;
   load: () => Promise<void>;
-  add: (pose: PhotoPose, file: Blob, opts?: { date?: string; weightKg?: number; note?: string }) => Promise<void>;
+  /** Resolves `uploaded: true` only once the server acknowledged the upload (B0 — never a false "uploaded"). */
+  add: (pose: PhotoPose, file: Blob, opts?: { date?: string; weightKg?: number; note?: string }) => Promise<{ uploaded: boolean }>;
   remove: (id: string) => Promise<void>;
   url: (photo: ProgressPhoto) => Promise<string | null>;
 }
 
 /**
- * Best-effort CDN upload so the coach / a second device can see the image.
- * Failures are swallowed by the caller — the local blob still works and
- * metadata syncs regardless. Shared by `add()` (fresh upload) and `load()`
- * (retries any photo a PRIOR session never got this far for — e.g. the app
- * was closed/backgrounded mid-upload — so a photo can't silently stay
- * local-only forever; see the retry pass in `load()` below).
+ * The upload to the coach-visible store goes through the durable outbox
+ * (B1.6 / CL-34): the bytes stay on this device, the upload retries on its own
+ * (reconnect, foreground, backoff) and the photo's `cdnUrl` is set only from
+ * the server's answer. Before B1 a failed upload was retried only at the next
+ * app launch.
  */
-async function tryUploadToCdn(photo: ProgressPhoto, file: Blob): Promise<ProgressPhoto> {
-  const owner = useSession.getState().uid;
-  if (!owner || owner === 'local-user') return photo;
-  if (!(await ensureUploadConfig())) return photo;
-  const blob = await downscaleImage(file);
-  // Lands under the signed-in user's own `Forma/{uid}/` folder — the server derives that from the session.
-  const { url } = await uploadImage(blob, { category: 'progress' });
-  const updated: ProgressPhoto = { ...photo, cdnUrl: url, updatedAt: Date.now(), dirty: true };
-  await getDataSource().progressPhotos.put(updated);
-  return updated;
-}
+const uploadOpFor = (photoId: string) => useOutbox.getState().ops.find((o) => o.dedupeKey === `photo:${photoId}` && o.status !== 'acknowledged');
 
 export const usePhotos = create<PhotoState>((set, get) => ({
   photos: [],
@@ -44,23 +33,11 @@ export const usePhotos = create<PhotoState>((set, get) => ({
   async load() {
     const photos = await getDataSource().progressPhotos.getAll();
     set({ photos: photos.sort((a, b) => b.date.localeCompare(a.date)), loaded: true });
-
-    // Retry any photo a previous session never finished uploading to the CDN
-    // (e.g. the app closed/lost connectivity mid-upload) — otherwise a photo
-    // missing its cdnUrl would stay local-only-visible forever with no
-    // indication anything was wrong.
+    // A photo saved before the outbox existed (or whose op was lost) gets an upload op.
     for (const photo of photos) {
-      if (photo.cdnUrl) continue;
-      void (async () => {
-        try {
-          const blob = await blobStore.get(photo.localKey);
-          if (!blob) return;
-          const updated = await tryUploadToCdn(photo, blob);
-          if (updated.cdnUrl) set({ photos: get().photos.map((p) => (p.id === photo.id ? updated : p)) });
-        } catch {
-          /* still offline / still failing — next load() retries again */
-        }
-      })();
+      if (photo.cdnUrl || uploadOpFor(photo.id)) continue;
+      if (!(await blobStore.has(photo.localKey))) continue; // synced from another device — nothing to upload here
+      void queueProgressPhotoUpload(photo.id).catch(() => undefined);
     }
   },
 
@@ -82,15 +59,20 @@ export const usePhotos = create<PhotoState>((set, get) => ({
     await getDataSource().progressPhotos.put(photo);
     set({ photos: [photo, ...get().photos] });
 
+    // "Uploaded" only on the server's acknowledgement (B0 honesty rule); otherwise
+    // it stays queued on this device and the outbox keeps trying.
     try {
-      const updated = await tryUploadToCdn(photo, file);
-      if (updated.cdnUrl) set({ photos: get().photos.map((p) => (p.id === id ? updated : p)) });
+      const op = await queueProgressPhotoUpload(id);
+      const settled = await waitForFirstAttempt(op.operationId, 30_000);
+      return { uploaded: settled?.status === 'acknowledged' };
     } catch {
-      /* offline / upload failed — keep local copy; load()'s retry pass will pick it up next launch */
+      return { uploaded: false };
     }
   },
 
   async remove(id) {
+    const pendingUpload = uploadOpFor(id);
+    if (pendingUpload) await discardOutbox(pendingUpload.operationId);
     const photo = get().photos.find((p) => p.id === id);
     if (photo) await blobStore.remove(photo.localKey);
     await getDataSource().progressPhotos.remove(id);
@@ -104,3 +86,16 @@ export const usePhotos = create<PhotoState>((set, get) => ({
     return (await blobStore.objectUrl(photo.localKey)) ?? photo.cdnUrl ?? null;
   },
 }));
+
+// When the outbox delivers a photo, show its server URL (the record itself was
+// updated by the upload handler and syncs to the coach).
+onOutboxAck((op) => {
+  if (op.type !== 'progressPhoto.upload') return;
+  const photoId = (op.payload as { photoId: string }).photoId;
+  void getDataSource()
+    .progressPhotos.get(photoId)
+    .then((fresh) => {
+      if (fresh) usePhotos.setState({ photos: usePhotos.getState().photos.map((p) => (p.id === photoId ? fresh : p)) });
+    })
+    .catch(() => undefined);
+});

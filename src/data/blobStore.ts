@@ -1,15 +1,12 @@
-import localforage from 'localforage';
+import { userStore } from './localScope';
 
 /**
  * Binary blob store for downloaded videos and progress photos.
  * Kept separate from the JSON document store so large binaries don't bloat
  * the structured collections. Backed by IndexedDB via localForage.
  */
-const store = localforage.createInstance({
-  name: 'gym-tracker',
-  storeName: 'blobs',
-  description: 'Downloaded videos and progress photos',
-});
+/** Per-account store (B0 / PWA-02). */
+const store = { setItem: (k: string, v: Blob) => userStore('blobs').setItem(k, v), getItem: <T,>(k: string) => userStore('blobs').getItem<T>(k), removeItem: (k: string) => userStore('blobs').removeItem(k) };
 
 export const blobStore = {
   async put(key: string, blob: Blob): Promise<void> {

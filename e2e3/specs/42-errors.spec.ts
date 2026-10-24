@@ -65,12 +65,13 @@ async function run(
 
 const screens: { name: string; role: Role; path: string; procs: string[]; empty: RegExp[]; recovered: (p: Page) => Promise<void> }[] = [
   {
-    name: 'coach-revenue',
+    // B3.8: Revenue is Me › Business (`/coach/revenue` redirects there); same guarantee — a failed read is an error with Retry, never "0".
+    name: 'coach-business',
     role: 'coachA',
-    path: '/coach/revenue',
-    procs: ['coachClients.dashboardSummaries', 'coachClients.listMyClientUsers', 'coachClients.list'],
+    path: '/coach/business',
+    procs: ['coachClients.listMyClientUsers', 'coachClients.list'],
     empty: [/No clients|EGP\s*0|^0$/],
-    recovered: async (p) => expect(p.getByTestId('coach-revenue')).toContainText(/\d/),
+    recovered: async (p) => expect(p.getByTestId('coach-business')).toContainText(/\d/),
   },
   {
     name: 'client-messages',
@@ -87,6 +88,15 @@ const screens: { name: string; role: Role; path: string; procs: string[]; empty:
     procs: ['coachClients.listMyClientUsers'],
     empty: [/No clients yet/, /No results/],
     recovered: async (p) => expect(p.getByText('Client Aya').first()).toBeVisible(),
+  },
+  {
+    // B3.2: Today without its roster is an error with Retry — never "all caught up" or a welcome.
+    name: 'coach-today',
+    role: 'coachA',
+    path: '/coach/dashboard',
+    procs: ['coachClients.listMyClientUsers'],
+    empty: [/You're all caught up/, /^Welcome/],
+    recovered: async (p) => expect(p.getByTestId('today-summary')).toBeVisible(),
   },
   {
     name: 'coach-clients',

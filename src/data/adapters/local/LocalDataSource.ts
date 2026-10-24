@@ -10,7 +10,6 @@ import type {
   ProgressPhoto,
   Reminder,
   UserProfile,
-  VideoAsset,
   WeightLog,
   WorkoutLog,
   WorkoutPlan,
@@ -29,7 +28,6 @@ export class LocalDataSource implements DataSource {
   cardioLogs = new LocalRepository<CardioLog>('cardioLogs');
   weightLogs = new LocalRepository<WeightLog>('weightLogs');
   measurementLogs = new LocalRepository<MeasurementLog>('measurementLogs');
-  videoAssets = new LocalRepository<VideoAsset>('videoAssets');
   progressPhotos = new LocalRepository<ProgressPhoto>('progressPhotos');
   dailyChecklists = new LocalRepository<DailyChecklist>('dailyChecklists');
   reminders = new LocalRepository<Reminder>('reminders');

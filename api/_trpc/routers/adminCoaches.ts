@@ -25,12 +25,26 @@ export interface CoachAdminData {
   expiredCoaches: number;
   suspendedCoaches: number;
   totalClients: number;
+  /**
+   * Forma's monthly recurring revenue from coach subscriptions: the confirmed monthly price of every
+   * coach on an active, paid term whose payment a Super Admin confirmed (`subscription.confirmedAt`,
+   * written only by `coachPlanRequests.confirm`). Trials, lapsed terms and plans without that
+   * evidence are not revenue. Never includes anything from a coach's own clients (B38F-R1).
+   */
   trackedRevenue: number;
+  /** Active paid plans with no confirmed payment on record — not counted in `trackedRevenue`. */
+  unconfirmedPaidCoaches: number;
   conversionRate: number;
   recent: CoachAdminRow[];
   top: CoachAdminRow[];
-  /** Monthly recurring add-on revenue (active monthly capacity entitlements, per-month). */
+  /**
+   * Monthly recurring add-on revenue: active MONTHLY capacity add-ons a coach bought through a
+   * request whose payment was confirmed, per month. One-time add-ons are not recurring, and add-ons
+   * a Super Admin granted directly (no payment on record) are not revenue.
+   */
   capacityRevenue: number;
+  /** Active add-ons granted by a Super Admin (no payment on record) — not counted as revenue. */
+  grantedAddons: number;
   /** Coaches whose active clients exceed their effective limit (e.g. after an add-on expired). */
   overCapacityCoaches: number;
   forma: { priceMonthly: number; currency: string; maxClients: number; termDays: number };
@@ -64,7 +78,7 @@ export const adminCoachesRouter = router({
       users.find({ role: 'coach' }).toArray(),
       plansCol.find({}).toArray(),
       relCol.find({ status: 'active' }).toArray(),
-      entsCol.find({ status: 'active' }, { projection: { coachId: 1, snapshot: 1 } }).toArray(),
+      entsCol.find({ status: 'active' }, { projection: { coachId: 1, snapshot: 1, source: 1 } }).toArray(),
       getFormaConfig(),
     ]);
 
@@ -95,6 +109,7 @@ export const adminCoachesRouter = router({
     let expiredCoaches = 0;
     let suspendedCoaches = 0;
     let trackedRevenue = 0;
+    let unconfirmedPaidCoaches = 0;
     let converted = 0;
     let overCapacityCoaches = 0;
     for (const r of rows) {
@@ -106,13 +121,17 @@ export const adminCoachesRouter = router({
       // Tracked (confirmed) revenue = the price the coach was confirmed at (their
       // subscription snapshot), never the live config price.
       if (r.state === 'active' && r.plan && r.plan.plan !== 'trial') {
-        trackedRevenue += r.plan.subscription?.priceMonthly ?? 0;
+        // Payment evidence: only a confirmed request writes `confirmedAt` (applySubscription).
+        if (typeof r.plan.subscription?.confirmedAt === 'number') trackedRevenue += r.plan.subscription.priceMonthly ?? 0;
+        else unconfirmedPaidCoaches += 1;
       }
       if (r.plan && typeof r.plan.activeClientCount === 'number' && r.plan.activeClientCount > r.plan.maxClients) overCapacityCoaches += 1;
     }
     let capacityRevenue = 0;
+    let grantedAddons = 0;
     for (const e of activeEnts) {
-      if (e.snapshot.billingInterval === 'month') capacityRevenue += e.snapshot.price / Math.max(1, e.snapshot.durationMonths ?? 1);
+      if (e.source !== 'request') grantedAddons += 1;
+      else if (e.snapshot.billingInterval === 'month') capacityRevenue += e.snapshot.price / Math.max(1, e.snapshot.durationMonths ?? 1);
     }
     capacityRevenue = Math.round(capacityRevenue * 100) / 100;
     const total = rows.length;
@@ -139,10 +158,12 @@ export const adminCoachesRouter = router({
       suspendedCoaches,
       totalClients,
       trackedRevenue,
+      unconfirmedPaidCoaches,
       conversionRate: total ? Math.round((converted / total) * 100) : 0,
       recent,
       top,
       capacityRevenue,
+      grantedAddons,
       overCapacityCoaches,
       forma: { priceMonthly: forma.priceMonthly, currency: forma.currency, maxClients: forma.maxClients, termDays: forma.termDays },
     };

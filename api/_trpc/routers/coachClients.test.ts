@@ -203,6 +203,44 @@ describe('coachClients router', () => {
     await expect(asUnrelatedClient.coachClients.dashboardSummaries({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('B3.2 / O-7: dashboardSummaries flags whether each active client has a training / nutrition plan WITH content — an empty saved plan is no plan; never another coach\'s roster', async () => {
+    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
+    const full = await insertUser({ _id: 'client-full', role: 'client' });
+    const empty = await insertUser({ _id: 'client-empty', role: 'client' });
+    const none = await insertUser({ _id: 'client-none', role: 'client' });
+    const odd = await insertUser({ _id: 'client-odd', role: 'client' });
+    const theirs = await insertUser({ _id: 'client-theirs', role: 'client' });
+    await givePlan(coachDoc._id, 10);
+    await givePlan(otherCoach._id, 10);
+    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
+    const asOther = appRouter.createCaller(ctxFor(authedUser(otherCoach)));
+    for (const c of [full, empty, none, odd]) await asCoach.coachClients.assign({ clientId: c._id, subscription: { status: 'trial', trialDays: 14 } });
+    await asOther.coachClients.assign({ clientId: theirs._id, subscription: { status: 'trial', trialDays: 14 } });
+
+    // The real save path (the editors' shape): a day / a meal at the top level of the plan body.
+    await asCoach.workoutPlan.save({ clientId: full._id, name: 'Upper / lower', baseUpdatedAt: null, days: [{ id: 'd1', name: 'Upper', exerciseIds: [] }], exercises: {} });
+    await asCoach.nutritionPlan.save({ clientId: full._id, name: 'Cut', baseUpdatedAt: null, meals: [{ id: 'm1', name: 'Breakfast', items: [] }] });
+    // Saved but empty — the editor can save a named plan with no days / meals.
+    await asCoach.workoutPlan.save({ clientId: empty._id, name: 'Draft', baseUpdatedAt: null, days: [], exercises: {} });
+    await asCoach.nutritionPlan.save({ clientId: empty._id, name: 'Draft', baseUpdatedAt: null, meals: [] });
+    // A malformed legacy document (no array) must read as "no plan", not crash the aggregation.
+    const db = await getDb();
+    await db.collection('clientWorkoutPlans').insertOne({ _id: odd._id, clientId: odd._id, id: 'x', name: 'Legacy', days: 'not-an-array', updatedAt: Date.now() } as never);
+    // Another coach's client with a full plan — must never appear in this coach's summaries.
+    await asOther.workoutPlan.save({ clientId: theirs._id, name: 'Theirs', baseUpdatedAt: null, days: [{ id: 'd1', name: 'Full', exerciseIds: [] }], exercises: {} });
+
+    const byClient = new Map((await asCoach.coachClients.dashboardSummaries({})).map((s) => [s.clientId, s]));
+    expect([...byClient.keys()].sort()).toEqual([empty._id, full._id, none._id, odd._id].sort());
+    expect(byClient.get(full._id)).toMatchObject({ hasWorkoutPlan: true, hasNutritionPlan: true });
+    expect(byClient.get(empty._id)).toMatchObject({ hasWorkoutPlan: false, hasNutritionPlan: false });
+    expect(byClient.get(none._id)).toMatchObject({ hasWorkoutPlan: false, hasNutritionPlan: false });
+    expect(byClient.get(odd._id)).toMatchObject({ hasWorkoutPlan: false, hasNutritionPlan: false });
+    // The other coach sees only their own client, with its plan.
+    expect(await asOther.coachClients.dashboardSummaries({})).toEqual([expect.objectContaining({ clientId: theirs._id, hasWorkoutPlan: true, hasNutritionPlan: false })]);
+    await expect(asOther.coachClients.dashboardSummaries({ coachId: coachDoc._id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('list/get work for a suspended coach, but assign still requires an active account — matches the old REST index.ts/detail.ts (bare requireUser on GET, requireActive right before any mutation)', async () => {
     const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach', accountStatus: 'suspended' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
@@ -236,6 +274,7 @@ describe('coachClients router', () => {
     const otherCoach = await insertUser({ _id: 'coach-2', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await givePlan(coachDoc._id);
+    await givePlan(otherCoach._id); // B38F-R3: a real coach with a live plan — the refusal below is ownership
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
     await asCoach.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
 
@@ -344,6 +383,9 @@ describe('invites router', () => {
   it('only the owning coach or an admin with coaches.assign may revoke', async () => {
     const coachA = await insertUser({ _id: 'coach-a', role: 'coach' });
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
+    // B38F-R3: real coaches with live plans — the refusal below is ownership, not the plan.
+    await givePlan(coachA._id);
+    await givePlan(coachB._id);
     const asCoachA = appRouter.createCaller(ctxFor(authedUser(coachA)));
     const invite = await asCoachA.invites.create({});
 
@@ -390,6 +432,7 @@ describe('transfers router', () => {
     const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
     const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
     await givePlan(coachA._id);
+    await givePlan(coachB._id); // B38F-R3: a real coach with a live plan
     const asCoachA = appRouter.createCaller(ctxFor(authedUser(coachA)));
     await asCoachA.coachClients.assign({ clientId: clientDoc._id, subscription: { status: 'trial', trialDays: 14 } });
 

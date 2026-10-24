@@ -12,6 +12,7 @@ export const SYNCED_EXERCISE_FIELDS = [
   'name',
   'notes',
   'videoUrl',
+  'videoPosterUrl',
   'imageUrl',
   'images',
   'targetMuscle',
@@ -21,6 +22,12 @@ export const SYNCED_EXERCISE_FIELDS = [
   'secondaryMuscles',
   'equipmentList',
   'sourceCategory',
+  // B4: a library exercise forked from the catalog carries these to its linked copies too.
+  'catalogId',
+  'catalogRev',
+  'names',
+  'instructions',
+  'mediaCredits',
 ] as const satisfies readonly (keyof TemplateExercise)[];
 
 export interface PropagateResult {

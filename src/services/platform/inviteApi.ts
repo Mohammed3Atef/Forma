@@ -1,6 +1,6 @@
-import { addMonths } from '@/lib/subscription';
 import { trpc, TRPCClientError } from '@/services/trpc';
-import type { BillingCycle, SignupInvite, Subscription, SubscriptionStatus } from '@/types';
+import { deviceZone } from '@/lib/subscription';
+import type { BillingCycle, PublicInvite, SignupInvite, SubscriptionStatus } from '@/types';
 
 /**
  * Client invitations — now backed by `/api/invites/*` (Mongo `signupInvites`
@@ -33,6 +33,8 @@ interface SignupInviteApiDoc {
   subDays?: number;
   subTrialDays?: number;
   status: SignupInvite['status'];
+  emailStatus?: SignupInvite['emailStatus'];
+  emailAttemptAt?: number;
   claimedByUid?: string | null;
   createdAt: number;
   claimedAt?: number | null;
@@ -48,20 +50,6 @@ function fromApiDoc(doc: SignupInviteApiDoc): SignupInvite {
 
 /** Default invite lifetime (14 days) — mirrors the backend's `DEFAULT_TTL_MS`. */
 const DEFAULT_TTL_MS = 14 * 86_400_000;
-
-/** Human-friendly, unambiguous invite code (no 0/O/1/I/L). Codes are actually minted server-side on create; kept here for any caller that still wants a client-side preview code. */
-export function generateInviteCode(len = 8): string {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let out = '';
-  const arr = new Uint32Array(len);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(arr);
-    for (let i = 0; i < len; i += 1) out += alphabet[arr[i] % alphabet.length];
-  } else {
-    for (let i = 0; i < len; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return out;
-}
 
 export interface CreateInviteInput {
   /** Coach display name, denormalised onto the invite for the pre-auth claim screen. */
@@ -100,22 +88,35 @@ export async function createInvite(coachId: string, input: CreateInviteInput = {
     subStatus: input.subStatus ?? 'trial',
     ...(input.subPlanName?.trim() ? { subPlanName: input.subPlanName.trim() } : {}),
     ...(input.subPrice != null ? { subPrice: input.subPrice } : {}),
-    ...(input.subCurrency?.trim() ? { subCurrency: input.subCurrency.trim() } : {}),
     ...(input.subBillingCycle ? { subBillingCycle: input.subBillingCycle } : {}),
     ...(input.subMonths != null ? { subMonths: input.subMonths } : {}),
     ...(input.subDays != null ? { subDays: input.subDays } : {}),
     ...(input.subTrialDays != null ? { subTrialDays: input.subTrialDays } : {}),
+    // B3.8: the claimed term's calendar days are meant in this device's zone; the price is EGP.
+    subZone: deviceZone(),
     ttlMs: input.ttlMs === undefined ? DEFAULT_TTL_MS : input.ttlMs,
   };
   const doc = await trpc.invites.create.mutate(body);
   return fromApiDoc(doc);
 }
 
-/** Read one invite by code (public pre-auth lookup; the code is the capability). */
-export async function getInvite(code: string): Promise<SignupInvite | null> {
+/**
+ * Read one invite by code (public pre-auth lookup; the code is the capability).
+ * B3.0.1 / B3-S03: only the claim-screen fields come back — see `PublicInvite`.
+ */
+export async function getInvite(code: string): Promise<PublicInvite | null> {
   try {
     const doc = await trpc.invites.getByCode.query({ code: code.trim().toUpperCase() });
-    return fromApiDoc(doc);
+    return {
+      code: doc._id,
+      status: doc.status,
+      claimable: doc.claimable,
+      expiresAt: doc.expiresAt,
+      ...(doc.coachName ? { coachName: doc.coachName } : {}),
+      ...(doc.displayName ? { displayName: doc.displayName } : {}),
+      hasEmail: doc.hasEmail,
+      ...(doc.emailHint ? { emailHint: doc.emailHint } : {}),
+    };
   } catch (e) {
     if (e instanceof TRPCClientError && e.data?.code === 'NOT_FOUND') return null;
     throw e;
@@ -128,78 +129,21 @@ export async function listPendingInvites(coachId: string): Promise<SignupInvite[
   return docs.map(fromApiDoc);
 }
 
+/** B4.1: send a pending invite's email again; resolves with what happened to it. */
+export async function resendInviteEmail(code: string): Promise<NonNullable<SignupInvite['emailStatus']>> {
+  return (await trpc.invites.resendEmail.mutate({ code })).emailStatus;
+}
+
 /** Coach revokes a pending invite (cannot be claimed afterwards). */
 export async function revokeInvite(code: string): Promise<void> {
   await trpc.invites.revoke.mutate({ code });
 }
 
 /** True when an invite is currently claimable. */
-export function isClaimable(invite: SignupInvite | null, now = Date.now()): boolean {
+export function isClaimable(invite: Pick<SignupInvite, 'status' | 'expiresAt'> | null, now = Date.now()): boolean {
   if (!invite) return false;
   if (invite.status !== 'pending') return false;
   if (invite.expiresAt != null && invite.expiresAt <= now) return false;
   return true;
 }
 
-/**
- * Claim an invite for the freshly-created client (single-use).
- *
- * SUPERSEDED: claiming is now an atomic, all-or-nothing server operation —
- * `POST /api/invites/claim` (see `AcceptInvite.tsx`) creates the client's
- * account AND flips the invite to `claimed` in one request. There is no
- * standalone "flip this already-created uid's invite to claimed" endpoint
- * anymore, so this can no longer be called on its own. Kept only so any
- * lingering caller still type-checks against the original signature.
- */
-export async function claimInvite(_code: string, _uid: string): Promise<void> {
-  throw new Error(
-    '[inviteApi] claimInvite() is superseded by POST /api/invites/claim, which claims the invite as part of ' +
-      'creating the client account. Call the claim flow in AcceptInvite.tsx instead of claimInvite() directly.',
-  );
-}
-
-/**
- * Best-effort rollback of a claim if a later step of the join fails.
- *
- * SUPERSEDED: the same reasoning as `claimInvite()` above — the server-side
- * claim endpoint already rolls itself back atomically on failure, so there is
- * no standalone unclaim endpoint to call from the frontend.
- */
-export async function unclaimInvite(code: string): Promise<void> {
-  console.warn(
-    `[inviteApi] unclaimInvite(${code}) is a no-op: POST /api/invites/claim now rolls back its own claim ` +
-      'on failure server-side, so the frontend never needs to unclaim manually.',
-  );
-}
-
-/**
- * Build the client Subscription written onto the coachClients relationship when
- * an invite is claimed — derived from the coach's invite settings so no invited
- * client is ever assigned without a subscription state. Defaults to a 14-day trial.
- *
- * Purely client-side math (exact mirror of the server's `buildClaimSubscription`
- * in `api/invites/_data.ts`) — kept for any caller that wants to preview the
- * subscription an invite will produce; `POST /api/invites/claim` computes and
- * persists the authoritative copy itself.
- */
-export function buildClaimSubscription(invite: SignupInvite, now = Date.now()): Subscription {
-  const status: SubscriptionStatus = invite.subStatus ?? 'trial';
-  const DAY = 86_400_000;
-  const base: Subscription = {
-    startAt: now,
-    endAt: now,
-    status,
-    updatedAt: now,
-    ...(invite.subPlanName ? { planName: invite.subPlanName } : {}),
-    ...(invite.subPrice != null ? { price: invite.subPrice } : {}),
-    ...(invite.subCurrency ? { currency: invite.subCurrency } : {}),
-    ...(invite.subBillingCycle ? { billingCycle: invite.subBillingCycle } : {}),
-  };
-  if (status === 'trial') return { ...base, endAt: now + (invite.subTrialDays ?? 14) * DAY };
-  if (status === 'active') {
-    if (invite.subDays != null && invite.subDays > 0) return { ...base, endAt: now + invite.subDays * DAY };
-    const months = invite.subMonths ?? 1;
-    return { ...base, months, endAt: addMonths(now, months) };
-  }
-  return base; // pending / other: no active term yet — coach configures after claim.
-}

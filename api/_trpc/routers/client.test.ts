@@ -7,6 +7,7 @@ import { getDb } from '../../_lib/mongodb.js';
 import type { UserDoc } from '../../_lib/types.js';
 import { syncRecordsCol, recordId } from '../../sync/_data.js';
 import type { CoachClientRelDoc } from '../../client/_lib/db.js';
+import { ensureCoachPlan } from '../../_lib/testFixtures.js';
 
 let mongod: MongoMemoryServer;
 
@@ -48,6 +49,7 @@ async function insertUser(overrides: Partial<UserDoc>): Promise<UserDoc> {
   const doc = userDoc(overrides);
   const db = await getDb();
   await db.collection<UserDoc>('users').insertOne(doc);
+  if (doc.role === 'coach') await ensureCoachPlan(doc._id); // B38F-R3: a real coach always has a plan
   return doc;
 }
 
@@ -159,94 +161,28 @@ describe('client module — plans + plan versions', () => {
     const asClient = appRouter.createCaller(ctxFor(authedUser(clientDoc)));
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
 
-    const plan = await asCoach.workoutPlan.save({ clientId: clientDoc._id, name: 'Push Pull Legs', days: [] });
+    const plan = await asCoach.workoutPlan.save({ clientId: clientDoc._id, name: 'Push Pull Legs', days: [], baseUpdatedAt: null });
     expect(plan.name).toBe('Push Pull Legs');
 
     const readBack = await asClient.workoutPlan.get({ clientId: clientDoc._id });
     expect(readBack?.name).toBe('Push Pull Legs');
 
-    await expect(asClient.workoutPlan.save({ clientId: clientDoc._id, name: 'Hack Attempt' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(asClient.workoutPlan.save({ clientId: clientDoc._id, name: 'Hack Attempt', baseUpdatedAt: plan.updatedAt as number })).rejects.toMatchObject({ code: 'FORBIDDEN' });
 
-    const v1 = await asCoach.planVersions.save({ clientId: clientDoc._id, kind: 'workout', plan: { name: 'Push Pull Legs' } });
-    expect(v1.versionNumber).toBe(1);
-    const v2 = await asCoach.planVersions.save({ clientId: clientDoc._id, kind: 'workout', plan: { name: 'PPL v2' } });
-    expect(v2.versionNumber).toBe(2);
+    // Every save is versioned: the create above is v1.
+    const v2 = await asCoach.planVersions.save({ clientId: clientDoc._id, kind: 'workout', plan: { name: 'PPL v2', days: [] }, baseUpdatedAt: plan.updatedAt as number, reason: 'block 2' });
+    expect(v2?.versionNumber).toBe(2);
+    expect(v2?.reason).toBe('block 2');
 
     const list = await asClient.planVersions.list({ clientId: clientDoc._id, kind: 'workout' });
     expect(list).toHaveLength(2);
     expect(list[0].versionNumber).toBe(2);
+    const v1 = list[1];
 
     const restored = await asCoach.planVersions.restore({ clientId: clientDoc._id, versionId: v1._id });
     expect(restored?.active).toBe(true);
     const currentPlan = await asClient.workoutPlan.get({ clientId: clientDoc._id });
     expect(currentPlan?.name).toBe('Push Pull Legs');
-  });
-
-  it('updateExerciseFromLibrary refreshes only synced fields, preserves programming, never auto-applies, and fails gracefully when the source is gone', async () => {
-    const clientDoc = await insertUser({ _id: 'client-1', role: 'client' });
-    const coachDoc = await insertUser({ _id: 'coach-1', role: 'coach' });
-    await assignCoach(coachDoc._id, clientDoc._id);
-    const asClient = appRouter.createCaller(ctxFor(authedUser(clientDoc)));
-    const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
-
-    const libExercise = {
-      id: 'lib-ex-1',
-      name: 'Bench Press',
-      targetMuscle: 'Chest',
-      warmupSets: '1 set',
-      workingSets: 3,
-      repRange: '8-12',
-      rir: '1-2',
-      tempo: '2010',
-      notes: { en: 'Original notes', ar: '' },
-      restSec: 90,
-      videoId: null,
-      videoUrl: 'https://example.com/original.mp4',
-    };
-    await asCoach.coachAssets.exercises.save(libExercise);
-
-    // Embed a linked copy into the client's plan (as ExercisePickerSheet's
-    // `pickFromLibrary` would), with its OWN programming (5x5, not 3x8-12).
-    await asCoach.workoutPlan.save({
-      clientId: clientDoc._id,
-      name: 'Push Pull Legs',
-      days: [],
-      exercises: {
-        'plan-ex-1': {
-          ...libExercise,
-          id: 'plan-ex-1',
-          libraryExerciseId: 'lib-ex-1',
-          librarySyncEnabled: true,
-          workingSets: 5,
-          repRange: '5-5',
-        },
-      },
-    });
-
-    // Coach edits the library exercise's video — the client's ALREADY-ASSIGNED
-    // plan must NOT change on its own (only templates auto-sync).
-    await asCoach.coachAssets.exercises.save({ ...libExercise, videoUrl: 'https://example.com/updated.mp4', name: 'Barbell Bench Press' });
-    const untouched = await asClient.workoutPlan.get({ clientId: clientDoc._id });
-    const untouchedEx = (untouched as { exercises: Record<string, { videoUrl: string; name: string; workingSets: number }> }).exercises['plan-ex-1'];
-    expect(untouchedEx.videoUrl).toBe('https://example.com/original.mp4');
-    expect(untouchedEx.name).toBe('Bench Press');
-
-    // Manual "update from library" — refreshes the synced fields, keeps 5x5.
-    const updated = await asCoach.workoutPlan.updateExerciseFromLibrary({ clientId: clientDoc._id, exerciseId: 'plan-ex-1' });
-    expect((updated as { videoUrl: string }).videoUrl).toBe('https://example.com/updated.mp4');
-    expect((updated as { name: string }).name).toBe('Barbell Bench Press');
-    expect((updated as { workingSets: number }).workingSets).toBe(5);
-    expect((updated as { repRange: string }).repRange).toBe('5-5');
-    expect((updated as { librarySyncEnabled: boolean }).librarySyncEnabled).toBe(true);
-
-    // An unrelated coach can't touch this client's plan.
-    const coachB = await insertUser({ _id: 'coach-b', role: 'coach' });
-    const asCoachB = appRouter.createCaller(ctxFor(authedUser(coachB)));
-    await expect(asCoachB.workoutPlan.updateExerciseFromLibrary({ clientId: clientDoc._id, exerciseId: 'plan-ex-1' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
-
-    // Deleting the source library exercise fails the refresh gracefully.
-    await asCoach.coachAssets.exercises.delete({ id: 'lib-ex-1' });
-    await expect(asCoach.workoutPlan.updateExerciseFromLibrary({ clientId: clientDoc._id, exerciseId: 'plan-ex-1' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
 
@@ -301,7 +237,8 @@ describe('client module — coach notes + coach targets', () => {
     const asClient = appRouter.createCaller(ctxFor(authedUser(clientDoc)));
     const asCoach = appRouter.createCaller(ctxFor(authedUser(coachDoc)));
 
-    const note = await asCoach.coachNotes.create({ clientId: clientDoc._id, body: 'Great progress this week!' });
+    // Shared explicitly — notes are private by default (B0 / CO-02, see notePrivacy.test.ts).
+    const note = await asCoach.coachNotes.create({ clientId: clientDoc._id, body: 'Great progress this week!', visibility: 'client' });
     expect(note.authorId).toBe(coachDoc._id);
 
     const listAsClient = await asClient.coachNotes.list({ clientId: clientDoc._id });

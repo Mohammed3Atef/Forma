@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSession } from '@/services/auth/sessionStore';
 import { recordActiveDay } from '@/services/platform/usageApi';
+import { dayKeyOf } from '@/lib/format';
 
 /**
  * Records "active today" for the signed-in user (once per calendar day, on
@@ -11,9 +12,9 @@ export function PresenceTracker() {
   const uid = useSession((s) => s.uid);
   const role = useSession((s) => s.account?.role);
   useEffect(() => {
-    if (!uid || uid === 'local-user' || !role) return;
+    if (!uid || !role) return;
     const mark = () => {
-      const key = `forma:active:${new Date().toISOString().slice(0, 10)}`;
+      const key = `forma:active:${dayKeyOf(Date.now())}`;
       try {
         if (localStorage.getItem(key)) return;
         localStorage.setItem(key, '1');

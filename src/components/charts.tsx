@@ -4,10 +4,15 @@
  */
 import { useId, useRef, useState } from 'react';
 import { colors } from '@/theme/colors';
+import { formatDate } from '@/lib/format';
 
 const COPPER = colors.brandOrange;
-const TRACK = 'rgba(255,238,228,0.16)';
-const SUBTLE = 'rgba(255,238,228,0.4)';
+// B3.9 (VS-17): chart colours come from the design tokens (styles/tokens.css), not per-file rgba.
+const TRACK = 'var(--ui-chart-track)';
+const SUBTLE = 'var(--ui-chart-guide)';
+const GRID = 'var(--ui-chart-grid)';
+/** Text on charts (ticks, values): ≥ 4.5:1 on the card surface (B2.8 / axe color-contrast). Lines and grids keep SUBTLE. */
+const LABEL = 'var(--ui-chart-label)';
 
 /** `date` (ISO `YYYY-MM-DD`) is optional per-datum — when every point has one, the x-axis is spaced by real elapsed time and shows real date ticks instead of even index spacing. */
 export interface BarDatum {
@@ -16,13 +21,8 @@ export interface BarDatum {
   date?: string;
 }
 
-function localeFor(locale: string): string {
-  return locale.startsWith('ar') ? 'ar-EG' : 'en-GB';
-}
 function shortTick(iso: string, locale: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString(localeFor(locale), { day: 'numeric', month: 'short' });
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? formatDate(iso, locale, 'short') : iso;
 }
 
 /**
@@ -35,11 +35,11 @@ function ChartTooltip({ leftPct, title, value }: { leftPct: number; title: strin
   const clamped = Math.min(92, Math.max(8, leftPct));
   return (
     <div
-      className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-surface-raised px-2 py-1 text-[11px] shadow-deep"
+      className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-surface-raised px-2 py-1 text-[12px] shadow-deep"
       style={{ left: `${clamped}%` }}
       role="status"
     >
-      <div className="font-mono text-[9.5px] uppercase tracking-[0.04em] text-earth-subtle">{title}</div>
+      <div className="font-mono text-[12px] uppercase tracking-[0.04em] text-earth-subtle">{title}</div>
       <div className="font-mono font-medium tabular-nums text-earth">{value}</div>
     </div>
   );
@@ -70,7 +70,7 @@ export function BarChart({
   const hasAny = data.length > 0 && data.some((d) => d.value !== 0);
   if (!hasAny) {
     return (
-      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height, color: SUBTLE }}>
+      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height, color: LABEL }}>
         {emptyLabel}
       </div>
     );
@@ -109,14 +109,14 @@ export function BarChart({
               tabIndex={0}
               role="img"
               aria-label={`${d.date ? shortTick(d.date, locale) : d.label}: ${format(d.value)}${unit ? ` ${unit}` : ''}`}
-              className="flex h-full flex-1 flex-col items-center justify-end gap-2 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="flex h-full flex-1 flex-col items-center justify-end gap-2 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-focus"
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover((h2) => (h2 === i ? null : h2))}
               onTouchStart={() => setHover(i)}
               onFocus={() => setHover(i)}
               onBlur={() => setHover((h2) => (h2 === i ? null : h2))}
             >
-              <div className="font-mono text-[9px]" style={{ color: SUBTLE }}>
+              <div className="font-mono text-[12px]" style={{ color: LABEL }}>
                 {d.value ? format(d.value) : ''}
               </div>
               <div
@@ -124,8 +124,8 @@ export function BarChart({
                 style={{ height: h, background: isNow ? COPPER : hover === i ? colors.brandOrangeHover : TRACK }}
               />
               <div
-                className="font-mono text-[9.5px] tracking-[0.04em]"
-                style={{ color: isNow ? COPPER : SUBTLE }}
+                className="font-mono text-[12px] tracking-[0.02em]"
+                style={{ color: isNow ? COPPER : LABEL }}
               >
                 {d.label}
               </div>
@@ -166,7 +166,7 @@ export function LineChart({
     return (
       <div
         className="flex items-center justify-center px-4 text-center font-mono text-xs"
-        style={{ height, color: SUBTLE }}
+        style={{ height, color: LABEL }}
       >
         {emptyLabel}
       </div>
@@ -259,38 +259,39 @@ export function LineChart({
             x2={W - pad}
             y1={pad + t * (H - pad * 2 - AXIS_PAD)}
             y2={pad + t * (H - pad * 2 - AXIS_PAD)}
-            stroke="rgba(255,238,228,0.09)"
+            style={{ stroke: GRID }}
             strokeWidth="1"
           />
         ))}
         <path d={area} fill={`url(#${areaGradId})`} />
         <path d={path} fill="none" stroke={`url(#${lineGradId})`} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         {hover != null && (
-          <line x1={pts[hover][0]} x2={pts[hover][0]} y1={pad * 0.3} y2={H - pad - AXIS_PAD} stroke={SUBTLE} strokeWidth="1" strokeDasharray="2 3" />
+          <line x1={pts[hover][0]} x2={pts[hover][0]} y1={pad * 0.3} y2={H - pad - AXIS_PAD} style={{ stroke: SUBTLE }} strokeWidth="1" strokeDasharray="2 3" />
         )}
         <circle cx={last[0]} cy={last[1]} r="5.5" fill={COPPER} />
         <circle cx={last[0]} cy={last[1]} r="10" fill={COPPER} opacity="0.18" />
         {hover != null && hover !== points.length - 1 && <circle cx={pts[hover][0]} cy={pts[hover][1]} r="4" fill={colors.brandOrangeHover} />}
-        <text x={pad} y={14} fill={SUBTLE} className="font-mono" style={{ fontSize: 9 }}>
+      </svg>
+      {/* B3.9 (VS-17): axis labels are HTML over the plot, not SVG text — inside the scaled viewBox
+          a fixed font size rendered ~8 px on a phone and ~17 px on a wide card. Real 12 px, at the
+          AA label colour, positioned in the plot's own coordinates. */}
+      <div className="pointer-events-none absolute inset-0 font-mono text-[12px] leading-none" style={{ color: LABEL }} aria-hidden>
+        <span className="absolute" style={{ left: `${(pad / W) * 100}%`, top: 2 }}>
           {max.toFixed(0)} {unit}
-        </text>
-        <text x={pad} y={H - AXIS_PAD - 6} fill={SUBTLE} className="font-mono" style={{ fontSize: 9 }}>
+        </span>
+        <span className="absolute -translate-y-full" style={{ left: `${(pad / W) * 100}%`, top: `${((H - AXIS_PAD - 4) / H) * 100}%` }}>
           {min.toFixed(0)} {unit}
-        </text>
+        </span>
         {tickIdx.map((i) => (
-          <text
+          <span
             key={i}
-            x={x(i)}
-            y={H - 4}
-            textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
-            fill={SUBTLE}
-            className="font-mono"
-            style={{ fontSize: 8.5 }}
+            className={`absolute bottom-0 whitespace-nowrap ${i === 0 ? '' : i === points.length - 1 ? '-translate-x-full' : '-translate-x-1/2'}`}
+            style={{ left: `${(x(i) / W) * 100}%` }}
           >
             {shortTick(points[i].date!, locale)}
-          </text>
+          </span>
         ))}
-      </svg>
+      </div>
     </div>
   );
 }
@@ -311,7 +312,7 @@ export function DonutChart({ data, centerLabel, size = 130, emptyLabel = 'Not en
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height: size, color: SUBTLE }}>
+      <div className="flex items-center justify-center px-4 text-center font-mono text-xs" style={{ height: size, color: LABEL }}>
         {emptyLabel}
       </div>
     );
@@ -346,12 +347,12 @@ export function DonutChart({ data, centerLabel, size = 130, emptyLabel = 'Not en
         </svg>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-mono text-xl tabular-nums text-earth">{total}</span>
-          {centerLabel && <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-earth-subtle">{centerLabel}</span>}
+          {centerLabel && <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-earth-subtle">{centerLabel}</span>}
         </div>
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
         {shown.map((d, i) => (
-          <span key={i} className="inline-flex items-center gap-1.5 font-mono text-[9.5px] text-earth-subtle">
+          <span key={i} className="inline-flex items-center gap-1.5 font-mono text-[12px] text-earth-subtle">
             <i className="inline-block h-[9px] w-[9px] rounded-full" style={{ background: d.color }} />
             {d.label} · {d.value}
           </span>

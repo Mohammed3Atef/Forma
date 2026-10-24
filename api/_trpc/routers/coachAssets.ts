@@ -28,6 +28,7 @@ import {
   WorkoutTemplateBodyPatchSchema,
   WorkoutTemplateBodySchema,
 } from '../../coach-assets/_lib/schemas.js';
+import { assertFoodImagesAllowed } from '../../coach-assets/_lib/foodImage.js';
 import { loadStarterExercises } from '../../coach-assets/_lib/exerciseLibrary.js';
 import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_SUPPLEMENTS, STARTER_TEMPLATES, type StarterFood } from '../../coach-assets/_lib/starterLibraryData.js';
 import { buildTemplate, groupByMuscle } from '../../coach-assets/_lib/starterLibraryBuild.js';
@@ -61,6 +62,8 @@ interface AssetResourceConfig<TDoc extends AssetDoc, TPublic> {
    * per instantiation instead of widened to a shared union.
    */
   toPublic: (doc: TDoc) => TPublic;
+  /** B4.1: a check on what is about to be stored (throws a TRPCError) — e.g. who may use a food photo. */
+  validate?: (doc: Record<string, unknown>, coachId: string, stored: unknown) => void;
 }
 
 /**
@@ -134,6 +137,7 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
         const now = Date.now();
         const filter = { coachId: ctx.user.id, id: body.id } as Parameters<typeof col.findOne>[0];
         const existing = await col.findOne(filter);
+        cfg.validate?.(body, ctx.user.id, existing);
         const doc = {
           ...body,
           id: body.id,
@@ -154,6 +158,7 @@ function makeAssetRouter<TDoc extends AssetDoc, TPublic>(cfg: AssetResourceConfi
         const existing = await col.findOne(filter);
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: cfg.notFound });
         const updated = { ...existing, ...patch, updatedAt: Date.now() } as TDoc;
+        cfg.validate?.(patch, ctx.user.id, existing);
         await col.replaceOne(filter, updated);
         return cfg.toPublic(updated);
       }),
@@ -240,6 +245,7 @@ const nutritionTemplatesRouter = makeAssetRouter({
   sort: (a, b) => b.updatedAt - a.updatedAt,
   notFound: 'Nutrition template not found',
   toPublic: keepMeta,
+  validate: assertFoodImagesAllowed,
 });
 
 const foodsRouter = makeAssetRouter({
@@ -249,6 +255,7 @@ const foodsRouter = makeAssetRouter({
   sort: (a, b) => a.name.en.localeCompare(b.name.en),
   notFound: 'Food not found',
   toPublic: stripMeta,
+  validate: assertFoodImagesAllowed,
 });
 
 const foodGroupsRouter = makeAssetRouter({
@@ -258,6 +265,7 @@ const foodGroupsRouter = makeAssetRouter({
   sort: (a, b) => b.updatedAt - a.updatedAt,
   notFound: 'Food group not found',
   toPublic: keepMeta,
+  validate: assertFoodImagesAllowed,
 });
 
 const supplementsRouter = makeAssetRouter({

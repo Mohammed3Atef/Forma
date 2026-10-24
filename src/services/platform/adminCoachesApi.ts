@@ -18,13 +18,19 @@ export interface CoachAdminData {
   expiredCoaches: number;
   suspendedCoaches: number;
   totalClients: number;
+  /** Forma MRR from coach subscriptions with a confirmed payment (never anything from a coach's clients). */
   trackedRevenue: number;
+  /** Active paid plans with no confirmed payment on record — not counted. */
+  unconfirmedPaidCoaches: number;
   conversionRate: number; // % of coaches who moved from the Trial to the paid subscription
   /** Confirmed subscription revenue per month (each coach's confirmed snapshot price). */
   recent: CoachAdminRow[];
   top: CoachAdminRow[];
   /** Monthly recurring revenue from active monthly capacity add-ons. */
+  /** Monthly add-ons bought through a confirmed request, per month. */
   capacityRevenue: number;
+  /** Active add-ons a Super Admin granted directly (no payment on record) — not counted. */
+  grantedAddons: number;
   /** Coaches above their effective client limit. */
   overCapacityCoaches: number;
   forma: { priceMonthly: number; currency: string; maxClients: number; termDays: number };

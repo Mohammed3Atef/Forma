@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,15 +39,33 @@ body {
 html[dir='rtl'] body {
   @apply font-arabic;
 }
-/* Arabic has no letter-case — neutralise the design's uppercase UI labels. */
+/* Arabic has no letter-case and is never letter-spaced — neutralise every
+   component class that bakes in mono / uppercase / tracking (B1.8 / RTL-01
+   extended the list: .label .sec-link .chip .h1 .h2 .stat-num .stat-unit were
+   missed). Utility classes are handled in styles/tokens.css. */
 html[dir='rtl'] .eyebrow,
 html[dir='rtl'] .ui-label,
 html[dir='rtl'] .btn,
 html[dir='rtl'] .seg button,
+html[dir='rtl'] .seg > a,
 html[dir='rtl'] .stat-label,
-html[dir='rtl'] .pill {
+html[dir='rtl'] .pill,
+html[dir='rtl'] .label,
+html[dir='rtl'] .sec-link,
+html[dir='rtl'] .chip,
+html[dir='rtl'] .h1,
+html[dir='rtl'] .h2 {
   text-transform: none;
   letter-spacing: 0;
+  font-family: theme('fontFamily.arabic');
+}
+/* Numbers keep the mono face (Latin digits by policy); only the tracking goes. */
+html[dir='rtl'] .stat-num,
+html[dir='rtl'] .stat-unit {
+  letter-spacing: 0;
+}
+/* B3.9 (mono-in-Arabic): a unit is translated text ("كجم") — the Arabic face, not DM Mono. */
+html[dir='rtl'] .stat-unit {
   font-family: theme('fontFamily.arabic');
 }
 
@@ -99,11 +119,12 @@ input[type='number'] {
 }
 
 /* Visible keyboard focus across every interactive surface (a11y). Pointer
-   clicks stay ring-free via :focus-visible; only keyboard nav shows the ring. */
+   clicks stay ring-free via :focus-visible; only keyboard nav shows the ring.
+   The outline follows each element's own radius (B1.14 / VS-02: the old rule
+   forced `border-radius: 5px`, squaring pills and cards while focused). */
 :focus-visible {
-  outline: 2px solid theme('colors.brand.DEFAULT');
+  outline: 2px solid rgb(var(--ui-focus-ring));
   outline-offset: 2px;
-  border-radius: 5px;
 }
 /* Components manage their own focus ring where the default would clip. */
 .no-focus-ring:focus-visible {
@@ -166,7 +187,7 @@ input[type='number'] {
     @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand;
   }
   .ui-label {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-earth-muted;
+    @apply font-mono text-[12px] font-medium uppercase tracking-[0.06em] text-earth-muted;
   }
 
   /* ---- Headings ---- */
@@ -188,25 +209,26 @@ input[type='number'] {
   .btn-lg {
     min-height: var(--btn-lg, 3.25rem);
   }
-  .btn-sm {
-    @apply relative px-3 text-[11px];
-    min-height: 2.125rem;
-  }
   /* `.btn-sm`/`.chip`/`.seg button`/`.sec-link`/`.icon-btn` all render smaller
      than the ~44px touch-target guideline by design (compact commands sitting
      inline next to text, or a deliberately tight design-system size) — rather
      than growing them visually and disturbing the established layout rhythm,
-     each gets an invisible expanded hit area via `::before`. `inset: -4px` is
-     small enough that adjacent same-row buttons (this codebase's tightest
-     real gap is `gap-1.5` = 6px) don't meaningfully steal each other's taps. */
+     each gets an invisible hit area via `::before`. B3.9 (AX-01): the area is a
+     GUARANTEED 44 x 44 px centred on the control (as `.hit-44`) — the old
+     `inset: -4px` topped a 32-34 px chip or button up to only 40-42 px. */
   .btn-sm::before,
   .chip::before,
   .seg button::before,
+  .seg > a::before,
   .sec-link::before,
   .icon-btn::before {
     content: '';
     position: absolute;
-    inset: -4px;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
   .btn-primary {
     /* Gradient fill (amber → orange → deep orange) with near-black ink text —
@@ -223,14 +245,18 @@ input[type='number'] {
     /* Soft brand-tinted fill — a lower-emphasis alternative to the full gradient. */
     @apply btn border border-brand/25 bg-brand/[0.13] text-brand-hover hover:bg-brand/20;
   }
-  .btn-light {
-    @apply btn border border-white bg-white text-black;
-  }
   .btn-ghost {
     @apply btn border border-transparent bg-transparent text-earth-muted hover:bg-surface-raised hover:text-earth;
   }
   .btn-danger {
     @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
+  }
+  /* B3.9 (VS-01): the dense size — 32 px visual, 44 px hit area (target design system: "dense 32
+     + 44 hit"). It sits AFTER the variants on purpose: each variant `@apply btn` re-declares the
+     base size, so this modifier, defined before them, was dead and every `.btn-sm` rendered 48 px. */
+  .btn-sm {
+    @apply relative gap-1.5 px-3 text-[12px];
+    min-height: 2rem;
   }
 
   /* Circular icon-only button. Every call site supplies its own height/width
@@ -242,6 +268,23 @@ input[type='number'] {
       bg-transparent text-white transition-transform duration-200 ease-card
       hover:bg-white/5 active:scale-90 disabled:opacity-40
       motion-reduce:transition-none motion-reduce:active:scale-100;
+  }
+
+  /* B1.14 / AX-01: a GUARANTEED 44x44px hit area around a smaller visual
+     (the -4px rule above tops a 32px control up to only 40px). Centered on
+     the control, so it never changes layout. Used by the B1.3 primitives. */
+  .hit-44 {
+    position: relative;
+  }
+  .hit-44::before {
+    content: '';
+    position: absolute;
+    inset: auto;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 
   /* ---- Inputs ---- */
@@ -276,7 +319,7 @@ input[type='number'] {
     @apply mb-3.5 mt-7 flex items-baseline justify-between;
   }
   .sec-link {
-    @apply relative font-mono text-[11px] uppercase tracking-[0.04em] text-brand;
+    @apply relative font-mono text-[12px] uppercase tracking-[0.04em] text-brand;
   }
 
   /* ---- List row ---- */
@@ -304,19 +347,31 @@ input[type='number'] {
   }
   .chip-on {
     /* Selected = a soft brand tint (matches the design's `.chip.on`) — the
-       segmented control below is the one that gets a full gradient fill. */
-    @apply border-brand/40 bg-brand/[0.13] text-brand hover:border-brand/40 hover:text-brand;
+       segmented control below is the one that gets a full gradient fill.
+       B3.9 (AX-08): never colour alone — a selected chip is also heavier
+       (semibold) and doubly outlined, so it reads in greyscale and to people
+       who don't see the tint; toggles also say `aria-pressed`. */
+    @apply border-brand/40 bg-brand/[0.13] font-semibold text-brand shadow-[inset_0_0_0_1px_currentColor] hover:border-brand/40 hover:text-brand;
   }
 
   /* ---- Segmented control ---- */
   .seg {
     @apply flex gap-1 rounded-full border border-line bg-surface-card p-1;
   }
-  .seg button {
-    @apply relative h-9 flex-1 rounded-full font-mono text-[11.5px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
+  .seg button,
+  .seg > a {
+    @apply relative h-9 flex-1 rounded-full font-mono text-[12px] uppercase tracking-[0.04em] text-earth-muted transition-colors;
   }
-  .seg button.on {
+  .seg button.on,
+  .seg > a.on {
     @apply bg-gradient-brand text-brand-ink;
+  }
+  /* B2 client: a segmented control switches a view — it is not the screen's
+     primary action, so the selected segment is a neutral fill and the orange
+     gradient stays with the one action per view (B2 blueprint §5). */
+  .seg.seg-quiet button.on,
+  .seg.seg-quiet > a.on {
+    @apply bg-none bg-white/[0.13] text-earth;
   }
 
   /* ---- Progress bar ---- */
@@ -329,8 +384,9 @@ input[type='number'] {
 
   /* ---- Status pill (rounded badge + leading dot) ---- */
   .pill {
+    /* B3.9 (VS-04): 12 px — the floor for text that carries meaning (was 10 px). */
     @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1
-      font-mono text-[10px] font-medium uppercase tracking-[0.07em];
+      font-mono text-[12px] font-medium uppercase tracking-[0.05em];
   }
   .pill-dot {
     @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current;
@@ -342,7 +398,8 @@ input[type='number'] {
     @apply border-warn/30 bg-warn/[0.14] text-warn;
   }
   .pill-bad {
-    @apply border-danger/30 bg-danger/[0.14] text-danger;
+    /* B3.9 (B33-R1): the AA-safe danger TEXT token — `danger` (#F0483E) reads ~4.1:1 on this tint. */
+    @apply border-danger/30 bg-danger/[0.14] text-danger-text;
   }
   .pill-info {
     @apply border-info/30 bg-info/[0.14] text-info;
@@ -352,6 +409,15 @@ input[type='number'] {
   }
   .pill-mute {
     @apply border-line bg-surface-card text-earth-subtle;
+  }
+
+  /* B3.9 (VS-04): the 12 px floor for the shared label styles inside the signed-in app
+     (`useAppSurface` marks <html>; portals included). The website and auth pages keep their
+     own sizes. `:where` adds no specificity, so a screen's own text utility still wins. */
+  :where(html[data-surface='app']) .label,
+  :where(html[data-surface='app']) .eyebrow,
+  :where(html[data-surface='app']) .stat-label {
+    font-size: 12px;
   }
 }
 

@@ -22,6 +22,7 @@
  * replaces.
  */
 
+import type { FoodImageRef } from './foodImage.js';
 import type { ObjectId } from 'mongodb';
 
 export type LocalizedText = { en: string; ar: string };
@@ -45,6 +46,43 @@ export interface WorkoutDay {
 export type WorkoutGoal = 'hypertrophy' | 'fat_loss' | 'strength' | 'beginner' | 'advanced' | 'custom';
 export type SplitType = 'ppl' | 'upper_lower' | 'full_body' | 'bro_split' | 'custom';
 
+/** B4 — structured, bilingual technique notes copied from the Forma catalog. */
+export interface CatalogInstructionSet {
+  setup: string[];
+  steps: string[];
+  cues: string[];
+  mistakes: string[];
+  safety: string[];
+}
+
+/** B4 — the credit a demonstration image / video must show wherever it is shown (licence + author + source). */
+export interface MediaCredit {
+  url: string;
+  kind: 'image' | 'video';
+  author: string;
+  license: string;
+  sourcePage?: string;
+}
+
+/**
+ * B4 — what a food row's macros were computed from, when it came from the Forma catalog (or the
+ * Open Food Facts search): values per 100 g, the serving, the state, and the source to credit.
+ */
+export interface FoodProvenance {
+  catalogId?: string;
+  catalogRev?: number;
+  per100g?: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number };
+  /** The serving: a household portion (or `g` for plain grams) × amount = grams. */
+  portion?: { id: string; amount: number; grams: number; label?: LocalizedText };
+  foodState?: 'raw' | 'cooked' | 'dry' | 'prepared' | 'as-sold';
+  /** `recipe-estimate` / `proxy-estimate` are shown as estimates, with `sourceNote`. */
+  verification?: 'source-values' | 'recipe-estimate' | 'proxy-estimate';
+  sourceNote?: LocalizedText;
+  source?: { provider: 'forma-catalog' | 'open-food-facts'; license: string; attribution: string; url?: string };
+  /** B4.1: the food's picture — a copy (`foodImage.ts`), checked for the saving coach on every save. */
+  image?: FoodImageRef | null;
+}
+
 /** Embedded exercise shape (used both standalone in `coachExercises` and inline in template bodies). */
 export interface ExerciseFields {
   name: string;
@@ -65,6 +103,7 @@ export interface ExerciseFields {
   progressionNotes?: string;
   imageUrl?: string | null;
   images?: string[];
+  videoPosterUrl?: string | null;
   // ---- Extra descriptive fields present on the seeded free-exercise-db
   // dataset (see `./exerciseLibrary.ts`) — not formally part of the
   // frontend `Exercise` type, but Firestore stored them verbatim on the doc.
@@ -83,6 +122,14 @@ export interface ExerciseFields {
   // ---- Library → template/plan link (embedded copies only) -----------------
   libraryExerciseId?: string;
   librarySyncEnabled?: boolean;
+  // ---- B4: copy taken from the Forma catalog (all optional) ---------------
+  /** The catalog exercise this copy came from, and its revision at that time. */
+  catalogId?: string;
+  catalogRev?: number;
+  /** Bilingual name from the catalog — the UI shows it in the reader's language (`name` stays the fallback). */
+  names?: LocalizedText;
+  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet };
+  mediaCredits?: MediaCredit[];
 }
 
 /** `coachExercises` — was `coachAssets/{coachId}/exercises/{id}`. */
@@ -113,7 +160,7 @@ export interface CoachWorkoutTemplateDoc {
   updatedAt: number;
 }
 
-export interface FoodItem {
+export interface FoodItem extends FoodProvenance {
   id: string;
   name: LocalizedText;
   quantity: string;
@@ -180,7 +227,7 @@ export interface CoachNutritionTemplateDoc {
 }
 
 /** Shared food fields (a `LibraryFood` minus its id) — standalone in `coachFoods`, embedded in `coachFoodGroups.foods`. */
-export interface FoodFields {
+export interface FoodFields extends FoodProvenance {
   name: LocalizedText;
   quantity: string;
   protein: number;

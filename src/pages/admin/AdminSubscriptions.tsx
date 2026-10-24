@@ -88,16 +88,24 @@ export function AdminSubscriptions() {
       ) : (
         <div className="space-y-6">
           <div className="card-featured">
-            <p className="eyebrow mb-2">{t('admin.trackedRevenue')}</p>
-            <p className="font-display text-[34px] font-bold leading-none">{d.trackedRevenue + d.capacityRevenue} {d.forma.currency}<span className="ms-1 text-base font-normal text-earth-muted">{t('forma.perMonth')}</span></p>
+            {/* B3.8 final (B38F-R1): Forma's own recurring revenue only — confirmed coach subscriptions and
+                monthly add-ons bought through a confirmed request. A coach's client packages and collections
+                are the coach's business and never appear here. */}
+            <p className="eyebrow mb-2">{t('admin.formaRecurringRevenue')}</p>
+            <p className="font-display text-[34px] font-bold leading-none" data-testid="admin-forma-mrr">{d.trackedRevenue + d.capacityRevenue} {d.forma.currency}<span className="ms-1 text-base font-normal text-earth-muted">{t('forma.perMonth')}</span></p>
             <p className="mt-2 text-sm text-earth-muted">{t('admin.pricingNote')}</p>
-            {g && (
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[12px] text-earth-muted">
-                <span>{t('adminGrowth.coachMrr')} · <span className="text-earth">{d.trackedRevenue + d.capacityRevenue}</span></span>
-                <span>{t('adminGrowth.clientMrr')} · <span className="text-earth">{g.clientMrr} {g.currency}</span></span>
-                <span>{t('adminGrowth.totalMrr')} · <span className="text-earth">{d.trackedRevenue + d.capacityRevenue + g.clientMrr}</span></span>
-              </div>
-            )}
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-[12.5px] text-earth-muted" data-testid="admin-revenue-split">
+              <span>{t('forma.admin.revenueSubscription')} · <span className="text-earth tabular-nums">{d.trackedRevenue} {d.forma.currency}</span></span>
+              <span>{t('forma.admin.revenueCapacity')} · <span className="text-earth tabular-nums">{d.capacityRevenue} {d.forma.currency}</span></span>
+            </div>
+            {d.unconfirmedPaidCoaches > 0 || d.grantedAddons > 0 ? (
+              <p className="mt-2 text-[12.5px] text-earth-muted" data-testid="admin-revenue-excluded">
+                {[
+                  d.unconfirmedPaidCoaches > 0 ? t('admin.revenueUnconfirmed', { count: d.unconfirmedPaidCoaches }) : null,
+                  d.grantedAddons > 0 ? t('admin.revenueGranted', { count: d.grantedAddons }) : null,
+                ].filter(Boolean).join(' ')}
+              </p>
+            ) : null}
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <MetricCard icon="timer" value={d.trialCoaches} label={t('adminCoaches.trial')} tone="brand" />
               <MetricCard icon="check" value={d.activeCoaches} label={t('adminCoaches.active')} tone="success" />
@@ -160,7 +168,7 @@ export function AdminSubscriptions() {
                         <span className="text-sm font-medium">{x.label}</span>
                         <span className="font-mono text-[12px] text-earth">{x.coaches != null ? `${x.coaches} · ` : ''}{x.total} {d.forma.currency}</span>
                       </div>
-                      <div className="prog thin"><span style={{ width: `${(x.total / maxTierTotal) * 100}%` }} /></div>
+                      <div className="prog"><span style={{ width: `${(x.total / maxTierTotal) * 100}%` }} /></div>
                     </div>
                   ))}
                 </div>

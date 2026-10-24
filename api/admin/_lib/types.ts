@@ -30,6 +30,8 @@ export interface Subscription {
   status: SubscriptionStatus;
   frozenFrom?: number | null;
   frozenUntil?: number | null;
+  /** B3.0.1: compensation (ms) added to `endAt` by a scheduled freeze; absent on freezes stored before B3.0.1. */
+  freezeCredit?: number | null;
   note?: string;
   updatedAt: number;
 }

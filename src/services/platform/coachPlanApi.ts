@@ -15,6 +15,11 @@ const DAY_MS = 86_400_000;
  * Reads the signed-in coach's own plan via `coachPlans.me`. A super admin
  * viewing another coach falls back to `adminCoaches.detail`.
  */
+/** The ONE query definition for the coach's own plan (B0 / RM-84: was defined 4× with 60 s / 300 s staleTimes). */
+export function coachPlanQuery(coachId: string | undefined) {
+  return { queryKey: ['coachPlan', coachId] as const, queryFn: () => getCoachPlan(coachId!), enabled: !!coachId, staleTime: 60_000 };
+}
+
 export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
   try {
     return await trpc.coachPlans.me.query();
@@ -31,37 +36,21 @@ export async function getCoachPlan(coachId: string): Promise<CoachPlan | null> {
   }
 }
 
-/** Idempotent Trial bootstrap (`auth.signup` already does this server-side). */
-export async function createTrialPlan(coachId: string): Promise<CoachPlan> {
-  void coachId; // resolved from the auth token server-side
-  return trpc.coachPlans.createTrial.mutate();
-}
-
-/** Trial-reminder bookkeeping — deliberately a no-op (no self-service route persists it); callers treat it as best-effort. */
-export async function markTrialNotified(coachId: string, key: "d7" | "d5" | "d3" | "d1"): Promise<void> {
-  void coachId;
-  void key;
-}
-
-/** The server maintains `activeClientCount` itself; kept as a no-op for existing callers. */
-export async function bumpActiveClientCount(coachId: string, delta: number): Promise<void> {
-  void coachId;
-  void delta;
-}
-
 /** Days remaining on the current Trial / term (rounded up), or null when it has no end. */
 export function trialDaysLeft(plan: Pick<CoachPlan, "endsAt">, now = Date.now()): number | null {
   if (plan.endsAt == null) return null;
   return Math.ceil((plan.endsAt - now) / DAY_MS);
 }
 
-/** Effective state with the end date folded in (mirrors the server's `planStateOf`). */
-export function coachPlanState(plan: Pick<CoachPlan, "plan" | "status" | "endsAt"> | null, now = Date.now()): CoachPlanState {
+/**
+ * Effective state: the server's `state` (computed at read time from `phase`, `status` and the end
+ * date), with an end date that passed since that read folded in. B3.8 (owner D6): the coach UI never
+ * reads the legacy tier field `plan.plan` — the server's `state` / `phase` are the only sources.
+ */
+export function coachPlanState(plan: Pick<CoachPlan, "state" | "endsAt"> | null, now = Date.now()): CoachPlanState {
   if (!plan) return "none";
-  if (plan.status === "suspended") return "suspended";
-  if (plan.endsAt != null && now >= plan.endsAt) return "expired";
-  if (plan.status !== "active") return "expired";
-  return plan.plan === "trial" ? "trial" : "active";
+  if ((plan.state === "trial" || plan.state === "active") && plan.endsAt != null && now >= plan.endsAt) return "expired";
+  return plan.state;
 }
 
 /** Capacity usage for display: used / limit, and how far over it is (never negative). */

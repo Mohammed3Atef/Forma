@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import type { Collection } from 'mongodb';
 import { getDb } from '../../_lib/mongodb.js';
-import { addMonths } from '../_data.js';
+import { buildTerm } from '../_terms.js';
 import type { SubscriptionDoc, SubscriptionStatus } from '../_types.js';
 import type { SignupInviteDoc } from './invites-types.js';
 
@@ -37,28 +37,24 @@ export function isClaimable(invite: SignupInviteDoc | null, now = Date.now()): b
 
 /**
  * Build the client `Subscription` written onto the `coachClients` relationship
- * when an invite is claimed — exact port of `buildClaimSubscription()`. Note it
- * deliberately does NOT set `frozenFrom`/`frozenUntil` (unlike
- * `buildSubscription()` in coach-clients/_data.ts) — that asymmetry exists in
- * the source-of-truth Firestore code and is preserved here on purpose.
+ * when an invite is claimed. The term starts on the claim day. B3.8: fixed-day
+ * calendar terms (1 month = 30 days) in the zone the coach created the invite in
+ * (`subZone`; Egypt when absent) — see `buildTerm`. A pending invite term has no
+ * dates; the coach sets them after the claim.
  */
 export function buildClaimSubscription(invite: SignupInviteDoc, now = Date.now()): SubscriptionDoc {
   const status: SubscriptionStatus = invite.subStatus ?? 'trial';
-  const base: SubscriptionDoc = {
-    startAt: now,
-    endAt: now,
-    status,
-    updatedAt: now,
-    ...(invite.subPlanName ? { planName: invite.subPlanName } : {}),
-    ...(invite.subPrice != null ? { price: invite.subPrice } : {}),
-    ...(invite.subCurrency ? { currency: invite.subCurrency } : {}),
-    ...(invite.subBillingCycle ? { billingCycle: invite.subBillingCycle } : {}),
-  };
-  if (status === 'trial') return { ...base, endAt: now + (invite.subTrialDays ?? 14) * SUB_DAY };
-  if (status === 'active') {
-    if (invite.subDays != null && invite.subDays > 0) return { ...base, endAt: now + invite.subDays * SUB_DAY };
-    const months = invite.subMonths ?? 1;
-    return { ...base, months, endAt: addMonths(now, months) };
-  }
-  return base; // pending / other: no active term yet — coach configures after claim.
+  return buildTerm(
+    {
+      status,
+      zone: invite.subZone,
+      ...(invite.subMonths != null ? { months: invite.subMonths } : {}),
+      ...(invite.subDays != null ? { days: invite.subDays } : {}),
+      ...(invite.subTrialDays != null ? { trialDays: invite.subTrialDays } : {}),
+      ...(invite.subPrice != null ? { price: invite.subPrice } : {}),
+      ...(invite.subPlanName ? { planName: invite.subPlanName } : {}),
+      ...(invite.subBillingCycle ? { billingCycle: invite.subBillingCycle } : {}),
+    },
+    now,
+  );
 }

@@ -1,96 +1,81 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { muscleLabel } from '@/lib/muscle';
-import { youtubeEmbed } from '@/services/video/VideoStore';
+import { attributionOf, exerciseDemo } from '@/lib/libraryMedia';
+import { AttributionLine, DemoBlock } from '@/components/library/ExerciseDemo';
 import type { Exercise } from '@/types';
+import { useLocalized } from '@/hooks/useLocalized';
 
 /**
- * Read-only presentation of a library exercise — shown when a coach taps an
- * exercise to *view* it (vs. editing). Pair with an Edit button in the sheet.
+ * Read-only presentation of a library exercise (the Library opens items read-first; Edit is a
+ * separate, explicit action). B3.7: the demo is honest (a playable video, an image, or "No demo
+ * yet" — `lib/libraryMedia`), metadata leads, the defaults a plan starts from follow, and the
+ * source is credited when the exercise says where it came from.
  */
 export function ExerciseView({ ex }: { ex: Exercise }) {
   const { t } = useTranslation();
-  const [videoFailed, setVideoFailed] = useState(false);
-  const meta = [ex.category, ex.equipment].filter(Boolean).join(' · ');
-  const img = ex.imageUrl || ex.images?.[0];
-  const embed = ex.videoUrl ? youtubeEmbed(ex.videoUrl) : null;
+  const loc = useLocalized(); // Arabic readers see the Arabic instructions when there are some (B1.8)
+  const muscle = muscleLabel(ex.targetMuscle, t) || ex.targetMuscle;
+  const category = ex.category && ex.category.trim() !== ex.targetMuscle?.trim() ? ex.category : null;
   const row = (label: string, value: string | number | undefined | null) =>
     value === undefined || value === null || value === '' ? null : (
       <div className="flex items-center justify-between gap-3 border-b border-line-soft py-2 last:border-0">
         <span className="text-sm text-earth-subtle">{label}</span>
-        <span className="text-end text-sm font-medium">{value}</span>
+        <span className="text-end text-sm font-medium">
+          <bdi>{value}</bdi>
+        </span>
       </div>
     );
 
   return (
     <div className="space-y-4" data-testid="exercise-view">
-      {embed ? (
-        <div className="aspect-video w-full overflow-hidden rounded-xl border border-line-soft">
-          <iframe
-            className="h-full w-full"
-            src={embed}
-            title={ex.name}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : ex.videoUrl && !videoFailed ? (
-        <div className="aspect-video w-full overflow-hidden rounded-xl border border-line-soft bg-black">
-          <video
-            key={ex.videoUrl}
-            src={ex.videoUrl}
-            controls
-            playsInline
-            preload="metadata"
-            className="h-full w-full object-contain"
-            onError={() => setVideoFailed(true)}
-            data-testid="exercise-view-video"
-          />
-        </div>
-      ) : img ? (
-        <img src={img} alt={ex.name} loading="lazy" className="h-44 w-full rounded-xl border border-line-soft object-cover" />
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="chip chip-on">{muscleLabel(ex.targetMuscle, t) || ex.targetMuscle}</span>
-        {meta ? <span className="chip">{meta}</span> : null}
-      </div>
+      <DemoBlock demo={exerciseDemo(ex)} title={ex.name} videoUrl={ex.videoUrl} />
 
       <div className="card">
-        {row(t('coachEditor.workingSets'), ex.workingSets)}
-        {row(t('coachEditor.reps'), ex.repRange)}
-        {row(t('coachEditor.warmupSets'), ex.warmupSetCount ?? ex.warmupSets)}
-        {row(t('coachEditor.restSec'), ex.restSec ? `${ex.restSec}s` : null)}
-        {row(t('workout.tempo'), ex.tempo)}
+        {row(t('field.muscle'), muscle || null)}
+        {row(t('field.equipment'), ex.equipment)}
+        {row(t('field.category'), category)}
       </div>
 
-      {ex.notes?.en ? (
+      <section>
+        <h3 className="label mb-1.5">{t('library.defaults')}</h3>
+        <div className="card">
+          {row(t('coachEditor.workingSets'), ex.workingSets)}
+          {row(t('coachEditor.reps'), ex.repRange)}
+          {row(t('coachEditor.warmupSets'), ex.warmupSetCount ?? ex.warmupSets)}
+          {row(t('coachEditor.restSec'), ex.restSec ? `${ex.restSec}s` : null)}
+          {row(t('workout.tempo'), ex.tempo)}
+        </div>
+      </section>
+
+      {ex.notes && loc(ex.notes) ? (
         <div>
           <div className="label mb-1">{t('coachEditor.instructions')}</div>
-          <p className="whitespace-pre-line text-sm text-earth-muted">{ex.notes.en}</p>
+          <p className="whitespace-pre-line text-sm text-earth-muted" dir="auto">
+            {loc(ex.notes)}
+          </p>
         </div>
       ) : null}
 
       {ex.progressionNotes ? (
         <div>
           <div className="label mb-1">{t('coachEditor.progression')}</div>
-          <p className="whitespace-pre-line text-sm text-earth-muted">{ex.progressionNotes}</p>
+          <p className="whitespace-pre-line text-sm text-earth-muted" dir="auto">
+            {ex.progressionNotes}
+          </p>
         </div>
       ) : null}
 
       {ex.tags?.length ? (
         <div className="flex flex-wrap gap-1.5">
           {ex.tags.map((tg) => (
-            <span key={tg} className="chip text-[11px]">{tg}</span>
+            <span key={tg} className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-earth-muted">
+              <bdi>{tg}</bdi>
+            </span>
           ))}
         </div>
       ) : null}
 
-      {ex.videoUrl && (videoFailed || embed) ? (
-        <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full">
-          {t('workout.watchVideo')}
-        </a>
-      ) : null}
+      <AttributionLine attribution={attributionOf(ex)} />
     </div>
   );
 }

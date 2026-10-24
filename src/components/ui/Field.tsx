@@ -60,8 +60,11 @@ type FieldExtras = {
   fieldClassName?: string;
 };
 
+/** Values that are always written left-to-right, even in an Arabic UI (B1.8): "aya@x.com" must not render as "@aya". */
+const LTR_INPUT_TYPES = new Set(['email', 'tel', 'url', 'password']);
+
 export const TextInput = forwardRef<HTMLInputElement, FieldExtras & InputHTMLAttributes<HTMLInputElement>>(
-  function TextInput({ label, required, helper, error, srOnlyLabel, fieldClassName, id, className, ...rest }, ref) {
+  function TextInput({ label, required, helper, error, srOnlyLabel, fieldClassName, id, className, dir, ...rest }, ref) {
     const autoId = useId();
     const fieldId = id ?? autoId;
     const descId = error || helper ? `${fieldId}-desc` : undefined;
@@ -74,6 +77,7 @@ export const TextInput = forwardRef<HTMLInputElement, FieldExtras & InputHTMLAtt
           aria-describedby={descId}
           aria-invalid={error ? true : undefined}
           className={`input ${className ?? ''}`}
+          dir={dir ?? (rest.type && LTR_INPUT_TYPES.has(rest.type) ? 'ltr' : undefined)}
           {...rest}
         />
       </FormField>

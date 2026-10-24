@@ -25,7 +25,20 @@ export interface SignupInviteDoc {
   subMonths?: number;
   subDays?: number;
   subTrialDays?: number;
+  /** B3.8: the coach device's IANA zone at invite time — the claimed term's days are meant in it. */
+  subZone?: string;
   status: SignupInviteStatus;
+  /**
+   * B4.1 — what happened to the invite email, as far as Forma knows: `sent` (the provider accepted
+   * it), `not-sent` (nothing went out — email disabled, no trusted origin, provider error, or the
+   * inbox protection ceiling), `unconfirmed` (no answer in time — it may still arrive). Absent: no
+   * email address on the invite.
+   */
+  emailStatus?: 'sent' | 'not-sent' | 'unconfirmed';
+  /** Why it was not sent (server-side only — never returned: it could hint at other coaches' invites). */
+  emailIssue?: 'disabled' | 'no-trusted-origin' | 'provider-error' | 'timeout' | 'delivery-limit';
+  emailAttemptAt?: number;
+  emailAttempts?: number;
   claimedByUid?: string | null;
   createdAt: number;
   claimedAt?: number | null;

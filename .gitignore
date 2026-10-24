@@ -19,3 +19,8 @@ demo-media
 # Phase-3 isolated E2E output (per run) and per-port vite caches
 e2e-out
 node_modules/.vite-e2e-*
+
+# B0 / RM-13: local-only material kept out of the repo
+*.tsbuildinfo
+gym tracker (1)/
+competitor-analysis/

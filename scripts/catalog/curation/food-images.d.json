@@ -1,0 +1,837 @@
+{
+  "_reviewer": "group d — sheets 06, 08, 09",
+  "ff_banana": {
+    "status": "approved",
+    "file": "File:Banana Fruit.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Banana_Fruit.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Banana_Fruit.JPG",
+    "width": 2413,
+    "height": 1768,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "ZooFari",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bunch of ripe yellow bananas",
+      "ar": "عنقود من الموز الأصفر الناضج"
+    },
+    "note": "Ripe raw bananas on white; whole fruit matches the raw state. Blue wax on the cut stem tips is a grower's seal, not a label."
+  },
+  "ff_apple": {
+    "status": "approved",
+    "file": "File:Red Apple.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Red_Apple.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg",
+    "width": 2418,
+    "height": 2192,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Abhijit Tembhekar from Mumbai, India",
+    "credit": "Nikon D80 Apple",
+    "alt": {
+      "en": "A whole red apple with its skin",
+      "ar": "تفاحة حمراء كاملة بقشرها"
+    },
+    "note": "Single whole raw red apple with skin on white; matches 'apple with skin, raw'. No sticker."
+  },
+  "ff_orange": {
+    "status": "approved",
+    "file": "File:Orange-Fruit-Pieces.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Orange-Fruit-Pieces.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Orange-Fruit-Pieces.jpg",
+    "width": 3520,
+    "height": 2260,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Evan-Amos",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole orange with orange halves and wedges",
+      "ar": "برتقالة كاملة مع أنصاف وشرائح برتقال"
+    },
+    "note": "Whole and cut raw navel oranges on white; no labels."
+  },
+  "ff_mango": {
+    "status": "approved",
+    "file": "File:Mango fruit Nam Dok Mai.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Mango_fruit_Nam_Dok_Mai.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/af/Mango_fruit_Nam_Dok_Mai.jpg",
+    "width": 8256,
+    "height": 5504,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole ripe yellow mango",
+      "ar": "ثمرة مانجو صفراء ناضجة كاملة"
+    },
+    "note": "Studio shot of a whole raw ripe mango (Nam Dok Mai). Catalog portion is cup pieces, but the raw fruit is the same food and state."
+  },
+  "ff_guava": {
+    "status": "approved",
+    "file": "File:Fresh Guava.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_Guava.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Fresh_Guava.jpg",
+    "width": 4032,
+    "height": 3024,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Rajeeb (Marajozkee)",
+    "credit": "Own work",
+    "alt": {
+      "en": "Two fresh green guavas with leaves",
+      "ar": "ثمرتا جوافة خضراء طازجة مع أوراقها"
+    },
+    "note": "Two whole raw guavas with leaves on a marble surface; clearly guava, raw state."
+  },
+  "ff_dates_medjool": {
+    "status": "approved",
+    "file": "File:DATES MEDJOOL.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:DATES_MEDJOOL.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/DATES_MEDJOOL.jpg",
+    "width": 4928,
+    "height": 3264,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "ORGANIChouse",
+    "credit": "Own work",
+    "alt": {
+      "en": "Medjool dates in a white bowl",
+      "ar": "تمر مجدول في وعاء أبيض"
+    },
+    "note": "Large soft dark Medjool dates in a bowl, as sold; no packaging or text. Uploader account name looks like a shop (ORGANIChouse) but the file is own-work CC BY-SA 4.0 with no branding in frame."
+  },
+  "ff_dates_deglet": {
+    "status": "approved",
+    "file": "File:Dattes deglet from Biskra.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Dattes_deglet_from_Biskra.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Dattes_deglet_from_Biskra.jpg",
+    "width": 2816,
+    "height": 2112,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "M. Dhifallah",
+    "credit": "M. Dhifallah",
+    "alt": {
+      "en": "Semi-dry amber Deglet Noor dates on a white plate",
+      "ar": "تمر دقلة نور نصف جاف على طبق أبيض"
+    },
+    "note": "Translucent amber, semi-dry Deglet Noor dates (Tunisia) on a plate; matches the semi-dry as-sold state, not fresh dates."
+  },
+  "ff_grapes": {
+    "status": "approved",
+    "file": "File:Grapes (2).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grapes_(2).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Grapes_%282%29.jpg",
+    "width": 2724,
+    "height": 1884,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Renee Comet (Photographer)",
+    "credit": "This image was released by the National Cancer Institute, an agency part of the National Institutes of Health, with the ID 2656 (image) (next).",
+    "alt": {
+      "en": "A bunch of green grapes",
+      "ar": "عنقود عنب أخضر"
+    },
+    "note": "Raw green seedless-type grapes on white (US National Cancer Institute, public domain). Catalog record covers red or green grapes."
+  },
+  "ff_watermelon": {
+    "status": "approved",
+    "file": "File:Sliced Watermelon.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Sliced_Watermelon.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Sliced_Watermelon.jpg",
+    "width": 3872,
+    "height": 2592,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "Harsha K R",
+    "credit": "https://www.flickr.com/photos/mynameisharsha/5427691534/",
+    "alt": {
+      "en": "Wedges of red watermelon with seeds",
+      "ar": "شرائح بطيخ أحمر ببذوره"
+    },
+    "note": "Raw watermelon wedges, matching the wedge portion. A blurred, unidentifiable hand is far in the background; no face or text."
+  },
+  "ff_cantaloupe": {
+    "status": "approved",
+    "file": "File:Cucumis melo var. reticulatus (photo by Scott Bauer).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cucumis_melo_var._reticulatus_(photo_by_Scott_Bauer).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+    "width": 2700,
+    "height": 1809,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "USDA photo by Scott Bauer. Image Number K7355-11.",
+    "credit": "http://www.ars.usda.gov/is/graphics/photos/k7388-11.htm",
+    "alt": {
+      "en": "Whole cantaloupes with a halved melon and slices",
+      "ar": "شمام كامل مع نصف ثمرة وشرائح"
+    },
+    "note": "USDA ARS photo (public domain) of whole, halved and sliced raw cantaloupe on a wooden board."
+  },
+  "ff_strawberries": {
+    "status": "approved",
+    "file": "File:Strawberries-1239306.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Strawberries-1239306.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/14/Strawberries-1239306.jpg",
+    "width": 3292,
+    "height": 2044,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Robert Owen-Wahl (Meditations)",
+    "credit": "https://pixabay.com/en/berry-breakfast-calories-closeup-1239306/ archive copy at the Wayback Machine",
+    "alt": {
+      "en": "A whole strawberry and a halved strawberry",
+      "ar": "حبة فراولة كاملة وأخرى مقطوعة نصفين"
+    },
+    "note": "Raw strawberries, whole and halved, on white; CC0."
+  },
+  "ff_blueberries": {
+    "status": "approved",
+    "file": "File:Dish of blueberries.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Dish_of_blueberries.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Dish_of_blueberries.jpg",
+    "width": 4592,
+    "height": 3448,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Petar Milošević",
+    "credit": "Own work",
+    "alt": {
+      "en": "Fresh blueberries in a white bowl",
+      "ar": "توت أزرق طازج في وعاء أبيض"
+    },
+    "note": "Raw blueberries in and beside a white bowl; clean background."
+  },
+  "ff_pomegranate": {
+    "status": "approved",
+    "file": "File:Pomegranate fruit - whole and piece with arils.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+    "width": 6000,
+    "height": 4000,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole pomegranate beside an opened piece showing red seeds",
+      "ar": "رمانة كاملة بجانب قطعة مفتوحة تظهر حبوبها الحمراء"
+    },
+    "note": "Whole raw pomegranate and a piece with arils; matches the 'cup seeds' portion and raw state."
+  },
+  "ff_figs": {
+    "status": "approved",
+    "file": "File:Fresh figs on a deep dish.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_figs_on_a_deep_dish.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Fresh_figs_on_a_deep_dish.jpg",
+    "width": 3888,
+    "height": 2592,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Maor X",
+    "credit": "Own work",
+    "alt": {
+      "en": "Fresh figs in a white bowl, one cut open",
+      "ar": "تين طازج في وعاء أبيض وحبة مقطوعة"
+    },
+    "note": "Fresh (not dried) figs, one halved showing the pink interior; matches 'figs, fresh'."
+  },
+  "ff_apricots": {
+    "status": "approved",
+    "file": "File:Apricot whole444.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Apricot_whole444.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/76/Apricot_whole444.jpg",
+    "width": 1600,
+    "height": 1200,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Benjamint444",
+    "credit": "Own work",
+    "alt": {
+      "en": "A single fresh apricot",
+      "ar": "حبة مشمش طازجة"
+    },
+    "note": "One whole raw apricot on white; fresh, not dried."
+  },
+  "ff_peach": {
+    "status": "approved",
+    "file": "File:White-Peaches-Bunch.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:White-Peaches-Bunch.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c2/White-Peaches-Bunch.jpg",
+    "width": 3880,
+    "height": 1940,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Evan-Amos",
+    "credit": "Own work",
+    "alt": {
+      "en": "Whole peaches and a halved peach showing its stone",
+      "ar": "خوخ كامل ونصف خوخة تظهر نواتها"
+    },
+    "note": "Raw peaches on white, CC0. Borderline: these are white-fleshed peaches while the USDA record is yellow peaches; the catalog name is just 'Peach' and the fruit is unmistakably peach, so approved — swap if a yellow-peach photo is preferred."
+  },
+  "ff_pear": {
+    "status": "approved",
+    "file": "File:Four pears.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Four_pears.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Four_pears.jpg",
+    "width": 4426,
+    "height": 2080,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Rhododendrites",
+    "credit": "Own work",
+    "alt": {
+      "en": "Four whole pears of different varieties",
+      "ar": "أربع حبات كمثرى كاملة من أصناف مختلفة"
+    },
+    "note": "Four raw pears (Bartlett, D'Anjou, Forelle, red Bartlett) on a plain background; no stickers."
+  },
+  "ff_kiwi": {
+    "status": "approved",
+    "file": "File:Kiwifruit cross section.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Kiwifruit_cross_section.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/de/Kiwifruit_cross_section.jpg",
+    "width": 6880,
+    "height": 5500,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "A halved green kiwi fruit",
+      "ar": "ثمرة كيوي خضراء مقطوعة نصفين"
+    },
+    "note": "Cross-section of a raw green kiwifruit, matching the USDA 'kiwifruit, green, raw' record."
+  },
+  "ff_pineapple": {
+    "status": "approved",
+    "file": "File:Pineapple Chunks.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Pineapple_Chunks.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/80/Pineapple_Chunks.jpg",
+    "width": 3024,
+    "height": 4032,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Gaurav Dhwaj Khadka",
+    "credit": "Own work",
+    "alt": {
+      "en": "Fresh pineapple chunks on a plate",
+      "ar": "قطع أناناس طازجة على طبق"
+    },
+    "note": "Raw pineapple chunks on a steel plate, matching the 'cup, chunks' portion. Borderline on quality: pale fruit and a busy, blurred background with no readable text; better-quality options found were GFDL-only, branded (Del Monte) or bagged, so rejected."
+  },
+  "ff_prickly_pear": {
+    "status": "approved",
+    "file": "File:Prickly pears.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Prickly_pears.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Prickly_pears.jpg",
+    "width": 3504,
+    "height": 2336,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "author": "Tomás Castelazo",
+    "credit": "Own work",
+    "alt": {
+      "en": "Peeled prickly pears of several colours on small plates",
+      "ar": "تين شوكي مقشر بألوان مختلفة على أطباق صغيرة"
+    },
+    "note": "Peeled raw prickly pears (red, orange, green) on plates at a market stall in Mexico; no readable text and no person visible beyond a sliver of clothing at the edge."
+  },
+  "ff_avocado": {
+    "status": "approved",
+    "file": "File:Avocado Hass - single and halved.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Avocado_Hass_-_single_and_halved.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Avocado_Hass_-_single_and_halved.jpg",
+    "width": 8256,
+    "height": 5504,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ivar Leidus",
+    "credit": "Own work",
+    "alt": {
+      "en": "A whole avocado and a halved avocado with its pit",
+      "ar": "ثمرة أفوكادو كاملة ونصف ثمرة بنواتها"
+    },
+    "note": "Studio shot of raw Hass avocado, whole and halved."
+  },
+  "ff_lemon_juice": {
+    "status": "missing",
+    "reason": "No qualifying photo of plain fresh lemon juice: candidates were branded/labelled bottles, lemonade-style drinks (a different food), or street-stall scenes with people and text."
+  },
+  "ff_raisins": {
+    "status": "approved",
+    "file": "File:Raisins 01.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Raisins_01.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Raisins_01.jpg",
+    "width": 3223,
+    "height": 2025,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Paweł Kuźniar (Jojo_1, Jojo)",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass bowl of raisins",
+      "ar": "وعاء زجاجي من الزبيب"
+    },
+    "note": "Dried raisins as sold, in a glass bowl. Borderline: a mix of golden and dark raisins while the record is dark seedless raisins; macros are near-identical and the alias list includes sultanas, so approved. No dark-only alternative found within the search budget."
+  },
+  "ff_figs_dried": {
+    "status": "approved",
+    "file": "File:Dried Figs (1).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Dried_Figs_(1).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Dried_Figs_%281%29.jpg",
+    "width": 2288,
+    "height": 1712,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Chefallen",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pile of dried figs",
+      "ar": "كومة من التين المجفف"
+    },
+    "note": "Dried figs on white; clearly the dried as-sold state, not fresh."
+  },
+  "ff_apricots_dried": {
+    "status": "approved",
+    "file": "File:Dried apricot, Malatya 01.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Dried_apricot,_Malatya_01.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Dried_apricot%2C_Malatya_01.jpg",
+    "width": 3407,
+    "height": 2399,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Zeynel Cebeci",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pile of bright orange dried apricots",
+      "ar": "كومة من المشمش المجفف البرتقالي"
+    },
+    "note": "Sulfur-dioxide-treated (sulfured) dried apricots at Malatya bazaar — exactly the USDA 'apricots, dried, sulfured' state; frame shows only fruit, no tags."
+  },
+  "ff_honey": {
+    "status": "approved",
+    "file": "File:Runny hunny.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Runny_hunny.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Runny_hunny.jpg",
+    "width": 1780,
+    "height": 2700,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Scott Bauer, USDA ARS",
+    "credit": "This image was released by the Agricultural Research Service, the research agency of the United States Department of Agriculture, with the ID K7240-6 (next).",
+    "alt": {
+      "en": "A jar of honey with honey dripping from a wooden dipper",
+      "ar": "وعاء زجاجي من العسل مع عسل يتقطر من مغرفة خشبية"
+    },
+    "note": "USDA ARS public-domain photo: honey jar and dipper are the subject; biscuits in the background and an unidentifiable fingertip at the top edge. Unbranded jar."
+  },
+  "ff_sugar": {
+    "status": "approved",
+    "file": "File:Bowl of white sugar.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Bowl_of_white_sugar.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Bowl_of_white_sugar.jpg",
+    "width": 2800,
+    "height": 2100,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Douglas P Perkins",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of white granulated sugar",
+      "ar": "وعاء من السكر الأبيض المحبب"
+    },
+    "note": "Plain white granulated sugar in a bowl, top view; no packaging."
+  },
+  "ff_molasses": {
+    "status": "approved",
+    "file": "File:Blackstrapmolasses.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Blackstrapmolasses.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Blackstrapmolasses.JPG",
+    "width": 2048,
+    "height": 1536,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Badagnani",
+    "credit": "Own work",
+    "alt": {
+      "en": "Dark molasses pouring from a spoon into a glass bowl",
+      "ar": "عسل أسود يُسكب من ملعقة في وعاء زجاجي"
+    },
+    "note": "Thick dark cane molasses (blackstrap) poured from a spoon; matches Egyptian 'black honey'. No label."
+  },
+  "ff_jam": {
+    "status": "approved",
+    "file": "File:Strawberry jam on a dish.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Strawberry_jam_on_a_dish.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Strawberry_jam_on_a_dish.JPG",
+    "width": 2592,
+    "height": 1952,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "PatríciaR",
+    "credit": "Own work",
+    "alt": {
+      "en": "Strawberry jam on a white plate",
+      "ar": "مربى فراولة على طبق أبيض"
+    },
+    "note": "Close-up of fruit jam (strawberry) on a plate; generic jam, no jar or label."
+  },
+  "ff_dark_chocolate_70": {
+    "status": "missing",
+    "reason": "Every dark-chocolate photo found was a branded bar or had a brand embossed on the squares (Green & Black's, Ritter Sport, Amul, Bellarom); the remaining candidates were desserts or low-cocoa cooking chocolate."
+  },
+  "ff_milk_chocolate": {
+    "status": "missing",
+    "reason": "Every milk-chocolate photo found was branded (Reese's, Ghirardelli, Cadbury, Russell Stover) or had a brand embossed on the pieces (Alpia, also mixed with dark and white chocolate)."
+  },
+  "ff_ice_cream_vanilla": {
+    "status": "approved",
+    "file": "File:Vanilla bean ice cream (3086700978).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Vanilla_bean_ice_cream_(3086700978).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg",
+    "width": 1840,
+    "height": 1232,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "a.pasquier from bellingham, washington",
+    "credit": "vanilla bean",
+    "alt": {
+      "en": "A scoop of vanilla ice cream with a mint sprig",
+      "ar": "كرة آيس كريم فانيليا مع غصن نعناع"
+    },
+    "note": "Single scoop of vanilla (bean) ice cream on a wooden board; the mint is garnish only. No tub, brand or text."
+  },
+  "ff_basbousa": {
+    "status": "approved",
+    "file": "File:Basboussa - harisa - بسبوسة photo2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+    "width": 5184,
+    "height": 3456,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Sami Mlouhi",
+    "credit": "Own work",
+    "alt": {
+      "en": "Squares of basbousa topped with nuts on a white plate",
+      "ar": "قطع بسبوسة مربعة مزينة بالمكسرات على طبق أبيض"
+    },
+    "note": "Syrup-soaked semolina cake (basbousa / harissa) cut in squares, each topped with nuts — the real Egyptian/Levantine sweet, matching the '1 piece' portion. Slightly dim light; a fork and napkin at the edge, no text."
+  },
+  "ff_orange_juice": {
+    "status": "approved",
+    "file": "File:Orange juice 1 edit1.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/67/Orange_juice_1_edit1.jpg",
+    "width": 1566,
+    "height": 2226,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Agency of the United States Department of Agriculture Edited Version by: Arad",
+    "credit": "USDA",
+    "alt": {
+      "en": "Orange juice being poured into a glass",
+      "ar": "عصير برتقال يُسكب في كوب"
+    },
+    "note": "USDA public-domain photo of orange juice poured into a plain glass; no carton, brand or text."
+  },
+  "ff_apple_juice": {
+    "status": "missing",
+    "reason": "Candidates showed cloudy pale juice (homemade/russet pressing) that does not read as the clear, bottled unsweetened apple juice of the USDA record and could be mistaken for another juice; the rest were branded cups, mixed breakfast scenes or people drinking."
+  },
+  "ff_cola_regular": {
+    "status": "approved",
+    "file": "File:Glass cola.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_cola.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/10/Glass_cola.jpg",
+    "width": 2200,
+    "height": 1704,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "pic_p_ter",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass of cola with ice cubes and lemon",
+      "ar": "كوب مشروب كولا مع مكعبات ثلج وشرائح ليمون"
+    },
+    "note": "Plain unbranded glass of cola with ice and a lemon garnish; no can, bottle or logo."
+  },
+  "ff_tea_black": {
+    "status": "approved",
+    "file": "File:A cup of black tea from Srimangal Bangladesh.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+    "width": 4624,
+    "height": 3472,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Sm faysal",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass cup of plain black tea on a saucer",
+      "ar": "كوب زجاجي من الشاي الأحمر السادة على صحن"
+    },
+    "note": "Brewed black tea without milk in a clear glass cup and saucer; no text. Background is blurred (an unidentifiable shoulder and shelving)."
+  },
+  "ff_tea_green": {
+    "status": "approved",
+    "file": "File:White cup with green tea in it.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:White_cup_with_green_tea_in_it.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6e/White_cup_with_green_tea_in_it.jpg",
+    "width": 2400,
+    "height": 1800,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Douglas P Perkins",
+    "credit": "Own work",
+    "alt": {
+      "en": "A small white cup of brewed green tea",
+      "ar": "فنجان أبيض صغير من الشاي الأخضر المنقوع"
+    },
+    "note": "Plain brewed green tea (no sugar, no milk) in a small white cup; no text."
+  },
+  "ff_coffee_black": {
+    "status": "approved",
+    "file": "File:White cup of black coffee.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:White_cup_of_black_coffee.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ce/White_cup_of_black_coffee.jpg",
+    "width": 2344,
+    "height": 2382,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Jon-Isac Lindberg",
+    "credit": "Own work",
+    "alt": {
+      "en": "A white mug of plain black coffee",
+      "ar": "كوب أبيض من القهوة السادة"
+    },
+    "note": "Brewed black coffee without milk in a plain white mug on white; CC0, no text."
+  },
+  "ff_whey_protein": {
+    "status": "approved",
+    "file": "File:Whey Protein Scoop (49935767168).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Whey_Protein_Scoop_(49935767168).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg",
+    "width": 5184,
+    "height": 3888,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Ajay Suresh from New York, NY, USA",
+    "credit": "Whey Protein Scoop",
+    "alt": {
+      "en": "A measuring cup filled with chocolate-flavoured whey protein powder",
+      "ar": "كوب قياس مملوء ببودرة بروتين الشرش بنكهة الشوكولاتة"
+    },
+    "note": "Loose whey protein powder in a metal measuring cup (matches the cup-based portion); no tub, label or brand. Borderline: it is chocolate-flavoured, so it could be mistaken for cocoa; every other whey/protein photo was a branded tub or bag."
+  },
+  "ff_tomato_paste": {
+    "status": "approved",
+    "file": "File:Tomato paste on spoon.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tomato_paste_on_spoon.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Tomato_paste_on_spoon.jpg",
+    "width": 2293,
+    "height": 1720,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "SKopp",
+    "credit": "Own work",
+    "alt": {
+      "en": "A spoonful of thick tomato paste",
+      "ar": "ملعقة من صلصة الطماطم المركزة"
+    },
+    "note": "Concentrated tomato paste on a spoon against white, matching the tablespoon portion; no can or label."
+  },
+  "ff_tomato_sauce": {
+    "status": "missing",
+    "reason": "No photo of plain canned tomato sauce: results were pasta/meat dishes with sauce, branded jars or cans (Del Monte, Pomì), or a simmering homemade sauce from a bulk uploader whose photos could not be confidently verified as genuine photographs."
+  },
+  "ff_ketchup": {
+    "status": "approved",
+    "file": "File:Ketchup example 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Ketchup_example_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Ketchup_example_2.jpg",
+    "width": 2000,
+    "height": 1500,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Ketchup_example.jpg: Yohan euan o4 derivative work: Bobek",
+    "credit": "This file was derived from: Ketchup example.jpg:",
+    "alt": {
+      "en": "A dollop of ketchup on a white plate",
+      "ar": "كمية من الكاتشب على طبق أبيض"
+    },
+    "note": "Plain ketchup squeezed onto a white plate (about a tablespoon); no bottle or label."
+  },
+  "ff_vinegar": {
+    "status": "approved",
+    "file": "File:Apple Cider Vinegar (4108653248).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Apple_Cider_Vinegar_(4108653248).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg",
+    "width": 4272,
+    "height": 2848,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "Veganbaking.net from USA",
+    "credit": "Apple Cider Vinegar",
+    "alt": {
+      "en": "Apple cider vinegar in a small glass bowl",
+      "ar": "خل تفاح في وعاء زجاجي صغير"
+    },
+    "note": "Unbranded apple cider vinegar in a small clear prep bowl on white; no bottle or label."
+  },
+  "ff_chicken_broth": {
+    "status": "approved",
+    "file": "File:Chicken Stock.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Chicken_Stock.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Chicken_Stock.jpg",
+    "width": 2033,
+    "height": 3060,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "TheCulinaryGeek",
+    "credit": "https://www.flickr.com/photos/72949902@N00/4706596138/",
+    "alt": {
+      "en": "A white bowl of clear golden chicken broth",
+      "ar": "وعاء أبيض من مرق الدجاج الصافي"
+    },
+    "note": "Clear strained chicken broth in a bowl; the celery, onion, carrots and spices beside it are raw props, not part of the serving. No carton, label or watermark."
+  },
+  "ff_ful_with_oil": {
+    "status": "approved",
+    "file": "File:Foul Mohamed Ahmed - foul.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Foul_Mohamed_Ahmed_-_foul.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/58/Foul_Mohamed_Ahmed_-_foul.jpg",
+    "width": 3024,
+    "height": 4032,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Marsupium",
+    "credit": "Own work",
+    "alt": {
+      "en": "A metal plate of Egyptian ful medames glistening with oil",
+      "ar": "طبق معدني من الفول المدمس المصري بالزيت"
+    },
+    "note": "Ful medames as served at Foul Mohamed Ahmed, Alexandria: stewed fava beans on a steel plate with oil pooling at the rim; pita and another dish only at the frame edges. Borderline: a pale creamy layer under the beans may be tahini, which the catalog recipe (beans + 1 tbsp olive oil + lemon) does not include — drop this if that matters; the other candidate was a full breakfast plate with eggs, bread and salad."
+  },
+  "ff_koshary": {
+    "status": "approved",
+    "file": "File:Egyptian food Koshary.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Egyptian_food_Koshary.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Egyptian_food_Koshary.jpg",
+    "width": 3031,
+    "height": 2101,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Dina Said",
+    "credit": "Own work",
+    "alt": {
+      "en": "A plate of Egyptian koshary topped with chickpeas, fried onions and tomato sauce",
+      "ar": "طبق كشري مصري مزيّن بالحمص والبصل المقلي وصلصة الطماطم"
+    },
+    "note": "Real Egyptian koshary — rice, lentils, macaroni and vermicelli-style pasta, chickpeas, fried onion and tomato sauce — with small bowls of its components around it. Styled shot; the onion is crisp-fried (shop style), which the sheet's note already flags."
+  },
+  "ff_molokhia_soup": {
+    "status": "approved",
+    "file": "File:Molokheya Egypt, 2012.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Molokheya_Egypt,_2012.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/72/Molokheya_Egypt%2C_2012.JPG",
+    "width": 2592,
+    "height": 1936,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Habib M'henni",
+    "credit": "Own work",
+    "alt": {
+      "en": "A clay bowl of green Egyptian molokhia soup with a spoon",
+      "ar": "وعاء فخاري من الملوخية المصرية الخضراء مع ملعقة"
+    },
+    "note": "Egyptian molokhia (finely minced jute leaves in broth) in a clay bowl, photographed in Egypt in 2012 and described as Egyptian molokheya; no meat or rice in frame. Somewhat dim lighting; chosen over a brighter bowl whose cuisine of origin was not stated."
+  },
+  "ff_mahshi_kousa": {
+    "status": "missing",
+    "reason": "No photo of Egyptian mahshi kousa found: results were Iraqi, Iranian, Greek or Bengali dolma, a Palestinian-style stuffed zucchini (different cuisine, so not acceptable), and one undersized phone image."
+  },
+  "ff_rice_vermicelli": {
+    "status": "approved",
+    "file": "File:Lebanese style rice.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Lebanese_style_rice.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d2/Lebanese_style_rice.jpg",
+    "width": 8000,
+    "height": 6000,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "El Mono Español",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pot of white rice cooked with toasted vermicelli",
+      "ar": "قدر من الأرز الأبيض المطبوخ بالشعرية المحمّرة"
+    },
+    "note": "Medium-grain rice cooked with toasted vermicelli, still in the pot with a wooden spoon — exactly the dish in the sheet. Borderline on provenance: the file is titled 'Lebanese style rice' and described as 'Arabic / Levantine / Egyptian style rice'; the dish is the same on both sides and looks like Egyptian roz bel shareya, so approved — drop it if a photo labelled Egyptian is required."
+  },
+  "ff_grape_leaves_stuffed": {
+    "status": "approved",
+    "file": "File:Mahshi.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Mahshi.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Mahshi.JPG",
+    "width": 4928,
+    "height": 3264,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Fadyatef",
+    "credit": "Fadyatef at ar.wikipedia",
+    "alt": {
+      "en": "Rolled stuffed grape leaves on a serving tray",
+      "ar": "أصابع ورق عنب محشي على صينية تقديم"
+    },
+    "note": "Thin, tightly rolled grape leaves stuffed with rice (warak enab), cooked in oil, on a tray with clear serving picks; no text. File is titled 'Mahshi' (the Egyptian name) though its description calls it a Levantine/Turkish dish; the rolls match both the Egyptian dish and the USDA 'vegetarian, with oil' record. Borderline on stated provenance only."
+  }
+}

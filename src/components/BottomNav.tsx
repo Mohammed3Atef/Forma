@@ -5,6 +5,7 @@ import { CLIENT_NAV, type NavItem } from '@/config/nav';
 import { useCoachMessageUnread } from '@/hooks/useCoachMessageUnread';
 import { useClientMessageUnread } from '@/hooks/useClientMessageUnread';
 import { confirmLeave, hasNavGuard } from '@/stores/navGuardStore';
+import { useDay } from '@/stores/dayStore';
 import type { MouseEvent } from 'react';
 
 export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
@@ -17,18 +18,26 @@ export function BottomNav({ items = CLIENT_NAV }: { items?: NavItem[] }) {
   // own, so when a guard is actually armed this intercepts the click, asks
   // first, and replays the navigation only once confirmed. No guard armed →
   // NavLink's own instant navigation is left untouched.
+  // Leaving through the main tabs also leaves any past day the user was
+  // looking at: logging defaults back to TODAY (B0 / CL-04).
   const guardedClick = (to: string) => (e: MouseEvent) => {
-    if (!hasNavGuard()) return;
+    if (!hasNavGuard()) {
+      useDay.getState().reset();
+      return;
+    }
     e.preventDefault();
     void confirmLeave().then((ok) => {
-      if (ok) navigate(to);
+      if (ok) {
+        useDay.getState().reset();
+        navigate(to);
+      }
     });
   };
   return (
     <nav
       data-testid="bottom-nav"
       className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-surface from-[58%] via-surface/90 to-transparent"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{ paddingBottom: 'var(--shell-safe-bottom)' }}
     >
       <ul className="mx-auto flex max-w-md items-end justify-between px-2 pb-2 pt-2.5">
         {items.map((item) =>
