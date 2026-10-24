@@ -6,7 +6,7 @@ import { Sheet } from '@/components/Sheet';
 import { TextInput } from '@/components/ui/Field';
 import { SubscriptionPlanPicker, type PlanPickResult } from '@/components/coach/SubscriptionPlanPicker';
 import { ClientCapBlocked } from '@/components/coach/ClientCapBlocked';
-import { createInvite, listPendingInvites, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
+import { createInvite, listPendingInvites, resendInviteEmail, revokeInvite, inviteLink } from '@/services/platform/inviteApi';
 import { AddExistingClient } from '@/pages/coach/AddExistingClient';
 import { commercialErrorMessage } from '@/lib/commercialErrors';
 import { formatDate } from '@/lib/format';
@@ -151,6 +151,13 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
     },
     onError: (e) => void alertDialog({ title: t('coach.addClient'), message: commercialErrorMessage(e, t) }),
   });
+  // B4.1: the email's real outcome is on each pending invite; one that was not sent (or not confirmed)
+  // can be sent again — limited like a new invite to that address, by this coach's own quota.
+  const resend = useMutation({
+    mutationFn: (code: string) => resendInviteEmail(code),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
+    onError: (e) => void alertDialog({ title: t('invite.resendTitle'), message: commercialErrorMessage(e, t) }),
+  });
   const revoke = useMutation({
     mutationFn: (code: string) => revokeInvite(code),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['pendingInvites', coachId] }),
@@ -224,6 +231,20 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
                       )}
                     </span>
                     <span className="block truncate text-[12px] text-earth-subtle">{inv.displayName || inviteLink(inv.code)}</span>
+                    {inv.email && inv.emailStatus && (
+                      <span className={`mt-0.5 block text-[12px] ${inv.emailStatus === 'sent' ? 'text-earth-subtle' : 'text-warn'}`} data-testid="coach-invite-email-status" data-status={inv.emailStatus}>
+                        {inv.emailStatus === 'sent' ? (
+                          <>
+                            {t('invite.emailSent')}{' '}
+                            <bdi dir="ltr">{inv.email}</bdi>
+                          </>
+                        ) : inv.emailStatus === 'unconfirmed' ? (
+                          t('invite.emailUnconfirmed')
+                        ) : (
+                          t('invite.emailNotSent')
+                        )}
+                      </span>
+                    )}
                   </span>
                   <button type="button" data-testid="coach-invite-revoke" disabled={revoke.isPending || !online} title={!online ? t('offline.actionDisabled') : undefined} className="btn-ghost btn-sm text-danger disabled:opacity-40" onClick={() => revoke.mutate(inv.code)}>
                     {t('invite.revoke')}
@@ -241,6 +262,11 @@ function InvitePanel({ coachId, coachName, atLimit, maxClients }: { coachId: str
                   <button type="button" data-testid="coach-invite-whatsapp" className="btn-ghost btn-sm" onClick={() => whatsapp(inv.code)}>
                     <Icon name="chat" size={13} /> {t('invite.whatsapp')}
                   </button>
+                  {inv.email && (inv.emailStatus === 'not-sent' || inv.emailStatus === 'unconfirmed') && (
+                    <button type="button" data-testid="coach-invite-resend" className="btn-ghost btn-sm disabled:opacity-40" disabled={resend.isPending || !gate.canWrite} title={gate.reason} onClick={() => resend.mutate(inv.code)}>
+                      <Icon name="rotate" size={13} /> {resend.isPending && resend.variables === inv.code ? t('auth.working') : t('invite.resendEmail')}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

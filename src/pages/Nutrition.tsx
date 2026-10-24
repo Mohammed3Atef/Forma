@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { NumericField } from '@/components/ui/NumericField';
 import { parseDecimal, parseDecimalOrNull } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import type { FoodItem, LocalizedText, Meal } from '@/types';
+import type { FoodItem, FoodProvenance, LocalizedText, Meal } from '@/types';
 import { applyLocalizedEdit, langOf } from '@/lib/localizedText';
 import { useNutrition, computeConsumed } from '@/stores/nutritionStore';
 import { useSettings } from '@/stores/settingsStore';
@@ -23,8 +23,11 @@ import { ListGroup, Section } from '@/components/ui/ListRow';
 import { WaitingForCoach } from '@/components/WaitingForCoach';
 import { DaySwitcher } from '@/components/client/DaySwitcher';
 import { uid } from '@/lib/utils';
-import { foodLine } from '@/lib/foodFormat';
-import { FoodSearchPicker } from '@/components/workout/FoodSearchPicker';
+import { foodLine, quantityText } from '@/lib/foodFormat';
+import { LazyFoodSearchPicker } from '@/components/food/LazyFood';
+import { LazyCatalogFoodPicker } from '@/components/catalog/LazyCatalog';
+import { useCatalogMeta } from '@/hooks/useCatalog';
+import { FoodThumb, type FoodImageLike } from '@/components/food/FoodImage';
 import { formatNumber } from '@/lib/format';
 
 /*
@@ -62,7 +65,11 @@ export function Nutrition() {
   const { readOnly } = useSubscription();
 
   const [editor, setEditor] = useState<EditorMode | null>(null);
-  const [form, setForm] = useState<{ name: string; nameOrig?: LocalizedText; quantity: string; protein: string; carbs: string; fats: string }>({ name: '', quantity: '', protein: '', carbs: '', fats: '' });
+  // B4: `kcal` + `provenance` are set by a catalog / Open Food Facts pick and dropped as soon as a value is typed
+  // (then the hand-entry rule, 4/4/9, applies — and no source is claimed for numbers the client typed).
+  const [form, setForm] = useState<{ name: string; nameOrig?: LocalizedText; quantity: string; protein: string; carbs: string; fats: string; kcal?: number; provenance?: FoodProvenance }>({ name: '', quantity: '', protein: '', carbs: '', fats: '' });
+  const catalog = useCatalogMeta();
+  const typed = (patch: Partial<typeof form>) => setForm({ ...form, ...patch, kcal: undefined, provenance: undefined });
   const [swapItem, setSwapItem] = useState<FoodItem | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -120,7 +127,8 @@ export function Nutrition() {
       protein,
       carbs,
       fats,
-      calories: Math.round(protein * 4 + carbs * 4 + fats * 9),
+      calories: form.kcal ?? Math.round(protein * 4 + carbs * 4 + fats * 9),
+      ...(form.provenance ?? {}),
     };
     setEditorSaving(true);
     setEditorError(null);
@@ -138,7 +146,8 @@ export function Nutrition() {
   };
 
   const pickAlternative = async (item: FoodItem, alt: FoodItem) => {
-    await replaceItem(item.id, { ...alt, id: alt.id || uid('food') }, { source: 'approved_substitution' });
+    const { image: _image, ...food } = alt;
+    await replaceItem(item.id, { ...food, id: alt.id || uid('food') }, { source: 'approved_substitution' });
     setSwapItem(null);
   };
 
@@ -251,7 +260,7 @@ export function Nutrition() {
               <FoodRow
                 key={f.id}
                 name={loc(f.name)}
-                meta={foodLine(f)}
+                meta={foodLine(f, lang)}
                 readOnly={readOnly}
                 menu={[
                   { key: 'edit', label: t('common.edit'), icon: 'edit', onSelect: () => openEditor({ type: 'add', mealId: null, foodId: f.id }, { name: loc(f.name), nameOrig: f.name, quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats }) },
@@ -328,15 +337,32 @@ export function Nutrition() {
               </div>
             </div>
           )}
-          <FoodSearchPicker onPick={(f) => setForm({ ...form, name: f.name, quantity: f.quantity, protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats) })} />
+          {catalog.enabled && catalog.taxonomy && (
+            <div role="group" aria-labelledby="client-food-catalog-label">
+              <p className="label mb-1.5 block" id="client-food-catalog-label">
+                {t('catalog.foods.title')}
+              </p>
+              <LazyCatalogFoodPicker
+                taxonomy={catalog.taxonomy}
+                testId="client-food-catalog"
+                onPick={(p) => setForm({ ...form, name: langOf(lang) === 'ar' ? p.name.ar : p.name.en, nameOrig: p.name, quantity: p.quantity, protein: String(p.macros.protein), carbs: String(p.macros.carbs), fats: String(p.macros.fats), kcal: p.macros.calories, provenance: p.provenance })}
+              />
+            </div>
+          )}
+          <LazyFoodSearchPicker onPick={(f) => setForm({ ...form, name: f.name, quantity: f.quantity, protein: String(f.protein), carbs: String(f.carbs), fats: String(f.fats), kcal: f.calories, provenance: f.provenance })} />
           <div className="h-px bg-white/[0.08]" />
           <TextInput label={t('settings.name')} helper={t('nutrition.nameOptionalHint')} placeholder={t('settings.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <TextInput label={t('nutrition.quantity')} placeholder={t('nutrition.quantityExample')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+          <TextInput label={t('nutrition.quantity')} placeholder={t('nutrition.quantityExample')} value={form.quantity} onChange={(e) => typed({ quantity: e.target.value })} />
           <div className="grid grid-cols-3 gap-2">
-            <NumericField label={t('nutrition.protein')} placeholder="0" value={parseDecimalOrNull(form.protein)} onChange={(n) => setForm({ ...form, protein: n == null ? '' : String(n) })} />
-            <NumericField label={t('nutrition.carbs')} placeholder="0" value={parseDecimalOrNull(form.carbs)} onChange={(n) => setForm({ ...form, carbs: n == null ? '' : String(n) })} />
-            <NumericField label={t('nutrition.fats')} placeholder="0" value={parseDecimalOrNull(form.fats)} onChange={(n) => setForm({ ...form, fats: n == null ? '' : String(n) })} />
+            <NumericField label={t('nutrition.protein')} placeholder="0" value={parseDecimalOrNull(form.protein)} onChange={(n) => (String(n ?? '') !== form.protein ? typed({ protein: n == null ? '' : String(n) }) : undefined)} />
+            <NumericField label={t('nutrition.carbs')} placeholder="0" value={parseDecimalOrNull(form.carbs)} onChange={(n) => (String(n ?? '') !== form.carbs ? typed({ carbs: n == null ? '' : String(n) }) : undefined)} />
+            <NumericField label={t('nutrition.fats')} placeholder="0" value={parseDecimalOrNull(form.fats)} onChange={(n) => (String(n ?? '') !== form.fats ? typed({ fats: n == null ? '' : String(n) }) : undefined)} />
           </div>
+          {form.provenance && (
+            <p className="text-[12px] text-earth-subtle" data-testid="client-food-source">
+              {form.provenance.source?.provider === 'open-food-facts' ? t('catalog.off.attribution') : t('catalog.foods.source')}
+            </p>
+          )}
           {editorError && (
             <p role="alert" className="text-[14px] text-warn" data-testid="food-editor-error">
               {editorError}
@@ -358,10 +384,11 @@ export function Nutrition() {
                 <ListGroup>
                   {swapItem.allowedAlternatives!.map((alt) => (
                     <button key={alt.id} type="button" data-testid="swap-approved-item" className="flex min-h-14 w-full items-center gap-3 px-4 text-start hover:bg-white/[0.03]" onClick={() => void pickAlternative(swapItem, alt)}>
+                      <FoodThumb image={alt.image} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px] font-semibold">{loc(alt.name)}</span>
                         <span className="block truncate text-[13px] text-earth-muted">
-                          <bdi>{foodLine(alt)}</bdi>
+                          <bdi>{foodLine(alt, lang)}</bdi>
                         </span>
                       </span>
                       <Icon name="chevron" size={18} className="text-earth-subtle" />
@@ -432,13 +459,14 @@ export function Nutrition() {
           return (
             <div key={item.id}>
               <FoodRow
+                image={overridden ? (replacement ? (item.allowedAlternatives?.find((a) => a.id === replacement.id)?.image ?? null) : null) : item.image}
                 name={overridden && replacement ? loc(replacement.name) : loc(item.name)}
                 struck={overridden ? loc(item.name) : undefined}
                 meta={
                   overridden && !replacement
                     ? t('nutrition.removed')
                     : [
-                        (replacement ?? item).quantity,
+                        quantityText(replacement ?? item, lang),
                         `${formatNumber((replacement ?? item).calories, lang)} kcal`,
                         sub ? (sub.source === 'approved_substitution' ? t('nutritionSub.approvedSubstitution') : t('nutritionSub.customSubstitution')) : null,
                       ]
@@ -459,7 +487,7 @@ export function Nutrition() {
           <FoodRow
             key={f.id}
             name={`+ ${loc(f.name)}`}
-            meta={foodLine(f)}
+            meta={foodLine(f, lang)}
             readOnly={readOnly}
             menuLabel={t('nutrition.foodOptions', { name: loc(f.name) })}
             menu={[
@@ -522,9 +550,14 @@ function MealSection({
   );
 }
 
-function FoodRow({ name, struck, meta, readOnly, menu, menuLabel }: { name: string; struck?: string; meta?: string; readOnly: boolean; menu: ActionMenuItem[]; menuLabel?: string }) {
+/**
+ * A food row. B4.1: `image` is the plan's picture (coach-chosen, checked by the server on save);
+ * foods the client logged show the quiet placeholder — a log never supplies a picture.
+ */
+function FoodRow({ name, struck, meta, readOnly, menu, menuLabel, image = null }: { name: string; struck?: string; meta?: string; readOnly: boolean; menu: ActionMenuItem[]; menuLabel?: string; image?: FoodImageLike }) {
   return (
-    <div className="flex min-h-14 items-center gap-3 px-4 py-2">
+    <div className="flex min-h-14 items-center gap-3 px-4 py-2" data-testid="client-food-row">
+      <FoodThumb image={image} size="sm" />
       <span className="min-w-0 flex-1">
         {struck && <span className="block truncate text-[13px] text-earth-subtle line-through">{struck}</span>}
         <span className="block truncate text-[15px]">{name}</span>

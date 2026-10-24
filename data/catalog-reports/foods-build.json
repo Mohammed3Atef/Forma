@@ -1,0 +1,42 @@
+{
+ "version": "2026.10.24-1",
+ "changed": true,
+ "curated": 190,
+ "published": 190,
+ "needsReview": 0,
+ "byVerification": {
+  "source-values": 177,
+  "proxy-estimate": 8,
+  "recipe-estimate": 5
+ },
+ "byDataType": {
+  "sr_legacy": 181,
+  "survey_fndds": 3,
+  "foundation": 1,
+  "recipe": 5
+ },
+ "byCategory": {
+  "grains": 16,
+  "bread": 7,
+  "legumes": 15,
+  "nuts-seeds": 13,
+  "dishes": 7,
+  "meat": 9,
+  "poultry": 6,
+  "seafood": 10,
+  "eggs": 6,
+  "dairy": 8,
+  "cheese": 11,
+  "vegetables": 31,
+  "fruits": 25,
+  "fats-oils": 5,
+  "condiments": 6,
+  "sweets": 8,
+  "drinks": 7
+ },
+ "portions": 190,
+ "withImage": 127,
+ "imagesNeedReplacement": 2,
+ "legacyMapped": 72,
+ "problems": []
+}

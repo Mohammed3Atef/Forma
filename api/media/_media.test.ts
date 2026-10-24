@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Readable } from 'node:stream';
+import { readFileSync } from 'node:fs';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import handler from './[action].js';
@@ -23,7 +24,7 @@ const KEY = 'server-only-zone-password';
 const CDN = 'https://cdn.example.com';
 
 let mongod: MongoMemoryServer;
-let puts: { url: string; headers: Record<string, string>; bodyLength: number }[] = [];
+let puts: { url: string; headers: Record<string, string>; bodyLength: number; body: Buffer }[] = [];
 let listings: Record<string, unknown[]> = {};
 
 beforeAll(async () => {
@@ -52,7 +53,7 @@ beforeEach(async () => {
       const headers = (init?.headers ?? {}) as Record<string, string>;
       if (init?.method === 'PUT') {
         const body = init.body as Uint8Array;
-        puts.push({ url, headers, bodyLength: body.byteLength });
+        puts.push({ url, headers, bodyLength: body.byteLength, body: Buffer.from(body) });
         return new Response(null, { status: 201 });
       }
       // Directory listing
@@ -357,5 +358,47 @@ describe('media.listImages (tRPC)', () => {
     ]);
     expect(imgs[0].url).toBe(`${CDN}/Forma/client-1/assessment/b.png`);
     expect(JSON.stringify(imgs)).not.toContain(KEY);
+  });
+});
+
+/**
+ * B4.1 — food photos: coaches only, under their own `foods` folder; the stored file is what its bytes
+ * are (never the declared type), within limits, WITHOUT metadata (EXIF GPS / author). One request.
+ */
+describe('media upload — food photos (B4.1)', () => {
+  const fixture = (name: string) => readFileSync(new URL(`./_lib/__fixtures__/${name}`, import.meta.url));
+
+  it('a coach’s photo is stored under their own foods folder without its EXIF (GPS, author)', async () => {
+    const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const src = fixture('exif.jpg');
+    expect(src.includes(Buffer.from('Private Person'))).toBe(true);
+    const r = await call('upload', { token: tokenFor(coach), body: src, contentType: 'image/jpeg', query: { category: 'food', name: 'rice.jpg' } });
+    expect(r.status).toBe(200);
+    expect(r.json).toMatchObject({ kind: 'image', mimeType: 'image/jpeg', width: 96, height: 72 });
+    expect(puts).toHaveLength(1);
+    expect(puts[0].url).toMatch(/\/Forma\/coach-1\/foods\/[A-Za-z0-9_-]+\.jpg$/);
+    expect(puts[0].body.includes(Buffer.from('Private Person'))).toBe(false);
+    expect(puts[0].body.includes(Buffer.from('Exif'))).toBe(false);
+    expect(puts[0].body.length).toBeLessThan(src.length);
+  });
+
+  it('the bytes decide: a mislabelled file, an SVG or a too-small picture is refused and nothing is stored', async () => {
+    const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const as = (body: Buffer | string, contentType: string) => call('upload', { token: tokenFor(coach), body, contentType, query: { category: 'food' } });
+    expect((await as(fixture('exif.jpg'), 'image/png')).status).toBe(415);
+    expect((await as('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', 'image/png')).status).toBe(415);
+    expect((await as('<svg/>', 'image/svg+xml')).status).toBe(415);
+    expect((await as(fixture('small.png'), 'image/png')).status).toBe(422);
+    expect((await as(fixture('exif.jpg'), 'image/gif')).status).toBe(415);
+    expect(puts).toHaveLength(0);
+  });
+
+  it('clients cannot upload food photos; the chunked path is refused for them', async () => {
+    const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const client = await insertUser({ _id: 'client-1' });
+    expect((await call('upload', { token: tokenFor(client), body: fixture('exif.jpg'), contentType: 'image/jpeg', query: { category: 'food' } })).status).toBe(403);
+    const init = await call('init', { token: tokenFor(coach), body: JSON.stringify({ category: 'food', mimeType: 'image/jpeg', size: 1000 }), contentType: 'application/json' });
+    expect(init.status).toBe(400);
+    expect(puts).toHaveLength(0);
   });
 });

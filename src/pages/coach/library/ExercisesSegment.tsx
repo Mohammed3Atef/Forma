@@ -17,6 +17,9 @@ import type { Exercise } from '@/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DetailSheet, ListBody, SelectFilter, StarterPanel, ToggleFilter, Toolbar, UseInPlanSheet, useBulkDelete, useCanEdit, usePaged, useSyncIssues, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
+import { useCatalogMeta } from '@/hooks/useCatalog';
+import { LazyCatalogExerciseBrowser, LazyCatalogExercisePreview } from '@/components/catalog/LazyCatalog';
+import type { CatalogExercise, CatalogExerciseCard } from '@/services/platform/catalogApi';
 
 // The detail view and the form load when first opened (they are not needed to browse).
 const ExerciseView = lazy(() => import('@/components/workout/ExerciseView').then((m) => ({ default: m.ExerciseView })));
@@ -28,6 +31,10 @@ const sheetFallback = <Skeleton className="h-64 w-full rounded-ui-surface" />;
  * sort), see honestly whether it has a demo, open it read-first, and from there use it in a
  * client's plan or edit it. Saving an exercise also updates the templates linked to it; when that
  * part fails the Library keeps a notice with Retry (TS-04, `SyncIssuesNotice`).
+ *
+ * B4: with the curated Forma catalog on, "Forma library" browses it (server search, previews with
+ * media + instructions + credits) next to the coach's own exercises; "Copy to my exercises" makes an
+ * editable copy that keeps its catalog link (an existing copy is opened, never overwritten).
  */
 export default function ExercisesSegment({ coachId, query, setQuery, createSignal, onCreateHandled, openId, onOpened }: SegmentProps) {
   const { t, i18n } = useTranslation();
@@ -43,6 +50,22 @@ export default function ExercisesSegment({ coachId, query, setQuery, createSigna
   const [viewing, setViewing] = useState<Exercise | null>(null);
   const [editing, setEditing] = useState<Exercise | null>(null);
   const [using, setUsing] = useState<Exercise | null>(null);
+  const catalog = useCatalogMeta();
+  const [source, setSource] = useState<'forma' | 'mine'>('mine');
+  const [catViewing, setCatViewing] = useState<CatalogExerciseCard | null>(null);
+  const copyOf = (catalogId: string) => all.find((e) => e.catalogId === catalogId) ?? null;
+  const copy = useMutation({
+    mutationFn: async (e: CatalogExercise) => {
+      const { exerciseFromCatalog } = await import('@/lib/catalogCopy'); // loads with the first copy
+      return saveExercise(coachId, { ...exerciseFromCatalog(e, catalog.taxonomy!), id: `cat-${e.id}` });
+    },
+    onSuccess: () => {
+      invalidate();
+      setCatViewing(null);
+      showToast({ title: t('catalog.savedToMine'), variant: 'success' });
+    },
+    onError: (e) => void alertDialog({ title: t('catalog.saveToMine'), message: errorMessage(e, t, 'catalog.saveFailed') }),
+  });
 
   // The header's "New exercise" (and ⌘K's) opens the form.
   useEffect(() => {
@@ -124,8 +147,50 @@ export default function ExercisesSegment({ coachId, query, setQuery, createSigna
   ];
   const filtering = !!(query.q || query.muscle || query.equipment || query.video);
 
+  const switcher = catalog.enabled ? (
+    <div className="mb-3 grid max-w-sm grid-cols-2 gap-2" role="group" aria-label={t('catalog.source')} data-testid="lib-source">
+      <button type="button" className={`chip min-h-ui-hit justify-center ${source === 'forma' ? 'chip-on' : ''}`} aria-pressed={source === 'forma'} onClick={() => setSource('forma')} data-testid="lib-source-forma">
+        {t('catalog.formaLibrary')}
+      </button>
+      <button type="button" className={`chip min-h-ui-hit justify-center ${source === 'mine' ? 'chip-on' : ''}`} aria-pressed={source === 'mine'} onClick={() => setSource('mine')} data-testid="lib-source-mine">
+        {t('catalog.myLibrary')}
+      </button>
+    </div>
+  ) : null;
+
+  if (catalog.enabled && catalog.taxonomy && source === 'forma') {
+    const taxonomy = catalog.taxonomy;
+    return (
+      <>
+        {switcher}
+        <LazyCatalogExerciseBrowser taxonomy={taxonomy} onOpen={setCatViewing} testId="lib-catalog" />
+        <Sheet open={!!catViewing} onClose={() => setCatViewing(null)} size="lg" title={t('catalog.preview')}>
+          {catViewing && (
+            <LazyCatalogExercisePreview
+              id={catViewing.id}
+              taxonomy={taxonomy}
+              actions={(e) => {
+                const mine = copyOf(e.id);
+                return mine ? (
+                  <Button variant="secondary" fullWidth data-testid="catalog-open-copy" onClick={() => { setCatViewing(null); setSource('mine'); setViewing(mine); }}>
+                    {t('catalog.openCopy')}
+                  </Button>
+                ) : (
+                  <Button icon="plus" fullWidth disabled={!canEdit} title={reason} pending={copy.isPending} data-testid="catalog-copy" onClick={() => copy.mutate(e)}>
+                    {t('catalog.saveToMine')}
+                  </Button>
+                );
+              }}
+            />
+          )}
+        </Sheet>
+      </>
+    );
+  }
+
   return (
     <>
+      {switcher}
       <Toolbar
         hidden={all.length === 0}
         query={query}

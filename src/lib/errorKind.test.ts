@@ -14,6 +14,11 @@ describe('classifyError — server reasons', () => {
     expect(classifyError(trpcError('INTERNAL_SERVER_ERROR', undefined, 500)).kind).toBe('server');
     expect(classifyError(trpcError('TOO_MANY_REQUESTS', undefined, 429)).kind).toBe('rate_limited');
   });
+  it('a rate-limit refusal keeps its reason and how long to wait (B36-R4)', () => {
+    const e = { name: 'TRPCClientError', message: 'x', data: { code: 'TOO_MANY_REQUESTS', httpStatus: 429, reason: 'RATE_LIMITED', retryAfter: 90 } };
+    expect(classifyError(e)).toEqual({ kind: 'rate_limited', code: 'TOO_MANY_REQUESTS', retryable: true, reason: 'RATE_LIMITED', retryAfterMs: 90_000 });
+    expect(classifyError({ ...e, data: { ...e.data, retryAfter: 'soon' } }).retryAfterMs).toBeUndefined();
+  });
   it('an upload refused for this account / conversation is permanent (no endless retry)', () => {
     const e = Object.assign(new Error('forbidden'), { name: 'UploadError', code: 'forbidden' });
     expect(classifyError(e)).toEqual({ kind: 'permanent', code: 'forbidden', retryable: false });

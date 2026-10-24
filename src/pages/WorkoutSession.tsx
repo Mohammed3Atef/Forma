@@ -1,3 +1,4 @@
+import { exerciseDisplayName } from '@/lib/catalogText';
 import { useEffect, useMemo, useState } from 'react';
 import { readLive, writeLive } from '@/lib/liveState';
 import { isPlayableVideoUrl } from '@/lib/videoSource';
@@ -114,7 +115,7 @@ export function WorkoutSession() {
     const q = search.trim().toLowerCase();
     return Object.values(plan.exercises)
       .filter((ex) => !inSession.has(ex.id))
-      .filter((ex) => !q || ex.name.toLowerCase().includes(q) || ex.targetMuscle.toLowerCase().includes(q));
+      .filter((ex) => !q || ex.name.toLowerCase().includes(q) || exerciseDisplayName(ex, lang).toLowerCase().includes(q) || ex.targetMuscle.toLowerCase().includes(q));
   }, [plan, active, search]);
 
   // After a reload the in-memory session is gone: a STARTED workout is
@@ -263,7 +264,7 @@ export function WorkoutSession() {
               <section key={log.exerciseId}>
                 <h2 className="mb-2 flex items-center gap-2 text-[16px] font-semibold">
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} aria-hidden="true" />
-                  {ex.name}
+                  {exerciseDisplayName(ex, lang)}
                 </h2>
                 <ListGroup>
                   {log.sets.map((s) => {
@@ -466,7 +467,7 @@ export function WorkoutSession() {
               >
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(x.targetMuscle) }} aria-hidden="true" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium">{x.name}</span>
+                  <span className="block truncate text-[15px] font-medium">{exerciseDisplayName(x, lang)}</span>
                   <span className="block text-[13px] text-earth-muted">{muscleLabel(x.targetMuscle, t)}</span>
                 </span>
                 <Icon name="plus" size={20} className="text-brand-hover" />

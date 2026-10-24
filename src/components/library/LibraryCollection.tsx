@@ -34,6 +34,8 @@ export interface CollectionColumn<T> {
   align?: 'start' | 'end';
   /** The row's name: rendered as the button that opens the row. Exactly one column. */
   primary?: boolean;
+  /** B4.1: a fixed-size picture before the primary cell's name (food thumbnails). */
+  lead?: (row: T) => ReactNode;
 }
 
 interface Common<T> {
@@ -147,6 +149,7 @@ export function CollectionTable<T>({
                         aria-label={selecting ? t('library.selectItem', { name }) : undefined}
                         onClick={() => (selecting && selection ? selection.toggle(id) : onOpen(row))}
                       >
+                        {c.lead ? <span className="me-2.5 shrink-0">{c.lead(row)}</span> : null}
                         <span className="min-w-0 flex-1 truncate">{c.cell(row)}</span>
                       </button>
                     ) : (
@@ -181,7 +184,7 @@ export function CollectionList<T>({
   rowTestId = 'lib-row',
   action,
 }: Common<T> & {
-  render: (row: T) => { title: ReactNode; meta?: ReactNode; trailing?: ReactNode };
+  render: (row: T) => { title: ReactNode; meta?: ReactNode; trailing?: ReactNode; lead?: ReactNode };
   /** One visible action beside the row (B3.8 — e.g. "Renew"); a real button, never inside the open button. */
   action?: (row: T) => ReactNode;
 }) {
@@ -207,6 +210,7 @@ export function CollectionList<T>({
               aria-pressed={selecting ? on : undefined}
               onClick={() => (selecting && selection ? selection.toggle(id) : onOpen(row))}
             >
+              {r.lead}
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{r.title}</span>
                 {r.meta ? <span className="mt-0.5 block truncate text-[12.5px] text-earth-subtle">{r.meta}</span> : null}

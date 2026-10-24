@@ -23,7 +23,7 @@ import {
 } from '../../messages/_data.js';
 import { createNotification, feedFilter, notificationsCol } from '../../messages/_handlers/notifications-data.js';
 import type { Filter } from 'mongodb';
-import { enforceRateLimit } from '../../_lib/rateLimit.js';
+import { consumeRateLimits } from '../../_lib/rateLimit.js';
 
 /**
  * B36-R4 (owner, 2026-10-22: required before public launch) — proposed operational limits for
@@ -176,12 +176,6 @@ export const messagesRouter = router({
       // B3.8 (P2): a coach whose Forma plan lapsed may read but not send — checked here, after the
       // replay above, so a message delivered before the lapse is still acknowledged to its device.
       await assertCoachCanWrite(ctx.user);
-      // B36-R4: server-side limits — per sender (bounds scripts and broadcasts; a whole roster still
-      // fits) and per conversation (bounds flooding one person). After the replay above, so a retried,
-      // already-delivered message never counts. Refusals carry RATE_LIMITED + retryAfter: the outbox
-      // keeps the message and retries later; a broadcast lists it as not sent.
-      await enforceRateLimit('messages.send', ctx.user.id, MESSAGE_SEND_LIMIT.perSender, MESSAGE_SEND_LIMIT.windowMs, 'Too many messages in a short time — please wait a moment.');
-      await enforceRateLimit('messages.thread', `${ctx.user.id}>${input.clientId}`, MESSAGE_SEND_LIMIT.perConversation, MESSAGE_SEND_LIMIT.windowMs, 'Too many messages in this conversation in a short time — please wait a moment.');
 
       let coachId: string | undefined;
       if (viewer.kind === 'coach') {
@@ -194,6 +188,21 @@ export const messagesRouter = router({
         if (input.coachId && input.coachId !== viewer.currentCoachId) throw conversationClosed();
         coachId = viewer.currentCoachId;
       }
+
+      // B36-R4: server-side limits — per sender (bounds scripts and broadcasts) and per conversation
+      // (bounds flooding one person). Counted only for a send that would otherwise be written: after
+      // the replay above (a retried, already-delivered message never counts) and after every refusal
+      // (no relationship, inactive account, lapsed plan, closed conversation, no coach). Refusals
+      // carry RATE_LIMITED + retryAfter: the outbox keeps the message and retries once the window
+      // reopens; a broadcast lists it as not sent, with when to retry.
+      // B4.1 (owner): every quota belongs to the AUTHENTICATED sender — a coach's own id, never a
+      // browser-supplied one — so one coach (or a client) can never use up another's; the conversation
+      // counter is that sender's, in the server-resolved conversation (coach × client). Charged as one
+      // unit: a refusal by either refunds both, and a send that then fails to write refunds them too.
+      const quota = await consumeRateLimits([
+        { bucket: 'messages.send', key: ctx.user.id, max: MESSAGE_SEND_LIMIT.perSender, windowMs: MESSAGE_SEND_LIMIT.windowMs, message: 'Too many messages in a short time — please wait a moment.' },
+        { bucket: 'messages.thread', key: `${ctx.user.id}>${coachId ?? '-'}>${input.clientId}`, max: MESSAGE_SEND_LIMIT.perConversation, windowMs: MESSAGE_SEND_LIMIT.windowMs, message: 'Too many messages in this conversation in a short time — please wait a moment.' },
+      ]);
 
       const now = Date.now();
       const doc: MessageDoc = {
@@ -213,6 +222,8 @@ export const messagesRouter = router({
       try {
         await col.insertOne(doc);
       } catch (e) {
+        // Nothing was written by this call: its quota goes back.
+        await quota.release();
         // Two concurrent retries of the same send both passed the read above —
         // the partial unique index (`messagesCol`) let exactly one insert win;
         // hand the loser that same message instead of a 500.

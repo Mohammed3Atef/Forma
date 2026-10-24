@@ -138,6 +138,16 @@ describe('broadcast (MS-10 / B3-C08)', () => {
     expect(r).toEqual({ clientId: 'a', ok: false, failure: 'accountNotActive' });
   });
 
+  it('a recipient refused by the send limit is "not sent — limit reached", not a generic failure (B36-R4)', async () => {
+    vi.useRealTimers();
+    send.mockImplementation(async (input: { clientId: string }) => {
+      if (input.clientId === 'late') throw Object.assign(new Error('TOO_MANY_REQUESTS'), { name: 'TRPCClientError', data: { code: 'TOO_MANY_REQUESTS', httpStatus: 429, reason: 'RATE_LIMITED', retryAfter: 300 } });
+      return { id: `m-${input.clientId}`, clientId: input.clientId, category: 'update' };
+    });
+    const out = await sendBroadcast({ batchId: 'b-rl', coachId: 'coach-1', recipients: ['early', 'late'], body: 'hi', category: 'update' });
+    expect(Object.fromEntries(out.map((r) => [r.clientId, r.failure ?? 'sent']))).toEqual({ early: 'sent', late: 'rateLimited' });
+  });
+
   it('only a refusal is "not sent"; no answer, a timeout or a server error is "unknown" (it may have been stored)', async () => {
     vi.useRealTimers();
     const errors: Record<string, unknown> = {

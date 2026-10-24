@@ -29,6 +29,8 @@ export interface ClassifiedError {
   reason?: string;
   /** True when the same request may succeed later without the user changing anything. */
   retryable: boolean;
+  /** `rate_limited` only: how long the server asked us to wait (`error.data.retryAfter`, in ms), when it said. */
+  retryAfterMs?: number;
 }
 
 const PERMANENT_TRPC = new Set(['BAD_REQUEST', 'PARSE_ERROR', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'PAYLOAD_TOO_LARGE', 'UNPROCESSABLE_CONTENT', 'METHOD_NOT_SUPPORTED', 'PRECONDITION_FAILED', 'NOT_IMPLEMENTED', 'UNSUPPORTED_MEDIA_TYPE']);
@@ -72,7 +74,7 @@ export function classifyError(e: unknown): ClassifiedError {
   if (isTimeout(e)) return { kind: 'timeout', retryable: true };
   if (isAbort(e)) return { kind: 'cancelled', retryable: false };
 
-  const err = e as { name?: string; data?: { code?: string; httpStatus?: number; reason?: unknown } | null; cause?: unknown };
+  const err = e as { name?: string; data?: { code?: string; httpStatus?: number; reason?: unknown; retryAfter?: unknown } | null; cause?: unknown };
   if (e instanceof TRPCClientError || (err && typeof err === 'object' && err.name === 'TRPCClientError')) {
     const code = err.data?.code;
     const reason = typeof err.data?.reason === 'string' ? err.data.reason : undefined;
@@ -85,7 +87,10 @@ export function classifyError(e: unknown): ClassifiedError {
       return { kind: 'network', retryable: true };
     }
     if (code === 'UNAUTHORIZED') return { kind: 'unauthorized', code, retryable: true };
-    if (code === 'TOO_MANY_REQUESTS') return { kind: 'rate_limited', code, retryable: true };
+    if (code === 'TOO_MANY_REQUESTS') {
+      const after = err.data?.retryAfter;
+      return { kind: 'rate_limited', code, retryable: true, ...(reason ? { reason } : {}), ...(typeof after === 'number' && after > 0 ? { retryAfterMs: after * 1000 } : {}) };
+    }
     if (code === 'TIMEOUT') return { kind: 'timeout', code, retryable: true };
     if (SERVER_TRPC.has(code)) return { kind: 'server', code, retryable: true };
     if (PERMANENT_TRPC.has(code)) return { kind: 'permanent', code, retryable: false, ...(reason ? { reason } : {}) };

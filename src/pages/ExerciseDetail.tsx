@@ -15,6 +15,9 @@ import { prByExercise, exerciseTrend } from '@/lib/calc';
 import { formatDate, formatDuration, formatNumber } from '@/lib/format';
 import { useBack } from '@/hooks/useBack';
 import { isPlayableVideoUrl } from '@/lib/videoSource';
+import { exerciseDisplayName } from '@/lib/catalogText';
+import { ExerciseInstructions, MediaCredits } from '@/components/library/ExerciseInstructions';
+import { VideoFilePlayer } from '@/components/video/VideoPlayer';
 
 /*
  * TRAIN › EXERCISE (B2.3): what it is, how the coach wants it done, and how
@@ -61,6 +64,9 @@ export function ExerciseDetail() {
   }
 
   const canPlay = isPlayableVideoUrl(ex.videoUrl);
+  // B4.1: a catalog copy's demonstration is THIS exercise's own (the copy carries it) — it plays inline
+  // here, from its poster, only when tapped; anything else keeps the "Watch video" viewer.
+  const inlineDemo = !!ex.catalogId && canPlay && /\.mp4(\?|$)/i.test(ex.videoUrl ?? '');
   const notes = loc(ex.notes);
   const warm = warmupCountOf(ex);
   const rows: [string, string][] = [
@@ -73,16 +79,19 @@ export function ExerciseDetail() {
 
   return (
     <div className="space-y-7 pb-4" data-testid="exercise-detail">
-      {ex.imageUrl && (
-        <img src={ex.imageUrl} alt="" className="aspect-[16/10] w-full rounded-ui-surface bg-white/[0.04] object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+      {inlineDemo ? (
+        <VideoFilePlayer url={ex.videoUrl!} poster={ex.videoPosterUrl ?? ex.imageUrl ?? null} lazy muted loop aspect={16 / 9} playLabel={t('workout.watchVideo')} testId="exercise-demo-video" />
+      ) : ex.imageUrl && (
+        // B4: catalog demonstrations are line drawings — shown whole, on white, never cropped.
+        <img src={ex.imageUrl} alt="" className={`aspect-[16/10] w-full rounded-ui-surface ${ex.catalogId ? 'bg-white object-contain' : 'bg-white/[0.04] object-cover'}`} onError={(e) => (e.currentTarget.style.display = 'none')} />
       )}
       <header>
         <p className="flex items-center gap-2 text-[14px] text-earth-muted">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} aria-hidden="true" />
           {muscleLabel(ex.targetMuscle, t)}
         </p>
-        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.02em]">{ex.name}</h1>
-        {canPlay && (
+        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.02em]">{exerciseDisplayName(ex, lang)}</h1>
+        {canPlay && !inlineDemo && (
           <Button variant="secondary" icon="play" className="mt-4 w-full" onClick={() => playVideo(ex.videoUrl!)} data-testid="exercise-video-button" aria-label={t('workout.watchVideo')}>
             {t('workout.watchVideo')}
           </Button>
@@ -109,6 +118,13 @@ export function ExerciseDetail() {
         </Section>
       )}
       <EntityNotes screen="workout" entityType="exercise" entityId={exId} />
+
+      {ex.instructions && (
+        <Section title={t('exerciseDetail.howTo')}>
+          <ExerciseInstructions instructions={ex.instructions} />
+        </Section>
+      )}
+      <MediaCredits credits={ex.mediaCredits} />
 
       {lastPerf && (
         <Section title={t('gt.lastTime')} action={<span className="text-[13px] text-earth-muted">{formatDate(lastPerf.date, lang, 'weekdayDayMonth')}</span>}>

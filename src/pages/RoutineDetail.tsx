@@ -1,3 +1,4 @@
+import { exerciseDisplayName } from '@/lib/catalogText';
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -29,7 +30,7 @@ function displaySections(day: WorkoutDay): WorkoutSection[] {
  * indicator only when something can play, and Start in the thumb zone.
  */
 export function RoutineDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const loc = useLocalized(); // Arabic clients see the coach's Arabic notes (B1.8)
   const navigate = useNavigate();
   const { dayId } = useParams();
@@ -98,7 +99,7 @@ export function RoutineDetail() {
             </span>
           )}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] font-semibold leading-snug">{ex.name}</span>
+            <span className="block truncate text-[16px] font-semibold leading-snug">{exerciseDisplayName(ex, i18n.language)}</span>
             <span className="mt-0.5 block text-[13px] text-earth-muted">
               {muscleLabel(ex.targetMuscle, t)} · {presc}
               {isPlayableVideoUrl(ex.videoUrl) && (

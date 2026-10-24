@@ -1,0 +1,4526 @@
+{
+ "generatedBy": "scripts/catalog/build-food-images.mjs",
+ "summary": {
+  "foods": 190,
+  "approved": 125,
+  "needsReplacement": 2,
+  "pendingReview": 0,
+  "missing": 60,
+  "rejected": 3,
+  "withImage": 127,
+  "requests": 0
+ },
+ "foods": {
+  "ff_rice_white_medium_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Bowl of white rice 01.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Bowl_of_white_rice_01.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Bowl_of_white_rice_01.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Douglas Perkins",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of plain cooked white rice",
+    "ar": "وعاء من الأرز الأبيض المطبوخ السادة"
+   },
+   "reviewNote": "Plain boiled short/medium-grain white rice in a white bowl, nothing added; matches the cooked medium-grain state. CC0.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_rice_white_medium_cooked/r1-card.webp",
+     "width": 640,
+     "height": 542,
+     "bytes": 8340,
+     "sha256": "da4d89575f99484ed7b1edfb3b3ae03bf3a69a29e15e43eeb204fa6b3ad03d31"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_rice_white_medium_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1462,
+     "sha256": "44d57160d42dd6f1604bda6ff1dc0eb92280a14f71c5cc9777271ba30a5d101a"
+    }
+   }
+  },
+  "ff_rice_white_long_cooked": {
+   "status": "missing",
+   "reason": "Reviewed two licensed candidates: the steamed basmati photo has a heavy orange colour cast and readable text on the serving spoon; Basmati Rice 2 actually shows uncooked (parboiled) grains. No clean licensed photo of plain cooked long-grain rice found within the search budget.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_rice_white_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:WhiteRice.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:WhiteRice.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7f/WhiteRice.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Sanjay Acharya",
+   "credit": "Own work",
+   "alt": {
+    "en": "Uncooked white rice grains",
+    "ar": "حبوب أرز أبيض غير مطبوخ"
+   },
+   "reviewNote": "Close-up of dry, uncooked polished white rice grains on a dark background; matches the dry state. Borderline: grains look medium-to-long rather than clearly medium-grain, and the original is 1194x798 (just under 800 px short side).",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_rice_white_dry/r1-card.webp",
+     "width": 640,
+     "height": 428,
+     "bytes": 48796,
+     "sha256": "8d3a8c7d63f1cb8f56b9292d55e363e9f93b32301e02c45c952ab15e3f3ecd02"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_rice_white_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 7484,
+     "sha256": "6b42ee70e695368b84bcf39a8064951fc8e4c5f6066b2ed02060923ab81bc9cf"
+    }
+   }
+  },
+  "ff_rice_brown_cooked": {
+   "status": "missing",
+   "reason": "Bowl of Cooked Brown Rice actually shows white rice mixed with red rice; Cooked Brown rice.jpg is plain brown rice but under cling film with reflections and other dishes in frame. No clean licensed photo of plain cooked brown rice found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_pasta_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cooked spaghetti (horizontal).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_spaghetti_(horizontal).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Cooked_spaghetti_%28horizontal%29.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Kevin Todora",
+   "credit": null,
+   "alt": {
+    "en": "Close-up of plain boiled spaghetti",
+    "ar": "لقطة قريبة لسباغيتي مسلوقة سادة"
+   },
+   "reviewNote": "Frame-filling close-up of plain spaghetti boiled in water, no sauce or oil; matches the cooked, no-added-fat state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pasta_cooked/r1-card.webp",
+     "width": 640,
+     "height": 421,
+     "bytes": 31282,
+     "sha256": "fb385fe624647bc8793f4df85d6b88c5bcadc49aa807296db1b2abf84787fb87"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pasta_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5390,
+     "sha256": "5137aaa84edbbe99580e9f936206095095e0c7831e31c96f6c3d6c1e2b619a99"
+    }
+   }
+  },
+  "ff_pasta_dry": {
+   "status": "missing",
+   "reason": "Searches for dry/uncooked pasta returned mostly cooked dishes, shop displays and spaghetti-bridge craft photos; both penne candidates viewed were cooked dishes with sauce (one with a date stamp). No licensed photo of plain dry pasta found within the search budget.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_pasta_whole_wheat_cooked": {
+   "status": "missing",
+   "reason": "The only plain cooked spaghetti found under a wholemeal title visibly shows regular (pale) pasta, not whole-wheat; the other candidate shows cooked and uncooked penne side by side. No licensed photo of plain cooked whole-wheat pasta found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_oats_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Rolled oats in bowl 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Rolled_oats_in_bowl_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Rolled_oats_in_bowl_2.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Bodhi Peace",
+   "credit": "Own work",
+   "alt": {
+    "en": "Dry rolled oats in a ceramic bowl",
+    "ar": "رقائق شوفان جافة في وعاء خزفي"
+   },
+   "reviewNote": "A half-cup serving of dry, uncooked rolled oats in a plain ceramic bowl; matches the dry state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_oats_dry/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 57690,
+     "sha256": "91e4910c155b1275f24fc895789949c028d1a0ef4db86a5c6de0280f0a8d1631"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_oats_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5290,
+     "sha256": "7b3a6814b19610dcab1117d09e33aab22211c93703ce6b4c2240011615301ef4"
+    }
+   }
+  },
+  "ff_oatmeal_cooked": {
+   "status": "missing",
+   "reason": "Licensed oatmeal photos all carry toppings (fruit, nuts, chia, sugar); the one plain bowl of porridge sits on a placemat with large readable text. No clean licensed photo of plain oatmeal cooked in water found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_bulgur_cooked": {
+   "status": "missing",
+   "reason": "Cooked bulgur on Commons appears only as pilafs with meat, chickpeas or vermicelli, or alongside other dishes. No licensed photo of plain cooked bulgur found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_bulgur_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Bulgur close-up.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Bulgur_close-up.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Bulgur_close-up.jpg",
+   "license": "CC-BY-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "author": "VSerebrenikov",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of dry bulgur wheat",
+    "ar": "لقطة قريبة لبرغل جاف"
+   },
+   "reviewNote": "Macro shot of dry, uncooked coarse bulgur grains (hard, unswollen); matches the dry state. Found via the cooked-bulgur search, so no extra API call.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_bulgur_dry/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 33716,
+     "sha256": "e6facf89af95c7126c73436c3965c59df1b6e2ca6e8781293a9ef799bcfb3f94"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_bulgur_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5552,
+     "sha256": "0d6eb086f2f9f329e4fac1d51e95ed45a759449dd9d701abf12434375f1dd6f4"
+    }
+   }
+  },
+  "ff_couscous_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Liat Portal for Foodie Disorder - Couscous (Prepared).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Liat_Portal_for_Foodie_Disorder_-_Couscous_(Prepared).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "HaJunkiyada",
+   "credit": "Own work",
+   "alt": {
+    "en": "Plain prepared couscous in a white bowl",
+    "ar": "كسكسي مطهو سادة في وعاء أبيض"
+   },
+   "reviewNote": "Plain couscous with nothing added, photographed (per its description) freshly prepared before the soup was poured on; matches the cooked state. Borderline: fluffed couscous and dry couscous look alike at this distance, so the cooked state rests on the file description; the uploader account (HaJunkiyada) states it is the photographer Liat Portal own work.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_couscous_cooked/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 86838,
+     "sha256": "2213abac6651327e0085619ae4ac533d4abdbf9c085f33251d423a8b1d721c87"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_couscous_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 7232,
+     "sha256": "54c1790fe2dbec287186cc16516c0bf28fa525c0b95b2c56c921f5736fc387ee"
+    }
+   }
+  },
+  "ff_quinoa_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Quinoa 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Quinoa_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Quinoa_2.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "ProjectManhattan",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of plain cooked quinoa",
+    "ar": "وعاء من الكينوا المطبوخة السادة"
+   },
+   "reviewNote": "Plain cooked quinoa in a white bowl, the released germ rings showing it is cooked; a white and red quinoa mix, nothing else added. Matches the cooked state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_quinoa_cooked/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 42196,
+     "sha256": "9f3020322764b6d199a9e9c768e4131df6c8dff105260e6b43004bb32945fccf"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_quinoa_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 7848,
+     "sha256": "e7b346c5ea7ffcc49ee88527c99a36f9a882c91dcc2aaf4a8818f50cd804ce1a"
+    }
+   }
+  },
+  "ff_barley_cooked": {
+   "status": "missing",
+   "reason": "Four searches found only dry pearl barley (several in branded packaging), barley soup, rice-and-barley mixes and barley sugar. No licensed photo of plain cooked pearl barley found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_popcorn_air": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Air-Popped Popcorn (45813595124).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Air-Popped_Popcorn_(45813595124).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Tony Webster from Minneapolis, Minnesota, United States",
+   "credit": "Air-Popped Popcorn",
+   "alt": {
+    "en": "Close-up of plain air-popped popcorn",
+    "ar": "لقطة قريبة لفشار سادة محضّر بالهواء الساخن"
+   },
+   "reviewNote": "Close-up of plain white popcorn from an air popper, no butter or coating visible; matches the air-popped state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_popcorn_air/r1-card.webp",
+     "width": 640,
+     "height": 424,
+     "bytes": 21174,
+     "sha256": "e2e0a49e11729bb7bce23b96f0aba749fd5c5184c524d370ccfb9152287f9bcb"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_popcorn_air/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4334,
+     "sha256": "9cb400ce47fd8d4f83c6426f36a6007546d109b7710d6791db6b54ba5d0efb83"
+    }
+   }
+  },
+  "ff_rice_cakes_plain": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Puffed Rice Cakes.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Puffed_Rice_Cakes.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Puffed_Rice_Cakes.jpg",
+   "license": "PD",
+   "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "author": "BD2412",
+   "credit": "Own work",
+   "alt": {
+    "en": "A stack of plain puffed rice cakes",
+    "ar": "كومة من كعك الأرز المنفوخ السادة"
+   },
+   "reviewNote": "Unbranded, unflavoured round puffed rice cakes on a wooden table, as sold; no packaging or text. Public domain (own work, PD-self). The brown flecks suggest whole-grain rice, but brown vs white rice cannot be confirmed from the photo.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_rice_cakes_plain/r1-card.webp",
+     "width": 640,
+     "height": 534,
+     "bytes": 25654,
+     "sha256": "f64c6e05c0514a84d6d1b21935b7ecc70a1ee5445b987a8e70192d6fa8b8223d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_rice_cakes_plain/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2900,
+     "sha256": "8c1b9ad43b5c5135d5014d4bc6262daf9bd43971385f77dc969328aacd360211"
+    }
+   }
+  },
+  "ff_bread_pita_white": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Pita Bread.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Pita_Bread.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Pita_Bread.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Azure Dragon of the East",
+   "credit": "Own work",
+   "alt": {
+    "en": "Folded white pita bread in a basket",
+    "ar": "خبز بيتا أبيض مطوي في سلة"
+   },
+   "reviewNote": "Plain white Arabic/pita pocket bread, folded in a bread basket on paper; unbranded, as served. Matches the as-sold white pita.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_bread_pita_white/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 30994,
+     "sha256": "35cbf4cee3a1866bdc230715c9040c6a159a2f8e92d41bafde58b7f795bd04fe"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_bread_pita_white/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3146,
+     "sha256": "08a06e2c5388e609bfaf92c640437db5146832225cbaf299be06f1290bd8a714"
+    }
+   }
+  },
+  "ff_bread_pita_whole_wheat": {
+   "status": "missing",
+   "reason": "Three searches found only whole-wheat pita used as a pizza base and two small brown-bread PNGs (about 520x570, under the size floor). No licensed photo of plain whole-wheat pita found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_baladi_bread": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Eish baladi.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Eish_baladi.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Eish_baladi.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "dustinpsmith",
+   "credit": "Flickr",
+   "alt": {
+    "en": "Loaves of Egyptian baladi bread cooling on a rack",
+    "ar": "أرغفة عيش بلدي مصري على قفص التبريد"
+   },
+   "reviewNote": "Freshly baked Egyptian aish baladi: puffed, bran-dusted round loaves cooling on a traditional palm-reed bread rack. Authentic Egyptian baladi bread, as sold; no people or text.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_baladi_bread/r1-card.webp",
+     "width": 640,
+     "height": 853,
+     "bytes": 46690,
+     "sha256": "9ba07888cef5df924da8e75a508deb608a0ea67839d4b87c36537096ea81b7da"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_baladi_bread/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4770,
+     "sha256": "6416dc3005e0b45c804d4c7caf150a0670e9d2130a15459e603bcaaef95c45f9"
+    }
+   }
+  },
+  "ff_fino_roll": {
+   "status": "missing",
+   "reason": "Four searches (English and Arabic) found no photo of Egyptian fino bread on Commons; the only hit is a cheese sandwich in a Cairo restaurant. A generic Western roll would not honestly show fino.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_bread_white": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tin Loaf - one slash in the crust.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tin_Loaf_-_one_slash_in_the_crust.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Mike Finn",
+   "credit": "https://www.flickr.com/photos/mwf2005/8387284738/",
+   "alt": {
+    "en": "A sliced white bread loaf on a wooden board",
+    "ar": "رغيف خبز أبيض مقطع إلى شرائح على لوح خشبي"
+   },
+   "reviewNote": "A white tin loaf, half cut into slices, on a wooden board; plain white sandwich-style bread, unbranded. Borderline: a bakery/home tin loaf with a darker, thicker crust than soft packaged toast bread, but it shows the same food (sliced white loaf).",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_bread_white/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 35684,
+     "sha256": "08f1434ea5d796ee09e8a2cdfa28cda2e84e17925c99f6f36f3a25e98c6aa0b7"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_bread_white/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4014,
+     "sha256": "9c4de03085edd0190e7dcdfc91f2fbc4a47dfd83afbe2bc7de22d45704d3ae70"
+    }
+   }
+  },
+  "ff_bread_whole_wheat": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Whole Wheat Bread 01.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Whole_Wheat_Bread_01.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Whole_Wheat_Bread_01.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Rebecca Siegel",
+   "credit": "https://www.flickr.com/photos/grongar/4451489113",
+   "alt": {
+    "en": "Cut loaf of whole-wheat bread showing the brown crumb",
+    "ar": "رغيف خبز قمح كامل مقطوع يظهر لبّه الأسمر"
+   },
+   "reviewNote": "Cross-section of a whole-wheat loaf on a wooden board, showing the brown whole-grain crumb; plain, unbranded bread. Background is blurred and carries no text.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_bread_whole_wheat/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 41450,
+     "sha256": "7f5e676cfc97346cb62c9ac74b529f05b30ce0d97597c129d25a03a50be06df4"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_bread_whole_wheat/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5624,
+     "sha256": "89a57ab78e00fdbcc031dd73be0f4e755252333b07c005bafe700b49e2f0610d"
+    }
+   }
+  },
+  "ff_bread_french": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Brot 001 2016 07 03.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Brot_001_2016_07_03.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/09/Brot_001_2016_07_03.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Friedrich Haag",
+   "credit": "Self-photographed",
+   "alt": {
+    "en": "Slices of French baguette in a bread basket",
+    "ar": "شرائح خبز باجيت فرنسي في سلة خبز"
+   },
+   "reviewNote": "A plain white baguette cut into slices in a woven bread basket, showing crust and open crumb; unbranded, as sold. Only a sliver of patterned napkin at the corners, no readable text.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_bread_french/r1-card.webp",
+     "width": 640,
+     "height": 452,
+     "bytes": 73802,
+     "sha256": "0a64084d4274e90c564ab54e3a9e0a7e89c8bddbe905d9a040e9ef9ec4e40478"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_bread_french/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6340,
+     "sha256": "0e1ef2e30de4b00c375ac948fe69caf93dc8faf43ec9cbf0bea95ed186add2d5"
+    }
+   }
+  },
+  "ff_fava_beans_boiled": {
+   "status": "missing",
+   "reason": "The licensed Egyptian ful photos all show dressed ful: one is a full breakfast plate (eggs, olives, bread, salad), the other an authentic Alexandria ful plate sitting in a visible pool of oil. The catalog item is plain ful boiled with no oil, so these would misstate it. No licensed photo of plain boiled ful found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_fava_beans_canned": {
+   "status": "missing",
+   "reason": "No unbranded photo of canned fava beans found; searches returned fresh pods, dried beans and botanical plates. A labelled can would be branded.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_fava_beans_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fava Beans Dried.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fava_Beans_Dried.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Fava_Beans_Dried.JPG",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Miansari66",
+   "credit": "Own work",
+   "alt": {
+    "en": "Dried brown fava beans on a white plate",
+    "ar": "حبوب فول بني جاف في طبق أبيض"
+   },
+   "reviewNote": "Small dried brown fava beans of the kind used for ful medames (Egyptian ful tadmees), uncooked, on a plain white plate; matches the dried state. Found via the canned-fava search, so no extra API call.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_fava_beans_dry/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 38286,
+     "sha256": "2093d9bdc6332caca8bc930e98e8843c93ccddec72e01a3bfd4b1522ec6434fe"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_fava_beans_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5134,
+     "sha256": "c128e822594bafaa3b12a7d538408ae7ce328e4760f000c7dd6ebf561f03c0b3"
+    }
+   }
+  },
+  "ff_lentils_boiled": {
+   "status": "missing",
+   "reason": "Four searches found cooked lentils only as dishes (topped with caramelized onions, cooked with goose fat under other foods, dal, curries, soups, lentils with rice). No licensed photo of plain boiled brown lentils found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_lentils_brown_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Brown lentils.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Brown_lentils.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/01/Brown_lentils.JPG",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Illustratedjc",
+   "credit": "Own work",
+   "alt": {
+    "en": "A small heap of dry brown lentils",
+    "ar": "كومة صغيرة من العدس البني الجاف"
+   },
+   "reviewNote": "Whole, uncooked light-brown lentils on a plain white surface; matches the dry state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lentils_brown_dry/r1-card.webp",
+     "width": 640,
+     "height": 426,
+     "bytes": 14932,
+     "sha256": "df3b674a6a667c995b1c4ba4311e03d7cf0b6838b3bcdd74b8111a1c30762894"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lentils_brown_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3536,
+     "sha256": "974e1f612d49ed2c27b24414ac51a85e2b141adb4e2c39f917609ce017bda478"
+    }
+   }
+  },
+  "ff_lentils_red_dry": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Red lentils - jules (cropped).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Red_lentils_-_jules_(cropped).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Red_lentils_-_jules_%28cropped%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "jules / stone soup",
+   "credit": "red lentils",
+   "alt": {
+    "en": "Dry split red lentils in a white ramekin",
+    "ar": "عدس أحمر مجروش جاف في وعاء أبيض صغير"
+   },
+   "reviewNote": "Uncooked split red lentils (the Egyptian yellow/soup lentil) in a white ramekin on a white background; matches the dry state.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lentils_red_dry/r1-card.webp",
+     "width": 640,
+     "height": 641,
+     "bytes": 27460,
+     "sha256": "b6d10fe458ec89bcc463343cfe0121605424064306151e27e130686142f772e1"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lentils_red_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3478,
+     "sha256": "fa48cb8968a6018c23094eb0cfb6d59f99f6224a184a65bb08f09eb1c817a504"
+    }
+   }
+  },
+  "ff_chickpeas_boiled": {
+   "status": "rejected",
+   "reason": "lead spot check: the colour cast makes the chickpeas read as green peas — misleading",
+   "file": "File:Boiled sanag alu27.11.13. (74).JPG",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_chickpeas_canned": {
+   "status": "missing",
+   "reason": "The only canned-chickpea photos found show a branded can with a readable label; no unbranded photo of drained canned chickpeas found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_white_beans_boiled": {
+   "status": "missing",
+   "reason": "Four searches found white beans only in stews, cholent and breakfasts, or dry beans. No licensed photo of plain boiled white beans found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_kidney_beans_boiled": {
+   "status": "missing",
+   "reason": "Cooked kidney beans on Commons appear only in stews (Argentine red bean stew series, rajma curry, red beans and rice). No licensed photo of plain boiled red kidney beans found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_green_peas_cooked": {
+   "status": "missing",
+   "reason": "The only plain boiled-pea photo shows dried (olive-yellow) peas in dark cooking water, not cooked green garden peas; the rest are mixed dishes. No licensed photo of plain cooked green peas found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_hummus": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Lebanese style hummus.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Lebanese_style_hummus.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Lebanese_style_hummus.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Beyrouthhh at English Wikipedia",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of hummus with olive oil and whole chickpeas",
+    "ar": "طبق حمص بالطحينة مع زيت الزيتون وحبات الحمص"
+   },
+   "reviewNote": "Classic hummus bi tahina in a ceramic bowl, finished with olive oil, a few whole chickpeas and a sprinkle of paprika; matches the prepared home-recipe hummus. No text or people.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_hummus/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 21046,
+     "sha256": "1b71e99e0aabf091071b079b9fa7e09f4a99025259a6d9a17d4175e992f97cf7"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_hummus/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4530,
+     "sha256": "dba5973d31cffc3a0aa061f31a4deae627271059c4b9da7fe03695d7fc441d38"
+    }
+   }
+  },
+  "ff_tahini": {
+   "status": "missing",
+   "reason": "Tahini with oil.JPG looks like whipped/diluted tahini sauce rather than the undiluted paste the catalog item describes; the other tahini photos show production machinery with labelled jars, tahini sauce dishes, or Chinese toasted sesame paste. No licensed photo of plain raw tahini paste found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_falafel_chickpea": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Falafels 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Falafels_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/57/Falafels_2.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Popo le Chien",
+   "credit": "Own work",
+   "alt": {
+    "en": "Rows of deep-fried chickpea falafel",
+    "ar": "صفوف من أقراص الفلافل بالحمص المقلية"
+   },
+   "reviewNote": "Rows of freshly deep-fried Lebanese-style chickpea falafel, nothing else on the plate; matches the prepared, deep-fried chickpea falafel. Warm, slightly dim light but sharp.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_falafel_chickpea/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 43016,
+     "sha256": "c30e11c943c93fe507963bb19b602a0a4ef1002eb1cb7eb8d086d4a991376a34"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_falafel_chickpea/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5810,
+     "sha256": "5a580f2841e08d5e482c149f110e82ca7c400d017bb1a31a5c4e14cdd7d01072"
+    }
+   }
+  },
+  "ff_taameya": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tameya Karoleen Lindberg.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tameya_Karoleen_Lindberg.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/55/Tameya_Karoleen_Lindberg.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Losttraveller",
+   "credit": "Own work",
+   "alt": {
+    "en": "Fried Egyptian taameya patties on a white plate",
+    "ar": "أقراص طعمية مصرية مقلية في طبق أبيض"
+   },
+   "reviewNote": "Flat, disc-shaped deep-fried Egyptian taameya with sesame seeds and a green-tinged interior showing at the edges: the real Egyptian fava-bean falafel, not the round Levantine chickpea kind. Only a fork tip and a scrap of patterned cloth in one corner, no text.",
+   "reviewer": "food-images.a.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_taameya/r1-card.webp",
+     "width": 640,
+     "height": 378,
+     "bytes": 26088,
+     "sha256": "0a38e7579203b085724cf6d99c2f076ca67f9f98c716ab1a239915ee7746732d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_taameya/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3440,
+     "sha256": "2d9870450c6eba43f83a857aedd82dde1d31564c5c1e7610b67f1e971225115d"
+    }
+   }
+  },
+  "ff_lentil_soup": {
+   "status": "missing",
+   "reason": "Reviewed two licensed candidates: the smooth Turkish mercimek (closest to Egyptian shorbet ads) shows a restaurant logo and a placemat with readable text; the jules red lentil soup is a chunky tomato version topped with a dollop of yogurt, not the plain/Egyptian soup. Other hits add dumplings or vegetables. No suitable licensed photo found.",
+   "reviewer": "food-images.a.json"
+  },
+  "ff_beef_ground_90_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Hakket-oksekoed.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Hakket-oksekoed.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/65/Hakket-oksekoed.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Gajda-13 at Danish Wikipedia",
+   "credit": "Transferred from da.wikipedia to Commons by Broadbeer using CommonsHelper.",
+   "alt": {
+    "en": "Raw lean ground beef on a cutting board",
+    "ar": "لحم بقري مفروم نيء قليل الدهن على لوح تقطيع"
+   },
+   "reviewNote": "Bright-red, finely minced raw beef block with little visible fat; matches lean (90%) ground beef, raw. 1277x916, clean, no packaging or text.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_beef_ground_90_raw/r1-card.webp",
+     "width": 640,
+     "height": 459,
+     "bytes": 17934,
+     "sha256": "7927ae72abb6f713109e31bb04d2579bc8a4a4a04e357aca67c5ec2497cab470"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_beef_ground_90_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3176,
+     "sha256": "45acb57e998fa3cdcc2c3ac9e56c0beb2857594ca8b250580802eb6dc8f1222a"
+    }
+   }
+  },
+  "ff_beef_ground_90_cooked": {
+   "status": "missing",
+   "reason": "No fully browned plain ground beef found: 'Cooking beef 1' is still raw in the pan, 'Cooking beef 2' is half-cooked with pink patches and seasoning; other hits are dishes (burgers, noodles, stir-fries) or packaged product.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_beef_ground_80_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Hackfleisch-1.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Hackfleisch-1.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Hackfleisch-1.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Rainer Zenz",
+   "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+   "alt": {
+    "en": "Raw ground beef on a white plate",
+    "ar": "لحم بقري مفروم نيء في طبق أبيض"
+   },
+   "reviewNote": "Coarse raw beef mince with visible white fat flecks on a plain plate; fits regular (80%) ground beef, raw. 2905x2211. Borderline: Commons has no machine-readable author field; the uploader Rainer Zenz self-licensed it CC BY-SA 3.0 (own work assumed from the licence tag).",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_beef_ground_80_raw/r1-card.webp",
+     "width": 640,
+     "height": 487,
+     "bytes": 30198,
+     "sha256": "1afd226bb4d721ab0b5ce63948f2bd5731cf0dc06d82a2b45542f2cfa832e4b1"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_beef_ground_80_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3896,
+     "sha256": "c92889b864971efad7725f3f237a5e7b8dded5a03706607deb282cfc29d1a07c"
+    }
+   }
+  },
+  "ff_beef_ground_80_cooked": {
+   "status": "missing",
+   "reason": "No browned, drained ground beef found: 'Ground beef frying' is still a raw block in the pan, 'Crumbling ground beef in water' is raw with a hand in shot; other hits are meatballs or dishes.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_beef_sirloin_lean_grilled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled Sirloin Steak with Vegetables.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Sirloin_Steak_with_Vegetables.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ceeseven",
+   "credit": "Own work",
+   "alt": {
+    "en": "Grilled sirloin steak with grill marks on a plate",
+    "ar": "شريحة ستيك سيرلوين مشوية عليها علامات الشواية في طبق"
+   },
+   "reviewNote": "Lean grilled sirloin steak with clear grill marks, fat trimmed, as the main subject. Borderline: potato wedges, vegetables and a little sauce share the plate; the steak itself matches the catalog state (grilled, lean).",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_beef_sirloin_lean_grilled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 62082,
+     "sha256": "207a42a2e169b5d5645ae31f09e4daf09526c1fe3fd1cb0e31387b4a2ed8de56"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_beef_sirloin_lean_grilled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6774,
+     "sha256": "840d2c78b49b039a932667f528859679ce2ef0ba3425c1757e1d020a70bb16cd"
+    }
+   }
+  },
+  "ff_beef_round_lean_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Roast topside of beef.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Roast_topside_of_beef.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Roast_topside_of_beef.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Acabashi",
+   "credit": "Own work",
+   "alt": {
+    "en": "Sliced lean roast beef on a white plate",
+    "ar": "شرائح لحم بقري قليل الدهن محمّر في الفرن في طبق أبيض"
+   },
+   "reviewNote": "Oven-roasted beef topside (a round cut), sliced, lean with no fat cap, alone on a plain plate; matches lean roasted beef round. Topside is the top round rather than eye of round, same primal.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_beef_round_lean_roasted/r1-card.webp",
+     "width": 640,
+     "height": 640,
+     "bytes": 47440,
+     "sha256": "297412a9ea24d9f7749a4c3ba54813109777d53437fa5d9c2be3c30ad2a5beb6"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_beef_round_lean_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4286,
+     "sha256": "44f5ddec57ebbecfb06a7846ef1200b217a44f0beaace6595909cdcc614e9d54"
+    }
+   }
+  },
+  "ff_veal_leg_roasted": {
+   "status": "missing",
+   "reason": "No plain roasted veal found: hits are restaurant plates with sauces/dumplings, veal Orloff, street-food carcass roasts or scanned cookbooks. Roast veal is also hard to tell apart from beef in a photo.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_lamb_leg_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Roast lamb leg.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Roast_lamb_leg.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Roast_lamb_leg.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Beck",
+   "credit": "https://www.flickr.com/photos/beckayork/4782237803/",
+   "alt": {
+    "en": "Whole roasted leg of lamb with rosemary",
+    "ar": "فخذ ضأن كامل مشوي في الفرن مع إكليل الجبل"
+   },
+   "reviewNote": "A whole bone-in leg of lamb, oven-roasted with rosemary, alone on a white board; matches roasted lamb leg (catalog values are the lean part only, the photo shows the whole joint). 2736x3648.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lamb_leg_roasted/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 41328,
+     "sha256": "c9b049361119eb76e6d99035a59052fa3796d0004c4929ef8d52cdb08ccd6611"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lamb_leg_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3640,
+     "sha256": "aa8887723b58053a12eccf554e16df3347f8ca1f47242ba61df3786676cc846d"
+    }
+   }
+  },
+  "ff_beef_liver_fried": {
+   "status": "missing",
+   "reason": "No plain pan-fried beef liver found: 'Fried cow liver' is too small (720x960); other hits are liver-and-onion/bacon restaurant plates with sides, a person in shot, or a mixed liver-onion stew where the liver type is unclear.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_chicken_breast_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Raw chicken slices.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Raw_chicken_slices.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Raw_chicken_slices.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "kakyusei",
+   "credit": "https://pixabay.com/photos/chicken-breast-food-ingredients-279848/",
+   "alt": {
+    "en": "Three raw skinless chicken breast fillets on a white plate",
+    "ar": "ثلاث قطع صدر دجاج نيئة منزوعة الجلد في طبق أبيض"
+   },
+   "reviewNote": "Three whole raw skinless chicken breast fillets on a plain white plate; exactly the catalog food and state. 3888x2592. Imported from Pixabay (2014, CC0-era upload) and tagged CC0 on Commons.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chicken_breast_raw/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 13746,
+     "sha256": "60d6356fa3c8ba7434a31e30ce101df7451cffd7abf4989bdc1ec699dec367f9"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chicken_breast_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2146,
+     "sha256": "e91d3bf374d58c8529f1848305bb5dabded25c1aa92c771b3acb3dd3880bc38f"
+    }
+   }
+  },
+  "ff_chicken_breast_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled Chicken Breasts (28905381261).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Chicken_Breasts_(28905381261).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Sharon Chen",
+   "credit": "Grilled Chicken Breasts (Flickr, delishplan); credit requested as 'Sharon Chen', linked to www.delishplan.com",
+   "alt": {
+    "en": "Sliced roasted skinless chicken breast",
+    "ar": "شرائح صدر دجاج مشوي منزوع الجلد"
+   },
+   "reviewNote": "Skinless chicken breast, oven-roasted/grilled with light seasoning and sliced, food only on baking paper; matches roasted skinless breast. 1000x1506. Flickr author asks credit as 'Sharon Chen' linked to delishplan.com (CC BY 2.0 attribution).",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chicken_breast_roasted/r1-card.webp",
+     "width": 640,
+     "height": 964,
+     "bytes": 44386,
+     "sha256": "3ed8991ed66ddf2dd8699573cfee86c26d3a8e65bab539c56f7f10d42d983216"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chicken_breast_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6002,
+     "sha256": "905b28d9ac15f9acb3afb299ee6174237570b94d82658ee624327aebacb03f3b"
+    }
+   }
+  },
+  "ff_chicken_thigh_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled Chicken Thigh at 2026 BIFC 20260905151916.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "TurnOnTheNight",
+   "credit": "Own work",
+   "alt": {
+    "en": "Boneless chicken thighs cooking on a grill",
+    "ar": "أفخاذ دجاج منزوعة العظم تُشوى على الشواية"
+   },
+   "reviewNote": "Boneless, skinless chicken thigh pieces grilled on a rack, food only; shows cooked skinless thigh meat. Borderline: grilled with a light marinade glaze at a food-fair stall rather than plain oven-roasted. 5563x3709.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chicken_thigh_roasted/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 60500,
+     "sha256": "70670b6d7ec9e9a10539531203b3c185520412dbdee00798eb4408578cddb1b4"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chicken_thigh_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 8312,
+     "sha256": "6cbb6c9f80662ed00a97f4c7565fb37502d555355a2cd9fd95c0782603e35e5d"
+    }
+   }
+  },
+  "ff_chicken_with_skin_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Stuffed roast chicken.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Stuffed_roast_chicken.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Stuffed_roast_chicken.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "James D Kirk",
+   "credit": "https://www.flickr.com/photos/jamesdkirk/3567534343/",
+   "alt": {
+    "en": "Whole roast chicken with golden skin on a platter",
+    "ar": "دجاجة كاملة مشوية بجلدها الذهبي في طبق تقديم"
+   },
+   "reviewNote": "Whole oven-roasted chicken with crisp herbed skin on a white platter, carving knife and fork in front; shows chicken meat and skin, roasted. Minor: the bird is stuffed (a little stuffing visible at the cavity). 2919x1841.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chicken_with_skin_roasted/r1-card.webp",
+     "width": 640,
+     "height": 404,
+     "bytes": 50700,
+     "sha256": "67454a342aa02ec2a3ecdf6e71ee8af23054f09b08d88f7eb17414fbeca01948"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chicken_with_skin_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6308,
+     "sha256": "85dbf410e65c495acb68b00de9750b652bf705460fe46f7acefcc606e717789a"
+    }
+   }
+  },
+  "ff_chicken_liver": {
+   "status": "missing",
+   "reason": "No plain simmered chicken liver found: candidates are a restaurant plate of sautéed livers buried in raw onion and sumac, a soy-glazed liver/gizzard/quail-egg dish, and mixed dishes with rice or bacon.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_turkey_breast_roasted": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cooked turkey breast - November 2023 - Sarah Stierch.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+   "license": "CC-BY-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "author": "Missvain",
+   "credit": "Own work",
+   "alt": {
+    "en": "Sliced roast turkey breast on a serving platter",
+    "ar": "شرائح صدر ديك رومي مشوي في طبق تقديم"
+   },
+   "reviewNote": "Slices of roasted turkey breast alone on an oval platter with a carving fork; a bowl of corn and a dish of stuffing sit at the edges of the frame. Matches roasted turkey breast. 5712x4284.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_turkey_breast_roasted/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 35398,
+     "sha256": "ecd1b97d5b156b6fcbc8a2c10e200aecbcff6c369f20f76dbf054bb1c790f169"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_turkey_breast_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3930,
+     "sha256": "04993797f1c417c18fb52d6e0af14aafe3cc025c6b1c5f88b39f816c88588f25"
+    }
+   }
+  },
+  "ff_tuna_water": {
+   "status": "missing",
+   "reason": "Every canned-tuna photo found shows a branded tin (Calvo, Albo, Galeão, Loblaws, Pirkka) or supermarket shelves; no unbranded drained light tuna in water. Fresh tuna steaks would misrepresent the canned state.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_tuna_oil": {
+   "status": "missing",
+   "reason": "No unbranded drained canned tuna in oil found: hits are branded tins (Galeão, Kooddoo, Calvo), fresh tuna steak dishes, and a fish-market scene with people. Fresh tuna would misrepresent the canned state.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_tilapia_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled Tilapia 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Tilapia_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/25/Grilled_Tilapia_2.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Umuhiera",
+   "credit": "Own work",
+   "alt": {
+    "en": "Whole grilled tilapia with charred skin",
+    "ar": "سمكة بلطي كاملة مشوية بجلد محمّر"
+   },
+   "reviewNote": "A whole tilapia grilled without garnish or sauce, scored and charred, alone in a takeaway tray; matches grilled tilapia with no added fat. Borderline on looks: dim lighting and a foam takeaway tray. CC0, 3120x4160.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tilapia_cooked/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 69756,
+     "sha256": "1970a0e857349591ae8c0d6bd47d110e9714614c67e83dd75f3260bf0f7a1c70"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tilapia_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4686,
+     "sha256": "b9a9b21ac35c7dc7a2dbb4496eed0549e925f43975319d0cbfcbef2988e99a01"
+    }
+   }
+  },
+  "ff_tilapia_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Oreochromis niloticus at Kanchanaburi market.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Rup11",
+   "credit": "Own work",
+   "alt": {
+    "en": "Whole raw tilapia fish piled at a market",
+    "ar": "أسماك بلطي كاملة نيئة مكدّسة في السوق"
+   },
+   "reviewNote": "Close-up of fresh whole raw tilapia (Oreochromis niloticus) at a fish market, fish only, no labels. Borderline: these are the red-hybrid colour form, not the grey Nile bolti most common in Egypt; same species and nutrition basis. 1368x1824.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tilapia_raw/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 62980,
+     "sha256": "2da7979a6da4173a120d122e9b1629d8bd882207ec46e6021af2ac089e113bb6"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tilapia_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4922,
+     "sha256": "e6e564fa1c0e0ab389598b16794a022f05dfa31d68b37270ff38e6361cca7e8f"
+    }
+   }
+  },
+  "ff_mullet_grilled": {
+   "status": "missing",
+   "reason": "No grilled grey mullet (bouri) found: the one 'Grilled Mullet fish' photo includes an identifiable cook and the fish look like crusted tilapia; other hits are red mullet (a different fish), stamps, or mixed seafood plates.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_salmon_cooked": {
+   "status": "missing",
+   "reason": "No clean cooked salmon found within budget: 'Grilled salmon (27426046515)' is actually raw salmon on a cedar plank before grilling; 'Grilled salmon.jpg' is skin-side-up and ringed by potato wedges that dominate the frame; other hits are mixed plates (chips, rice, pasta, salads).",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_shrimp_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cooked shrimp.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_shrimp.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Cooked_shrimp.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Fumikas Sagisavas",
+   "credit": "Own work",
+   "alt": {
+    "en": "Peeled cooked shrimp, close-up",
+    "ar": "جمبري مطبوخ مقشّر، صورة مقرّبة"
+   },
+   "reviewNote": "Full-frame close-up of peeled, cooked (pink-white) shrimp with no sauce, shell or packaging; matches plain cooked shrimp. The shrimp look chilled, as sold ready-cooked. CC0, 4000x3000.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_shrimp_cooked/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 41828,
+     "sha256": "77d3b968c84be14a5fe2e1059b55ec473d3f311b229f0318cc797857c36fcf0d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_shrimp_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4444,
+     "sha256": "83f409ae6b014e8559cfbf56975cbf1e25a5d513022518d49ca8275d49fb8fcc"
+    }
+   }
+  },
+  "ff_sardines_oil": {
+   "status": "missing",
+   "reason": "Only branded or shop-display sardine tins found (Mayflower, Connétable, Parmentier, La Quiberonnaise, Lisbon souvenir tins); no unbranded drained canned sardines. Fresh/grilled sardines would misrepresent the canned state.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_mackerel_cooked": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled mackerel on a BBQ.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_mackerel_on_a_BBQ.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Grilled_mackerel_on_a_BBQ.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Kernow Skies",
+   "credit": null,
+   "alt": {
+    "en": "Three whole mackerel grilled over charcoal",
+    "ar": "ثلاث سمكات ماكريل كاملة مشوية على الفحم"
+   },
+   "reviewNote": "Three whole Atlantic-type mackerel (striped backs visible) cooked on a charcoal grill rack, fish only; matches cooked mackerel. A few chili flakes on one fish. 4096x3072.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mackerel_cooked/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 83690,
+     "sha256": "95525162572590464cfc79235c6916bcf8a09324716440f3e7f7db614819d994"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mackerel_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 9358,
+     "sha256": "d06d207b2de061fe3e1891724ce9ea35e96204966a2fed879c66c1bf727ccfd9"
+    }
+   }
+  },
+  "ff_renga": {
+   "status": "missing",
+   "reason": "No usable image of Egyptian renga. The closest look-alike (German Bückling, whole golden smoked herring in Büsum) has a readable price sign in frame; other hits are herring species plates, larvae, mixed Massachusetts dishes, or packaged product sold in Italy (also under 800 px).",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_egg_whole_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Eggs Chicken.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Eggs_Chicken.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Eggs_Chicken.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "safaritravelplus",
+   "credit": "https://www.safaritravelplus.com/images/food/eggs/",
+   "alt": {
+    "en": "Fresh brown eggs in a paper egg tray",
+    "ar": "بيض بني طازج في كرتونة بيض ورقية"
+   },
+   "reviewNote": "Fresh whole brown chicken eggs in shell in an unbranded pulp tray; represents whole raw eggs (brown eggs as commonly sold in Egypt). 3984x2656. CC0 on Commons, sourced from the photographer's own site safaritravelplus.com (which publishes its image library as CC0). Fallback if that source is unwanted: File:Chicken eggs 20101113.jpg (PD-self, 1500x1125, three white eggs).",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_egg_whole_raw/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 17956,
+     "sha256": "3b5117710fde162a8848454a10289a5b398c99264a4ba476adebd21d21f47298"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_egg_whole_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2944,
+     "sha256": "5bc3c770ed3877b6334f918be09388639804f1170cb05192459fc479466ed91a"
+    }
+   }
+  },
+  "ff_egg_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Boiled Egg - Crossection.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_Egg_-_Crossection.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Boiled_Egg_-_Crossection.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Ramesh NG",
+   "credit": "Flickr: Boiled Egg - Crossection",
+   "alt": {
+    "en": "A hard-boiled egg cut in half",
+    "ar": "بيضة مسلوقة جيدًا مقطوعة نصفين"
+   },
+   "reviewNote": "Cross-section of a peeled hard-boiled egg, two halves with fully set yolk, on a plain background; exactly hard-boiled egg. 2048x1536.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_egg_boiled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 10618,
+     "sha256": "ea8c7208aaef7c936f1b5b8e087f5feec15025b23f104e7e374e3bc7f353e491"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_egg_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1642,
+     "sha256": "6a2f84b8f6a87b12b63f24c30f173f0e560b6b0adc46ca06c7575387ff5174c3"
+    }
+   }
+  },
+  "ff_egg_fried": {
+   "status": "missing",
+   "reason": "Both previewed CC0 'Fried egg sunny side up' photos are full breakfast plates (potatoes, sauce, meat under the eggs) and one has a person in frame; thumbnail budget used up. Fried eggs alone likely exist on Commons — worth a targeted second pass (e.g. 'fried egg in pan').",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_egg_scrambled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Scrambled eggs with basil.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Scrambled_eggs_with_basil.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/Scrambled_eggs_with_basil.jpg",
+   "license": "CC-BY-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "author": "OmegaFallon",
+   "credit": "Own work",
+   "alt": {
+    "en": "Scrambled eggs on a white plate",
+    "ar": "بيض مخفوق مطبوخ في طبق أبيض"
+   },
+   "reviewNote": "A plate of plain scrambled eggs with only a few small basil leaves, nothing else on the plate; matches scrambled egg. Own-work CC BY 4.0, 1960x2614 (casual phone photo). Chosen over File:Scrambled egg.jpg, whose source is an external blog with no verified licence.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_egg_scrambled/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 32254,
+     "sha256": "3efc19a79c2d248714d45e229f0efeb23ebad6b7f0f234146497dbedae12a44d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_egg_scrambled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4308,
+     "sha256": "a6c47f0e674588ed98bc113cb5724df99e97abf4d25e211ff8ce557f417453cb"
+    }
+   }
+  },
+  "ff_egg_white_raw": {
+   "status": "rejected",
+   "reason": "lead spot check: shown as a yellow liquid that reads as oil or yolk — misleading",
+   "file": "File:Bowl of egg whites.jpg",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_egg_yolk_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Yolks.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Yolks.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Yolks.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Paul Goyette",
+   "credit": "https://www.flickr.com/photos/pgoyette/258868974/",
+   "alt": {
+    "en": "Six raw egg yolks in a steel bowl",
+    "ar": "ستة صفار بيض نيء في وعاء معدني"
+   },
+   "reviewNote": "Six separated raw egg yolks, no whites, in a stainless-steel mixing bowl; exactly raw egg yolk. 2802x1868.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_egg_yolk_raw/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 11998,
+     "sha256": "5f9692f2f6cdbc7e3b075b3dfbb7242b43fc291eca183cd05859f25444593528"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_egg_yolk_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2096,
+     "sha256": "1b06734c105b08ccda2a5f9d5ae0dcd25f85a3ef2079bfdffd005bf9e0b3810d"
+    }
+   }
+  },
+  "ff_milk_whole": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Glass of Milk (33657535532).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "NIAID",
+   "credit": "Glass of Milk",
+   "alt": {
+    "en": "A glass of milk",
+    "ar": "كوب من الحليب"
+   },
+   "reviewNote": "Plain glass of white milk on a solid blue background, nothing else in frame; matches milk as sold (fat level is not visible in any photo). By NIAID (US NIH institute), released on Flickr under CC BY 2.0. 1566x1570.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_milk_whole/r1-card.webp",
+     "width": 640,
+     "height": 642,
+     "bytes": 13298,
+     "sha256": "bf4aace2b91c03fb5557e4f65071a7a4ca76bc55f4c2d0722135e41ca9493559"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_milk_whole/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1450,
+     "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
+    }
+   }
+  },
+  "ff_milk_2": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Glass of Milk (33657535532).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "NIAID",
+   "credit": "Glass of Milk",
+   "alt": {
+    "en": "A glass of milk",
+    "ar": "كوب من الحليب"
+   },
+   "reviewNote": "Same image as whole milk: a plain glass of milk on a blue background. Fat level (2%) cannot be shown in a photo, so the generic glass of milk is honest for reduced-fat milk too. 1566x1570.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_milk_2/r1-card.webp",
+     "width": 640,
+     "height": 642,
+     "bytes": 13298,
+     "sha256": "bf4aace2b91c03fb5557e4f65071a7a4ca76bc55f4c2d0722135e41ca9493559"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_milk_2/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1450,
+     "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
+    }
+   }
+  },
+  "ff_milk_skim": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Glass of Milk (33657535532).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "NIAID",
+   "credit": "Glass of Milk",
+   "alt": {
+    "en": "A glass of milk",
+    "ar": "كوب من الحليب"
+   },
+   "reviewNote": "Same image as whole milk: a plain glass of milk on a blue background. Fat level cannot be shown in a photo, so the generic glass of milk is honest for skim milk too. 1566x1570.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_milk_skim/r1-card.webp",
+     "width": 640,
+     "height": 642,
+     "bytes": 13298,
+     "sha256": "bf4aace2b91c03fb5557e4f65071a7a4ca76bc55f4c2d0722135e41ca9493559"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_milk_skim/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1450,
+     "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
+    }
+   }
+  },
+  "ff_laban_rayeb": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:A cup of laban rayeb.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:A_cup_of_laban_rayeb.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/A_cup_of_laban_rayeb.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mint eggy93",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass of laban rayeb (cultured milk)",
+    "ar": "كوب من اللبن الرايب"
+   },
+   "reviewNote": "A glass tumbler of Egyptian laban rayeb (thick fermented milk), described as such by the uploader; only the drink in frame on a wooden table. Matches laban rayeb as sold/served. 4160x3120, plain phone photo.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_laban_rayeb/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 10056,
+     "sha256": "34af7ff122c61bd70f5da94cb671b55e5605ea037313001aa1dada56ea826431"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_laban_rayeb/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1080,
+     "sha256": "e97eed40a0fce4822fdb9f16cd2d6ce71da0053f6163f280e14f750e79310763"
+    }
+   }
+  },
+  "ff_yogurt_plain_whole": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Joghurt.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Joghurt.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Joghurt.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Rainer Zenz",
+   "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+   "alt": {
+    "en": "Plain yogurt spooned onto a white plate",
+    "ar": "زبادي سادة على طبق أبيض"
+   },
+   "reviewNote": "Same image as low-fat plain yogurt: spoonfuls of plain white set yogurt on a plain plate; fat level is not visible, so it is honest for whole-milk plain yogurt. 2000x1679. Borderline metadata: no machine-readable author; uploader Rainer Zenz self-licensed CC BY-SA 3.0.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_yogurt_plain_whole/r1-card.webp",
+     "width": 640,
+     "height": 538,
+     "bytes": 10144,
+     "sha256": "f54073c85a0ebf9e65a6e836656d31a42c17ea9f14b6a63c8e43d8234db0ae10"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_yogurt_plain_whole/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1680,
+     "sha256": "508ee382c051110009c3294400e002bf27ded2ac0d7f6065b05563bbcc747fd1"
+    }
+   }
+  },
+  "ff_yogurt_plain_lowfat": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Joghurt.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Joghurt.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Joghurt.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Rainer Zenz",
+   "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+   "alt": {
+    "en": "Plain yogurt spooned onto a white plate",
+    "ar": "زبادي سادة على طبق أبيض"
+   },
+   "reviewNote": "Spoonfuls of plain white set yogurt (Bulgarian style) on a plain plate, nothing else; matches plain yogurt (fat level is not visible in a photo). 2000x1679. Borderline metadata: no machine-readable author on Commons; uploader Rainer Zenz self-licensed it CC BY-SA 3.0.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_yogurt_plain_lowfat/r1-card.webp",
+     "width": 640,
+     "height": 538,
+     "bytes": 10144,
+     "sha256": "f54073c85a0ebf9e65a6e836656d31a42c17ea9f14b6a63c8e43d8234db0ae10"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_yogurt_plain_lowfat/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1680,
+     "sha256": "508ee382c051110009c3294400e002bf27ded2ac0d7f6065b05563bbcc747fd1"
+    }
+   }
+  },
+  "ff_greek_yogurt_nonfat": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fresh greek yoghurt.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_greek_yoghurt.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/59/Fresh_greek_yoghurt.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "ProjectManhattan",
+   "credit": "Own work",
+   "alt": {
+    "en": "A spoonful of thick plain Greek yogurt over a bowl",
+    "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
+   },
+   "reviewNote": "A spoon of thick, plain strained (Greek) yogurt held over a white bowl, nothing added; matches plain Greek yogurt (fat level not visible). 3920x2204.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_greek_yogurt_nonfat/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 6590,
+     "sha256": "7b61a697f5adee63e779c775346c789616314f57918901d993f756fdd019bf0a"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_greek_yogurt_nonfat/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1562,
+     "sha256": "9be8537e9a4ce2558d77abbb6678f6c0db352c29441c77a46770e60e59e7b13a"
+    }
+   }
+  },
+  "ff_greek_yogurt_whole": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fresh greek yoghurt.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_greek_yoghurt.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/59/Fresh_greek_yoghurt.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "ProjectManhattan",
+   "credit": "Own work",
+   "alt": {
+    "en": "A spoonful of thick plain Greek yogurt over a bowl",
+    "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
+   },
+   "reviewNote": "Same image as fat-free Greek yogurt: a spoon of thick, plain strained yogurt over a white bowl; fat level is not visible, so it is honest for whole-milk Greek yogurt too. 3920x2204.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_greek_yogurt_whole/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 6590,
+     "sha256": "7b61a697f5adee63e779c775346c789616314f57918901d993f756fdd019bf0a"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_greek_yogurt_whole/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1562,
+     "sha256": "9be8537e9a4ce2558d77abbb6678f6c0db352c29441c77a46770e60e59e7b13a"
+    }
+   }
+  },
+  "ff_cottage_cheese_4": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cottagecheese200px.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cottagecheese200px.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/16/Cottagecheese200px.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Fastily",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass bowl of cottage cheese with a spoon",
+    "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
+   },
+   "reviewNote": "Small-curd creamed cottage cheese heaped in a glass bowl with a spoon, nothing else; matches cottage cheese as sold. 2274x1808, own work.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cottage_cheese_4/r1-card.webp",
+     "width": 640,
+     "height": 509,
+     "bytes": 25876,
+     "sha256": "822917226a1b36b8aa7399cb888d08db83a634f2c31dc9968d87f8174f4a3f1d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cottage_cheese_4/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3840,
+     "sha256": "2b8a179e2afa28b1cb0e94451c72ce319fe3a00de651546a5ba11d42176fe5a3"
+    }
+   }
+  },
+  "ff_cottage_cheese_1": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cottagecheese200px.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cottagecheese200px.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/16/Cottagecheese200px.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Fastily",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass bowl of cottage cheese with a spoon",
+    "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
+   },
+   "reviewNote": "Same image as 4% cottage cheese: curd cottage cheese in a glass bowl; fat level is not visible, so it is honest for low-fat (1%) cottage cheese too. 2274x1808, own work.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cottage_cheese_1/r1-card.webp",
+     "width": 640,
+     "height": 509,
+     "bytes": 25876,
+     "sha256": "822917226a1b36b8aa7399cb888d08db83a634f2c31dc9968d87f8174f4a3f1d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cottage_cheese_1/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3840,
+     "sha256": "2b8a179e2afa28b1cb0e94451c72ce319fe3a00de651546a5ba11d42176fe5a3"
+    }
+   }
+  },
+  "ff_areesh_cheese": {
+   "status": "missing",
+   "reason": "No photo of Egyptian areesh (karish) cheese on Commons: searches for 'areesh cheese', 'Karish cheese' and the Arabic 'جبنة قريش' return nothing or only Western cottage cheese, which looks different (areesh is a pressed, crumbly fresh curd block). Not substituted with cottage cheese.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_feta": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Feta siers.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Feta_siers.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/30/Feta_siers.JPG",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Martula13",
+   "credit": "Own work",
+   "alt": {
+    "en": "Feta cheese block and cubes",
+    "ar": "قالب جبن فيتا ومكعبات منه"
+   },
+   "reviewNote": "A block of white brined feta with part of it cut into cubes on a white plate, nothing else; matches feta as sold and the '1 cube' portion. 2342x1595, own work.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_feta/r1-card.webp",
+     "width": 640,
+     "height": 436,
+     "bytes": 9432,
+     "sha256": "e3387c5f09848c35a9203235eab6e851b30937b07dedc6ce07a180e5756f6564"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_feta/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1794,
+     "sha256": "8d6cc38e7c93ed4411d59ae14a471a53761f30d2aed5c2057e8bdb78dbcdb341"
+    }
+   }
+  },
+  "ff_white_cheese_domiati": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Domiati cheese.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Domiati_cheese.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Domiati_cheese.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "MartinKassemJ120",
+   "credit": "Own work",
+   "alt": {
+    "en": "A piece of soft white Domiati cheese on a plate",
+    "ar": "قطعة جبن أبيض دمياطي طري في طبق"
+   },
+   "reviewNote": "A slab of soft, smooth Egyptian Domiati white cheese on a plain plate with a knife; identified as Domiati by the uploader and it has the typical soft, close-textured look (not crumbly feta). 2182x1850, own work.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_white_cheese_domiati/r1-card.webp",
+     "width": 640,
+     "height": 543,
+     "bytes": 24994,
+     "sha256": "487ff206be825e4501f2434ab50ddeb6624d1b396526b03f7dc62260c710062f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_white_cheese_domiati/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2436,
+     "sha256": "89cc0ba0a76d72c722fd6ab989dabe7ea2a093f253687f0f64dd0947a5f1298b"
+    }
+   }
+  },
+  "ff_mozzarella_part_skim": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Mozzarella cheese (1).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Mozzarella_cheese_(1).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/51/Mozzarella_cheese_%281%29.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Jon Sullivan",
+   "credit": "http://www.public-domain-image.com/public-domain-images-pictures-free-stock-photos/food-and-drink-public-domain-images-pictures/cheese-public-domain-images-pictures/mozzarella-cheese.jpg",
+   "alt": {
+    "en": "A log of mozzarella cheese with one slice cut",
+    "ar": "قطعة أسطوانية من جبن الموتزاريلا مع شريحة مقطوعة"
+   },
+   "reviewNote": "A white mozzarella log with a slice cut off, on a dark plate (two apples out of focus behind). Borderline: it looks like a fresh-style mozzarella rather than the firmer low-moisture block usually sold as part-skim; fat level is not visible. Public domain (Jon Sullivan, PDPhoto). 1280x960.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mozzarella_part_skim/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 16534,
+     "sha256": "828749a40e7432243a0f9afe1f19c958f79d320170281e3d3db7ed6ba3b5f1bf"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mozzarella_part_skim/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2328,
+     "sha256": "25d5fc4febbb7d0561a313290d9f473cc76e731f7e9848870422f1c8cde64945"
+    }
+   }
+  },
+  "ff_cheddar": {
+   "status": "missing",
+   "reason": "No clean cheddar photo found: 'White cheddar cheese sliced' shows thin translucent yellow squares that do not read as cheddar; Jon Sullivan's white cheddar block has a stack of crackers on it and is only 1024x768; Somerset wedge is 879x628; other hits are branded blocks, people, sandwiches or cheese boards.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_parmesan": {
+   "status": "missing",
+   "reason": "Previewed Parmesan photos both carry readable text: a whole wheel covered in the 'PARMIGIANO REGGIANO' rind stamps, and a restaurant chunk with a printed name card and a branded barrel behind. Other hits are market wheels, buffets or under 800 px.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_cream_cheese": {
+   "status": "missing",
+   "reason": "No unbranded plain cream cheese found: the opened brick is a branded (Philadelphia) foil pack with printed text; other hits are branded cartons, flavoured vegan products, bagels/sandwiches, a composition diagram, or other fresh cheeses (quark, farmer cheese) that are not cream cheese.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_ricotta_part_skim": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Ricotta pugliese.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Ricotta_pugliese.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Ricotta_pugliese.jpg",
+   "license": "CC-BY-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "author": "Saggittarius A",
+   "credit": "Own work",
+   "alt": {
+    "en": "Three basket-moulded fresh ricotta cheeses in a dish",
+    "ar": "ثلاث قطع من جبن الريكوتا الطازج المشكّل في سلال في طبق"
+   },
+   "reviewNote": "Three fresh ricotta forms (basket-moulded) with a little whey in a white dish and a spoon; unmistakably ricotta. Fat level (part-skim) is not visible in a photo. 2736x2675.",
+   "reviewer": "food-images.b.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_ricotta_part_skim/r1-card.webp",
+     "width": 640,
+     "height": 626,
+     "bytes": 24932,
+     "sha256": "da64f4cf429feeeef5748e16b8fa0a418f49992b3c54c68a139722d875ebe227"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_ricotta_part_skim/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1936,
+     "sha256": "86656f09b503e623cafe63c6dd362d1ee329f5532cbf9361b6950c9ca2325d08"
+    }
+   }
+  },
+  "ff_processed_cheese_spread": {
+   "status": "missing",
+   "reason": "No photo of spreadable processed cheese (triangles/jar spread) alone: 'Schmelzkäse-1' mixes wrapped processed slices with one foil wedge, 'Processed cheese 1' shows processed slices (a different product); other hits are branded tubs/jars, sandwiches, or a non-accepted 'Attribution' licence.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_tofu_firm": {
+   "status": "missing",
+   "reason": "No plain firm tofu block found: the only firm-tofu candidate is a production scene (fresh curd in a cloth-lined tray, hand and knife in frame); other hits are silken tofu, pressed/dried tofu (dou gan, a different product), cooked dishes, branded bags, or images under 800 px.",
+   "reviewer": "food-images.b.json"
+  },
+  "ff_tomato_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tomato je.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tomato_je.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Softeis",
+   "credit": "Own work",
+   "alt": {
+    "en": "Fresh red tomatoes on the vine",
+    "ar": "طماطم حمراء طازجة على العنقود"
+   },
+   "reviewNote": "Four whole raw tomatoes with green stems on a white background; clearly fresh and uncut, matching the raw state. (The file's Commons description text is unrelated/vandalised; the image itself is a plain tomato studio shot.)",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tomato_raw/r1-card.webp",
+     "width": 640,
+     "height": 533,
+     "bytes": 13704,
+     "sha256": "13709693f66f3d5a0247ba6ed64f1393d12dd96a1ec87c6fa4f3935df7c503ee"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tomato_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2270,
+     "sha256": "0d9ff196b7dd7738e012a02836cb8ec079783227b43fcbb6f359292cdf015dfa"
+    }
+   }
+  },
+  "ff_cucumber_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cucumbers (Unsplash).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cucumbers_(Unsplash).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Cucumbers_%28Unsplash%29.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Harshal Hirve harshalhirve",
+   "credit": "https://unsplash.com/photos/2GiRcLP_jkI Image at the Wayback Machine Gallery at the Wayback Machine",
+   "alt": {
+    "en": "Whole fresh cucumbers",
+    "ar": "خيار طازج كامل"
+   },
+   "reviewNote": "Close-up of a pile of whole, unpeeled raw cucumbers (the short Middle-Eastern type), no labels or packaging; matches raw cucumber with peel. CC0 (pre-2017 Unsplash release as tagged on Commons).",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cucumber_raw/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 62818,
+     "sha256": "bd83fb2c6c55cdbc3610c749658b0e1683b9fd41ec77da9976cfcfcf00346842"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cucumber_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6058,
+     "sha256": "e4026731def1e819440221ded3685c7e1302883e7ac60974cf61dcaf1a5270f5"
+    }
+   }
+  },
+  "ff_lettuce_romaine": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Romaine lettuce.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Romaine_lettuce.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Romaine_lettuce.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Rainer Zenz",
+   "credit": "Own work Rainer Z ... 14:24, 5 November 2016 (UTC)",
+   "alt": {
+    "en": "A fresh head of romaine lettuce",
+    "ar": "رأس خس روماني طازج"
+   },
+   "reviewNote": "A single whole romaine head on a plain grey background; raw, clean, no text. (Rejected a CC0 grocery-shelf shot because of readable price tags.)",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lettuce_romaine/r1-card.webp",
+     "width": 640,
+     "height": 755,
+     "bytes": 45160,
+     "sha256": "531f46736b5379da4c0f94cb2c1c718b3375328a568574940b21797acb185289"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lettuce_romaine/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3508,
+     "sha256": "ca8ffb589cca26b118d574d1f8453fe3eca009752d629ed26639d0eee7f453ac"
+    }
+   }
+  },
+  "ff_cabbage_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:A halved head of white cabbage.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:A_halved_head_of_white_cabbage.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b3/A_halved_head_of_white_cabbage.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Marc-Lautenbacher",
+   "credit": "Own work",
+   "alt": {
+    "en": "A raw white cabbage cut in half",
+    "ar": "رأس كرنب أبيض طازج مقطوع نصفين"
+   },
+   "reviewNote": "Tight close-up of the cut face of a raw white cabbage head showing the layered leaves; unmistakably raw. Borderline only on framing (close crop rather than a whole head) - the alternative whole-head photo had a price sticker and brand packaging.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cabbage_raw/r1-card.webp",
+     "width": 640,
+     "height": 891,
+     "bytes": 55500,
+     "sha256": "da6d14c311f55bbf0fdafc6895d6a2d4337605a24e0544772057345bcfa0e389"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cabbage_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3968,
+     "sha256": "6ef8e8247907fdf6eca4acb95a8f65e3db95a676628902de7cc8416bf7e9a398"
+    }
+   }
+  },
+  "ff_carrot_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Vegetable-Carrot-Bundle-wStalks.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Vegetable-Carrot-Bundle-wStalks.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Evan-Amos",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bunch of fresh carrots with green tops",
+    "ar": "حزمة جزر طازج بأوراقه الخضراء"
+   },
+   "reviewNote": "Bundle of whole raw carrots with leafy tops on a white background (Evan-Amos, public domain); raw state is obvious.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_carrot_raw/r1-card.webp",
+     "width": 640,
+     "height": 363,
+     "bytes": 31854,
+     "sha256": "111c4330ebd39f89b35dc130683e41581d7ad8d0f81fe12214bcaafa1468de98"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_carrot_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4676,
+     "sha256": "0dfdd83a307f545c61a2bbcfefdf227037039f864a5244244d825cc7b968eb69"
+    }
+   }
+  },
+  "ff_carrot_boiled": {
+   "status": "missing",
+   "reason": "4 searches (boiled / cooked / steamed carrots, plain side dish) found only mixed plates, soups, salads or roasted carrots; nothing showing plain boiled carrots alone.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_onion_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Onion on White.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Onion_on_White.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/25/Onion_on_White.JPG",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Colin",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole brown onion",
+    "ar": "بصلة كاملة بقشرها"
+   },
+   "reviewNote": "One whole raw yellow/brown onion with papery skin on a white background; matches raw onion.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_onion_raw/r1-card.webp",
+     "width": 640,
+     "height": 640,
+     "bytes": 24050,
+     "sha256": "87c947811f0a895c9acdbfd071a4f62e62b82112413ecbc1bfafc9098ccb93d6"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_onion_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1876,
+     "sha256": "bea6b24e54208c036564b84205ef6d7499a1a3d4a3cd06915225606551e8c5f0"
+    }
+   }
+  },
+  "ff_onion_sauteed": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Caramelizing onions.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Caramelizing_onions.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Caramelizing_onions.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "ccbarr",
+   "credit": "https://www.flickr.com/photos/30458688@N00/34528388780/",
+   "alt": {
+    "en": "Sliced onions softened in a frying pan",
+    "ar": "شرائح بصل مشوّحة في مقلاة"
+   },
+   "reviewNote": "Sliced onions sauteed until soft and lightly golden in a stainless pan - the pan-sauteed state the catalog describes, not crispy deep-fried onion (crispy/fried-onion photos were rejected for that reason).",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_onion_sauteed/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 21216,
+     "sha256": "873e60c7169ba76ece8c1b5438f73f58f531965ff7df3bd645b3c7e0944f87af"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_onion_sauteed/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3320,
+     "sha256": "dd585c8e7f5071d0fd20257d7616d9554032c7aadfcfe77cdc6d5ecce16a961d"
+    }
+   }
+  },
+  "ff_garlic_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Garlic bulbs and cloves.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Garlic_bulbs_and_cloves.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Garlic_bulbs_and_cloves.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "Garlic bulbs with a peeled clove",
+    "ar": "رؤوس ثوم وفص مقشّر"
+   },
+   "reviewNote": "Whole raw garlic bulb, a split bulb and two cloves (one peeled) on a neutral studio background; raw garlic, clean and well lit.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_garlic_raw/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 19776,
+     "sha256": "fb7e127370ab2fb60c338a67a653069e1094c5078ed1de22b7be989fe462170f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_garlic_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3038,
+     "sha256": "db704ac5c38a8f9fbfd4905e013a7d4baf06e9ed70352fdaad825023978776d5"
+    }
+   }
+  },
+  "ff_potato_boiled": {
+   "status": "rejected",
+   "reason": "lead spot check: cannot be told from raw potatoes — a raw-looking photo for a cooked food",
+   "file": "File:Pellkartoffeln 2.jpg",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_potato_baked": {
+   "status": "missing",
+   "reason": "Every baked/jacket potato found on Commons is topped (cheese, beans, chili, butter, chicken mayo) or part of a restaurant plate; no plain baked potato with skin.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_french_fries_oven": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Oven roasted french fries (3862654181).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Oven_roasted_french_fries_(3862654181).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Oven_roasted_french_fries_%283862654181%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Keith McDuffee from Northborough, MA, USA",
+   "credit": "Oven roasted french fries",
+   "alt": {
+    "en": "Oven-baked potato fries on a tray",
+    "ar": "أصابع بطاطس مخبوزة في الفرن على صينية"
+   },
+   "reviewNote": "Golden oven-roasted fries on a baking tray, no packaging or text. Borderline: these are home-cut fries with a little black pepper, not a frozen product, but they show the oven-baked (not deep-fried) result the catalog item is about. The other candidate showed pale fries before baking (wrong state).",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_french_fries_oven/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 25506,
+     "sha256": "382ee24eaa97d91d2a75ba5b3b72b56271ca5a2c5df88056b9770a947df164a3"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_french_fries_oven/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4872,
+     "sha256": "eb2780419279ea7b09e4c36c0dd43a9837837b2522f9530b99b8cfacd9112fc1"
+    }
+   }
+  },
+  "ff_sweet_potato_baked": {
+   "status": "missing",
+   "reason": "Only found topped/salad dishes, sweet-potato fries, USDA market-event photos, and a Japanese yakiimo street stall with people and price signs; no clean plain baked sweet potato.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_zucchini_boiled": {
+   "status": "missing",
+   "reason": "4 searches (boiled zucchini, steamed zucchini, cooked courgette, zucchine lesse) returned only mixed dishes, stews and recipes; no plain boiled zucchini.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_eggplant_boiled": {
+   "status": "missing",
+   "reason": "Only boiled 'garden eggs' (Solanum aethiopicum - a different vegetable), salads and curries; no plain boiled aubergine.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_okra_boiled": {
+   "status": "missing",
+   "reason": "The one 'boiled or steamed okra' file actually shows bright, fuzzy, apparently raw pods in a pot - state not verifiable, rejected. No other plain boiled okra found.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_spinach_raw": {
+   "status": "missing",
+   "reason": "Candidates rejected: '1 cup of raw salad leaves' (raw baby spinach, but a measuring cup with readable '1 CUP' text), 'Fresh Spinach leaves' (WLA 2025 - actually amaranth greens held in a hand, not Spinacia), and a series of promotional 'Liat Portal for Foodie Disorder' uploads (brand in title; authorship/licence provenance doubtful).",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_spinach_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Boiled spinach.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_spinach.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Boiled_spinach.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Laurent Nguyen",
+   "credit": "Own work",
+   "alt": {
+    "en": "Boiled spinach on a white plate",
+    "ar": "سبانخ مسلوقة في طبق أبيض"
+   },
+   "reviewNote": "Dark green wilted, boiled spinach leaves alone on a white plate; plainly cooked spinach, no seasoning or sauce visible.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_spinach_boiled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 59272,
+     "sha256": "5d67b187bc093e172d43e1905e5f0bed90a4413f77de7c2ae06efeedbc791ef0"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_spinach_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5892,
+     "sha256": "b5779baf22c1b09678adaf9ce7299ec1b6405fdd69e8822c313d14c3a8fca261"
+    }
+   }
+  },
+  "ff_jute_leaves_boiled": {
+   "status": "missing",
+   "reason": "Commons has only the growing Corchorus plant, seeds, botanical plates and finished molokhia soup/stew dishes (Egyptian and Tunisian). Nothing shows plain boiled jute leaves, and the soup must not stand in for the leaves.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_green_beans_boiled": {
+   "status": "missing",
+   "reason": "Only raw trimmed beans, Turkish olive-oil green-bean dishes, mixed plates and a 'boiled beans' shot of dry beans; no plain boiled green beans.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_pepper_green_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Green-Bell-Pepper.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Green-Bell-Pepper.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Green-Bell-Pepper.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Evan-Amos",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole green bell pepper",
+    "ar": "فلفل رومي أخضر كامل"
+   },
+   "reviewNote": "Single whole raw green bell pepper on a white background (Evan-Amos, public domain).",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pepper_green_raw/r1-card.webp",
+     "width": 640,
+     "height": 896,
+     "bytes": 13888,
+     "sha256": "04306637f4b095fbf63239ed8f167c3b4d0496ca1453d9b303dd23049fb11a20"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pepper_green_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1498,
+     "sha256": "81cd92e7a5d224ca9637b6ab76f6f097d9d9d4b23f2e6974824416fb60169f90"
+    }
+   }
+  },
+  "ff_pepper_red_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Red-Pepper.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Red-Pepper.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/87/Red-Pepper.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Evan-Amos",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole red bell pepper",
+    "ar": "فلفل رومي أحمر كامل"
+   },
+   "reviewNote": "Single whole raw red bell pepper on a white background (Evan-Amos, CC0).",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pepper_red_raw/r1-card.webp",
+     "width": 640,
+     "height": 625,
+     "bytes": 14396,
+     "sha256": "c2d06cda1c2e73c03815f39697a4e924621ffceb1ffe33cd8840dc798305fb3f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pepper_red_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2406,
+     "sha256": "68884ffb719aee0b846f1e6d3091fe6edca6f9aab5b59c9498adebffb76ba6cd"
+    }
+   }
+  },
+  "ff_broccoli_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cooked Broccoli 1 2021-05-06.jpeg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_Broccoli_1_2021-05-06.jpeg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Cooked_Broccoli_1_2021-05-06.jpeg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "FASTILY",
+   "credit": "Own work",
+   "alt": {
+    "en": "Cooked broccoli florets in a pan",
+    "ar": "زهرات بروكلي مطبوخة في قدر"
+   },
+   "reviewNote": "Bright green cooked broccoli florets and stems in a stainless pan, no sauce or visible oil - reads as boiled/blanched broccoli. Minor clutter (pot lids) in the background.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_broccoli_boiled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 52908,
+     "sha256": "25332a3b3e2f2224475de57596395c5cd3f6cfe9d3a619101f22210317d01288"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_broccoli_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5852,
+     "sha256": "3006a2bf6a782d7ca138f9029188120f47450c188ed896f0e9e75ec51a5c296a"
+    }
+   }
+  },
+  "ff_cauliflower_boiled": {
+   "status": "missing",
+   "reason": "4 searches found only curries, rice plates, cauliflower 'rice', sauced steamed cauliflower and archival photos; no plain boiled cauliflower.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_beets_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Beetroot boiled and peeled.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Beetroot_boiled_and_peeled.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/73/Beetroot_boiled_and_peeled.JPG",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Nillerdk",
+   "credit": "Own work",
+   "alt": {
+    "en": "Whole boiled and peeled beetroots",
+    "ar": "بنجر مسلوق ومقشّر"
+   },
+   "reviewNote": "Seven whole beetroots, boiled and peeled, on a plain cloth; matches boiled beetroot.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_beets_boiled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 27338,
+     "sha256": "882b65e20a063fcb3efe62820c854c343b8aa198ad85283c49aef4021c084971"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_beets_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2812,
+     "sha256": "7ad6632b234b96b664f7235c407c93ef0109908620ad5606aea653bfb3dff045"
+    }
+   }
+  },
+  "ff_taro_cooked": {
+   "status": "missing",
+   "reason": "Only near-candidate: 'Boiled taro.png' (CC BY-SA 4.0) - plain boiled taro chunks in a bowl, but it is a soft, background-removed cut-out with a clipped bowl edge. Given the rule that Egyptian vegetables must clearly look like the real thing, left missing; a human could reconsider it. Everything else was the plant, leaves, curry or historic book scans.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_corn_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Boiled corn on a white plate.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_corn_on_a_white_plate.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/71/Boiled_corn_on_a_white_plate.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "TudorTulok",
+   "credit": "Own work",
+   "alt": {
+    "en": "A boiled ear of sweet corn on a plate",
+    "ar": "كوز ذرة حلوة مسلوق في طبق"
+   },
+   "reviewNote": "One husked, boiled sweet-corn cob alone on a white plate (uploader states it is regular UK sweet corn, boiled); matches the boiled ear portion.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_corn_boiled/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 35652,
+     "sha256": "2809bb01b8186e8188d47581b1e6af17af2452cd558b0e55ea02883bbd6c8284"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_corn_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3744,
+     "sha256": "da799244c7cc2c806f2b94a986a82db9f39c366c6180d7d5d58215e37ed9b547"
+    }
+   }
+  },
+  "ff_mushrooms_raw": {
+   "status": "missing",
+   "reason": "Rejected: a mature brown, soil-covered Agaricus (not the white button mushroom as sold), chopped mushrooms held in a hand, wild/unidentified white mushrooms (unsafe to show as food), and a 1024x768 file below the size floor.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_artichoke_boiled": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cooked artichokes.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_artichokes.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Cooked_artichokes.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Mauro Cateb",
+   "credit": "Own work",
+   "alt": {
+    "en": "Whole boiled globe artichokes on a plate",
+    "ar": "خرشوف كامل مسلوق في طبق"
+   },
+   "reviewNote": "Four whole globe artichokes after boiling (olive-brown, softened bracts) on a white platter; matches 'artichoke, boiled, medium'. Embroidered tablecloth visible at the edges.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_artichoke_boiled/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 45658,
+     "sha256": "9b15f8b447ddb6a0724e4106788661d6a13ca33372ba4ba8089dcdbb7f7e05b4"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_artichoke_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6114,
+     "sha256": "c9f23203b6be73fccdc253dfb8076aece9f7f22f6ed52647260c85aff7056092"
+    }
+   }
+  },
+  "ff_grape_leaves_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grape leaf leaves green.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grape_leaf_leaves_green.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Grape_leaf_leaves_green.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Jon Sullivan",
+   "credit": "http://www.public-domain-image.com/public-domain-images-pictures-free-stock-photos/nature-landscapes-public-domain-images-pictures/leaf-leaves-public-domain-images-pictures/grape-leaf-leaves-green.jpg",
+   "alt": {
+    "en": "Fresh green grape leaves on the vine",
+    "ar": "أوراق عنب خضراء طازجة على الكرمة"
+   },
+   "reviewNote": "Close-up of fresh, raw grape-vine leaves (public domain, Jon Sullivan). Borderline: the leaves are still on the vine rather than picked and stacked for cooking, but it honestly shows raw grape leaves; no harvested-leaf photo with a usable licence was found.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_grape_leaves_raw/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 26040,
+     "sha256": "a0034b52d34d5ffde454a2cfcd67d3c459998fa969f653fff70736a43cdc035a"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_grape_leaves_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3720,
+     "sha256": "b1c2d07d6b7b790cc87c21686871e4397c92f89883b4782e7e13e51b917fff32"
+    }
+   }
+  },
+  "ff_parsley_fresh": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Parsley Leaves.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Parsley_Leaves.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Parsley_Leaves.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Etopalrux",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bunch of fresh flat-leaf parsley",
+    "ar": "حزمة بقدونس طازج"
+   },
+   "reviewNote": "A full bunch of fresh flat-leaf parsley standing in a clear container of water; raw herb, no text. (Flat-leaf matches the parsley used in Egypt.)",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_parsley_fresh/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 46308,
+     "sha256": "1987c2651728f703b443088a26afcb722f474d4c144f1616faaa8d6644ca3b32"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_parsley_fresh/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4396,
+     "sha256": "2ae2f28fda5afb76bac614b62851ef17d8a8b9d980170f48a413bfade362da12"
+    }
+   }
+  },
+  "ff_banana": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Banana Fruit.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Banana_Fruit.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Banana_Fruit.JPG",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "ZooFari",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bunch of ripe yellow bananas",
+    "ar": "عنقود من الموز الأصفر الناضج"
+   },
+   "reviewNote": "Ripe raw bananas on white; whole fruit matches the raw state. Blue wax on the cut stem tips is a grower's seal, not a label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_banana/r1-card.webp",
+     "width": 640,
+     "height": 469,
+     "bytes": 23584,
+     "sha256": "c67ceeb1a156e8f55c7a621c5f87bf77f3d060355d8b80a962c9cec7ff07037a"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_banana/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4056,
+     "sha256": "d4234ea5bc51293b25c8e314ece780a95a01b704aa89c3e63e15b3c2a07919ad"
+    }
+   }
+  },
+  "ff_apple": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Red Apple.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Red_Apple.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Abhijit Tembhekar from Mumbai, India",
+   "credit": "Nikon D80 Apple",
+   "alt": {
+    "en": "A whole red apple with its skin",
+    "ar": "تفاحة حمراء كاملة بقشرها"
+   },
+   "reviewNote": "Single whole raw red apple with skin on white; matches 'apple with skin, raw'. No sticker.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_apple/r1-card.webp",
+     "width": 640,
+     "height": 580,
+     "bytes": 28242,
+     "sha256": "183493bd67f23ec8dd9a9e800724ba9ce35cf4d0a0efe0d9b90b42cf2c2b3ecb"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_apple/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2954,
+     "sha256": "bc358e25301c985f336db81d0b04abddd98c67da0c7dd90c1bd5abba489a44fd"
+    }
+   }
+  },
+  "ff_orange": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Orange-Fruit-Pieces.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Orange-Fruit-Pieces.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Orange-Fruit-Pieces.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Evan-Amos",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole orange with orange halves and wedges",
+    "ar": "برتقالة كاملة مع أنصاف وشرائح برتقال"
+   },
+   "reviewNote": "Whole and cut raw navel oranges on white; no labels.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_orange/r1-card.webp",
+     "width": 640,
+     "height": 411,
+     "bytes": 15994,
+     "sha256": "2041920cb31006b0c1acd4b22665a05aed91560bb7197fdf0d68cb3a10133cde"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_orange/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2816,
+     "sha256": "c40f78fabc74cf5ff213a9e2a9f87c4de034fdc19920cd1a1d8362a9d04b106c"
+    }
+   }
+  },
+  "ff_mango": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Mango fruit Nam Dok Mai.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Mango_fruit_Nam_Dok_Mai.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/af/Mango_fruit_Nam_Dok_Mai.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole ripe yellow mango",
+    "ar": "ثمرة مانجو صفراء ناضجة كاملة"
+   },
+   "reviewNote": "Studio shot of a whole raw ripe mango (Nam Dok Mai). Catalog portion is cup pieces, but the raw fruit is the same food and state.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mango/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 6408,
+     "sha256": "de4dc70a768343b5b700a507dcb5babeaf513ed89e63fa40387c615a4a841df2"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mango/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1094,
+     "sha256": "d6482929a2a2640cad451ac9a5730bfed0f0ae1281c6c6ab7caa4250fe065a87"
+    }
+   }
+  },
+  "ff_guava": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fresh Guava.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_Guava.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Fresh_Guava.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Rajeeb (Marajozkee)",
+   "credit": "Own work",
+   "alt": {
+    "en": "Two fresh green guavas with leaves",
+    "ar": "ثمرتا جوافة خضراء طازجة مع أوراقها"
+   },
+   "reviewNote": "Two whole raw guavas with leaves on a marble surface; clearly guava, raw state.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_guava/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 29994,
+     "sha256": "954396b825aba8b3233e7bd2901a6489b415cd34dac78805ba9b40bffbb18c2d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_guava/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4044,
+     "sha256": "9559efed0455fd24e53885ad4d31d9582ace6282728dc5d34d34265ee2860bcc"
+    }
+   }
+  },
+  "ff_dates_medjool": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:DATES MEDJOOL.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:DATES_MEDJOOL.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/DATES_MEDJOOL.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "ORGANIChouse",
+   "credit": "Own work",
+   "alt": {
+    "en": "Medjool dates in a white bowl",
+    "ar": "تمر مجدول في وعاء أبيض"
+   },
+   "reviewNote": "Large soft dark Medjool dates in a bowl, as sold; no packaging or text. Uploader account name looks like a shop (ORGANIChouse) but the file is own-work CC BY-SA 4.0 with no branding in frame.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_dates_medjool/r1-card.webp",
+     "width": 640,
+     "height": 424,
+     "bytes": 21510,
+     "sha256": "2fcb8b9a2f32cbf3424ea88b4cd6f08de001bc81891f41cf1c6fa904dfbb8760"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_dates_medjool/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4302,
+     "sha256": "8f451d1e3ea7ef83a2cd837d5cb03f41c402705a5dc97dc5d508db8dade2dfba"
+    }
+   }
+  },
+  "ff_dates_deglet": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Dattes deglet from Biskra.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Dattes_deglet_from_Biskra.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Dattes_deglet_from_Biskra.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "M. Dhifallah",
+   "credit": "M. Dhifallah",
+   "alt": {
+    "en": "Semi-dry amber Deglet Noor dates on a white plate",
+    "ar": "تمر دقلة نور نصف جاف على طبق أبيض"
+   },
+   "reviewNote": "Translucent amber, semi-dry Deglet Noor dates (Tunisia) on a plate; matches the semi-dry as-sold state, not fresh dates.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_dates_deglet/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 16042,
+     "sha256": "53b9232d95293b230dd7a54b460f7e36dcbb48ee15df5647365af4c8fee74a9d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_dates_deglet/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3026,
+     "sha256": "7bc5ef2d411fa8caab23fd5e3cfceb38fcc6d982b5aab31d0d4a74fbfdba4b2e"
+    }
+   }
+  },
+  "ff_grapes": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grapes (2).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grapes_(2).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Grapes_%282%29.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Renee Comet (Photographer)",
+   "credit": "This image was released by the National Cancer Institute, an agency part of the National Institutes of Health, with the ID 2656 (image) (next).",
+   "alt": {
+    "en": "A bunch of green grapes",
+    "ar": "عنقود عنب أخضر"
+   },
+   "reviewNote": "Raw green seedless-type grapes on white (US National Cancer Institute, public domain). Catalog record covers red or green grapes.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_grapes/r1-card.webp",
+     "width": 640,
+     "height": 443,
+     "bytes": 7796,
+     "sha256": "47aff1ac7f94b6c8ca5978ce1c47b2053a52ea5da0b6b6581981b04242cf5847"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_grapes/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1684,
+     "sha256": "aba530cd93fb1ba58223c4e5909f2a19c9a3212563875ed5b4e30aff9294345b"
+    }
+   }
+  },
+  "ff_watermelon": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Sliced Watermelon.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Sliced_Watermelon.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Sliced_Watermelon.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Harsha K R",
+   "credit": "https://www.flickr.com/photos/mynameisharsha/5427691534/",
+   "alt": {
+    "en": "Wedges of red watermelon with seeds",
+    "ar": "شرائح بطيخ أحمر ببذوره"
+   },
+   "reviewNote": "Raw watermelon wedges, matching the wedge portion. A blurred, unidentifiable hand is far in the background; no face or text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_watermelon/r1-card.webp",
+     "width": 640,
+     "height": 429,
+     "bytes": 18798,
+     "sha256": "a3c0fc0e25fbf80b06b6ee3e823d093bade7740417cb1c756447c6b48bebd0e9"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_watermelon/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3380,
+     "sha256": "358bf386e16df818659444b71d43a881a27a990800a19598d32d59d53acb3f74"
+    }
+   }
+  },
+  "ff_cantaloupe": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Cucumis melo var. reticulatus (photo by Scott Bauer).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Cucumis_melo_var._reticulatus_(photo_by_Scott_Bauer).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "USDA photo by Scott Bauer. Image Number K7355-11.",
+   "credit": "http://www.ars.usda.gov/is/graphics/photos/k7388-11.htm",
+   "alt": {
+    "en": "Whole cantaloupes with a halved melon and slices",
+    "ar": "شمام كامل مع نصف ثمرة وشرائح"
+   },
+   "reviewNote": "USDA ARS photo (public domain) of whole, halved and sliced raw cantaloupe on a wooden board.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cantaloupe/r1-card.webp",
+     "width": 640,
+     "height": 429,
+     "bytes": 55596,
+     "sha256": "3119402dd141f1095218928fb3ddf723b66e6ff778d50688c8cc3ec773e631c9"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cantaloupe/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5136,
+     "sha256": "f4905c3d10fb56eba80255a1ffaaa4e30378226f7aecb1173be958620ce4944a"
+    }
+   }
+  },
+  "ff_strawberries": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Strawberries-1239306.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Strawberries-1239306.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/14/Strawberries-1239306.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Robert Owen-Wahl (Meditations)",
+   "credit": "https://pixabay.com/en/berry-breakfast-calories-closeup-1239306/ archive copy at the Wayback Machine",
+   "alt": {
+    "en": "A whole strawberry and a halved strawberry",
+    "ar": "حبة فراولة كاملة وأخرى مقطوعة نصفين"
+   },
+   "reviewNote": "Raw strawberries, whole and halved, on white; CC0.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_strawberries/r1-card.webp",
+     "width": 640,
+     "height": 398,
+     "bytes": 18782,
+     "sha256": "791d9b618700db6b5e3cd6269c1d66fad502f4214955da75496c7f6bc2f434a3"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_strawberries/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2942,
+     "sha256": "3ba1329d53a9304f0b365d0859aaa58c9d6fec7e103442b1afb444c83a7401b5"
+    }
+   }
+  },
+  "ff_blueberries": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Dish of blueberries.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Dish_of_blueberries.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Dish_of_blueberries.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Petar Milošević",
+   "credit": "Own work",
+   "alt": {
+    "en": "Fresh blueberries in a white bowl",
+    "ar": "توت أزرق طازج في وعاء أبيض"
+   },
+   "reviewNote": "Raw blueberries in and beside a white bowl; clean background.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_blueberries/r1-card.webp",
+     "width": 640,
+     "height": 481,
+     "bytes": 30000,
+     "sha256": "4342795bae2ea77d8ce8455dae76feda4e4d3755d3c21cfd27fcd99551c60600"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_blueberries/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3382,
+     "sha256": "fbb5ab1e6a3270229cd361f6613c255e386b8a29eb51778dcd0fb95f4a50dab4"
+    }
+   }
+  },
+  "ff_pomegranate": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Pomegranate fruit - whole and piece with arils.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole pomegranate beside an opened piece showing red seeds",
+    "ar": "رمانة كاملة بجانب قطعة مفتوحة تظهر حبوبها الحمراء"
+   },
+   "reviewNote": "Whole raw pomegranate and a piece with arils; matches the 'cup seeds' portion and raw state.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pomegranate/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 19722,
+     "sha256": "71682fd7aab8a7fef98c2a5e579d3348d933c63ccb14ede60676d126e4edbc57"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pomegranate/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2842,
+     "sha256": "3618ebd02c96afeb887f202ce892dc3a113f57e7bd9f65721569bbafcacf41df"
+    }
+   }
+  },
+  "ff_figs": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fresh figs on a deep dish.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_figs_on_a_deep_dish.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Fresh_figs_on_a_deep_dish.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Maor X",
+   "credit": "Own work",
+   "alt": {
+    "en": "Fresh figs in a white bowl, one cut open",
+    "ar": "تين طازج في وعاء أبيض وحبة مقطوعة"
+   },
+   "reviewNote": "Fresh (not dried) figs, one halved showing the pink interior; matches 'figs, fresh'.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_figs/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 27036,
+     "sha256": "7ada5f83da07d259331962d116ff0954260e02c656e6af78eaf73994fff95847"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_figs/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4360,
+     "sha256": "f4dae1e561e70aeff456272772babbd262a7fb9d513bfb8cafdb39905f956e10"
+    }
+   }
+  },
+  "ff_apricots": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Apricot whole444.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Apricot_whole444.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/76/Apricot_whole444.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Benjamint444",
+   "credit": "Own work",
+   "alt": {
+    "en": "A single fresh apricot",
+    "ar": "حبة مشمش طازجة"
+   },
+   "reviewNote": "One whole raw apricot on white; fresh, not dried.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_apricots/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 10168,
+     "sha256": "6018086d99a68aa3e190038d04b7a9352948884d125e54565c6f4211da054e50"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_apricots/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 986,
+     "sha256": "6160d1a3b7968364827ac95c76a5c6f70e73e9ad5aaa2b0bcb9844d74058ffe0"
+    }
+   }
+  },
+  "ff_peach": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:White-Peaches-Bunch.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:White-Peaches-Bunch.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c2/White-Peaches-Bunch.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Evan-Amos",
+   "credit": "Own work",
+   "alt": {
+    "en": "Whole peaches and a halved peach showing its stone",
+    "ar": "خوخ كامل ونصف خوخة تظهر نواتها"
+   },
+   "reviewNote": "Raw peaches on white, CC0. Borderline: these are white-fleshed peaches while the USDA record is yellow peaches; the catalog name is just 'Peach' and the fruit is unmistakably peach, so approved — swap if a yellow-peach photo is preferred.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_peach/r1-card.webp",
+     "width": 640,
+     "height": 320,
+     "bytes": 23170,
+     "sha256": "2dca0e70be22adbcd515ebdbc7bf25061cff84c409bbd4cb0008db05ae3f91dd"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_peach/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3406,
+     "sha256": "cfff1496dcb4bd6323a044698301ba0f913c1f4cb550346b14c604b5759f52d9"
+    }
+   }
+  },
+  "ff_pear": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Four pears.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Four_pears.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Four_pears.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Rhododendrites",
+   "credit": "Own work",
+   "alt": {
+    "en": "Four whole pears of different varieties",
+    "ar": "أربع حبات كمثرى كاملة من أصناف مختلفة"
+   },
+   "reviewNote": "Four raw pears (Bartlett, D'Anjou, Forelle, red Bartlett) on a plain background; no stickers.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pear/r1-card.webp",
+     "width": 640,
+     "height": 301,
+     "bytes": 12512,
+     "sha256": "2d4f5a2e7c37f2342ce04f09d17df4d62c52956a310b208813987cb4ec98b2fb"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pear/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2430,
+     "sha256": "be19342ca2c4321284203e645ddbe67c7ca02f9bf7333c1cc187a02f800f333a"
+    }
+   }
+  },
+  "ff_kiwi": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Kiwifruit cross section.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Kiwifruit_cross_section.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/de/Kiwifruit_cross_section.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "A halved green kiwi fruit",
+    "ar": "ثمرة كيوي خضراء مقطوعة نصفين"
+   },
+   "reviewNote": "Cross-section of a raw green kiwifruit, matching the USDA 'kiwifruit, green, raw' record.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_kiwi/r1-card.webp",
+     "width": 640,
+     "height": 512,
+     "bytes": 23666,
+     "sha256": "98cc0d30b4a0309f679bb1714315cc49bb8d9e29d3623d7f265bfa64992e7e7c"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_kiwi/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2862,
+     "sha256": "efdff4a1f4e9c4fd6b951afaa40af98d0975d38b0f0af5e97f60ba2409385302"
+    }
+   }
+  },
+  "ff_pineapple": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Pineapple Chunks.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Pineapple_Chunks.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/80/Pineapple_Chunks.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Gaurav Dhwaj Khadka",
+   "credit": "Own work",
+   "alt": {
+    "en": "Fresh pineapple chunks on a plate",
+    "ar": "قطع أناناس طازجة على طبق"
+   },
+   "reviewNote": "Raw pineapple chunks on a steel plate, matching the 'cup, chunks' portion. Borderline on quality: pale fruit and a busy, blurred background with no readable text; better-quality options found were GFDL-only, branded (Del Monte) or bagged, so rejected.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pineapple/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 28488,
+     "sha256": "50e633f0df06c4b42ddd7af7d4f6372ed1c1d79395a70c73119e9481119a31de"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pineapple/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3278,
+     "sha256": "fd3225f54a43f589e1321f5f1ce1a95248b05933c4412c3228644e096a136aef"
+    }
+   }
+  },
+  "ff_prickly_pear": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Prickly pears.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Prickly_pears.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Prickly_pears.jpg",
+   "license": "CC-BY-SA-2.5",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+   "author": "Tomás Castelazo",
+   "credit": "Own work",
+   "alt": {
+    "en": "Peeled prickly pears of several colours on small plates",
+    "ar": "تين شوكي مقشر بألوان مختلفة على أطباق صغيرة"
+   },
+   "reviewNote": "Peeled raw prickly pears (red, orange, green) on plates at a market stall in Mexico; no readable text and no person visible beyond a sliver of clothing at the edge.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_prickly_pear/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 56288,
+     "sha256": "e06008b1439641b14fe7f2f89dae7646d75d79df7e62ed362e8175d867b93b19"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_prickly_pear/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 7168,
+     "sha256": "8ff6f713684bbf8568f231d1adff070506a14a4301c36082f3d0af6701116e9d"
+    }
+   }
+  },
+  "ff_avocado": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Avocado Hass - single and halved.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Avocado_Hass_-_single_and_halved.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Avocado_Hass_-_single_and_halved.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole avocado and a halved avocado with its pit",
+    "ar": "ثمرة أفوكادو كاملة ونصف ثمرة بنواتها"
+   },
+   "reviewNote": "Studio shot of raw Hass avocado, whole and halved.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_avocado/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 22512,
+     "sha256": "1dd0650da1280748fe804217025bbb5cccbe89da6d063fc7eb7865d634b3dd6e"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_avocado/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2842,
+     "sha256": "ae850709235d884a949715039cbecfeae9277e9fe2236c02d53e736e86d5e7fa"
+    }
+   }
+  },
+  "ff_lemon_juice": {
+   "status": "missing",
+   "reason": "No qualifying photo of plain fresh lemon juice: candidates were branded/labelled bottles, lemonade-style drinks (a different food), or street-stall scenes with people and text.",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_raisins": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Raisins 01.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Raisins_01.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Raisins_01.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Paweł Kuźniar (Jojo_1, Jojo)",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass bowl of raisins",
+    "ar": "وعاء زجاجي من الزبيب"
+   },
+   "reviewNote": "Dried raisins as sold, in a glass bowl. Borderline: a mix of golden and dark raisins while the record is dark seedless raisins; macros are near-identical and the alias list includes sultanas, so approved. No dark-only alternative found within the search budget.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_raisins/r1-card.webp",
+     "width": 640,
+     "height": 402,
+     "bytes": 44558,
+     "sha256": "bcfc65ca74604c0ed74a573182774bcb3b17a2231012c34644a7800dfde616c5"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_raisins/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6074,
+     "sha256": "5999d305c098d966dcf88f1155f2d641c21d31a17400b6d3ba890939d0bdf13a"
+    }
+   }
+  },
+  "ff_figs_dried": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Dried Figs (1).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Dried_Figs_(1).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Dried_Figs_%281%29.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Chefallen",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pile of dried figs",
+    "ar": "كومة من التين المجفف"
+   },
+   "reviewNote": "Dried figs on white; clearly the dried as-sold state, not fresh.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_figs_dried/r1-card.webp",
+     "width": 640,
+     "height": 479,
+     "bytes": 93934,
+     "sha256": "4f361daaf5cbb0fe7e4dde0bea3c3aa01e21f1137e093769ee5d95038b4755eb"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_figs_dried/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 8942,
+     "sha256": "d133251fd7809faca60e63ba663a2e4c1741df812a8e0a835ebae084007392c9"
+    }
+   }
+  },
+  "ff_apricots_dried": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Dried apricot, Malatya 01.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Dried_apricot,_Malatya_01.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Dried_apricot%2C_Malatya_01.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Zeynel Cebeci",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pile of bright orange dried apricots",
+    "ar": "كومة من المشمش المجفف البرتقالي"
+   },
+   "reviewNote": "Sulfur-dioxide-treated (sulfured) dried apricots at Malatya bazaar — exactly the USDA 'apricots, dried, sulfured' state; frame shows only fruit, no tags.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_apricots_dried/r1-card.webp",
+     "width": 640,
+     "height": 451,
+     "bytes": 55680,
+     "sha256": "b22ce0e77e1820c6dd5aa1246e72871e042ed36bf89f259024d6797be005bde5"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_apricots_dried/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6192,
+     "sha256": "46129b90ca6e565c120aaf0a6262708792fe9bf39d4eb93ffb60f08ffe4503b0"
+    }
+   }
+  },
+  "ff_almonds": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Almonds - in shell, shell cracked open, shelled, blanched.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Almonds_-_in_shell,_shell_cracked_open,_shelled,_blanched.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Ivar Leidus",
+   "credit": "Own work",
+   "alt": {
+    "en": "Almonds in the shell, shelled and blanched",
+    "ar": "لوز بقشره ومقشّر ومنزوع الجلد"
+   },
+   "reviewNote": "Studio close-up (Ivar Leidus) of almonds: one in shell, one cracked open, one shelled kernel with skin and one blanched kernel. The skin-on kernel is the catalog food; the other forms are context, not a different food. Mild borderline: not a pile of kernels only, but no clean kernels-only photo was found.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_almonds/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 23386,
+     "sha256": "b778a5e4f9f61cd96793a0f0080ef72367b08ae6997e3fb6632ad51c0c4ea791"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_almonds/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3318,
+     "sha256": "1566435b60a50a59bfa6d4998e4eb52c9efa2dc0048528afdcccf72d162ecec4"
+    }
+   }
+  },
+  "ff_peanuts_roasted": {
+   "status": "missing",
+   "reason": "Both 'roasted peanuts' previews were batter/masala-coated spiced peanuts (wrong food); other hits were in-shell sand-roasted, raw peanuts (Ivar Leidus studio shot is raw, not roasted), a description naming a peanut brand, or tiny FDA recall images. No plain dry-roasted unsalted kernels found.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_peanut_butter": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:PeanutButter.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:PeanutButter.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bc/PeanutButter.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "PiccoloNamek at English Wikipedia",
+   "credit": "Own work Transferred from en:PeanutButter.jpg",
+   "alt": {
+    "en": "Smooth peanut butter in an open jar",
+    "ar": "زبدة فول سوداني ناعمة في برطمان مفتوح"
+   },
+   "reviewNote": "Macro of smooth peanut butter swirled inside an open jar; no label, brand or text visible. Matches smooth peanut butter (salt content is not visible in any photo). File is 1141x850 - above the size floor but on the small side. A sharper jar photo was rejected because a person sits in the background.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_peanut_butter/r1-card.webp",
+     "width": 640,
+     "height": 477,
+     "bytes": 18950,
+     "sha256": "bdc153da87a11521a099135b96bb661c230af4f2ed2e66043dd075f5c8217171"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_peanut_butter/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2892,
+     "sha256": "665553e7b18df5d1fafd549fd688b49a016b876b736581ab9a2b715c558f6809"
+    }
+   }
+  },
+  "ff_walnuts": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Whole walnut kernel and shell.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Whole_walnut_kernel_and_shell.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Whole_walnut_kernel_and_shell.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Potkettle",
+   "credit": "Own work",
+   "alt": {
+    "en": "A whole walnut kernel between its shell halves",
+    "ar": "لبّ جوزة عين جمل كامل بين نصفي قشرتها"
+   },
+   "reviewNote": "A walnut kernel removed intact, shown with the two shell halves it came from, on a plain surface. The kernel is the catalog food; the shell is context. Clean, no text.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_walnuts/r1-card.webp",
+     "width": 640,
+     "height": 371,
+     "bytes": 12048,
+     "sha256": "054191125ab77fd8dc73cc0e0fdf6838f77855522255d0b610e3ca6c84c8ea9d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_walnuts/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2704,
+     "sha256": "27e2b7c5cb8f833f316f4e5bebe7ffe3fdef840834de4e04ae3c04fdb3675514"
+    }
+   }
+  },
+  "ff_cashews_raw": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:CASHEW NUTS.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:CASHEW_NUTS.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b9/CASHEW_NUTS.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Ranjithkumar Murugesan",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pile of raw cashew nuts",
+    "ar": "كومة من الكاجو النيء"
+   },
+   "reviewNote": "Frame-filling pile of pale, unroasted whole cashew kernels; colour and matte surface match raw (not roasted) cashews. No packaging or text. (A first candidate showed the same food inside a plastic bag - rejected as packaging.)",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cashews_raw/r1-card.webp",
+     "width": 640,
+     "height": 850,
+     "bytes": 56892,
+     "sha256": "3e7fd8f9a1109d64eae10f8554e8ad0a7fead0e08a0e48baeb3a482930595674"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cashews_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5628,
+     "sha256": "ac2a41f96f8c81538e0bf0079b32e6cb0aa8f08ee53062ca85d2e8ad0bb0f2d8"
+    }
+   }
+  },
+  "ff_pistachios": {
+   "status": "missing",
+   "reason": "Previewed two: 'Roasted pistachio.jpg' (CC0, good roasted in-shell pistachios but laid out above a measuring ruler with printed numbers - readable text) and 'Pistachio Nuts (Unsplash).jpg' (CC0, roasted kernels in a small bowl filling only the bottom fifth of a tall frame; any square crop would show blurred city background). Other hits were GFDL-only macros, a branded 'Gold Emblem' sample, fried pistachios, or hand-held. A human could reconsider the Unsplash file with a bottom crop.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_mixed_nuts": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Mixed nuts small white2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Mixed_nuts_small_white2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Mixed_nuts_small_white2.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "User:Melchoir",
+   "credit": "Own work",
+   "alt": {
+    "en": "Roasted mixed nuts with peanuts in a glass bowl",
+    "ar": "مكسرات مشكلة محمصة مع فول سوداني في وعاء زجاجي"
+   },
+   "reviewNote": "Small glass bowl of roasted mixed nuts on white: peanuts (visible through the glass), cashews, almonds, Brazil nut, pecans and hazelnuts. Matches 'mixed nuts with peanuts, roasted'; no packaging or text.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mixed_nuts/r1-card.webp",
+     "width": 640,
+     "height": 528,
+     "bytes": 18786,
+     "sha256": "11d35d224ba62574a56c6efe4a100eca6100143048d78adaa2965054f8257647"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mixed_nuts/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3446,
+     "sha256": "ae19bb597b55b95f173f6c720b01a6c44d9e1c5d56025a625682f57c53654f02"
+    }
+   }
+  },
+  "ff_sunflower_seeds": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Sunflower Seeds Kaldari.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Sunflower_Seeds_Kaldari.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/39/Sunflower_Seeds_Kaldari.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Kaldari",
+   "credit": "Own work",
+   "alt": {
+    "en": "A shelled sunflower kernel beside a whole striped seed",
+    "ar": "لبّ عباد الشمس مقشّر بجانب بذرة كاملة مخططة"
+   },
+   "reviewNote": "Focus-stacked studio macro on white (Kaldari, public domain): one dehulled sunflower kernel - the catalog food - next to a whole striped seed in its hull for recognition. Borderline on framing: two single seeds rather than a handful of kernels; the only other kernel candidate was actually a flower head.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sunflower_seeds/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 16824,
+     "sha256": "a1ca6617ded14fb16474f2ce9b57dee9157ed67bf1c14501426bca6f922e1a2c"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sunflower_seeds/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2402,
+     "sha256": "0f0c2074549461bc23d81a60a2bee7f134e7750a611886d09056fc25c8d9128f"
+    }
+   }
+  },
+  "ff_pumpkin_seeds": {
+   "status": "missing",
+   "reason": "The catalog item is shelled (green) kernels. The previewed 'Pumpkin seed. img 029' shows whole white in-shell seeds (the unshelled 'lib abyad' snack) - wrong state. Other hits were the in-shell roasted macro, oil-pumpkin plants, people named Pepita and archival scans; no photo of green pumpkin-seed kernels found.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_sesame_seeds": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Sa white sesame seeds.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Sa_white_sesame_seeds.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/Sa_white_sesame_seeds.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Sanjay ach",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of white sesame seeds",
+    "ar": "صورة مقرّبة لبذور سمسم بيضاء"
+   },
+   "reviewNote": "Magnified white sesame seeds spread on a black background; plain dry seeds, no text. Slight note: the seeds look hulled-white while the USDA record is 'whole, dried' (which runs a little more tan) - visually the same food as sold in Egypt.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sesame_seeds/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 29750,
+     "sha256": "d404545b809ab625972912952b28391e18d1e38279d2420de31612846cd0c21b"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sesame_seeds/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5068,
+     "sha256": "9db28301dccbd0b802a1707da0e824267a18ece0d7795385bf4b7ea71ca67287"
+    }
+   }
+  },
+  "ff_chia_seeds": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Chia Seeds macro 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Chia_Seeds_macro_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/94/Chia_Seeds_macro_2.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Daniel Schwen",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of dry chia seeds",
+    "ar": "صورة مقرّبة لبذور الشيا الجافة"
+   },
+   "reviewNote": "Frame-filling macro of dry chia seeds (Salvia hispanica), mottled grey-brown with a few white seeds; dry as sold, not soaked. Daniel Schwen, CC BY 3.0.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chia_seeds/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 90272,
+     "sha256": "76eca532f9f1f69d79b40f6c3dd46dc89b0e4825505305e492a83fe6e35cee8a"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chia_seeds/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 9078,
+     "sha256": "6177366b72a2deda8d69930636b85342d9974f1fd24e8b2da598e367a8f3471d"
+    }
+   }
+  },
+  "ff_flaxseed": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Brown Flax Seeds.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Brown_Flax_Seeds.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Brown_Flax_Seeds.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Sanjay Acharya",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of whole brown flaxseeds",
+    "ar": "صورة مقرّبة لبذور كتان بنية كاملة"
+   },
+   "reviewNote": "Frame-filling close-up of whole brown flaxseeds; dry whole seeds as sold (the catalog's default portion is whole seeds). No text or packaging.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_flaxseed/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 76780,
+     "sha256": "e4f75fda0be9fa781a65011a543ef8c2ec0bdf8b751c52798238b4be994f1359"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_flaxseed/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 9170,
+     "sha256": "712bfc13bbad1ea6ef864483d510331037e98f1805de4b57df048e2dcdba1801"
+    }
+   }
+  },
+  "ff_olive_oil": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Olivenöl Weißbrot und grobes Salz (1).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_(1).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Olivenöl_Weißbrot_und_grobes_Salz.JPG: 4028mdk09 derivative work: Andrzej 22 (talk)",
+   "credit": "Olivenöl_Weißbrot_und_grobes_Salz.JPG",
+   "alt": {
+    "en": "Olive oil in a clear glass jug",
+    "ar": "زيت زيتون في إبريق زجاجي شفاف"
+   },
+   "reviewNote": "Golden-green olive oil in a plain, unlabelled glass jug on a white cloth - the plain oil itself, no olives, brand or label. A small dish of coarse salt sits in the foreground (minor extra). Crop of a larger bread-oil-salt photo. A branded jerrycan candidate was rejected; most other hits were branded bottles.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_olive_oil/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 37596,
+     "sha256": "51dacf9541d7c06ed129d82f6cbf2ea3b35fd0a420c11d756d60af95def2a33d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_olive_oil/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4548,
+     "sha256": "7079b13a347e20e8927dcf615a6a5204898e0f0bd029a584b58bfdce79cfa17a"
+    }
+   }
+  },
+  "ff_sunflower_oil": {
+   "status": "missing",
+   "reason": "Previewed two: a labelled supermarket bottle (brand label, nutrition panel, barcode) and a torange.biz styled shot whose subject is a sunflower head with a corner watermark. Other hits were branded bottles, a street vendor (person), a production map and bottling-date close-ups. No plain unlabelled sunflower oil found.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_corn_oil": {
+   "status": "missing",
+   "reason": "The only photo titled 'Corn oil (mais)' is a branded 5-litre supermarket bottle on a shelf (rejected). 'Corn oil.jpg' is 704x1000 (below the size floor) and the rest are Mazola adverts/store shots, production maps and oil wells in corn fields. No plain unlabelled corn oil found.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_butter": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Block of butter 2020-09-28 2951b.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Block_of_butter_2020-09-28_2951b.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Block_of_butter_2020-09-28_2951b.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Salicyna",
+   "credit": "Own work",
+   "alt": {
+    "en": "A block of butter on its opened wrapper",
+    "ar": "قالب زبدة على غلافه المفتوح"
+   },
+   "reviewNote": "Three-quarter view of an unwrapped block of butter resting on its opened, plain foil-paper wrapper, in warm side light. Borderline on the 'packaging' rule: the wrapper is only the background, unprinted on this side, with no logo, brand or readable text. Every alternative found was a branded/wrapped pack, a dish being opened by a person, or butter on bread. Salted vs unsalted is not visible in any photo.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_butter/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 14318,
+     "sha256": "4338f7acc74695e02bcddaa2f9d19e4d58bdf5203db1db70ebcf57c24028c78b"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_butter/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2496,
+     "sha256": "949b70f9c4ee3d163ceb98ec6c930bfc1d59e02406c5d02d8b52f2ebf0c30253"
+    }
+   }
+  },
+  "ff_ghee": {
+   "status": "missing",
+   "reason": "Previewed two: 'Ghee 2.jpg' (pale scraped ghee in a tub - unrecognisable, reads as ice cream) and 'Sliced clarified butter.png' (CC BY-SA 4.0, claimed own work; content is right - solid golden clarified butter in a bowl - but it is a recompressed, soft PNG at an odd 1147x867 size that looks lifted from the web, so provenance is doubtful). Other hits were ghee lamps, kettles, sweets and people/places named Ghee. A human could verify the PNG's provenance and reconsider.",
+   "reviewer": "food-images.c.json"
+  },
+  "ff_mayonnaise": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Homemade mayonnaise.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Homemade_mayonnaise.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/79/Homemade_mayonnaise.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Jason Terk from Somerville, MA, US",
+   "credit": "Finished",
+   "alt": {
+    "en": "Thick mayonnaise in a bowl with a whisk",
+    "ar": "مايونيز كثيف في وعاء مع مضرب يدوي"
+   },
+   "reviewNote": "Close-up of thick, glossy mayonnaise in a bowl with a wire whisk; no jar, brand or text. Minor note: it is homemade (slightly more yellow than jarred regular mayonnaise) but visually the same food. The first candidate titled 'Mayonnaise in the bowl' was a mislabelled landscape photo.",
+   "reviewer": "food-images.c.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mayonnaise/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 15496,
+     "sha256": "b99d9c99b8234dddba60900506b47ef1df6db8386c00e664c07e606bd33ad31f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mayonnaise/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2954,
+     "sha256": "7adf6a4ae4ab1bdd7afe11d030df39a5695cd33ad427ec7517aabffd0c8678e8"
+    }
+   }
+  },
+  "ff_honey": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Runny hunny.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Runny_hunny.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Runny_hunny.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Scott Bauer, USDA ARS",
+   "credit": "This image was released by the Agricultural Research Service, the research agency of the United States Department of Agriculture, with the ID K7240-6 (next).",
+   "alt": {
+    "en": "A jar of honey with honey dripping from a wooden dipper",
+    "ar": "وعاء زجاجي من العسل مع عسل يتقطر من مغرفة خشبية"
+   },
+   "reviewNote": "USDA ARS public-domain photo: honey jar and dipper are the subject; biscuits in the background and an unidentifiable fingertip at the top edge. Unbranded jar.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_honey/r1-card.webp",
+     "width": 640,
+     "height": 971,
+     "bytes": 64450,
+     "sha256": "e6bb29d2b6922e5590ff4036f485c553c83ecbfccb78fa14a201345fab087fce"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_honey/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5272,
+     "sha256": "a6501205c88fc9583f619fbc036a229d0f8aedd9bdfdbf4f62b9f0848c56604e"
+    }
+   }
+  },
+  "ff_sugar": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Bowl of white sugar.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Bowl_of_white_sugar.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/99/Bowl_of_white_sugar.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Douglas P Perkins",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of white granulated sugar",
+    "ar": "وعاء من السكر الأبيض المحبب"
+   },
+   "reviewNote": "Plain white granulated sugar in a bowl, top view; no packaging.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sugar/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 25962,
+     "sha256": "2dafc3d7c2325b5470e05f1b380657aab76927e3660cb36a7318c3d8395940ce"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sugar/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2206,
+     "sha256": "0fc567709f933bc925733e4993dcea3aebd40380868092815b1cc02cf1d54560"
+    }
+   }
+  },
+  "ff_molasses": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Blackstrapmolasses.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Blackstrapmolasses.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Blackstrapmolasses.JPG",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Badagnani",
+   "credit": "Own work",
+   "alt": {
+    "en": "Dark molasses pouring from a spoon into a glass bowl",
+    "ar": "عسل أسود يُسكب من ملعقة في وعاء زجاجي"
+   },
+   "reviewNote": "Thick dark cane molasses (blackstrap) poured from a spoon; matches Egyptian 'black honey'. No label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_molasses/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 17096,
+     "sha256": "377f504d5008ef0c1a820a26a2c0036b7972c85e48542a139befa691e56272c6"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_molasses/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2882,
+     "sha256": "cfc7913b96e84813d929ee26a9358bd4796b905fa46f2715de3baed6895e13b2"
+    }
+   }
+  },
+  "ff_jam": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Strawberry jam on a dish.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Strawberry_jam_on_a_dish.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Strawberry_jam_on_a_dish.JPG",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "PatríciaR",
+   "credit": "Own work",
+   "alt": {
+    "en": "Strawberry jam on a white plate",
+    "ar": "مربى فراولة على طبق أبيض"
+   },
+   "reviewNote": "Close-up of fruit jam (strawberry) on a plate; generic jam, no jar or label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_jam/r1-card.webp",
+     "width": 640,
+     "height": 482,
+     "bytes": 14054,
+     "sha256": "23ef021134ac6f85f251e01ebed1b8f66414fdc84cd14af3ddaa2bc9e22e68f5"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_jam/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2732,
+     "sha256": "e8a36119e5243f37f9969c5eb34ca69876729cc9cbe1639b9907ae0e32af7821"
+    }
+   }
+  },
+  "ff_dark_chocolate_70": {
+   "status": "missing",
+   "reason": "Every dark-chocolate photo found was a branded bar or had a brand embossed on the squares (Green & Black's, Ritter Sport, Amul, Bellarom); the remaining candidates were desserts or low-cocoa cooking chocolate.",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_milk_chocolate": {
+   "status": "missing",
+   "reason": "Every milk-chocolate photo found was branded (Reese's, Ghirardelli, Cadbury, Russell Stover) or had a brand embossed on the pieces (Alpia, also mixed with dark and white chocolate).",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_ice_cream_vanilla": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Vanilla bean ice cream (3086700978).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Vanilla_bean_ice_cream_(3086700978).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "a.pasquier from bellingham, washington",
+   "credit": "vanilla bean",
+   "alt": {
+    "en": "A scoop of vanilla ice cream with a mint sprig",
+    "ar": "كرة آيس كريم فانيليا مع غصن نعناع"
+   },
+   "reviewNote": "Single scoop of vanilla (bean) ice cream on a wooden board; the mint is garnish only. No tub, brand or text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_ice_cream_vanilla/r1-card.webp",
+     "width": 640,
+     "height": 429,
+     "bytes": 17422,
+     "sha256": "92e44f430aab82685159f932121d72c3814c29bb6b1af8c2e745b74f4ec42ef8"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_ice_cream_vanilla/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2472,
+     "sha256": "c1e8a94801641a906a780fa2b204f2da9ef2e123cc209af32cc7f67cd2307deb"
+    }
+   }
+  },
+  "ff_basbousa": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Basboussa - harisa - بسبوسة photo2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Sami Mlouhi",
+   "credit": "Own work",
+   "alt": {
+    "en": "Squares of basbousa topped with nuts on a white plate",
+    "ar": "قطع بسبوسة مربعة مزينة بالمكسرات على طبق أبيض"
+   },
+   "reviewNote": "Syrup-soaked semolina cake (basbousa / harissa) cut in squares, each topped with nuts — the real Egyptian/Levantine sweet, matching the '1 piece' portion. Slightly dim light; a fork and napkin at the edge, no text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_basbousa/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 40862,
+     "sha256": "7fb4ee64d93025e0eec09d34eeb9c744e98caec4a9c7d47d2f7b75cc9491f53f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_basbousa/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3216,
+     "sha256": "3e14ebde1b2674eab1b59cbb37433393ea41f5d6e1878077df30a032345e46fe"
+    }
+   }
+  },
+  "ff_orange_juice": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Orange juice 1 edit1.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/67/Orange_juice_1_edit1.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Agency of the United States Department of Agriculture Edited Version by: Arad",
+   "credit": "USDA",
+   "alt": {
+    "en": "Orange juice being poured into a glass",
+    "ar": "عصير برتقال يُسكب في كوب"
+   },
+   "reviewNote": "USDA public-domain photo of orange juice poured into a plain glass; no carton, brand or text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_orange_juice/r1-card.webp",
+     "width": 640,
+     "height": 910,
+     "bytes": 33454,
+     "sha256": "74e2a3ada5b14f8f3da75e7d5ffbcd340d7202aab770d078fb00377aba5379f1"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_orange_juice/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3296,
+     "sha256": "593ac9a55cf37b0d43ee4381ae0efefaf58b02555b9a96b3c214f5a176648771"
+    }
+   }
+  },
+  "ff_apple_juice": {
+   "status": "missing",
+   "reason": "Candidates showed cloudy pale juice (homemade/russet pressing) that does not read as the clear, bottled unsweetened apple juice of the USDA record and could be mistaken for another juice; the rest were branded cups, mixed breakfast scenes or people drinking.",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_cola_regular": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Glass cola.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_cola.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/10/Glass_cola.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "pic_p_ter",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass of cola with ice cubes and lemon",
+    "ar": "كوب مشروب كولا مع مكعبات ثلج وشرائح ليمون"
+   },
+   "reviewNote": "Plain unbranded glass of cola with ice and a lemon garnish; no can, bottle or logo.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cola_regular/r1-card.webp",
+     "width": 640,
+     "height": 496,
+     "bytes": 13560,
+     "sha256": "595e6d943a1f45374507a07afcb6cc8b9986e9fda0b817750780d794b31b6deb"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cola_regular/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2242,
+     "sha256": "fc8efad39310ebabd0a83a038a4e00b18930e2e23bb220d968d2fdf1d0948c78"
+    }
+   }
+  },
+  "ff_tea_black": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:A cup of black tea from Srimangal Bangladesh.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Sm faysal",
+   "credit": "Own work",
+   "alt": {
+    "en": "A glass cup of plain black tea on a saucer",
+    "ar": "كوب زجاجي من الشاي الأحمر السادة على صحن"
+   },
+   "reviewNote": "Brewed black tea without milk in a clear glass cup and saucer; no text. Background is blurred (an unidentifiable shoulder and shelving).",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tea_black/r1-card.webp",
+     "width": 640,
+     "height": 481,
+     "bytes": 31174,
+     "sha256": "3083439189e77fd5a90aefaf3ca55ce342bac348a805fc76952ac64f81bd04fe"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tea_black/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4892,
+     "sha256": "e93660bc4bc3476cc67b2e9e5df70e8281c5fc03365f603317f6f31dd65690ce"
+    }
+   }
+  },
+  "ff_tea_green": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:White cup with green tea in it.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:White_cup_with_green_tea_in_it.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6e/White_cup_with_green_tea_in_it.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Douglas P Perkins",
+   "credit": "Own work",
+   "alt": {
+    "en": "A small white cup of brewed green tea",
+    "ar": "فنجان أبيض صغير من الشاي الأخضر المنقوع"
+   },
+   "reviewNote": "Plain brewed green tea (no sugar, no milk) in a small white cup; no text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tea_green/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 9398,
+     "sha256": "6597a0845d15523b0a265eba0fcdfaafddd513ab54020e595424fabe56b77c2e"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tea_green/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1426,
+     "sha256": "e1c179f48bcfc40fb0d9e3e31a100a268b0f1bb4f1abbc7826cdeaa8b3c85dea"
+    }
+   }
+  },
+  "ff_coffee_black": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:White cup of black coffee.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:White_cup_of_black_coffee.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ce/White_cup_of_black_coffee.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Jon-Isac Lindberg",
+   "credit": "Own work",
+   "alt": {
+    "en": "A white mug of plain black coffee",
+    "ar": "كوب أبيض من القهوة السادة"
+   },
+   "reviewNote": "Brewed black coffee without milk in a plain white mug on white; CC0, no text.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_coffee_black/r1-card.webp",
+     "width": 640,
+     "height": 651,
+     "bytes": 5650,
+     "sha256": "da3611cace3f65c89c796f4f4b4cc2a5235b6c62614684dd9240a5f29acea921"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_coffee_black/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1080,
+     "sha256": "5afa69c1d6f087c43235f0743dfdb535599869f50e4d8cc951906cc5706c59df"
+    }
+   }
+  },
+  "ff_whey_protein": {
+   "status": "needs-replacement",
+   "note": "chocolate-flavoured powder that could be read as cocoa — replace with an unflavoured, unbranded scoop",
+   "rev": 1,
+   "file": "File:Whey Protein Scoop (49935767168).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Whey_Protein_Scoop_(49935767168).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Ajay Suresh from New York, NY, USA",
+   "credit": "Whey Protein Scoop",
+   "alt": {
+    "en": "A measuring cup filled with chocolate-flavoured whey protein powder",
+    "ar": "كوب قياس مملوء ببودرة بروتين الشرش بنكهة الشوكولاتة"
+   },
+   "reviewNote": "Loose whey protein powder in a metal measuring cup (matches the cup-based portion); no tub, label or brand. Borderline: it is chocolate-flavoured, so it could be mistaken for cocoa; every other whey/protein photo was a branded tub or bag.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_whey_protein/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 44924,
+     "sha256": "f5315b2be7eb882cc41eb450b0f96a2a5ebce12ceca2c3ccb1525fbac0550f47"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_whey_protein/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4632,
+     "sha256": "cae9dcad87e113d00d2f3b50cc82d47fc9598c1d77b6bd959e6a4b9e3a63ebf2"
+    }
+   }
+  },
+  "ff_tomato_paste": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tomato paste on spoon.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tomato_paste_on_spoon.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Tomato_paste_on_spoon.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "SKopp",
+   "credit": "Own work",
+   "alt": {
+    "en": "A spoonful of thick tomato paste",
+    "ar": "ملعقة من صلصة الطماطم المركزة"
+   },
+   "reviewNote": "Concentrated tomato paste on a spoon against white, matching the tablespoon portion; no can or label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tomato_paste/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 18408,
+     "sha256": "3d1851643286aeb32eb3403fa95d4f173c9d22ea576da8b7111774209aabef0f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tomato_paste/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2632,
+     "sha256": "e396f570729a57b5df87830442a0f7942bae13f97ad85a3e30d9b9c9e64301d3"
+    }
+   }
+  },
+  "ff_tomato_sauce": {
+   "status": "missing",
+   "reason": "No photo of plain canned tomato sauce: results were pasta/meat dishes with sauce, branded jars or cans (Del Monte, Pomì), or a simmering homemade sauce from a bulk uploader whose photos could not be confidently verified as genuine photographs.",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_ketchup": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Ketchup example 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Ketchup_example_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Ketchup_example_2.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Ketchup_example.jpg: Yohan euan o4 derivative work: Bobek",
+   "credit": "This file was derived from: Ketchup example.jpg:",
+   "alt": {
+    "en": "A dollop of ketchup on a white plate",
+    "ar": "كمية من الكاتشب على طبق أبيض"
+   },
+   "reviewNote": "Plain ketchup squeezed onto a white plate (about a tablespoon); no bottle or label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_ketchup/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 8374,
+     "sha256": "8c30408bae055f2dee069124ce1fe224d5d402bccf9cdf400b96f8c8cea9a5d8"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_ketchup/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1426,
+     "sha256": "ca8e5b6c90a6a8ff950240b81845360f459d38cc3b62e1198d8f8e6063141bac"
+    }
+   }
+  },
+  "ff_vinegar": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Apple Cider Vinegar (4108653248).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Apple_Cider_Vinegar_(4108653248).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg",
+   "license": "CC-BY-SA-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Veganbaking.net from USA",
+   "credit": "Apple Cider Vinegar",
+   "alt": {
+    "en": "Apple cider vinegar in a small glass bowl",
+    "ar": "خل تفاح في وعاء زجاجي صغير"
+   },
+   "reviewNote": "Unbranded apple cider vinegar in a small clear prep bowl on white; no bottle or label.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_vinegar/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 5616,
+     "sha256": "f21daffcbf045996df0915f9fa7bcaa8d2acb8d283fcc50d957fffde63cd81a7"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_vinegar/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1228,
+     "sha256": "7d0aa314f0c22ebdc237768d2c63ead48eda814dc1a6e4444ac0bd26c3c1f346"
+    }
+   }
+  },
+  "ff_chicken_broth": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Chicken Stock.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Chicken_Stock.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Chicken_Stock.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "TheCulinaryGeek",
+   "credit": "https://www.flickr.com/photos/72949902@N00/4706596138/",
+   "alt": {
+    "en": "A white bowl of clear golden chicken broth",
+    "ar": "وعاء أبيض من مرق الدجاج الصافي"
+   },
+   "reviewNote": "Clear strained chicken broth in a bowl; the celery, onion, carrots and spices beside it are raw props, not part of the serving. No carton, label or watermark.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chicken_broth/r1-card.webp",
+     "width": 640,
+     "height": 964,
+     "bytes": 30308,
+     "sha256": "5b8653ae40f41b92efb1b26e72dc443c34e8f1021a116d0f1bfe9a8305966a33"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chicken_broth/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3404,
+     "sha256": "889b8432653d269f74d16ef0b0f199a6fdf2a0a65bbb63be97b090241c246609"
+    }
+   }
+  },
+  "ff_ful_with_oil": {
+   "status": "needs-replacement",
+   "note": "authentic Egyptian ful, but a creamy layer may be tahini, which the recipe does not include — replace with ful dressed with oil only",
+   "rev": 1,
+   "file": "File:Foul Mohamed Ahmed - foul.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Foul_Mohamed_Ahmed_-_foul.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/58/Foul_Mohamed_Ahmed_-_foul.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Marsupium",
+   "credit": "Own work",
+   "alt": {
+    "en": "A metal plate of Egyptian ful medames glistening with oil",
+    "ar": "طبق معدني من الفول المدمس المصري بالزيت"
+   },
+   "reviewNote": "Ful medames as served at Foul Mohamed Ahmed, Alexandria: stewed fava beans on a steel plate with oil pooling at the rim; pita and another dish only at the frame edges. Borderline: a pale creamy layer under the beans may be tahini, which the catalog recipe (beans + 1 tbsp olive oil + lemon) does not include — drop this if that matters; the other candidate was a full breakfast plate with eggs, bread and salad.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_ful_with_oil/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 62718,
+     "sha256": "4273a6896dd11b544182232cf92f4a63c6882f31ab8adbcf8252789e12651612"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_ful_with_oil/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4532,
+     "sha256": "052b135e61f20abf5aec856f69af5cece5f39b899fc69de873eed8cf644ff171"
+    }
+   }
+  },
+  "ff_koshary": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Egyptian food Koshary.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Egyptian_food_Koshary.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Egyptian_food_Koshary.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Dina Said",
+   "credit": "Own work",
+   "alt": {
+    "en": "A plate of Egyptian koshary topped with chickpeas, fried onions and tomato sauce",
+    "ar": "طبق كشري مصري مزيّن بالحمص والبصل المقلي وصلصة الطماطم"
+   },
+   "reviewNote": "Real Egyptian koshary — rice, lentils, macaroni and vermicelli-style pasta, chickpeas, fried onion and tomato sauce — with small bowls of its components around it. Styled shot; the onion is crisp-fried (shop style), which the sheet's note already flags.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_koshary/r1-card.webp",
+     "width": 640,
+     "height": 444,
+     "bytes": 65816,
+     "sha256": "5b13b2ab486c7885f0bd859543a443b061d54a08dddb77a42b19afba0f255ad0"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_koshary/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 7068,
+     "sha256": "2e09a752afbccb0a98dd28940b0f31e7656b21f28c7ec7e52638eed730565c47"
+    }
+   }
+  },
+  "ff_molokhia_soup": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Molokheya Egypt, 2012.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Molokheya_Egypt,_2012.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/72/Molokheya_Egypt%2C_2012.JPG",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Habib M'henni",
+   "credit": "Own work",
+   "alt": {
+    "en": "A clay bowl of green Egyptian molokhia soup with a spoon",
+    "ar": "وعاء فخاري من الملوخية المصرية الخضراء مع ملعقة"
+   },
+   "reviewNote": "Egyptian molokhia (finely minced jute leaves in broth) in a clay bowl, photographed in Egypt in 2012 and described as Egyptian molokheya; no meat or rice in frame. Somewhat dim lighting; chosen over a brighter bowl whose cuisine of origin was not stated.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_molokhia_soup/r1-card.webp",
+     "width": 640,
+     "height": 478,
+     "bytes": 55384,
+     "sha256": "e7619515774e7809c4484503c02ddd4482c4d232ae1a786a94081cf2ed261a16"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_molokhia_soup/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4798,
+     "sha256": "a708b6be60d8b81300beaaa90bf0f022169e408353957c01c6d1a11f89ec734c"
+    }
+   }
+  },
+  "ff_mahshi_kousa": {
+   "status": "missing",
+   "reason": "No photo of Egyptian mahshi kousa found: results were Iraqi, Iranian, Greek or Bengali dolma, a Palestinian-style stuffed zucchini (different cuisine, so not acceptable), and one undersized phone image.",
+   "reviewer": "food-images.d.json"
+  },
+  "ff_rice_vermicelli": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Lebanese style rice.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Lebanese_style_rice.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d2/Lebanese_style_rice.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "El Mono Español",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pot of white rice cooked with toasted vermicelli",
+    "ar": "قدر من الأرز الأبيض المطبوخ بالشعرية المحمّرة"
+   },
+   "reviewNote": "Medium-grain rice cooked with toasted vermicelli, still in the pot with a wooden spoon — exactly the dish in the sheet. Borderline on provenance: the file is titled 'Lebanese style rice' and described as 'Arabic / Levantine / Egyptian style rice'; the dish is the same on both sides and looks like Egyptian roz bel shareya, so approved — drop it if a photo labelled Egyptian is required.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_rice_vermicelli/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 34446,
+     "sha256": "30a45e67bd96c317297226238cfb66a633809fbbfa7eab5853c0c6684965e511"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_rice_vermicelli/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4508,
+     "sha256": "2cb08552d867e71d6c1b37d8a1ccceabc4d0b966abeca70c555b944bdfee5152"
+    }
+   }
+  },
+  "ff_grape_leaves_stuffed": {
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Mahshi.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Mahshi.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Mahshi.JPG",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Fadyatef",
+   "credit": "Fadyatef at ar.wikipedia",
+   "alt": {
+    "en": "Rolled stuffed grape leaves on a serving tray",
+    "ar": "أصابع ورق عنب محشي على صينية تقديم"
+   },
+   "reviewNote": "Thin, tightly rolled grape leaves stuffed with rice (warak enab), cooked in oil, on a tray with clear serving picks; no text. File is titled 'Mahshi' (the Egyptian name) though its description calls it a Levantine/Turkish dish; the rolls match both the Egyptian dish and the USDA 'vegetarian, with oil' record. Borderline on stated provenance only.",
+   "reviewer": "food-images.d.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_grape_leaves_stuffed/r1-card.webp",
+     "width": 640,
+     "height": 424,
+     "bytes": 32422,
+     "sha256": "097c881ad9958c21f24bf1da2023b7e97f8945bd77a140f9a5433480f5d0651f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_grape_leaves_stuffed/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4680,
+     "sha256": "905b8ac40a561afdad4d3f1141a391c4a7318bf4032953223cdb14b251f33d85"
+    }
+   }
+  }
+ }
+}

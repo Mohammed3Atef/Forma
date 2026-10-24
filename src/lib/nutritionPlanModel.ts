@@ -1,5 +1,6 @@
 import { typeLocalized } from './localizedText';
-import type { FoodItem, LocalizedText, Macros, Meal, MealPlan } from '../types';
+import type { FoodImageRef, FoodItem, FoodProvenance, LocalizedText, Macros, Meal, MealPlan } from '../types';
+import { PROVENANCE_KEYS } from './catalogText';
 
 /**
  * Pure rules of the nutrition editor (B3.5). Planned totals are real sums of the plan's own foods —
@@ -39,11 +40,18 @@ export interface FoodEdit {
   /** `undefined` = alternatives untouched; `null` = none; a group = re-snapshot its foods. */
   group?: { id: string; foods: FoodItem[] } | null;
   allowCustom: boolean;
+  /**
+   * B4: `undefined` = untouched; `null` = the values are now the coach's own (a macro was typed by
+   * hand) — every catalog claim is dropped; an object = a catalog serving the numbers come from.
+   */
+  provenance?: FoodProvenance | null;
+  /** B4.1: `undefined` = picture untouched; `null` = removed; a picture = the copy the item now shows. */
+  image?: FoodImageRef | null;
 }
 
 /** Library foods snapshotted onto a plan item: plain items, no undefined keys. */
 export function snapshotFood(f: FoodItem, newId: () => string): FoodItem {
-  return { id: f.id || newId(), name: f.name, quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats, calories: f.calories };
+  return { id: f.id || newId(), name: f.name, quantity: f.quantity, protein: f.protein, carbs: f.carbs, fats: f.fats, calories: f.calories, ...(f.image ? { image: f.image } : {}) };
 }
 
 /**
@@ -66,6 +74,12 @@ export function applyFoodEdit(orig: FoodItem | null, id: string, e: FoodEdit, ne
   }
   if (e.allowCustom) next.allowCustomSubstitution = true;
   else delete next.allowCustomSubstitution;
+  if (e.provenance !== undefined) {
+    for (const k of PROVENANCE_KEYS) delete next[k];
+    if (e.provenance) Object.assign(next, e.provenance);
+  }
+  if (e.image === null) delete next.image;
+  else if (e.image) next.image = e.image;
   return next;
 }
 

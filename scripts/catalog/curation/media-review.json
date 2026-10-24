@@ -1,0 +1,47 @@
+{
+  "_policy": "B4 media review. An item is published only after a person looked at it (image) or played it in Chrome (video, scripts/catalog/check-videos.mjs). Accept: Everkinetic line art (credited to Everkinetic even when re-uploaded by a wger user) and named contributors' own photos/videos showing the exercise correctly. Reject: anonymous uploads (no traceable author), images whose wger record names a commercial derivative source, commercial-library 3D renders, watermarks / AI-generator marks, decorative art that does not teach the movement, and wrong exercise. Value: \"ok\" | {\"ok\": true, \"credit\": \"...\"} | \"reject: reason\". Refinement (lead review, 2026-10-22): a frame of an Everkinetic series — same wger folder and file series as a frame wger credits to Everkinetic, licence CC BY-SA 3.0, line-art style — is credited to Everkinetic even when wger left the author field empty (e.g. img:3, Crunches-1, companion of img:4).",
+  "img:68": "ok",
+  "img:70": "ok",
+  "img:129": "ok",
+  "img:130": "ok",
+  "img:115": "ok",
+  "img:116": "ok",
+  "img:113": "ok",
+  "img:703": "reject: anonymous upload; AI-generator watermark (sparkle mark) — provenance unverifiable",
+  "img:105": "ok",
+  "img:457": {
+    "ok": true,
+    "credit": "Everkinetic (uploaded to wger by erikocobra)"
+  },
+  "img:212": {
+    "ok": true,
+    "credit": "Everkinetic (uploaded to wger by cshep442)"
+  },
+  "img:213": {
+    "ok": true,
+    "credit": "Everkinetic (uploaded to wger by cshep442)"
+  },
+  "img:127": "ok",
+  "img:128": "ok",
+  "img:462": "reject: commercial-library style 3D render (provenance doubtful); shows a front-raise-like movement, not a chest fly",
+  "img:593": "reject: wger record names a commercial derivative source (fitnessvolt.com) — no right to relicense",
+  "img:681": "reject: anonymous upload (likely AI-generated) — provenance unverifiable",
+  "img:691": "reject: anonymous upload (likely AI-generated, screenshot crop) — provenance unverifiable",
+  "img:524": "reject: decorative illustration (likely AI-generated), not a technique demonstration",
+  "img:357": "reject: commercial-library style 3D render — provenance doubtful",
+  "img:211": {
+    "ok": true,
+    "credit": "Everkinetic (uploaded to wger by cshep442)"
+  },
+  "img:690": "reject: anonymous upload — provenance unverifiable",
+  "img:682": "reject: anonymous upload — provenance unverifiable",
+  "img:324": "reject: anonymous upload — provenance unverifiable",
+  "vid:23": {
+    "ok": true,
+    "credit": "Goulart"
+  },
+  "vid:64": {
+    "ok": true,
+    "credit": "Goulart"
+  }
+}

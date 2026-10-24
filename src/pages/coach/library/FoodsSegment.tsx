@@ -9,6 +9,8 @@ import { SegmentedControl } from '@/components/ui/Tabs';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
 import { TagInput } from '@/components/TagInput';
+import { LazyFoodImageEditor } from '@/components/food/LazyFood';
+import { FoodCardImage, FoodThumb } from '@/components/food/FoodImage';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CollectionList, CollectionTable, type CollectionColumn } from '@/components/library/LibraryCollection';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
@@ -18,7 +20,7 @@ import { collatorFor, filterFoods, localizedName, nextSort, segmentQuery, sortFo
 import { bulkDeleteFoods, deleteFood, listFoods, saveFood } from '@/services/platform/coachAssetsApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import type { LibraryFood, LocalizedText } from '@/types';
+import type { FoodImageRef, LibraryFood, LocalizedText } from '@/types';
 import { DetailSheet, ListBody, StarterPanel, Toolbar, UseInPlanSheet, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
 
@@ -72,8 +74,11 @@ interface FoodForm {
   macros: Record<'calories' | 'protein' | 'carbs' | 'fats', number | null>;
   category: string;
   tags: string[];
+  /** B4.1: the food's picture — the coach's own upload or the Forma picture it came with. */
+  image: FoodImageRef | null;
+  formaImage: FoodImageRef | null;
 }
-const blankFood = (): FoodForm => ({ id: null, name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', macros: { calories: null, protein: null, carbs: null, fats: null }, category: '', tags: [] });
+const blankFood = (): FoodForm => ({ id: null, name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', macros: { calories: null, protein: null, carbs: null, fats: null }, category: '', tags: [], image: null, formaImage: null });
 const formOf = (f: LibraryFood): FoodForm => ({
   id: f.id,
   name: f.name.en,
@@ -84,6 +89,8 @@ const formOf = (f: LibraryFood): FoodForm => ({
   macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats },
   category: f.category ?? '',
   tags: f.tags ?? [],
+  image: f.image ?? null,
+  formaImage: f.image?.source === 'forma-catalog' ? f.image : null,
 });
 
 function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, openId, onOpened }: SegmentProps) {
@@ -156,6 +163,8 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
     else delete food.category;
     if (form.tags.length) food.tags = form.tags;
     else delete food.tags;
+    if (form.image) food.image = form.image;
+    else delete food.image;
     save.mutate(food);
   };
 
@@ -166,7 +175,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
   ];
   const num = (v: number) => <span className="font-mono tabular-nums text-earth-muted">{v}</span>;
   const columns: CollectionColumn<LibraryFood>[] = [
-    { key: 'name', header: t('library.col.food'), sortKey: 'name', primary: true, className: 'w-[34%]', cell: (f) => <bdi>{name(f)}</bdi> },
+    { key: 'name', header: t('library.col.food'), sortKey: 'name', primary: true, className: 'w-[34%]', lead: (f) => <FoodThumb image={f.image} size="xs" />, cell: (f) => <bdi>{name(f)}</bdi> },
     { key: 'serving', header: t('library.col.serving'), className: 'w-[16%]', cell: (f) => <span className="block truncate text-earth-muted"><bdi>{f.quantity || '—'}</bdi></span> },
     { key: 'kcal', header: t('library.col.calories'), sortKey: 'calories', align: 'end', className: 'w-[13%]', cell: (f) => num(f.calories) },
     { key: 'p', header: t('nutrition.protein'), sortKey: 'protein', align: 'end', className: 'w-[13%]', cell: (f) => num(f.protein) },
@@ -221,6 +230,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
             selecting={bulk.selecting}
             selection={bulk.sel}
             render={(f) => ({
+              lead: <FoodThumb image={f.image} size="sm" />,
               title: <bdi>{name(f)}</bdi>,
               meta: (
                 <>
@@ -270,6 +280,8 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
           <div className="space-y-3" data-testid="food-lib-form">
             <TextInput label={t('field.name')} data-testid="lf-name" placeholder={t('coachEditor.foodName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} dir="auto" />
             <SecondLanguageField lang="ar" testId="lf-name-ar" value={form.nameAr} onChange={(v) => setForm({ ...form, nameAr: v, nameArTouched: true })} stale={!form.nameArTouched && secondLanguageStale(form.nameOrig, form.name, 'en')} />
+            {/* An upload finishes later: the update is functional, so typing meanwhile is kept. */}
+            <LazyFoodImageEditor value={form.image} formaImage={form.formaImage} name={{ en: form.name, ar: form.nameAr }} testId="lf-image" onChange={(image) => setForm((cur) => (cur ? { ...cur, image } : cur))} />
             <TextInput label={t('library.col.serving')} data-testid="lf-quantity" placeholder={t('coachFoods.serving')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} dir="auto" />
             <div className="grid grid-cols-2 gap-3">
               {(['calories', 'protein', 'carbs', 'fats'] as const).map((k) => (
@@ -312,8 +324,10 @@ function FoodDetail({ food }: { food: LibraryFood }) {
       </div>
     </div>
   );
+  const credit = food.image?.source === 'forma-catalog' && food.image.author ? t('foodImage.credit', { author: food.image.author, license: food.image.license ?? '' }) : null;
   return (
     <div className="space-y-4">
+      <FoodCardImage image={food.image} credit={credit} compact testId="food-view-image" />
       {other?.trim() && other.trim() !== localizedName(food.name, i18n.language) ? (
         <p className="text-[13.5px] text-earth-muted" data-testid="food-view-other-name">
           <bdi>{other}</bdi>

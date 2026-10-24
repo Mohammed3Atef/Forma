@@ -26,6 +26,7 @@ import { adminUsersRouter } from './routers/adminUsers.js';
 import { authRouter } from './routers/auth.js';
 import { syncRouter } from './routers/sync.js';
 import { foodSearchRouter } from './routers/foodSearch.js';
+import { catalogRouter } from './routers/catalog.js';
 import { mediaRouter } from './routers/media.js';
 import { contactRouter } from './routers/contact.js';
 
@@ -79,6 +80,7 @@ export const appRouter = router({
   auth: authRouter,
   sync: syncRouter,
   foodSearch: foodSearchRouter,
+  catalog: catalogRouter,
   media: mediaRouter,
   contact: contactRouter,
 });

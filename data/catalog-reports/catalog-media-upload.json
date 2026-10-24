@@ -1,0 +1,436 @@
+{
+ "note": "Owner hosting step (B4_MEDIA_RIGHTS_AND_QA §4): upload each localFile to the PUBLIC catalog zone at cdnPath, then set FORMA_CATALOG_MEDIA_URL. Nothing here is uploaded automatically.",
+ "files": 66,
+ "bytes": 99048471,
+ "uploads": [
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-21.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_bench_press/vid-21.mp4",
+   "mime": "video/mp4",
+   "bytes": 941220,
+   "sha256": "c24fa04e7909a1be594661a86a9e5cab4b1c44f8f5157cb49e466f09f78b1d22"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-21-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_bench_press/vid-21-poster.webp",
+   "mime": "image/webp",
+   "bytes": 14676
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-22.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_bench_press/vid-22.mp4",
+   "mime": "video/mp4",
+   "bytes": 1204305,
+   "sha256": "055835c3ada159a676279dbb2a07eaa4484761090cfe82099d7653b4dff2646b"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_bench_press/vid-22-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_bench_press/vid-22-poster.webp",
+   "mime": "image/webp",
+   "bytes": 19538
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_incline_barbell_bench_press/vid-16.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_incline_barbell_bench_press/vid-16.mp4",
+   "mime": "video/mp4",
+   "bytes": 3089845,
+   "sha256": "622f8249d3bfd1befbcc61603160dec940a9cdab344164fb804e2b8e30f8b793"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_incline_barbell_bench_press/vid-16-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_incline_barbell_bench_press/vid-16-poster.webp",
+   "mime": "image/webp",
+   "bytes": 15346
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-17.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_bench_press/vid-17.mp4",
+   "mime": "video/mp4",
+   "bytes": 2409681,
+   "sha256": "739dfad0e9615a150934976c8b93303a16319fb4576977b0bf95ebfd313d38eb"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-17-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_bench_press/vid-17-poster.webp",
+   "mime": "image/webp",
+   "bytes": 20222
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-18.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_bench_press/vid-18.mp4",
+   "mime": "video/mp4",
+   "bytes": 5333158,
+   "sha256": "6fe5ddf26aeb7ab6a78ec004c58ebfbb786e9358ea004632cbc6caa3864c5f34"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_bench_press/vid-18-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_bench_press/vid-18-poster.webp",
+   "mime": "image/webp",
+   "bytes": 24440
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_incline_dumbbell_press/vid-24.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_incline_dumbbell_press/vid-24.mp4",
+   "mime": "video/mp4",
+   "bytes": 5780645,
+   "sha256": "9fb6e74a52238dac6ea576d46ec6ce3ce6cf25ecf1e2486327cca676445ca701"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_incline_dumbbell_press/vid-24-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_incline_dumbbell_press/vid-24-poster.webp",
+   "mime": "image/webp",
+   "bytes": 28076
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-65.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_chest_dip/vid-65.mp4",
+   "mime": "video/mp4",
+   "bytes": 4266665,
+   "sha256": "a0456336a9b97fd9e7c702303d2e2a9485675c0b1a4a5b86ea49ab05bfce9abe"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-65-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_chest_dip/vid-65-poster.webp",
+   "mime": "image/webp",
+   "bytes": 32880
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-66.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_chest_dip/vid-66.mp4",
+   "mime": "video/mp4",
+   "bytes": 2217439,
+   "sha256": "d43eb50f7cc3c19fc6c94a30b2ed2f4082b7bd4487a38c93ff0f297b3bf583bf"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_chest_dip/vid-66-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_chest_dip/vid-66-poster.webp",
+   "mime": "image/webp",
+   "bytes": 31544
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-78.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_face_pull/vid-78.mp4",
+   "mime": "video/mp4",
+   "bytes": 1472871,
+   "sha256": "7f363a8b3dbab9b6053152df39fd53a91ef0e9d8ebc68bc5ddf23f8eb52405bf"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-78-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_face_pull/vid-78-poster.webp",
+   "mime": "image/webp",
+   "bytes": 28180
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-79.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_face_pull/vid-79.mp4",
+   "mime": "video/mp4",
+   "bytes": 1641140,
+   "sha256": "1abbf015ef4693c4f14d89ba0c14d5426c42ee82c88744306dab700a57f60120"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_face_pull/vid-79-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_face_pull/vid-79-poster.webp",
+   "mime": "image/webp",
+   "bytes": 28544
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_machine_shoulder_press/vid-11.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_machine_shoulder_press/vid-11.mp4",
+   "mime": "video/mp4",
+   "bytes": 2096342,
+   "sha256": "18d95e5d6b4ddf89ab6a7a1e37f7db84ae253f8f7b1aa23d5ff23229d125c8ff"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_machine_shoulder_press/vid-11-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_machine_shoulder_press/vid-11-poster.webp",
+   "mime": "image/webp",
+   "bytes": 15680
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_lateral_raise/vid-6.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_lateral_raise/vid-6.mp4",
+   "mime": "video/mp4",
+   "bytes": 4392163,
+   "sha256": "fdd6d758557651030daa2f10db6c1aab2021a57683a58ac9efc908f94511e95a"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_lateral_raise/vid-6-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_lateral_raise/vid-6-poster.webp",
+   "mime": "image/webp",
+   "bytes": 29182
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_curl/vid-48.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_curl/vid-48.mp4",
+   "mime": "video/mp4",
+   "bytes": 1358456,
+   "sha256": "279cb091eb9289ad88ba23fd9b0948cb8da5b0f5fa306589e821e0eae9c7db6e"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_curl/vid-48-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_curl/vid-48-poster.webp",
+   "mime": "image/webp",
+   "bytes": 21658
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hammer_curl/vid-51.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hammer_curl/vid-51.mp4",
+   "mime": "video/mp4",
+   "bytes": 1304514,
+   "sha256": "5ac91db54ebb89f3bc90d20a71432bcbf8f2c5d780a844deab210eb37f17cefc"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hammer_curl/vid-51-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hammer_curl/vid-51-poster.webp",
+   "mime": "image/webp",
+   "bytes": 21554
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_cable_curl/vid-50.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_cable_curl/vid-50.mp4",
+   "mime": "video/mp4",
+   "bytes": 1676659,
+   "sha256": "047e08238784f131f0634cca2495e6372f0f0308947ee8b7463ee5b6aefe527b"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_cable_curl/vid-50-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_cable_curl/vid-50-poster.webp",
+   "mime": "image/webp",
+   "bytes": 22508
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-62.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_ez_bar_skullcrusher/vid-62.mp4",
+   "mime": "video/mp4",
+   "bytes": 3694253,
+   "sha256": "7fa990b1d2c55a4bddbcd28b5e5b22aae763709894f5f6dac31d4b3ec4d9d1c1"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-62-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_ez_bar_skullcrusher/vid-62-poster.webp",
+   "mime": "image/webp",
+   "bytes": 19270
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-63.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_ez_bar_skullcrusher/vid-63.mp4",
+   "mime": "video/mp4",
+   "bytes": 1648637,
+   "sha256": "0e0b8285f25bc70ed0af807e145fbaeda6c82b10c52b2c404e58657ef340085d"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_ez_bar_skullcrusher/vid-63-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_ez_bar_skullcrusher/vid-63-poster.webp",
+   "mime": "image/webp",
+   "bytes": 15628
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-75.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_kickback/vid-75.mp4",
+   "mime": "video/mp4",
+   "bytes": 2549518,
+   "sha256": "50fe315950e195520baf0ce468d0395a4df597423684d4e62e9c7c26588c8c3d"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_kickback/vid-75-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_dumbbell_kickback/vid-75-poster.webp",
+   "mime": "image/webp",
+   "bytes": 18370
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-25.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-25.mp4",
+   "mime": "video/mp4",
+   "bytes": 4010922,
+   "sha256": "1b93e08fc79f36f9e4079ab748c92bdf6b7b3479f6d3cc1a18185a63d08edf46"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-25-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-25-poster.webp",
+   "mime": "image/webp",
+   "bytes": 22358
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-27.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-27.mp4",
+   "mime": "video/mp4",
+   "bytes": 1250748,
+   "sha256": "57907f7cc816daaf2618e7a4fce1c1959eef04536d3612f440b9246828c70c8e"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-27-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-27-poster.webp",
+   "mime": "image/webp",
+   "bytes": 19244
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-28.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-28.mp4",
+   "mime": "video/mp4",
+   "bytes": 2716253,
+   "sha256": "a6c24b94778eb5412db30cb0d23a798e750d7995fb4069435861cc99e81abb4b"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_front_squat/vid-28-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_front_squat/vid-28-poster.webp",
+   "mime": "image/webp",
+   "bytes": 19292
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_leg_press/vid-44.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_leg_press/vid-44.mp4",
+   "mime": "video/mp4",
+   "bytes": 6491714,
+   "sha256": "4da36618c9dd413b09792503494ac42ee668e59dbfd47b4f74a5452262834958"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_leg_press/vid-44-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_leg_press/vid-44-poster.webp",
+   "mime": "image/webp",
+   "bytes": 27980
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hack_squat/vid-40.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hack_squat/vid-40.mp4",
+   "mime": "video/mp4",
+   "bytes": 6093206,
+   "sha256": "9fcc3c7ce1c1a3b299180fb8047b01740f95d1df5ff274d849c4e38ad1f7c043"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hack_squat/vid-40-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hack_squat/vid-40-poster.webp",
+   "mime": "image/webp",
+   "bytes": 23970
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_walking_lunge/vid-33.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_walking_lunge/vid-33.mp4",
+   "mime": "video/mp4",
+   "bytes": 1915933,
+   "sha256": "48f2b7cad4b7664e7af799da169bf198bbf498cb319037ff23079289911723d6"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_walking_lunge/vid-33-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_walking_lunge/vid-33-poster.webp",
+   "mime": "image/webp",
+   "bytes": 23426
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_romanian_deadlift/vid-2.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_romanian_deadlift/vid-2.mp4",
+   "mime": "video/mp4",
+   "bytes": 1771214,
+   "sha256": "53adf3fc8af4a319ce0e0bf0fde78ffd661af709f0f54e54d321d1a6a8b14d2a"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_romanian_deadlift/vid-2-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_romanian_deadlift/vid-2-poster.webp",
+   "mime": "image/webp",
+   "bytes": 24862
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_romanian_deadlift/vid-3.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_romanian_deadlift/vid-3.mp4",
+   "mime": "video/mp4",
+   "bytes": 2447750,
+   "sha256": "4b1023e1de651a81f80d72daf02d844441a34533b056c0f41df4fd5be096fdc7"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_dumbbell_romanian_deadlift/vid-3-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_romanian_deadlift/vid-3-poster.webp",
+   "mime": "image/webp",
+   "bytes": 23604
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-35.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_lying_leg_curl/vid-35.mp4",
+   "mime": "video/mp4",
+   "bytes": 2601037,
+   "sha256": "6a854aa3296840894810610888401208a9e3435d2c4ee5def4d94b8c213284ca"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-35-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_lying_leg_curl/vid-35-poster.webp",
+   "mime": "image/webp",
+   "bytes": 25998
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-36.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_lying_leg_curl/vid-36.mp4",
+   "mime": "video/mp4",
+   "bytes": 4882324,
+   "sha256": "cf0de8fe6110dbeb6d3c6a8ea2a5fbb217ddde4674d6a8e8ba8b96e5e69161db"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_lying_leg_curl/vid-36-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_lying_leg_curl/vid-36-poster.webp",
+   "mime": "image/webp",
+   "bytes": 22526
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_seated_leg_curl/vid-37.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_seated_leg_curl/vid-37.mp4",
+   "mime": "video/mp4",
+   "bytes": 4418770,
+   "sha256": "1f258ad275e683f0b7c64f33ecec67ed19507fc55c1ef72a53f2b06091ff28fe"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_seated_leg_curl/vid-37-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_seated_leg_curl/vid-37-poster.webp",
+   "mime": "image/webp",
+   "bytes": 24578
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_hip_thrust/vid-72.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_hip_thrust/vid-72.mp4",
+   "mime": "video/mp4",
+   "bytes": 4383141,
+   "sha256": "ab7c576dff44ba11bdf911a8aa457369ab124d0640fe880c4eb7c1332f4a8df5"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_barbell_hip_thrust/vid-72-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_barbell_hip_thrust/vid-72-poster.webp",
+   "mime": "image/webp",
+   "bytes": 16912
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hip_adduction_machine/vid-74.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hip_adduction_machine/vid-74.mp4",
+   "mime": "video/mp4",
+   "bytes": 3266918,
+   "sha256": "f2f9f30cd12971fcf98d17fb12be1c42004d4d4a3a8b0aeaed4299df025a3a6a"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_hip_adduction_machine/vid-74-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_hip_adduction_machine/vid-74-poster.webp",
+   "mime": "image/webp",
+   "bytes": 21988
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_standing_calf_raise/vid-14.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_standing_calf_raise/vid-14.mp4",
+   "mime": "video/mp4",
+   "bytes": 1978956,
+   "sha256": "9a4acee2e6ce66f8f04974ab49f3b3c797b9457e42a4cf9c9b8b74028811224d"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_standing_calf_raise/vid-14-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_standing_calf_raise/vid-14-poster.webp",
+   "mime": "image/webp",
+   "bytes": 16694
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_seated_calf_raise/vid-13.mp4",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_seated_calf_raise/vid-13.mp4",
+   "mime": "video/mp4",
+   "bytes": 2999544,
+   "sha256": "299c186e8476cdc99ec145d871ae58bd5bdd5459f2406751670750dcaf04dbd3"
+  },
+  {
+   "cdnPath": "catalog/exercises/fx_seated_calf_raise/vid-13-poster.webp",
+   "localFile": "e2e-out/.cache/catalog/converted/fx_seated_calf_raise/vid-13-poster.webp",
+   "mime": "image/webp",
+   "bytes": 21802
+  }
+ ]
+}

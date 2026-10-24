@@ -6,6 +6,8 @@ import { router, authedProcedure } from '../trpc.js';
 import { canReadClientData, canWriteCoachOwned, resolveClientId } from '../../client/_lib/access.js';
 import { clientCardioPlansCol, clientNutritionPlansCol, clientWorkoutPlansCol, coachClientsCol, planCollectionForKind, planVersionsCol } from '../../client/_lib/db.js';
 import type { ClientPlanDoc, PlanVersionDoc, PlanVersionKind } from '../../client/_lib/types.js';
+import { usersCol } from '../../_lib/mongodb.js';
+import { assertFoodImagesAllowed } from '../../coach-assets/_lib/foodImage.js';
 
 /**
  * `workoutPlan`/`nutritionPlan`/`cardioPlan` are identical CRUD shapes (coach-
@@ -156,6 +158,13 @@ function makePlanRouter(kind: PlanVersionKind, colFn: () => Promise<Collection<C
       const { clientId: inputClientId, baseUpdatedAt, replaceExisting, versionReason, ...body } = input;
       const clientId = resolveClientId(inputClientId, ctx.user);
       if (!(await canWriteCoachOwned(ctx.user, clientId))) throw new TRPCError({ code: 'FORBIDDEN' });
+      if (kind === 'nutrition') {
+        // B4.1: a meal item's photo is the plan coach's own upload or an approved catalog picture —
+        // never another coach's, never a client's private media (`foodImage.ts`).
+        const planCoach = ctx.user.role === 'coach' ? ctx.user.id : ((await (await usersCol()).findOne({ _id: clientId }, { projection: { assignedCoachId: 1 } }))?.assignedCoachId ?? null);
+        // A picture the stored plan already shows stays (a withdrawn catalog picture, the previous coach's photo after a transfer).
+        assertFoodImagesAllowed(body, planCoach, await (await colFn()).findOne({ _id: clientId }));
+      }
       return savePlanGuarded(kind, clientId, body, { baseUpdatedAt, replaceExisting, reason: versionReason, userId: ctx.user.id });
     }),
   });

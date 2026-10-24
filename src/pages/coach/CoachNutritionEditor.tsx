@@ -1,3 +1,4 @@
+import { quantityText } from '@/lib/foodFormat';
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -17,7 +18,11 @@ import { SearchField, SelectField, TextAreaField, TextInput } from '@/components
 import { NumericField } from '@/components/ui/NumericField';
 import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
 import { Switch } from '@/components/ui/Switch';
-import { FoodSearchPicker } from '@/components/workout/FoodSearchPicker';
+import { LazyFoodImageEditor, LazyFoodSearchPicker } from '@/components/food/LazyFood';
+import { FoodThumb } from '@/components/food/FoodImage';
+import { LazyCatalogFoodPicker, LazyServingEditor } from '@/components/catalog/LazyCatalog';
+import { useCatalogMeta } from '@/hooks/useCatalog';
+import { isEstimate, provenanceOf } from '@/lib/catalogText';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
@@ -32,7 +37,7 @@ import { applyLocalizedEdit, secondLanguageStale, setLocalized, typeLocalized } 
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
 import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
 import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
-import type { FoodItem, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
+import type { FoodImageRef, FoodItem, FoodProvenance, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
 
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack', 'postWorkout'];
 // B3.9 (CO-19, owner D6): no "flag swaps for review" switch — nothing anywhere could review them.
@@ -66,6 +71,15 @@ interface FoodForm {
   groupId: string | null;
   groupTouched: boolean;
   allowCustom: boolean;
+  /** B4: where the numbers come from (catalog / Open Food Facts serving), or null when typed by hand. */
+  provenance: FoodProvenance | null;
+  provTouched: boolean;
+  /** The coach typed a value over catalog / source numbers — shown, so the change is never silent. */
+  clearedByHand: boolean;
+  /** B4.1: the item's picture (a copy), whether it changed, and the Forma picture offered for it. */
+  image: FoodImageRef | null;
+  imageTouched: boolean;
+  formaImage: FoodImageRef | null;
 }
 interface SuppForm {
   orig: Supplement | null;
@@ -106,6 +120,7 @@ export function CoachNutritionEditor() {
   const { plan, setPlan, dirty, save } = ed;
   const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
   const lib = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
+  const catalog = useCatalogMeta();
   // B3.7 "Use in a client plan": a food handed over from the Library, added only once the coach picks
   // the meal — as an unsaved change (Save keeps it, as always).
   const [addFoodId, clearAddFood] = useHandoffParam(ADD_FOOD_PARAM);
@@ -164,6 +179,12 @@ export function CoachNutritionEditor() {
       groupId: f?.allowedAlternativeGroupId ?? null,
       groupTouched: false,
       allowCustom: !!f?.allowCustomSubstitution,
+      provenance: f ? provenanceOf(f) : null,
+      provTouched: false,
+      clearedByHand: false,
+      image: f?.image ?? null,
+      imageTouched: false,
+      formaImage: f?.image?.source === 'forma-catalog' ? f.image : null,
     });
   const saveFood = () => {
     if (!food) return;
@@ -181,6 +202,8 @@ export function CoachNutritionEditor() {
         fats: food.macros.fats ?? 0,
         group: grp === undefined ? undefined : grp ? { id: grp.id, foods: grp.foods } : null,
         allowCustom: food.allowCustom,
+        provenance: food.provTouched ? food.provenance : undefined,
+        image: food.imageTouched ? food.image : undefined,
       },
       () => uid('food'),
     );
@@ -350,17 +373,20 @@ export function CoachNutritionEditor() {
                   const name = show(f.name, t('coachEditor.untitledFood'));
                   return (
                     <li key={f.id} className="flex items-center gap-1 py-1.5" data-testid="nutrition-food-row">
-                      <button type="button" className="flex min-h-ui-hit min-w-0 flex-1 flex-col justify-center rounded-ui-control px-1 text-start hover:bg-surface-hover" onClick={() => openFood(m.id, f)}>
-                        <span className="block truncate font-medium">
-                          <bdi>{name}</bdi>
-                        </span>
-                        <span className="block truncate text-[12.5px] text-earth-subtle">
-                          {f.quantity ? (
-                            <>
-                              <bdi>{f.quantity}</bdi> ·{' '}
-                            </>
-                          ) : null}
-                          <bdi dir={ar ? 'rtl' : 'ltr'}>{macroLine(f)}</bdi>
+                      <button type="button" className="flex min-h-ui-hit min-w-0 flex-1 items-center gap-2.5 rounded-ui-control px-1 text-start hover:bg-surface-hover" onClick={() => openFood(m.id, f)}>
+                        <FoodThumb image={f.image} size="sm" />
+                        <span className="flex min-w-0 flex-1 flex-col justify-center">
+                          <span className="block truncate font-medium">
+                            <bdi>{name}</bdi>
+                          </span>
+                          <span className="block truncate text-[12.5px] text-earth-subtle">
+                            {f.quantity ? (
+                              <>
+                                <bdi>{quantityText(f, i18n.language)}</bdi> ·{' '}
+                              </>
+                            ) : null}
+                            <bdi dir={ar ? 'rtl' : 'ltr'}>{macroLine(f)}</bdi>
+                          </span>
                         </span>
                       </button>
                       <IconButton icon="arrowUp" size="sm" label={t('coachEditor.moveFoodUp', { name })} disabled={fi === 0} onClick={() => patchItems(m.id, (items) => move(items, fi, -1))} className="border-transparent" />
@@ -566,6 +592,18 @@ export function CoachNutritionEditor() {
       <Sheet open={!!food} onClose={() => { setFood(null); setPick(''); }} size="lg" title={food?.orig ? t('coachEditor.editFood') : t('coachEditor.addFood')}>
         {food && (
           <div className="space-y-4" data-testid="food-form">
+            {catalog.enabled && catalog.taxonomy && (
+              <div role="group" aria-labelledby="food-catalog-label">
+                <p className="label mb-1.5 block" id="food-catalog-label">
+                  {t('catalog.foods.title')}
+                </p>
+                <LazyCatalogFoodPicker
+                  taxonomy={catalog.taxonomy}
+                  testId="food-catalog"
+                  onPick={(p) => setFood({ ...food, name: p.name.en, nameOrig: p.name, nameAr: p.name.ar, nameArTouched: false, quantity: p.quantity, macros: p.macros, provenance: p.provenance, provTouched: true, clearedByHand: false, image: p.image, imageTouched: true, formaImage: p.image })}
+                />
+              </div>
+            )}
             {(lib.data?.length ?? 0) > 0 && (
               <div data-testid="food-library-picker" role="group" aria-labelledby="food-library-picker-label">
                 <p className="label mb-1.5 block" id="food-library-picker-label">{t('coachEditor.chooseFood')}</p>
@@ -582,9 +620,10 @@ export function CoachNutritionEditor() {
                         key={f.id}
                         type="button"
                         data-testid="food-lib-option"
-                        className="row min-h-ui-hit w-full text-start"
-                        onClick={() => setFood({ ...food, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats } })}
+                        className="row min-h-ui-hit w-full gap-2 text-start"
+                        onClick={() => setFood({ ...food, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats }, provenance: provenanceOf(f), provTouched: true, clearedByHand: false, image: f.image ?? null, imageTouched: true, formaImage: f.image?.source === 'forma-catalog' ? f.image : null })}
                       >
+                        <FoodThumb image={f.image} size="xs" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">
                             <bdi>{show(f.name)}</bdi>
@@ -602,12 +641,30 @@ export function CoachNutritionEditor() {
             {lib.isError && <p className="text-[12.5px] text-warn">{t('coachEditor.foodLibraryFailed')}</p>}
             <div role="group" aria-labelledby="food-database-label">
               <p className="label mb-1.5 block" id="food-database-label">{t('coachEditor.searchFoodDatabase')}</p>
-              <FoodSearchPicker onPick={(f) => setFood({ ...food, name: f.name, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats } })} />
+              <LazyFoodSearchPicker onPick={(f) => setFood({ ...food, name: f.name, nameOrig: null, nameAr: '', nameArTouched: false, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats }, provenance: f.provenance, provTouched: true, clearedByHand: false, image: null, imageTouched: true, formaImage: null })} />
             </div>
             <div className="h-px bg-line-soft" />
             <TextInput label={t('field.name')} data-testid="food-name" placeholder={t('coachEditor.foodName')} value={food.name} onChange={(e) => setFood({ ...food, name: e.target.value })} />
             <SecondLanguageField lang="ar" testId="food-name-ar" value={food.nameAr} onChange={(v) => setFood({ ...food, nameAr: v, nameArTouched: true })} stale={!food.nameArTouched && secondLanguageStale(food.nameOrig, food.name, 'en')} />
-            <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={food.quantity} onChange={(e) => setFood({ ...food, quantity: e.target.value })} />
+            {/* An upload finishes later: the update is functional, so typing meanwhile is kept. */}
+            <LazyFoodImageEditor value={food.image} formaImage={food.formaImage} name={{ en: food.name, ar: food.nameAr }} testId="food-image" onChange={(image) => setFood((cur) => (cur ? { ...cur, image, imageTouched: true } : cur))} />
+            {food.provenance?.per100g ? (
+              <div className="space-y-2 rounded-ui-control border border-line-soft p-3" data-testid="food-serving">
+                <p className="text-[12.5px] text-earth-muted">
+                  {food.provenance.source?.provider === 'open-food-facts' ? t('catalog.off.attribution') : t('catalog.foods.fromForma')}
+                  {isEstimate(food.provenance) && <span className="pill ms-2">{t('catalog.foods.estimate')}</span>}
+                </p>
+                {food.provenance.sourceNote && <p className="text-[12px] text-earth-subtle">{ar ? food.provenance.sourceNote.ar : food.provenance.sourceNote.en}</p>}
+                <LazyServingEditor
+                  key={food.id + (food.provenance.catalogId ?? '')}
+                  provenance={food.provenance}
+                  testId="food-serving-editor"
+                  onChange={(r) => setFood({ ...food, quantity: r.quantity, macros: r.macros, provenance: r.provenance, provTouched: true, clearedByHand: false })}
+                />
+              </div>
+            ) : (
+              <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={food.quantity} onChange={(e) => setFood({ ...food, quantity: e.target.value })} />
+            )}
             <div className="grid grid-cols-2 gap-3">
               {MACRO_KEYS.map((k) => (
                 <NumericField
@@ -617,10 +674,16 @@ export function CoachNutritionEditor() {
                   min={0}
                   max={k === 'calories' ? 10000 : 1000}
                   value={food.macros[k]}
-                  onChange={(v) => setFood({ ...food, macros: { ...food.macros, [k]: v } })}
+                  // A typed value makes the row the coach's own: the catalog / source claim is dropped.
+                  onChange={(v) => setFood({ ...food, macros: { ...food.macros, [k]: v }, ...(food.provenance ? { provenance: null, provTouched: true, clearedByHand: true } : {}) })}
                 />
               ))}
             </div>
+            {food.clearedByHand && (
+              <p className="text-[12px] text-earth-subtle" data-testid="food-by-hand">
+                {t('catalog.foods.byHand')}
+              </p>
+            )}
             <div>
               <p className="label mb-1.5 block" id="meal-allowed-group-label">{t('nutritionSub.approvedAlternatives')}</p>
               <div className="flex flex-wrap gap-2" data-testid="meal-allowed-group" role="group" aria-labelledby="meal-allowed-group-label">

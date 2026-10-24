@@ -1,3 +1,4 @@
+import { exerciseDisplayName } from '@/lib/catalogText';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -133,7 +134,7 @@ export function Workout() {
                 return (
                   <li key={id} className="flex items-center gap-3 text-[14px]">
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: muscleColor(ex.targetMuscle) }} aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate">{ex.name}</span>
+                    <span className="min-w-0 flex-1 truncate">{exerciseDisplayName(ex, lang)}</span>
                     <span className="shrink-0 font-mono text-[13px] text-earth-muted" dir="ltr">
                       {top ? `${top.weightKg ?? '–'} × ${top.actualReps ?? '–'}` : `${ex.workingSets} × ${ex.repRange}`}
                     </span>

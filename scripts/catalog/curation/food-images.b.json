@@ -1,0 +1,669 @@
+{
+  "_reviewer": "group b — sheets 03, 04",
+  "ff_beef_ground_90_raw": {
+    "status": "approved",
+    "file": "File:Hakket-oksekoed.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Hakket-oksekoed.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/65/Hakket-oksekoed.jpg",
+    "width": 1277,
+    "height": 916,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Gajda-13 at Danish Wikipedia",
+    "credit": "Transferred from da.wikipedia to Commons by Broadbeer using CommonsHelper.",
+    "alt": {
+      "en": "Raw lean ground beef on a cutting board",
+      "ar": "لحم بقري مفروم نيء قليل الدهن على لوح تقطيع"
+    },
+    "note": "Bright-red, finely minced raw beef block with little visible fat; matches lean (90%) ground beef, raw. 1277x916, clean, no packaging or text."
+  },
+  "ff_beef_ground_90_cooked": {
+    "status": "missing",
+    "reason": "No fully browned plain ground beef found: 'Cooking beef 1' is still raw in the pan, 'Cooking beef 2' is half-cooked with pink patches and seasoning; other hits are dishes (burgers, noodles, stir-fries) or packaged product."
+  },
+  "ff_beef_ground_80_raw": {
+    "status": "approved",
+    "file": "File:Hackfleisch-1.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Hackfleisch-1.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Hackfleisch-1.jpg",
+    "width": 2905,
+    "height": 2211,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Rainer Zenz",
+    "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+    "alt": {
+      "en": "Raw ground beef on a white plate",
+      "ar": "لحم بقري مفروم نيء في طبق أبيض"
+    },
+    "note": "Coarse raw beef mince with visible white fat flecks on a plain plate; fits regular (80%) ground beef, raw. 2905x2211. Borderline: Commons has no machine-readable author field; the uploader Rainer Zenz self-licensed it CC BY-SA 3.0 (own work assumed from the licence tag)."
+  },
+  "ff_beef_ground_80_cooked": {
+    "status": "missing",
+    "reason": "No browned, drained ground beef found: 'Ground beef frying' is still a raw block in the pan, 'Crumbling ground beef in water' is raw with a hand in shot; other hits are meatballs or dishes."
+  },
+  "ff_beef_sirloin_lean_grilled": {
+    "status": "approved",
+    "file": "File:Grilled Sirloin Steak with Vegetables.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Sirloin_Steak_with_Vegetables.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg",
+    "width": 4032,
+    "height": 3024,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Ceeseven",
+    "credit": "Own work",
+    "alt": {
+      "en": "Grilled sirloin steak with grill marks on a plate",
+      "ar": "شريحة ستيك سيرلوين مشوية عليها علامات الشواية في طبق"
+    },
+    "note": "Lean grilled sirloin steak with clear grill marks, fat trimmed, as the main subject. Borderline: potato wedges, vegetables and a little sauce share the plate; the steak itself matches the catalog state (grilled, lean)."
+  },
+  "ff_beef_round_lean_roasted": {
+    "status": "approved",
+    "file": "File:Roast topside of beef.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Roast_topside_of_beef.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Roast_topside_of_beef.jpg",
+    "width": 3084,
+    "height": 3084,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Acabashi",
+    "credit": "Own work",
+    "alt": {
+      "en": "Sliced lean roast beef on a white plate",
+      "ar": "شرائح لحم بقري قليل الدهن محمّر في الفرن في طبق أبيض"
+    },
+    "note": "Oven-roasted beef topside (a round cut), sliced, lean with no fat cap, alone on a plain plate; matches lean roasted beef round. Topside is the top round rather than eye of round, same primal."
+  },
+  "ff_veal_leg_roasted": {
+    "status": "missing",
+    "reason": "No plain roasted veal found: hits are restaurant plates with sauces/dumplings, veal Orloff, street-food carcass roasts or scanned cookbooks. Roast veal is also hard to tell apart from beef in a photo."
+  },
+  "ff_lamb_leg_roasted": {
+    "status": "approved",
+    "file": "File:Roast lamb leg.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Roast_lamb_leg.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Roast_lamb_leg.jpg",
+    "width": 2736,
+    "height": 3648,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Beck",
+    "credit": "https://www.flickr.com/photos/beckayork/4782237803/",
+    "alt": {
+      "en": "Whole roasted leg of lamb with rosemary",
+      "ar": "فخذ ضأن كامل مشوي في الفرن مع إكليل الجبل"
+    },
+    "note": "A whole bone-in leg of lamb, oven-roasted with rosemary, alone on a white board; matches roasted lamb leg (catalog values are the lean part only, the photo shows the whole joint). 2736x3648."
+  },
+  "ff_beef_liver_fried": {
+    "status": "missing",
+    "reason": "No plain pan-fried beef liver found: 'Fried cow liver' is too small (720x960); other hits are liver-and-onion/bacon restaurant plates with sides, a person in shot, or a mixed liver-onion stew where the liver type is unclear."
+  },
+  "ff_chicken_breast_raw": {
+    "status": "approved",
+    "file": "File:Raw chicken slices.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Raw_chicken_slices.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Raw_chicken_slices.jpg",
+    "width": 3888,
+    "height": 2592,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "kakyusei",
+    "credit": "https://pixabay.com/photos/chicken-breast-food-ingredients-279848/",
+    "alt": {
+      "en": "Three raw skinless chicken breast fillets on a white plate",
+      "ar": "ثلاث قطع صدر دجاج نيئة منزوعة الجلد في طبق أبيض"
+    },
+    "note": "Three whole raw skinless chicken breast fillets on a plain white plate; exactly the catalog food and state. 3888x2592. Imported from Pixabay (2014, CC0-era upload) and tagged CC0 on Commons."
+  },
+  "ff_chicken_breast_roasted": {
+    "status": "approved",
+    "file": "File:Grilled Chicken Breasts (28905381261).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Chicken_Breasts_(28905381261).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+    "width": 1000,
+    "height": 1506,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Sharon Chen",
+    "credit": "Grilled Chicken Breasts (Flickr, delishplan); credit requested as 'Sharon Chen', linked to www.delishplan.com",
+    "alt": {
+      "en": "Sliced roasted skinless chicken breast",
+      "ar": "شرائح صدر دجاج مشوي منزوع الجلد"
+    },
+    "note": "Skinless chicken breast, oven-roasted/grilled with light seasoning and sliced, food only on baking paper; matches roasted skinless breast. 1000x1506. Flickr author asks credit as 'Sharon Chen' linked to delishplan.com (CC BY 2.0 attribution)."
+  },
+  "ff_chicken_thigh_roasted": {
+    "status": "approved",
+    "file": "File:Grilled Chicken Thigh at 2026 BIFC 20260905151916.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+    "width": 5563,
+    "height": 3709,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "TurnOnTheNight",
+    "credit": "Own work",
+    "alt": {
+      "en": "Boneless chicken thighs cooking on a grill",
+      "ar": "أفخاذ دجاج منزوعة العظم تُشوى على الشواية"
+    },
+    "note": "Boneless, skinless chicken thigh pieces grilled on a rack, food only; shows cooked skinless thigh meat. Borderline: grilled with a light marinade glaze at a food-fair stall rather than plain oven-roasted. 5563x3709."
+  },
+  "ff_chicken_with_skin_roasted": {
+    "status": "approved",
+    "file": "File:Stuffed roast chicken.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Stuffed_roast_chicken.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Stuffed_roast_chicken.jpg",
+    "width": 2919,
+    "height": 1841,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "James D Kirk",
+    "credit": "https://www.flickr.com/photos/jamesdkirk/3567534343/",
+    "alt": {
+      "en": "Whole roast chicken with golden skin on a platter",
+      "ar": "دجاجة كاملة مشوية بجلدها الذهبي في طبق تقديم"
+    },
+    "note": "Whole oven-roasted chicken with crisp herbed skin on a white platter, carving knife and fork in front; shows chicken meat and skin, roasted. Minor: the bird is stuffed (a little stuffing visible at the cavity). 2919x1841."
+  },
+  "ff_chicken_liver": {
+    "status": "missing",
+    "reason": "No plain simmered chicken liver found: candidates are a restaurant plate of sautéed livers buried in raw onion and sumac, a soy-glazed liver/gizzard/quail-egg dish, and mixed dishes with rice or bacon."
+  },
+  "ff_turkey_breast_roasted": {
+    "status": "approved",
+    "file": "File:Cooked turkey breast - November 2023 - Sarah Stierch.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+    "width": 5712,
+    "height": 4284,
+    "mime": "image/jpeg",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "author": "Missvain",
+    "credit": "Own work",
+    "alt": {
+      "en": "Sliced roast turkey breast on a serving platter",
+      "ar": "شرائح صدر ديك رومي مشوي في طبق تقديم"
+    },
+    "note": "Slices of roasted turkey breast alone on an oval platter with a carving fork; a bowl of corn and a dish of stuffing sit at the edges of the frame. Matches roasted turkey breast. 5712x4284."
+  },
+  "ff_tuna_water": {
+    "status": "missing",
+    "reason": "Every canned-tuna photo found shows a branded tin (Calvo, Albo, Galeão, Loblaws, Pirkka) or supermarket shelves; no unbranded drained light tuna in water. Fresh tuna steaks would misrepresent the canned state."
+  },
+  "ff_tuna_oil": {
+    "status": "missing",
+    "reason": "No unbranded drained canned tuna in oil found: hits are branded tins (Galeão, Kooddoo, Calvo), fresh tuna steak dishes, and a fish-market scene with people. Fresh tuna would misrepresent the canned state."
+  },
+  "ff_tilapia_cooked": {
+    "status": "approved",
+    "file": "File:Grilled Tilapia 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_Tilapia_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/25/Grilled_Tilapia_2.jpg",
+    "width": 3120,
+    "height": 4160,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Umuhiera",
+    "credit": "Own work",
+    "alt": {
+      "en": "Whole grilled tilapia with charred skin",
+      "ar": "سمكة بلطي كاملة مشوية بجلد محمّر"
+    },
+    "note": "A whole tilapia grilled without garnish or sauce, scored and charred, alone in a takeaway tray; matches grilled tilapia with no added fat. Borderline on looks: dim lighting and a foam takeaway tray. CC0, 3120x4160."
+  },
+  "ff_tilapia_raw": {
+    "status": "approved",
+    "file": "File:Oreochromis niloticus at Kanchanaburi market.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+    "width": 1368,
+    "height": 1824,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Rup11",
+    "credit": "Own work",
+    "alt": {
+      "en": "Whole raw tilapia fish piled at a market",
+      "ar": "أسماك بلطي كاملة نيئة مكدّسة في السوق"
+    },
+    "note": "Close-up of fresh whole raw tilapia (Oreochromis niloticus) at a fish market, fish only, no labels. Borderline: these are the red-hybrid colour form, not the grey Nile bolti most common in Egypt; same species and nutrition basis. 1368x1824."
+  },
+  "ff_mullet_grilled": {
+    "status": "missing",
+    "reason": "No grilled grey mullet (bouri) found: the one 'Grilled Mullet fish' photo includes an identifiable cook and the fish look like crusted tilapia; other hits are red mullet (a different fish), stamps, or mixed seafood plates."
+  },
+  "ff_salmon_cooked": {
+    "status": "missing",
+    "reason": "No clean cooked salmon found within budget: 'Grilled salmon (27426046515)' is actually raw salmon on a cedar plank before grilling; 'Grilled salmon.jpg' is skin-side-up and ringed by potato wedges that dominate the frame; other hits are mixed plates (chips, rice, pasta, salads)."
+  },
+  "ff_shrimp_cooked": {
+    "status": "approved",
+    "file": "File:Cooked shrimp.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cooked_shrimp.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Cooked_shrimp.jpg",
+    "width": 4000,
+    "height": 3000,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Fumikas Sagisavas",
+    "credit": "Own work",
+    "alt": {
+      "en": "Peeled cooked shrimp, close-up",
+      "ar": "جمبري مطبوخ مقشّر، صورة مقرّبة"
+    },
+    "note": "Full-frame close-up of peeled, cooked (pink-white) shrimp with no sauce, shell or packaging; matches plain cooked shrimp. The shrimp look chilled, as sold ready-cooked. CC0, 4000x3000."
+  },
+  "ff_sardines_oil": {
+    "status": "missing",
+    "reason": "Only branded or shop-display sardine tins found (Mayflower, Connétable, Parmentier, La Quiberonnaise, Lisbon souvenir tins); no unbranded drained canned sardines. Fresh/grilled sardines would misrepresent the canned state."
+  },
+  "ff_mackerel_cooked": {
+    "status": "approved",
+    "file": "File:Grilled mackerel on a BBQ.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_mackerel_on_a_BBQ.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Grilled_mackerel_on_a_BBQ.jpg",
+    "width": 4096,
+    "height": 3072,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Kernow Skies",
+    "credit": "",
+    "alt": {
+      "en": "Three whole mackerel grilled over charcoal",
+      "ar": "ثلاث سمكات ماكريل كاملة مشوية على الفحم"
+    },
+    "note": "Three whole Atlantic-type mackerel (striped backs visible) cooked on a charcoal grill rack, fish only; matches cooked mackerel. A few chili flakes on one fish. 4096x3072."
+  },
+  "ff_renga": {
+    "status": "missing",
+    "reason": "No usable image of Egyptian renga. The closest look-alike (German Bückling, whole golden smoked herring in Büsum) has a readable price sign in frame; other hits are herring species plates, larvae, mixed Massachusetts dishes, or packaged product sold in Italy (also under 800 px)."
+  },
+  "ff_egg_whole_raw": {
+    "status": "approved",
+    "file": "File:Eggs Chicken.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Eggs_Chicken.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Eggs_Chicken.jpg",
+    "width": 3984,
+    "height": 2656,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "safaritravelplus",
+    "credit": "https://www.safaritravelplus.com/images/food/eggs/",
+    "alt": {
+      "en": "Fresh brown eggs in a paper egg tray",
+      "ar": "بيض بني طازج في كرتونة بيض ورقية"
+    },
+    "note": "Fresh whole brown chicken eggs in shell in an unbranded pulp tray; represents whole raw eggs (brown eggs as commonly sold in Egypt). 3984x2656. CC0 on Commons, sourced from the photographer's own site safaritravelplus.com (which publishes its image library as CC0). Fallback if that source is unwanted: File:Chicken eggs 20101113.jpg (PD-self, 1500x1125, three white eggs)."
+  },
+  "ff_egg_boiled": {
+    "status": "approved",
+    "file": "File:Boiled Egg - Crossection.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Boiled_Egg_-_Crossection.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Boiled_Egg_-_Crossection.jpg",
+    "width": 2048,
+    "height": 1536,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "Ramesh NG",
+    "credit": "Flickr: Boiled Egg - Crossection",
+    "alt": {
+      "en": "A hard-boiled egg cut in half",
+      "ar": "بيضة مسلوقة جيدًا مقطوعة نصفين"
+    },
+    "note": "Cross-section of a peeled hard-boiled egg, two halves with fully set yolk, on a plain background; exactly hard-boiled egg. 2048x1536."
+  },
+  "ff_egg_fried": {
+    "status": "missing",
+    "reason": "Both previewed CC0 'Fried egg sunny side up' photos are full breakfast plates (potatoes, sauce, meat under the eggs) and one has a person in frame; thumbnail budget used up. Fried eggs alone likely exist on Commons — worth a targeted second pass (e.g. 'fried egg in pan')."
+  },
+  "ff_egg_scrambled": {
+    "status": "approved",
+    "file": "File:Scrambled eggs with basil.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Scrambled_eggs_with_basil.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/Scrambled_eggs_with_basil.jpg",
+    "width": 1960,
+    "height": 2614,
+    "mime": "image/jpeg",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "author": "OmegaFallon",
+    "credit": "Own work",
+    "alt": {
+      "en": "Scrambled eggs on a white plate",
+      "ar": "بيض مخفوق مطبوخ في طبق أبيض"
+    },
+    "note": "A plate of plain scrambled eggs with only a few small basil leaves, nothing else on the plate; matches scrambled egg. Own-work CC BY 4.0, 1960x2614 (casual phone photo). Chosen over File:Scrambled egg.jpg, whose source is an external blog with no verified licence."
+  },
+  "ff_egg_white_raw": {
+    "status": "approved",
+    "file": "File:Bowl of egg whites.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Bowl_of_egg_whites.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Bowl_of_egg_whites.jpg",
+    "width": 2300,
+    "height": 1725,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Douglas P Perkins",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of raw separated egg whites",
+      "ar": "وعاء فيه بياض بيض نيء مفصول"
+    },
+    "note": "Top-down view of a bowl holding the raw whites of six eggs, no yolks (one tiny speck), on a steel counter; exactly raw egg white. Borderline on looks: the whites take a yellowish cast from the lighting. 2300x1725."
+  },
+  "ff_egg_yolk_raw": {
+    "status": "approved",
+    "file": "File:Yolks.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Yolks.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Yolks.jpg",
+    "width": 2802,
+    "height": 1868,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "author": "Paul Goyette",
+    "credit": "https://www.flickr.com/photos/pgoyette/258868974/",
+    "alt": {
+      "en": "Six raw egg yolks in a steel bowl",
+      "ar": "ستة صفار بيض نيء في وعاء معدني"
+    },
+    "note": "Six separated raw egg yolks, no whites, in a stainless-steel mixing bowl; exactly raw egg yolk. 2802x1868."
+  },
+  "ff_milk_whole": {
+    "status": "approved",
+    "file": "File:Glass of Milk (33657535532).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "NIAID",
+    "credit": "Glass of Milk",
+    "alt": {
+      "en": "A glass of milk",
+      "ar": "كوب من الحليب"
+    },
+    "note": "Plain glass of white milk on a solid blue background, nothing else in frame; matches milk as sold (fat level is not visible in any photo). By NIAID (US NIH institute), released on Flickr under CC BY 2.0. 1566x1570."
+  },
+  "ff_milk_2": {
+    "status": "approved",
+    "file": "File:Glass of Milk (33657535532).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "NIAID",
+    "credit": "Glass of Milk",
+    "alt": {
+      "en": "A glass of milk",
+      "ar": "كوب من الحليب"
+    },
+    "note": "Same image as whole milk: a plain glass of milk on a blue background. Fat level (2%) cannot be shown in a photo, so the generic glass of milk is honest for reduced-fat milk too. 1566x1570."
+  },
+  "ff_milk_skim": {
+    "status": "approved",
+    "file": "File:Glass of Milk (33657535532).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Glass_of_Milk_(33657535532).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "NIAID",
+    "credit": "Glass of Milk",
+    "alt": {
+      "en": "A glass of milk",
+      "ar": "كوب من الحليب"
+    },
+    "note": "Same image as whole milk: a plain glass of milk on a blue background. Fat level cannot be shown in a photo, so the generic glass of milk is honest for skim milk too. 1566x1570."
+  },
+  "ff_laban_rayeb": {
+    "status": "approved",
+    "file": "File:A cup of laban rayeb.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:A_cup_of_laban_rayeb.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/A_cup_of_laban_rayeb.jpg",
+    "width": 4160,
+    "height": 3120,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Mint eggy93",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass of laban rayeb (cultured milk)",
+      "ar": "كوب من اللبن الرايب"
+    },
+    "note": "A glass tumbler of Egyptian laban rayeb (thick fermented milk), described as such by the uploader; only the drink in frame on a wooden table. Matches laban rayeb as sold/served. 4160x3120, plain phone photo."
+  },
+  "ff_yogurt_plain_whole": {
+    "status": "approved",
+    "file": "File:Joghurt.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Joghurt.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Joghurt.jpg",
+    "width": 2000,
+    "height": 1679,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Rainer Zenz",
+    "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+    "alt": {
+      "en": "Plain yogurt spooned onto a white plate",
+      "ar": "زبادي سادة على طبق أبيض"
+    },
+    "note": "Same image as low-fat plain yogurt: spoonfuls of plain white set yogurt on a plain plate; fat level is not visible, so it is honest for whole-milk plain yogurt. 2000x1679. Borderline metadata: no machine-readable author; uploader Rainer Zenz self-licensed CC BY-SA 3.0."
+  },
+  "ff_yogurt_plain_lowfat": {
+    "status": "approved",
+    "file": "File:Joghurt.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Joghurt.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Joghurt.jpg",
+    "width": 2000,
+    "height": 1679,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Rainer Zenz",
+    "credit": "Own work (uploader self-licence; no machine-readable source on Commons)",
+    "alt": {
+      "en": "Plain yogurt spooned onto a white plate",
+      "ar": "زبادي سادة على طبق أبيض"
+    },
+    "note": "Spoonfuls of plain white set yogurt (Bulgarian style) on a plain plate, nothing else; matches plain yogurt (fat level is not visible in a photo). 2000x1679. Borderline metadata: no machine-readable author on Commons; uploader Rainer Zenz self-licensed it CC BY-SA 3.0."
+  },
+  "ff_greek_yogurt_nonfat": {
+    "status": "approved",
+    "file": "File:Fresh greek yoghurt.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_greek_yoghurt.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/59/Fresh_greek_yoghurt.jpg",
+    "width": 3920,
+    "height": 2204,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "ProjectManhattan",
+    "credit": "Own work",
+    "alt": {
+      "en": "A spoonful of thick plain Greek yogurt over a bowl",
+      "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
+    },
+    "note": "A spoon of thick, plain strained (Greek) yogurt held over a white bowl, nothing added; matches plain Greek yogurt (fat level not visible). 3920x2204."
+  },
+  "ff_greek_yogurt_whole": {
+    "status": "approved",
+    "file": "File:Fresh greek yoghurt.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_greek_yoghurt.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/59/Fresh_greek_yoghurt.jpg",
+    "width": 3920,
+    "height": 2204,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "ProjectManhattan",
+    "credit": "Own work",
+    "alt": {
+      "en": "A spoonful of thick plain Greek yogurt over a bowl",
+      "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
+    },
+    "note": "Same image as fat-free Greek yogurt: a spoon of thick, plain strained yogurt over a white bowl; fat level is not visible, so it is honest for whole-milk Greek yogurt too. 3920x2204."
+  },
+  "ff_cottage_cheese_4": {
+    "status": "approved",
+    "file": "File:Cottagecheese200px.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cottagecheese200px.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/16/Cottagecheese200px.jpg",
+    "width": 2274,
+    "height": 1808,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Fastily",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass bowl of cottage cheese with a spoon",
+      "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
+    },
+    "note": "Small-curd creamed cottage cheese heaped in a glass bowl with a spoon, nothing else; matches cottage cheese as sold. 2274x1808, own work."
+  },
+  "ff_cottage_cheese_1": {
+    "status": "approved",
+    "file": "File:Cottagecheese200px.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Cottagecheese200px.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/16/Cottagecheese200px.jpg",
+    "width": 2274,
+    "height": 1808,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Fastily",
+    "credit": "Own work",
+    "alt": {
+      "en": "A glass bowl of cottage cheese with a spoon",
+      "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
+    },
+    "note": "Same image as 4% cottage cheese: curd cottage cheese in a glass bowl; fat level is not visible, so it is honest for low-fat (1%) cottage cheese too. 2274x1808, own work."
+  },
+  "ff_areesh_cheese": {
+    "status": "missing",
+    "reason": "No photo of Egyptian areesh (karish) cheese on Commons: searches for 'areesh cheese', 'Karish cheese' and the Arabic 'جبنة قريش' return nothing or only Western cottage cheese, which looks different (areesh is a pressed, crumbly fresh curd block). Not substituted with cottage cheese."
+  },
+  "ff_feta": {
+    "status": "approved",
+    "file": "File:Feta siers.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Feta_siers.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/30/Feta_siers.JPG",
+    "width": 2342,
+    "height": 1595,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Martula13",
+    "credit": "Own work",
+    "alt": {
+      "en": "Feta cheese block and cubes",
+      "ar": "قالب جبن فيتا ومكعبات منه"
+    },
+    "note": "A block of white brined feta with part of it cut into cubes on a white plate, nothing else; matches feta as sold and the '1 cube' portion. 2342x1595, own work."
+  },
+  "ff_white_cheese_domiati": {
+    "status": "approved",
+    "file": "File:Domiati cheese.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Domiati_cheese.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Domiati_cheese.jpg",
+    "width": 2182,
+    "height": 1850,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "MartinKassemJ120",
+    "credit": "Own work",
+    "alt": {
+      "en": "A piece of soft white Domiati cheese on a plate",
+      "ar": "قطعة جبن أبيض دمياطي طري في طبق"
+    },
+    "note": "A slab of soft, smooth Egyptian Domiati white cheese on a plain plate with a knife; identified as Domiati by the uploader and it has the typical soft, close-textured look (not crumbly feta). 2182x1850, own work."
+  },
+  "ff_mozzarella_part_skim": {
+    "status": "approved",
+    "file": "File:Mozzarella cheese (1).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Mozzarella_cheese_(1).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/51/Mozzarella_cheese_%281%29.jpg",
+    "width": 1280,
+    "height": 960,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Jon Sullivan",
+    "credit": "http://www.public-domain-image.com/public-domain-images-pictures-free-stock-photos/food-and-drink-public-domain-images-pictures/cheese-public-domain-images-pictures/mozzarella-cheese.jpg",
+    "alt": {
+      "en": "A log of mozzarella cheese with one slice cut",
+      "ar": "قطعة أسطوانية من جبن الموتزاريلا مع شريحة مقطوعة"
+    },
+    "note": "A white mozzarella log with a slice cut off, on a dark plate (two apples out of focus behind). Borderline: it looks like a fresh-style mozzarella rather than the firmer low-moisture block usually sold as part-skim; fat level is not visible. Public domain (Jon Sullivan, PDPhoto). 1280x960."
+  },
+  "ff_cheddar": {
+    "status": "missing",
+    "reason": "No clean cheddar photo found: 'White cheddar cheese sliced' shows thin translucent yellow squares that do not read as cheddar; Jon Sullivan's white cheddar block has a stack of crackers on it and is only 1024x768; Somerset wedge is 879x628; other hits are branded blocks, people, sandwiches or cheese boards."
+  },
+  "ff_parmesan": {
+    "status": "missing",
+    "reason": "Previewed Parmesan photos both carry readable text: a whole wheel covered in the 'PARMIGIANO REGGIANO' rind stamps, and a restaurant chunk with a printed name card and a branded barrel behind. Other hits are market wheels, buffets or under 800 px."
+  },
+  "ff_cream_cheese": {
+    "status": "missing",
+    "reason": "No unbranded plain cream cheese found: the opened brick is a branded (Philadelphia) foil pack with printed text; other hits are branded cartons, flavoured vegan products, bagels/sandwiches, a composition diagram, or other fresh cheeses (quark, farmer cheese) that are not cream cheese."
+  },
+  "ff_ricotta_part_skim": {
+    "status": "approved",
+    "file": "File:Ricotta pugliese.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Ricotta_pugliese.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Ricotta_pugliese.jpg",
+    "width": 2736,
+    "height": 2675,
+    "mime": "image/jpeg",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "author": "Saggittarius A",
+    "credit": "Own work",
+    "alt": {
+      "en": "Three basket-moulded fresh ricotta cheeses in a dish",
+      "ar": "ثلاث قطع من جبن الريكوتا الطازج المشكّل في سلال في طبق"
+    },
+    "note": "Three fresh ricotta forms (basket-moulded) with a little whey in a white dish and a spoon; unmistakably ricotta. Fat level (part-skim) is not visible in a photo. 2736x2675."
+  },
+  "ff_processed_cheese_spread": {
+    "status": "missing",
+    "reason": "No photo of spreadable processed cheese (triangles/jar spread) alone: 'Schmelzkäse-1' mixes wrapped processed slices with one foil wedge, 'Processed cheese 1' shows processed slices (a different product); other hits are branded tubs/jars, sandwiches, or a non-accepted 'Attribution' licence."
+  },
+  "ff_tofu_firm": {
+    "status": "missing",
+    "reason": "No plain firm tofu block found: the only firm-tofu candidate is a production scene (fresh curd in a cloth-lined tray, hand and knife in frame); other hits are silken tofu, pressed/dried tofu (dou gan, a different product), cooked dishes, branded bags, or images under 800 px."
+  }
+}

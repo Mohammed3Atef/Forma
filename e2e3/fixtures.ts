@@ -28,6 +28,8 @@ export interface E2EEnv {
   runDir: string;
   password: string;
   bunny: { dir: string; cdn: string; mode: string };
+  /** B4.1: the catalog's public media zone (stand-in). */
+  catalogMedia?: string;
   accounts: Record<Role, { id: string; email: string; role: string }>;
 }
 

@@ -23,10 +23,10 @@ import { MediaError } from './bunny.js';
  * the fresh-start archive all keep working.
  */
 
-export type MediaCategory = 'avatar' | 'progress' | 'assessment' | 'checkin' | 'exercise' | 'message';
+export type MediaCategory = 'avatar' | 'progress' | 'assessment' | 'checkin' | 'exercise' | 'message' | 'food';
 export type MediaKind = 'image' | 'video' | 'audio' | 'file';
 
-export const MEDIA_CATEGORIES: readonly MediaCategory[] = ['avatar', 'progress', 'assessment', 'checkin', 'exercise', 'message'];
+export const MEDIA_CATEGORIES: readonly MediaCategory[] = ['avatar', 'progress', 'assessment', 'checkin', 'exercise', 'message', 'food'];
 
 export interface UploadMeta {
   category: string;
@@ -53,6 +53,9 @@ const MB = 1024 * 1024;
 /** Per-kind byte limits — the same numbers the old client enforced (and that the i18n `upload.tooLarge*` strings quote). */
 export const MAX_BYTES: Record<MediaKind, number> = { image: 5 * MB, video: 50 * MB, audio: 10 * MB, file: 25 * MB };
 export const MAX_AVATAR_BYTES = 2 * MB;
+/** B4.1: food photos — one request (sanitized whole on the server), so below the chunk size. */
+export const MAX_FOOD_IMAGE_BYTES = 4 * MB;
+const FOOD_IMAGE_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const STILL_IMAGE_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
@@ -107,7 +110,7 @@ function tooLargeCode(kind: MediaKind): string {
 
 /** Byte limit for a resolved (category, kind) — exported so the handler can cap the request body read at exactly this. */
 export function limitFor(category: MediaCategory, kind: MediaKind): number {
-  return category === 'avatar' ? MAX_AVATAR_BYTES : MAX_BYTES[kind];
+  return category === 'avatar' ? MAX_AVATAR_BYTES : category === 'food' ? MAX_FOOD_IMAGE_BYTES : MAX_BYTES[kind];
 }
 
 /**
@@ -161,6 +164,13 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
       folder = `Forma/${ownerId}/exercises`;
       allowedKinds = ['image', 'video'];
       break;
+    case 'food':
+      // B4.1: a coach's own food photos (library foods and plan items) — clients have none. Public
+      // coach content, kept apart from private client media; the stored file is sanitized (handler).
+      if (user.role === 'client') throw new MediaError(403, 'forbidden', 'Only coaches can upload food photos');
+      folder = `Forma/${ownerId}/foods`;
+      allowedKinds = ['image'];
+      break;
     case 'message': {
       const clientId = assertId(meta.clientId, 'client id');
       try {
@@ -176,6 +186,7 @@ export async function resolveUploadTarget(user: AuthedUser, meta: UploadMeta): P
   }
 
   if (!allowedKinds.includes(kind)) throw new MediaError(415, 'badType', 'Unsupported file type for this upload');
+  if (category === 'food' && !FOOD_IMAGE_MIME.has(mimeType)) throw new MediaError(415, 'badType', 'Only JPEG, PNG or WebP photos can be used');
   // Still images only for the photo categories (no gif/animated for avatars either — same as the old client's allow-list).
   if (kind === 'image' && category !== 'message' && category !== 'exercise' && !STILL_IMAGE_MIME.has(mimeType)) {
     throw new MediaError(415, 'badType', 'Unsupported image type');

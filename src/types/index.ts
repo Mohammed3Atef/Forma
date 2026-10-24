@@ -377,6 +377,9 @@ export interface SignupInvite {
   subDays?: number; // for an 'active' term measured in days (coach plan with unit='days')
   subTrialDays?: number; // for a 'trial' (default 14)
   status: SignupInviteStatus;
+  /** B4.1: what happened to the invite email (absent: no email on the invite). `unconfirmed` = no answer in time. */
+  emailStatus?: 'sent' | 'not-sent' | 'unconfirmed';
+  emailAttemptAt?: number;
   claimedByUid?: string | null;
   createdAt: number;
   claimedAt?: number | null;
@@ -943,6 +946,41 @@ export interface CoachTargets {
 // Workout plan
 // ---------------------------------------------------------------------------
 
+/** B4 — structured, bilingual technique notes copied from the Forma catalog. */
+export interface CatalogInstructionSet {
+  setup: string[];
+  steps: string[];
+  cues: string[];
+  mistakes: string[];
+  safety: string[];
+}
+
+/** B4 — the credit a demonstration image / video must show wherever it is shown (licence + author + source). */
+export interface MediaCredit {
+  url: string;
+  kind: 'image' | 'video';
+  author: string;
+  license: string;
+  sourcePage?: string;
+}
+
+/**
+ * B4 — what a food row's macros were computed from, when it came from the Forma catalog (or the
+ * Open Food Facts search): values per 100 g, the serving, the state, and the source to credit.
+ */
+export interface FoodProvenance {
+  catalogId?: string;
+  catalogRev?: number;
+  per100g?: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number };
+  /** The serving: a household portion (or `g` for plain grams) × amount = grams. */
+  portion?: { id: string; amount: number; grams: number; label?: LocalizedText };
+  foodState?: 'raw' | 'cooked' | 'dry' | 'prepared' | 'as-sold';
+  /** `recipe-estimate` / `proxy-estimate` are shown as estimates, with `sourceNote`. */
+  verification?: 'source-values' | 'recipe-estimate' | 'proxy-estimate';
+  sourceNote?: LocalizedText;
+  source?: { provider: 'forma-catalog' | 'open-food-facts'; license: string; attribution: string; url?: string };
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -977,6 +1015,8 @@ export interface Exercise {
   /** Demo image (e.g. seeded library); coaches may still attach a video. */
   imageUrl?: string | null;
   images?: string[];
+  /** B4.1: the still shown before a catalog demonstration (`videoUrl`) plays. */
+  videoPosterUrl?: string | null;
   // ---- Import provenance (seeded/imported exercises only) -------------------
   /** External catalog id this row was imported from (e.g. a wger exercise id). */
   sourceId?: string;
@@ -994,6 +1034,14 @@ export interface Exercise {
   libraryExerciseId?: string;
   /** Whether this embedded copy still receives auto-sync from the library exercise (see `pickFromLibrary`/`SYNCED_EXERCISE_FIELDS`). */
   librarySyncEnabled?: boolean;
+  // ---- B4: copy taken from the Forma catalog (all optional) ---------------
+  /** The catalog exercise this copy came from, and its revision at that time. */
+  catalogId?: string;
+  catalogRev?: number;
+  /** Bilingual name from the catalog — the UI shows it in the reader's language (`name` stays the fallback). */
+  names?: LocalizedText;
+  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet };
+  mediaCredits?: MediaCredit[];
 }
 
 /** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */
@@ -1144,7 +1192,7 @@ export interface Macros {
   fats: number;
 }
 
-export interface FoodItem {
+export interface FoodItem extends FoodProvenance {
   id: string;
   name: LocalizedText;
   quantity: string;
@@ -1159,6 +1207,29 @@ export interface FoodItem {
   allowedAlternatives?: FoodItem[];
   /** Whether the client may swap this item for a free-text custom food. */
   allowCustomSubstitution?: boolean;
+  /** B4.1: the food's picture — a copy, so a plan keeps the picture it was built with. */
+  image?: FoodImageRef | null;
+}
+
+/**
+ * B4.1 — a food's picture as a library food or a plan item carries it: the coach's own upload
+ * (sanitized, in their `foods` folder) or an approved Forma catalog picture of that catalog food.
+ * Who may use which picture is enforced by the server on every save.
+ */
+export interface FoodImageRef {
+  source: 'upload' | 'forma-catalog';
+  url: string;
+  thumbUrl: string;
+  width?: number;
+  height?: number;
+  alt?: LocalizedText;
+  catalogFoodId?: string;
+  author?: string;
+  license?: string;
+  sourcePage?: string;
+  /** A replacement is a new file (new rev): earlier plans keep showing the picture they were saved with. */
+  rev: number;
+  uploadedAt: number;
 }
 
 export interface Meal {

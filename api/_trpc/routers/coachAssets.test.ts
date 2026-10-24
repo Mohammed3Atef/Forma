@@ -117,6 +117,29 @@ describe('coachAssets router — exercises (stripMeta resource: no coachId/creat
     expect(cleared.exercise.videoUrl ?? null).toBeNull();
   });
 
+  it('B3-S11 / B4: attribution and catalog links survive a full save — exercise source, catalog id, names, instructions and media credits; food provenance', async () => {
+    const asCoachA = appRouter.createCaller(ctxFor(coachA));
+    const instructions = { en: { setup: ['Lie on the bench.'], steps: ['Lower.', 'Press.'], cues: ['Feet down.'], mistakes: ['Bouncing.'], safety: [] }, ar: { setup: ['استلقِ.'], steps: ['أنزل.', 'ادفع.'], cues: ['القدمان ثابتتان.'], mistakes: ['الارتداد.'], safety: [] } };
+    const credits = [{ url: 'https://wger.de/media/a.png', kind: 'image' as const, author: 'Everkinetic', license: 'CC-BY-SA-3.0', sourcePage: 'https://wger.de/en/exercise/73/view/' }];
+    await asCoachA.coachAssets.exercises.save({ ...exerciseInput, id: 'wger-73', source: 'wger.de (CC BY-SA 3.0)' });
+    await asCoachA.coachAssets.exercises.save({ ...exerciseInput, id: 'cat-fx_barbell_bench_press', catalogId: 'fx_barbell_bench_press', catalogRev: 2, names: { en: 'Barbell bench press', ar: 'ضغط البار على البنش المستوي' }, instructions, mediaCredits: credits });
+    const byId = new Map((await asCoachA.coachAssets.exercises.list({})).map((e) => [e.id, e]));
+    expect(byId.get('wger-73')?.source).toBe('wger.de (CC BY-SA 3.0)');
+    expect(byId.get('cat-fx_barbell_bench_press')).toMatchObject({ catalogId: 'fx_barbell_bench_press', catalogRev: 2, names: { ar: 'ضغط البار على البنش المستوي' }, instructions, mediaCredits: credits });
+
+    const provenance = {
+      catalogId: 'ff_rice_white_long_cooked',
+      catalogRev: 1,
+      per100g: { kcal: 130, protein: 2.69, carbs: 28.17, fat: 0.28 },
+      portion: { id: 'cup', amount: 1, grams: 158, label: { en: '1 cup', ar: 'كوب' } },
+      foodState: 'cooked' as const,
+      verification: 'source-values' as const,
+      source: { provider: 'forma-catalog' as const, license: 'CC0-1.0', attribution: 'Source: USDA FoodData Central (CC0)' },
+    };
+    await asCoachA.coachAssets.foods.save({ id: 'food-rice', name: { en: 'White rice, cooked', ar: 'أرز أبيض مطبوخ' }, quantity: '1 cup (158 g)', protein: 4.3, carbs: 44.5, fats: 0.4, calories: 205, ...provenance });
+    expect((await asCoachA.coachAssets.foods.list({})).find((f) => f.id === 'food-rice')).toMatchObject(provenance);
+  });
+
   it('save is an upsert: saving the same id twice replaces rather than duplicates', async () => {
     const asCoachA = appRouter.createCaller(ctxFor(coachA));
     await asCoachA.coachAssets.exercises.save(exerciseInput);
@@ -444,5 +467,32 @@ describe('coachAssets router — multi-tenant asset identity ({coachId, id}, not
 
     const asClient = appRouter.createCaller(ctxFor(client));
     await expect(asClient.coachAssets.exercises.save({ ...exerciseInput, id: 'ex-2' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+});
+
+describe('coachAssets router — food pictures (B4.1)', () => {
+  const CDN = 'https://media.forma.test';
+  const saved = process.env.BUNNY_CDN_URL;
+  beforeEach(() => {
+    process.env.BUNNY_CDN_URL = CDN;
+  });
+  afterAll(() => {
+    if (saved === undefined) delete process.env.BUNNY_CDN_URL;
+    else process.env.BUNNY_CDN_URL = saved;
+  });
+  const food = (image: unknown) => ({ id: 'food-rice', name: { en: 'Rice', ar: 'أرز' }, quantity: '1 cup', protein: 4, carbs: 45, fats: 0, calories: 205, image });
+  const pic = (coach: string, rev = 1) => ({ source: 'upload', url: `${CDN}/Forma/${coach}/foods/rice-r${rev}.webp`, thumbUrl: `${CDN}/Forma/${coach}/foods/rice-r${rev}-t.webp`, rev, uploadedAt: 1 });
+
+  it('a coach adds, replaces and removes the picture of THEIR food; another coach’s photo is refused on save and on update', async () => {
+    const asA = appRouter.createCaller(ctxFor(coachA));
+    expect((await asA.coachAssets.foods.save(food(pic('coach-a')))).image).toMatchObject({ rev: 1 });
+    await expect(asA.coachAssets.foods.save(food(pic('coach-b')))).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect((await asA.coachAssets.foods.update({ id: 'food-rice', image: pic('coach-a', 2) })).image).toMatchObject({ rev: 2 }); // replaced
+    await expect(asA.coachAssets.foods.update({ id: 'food-rice', image: pic('coach-b') })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect((await asA.coachAssets.foods.update({ id: 'food-rice', image: null })).image).toBeNull(); // removed
+    // Coach B can never touch coach A's food (its own row with the same id is a different food).
+    const asB = appRouter.createCaller(ctxFor(coachB));
+    await expect(asB.coachAssets.foods.update({ id: 'food-rice', image: pic('coach-b') })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect((await asA.coachAssets.foods.get({ id: 'food-rice' })).image).toBeNull();
   });
 });

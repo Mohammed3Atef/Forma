@@ -398,12 +398,13 @@ export function subscribeCoachUnread(coachId: string, cb: (total: number) => voi
 
 /**
  * Why one recipient's copy is not confirmed as delivered.
- *  - `notAssigned` / `accountNotActive` / `rejected`: the server ANSWERED with a
- *    refusal (4xx) — it refuses before writing, so that client did not get it;
+ *  - `notAssigned` / `accountNotActive` / `rateLimited` / `rejected`: the server
+ *    ANSWERED with a refusal (4xx) — it refuses before writing, so that client
+ *    did not get it (`rateLimited`: the coach's send limit, B36-R4 — retry later);
  *  - `unknown`: no usable answer (connection lost, timeout, server error) — the
  *    copy MAY have been stored. Retrying with the same key never stores a second.
  */
-export type BroadcastFailure = 'notAssigned' | 'accountNotActive' | 'rejected' | 'unknown';
+export type BroadcastFailure = 'notAssigned' | 'accountNotActive' | 'rateLimited' | 'rejected' | 'unknown';
 
 export interface BroadcastResult {
   clientId: string;
@@ -426,6 +427,7 @@ function broadcastFailure(e: unknown): BroadcastFailure {
   const c = classifyError(e);
   const refused = c.kind === 'permanent' || c.kind === 'unauthorized' || c.kind === 'rate_limited';
   if (!refused) return 'unknown'; // network / timeout / 5xx / cancelled: the outcome is not known
+  if (c.kind === 'rate_limited') return 'rateLimited';
   if (c.reason === 'ACCOUNT_NOT_ACTIVE') return 'accountNotActive';
   if (isThreadForbidden(e) || c.reason === 'CONVERSATION_CLOSED') return 'notAssigned';
   return 'rejected';

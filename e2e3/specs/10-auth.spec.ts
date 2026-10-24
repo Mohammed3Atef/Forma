@@ -146,10 +146,12 @@ test.describe('auth', () => {
       if (i <= 10) await expect(page.getByTestId('login-error')).toHaveText('Invalid email or password.');
     }
     await expect(page.getByTestId('login-error')).toHaveText('Too many attempts — please wait a bit and try again.');
-    // Every attempt was counted server-side in one window, keyed by IP + email.
+    // Every attempt was counted server-side in one window, keyed by IP + email — stored as a digest
+    // since B4 (the collection never holds an email address or IP in clear).
     const counted = await db.find<{ _id: string; count: number }>('rateLimits', { windowStart });
-    const mine = counted.filter((d) => d._id.startsWith('auth.login:') && d._id.endsWith(`:${email}:${windowStart}`));
-    expect(mine.map((d) => d.count)).toEqual([11]);
+    const logins = counted.filter((d) => d._id.startsWith('auth.login:') && d._id.endsWith(`:${windowStart}`));
+    expect(logins.filter((d) => d.count === 11)).toHaveLength(1);
+    expect(counted.filter((d) => d._id.includes(email) || d._id.includes('127.0.0.1'))).toEqual([]);
     await snap(page, testInfo, 'rate-limited');
     // Page still usable: the form is interactive and another account can still sign in.
     await page.getByTestId('login-email').fill('');

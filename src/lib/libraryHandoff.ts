@@ -88,7 +88,7 @@ export function foodFromLibrary(food: LibraryFood, newId: () => string) {
   return applyFoodEdit(
     null,
     newId(),
-    { name: food.name, quantity: food.quantity ?? '', calories: Number(food.calories) || 0, protein: Number(food.protein) || 0, carbs: Number(food.carbs) || 0, fats: Number(food.fats) || 0, group: undefined, allowCustom: false },
+    { name: food.name, quantity: food.quantity ?? '', calories: Number(food.calories) || 0, protein: Number(food.protein) || 0, carbs: Number(food.carbs) || 0, fats: Number(food.fats) || 0, group: undefined, allowCustom: false, image: food.image ?? undefined },
     newId,
   );
 }

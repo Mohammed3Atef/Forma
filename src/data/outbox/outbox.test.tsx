@@ -174,6 +174,25 @@ describe('durable outbox (B1.6 / PWA-12)', () => {
     expect(calls.map((c) => c.id)).toEqual(['op-1', 'op-1']);
   });
 
+  it('a rate-limit refusal keeps the op and waits at least as long as the server asked (B36-R4)', async () => {
+    await open('client-a');
+    behaviour = async (_o, n) => {
+      if (n === 1) throw Object.assign(new Error('TOO_MANY_REQUESTS'), { name: 'TRPCClientError', data: { code: 'TOO_MANY_REQUESTS', httpStatus: 429, reason: 'RATE_LIMITED', retryAfter: 420 } });
+      return { ok: true };
+    };
+    const before = Date.now();
+    await enqueue('op-rl');
+    await settled('op-rl');
+    expect(op('op-rl')).toMatchObject({ status: 'failed_retryable', lastError: { kind: 'rate_limited', reason: 'RATE_LIMITED' } });
+    // Not the 30 s rate-limit floor: the window reopens in 420 s.
+    expect(op('op-rl')!.nextAttemptAt!).toBeGreaterThanOrEqual(before + 420_000);
+    await retryOutbox('op-rl');
+    await settled('op-rl');
+    await flush();
+    expect(op('op-rl')?.status).toBe('acknowledged');
+    expect(calls.map((c) => c.id)).toEqual(['op-rl', 'op-rl']);
+  });
+
   it('a permanent failure waits for the user (no automatic retry); Retry tries again', async () => {
     await open('client-a');
     behaviour = async () => {

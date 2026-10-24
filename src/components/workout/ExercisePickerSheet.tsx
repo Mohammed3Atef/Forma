@@ -9,6 +9,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { ExerciseForm } from './ExerciseForm';
 import { blankExercise, pickFromLibrary } from '@/lib/workoutPresets';
 import { listExercises, saveExercise } from '@/services/platform/coachAssetsApi';
+import { getCatalogExercises, type CatalogExerciseCard } from '@/services/platform/catalogApi';
+import { useCatalogMeta } from '@/hooks/useCatalog';
+import { LazyCatalogExerciseBrowser, LazyCatalogExercisePreview } from '@/components/catalog/LazyCatalog';
 import { parseDecimal } from '@/lib/utils';
 import type { Exercise } from '@/types';
 
@@ -30,6 +33,22 @@ function writeRecent(coachId: string, ids: string[]): void {
     /* storage unavailable — recents just aren't remembered */
   }
 }
+const sourceKey = (coachId: string) => `forma.pickerSource.v1.${coachId}`;
+function readSource(coachId: string): 'forma' | 'mine' | null {
+  try {
+    const v = localStorage.getItem(sourceKey(coachId));
+    return v === 'forma' || v === 'mine' ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeSource(coachId: string, v: 'forma' | 'mine'): void {
+  try {
+    localStorage.setItem(sourceKey(coachId), v);
+  } catch {
+    /* storage unavailable — the default applies next time */
+  }
+}
 const distinct = (values: (string | undefined)[]) => [...new Set(values.map((v) => v?.trim()).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 
 /**
@@ -37,6 +56,11 @@ const distinct = (values: (string | undefined)[]) => [...new Set(values.map((v) 
  * filters, a media indicator, "Recently used" first, and "Create new" as the last row.
  * Multi-select with optional shared sets / reps / rest, inserted in one action. A library that
  * fails to load says so with Retry — never "your library is empty".
+ *
+ * B4: when the curated Forma catalog is on, it is the first source ("Forma library": server search
+ * in English / Arabic / Egyptian gym words, previews with media + instructions) next to the
+ * coach's own exercises ("My library"). Picked catalog exercises are fetched in full and copied with
+ * their credits and instructions; selections from both sources are added together.
  */
 export function ExercisePickerSheet({
   open,
@@ -52,6 +76,16 @@ export function ExercisePickerSheet({
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [mode, setMode] = useState<'list' | 'create'>('list');
+  const catalog = useCatalogMeta();
+  // Which library opens first: the coach's own choice on this device, else their own exercises when
+  // they have some (an existing coach's flow is unchanged), else the Forma library.
+  const [sourceChoice, setSourceChoice] = useState<'forma' | 'mine' | null>(() => readSource(coachId));
+  const setSource = (s: 'forma' | 'mine') => {
+    setSourceChoice(s);
+    writeSource(coachId, s);
+  };
+  const [catSel, setCatSel] = useState<Map<string, CatalogExerciseCard>>(new Map());
+  const [preview, setPreview] = useState<CatalogExerciseCard | null>(null);
   const [search, setSearch] = useState('');
   const [muscle, setMuscle] = useState('');
   const [equipment, setEquipment] = useState('');
@@ -61,6 +95,8 @@ export function ExercisePickerSheet({
 
   const lib = useQuery({ queryKey: ['exerciseLibrary', coachId], queryFn: () => listExercises(coachId), enabled: open && !!coachId });
   const all = useMemo(() => lib.data ?? [], [lib.data]);
+  const source = sourceChoice ?? (all.length > 0 ? 'mine' : 'forma');
+  const showForma = catalog.enabled && source === 'forma';
   const muscles = useMemo(() => distinct(all.map((e) => e.targetMuscle)), [all]);
   const equipments = useMemo(() => distinct(all.map((e) => e.equipment)), [all]);
   const recent = useMemo(() => {
@@ -91,8 +127,18 @@ export function ExercisePickerSheet({
       return next;
     });
 
+  const toggleCatalog = (card: CatalogExerciseCard) =>
+    setCatSel((cur) => {
+      const next = new Map(cur);
+      if (next.has(card.id)) next.delete(card.id);
+      else next.set(card.id, card);
+      return next;
+    });
+
   const reset = () => {
     setSelected(new Map());
+    setCatSel(new Map());
+    setPreview(null);
     setUseDefaults(false);
     setSearch('');
     setMuscle('');
@@ -100,13 +146,24 @@ export function ExercisePickerSheet({
     setMode('list');
   };
 
-  const confirmAdd = () => {
-    if (selected.size === 0) return;
+  const total = selected.size + catSel.size;
+  const confirmAdd = () => add.mutate();
+  const add = useMutation({
+    mutationFn: async () => {
+      // Catalog picks are fetched in full (instructions + credits) only now, when they are added.
+      const full = catSel.size && catalog.taxonomy ? await getCatalogExercises([...catSel.keys()]) : [];
+      if (!full.length) return [];
+      const { exerciseFromCatalog } = await import('@/lib/catalogCopy'); // loads with the first catalog add
+      return full.map((e) => exerciseFromCatalog(e, catalog.taxonomy!));
+    },
+    onSuccess: (fromCatalog) => addPicked(fromCatalog),
+  });
+  const addPicked = (fromCatalog: Exercise[]) => {
+    if (selected.size === 0 && fromCatalog.length === 0) return;
     const override = useDefaults
       ? { workingSets: Math.max(0, Math.round(parseDecimal(defaults.workingSets))), repRange: defaults.repRange.trim(), restSec: Math.max(0, parseDecimal(defaults.restSec)) }
       : null;
-    const exs = [...selected.values()].map((libEx) => {
-      const copy = pickFromLibrary(libEx);
+    const exs = [...[...selected.values()].map(pickFromLibrary), ...fromCatalog].map((copy) => {
       if (override) {
         copy.workingSets = override.workingSets;
         copy.repRange = override.repRange || copy.repRange;
@@ -160,23 +217,45 @@ export function ExercisePickerSheet({
         onClose();
       }}
       size="lg"
-      onBack={mode === 'create' ? () => setMode('list') : undefined}
-      title={mode === 'create' ? t('coachEditor.quickCreate') : t('coachEditor.addExercise')}
+      onBack={mode === 'create' ? () => setMode('list') : preview ? () => setPreview(null) : undefined}
+      title={mode === 'create' ? t('coachEditor.quickCreate') : preview ? t('catalog.preview') : t('coachEditor.addExercise')}
       footer={
         mode === 'list' ? (
           <div className="flex items-center gap-3">
             <span className="flex-1 text-[13px] text-earth-muted" data-testid="picker-selected-count">
-              {t('coachEditor.nSelected', { n: selected.size })}
+              {add.isError ? <span className="text-danger-text" role="alert" data-testid="picker-add-failed">{t('catalog.addFailed')}</span> : t('coachEditor.nSelected', { n: total })}
             </span>
-            <SubmitButton type="button" data-testid="picker-add-selected" disabled={selected.size === 0} onClick={confirmAdd}>
-              {t('coachEditor.addNExercises', { n: selected.size })}
+            <SubmitButton type="button" data-testid="picker-add-selected" disabled={total === 0} pending={add.isPending} onClick={confirmAdd}>
+              {t('coachEditor.addNExercises', { n: total })}
             </SubmitButton>
           </div>
         ) : undefined
       }
     >
-      {mode === 'list' ? (
+      {mode === 'list' && preview && catalog.taxonomy ? (
+        <LazyCatalogExercisePreview
+          id={preview.id}
+          taxonomy={catalog.taxonomy}
+          actions={() => (
+            <SubmitButton type="button" variant={catSel.has(preview.id) ? 'secondary' : 'primary'} data-testid="catalog-preview-select" aria-pressed={catSel.has(preview.id)} onClick={() => toggleCatalog(preview)}>
+              {catSel.has(preview.id) ? t('catalog.selected') : t('catalog.select')}
+            </SubmitButton>
+          )}
+        />
+      ) : mode === 'list' ? (
         <div className="space-y-3" data-testid="exercise-picker">
+          {catalog.enabled && (
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('catalog.source')} data-testid="picker-source">
+              <button type="button" className={`chip min-h-ui-hit justify-center ${source === 'forma' ? 'chip-on' : ''}`} aria-pressed={source === 'forma'} onClick={() => setSource('forma')} data-testid="picker-source-forma">
+                {t('catalog.formaLibrary')}
+              </button>
+              <button type="button" className={`chip min-h-ui-hit justify-center ${source === 'mine' ? 'chip-on' : ''}`} aria-pressed={source === 'mine'} onClick={() => setSource('mine')} data-testid="picker-source-mine">
+                {t('catalog.myLibrary')}
+              </button>
+            </div>
+          )}
+          {!showForma && (
+          <>
           <div className="relative">
             <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-earth-subtle">
               <Icon name="search" size={18} />
@@ -203,6 +282,8 @@ export function ExercisePickerSheet({
               </SelectField>
             </div>
           )}
+          </>
+          )}
 
           {/* Shared defaults for the whole batch — each exercise keeps its own sets/reps/rest unless enabled. */}
           <div className="rounded-xl border border-line-soft p-3">
@@ -228,7 +309,9 @@ export function ExercisePickerSheet({
             )}
           </div>
 
-          {lib.isLoading ? (
+          {showForma && catalog.taxonomy ? (
+            <LazyCatalogExerciseBrowser taxonomy={catalog.taxonomy} selected={new Set(catSel.keys())} onToggle={toggleCatalog} onOpen={setPreview} testId="picker-catalog" />
+          ) : lib.isLoading ? (
             <p className="py-6 text-center text-sm text-earth-muted">{t('auth.working')}</p>
           ) : lib.isError ? (
             <ErrorState message={t('coachEditor.libraryLoadFailed')} onRetry={() => void lib.refetch()} testId="picker-error" />
@@ -249,15 +332,16 @@ export function ExercisePickerSheet({
                 <p className="py-4 text-center text-sm text-earth-muted">{filtering ? t('coachLib.noResults') : t('coachLib.empty')}</p>
               )}
               {filtered.length > PICKER_RENDER_CAP && <p className="text-center text-[12px] text-earth-subtle">{t('coachEditor.pickerTruncated', { shown: visible.length, total: filtered.length })}</p>}
-              <button type="button" className="row min-h-ui-hit w-full rounded-ui-control border border-dashed border-line text-start" data-testid="picker-quick-create" onClick={() => setMode('create')}>
-                <Icon name="plus" size={18} className="text-brand" />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{t('coachEditor.createNewExercise')}</span>
-                  <span className="block text-[12px] text-earth-subtle">{t('coachEditor.createNewHint')}</span>
-                </span>
-              </button>
             </>
           )}
+          {/* "Create new" is always the last row, whichever library is shown. */}
+          <button type="button" className="row min-h-ui-hit w-full rounded-ui-control border border-dashed border-line text-start" data-testid="picker-quick-create" onClick={() => setMode('create')}>
+            <Icon name="plus" size={18} className="text-brand" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{t('coachEditor.createNewExercise')}</span>
+              <span className="block text-[12px] text-earth-subtle">{t('coachEditor.createNewHint')}</span>
+            </span>
+          </button>
         </div>
       ) : (
         <div className="space-y-3">

@@ -27,7 +27,9 @@ import { resetAppUrlWarningForTests } from '../../_lib/appUrl.js';
 import type { TRPCError } from '@trpc/server';
 import { getErrorShape } from '@trpc/server/unstable-core-do-not-import';
 import { MESSAGE_SEND_LIMIT } from './messages.js';
-import { INVITE_CREATE_LIMIT } from './invites.js';
+import { INVITE_CREATE_LIMIT, INVITE_EMAIL_CEILING } from './invites.js';
+import { sendClientInviteEmail } from '../../_lib/email.js';
+import { enforceRateLimit, mailboxKey } from '../../_lib/rateLimit.js';
 
 let mongod: MongoMemoryReplSet;
 beforeAll(async () => {
@@ -257,7 +259,7 @@ describe('message and invite rate limits (B36-R4)', () => {
     expect(await (await getDb()).collection('rateLimits').countDocuments({ _id: { $regex: '^messages\\.' } as never })).toBe(0);
   });
 
-  it('invites: 30 per creating coach per hour; 5 per destination address per day across coaches; refusals create nothing and send nothing', async () => {
+  it('invites: 30 per creating coach per hour; 5 per destination address per coach per day; refusals create nothing and send nothing', async () => {
     const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
     for (let i = 0; i < INVITE_CREATE_LIMIT.perActor; i += 1) await callerWith({}, coach).invites.create({});
     const r = await refusal(callerWith({}, coach).invites.create({ email: 'one@t.test' }));
@@ -265,14 +267,264 @@ describe('message and invite rate limits (B36-R4)', () => {
     expect(await (await getDb()).collection('signupInvites').countDocuments({ coachId: 'coach-1' })).toBe(INVITE_CREATE_LIMIT.perActor);
     expect(sent.invite).toEqual([]);
 
-    // One address, many (throwaway) coaches: bounded across all of them.
-    for (let i = 0; i < INVITE_CREATE_LIMIT.perAddress; i += 1) {
-      const c = await insertUser({ _id: `spammer-${i}`, role: 'coach' });
-      await callerWith({}, c).invites.create({ email: 'victim@inbox.test' });
-    }
-    const extra = await insertUser({ _id: 'spammer-x', role: 'coach' });
-    expect(await refusal(callerWith({}, extra).invites.create({ email: 'victim@inbox.test' }))).toMatchObject({ code: 'TOO_MANY_REQUESTS', reason: 'RATE_LIMITED' });
+    // One address, one coach (B4.1: the counter is that coach's own — see the isolation suite below).
+    const other = await insertUser({ _id: 'coach-2', role: 'coach' });
+    for (let i = 0; i < INVITE_CREATE_LIMIT.perAddress; i += 1) await callerWith({}, other).invites.create({ email: 'victim@inbox.test' });
+    expect(await refusal(callerWith({}, other).invites.create({ email: 'victim@inbox.test' }))).toMatchObject({ code: 'TOO_MANY_REQUESTS', reason: 'RATE_LIMITED' });
     expect(sent.invite.filter((s) => s.to === 'victim@inbox.test')).toHaveLength(INVITE_CREATE_LIMIT.perAddress);
-    await expect(callerWith({}, extra).invites.create({ email: 'someone-else@inbox.test' })).resolves.toBeTruthy();
+    await expect(callerWith({}, other).invites.create({ email: 'someone-else@inbox.test' })).resolves.toBeTruthy();
+  });
+});
+
+/**
+ * B4 checkpoint 1 — review of the B36-R4 limits as approved by the owner (300 / sender and 60 /
+ * conversation per 10 min; 30 invites / creator per hour and 5 / address per 24 h). The numbers are
+ * unchanged; these pin what the review fixed or had no test for.
+ */
+describe('rate-limit review (B4 checkpoint 1)', () => {
+  const db = async () => getDb();
+  const messageCounters = async () => (await (await db()).collection('rateLimits').countDocuments({ _id: { $regex: '^messages\\.' } as never }));
+  async function coachWithClients(n: number) {
+    const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const now = Date.now();
+    for (let i = 1; i <= n; i += 1) {
+      await insertUser({ _id: `client-${i}`, role: 'client', assignedCoachId: 'coach-1' });
+      await (await db()).collection('coachClients').insertOne({ _id: `coach-1__client-${i}` as never, coachId: 'coach-1', clientId: `client-${i}`, status: 'active', createdBy: 'coach-1', createdAt: now, updatedAt: now });
+    }
+    return coach;
+  }
+  const failure = async (p: Promise<unknown>) => p.then(() => null, (e: TRPCError & { cause?: { reason?: string } }) => ({ code: e.code, reason: e.cause?.reason }));
+
+  it('a send refused for its conversation uses no quota: closed conversation (after a transfer) and no coach at all', async () => {
+    await coachWithClients(1);
+    const client = await insertUser({ _id: 'client-9', role: 'client', assignedCoachId: 'coach-1' });
+    const now = Date.now();
+    await (await db()).collection('coachClients').insertOne({ _id: 'coach-1__client-9' as never, coachId: 'coach-1', clientId: 'client-9', status: 'active', createdBy: 'coach-1', createdAt: now, updatedAt: now });
+    // A message composed in a previous coach's conversation (the outbox's `coachId`).
+    expect(await failure(callerWith({}, client).messages.send({ clientId: 'client-9', text: 'hi', clientMsgId: 'cm-1', coachId: 'coach-old' }))).toMatchObject({ code: 'CONFLICT', reason: 'CONVERSATION_CLOSED' });
+    const orphan = await insertUser({ _id: 'client-0', role: 'client' });
+    expect(await failure(callerWith({}, orphan).messages.send({ clientId: 'client-0', text: 'hi', clientMsgId: 'cm-2' }))).toMatchObject({ code: 'CONFLICT', reason: 'NO_ACTIVE_COACH' });
+    expect(await messageCounters()).toBe(0);
+  });
+
+  it('per sender, concurrently across conversations: exactly the limit is stored, the rest refused with RATE_LIMITED', async () => {
+    const coach = await coachWithClients(3);
+    const limits = MESSAGE_SEND_LIMIT as { perSender: number; perConversation: number };
+    const saved = { ...limits };
+    limits.perSender = 20;
+    limits.perConversation = 100;
+    try {
+      const results = await Promise.allSettled(Array.from({ length: 30 }, (_, i) => callerWith({}, coach).messages.send({ clientId: `client-${(i % 3) + 1}`, text: `m${i}`, clientMsgId: `cm-${i}`, coachId: 'coach-1' })));
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(20);
+      const refused = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      expect(refused.every((r) => (r.reason as TRPCError & { cause?: { reason?: string } }).cause?.reason === 'RATE_LIMITED')).toBe(true);
+      expect(await (await db()).collection('messages').countDocuments({ fromUserId: 'coach-1' })).toBe(20);
+    } finally {
+      Object.assign(limits, saved);
+    }
+  });
+
+  it('concurrent retries of one message store it once and all get the same message back', async () => {
+    const coach = await coachWithClients(1);
+    const out = await Promise.all(Array.from({ length: 10 }, () => callerWith({}, coach).messages.send({ clientId: 'client-1', text: 'once', clientMsgId: 'cm-same', coachId: 'coach-1' })));
+    expect(new Set(out.map((m) => m.id)).size).toBe(1);
+    expect(await (await db()).collection('messages').countDocuments({ clientId: 'client-1' })).toBe(1);
+  });
+
+  it('the first hits of a new window race safely (one counter, counted exactly) and the counter expires with its window', async () => {
+    const fixed = Date.UTC(2026, 9, 22, 10, 7, 30);
+    vi.spyOn(Date, 'now').mockReturnValue(fixed);
+    const windowMs = 60 * 60_000;
+    const results = await Promise.allSettled(Array.from({ length: 50 }, () => enforceRateLimit('test.race', 'k', 30, windowMs)));
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(30);
+    const docs = await (await db()).collection<{ _id: string; count: number; windowStart: number; expiresAt: Date }>('rateLimits').find({ _id: { $regex: '^test\\.race:' } }).toArray();
+    expect(docs).toHaveLength(1);
+    expect(docs[0].count).toBe(50);
+    expect(docs[0].expiresAt.getTime()).toBe(docs[0].windowStart + windowMs);
+    expect(docs[0].windowStart).toBeLessThanOrEqual(fixed);
+  });
+
+  it('one mailbox, one per-address counter however the address is written; the email still goes to the address as typed', async () => {
+    expect(mailboxKey(' V.ictim+promo@GoogleMail.com ')).toBe('victim@gmail.com');
+    expect(mailboxKey('first.last+x@company.test')).toBe('first.last@company.test'); // dots matter outside Gmail
+    // B4.1: one coach cannot dodge its own per-address limit with aliases or case changes.
+    const variants = ['Victim+a@Gmail.com', 'v.ictim@gmail.com', 'victim+b@googlemail.com', 'VICTIM@gmail.com', 'vic.tim+zz@gmail.com'];
+    const coach = await insertUser({ _id: 'coach-v', role: 'coach' });
+    for (const email of variants) await callerWith({}, coach).invites.create({ email });
+    expect(await failure(callerWith({}, coach).invites.create({ email: 'victim@gmail.com' }))).toMatchObject({ code: 'TOO_MANY_REQUESTS', reason: 'RATE_LIMITED' });
+    expect(sent.invite.map((s) => s.to)).toEqual(variants.map((v) => v.toLowerCase()));
+  });
+
+  it('counters never hold an email address, IP or account id in clear', async () => {
+    const coach = await coachWithClients(1);
+    await callerWith({}, coach).messages.send({ clientId: 'client-1', text: 'hi', clientMsgId: 'cm-1', coachId: 'coach-1' });
+    await callerWith({}, coach).invites.create({ email: 'private.person@inbox.test' });
+    await callerWith({}).auth.login({ email: 'private.person@inbox.test', password: 'not-the-password' }).catch(() => undefined);
+    await callerWith({}).auth.requestPasswordReset({ email: 'private.person@inbox.test' });
+    const ids = (await (await db()).collection('rateLimits').find({}).toArray()).map((d) => String(d._id));
+    expect(ids.length).toBeGreaterThanOrEqual(5);
+    for (const id of ids) expect(id).not.toMatch(/@|private|inbox|coach-1|client-1|10\.0\.0\.1/);
+  });
+});
+
+/**
+ * B4.1 (owner decision) — every coach's quotas are its own. Messages count per sender and per
+ * sender × conversation; invites per creator and per creator × mailbox — always the AUTHENTICATED
+ * account, never an id the browser sends — so one coach never consumes another's. The quotas of one
+ * operation are charged as a unit and refunded when it is refused or not written. The invite email's
+ * real outcome is recorded (never the server-side reason) and can be retried; the inbox itself keeps
+ * an infrastructure ceiling that never blocks an invite.
+ */
+describe('B4.1 — independent per-coach quotas', () => {
+  const db = async () => getDb();
+  const limits = MESSAGE_SEND_LIMIT as { perSender: number; perConversation: number; windowMs: number };
+  const inviteLimits = INVITE_CREATE_LIMIT as { perActor: number; actorWindowMs: number; perAddress: number; addressWindowMs: number };
+  const ceiling = INVITE_EMAIL_CEILING as { perMailbox: number; windowMs: number };
+  const saved = { limits: { ...limits }, inviteLimits: { ...inviteLimits }, ceiling: { ...ceiling } };
+  afterEach(() => {
+    Object.assign(limits, saved.limits);
+    Object.assign(inviteLimits, saved.inviteLimits);
+    Object.assign(ceiling, saved.ceiling);
+  });
+
+  async function twoCoaches() {
+    const a = await insertUser({ _id: 'coach-a', role: 'coach' });
+    const b = await insertUser({ _id: 'coach-b', role: 'coach' });
+    const now = Date.now();
+    for (const [coach, client] of [['coach-a', 'client-a1'], ['coach-a', 'client-a2'], ['coach-b', 'client-b1']]) {
+      await insertUser({ _id: client, role: 'client', assignedCoachId: coach });
+      await (await db()).collection('coachClients').insertOne({ _id: `${coach}__${client}` as never, coachId: coach, clientId: client, status: 'active', createdBy: coach, createdAt: now, updatedAt: now });
+    }
+    return { a, b };
+  }
+  const msg = (u: AuthedUser, clientId: string, i: number) => callerWith({}, u).messages.send({ clientId, text: `m${i}`, clientMsgId: `cm-${u.id}-${clientId}-${i}`, coachId: u.id });
+  const invite = (u: AuthedUser, email?: string, extra: Record<string, unknown> = {}) => callerWith({}, u).invites.create({ ...(email ? { email } : {}), ...extra });
+  const outcome = (p: Promise<unknown>) => p.then(() => 'ok', (e: TRPCError & { cause?: { reason?: string } }) => e.cause?.reason ?? e.code);
+  const counts = async (bucket: string) =>
+    (await (await db()).collection<{ _id: string; count: number }>('rateLimits').find({ _id: { $regex: `^${bucket.replace('.', '\\.')}:` } as never }).toArray()).map((d) => d.count).sort((x, y) => x - y);
+  const invitesOf = async (coachId: string) => (await db()).collection('signupInvites').countDocuments({ coachId });
+
+  it('messages: coach A exhausting its sender quota never touches coach B', async () => {
+    const { a, b } = await twoCoaches();
+    limits.perSender = 4;
+    limits.perConversation = 100;
+    for (let i = 0; i < 4; i += 1) await msg(a, i % 2 ? 'client-a1' : 'client-a2', i);
+    expect(await outcome(msg(a, 'client-a1', 99))).toBe('RATE_LIMITED');
+    for (let i = 0; i < 4; i += 1) expect(await outcome(msg(b, 'client-b1', i))).toBe('ok');
+  });
+
+  it('messages: a full conversation of coach A leaves A’s other conversations and coach B open', async () => {
+    const { a, b } = await twoCoaches();
+    limits.perSender = 100;
+    limits.perConversation = 3;
+    for (let i = 0; i < 3; i += 1) await msg(a, 'client-a1', i);
+    expect(await outcome(msg(a, 'client-a1', 99))).toBe('RATE_LIMITED');
+    expect(await outcome(msg(a, 'client-a2', 0))).toBe('ok');
+    for (let i = 0; i < 3; i += 1) expect(await outcome(msg(b, 'client-b1', i))).toBe('ok');
+  });
+
+  it('a send refused by its conversation limit refunds the sender quota — refused sends consume nothing', async () => {
+    const { a } = await twoCoaches();
+    limits.perSender = 5;
+    limits.perConversation = 3;
+    for (let i = 0; i < 3; i += 1) await msg(a, 'client-a1', i);
+    for (let i = 3; i < 7; i += 1) expect(await outcome(msg(a, 'client-a1', i))).toBe('RATE_LIMITED'); // 4 refused by the conversation
+    for (let i = 0; i < 2; i += 1) expect(await outcome(msg(a, 'client-a2', i))).toBe('ok'); // 3 + 2 = the 5 the sender may send
+    expect(await outcome(msg(a, 'client-a2', 2))).toBe('RATE_LIMITED'); // refused by the sender quota, not the conversation
+    expect(await counts('messages.send')).toEqual([5]);
+    expect(await counts('messages.thread')).toEqual([2, 3]);
+  });
+
+  it('invites: two coaches invite the same address independently — 5 each; a 6th is refused for that coach only', async () => {
+    const { a, b } = await twoCoaches();
+    for (let i = 0; i < 5; i += 1) expect(await outcome(invite(a, 'same.person@inbox.test'))).toBe('ok');
+    expect(await outcome(invite(a, 'same.person@inbox.test'))).toBe('RATE_LIMITED');
+    for (let i = 0; i < 5; i += 1) expect(await outcome(invite(b, 'Same.Person@Inbox.test'))).toBe('ok');
+    expect(await outcome(invite(b, 'same.person@inbox.test'))).toBe('RATE_LIMITED');
+    expect([await invitesOf('coach-a'), await invitesOf('coach-b')]).toEqual([5, 5]);
+    expect(sent.invite.filter((s) => s.to.toLowerCase() === 'same.person@inbox.test')).toHaveLength(10);
+  });
+
+  it('concurrent invites to one address by one coach: exactly 5 created, and only they are charged', async () => {
+    const { a } = await twoCoaches();
+    const r = await Promise.all(Array.from({ length: 12 }, () => outcome(invite(a, 'rush@inbox.test'))));
+    expect(r.filter((x) => x === 'ok')).toHaveLength(5);
+    expect(r.filter((x) => x === 'RATE_LIMITED')).toHaveLength(7);
+    expect(await invitesOf('coach-a')).toBe(5);
+    expect(await counts('invites.create')).toEqual([5]);
+    expect(await counts('invites.email')).toEqual([5]);
+  });
+
+  it('a refusal by the per-address limit refunds the creator quota', async () => {
+    const { a } = await twoCoaches();
+    inviteLimits.perActor = 4;
+    inviteLimits.perAddress = 2;
+    await invite(a, 'x@inbox.test');
+    await invite(a, 'x@inbox.test');
+    for (let i = 0; i < 3; i += 1) expect(await outcome(invite(a, 'x@inbox.test'))).toBe('RATE_LIMITED');
+    expect(await outcome(invite(a, 'y@inbox.test'))).toBe('ok');
+    expect(await outcome(invite(a))).toBe('ok');
+    expect(await outcome(invite(a))).toBe('RATE_LIMITED'); // the 4 created, not the 3 refused, used the creator quota
+    expect(await invitesOf('coach-a')).toBe(4);
+  });
+
+  it('only a coach consumes its own quota: a client is refused before any counter; a coachId sent by another coach is ignored; staff creating for a coach use their own', async () => {
+    const { a, b } = await twoCoaches();
+    inviteLimits.perAddress = 1;
+    const client = await insertUser({ _id: 'client-z', role: 'client' });
+    expect(await outcome(callerWith({}, client).invites.create({ email: 'v@inbox.test', coachId: 'coach-a' }))).toBe('FORBIDDEN');
+    expect(await counts('invites.create')).toEqual([]);
+    const bOwn = await invite(b, 'v@inbox.test', { coachId: 'coach-a' });
+    expect(bOwn.coachId).toBe('coach-b');
+    expect(await outcome(invite(a, 'v@inbox.test'))).toBe('ok'); // coach A's per-address quota untouched by B
+    const staff = await insertUser({ _id: 'staff-1', role: 'admin' });
+    const forA = await callerWith({}, staff).invites.create({ email: 'w@inbox.test', coachId: 'coach-a' });
+    expect(forA.coachId).toBe('coach-a');
+    expect(await outcome(invite(a, 'w@inbox.test'))).toBe('ok'); // staff used their own quota
+  });
+
+  it('the invite email outcome is told truthfully — sent / not sent — and the server-side reason never leaves the server', async () => {
+    const { a } = await twoCoaches();
+    expect(await invite(a, 'ok@inbox.test')).toMatchObject({ emailStatus: 'sent', emailAttempts: 1 });
+    vi.mocked(sendClientInviteEmail).mockRejectedValueOnce(new Error('provider down'));
+    const failed = await invite(a, 'fail@inbox.test');
+    expect(failed).toMatchObject({ status: 'pending', emailStatus: 'not-sent' });
+    expect(failed).not.toHaveProperty('emailIssue');
+    vi.mocked(sendClientInviteEmail).mockResolvedValueOnce(false); // email disabled on this deployment
+    expect(await invite(a, 'off@inbox.test')).toMatchObject({ emailStatus: 'not-sent' });
+    expect(await invite(a)).not.toHaveProperty('emailStatus'); // no address, nothing to report
+    const listed = await callerWith({}, a).invites.list({});
+    expect(listed.map((i) => i.emailStatus ?? 'none').sort()).toEqual(['none', 'not-sent', 'not-sent', 'sent']);
+    expect(listed.some((i) => 'emailIssue' in i)).toBe(false);
+    expect(await (await db()).collection('signupInvites').findOne({ _id: failed._id as never })).toMatchObject({ emailStatus: 'not-sent', emailIssue: 'provider-error' });
+  });
+
+  it('a not-sent invite email can be sent again — by its coach only; an attempt that sends nothing is refunded', async () => {
+    const { a, b } = await twoCoaches();
+    inviteLimits.perAddress = 2;
+    vi.mocked(sendClientInviteEmail).mockRejectedValueOnce(new Error('provider down'));
+    const inv = await invite(a, 'retry@inbox.test'); // 1 of 2
+    expect(inv.emailStatus).toBe('not-sent');
+    expect(await outcome(callerWith({}, b).invites.resendEmail({ code: inv._id }))).toBe('NOT_FOUND');
+    vi.mocked(sendClientInviteEmail).mockResolvedValueOnce(false);
+    expect(await callerWith({}, a).invites.resendEmail({ code: inv._id })).toEqual({ code: inv._id, emailStatus: 'not-sent' }); // refunded
+    expect(await callerWith({}, a).invites.resendEmail({ code: inv._id })).toEqual({ code: inv._id, emailStatus: 'sent' }); // 2 of 2
+    expect(await outcome(callerWith({}, a).invites.resendEmail({ code: inv._id }))).toBe('RATE_LIMITED');
+    expect(await (await db()).collection('signupInvites').findOne({ _id: inv._id as never })).toMatchObject({ emailStatus: 'sent', emailAttempts: 3 });
+    await callerWith({}, a).invites.revoke({ code: inv._id });
+    expect(await outcome(callerWith({}, a).invites.resendEmail({ code: inv._id }))).toBe('CONFLICT');
+  });
+
+  it('inbox protection: past the cross-Forma email ceiling the invite is still created and the coach is told only that the email was not sent', async () => {
+    const { a, b } = await twoCoaches();
+    ceiling.perMailbox = 2;
+    await invite(a, 'popular@inbox.test');
+    await invite(b, 'popular@inbox.test');
+    const third = await invite(a, 'popular@inbox.test');
+    expect(third).toMatchObject({ status: 'pending', emailStatus: 'not-sent' });
+    expect(third).not.toHaveProperty('emailIssue');
+    expect(sent.invite.filter((s) => s.to === 'popular@inbox.test')).toHaveLength(2);
+    for (let i = 0; i < 4; i += 1) expect(await outcome(invite(b, 'popular@inbox.test'))).toBe('ok'); // B's own 5 are intact
+    expect(await outcome(invite(b, 'popular@inbox.test'))).toBe('RATE_LIMITED');
   });
 });

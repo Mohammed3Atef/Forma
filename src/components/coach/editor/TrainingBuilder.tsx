@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { IconButton, Button } from '@/components/ui/Button';
@@ -6,7 +6,6 @@ import { ActionMenu } from '@/components/ui/ActionMenu';
 import { TextInput } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Sheet } from '@/components/Sheet';
-import { ExercisePickerSheet } from '@/components/workout/ExercisePickerSheet';
 import { ExerciseProgrammingSheet } from './ExerciseProgrammingSheet';
 import { SECTION_KINDS, SYNCED_EXERCISE_FIELDS } from '@/lib/workoutPresets';
 import {
@@ -38,6 +37,9 @@ import { showToast } from '@/stores/toastStore';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { getExercise } from '@/services/platform/coachAssetsApi';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
+
+// B4.1: the picker (with the Forma catalog source) loads when it is first opened, not with the editor.
+const ExercisePickerSheet = lazy(() => import('@/components/workout/ExercisePickerSheet').then((m) => ({ default: m.ExercisePickerSheet })));
 
 /**
  * The training editor (B3.5, blueprint §6.4 — CO-10, CO-25, DT-04, JR-07, B3-C03):
@@ -390,7 +392,11 @@ export function TrainingBuilder({
 
   const sheets = (
     <>
-      {picker && <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPickMany={(exs) => onChange(addExercises(body, picker.dayId, picker.sectionId, exs))} />}
+      {picker && (
+        <Suspense fallback={null}>
+          <ExercisePickerSheet open onClose={() => setPicker(null)} coachId={coachId} onPickMany={(exs) => onChange(addExercises(body, picker.dayId, picker.sectionId, exs))} />
+        </Suspense>
+      )}
       <ExerciseProgrammingSheet
         open={!!editing}
         exercise={editing ? exercises[editing] ?? null : null}

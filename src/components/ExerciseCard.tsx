@@ -1,3 +1,4 @@
+import { exerciseDisplayName } from '@/lib/catalogText';
 import { useState } from "react";
 import { NumericField } from "@/components/ui/NumericField";
 import { useTranslation } from "react-i18next";
@@ -48,7 +49,8 @@ export function ExerciseCard({
   onVideo,
   onRemoveExercise,
 }: ExerciseCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const name = exerciseDisplayName(exercise, i18n.language);
   const loc = useLocalized();
   // Row whose ✓ was refused because there was nothing to log (CL-17).
   const [needsReps, setNeedsReps] = useState<number | null>(null);
@@ -75,12 +77,12 @@ export function ExerciseCard({
       <header className="flex items-start gap-3">
         <span className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(exercise.targetMuscle) }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-[22px] font-bold leading-tight tracking-[-0.01em]">{exercise.name}</h2>
+          <h2 className="text-[22px] font-bold leading-tight tracking-[-0.01em]">{name}</h2>
           <p className="mt-1 text-[14px] leading-snug text-earth-muted">{prescription}</p>
         </div>
         {onRemoveExercise && (
           <ActionMenu
-            label={t("session.exerciseOptions", { name: exercise.name })}
+            label={t("session.exerciseOptions", { name })}
             items={[{ key: "remove", label: t("session.removeExercise"), icon: "trash", danger: true, onSelect: onRemoveExercise, testId: "remove-exercise" }]}
           />
         )}

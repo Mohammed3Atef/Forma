@@ -127,3 +127,49 @@ describe('plan save safety (CO-01)', () => {
     await expect(other.workoutPlan.save({ clientId: 'client-1', name: 'Hack', days: [], baseUpdatedAt: p.updatedAt as number })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
+
+/**
+ * B4.1 — a meal item's picture: the plan coach's own upload, or nothing. A client's private media
+ * (progress photos share the CDN host) or another coach's photo is refused on save; an older plan
+ * version keeps the picture it was saved with when the library food's picture changes later.
+ */
+describe('food pictures in a nutrition plan (B4.1)', () => {
+  const CDN = 'https://media.forma.test';
+  const saved = process.env.BUNNY_CDN_URL;
+  beforeEach(() => {
+    process.env.BUNNY_CDN_URL = CDN;
+  });
+  afterAll(() => {
+    if (saved === undefined) delete process.env.BUNNY_CDN_URL;
+    else process.env.BUNNY_CDN_URL = saved;
+  });
+  const meal = (url: string) => [{ id: 'm1', slot: 'lunch', label: { en: 'Lunch', ar: 'غداء' }, items: [{ id: 'i1', name: { en: 'Rice', ar: 'أرز' }, quantity: '1 cup', protein: 4, carbs: 45, fats: 0, calories: 205, image: { source: 'upload', url, thumbUrl: url, rev: 1, uploadedAt: 1 } }] }];
+
+  it('the coach’s own photo is kept; a client’s progress photo or another coach’s photo is refused', async () => {
+    const { asCoach } = await setup();
+    const ok = await asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r1.webp`), baseUpdatedAt: null });
+    expect((ok as { meals: { items: { image: { url: string } }[] }[] }).meals[0].items[0].image.url).toBe(`${CDN}/Forma/coach-1/foods/rice-r1.webp`);
+    await expect(asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/client-1/progress-front.jpg`), baseUpdatedAt: ok.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/coach-2/foods/rice.webp`), baseUpdatedAt: ok.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect((await asCoach.nutritionPlan.get({ clientId: 'client-1' }))?.updatedAt).toBe(ok.updatedAt); // nothing was written
+  });
+
+  it('a replaced picture is a new file: the earlier plan version still shows the picture it was saved with', async () => {
+    const { asCoach } = await setup();
+    const v1 = await asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r1.webp`), baseUpdatedAt: null });
+    await asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r2.webp`), baseUpdatedAt: v1.updatedAt as number, versionReason: 'new photo' });
+    const versions = (await asCoach.planVersions.list({ clientId: 'client-1', kind: 'nutrition' })) as unknown as { snapshot: { meals: { items: { image: { url: string } }[] }[] } }[];
+    const urls = versions.map((v) => v.snapshot.meals[0].items[0].image.url);
+    expect(urls).toContain(`${CDN}/Forma/coach-1/foods/rice-r1.webp`);
+    expect((await asCoach.nutritionPlan.get({ clientId: 'client-1' }) as { meals: { items: { image: { url: string } }[] }[] }).meals[0].items[0].image.url).toBe(`${CDN}/Forma/coach-1/foods/rice-r2.webp`);
+  });
+
+  it('a picture already in the stored plan does not lock it when it would no longer be accepted as new', async () => {
+    const { asCoach } = await setup();
+    const v1 = await asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r1.webp`), baseUpdatedAt: null });
+    delete process.env.BUNNY_CDN_URL; // uploads unavailable here now
+    const v2 = await asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut v2', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r1.webp`), baseUpdatedAt: v1.updatedAt as number });
+    expect(v2.name).toBe('Cut v2');
+    await expect(asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut v3', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r3.webp`), baseUpdatedAt: v2.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+});

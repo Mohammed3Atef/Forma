@@ -33,6 +33,8 @@ interface SignupInviteApiDoc {
   subDays?: number;
   subTrialDays?: number;
   status: SignupInvite['status'];
+  emailStatus?: SignupInvite['emailStatus'];
+  emailAttemptAt?: number;
   claimedByUid?: string | null;
   createdAt: number;
   claimedAt?: number | null;
@@ -125,6 +127,11 @@ export async function getInvite(code: string): Promise<PublicInvite | null> {
 export async function listPendingInvites(coachId: string): Promise<SignupInvite[]> {
   const docs = await trpc.invites.list.query({ coachId, status: 'pending' });
   return docs.map(fromApiDoc);
+}
+
+/** B4.1: send a pending invite's email again; resolves with what happened to it. */
+export async function resendInviteEmail(code: string): Promise<NonNullable<SignupInvite['emailStatus']>> {
+  return (await trpc.invites.resendEmail.mutate({ code })).emailStatus;
 }
 
 /** Coach revokes a pending invite (cannot be claimed afterwards). */

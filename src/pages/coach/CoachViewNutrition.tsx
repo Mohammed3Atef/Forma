@@ -8,8 +8,9 @@ import { fetchClientNutritionDay } from "@/services/platform/coachApi";
 import { getClientMealPlan } from "@/services/platform/planApi";
 import { computeConsumed } from "@/stores/nutritionStore";
 import { today } from "@/lib/utils";
-import { foodLine } from "@/lib/foodFormat";
+import { foodLine, quantityText } from "@/lib/foodFormat";
 import { formatNumber } from "@/lib/format";
+import { FoodThumb } from "@/components/food/FoodImage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { OfflineState, StaleNotice, useQueryScreen } from "@/components/ui/ScreenState";
 
@@ -185,6 +186,8 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
                     >
                       <div className="flex items-start gap-2 ">
                         <span className="select-none">{mark}</span>
+                        {/* B4.1: the plan's picture (a client log never supplies one). */}
+                        <FoodThumb image={item.image} size="xs" />
                         <span
                           className={
                             overridden ? "text-earth-subtle line-through" : ""
@@ -194,7 +197,7 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
                           {item.quantity && (
                             <span className="text-earth-subtle">
                               {" "}
-                              · {item.quantity}
+                              · {quantityText(item, i18n.language)}
                             </span>
                           )}
                           {removed && (
@@ -207,13 +210,13 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
                       {replacement && (
                         <p className="ms-6 text-brand-light">
                           ↳ {loc(replacement.name)}
-                          {foodLine(replacement) && (
+                          {foodLine(replacement, i18n.language) && (
                             <span
                               className="text-[12px] text-earth-subtle"
                               dir="ltr"
                             >
                               {" "}
-                              · {foodLine(replacement)}
+                              · {foodLine(replacement, i18n.language)}
                             </span>
                           )}
                         </p>
@@ -250,13 +253,13 @@ export function CoachViewNutrition({ clientId }: { clientId: string }) {
                     {extras.map((f) => (
                       <li key={f.id} className="text-sm text-earth">
                         + {loc(f.name)}
-                        {foodLine(f) && (
+                        {foodLine(f, i18n.language) && (
                           <span
                             className="text-[12px] text-earth-muted"
                             dir="ltr"
                           >
                             {" "}
-                            · {foodLine(f)}
+                            · {foodLine(f, i18n.language)}
                           </span>
                         )}
                       </li>

@@ -485,7 +485,8 @@
     "rir": "Reps in reserve",
     "prescription": "How to do it",
     "rirExplain": "Reps in reserve (RIR) is how many more reps you could still do at the end of a set. RIR 2 means stop with two left in the tank.",
-    "coachNotes": "Coach's notes"
+    "coachNotes": "Coach's notes",
+    "howTo": "How to do it"
   },
   "exerciseLibrary": {
     "noResultsTitle": "No exercises match",
@@ -1190,8 +1191,7 @@
     "customOverrideTitle": "Now a custom version for this client",
     "updateFromLibrary": "Update from library",
     "reconnectToLibrary": "Reconnect to library",
-    "sourceMissing": "Source exercise is no longer available in your library",
-    "dataAttribution": "Exercise data provided by wger.de (CC BY-SA)"
+    "sourceMissing": "Source exercise is no longer available in your library"
   },
   "coachFoods": {
     "search": "Search foods",
@@ -1993,7 +1993,12 @@
     "whatsapp": "WhatsApp",
     "shareTitle": "Join me on Forma",
     "shareText": "{{coach}} invited you to Forma — tap to get started:",
-    "expiresOn": "Expires {{date}}"
+    "expiresOn": "Expires {{date}}",
+    "emailSent": "Email sent to",
+    "emailNotSent": "Email not sent — share the link instead.",
+    "emailUnconfirmed": "The email may not have arrived — share the link to be sure.",
+    "resendEmail": "Send email again",
+    "resendTitle": "Invite email"
   },
   "coachOnboard": {
     "title": "Get started",
@@ -2695,6 +2700,7 @@
       "open": "Open video",
       "openLink": "Open link",
       "unsupportedLink": "This video link can't be played inside Forma.",
+      "play": "Play video",
       "coachInvalid": "Use a YouTube link, a direct https video file, or upload a video. Google Drive, Vimeo and Instagram links can't play inside Forma."
     },
     "upload": {
@@ -3216,7 +3222,8 @@
       "notAssigned": "Not sent — no longer your client",
       "accountNotActive": "Not sent — your account isn’t active",
       "rejected": "Not sent",
-      "unknown": "Not confirmed — it may have arrived"
+      "unknown": "Not confirmed — it may have arrived",
+      "rateLimited": "Not sent — sending limit reached. Retry in a few minutes"
     },
     "retryFailed_one": "Retry for {{count}} client",
     "retryFailed_other": "Retry for {{count}} clients",
@@ -3695,5 +3702,92 @@
     "title": "Something went wrong.",
     "body": "Reloading usually fixes this. If it keeps happening, please contact support.",
     "reload": "Reload"
+  },
+  "catalog": {
+    "formaLibrary": "Forma library",
+    "myLibrary": "My library",
+    "source": "Exercise source",
+    "searchExercises": "Search exercises (English or Arabic)",
+    "withVideo": "With video only",
+    "offline": "The Forma library needs a connection. Your own exercises still work offline.",
+    "loadFailed": "Couldn't load the Forma library.",
+    "preview": "Exercise details",
+    "previewNamed": "Details: {{name}}",
+    "select": "Select",
+    "selected": "Selected",
+    "addFailed": "Couldn't fetch the selected Forma exercises — try again.",
+    "noDemoHint": "No licensed demonstration yet — follow the written steps below.",
+    "demos": "Demonstrations",
+    "demoN": "Demo {{n}}",
+    "playDemo": "Play {{demo}} — {{name}}",
+    "videoCount": "{{n}} videos",
+    "trains": "Trains",
+    "writtenBy": "Instructions written by Forma.",
+    "credits": "Media credits",
+    "creditImage": "Image",
+    "creditVideo": "Video",
+    "saveToMine": "Copy to my exercises",
+    "savedToMine": "Copied to your exercises",
+    "saveFailed": "Couldn't copy it — try again.",
+    "instructions": {
+      "setup": "Setup",
+      "steps": "How to do it",
+      "cues": "Coaching cues",
+      "mistakes": "Common mistakes",
+      "safety": "Safety"
+    },
+    "foods": {
+      "title": "Forma foods",
+      "search": "Search Forma foods (English or Arabic)",
+      "minQuery": "Type at least 2 letters",
+      "anyCategory": "All categories",
+      "category": "Category",
+      "per100": "per 100 g",
+      "serving": "Serving",
+      "grams": "Grams",
+      "amount": "Amount",
+      "use": "Use this food",
+      "estimate": "Estimate",
+      "offline": "Forma foods need a connection. You can still enter a food by hand.",
+      "loadFailed": "Couldn't search Forma foods.",
+      "source": "Values: USDA FoodData Central",
+      "sourceRecipe": "Values: Forma recipe estimate from USDA FoodData Central ingredients",
+      "noResults": "No foods match your search",
+      "fromForma": "From Forma foods",
+      "byHand": "Values entered by hand",
+      "changeServing": "Change serving"
+    },
+    "off": {
+      "attribution": "Packaged-food values from Open Food Facts (via wger), available under the ODbL."
+    },
+    "openCopy": "Open my copy"
+  },
+  "foodImage": {
+    "title": "Photo",
+    "add": "Add photo",
+    "replace": "Replace photo",
+    "remove": "Remove photo",
+    "useForma": "Use the Forma photo",
+    "uploading": "Uploading photo",
+    "uploadingPct": "Uploading… {{pct}}%",
+    "hint": "JPG, PNG or WebP. Location and camera details are removed. Plans saved earlier keep their photo.",
+    "notConfigured": "Photo upload isn't available here yet.",
+    "credit": "Photo: {{author}} · {{license}}",
+    "yourPhoto": "Your photo",
+    "formaPhoto": "Forma photo",
+    "error": {
+      "notImage": "That file isn't a photo. Use JPG, PNG or WebP.",
+      "tooLarge": "This photo is too large. Try a smaller one (up to 15 MB).",
+      "tooSmall": "This photo is too small — at least 64 × 64 pixels.",
+      "unreadable": "This photo couldn't be opened. Try another one.",
+      "badType": "Unsupported photo. Use JPG, PNG or WebP (not animated).",
+      "badDimensions": "The photo's size isn't supported (64–8192 pixels per side).",
+      "notConfigured": "Photo upload isn't available here yet.",
+      "forbidden": "You can't upload food photos right now.",
+      "planLapsed": "Your Forma subscription has ended. Renew it to upload photos.",
+      "planSuspended": "Your Forma subscription is suspended — uploads are paused.",
+      "noPlan": "A Forma subscription is needed to upload photos.",
+      "failed": "The photo didn't upload. Check your connection and retry."
+    }
   }
 }

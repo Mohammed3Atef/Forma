@@ -3,7 +3,9 @@ import { parseNumber } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { SearchField } from '@/components/ui/Field';
-import { searchFoods, scaleNutrition, type FoodSearchResult } from '@/services/platform/foodSearchApi';
+import { searchFoods, type FoodSearchResult } from '@/services/platform/foodSearchApi';
+import { nutrientsFor } from '@/lib/catalogNutrition';
+import type { FoodProvenance } from '@/types';
 
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 400;
@@ -16,8 +18,12 @@ const DEBOUNCE_MS = 400;
  * still saved as an independent snapshot — no live sync after that point).
  * Serving size defaults to the source's 100g basis; adjusting it live-scales
  * the previewed macros before the coach/client commits to a pick.
+ *
+ * B4 (FD-03 / FD-11): the values come from Open Food Facts (wger's ingredient feed is an ODbL
+ * extract of it), so the list carries the ODbL notice with links, and a pick keeps that source on
+ * the row it creates. Servings use the one shared calculation (`lib/catalogNutrition`).
  */
-export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number }) => void; language?: 'en' | 'ar' }) {
+export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; provenance: FoodProvenance }) => void; language?: 'en' | 'ar' }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
@@ -39,11 +45,23 @@ export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: 
     return () => clearTimeout(timer.current);
   }, [query, language]);
 
-  const scaled = picked ? scaleNutrition(picked.sourceNutrition, Math.max(0, parseNumber(grams) || 0)) : null;
+  const g = Math.max(0, parseNumber(grams) || 0);
+  const per100g = picked ? { kcal: picked.sourceNutrition.calories, protein: picked.sourceNutrition.protein, carbs: picked.sourceNutrition.carbs, fat: picked.sourceNutrition.fats } : null;
+  const serving = per100g ? nutrientsFor(per100g, g) : null;
+  const scaled = serving ? { calories: serving.kcal, protein: serving.protein, carbs: serving.carbs, fats: serving.fat } : null;
 
   const commit = () => {
-    if (!picked || !scaled) return;
-    onPick({ name: picked.name, quantity: `${grams} g`, calories: scaled.calories, protein: scaled.protein, carbs: scaled.carbs, fats: scaled.fats });
+    if (!picked || !scaled || !per100g || !serving) return;
+    onPick({
+      name: picked.name,
+      quantity: `${serving.grams} g`,
+      ...scaled,
+      provenance: {
+        per100g,
+        portion: { id: 'g', amount: serving.grams, grams: serving.grams },
+        source: { provider: 'open-food-facts', license: 'ODbL-1.0', attribution: 'Contains data from Open Food Facts (via wger.de), available under the ODbL', url: `https://wger.de/en/nutrition/ingredient/${picked.sourceId}/view/` },
+      },
+    });
     setPicked(null);
     setQuery('');
     setResults([]);
@@ -81,7 +99,7 @@ export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: 
       />
       {status === 'loading' && <p className="py-3 text-center text-[13px] text-earth-muted">{t('auth.working')}</p>}
       {status === 'error' && <p className="py-3 text-center text-[13px] text-danger">{t('coachEditor.foodSearchError')}</p>}
-      {status === 'ok' && results.length === 0 && <p className="py-3 text-center text-[13px] text-earth-muted">{t('coachLib.noResults')}</p>}
+      {status === 'ok' && results.length === 0 && <p className="py-3 text-center text-[13px] text-earth-muted">{t('catalog.foods.noResults')}</p>}
       {status === 'ok' && results.length > 0 && (
         <>
           <div className="max-h-44 space-y-1 overflow-y-auto">
@@ -95,7 +113,16 @@ export function FoodSearchPicker({ onPick, language }: { onPick: (food: { name: 
               </button>
             ))}
           </div>
-          <p className="text-center text-[11px] text-earth-faint">{t('coachLib.dataAttribution')}</p>
+          <p className="text-center text-[12px] text-earth-subtle" data-testid="off-attribution">
+            {t('catalog.off.attribution')}{' '}
+            <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer" className="underline">
+              Open Food Facts
+            </a>{' '}
+            ·{' '}
+            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer" className="underline">
+              ODbL
+            </a>
+          </p>
         </>
       )}
     </div>

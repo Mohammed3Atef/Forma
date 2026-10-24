@@ -388,7 +388,8 @@ async function attempt(op0: OutboxOp): Promise<void> {
       ...op,
       status,
       lastError: { kind: c.kind, code: c.code, ...(c.reason ? { reason: c.reason } : {}) },
-      nextAttemptAt: status === 'failed_retryable' ? Date.now() + backoffMs(op.attemptCount, c.kind) : undefined,
+      // A rate-limit refusal names when its window reopens: never retry before then (B36-R4).
+      nextAttemptAt: status === 'failed_retryable' ? Date.now() + Math.max(backoffMs(op.attemptCount, c.kind), c.retryAfterMs ?? 0) : undefined,
       updatedAt: Date.now(),
     };
     await save(op);
