@@ -1,7 +1,7 @@
 {
  "note": "Owner hosting step: upload each localFile to the PUBLIC catalog zone at cdnPath, then set FORMA_CATALOG_MEDIA_URL. Nothing here is uploaded automatically.",
- "files": 254,
- "bytes": 4547926,
+ "files": 316,
+ "bytes": 5821838,
  "uploads": [
   {
    "cdnPath": "catalog/foods/ff_rice_white_medium_cooked/r1-card.webp",
@@ -16,6 +16,20 @@
    "mime": "image/webp",
    "bytes": 1462,
    "sha256": "44d57160d42dd6f1604bda6ff1dc0eb92280a14f71c5cc9777271ba30a5d101a"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_rice_white_long_cooked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 42162,
+   "sha256": "be3bf31213a2c3d830c1c1767041e45477cc30d46d4ffc32b85c317bb6cdfb60"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_rice_white_long_cooked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5702,
+   "sha256": "7492f8f4ff173d05bfb3deca0afc676fd0c4d524cb0990d10ce73dff21f6b0f9"
   },
   {
    "cdnPath": "catalog/foods/ff_rice_white_dry/r1-card.webp",
@@ -46,6 +60,20 @@
    "sha256": "5137aaa84edbbe99580e9f936206095095e0c7831e31c96f6c3d6c1e2b619a99"
   },
   {
+   "cdnPath": "catalog/foods/ff_pasta_dry/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pasta_dry/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 8570,
+   "sha256": "69cee12ce6fb518e7aff19346c41fc30e8d31f62c4ac88e05b655d84406afa45"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_pasta_dry/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pasta_dry/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 1638,
+   "sha256": "c42a7cf7b97163eb23ac189499c20bb686b14f424ab3b5ed0841de7a5e6e150b"
+  },
+  {
    "cdnPath": "catalog/foods/ff_oats_dry/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_oats_dry/r1-card.webp",
    "mime": "image/webp",
@@ -58,6 +86,20 @@
    "mime": "image/webp",
    "bytes": 5290,
    "sha256": "7b3a6814b19610dcab1117d09e33aab22211c93703ce6b4c2240011615301ef4"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_oatmeal_cooked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 25264,
+   "sha256": "54f2f7a81e68b29ad8469870e6c9140317572eae4c91594054d8e651b90a9032"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_oatmeal_cooked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 4234,
+   "sha256": "f57c910ec4163259b0f388745561cd74e3dba7fe0f1a6326a0857018f1e9e249"
   },
   {
    "cdnPath": "catalog/foods/ff_bulgur_dry/r1-card.webp",
@@ -242,6 +284,48 @@
    "sha256": "fa48cb8968a6018c23094eb0cfb6d59f99f6224a184a65bb08f09eb1c817a504"
   },
   {
+   "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_chickpeas_boiled/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 12340,
+   "sha256": "b7455dba0f2f231bffc855a76be771ffad8600dc6e2cd76c80fbd161b45bb953"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_chickpeas_boiled/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 2526,
+   "sha256": "9eca556e94376b3a6ce785dcd11d085402da847ad1db9289f55e5be82742a5c1"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_chickpeas_canned/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 17334,
+   "sha256": "9a3d8feb674f3d4519f734cf36de2ba04eeb52e56ae8fe724485953d1ef537e2"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_chickpeas_canned/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3402,
+   "sha256": "477f50944bc3a97bde09a83f3b3480ca8fe09367298cd167242042b12eeee7a1"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_green_peas_cooked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 45930,
+   "sha256": "9df60191cc42699b9736230553684c074b269bb83e44884f3e6aa8059ab94617"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_green_peas_cooked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6050,
+   "sha256": "cc7baed974c9cc1ce74e9f437555b1d54b05ddb601ce1456f58a5ad3547ad6af"
+  },
+  {
    "cdnPath": "catalog/foods/ff_hummus/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_hummus/r1-card.webp",
    "mime": "image/webp",
@@ -282,6 +366,20 @@
    "mime": "image/webp",
    "bytes": 3440,
    "sha256": "2d9870450c6eba43f83a857aedd82dde1d31564c5c1e7610b67f1e971225115d"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_lentil_soup/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_lentil_soup/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 8730,
+   "sha256": "e4bfa2957a155c24796cab382c8beeaee991459ad1cba8f187c6ea92e38fe83c"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_lentil_soup/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_lentil_soup/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 1376,
+   "sha256": "a3ed32045ec276a3416c88c42bc414f41a0ebddcb32e220664943734619539fe"
   },
   {
    "cdnPath": "catalog/foods/ff_beef_ground_90_raw/r1-card.webp",
@@ -424,6 +522,34 @@
    "sha256": "04993797f1c417c18fb52d6e0af14aafe3cc025c6b1c5f88b39f816c88588f25"
   },
   {
+   "cdnPath": "catalog/foods/ff_tuna_water/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tuna_water/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 34496,
+   "sha256": "6c608afad802ea7793317561630319a6d8605014903629e5eb1c7dd17706cea3"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tuna_water/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tuna_water/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5464,
+   "sha256": "1aa6913d69537eb73818a7cc80734027d58eb2dd80d0b98e25ef585591f3a8ba"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tuna_oil/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tuna_oil/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 34496,
+   "sha256": "6c608afad802ea7793317561630319a6d8605014903629e5eb1c7dd17706cea3"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tuna_oil/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tuna_oil/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5464,
+   "sha256": "1aa6913d69537eb73818a7cc80734027d58eb2dd80d0b98e25ef585591f3a8ba"
+  },
+  {
    "cdnPath": "catalog/foods/ff_tilapia_cooked/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tilapia_cooked/r1-card.webp",
    "mime": "image/webp",
@@ -452,6 +578,20 @@
    "sha256": "e6e564fa1c0e0ab389598b16794a022f05dfa31d68b37270ff38e6361cca7e8f"
   },
   {
+   "cdnPath": "catalog/foods/ff_salmon_cooked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_salmon_cooked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 79550,
+   "sha256": "80cb356075dac4abb0f7b587825ae166196f48be0b32d42f13a4debe9a6ca674"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_salmon_cooked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_salmon_cooked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5440,
+   "sha256": "fc77485c1ef29117315e130ab90396864352c8911a653cca1df02c7980e67e37"
+  },
+  {
    "cdnPath": "catalog/foods/ff_shrimp_cooked/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_shrimp_cooked/r1-card.webp",
    "mime": "image/webp",
@@ -466,6 +606,20 @@
    "sha256": "83f409ae6b014e8559cfbf56975cbf1e25a5d513022518d49ca8275d49fb8fcc"
   },
   {
+   "cdnPath": "catalog/foods/ff_sardines_oil/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sardines_oil/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 73818,
+   "sha256": "e10aff80cad60aba26bb2104ae561001dd556c01c769bb3dbee9017220021a93"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_sardines_oil/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sardines_oil/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6090,
+   "sha256": "d1eeb2a3437b37abcf426699f5bd14f2e48002677c5cd5ccea338e7dfee4f08a"
+  },
+  {
    "cdnPath": "catalog/foods/ff_mackerel_cooked/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mackerel_cooked/r1-card.webp",
    "mime": "image/webp",
@@ -478,6 +632,20 @@
    "mime": "image/webp",
    "bytes": 9358,
    "sha256": "d06d207b2de061fe3e1891724ce9ea35e96204966a2fed879c66c1bf727ccfd9"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_renga/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_renga/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 36932,
+   "sha256": "ffe3f443e0598ad82e807695bd23b819e43988dad1dd322599dcab1c78c8e7b5"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_renga/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_renga/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3770,
+   "sha256": "e96a72d60bba96bfed5a177f49e98f77606602e61aaf3ec0d912db83ad538b4d"
   },
   {
    "cdnPath": "catalog/foods/ff_egg_whole_raw/r1-card.webp",
@@ -506,6 +674,20 @@
    "mime": "image/webp",
    "bytes": 1642,
    "sha256": "6a2f84b8f6a87b12b63f24c30f173f0e560b6b0adc46ca06c7575387ff5174c3"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_egg_fried/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_egg_fried/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 65538,
+   "sha256": "6925590d4515c64934fd63d3e396f08750bc14f7f646e1ec9b943e06b6bf2718"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_egg_fried/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_egg_fried/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6584,
+   "sha256": "9424ab09d1536a8b76ed0692dbdbd87d96ed404c4ee77f7d7fa37fb1089409a9"
   },
   {
    "cdnPath": "catalog/foods/ff_egg_scrambled/r1-card.webp",
@@ -718,6 +900,48 @@
    "sha256": "25d5fc4febbb7d0561a313290d9f473cc76e731f7e9848870422f1c8cde64945"
   },
   {
+   "cdnPath": "catalog/foods/ff_cheddar/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_cheddar/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 25448,
+   "sha256": "d9e3715b1f17986e95a904f212ec99ae2a2342e5fce78a322402ca61b36e9696"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_cheddar/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_cheddar/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3152,
+   "sha256": "fac2c823c7f7b931b5611d72797f154957cfa6d38d8a8b66f9844d1f1d8cd616"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_parmesan/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_parmesan/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 11948,
+   "sha256": "e1f9cbe5502c687a0a72659a45cd7badb5145a5754103fb7a13b813056c77adf"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_parmesan/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_parmesan/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 1632,
+   "sha256": "f942defa47bd30aed9f5947f9c9336f370f5bfdd85f0f6d0ecdb0dc5264efeec"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_cream_cheese/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_cream_cheese/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 27672,
+   "sha256": "ebae7a1a52bed6a5d3cb188f20d957621cfa9e6e7c7abb0882698cb948196771"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_cream_cheese/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_cream_cheese/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3240,
+   "sha256": "fb78b3e1785be31ae09ea13ce064c525e3e2e628b37beb96efc8d2db6d1aac9b"
+  },
+  {
    "cdnPath": "catalog/foods/ff_ricotta_part_skim/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_ricotta_part_skim/r1-card.webp",
    "mime": "image/webp",
@@ -730,6 +954,20 @@
    "mime": "image/webp",
    "bytes": 1936,
    "sha256": "86656f09b503e623cafe63c6dd362d1ee329f5532cbf9361b6950c9ca2325d08"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tofu_firm/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tofu_firm/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 19406,
+   "sha256": "54fe14e570e95132f1da4a68c2334e6636f3d71a07d7a16408dc65961da8c602"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tofu_firm/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tofu_firm/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 2020,
+   "sha256": "ebd21515c5e4ae6cbb82d3183e0c01b2bc70134e16b424dd3955dc87e5ef23b8"
   },
   {
    "cdnPath": "catalog/foods/ff_tomato_raw/r1-card.webp",
@@ -844,6 +1082,34 @@
    "sha256": "db704ac5c38a8f9fbfd4905e013a7d4baf06e9ed70352fdaad825023978776d5"
   },
   {
+   "cdnPath": "catalog/foods/ff_potato_boiled/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_potato_boiled/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 24690,
+   "sha256": "2dbc3942042311f72f2d13548f5b237bba99bf9524d145f4652fce2c0cf94010"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_potato_boiled/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_potato_boiled/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3056,
+   "sha256": "495777ba0148b5ee694ea45b11231fd3cc20145eb7215f85853401b06aca8d3c"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_potato_baked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_potato_baked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 79406,
+   "sha256": "0ceff6d59ee6c647b0576acea0f95716fd91c7c4380bdd107c0e9410fafb2af1"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_potato_baked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_potato_baked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5646,
+   "sha256": "8ac4591a822520e505369d1a77e27c3beeb20bf9d9b3359d2bb7ed8bdfa43dc7"
+  },
+  {
    "cdnPath": "catalog/foods/ff_french_fries_oven/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_french_fries_oven/r1-card.webp",
    "mime": "image/webp",
@@ -858,6 +1124,34 @@
    "sha256": "eb2780419279ea7b09e4c36c0dd43a9837837b2522f9530b99b8cfacd9112fc1"
   },
   {
+   "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sweet_potato_baked/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 13498,
+   "sha256": "f608adfa15901ba28f10da2cac1f62e3a92e0f797f93b3de41b8b3bff0307cf9"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sweet_potato_baked/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 2018,
+   "sha256": "20afc571d3785c5e9ee0397559bfbe83c72e34de318b659176e6c74b5eeb7194"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_spinach_raw/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_spinach_raw/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 51338,
+   "sha256": "88db6bd3b0b083953520bc790577c8b77629d873283404c2ddf633634e713564"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_spinach_raw/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_spinach_raw/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6022,
+   "sha256": "d3f9629d2a5070d4f9fc42b69690621db4a53a00cc10a399f533be53bff54cbd"
+  },
+  {
    "cdnPath": "catalog/foods/ff_spinach_boiled/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_spinach_boiled/r1-card.webp",
    "mime": "image/webp",
@@ -870,6 +1164,20 @@
    "mime": "image/webp",
    "bytes": 5892,
    "sha256": "b5779baf22c1b09678adaf9ce7299ec1b6405fdd69e8822c313d14c3a8fca261"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_green_beans_boiled/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 48274,
+   "sha256": "8bbf8c96edb71ace95b8fdc89ba7ab9811380cc6438e349121e4ad35e69c088f"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_green_beans_boiled/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6482,
+   "sha256": "4685669e8475571e64874b5887f48abc8085dcf61a8850e818204fd267e8003d"
   },
   {
    "cdnPath": "catalog/foods/ff_pepper_green_raw/r1-card.webp",
@@ -940,6 +1248,20 @@
    "mime": "image/webp",
    "bytes": 3744,
    "sha256": "da799244c7cc2c806f2b94a986a82db9f39c366c6180d7d5d58215e37ed9b547"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mushrooms_raw/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 20598,
+   "sha256": "f08170ee0062cd01676fcb99f37a7eb49e418c1df0af8c87067f6a9183946ddd"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mushrooms_raw/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 2744,
+   "sha256": "c41088a5ee7968ee8955fbf6d0a5e57de4723bf6e96fc4948bb699a002b417ba"
   },
   {
    "cdnPath": "catalog/foods/ff_artichoke_boiled/r1-card.webp",
@@ -1278,6 +1600,20 @@
    "sha256": "ae850709235d884a949715039cbecfeae9277e9fe2236c02d53e736e86d5e7fa"
   },
   {
+   "cdnPath": "catalog/foods/ff_lemon_juice/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_lemon_juice/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 25518,
+   "sha256": "d91da1db3d60d411fd6c88511b44c71ab8f78183f0c16aa61d0e81d810e07ef5"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_lemon_juice/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_lemon_juice/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 4564,
+   "sha256": "2a788417c307b460021b7daf5436b1a2462391869661771551de345888ed0f89"
+  },
+  {
    "cdnPath": "catalog/foods/ff_raisins/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_raisins/r1-card.webp",
    "mime": "image/webp",
@@ -1334,6 +1670,20 @@
    "sha256": "1566435b60a50a59bfa6d4998e4eb52c9efa2dc0048528afdcccf72d162ecec4"
   },
   {
+   "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_peanuts_roasted/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 18846,
+   "sha256": "1538d4105473e363eb6702a23dab82856a2472bf4b6295979baf25e4eed9e86d"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_peanuts_roasted/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3946,
+   "sha256": "990775068d29187a8528da42c8863895812396369bb548a2437a2db9dd3957bc"
+  },
+  {
    "cdnPath": "catalog/foods/ff_peanut_butter/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_peanut_butter/r1-card.webp",
    "mime": "image/webp",
@@ -1376,6 +1726,20 @@
    "sha256": "ac2a41f96f8c81538e0bf0079b32e6cb0aa8f08ee53062ca85d2e8ad0bb0f2d8"
   },
   {
+   "cdnPath": "catalog/foods/ff_pistachios/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pistachios/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 102150,
+   "sha256": "1cc3563e5768977caf08a1395e31a764aebb68c7de5133aad2b5ebc77abd49e2"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_pistachios/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pistachios/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 8838,
+   "sha256": "a7db2969987b882f2d56c2641447b0b1ac43ec862b884256cc7db1b6a6ca62b3"
+  },
+  {
    "cdnPath": "catalog/foods/ff_mixed_nuts/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mixed_nuts/r1-card.webp",
    "mime": "image/webp",
@@ -1402,6 +1766,20 @@
    "mime": "image/webp",
    "bytes": 2402,
    "sha256": "0f0c2074549461bc23d81a60a2bee7f134e7750a611886d09056fc25c8d9128f"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pumpkin_seeds/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 50212,
+   "sha256": "e4de4f83c0df994403adc13eb602cf7aceac8ec6e9ae585ccb62b3f538afd9ad"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_pumpkin_seeds/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6956,
+   "sha256": "2281b4b8afd66adf7df0345731a758745ccf57711fcf01ef0bd471bb0adb40c1"
   },
   {
    "cdnPath": "catalog/foods/ff_sesame_seeds/r1-card.webp",
@@ -1458,6 +1836,20 @@
    "mime": "image/webp",
    "bytes": 4548,
    "sha256": "7079b13a347e20e8927dcf615a6a5204898e0f0bd029a584b58bfdce79cfa17a"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_sunflower_oil/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sunflower_oil/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 56952,
+   "sha256": "126fadfbf81e3b34d158ef50958ff0e146624c67d208e710c153d04a438c1674"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_sunflower_oil/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_sunflower_oil/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 6782,
+   "sha256": "2a96d6bc45c888c843ea3cc6f5ce5ae2398acd0a31976bace999abfa319f2eea"
   },
   {
    "cdnPath": "catalog/foods/ff_butter/r1-card.webp",
@@ -1586,6 +1978,20 @@
    "sha256": "593ac9a55cf37b0d43ee4381ae0efefaf58b02555b9a96b3c214f5a176648771"
   },
   {
+   "cdnPath": "catalog/foods/ff_apple_juice/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_apple_juice/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 11730,
+   "sha256": "7175c5751ae0e95331b1d5ab87e8b18fdb84962e837ae5a38157d2259400f6b3"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_apple_juice/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_apple_juice/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 1422,
+   "sha256": "e443d4079026102f83375390e2f05a90ae72d5b5654dc64ce1f8d3ba0a03faf1"
+  },
+  {
    "cdnPath": "catalog/foods/ff_cola_regular/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_cola_regular/r1-card.webp",
    "mime": "image/webp",
@@ -1670,6 +2076,20 @@
    "sha256": "e396f570729a57b5df87830442a0f7942bae13f97ad85a3e30d9b9c9e64301d3"
   },
   {
+   "cdnPath": "catalog/foods/ff_tomato_sauce/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tomato_sauce/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 41298,
+   "sha256": "0d01c96f48a895ac1cf9ed21e503842befb177f6357f7e7766a40dffd7a94251"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_tomato_sauce/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_tomato_sauce/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 5322,
+   "sha256": "26cf87b4619a321ce1a3dd3acf2ba4b6b228994d4f88e0b765e9f02ef429b9ae"
+  },
+  {
    "cdnPath": "catalog/foods/ff_ketchup/r1-card.webp",
    "localFile": "e2e-out/.cache/catalog/food-images/out/ff_ketchup/r1-card.webp",
    "mime": "image/webp",
@@ -1752,6 +2172,20 @@
    "mime": "image/webp",
    "bytes": 4798,
    "sha256": "a708b6be60d8b81300beaaa90bf0f022169e408353957c01c6d1a11f89ec734c"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-card.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mahshi_kousa/r1-card.webp",
+   "mime": "image/webp",
+   "bytes": 24804,
+   "sha256": "e9bd192ae209b5d849e99708b1515028ba4b0d034c40e19355d6f8f54c2416d6"
+  },
+  {
+   "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-thumb.webp",
+   "localFile": "e2e-out/.cache/catalog/food-images/out/ff_mahshi_kousa/r1-thumb.webp",
+   "mime": "image/webp",
+   "bytes": 3382,
+   "sha256": "31fbcf6b847f4fa0baf83e7dabd5618d1fd3e805c450c2065bdfaa53490e8b7c"
   },
   {
    "cdnPath": "catalog/foods/ff_rice_vermicelli/r1-card.webp",

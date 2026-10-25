@@ -1,7 +1,7 @@
 {
  "kind": "foods",
- "version": "2026.10.24-1",
- "builtAt": "2026-10-24T17:17:50.196Z",
+ "version": "2026.10.25-1",
+ "builtAt": "2026-10-25T01:56:04.421Z",
  "generator": "scripts/catalog/build-foods.mjs",
  "sources": [
   {
@@ -27,7 +27,7 @@
   },
   {
    "provider": "forma",
-   "version": "2026.10.24-1",
+   "version": "2026.10.25-1",
    "retrievedAt": "2026-10-22T19:21:49.085Z",
    "license": "© Forma",
    "attribution": "Names, translations, aliases, portion choice and recipes by Forma"
@@ -38,7 +38,7 @@
   {
    "id": "ff_rice_white_medium_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "White rice (medium grain), cooked",
     "ar": "أرز أبيض متوسط الحبة، مطبوخ"
@@ -124,6 +124,12 @@
        "bytes": 8340
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bowl_of_white_rice_01.jpg/120px-Bowl_of_white_rice_01.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bowl_of_white_rice_01.jpg/500px-Bowl_of_white_rice_01.jpg",
+      "width": 3544,
+      "height": 3000
+     },
      "alt": {
       "en": "A bowl of plain cooked white rice",
       "ar": "وعاء من الأرز الأبيض المطبوخ السادة"
@@ -141,13 +147,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_rice_white_long_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "White rice (long grain), cooked",
     "ar": "أرز أبيض طويل الحبة، مطبوخ"
@@ -208,15 +213,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-white-rice"
+   "images": [
+    {
+     "id": "fimg_rice_white_long_cooked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Basmati_rice_in_pot.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Basmati_rice_in_pot.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5702
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-card.webp",
+       "width": 640,
+       "height": 482,
+       "bytes": 42162
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Basmati_rice_in_pot.jpg/120px-Basmati_rice_in_pot.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Basmati_rice_in_pot.jpg/500px-Basmati_rice_in_pot.jpg",
+      "width": 8160,
+      "height": 6144
+     },
+     "alt": {
+      "en": "Plain cooked long-grain basmati rice in a pot",
+      "ar": "أرز بسمتي أبيض طويل الحبة مطبوخ في قِدر"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Anselm Schüler",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Basmati rice in pot.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_rice_white_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "White rice (medium grain), uncooked",
     "ar": "أرز أبيض متوسط الحبة، غير مطبوخ"
@@ -294,6 +339,12 @@
        "bytes": 48796
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/WhiteRice.jpg/120px-WhiteRice.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/WhiteRice.jpg/500px-WhiteRice.jpg",
+      "width": 1194,
+      "height": 798
+     },
      "alt": {
       "en": "Uncooked white rice grains",
       "ar": "حبوب أرز أبيض غير مطبوخ"
@@ -311,8 +362,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_rice_brown_cooked",
@@ -378,15 +428,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-brown-rice"
-   ]
+   "images": []
   },
   {
    "id": "ff_pasta_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pasta, cooked",
     "ar": "مكرونة مسلوقة"
@@ -494,6 +541,12 @@
        "bytes": 31282
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Cooked_spaghetti_%28horizontal%29.jpg/120px-Cooked_spaghetti_%28horizontal%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Cooked_spaghetti_%28horizontal%29.jpg/500px-Cooked_spaghetti_%28horizontal%29.jpg",
+      "width": 3840,
+      "height": 2527
+     },
      "alt": {
       "en": "Close-up of plain boiled spaghetti",
       "ar": "لقطة قريبة لسباغيتي مسلوقة سادة"
@@ -510,16 +563,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-pasta",
-    "seed-food-macaroni-bechamel"
    ]
   },
   {
    "id": "ff_pasta_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pasta, uncooked",
     "ar": "مكرونة جافة (غير مطبوخة)"
@@ -566,8 +615,50 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_pasta_dry_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/Penne_rigate.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Penne_rigate.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_pasta_dry/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 1638
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_pasta_dry/r1-card.webp",
+       "width": 640,
+       "height": 482,
+       "bytes": 8570
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Penne_rigate.jpg/120px-Penne_rigate.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Penne_rigate.jpg/500px-Penne_rigate.jpg",
+      "width": 2526,
+      "height": 1902
+     },
+     "alt": {
+      "en": "Uncooked penne rigate pasta",
+      "ar": "مكرونة بيني ريغاتي جافة غير مطبوخة"
+     },
+     "license": "CC-BY-SA-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+     "author": "Stilfehler",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Penne rigate.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_pasta_whole_wheat_cooked",
@@ -631,13 +722,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_oats_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Rolled oats, uncooked",
     "ar": "شوفان (غير مطبوخ)"
@@ -717,6 +807,12 @@
        "bytes": 57690
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Rolled_oats_in_bowl_2.jpg/120px-Rolled_oats_in_bowl_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Rolled_oats_in_bowl_2.jpg/500px-Rolled_oats_in_bowl_2.jpg",
+      "width": 5152,
+      "height": 3864
+     },
      "alt": {
       "en": "Dry rolled oats in a ceramic bowl",
       "ar": "رقائق شوفان جافة في وعاء خزفي"
@@ -734,15 +830,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-oats"
    ]
   },
   {
    "id": "ff_oatmeal_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Oatmeal cooked with water",
     "ar": "شوفان مطبوخ بالماء"
@@ -804,8 +897,50 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_oatmeal_cooked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Havregr%C3%B8d_p%C3%A5_vand.JPG",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 4234
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 25264
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG/120px-Havregr%C3%B8d_p%C3%A5_vand.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG/500px-Havregr%C3%B8d_p%C3%A5_vand.JPG",
+      "width": 2560,
+      "height": 1920
+     },
+     "alt": {
+      "en": "A plate of plain oatmeal porridge cooked with water",
+      "ar": "طبق من عصيدة الشوفان السادة المطبوخة بالماء"
+     },
+     "license": "CC-BY-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+     "author": "Nillerdk",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Havregrød på vand.JPG"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_bulgur_cooked",
@@ -868,13 +1003,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_bulgur_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Bulgur, uncooked",
     "ar": "برغل جاف"
@@ -950,6 +1084,12 @@
        "bytes": 33716
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Bulgur_close-up.jpg/120px-Bulgur_close-up.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Bulgur_close-up.jpg/500px-Bulgur_close-up.jpg",
+      "width": 5184,
+      "height": 3888
+     },
      "alt": {
       "en": "Close-up of dry bulgur wheat",
       "ar": "لقطة قريبة لبرغل جاف"
@@ -967,13 +1107,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_couscous_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Couscous, cooked",
     "ar": "كسكسي مطبوخ"
@@ -1049,6 +1188,12 @@
        "bytes": 86838
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg/120px-Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg/500px-Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+      "width": 3024,
+      "height": 4032
+     },
      "alt": {
       "en": "Plain prepared couscous in a white bowl",
       "ar": "كسكسي مطهو سادة في وعاء أبيض"
@@ -1066,15 +1211,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-couscous"
    ]
   },
   {
    "id": "ff_quinoa_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Quinoa, cooked",
     "ar": "كينوا مطبوخة"
@@ -1150,6 +1292,12 @@
        "bytes": 42196
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Quinoa_2.jpg/120px-Quinoa_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Quinoa_2.jpg/500px-Quinoa_2.jpg",
+      "width": 3920,
+      "height": 2204
+     },
      "alt": {
       "en": "A bowl of plain cooked quinoa",
       "ar": "وعاء من الكينوا المطبوخة السادة"
@@ -1167,9 +1315,6 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-quinoa"
    ]
   },
   {
@@ -1231,13 +1376,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_popcorn_air",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Popcorn, air-popped",
     "ar": "فشار بدون زيت"
@@ -1314,6 +1458,12 @@
        "bytes": 21174
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg/120px-Air-Popped_Popcorn_%2845813595124%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg/500px-Air-Popped_Popcorn_%2845813595124%29.jpg",
+      "width": 7106,
+      "height": 4709
+     },
      "alt": {
       "en": "Close-up of plain air-popped popcorn",
       "ar": "لقطة قريبة لفشار سادة محضّر بالهواء الساخن"
@@ -1331,15 +1481,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-popcorn"
    ]
   },
   {
    "id": "ff_rice_cakes_plain",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Rice cakes, brown rice, plain",
     "ar": "كعك الأرز البني سادة"
@@ -1417,6 +1564,12 @@
        "bytes": 25654
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Puffed_Rice_Cakes.jpg/120px-Puffed_Rice_Cakes.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Puffed_Rice_Cakes.jpg/500px-Puffed_Rice_Cakes.jpg",
+      "width": 1450,
+      "height": 1210
+     },
      "alt": {
       "en": "A stack of plain puffed rice cakes",
       "ar": "كومة من كعك الأرز المنفوخ السادة"
@@ -1434,15 +1587,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-rice-cake"
    ]
   },
   {
    "id": "ff_bread_pita_white",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pita bread, white",
     "ar": "خبز بيتا أبيض"
@@ -1532,6 +1682,12 @@
        "bytes": 30994
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Pita_Bread.jpg/120px-Pita_Bread.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Pita_Bread.jpg/500px-Pita_Bread.jpg",
+      "width": 2560,
+      "height": 1920
+     },
      "alt": {
       "en": "Folded white pita bread in a basket",
       "ar": "خبز بيتا أبيض مطوي في سلة"
@@ -1549,8 +1705,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_bread_pita_whole_wheat",
@@ -1624,13 +1779,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_baladi_bread",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Baladi bread (estimate)",
     "ar": "العيش البلدي (تقدير)"
@@ -1703,6 +1857,12 @@
        "bytes": 46690
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Eish_baladi.jpg/120px-Eish_baladi.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Eish_baladi.jpg/500px-Eish_baladi.jpg",
+      "width": 1200,
+      "height": 1600
+     },
      "alt": {
       "en": "Loaves of Egyptian baladi bread cooling on a rack",
       "ar": "أرغفة عيش بلدي مصري على قفص التبريد"
@@ -1720,9 +1880,6 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-baladi-bread"
    ]
   },
   {
@@ -1780,13 +1937,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_bread_white",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "White bread (sandwich loaf)",
     "ar": "خبز أبيض (توست)"
@@ -1876,6 +2032,12 @@
        "bytes": 35684
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg/120px-Tin_Loaf_-_one_slash_in_the_crust.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg/500px-Tin_Loaf_-_one_slash_in_the_crust.jpg",
+      "width": 4752,
+      "height": 3168
+     },
      "alt": {
       "en": "A sliced white bread loaf on a wooden board",
       "ar": "رغيف خبز أبيض مقطع إلى شرائح على لوح خشبي"
@@ -1893,13 +2055,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_bread_whole_wheat",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Whole-wheat bread",
     "ar": "خبز القمح الكامل (توست أسمر)"
@@ -1979,6 +2140,12 @@
        "bytes": 41450
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Whole_Wheat_Bread_01.jpg/120px-Whole_Wheat_Bread_01.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Whole_Wheat_Bread_01.jpg/500px-Whole_Wheat_Bread_01.jpg",
+      "width": 4000,
+      "height": 3000
+     },
      "alt": {
       "en": "Cut loaf of whole-wheat bread showing the brown crumb",
       "ar": "رغيف خبز قمح كامل مقطوع يظهر لبّه الأسمر"
@@ -1996,15 +2163,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-whole-wheat-bread"
    ]
   },
   {
    "id": "ff_bread_french",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "French bread (baguette)",
     "ar": "خبز فرنسي (باجيت)"
@@ -2071,6 +2235,12 @@
        "bytes": 73802
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Brot_001_2016_07_03.jpg/120px-Brot_001_2016_07_03.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Brot_001_2016_07_03.jpg/500px-Brot_001_2016_07_03.jpg",
+      "width": 4460,
+      "height": 3149
+     },
      "alt": {
       "en": "Slices of French baguette in a bread basket",
       "ar": "شرائح خبز باجيت فرنسي في سلة خبز"
@@ -2088,8 +2258,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_fava_beans_boiled",
@@ -2160,8 +2329,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_fava_beans_canned",
@@ -2224,13 +2392,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_fava_beans_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Fava beans, dried (uncooked)",
     "ar": "فول جاف (غير مطبوخ)"
@@ -2307,6 +2474,12 @@
        "bytes": 38286
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Fava_Beans_Dried.JPG/120px-Fava_Beans_Dried.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Fava_Beans_Dried.JPG/500px-Fava_Beans_Dried.JPG",
+      "width": 2816,
+      "height": 2112
+     },
      "alt": {
       "en": "Dried brown fava beans on a white plate",
       "ar": "حبوب فول بني جاف في طبق أبيض"
@@ -2324,8 +2497,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_lentils_boiled",
@@ -2393,15 +2565,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-lentils"
-   ]
+   "images": []
   },
   {
    "id": "ff_lentils_brown_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Lentils (brown), uncooked",
     "ar": "عدس بجبة جاف"
@@ -2477,6 +2646,12 @@
        "bytes": 14932
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Brown_lentils.JPG/120px-Brown_lentils.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Brown_lentils.JPG/500px-Brown_lentils.JPG",
+      "width": 4676,
+      "height": 3110
+     },
      "alt": {
       "en": "A small heap of dry brown lentils",
       "ar": "كومة صغيرة من العدس البني الجاف"
@@ -2494,13 +2669,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_lentils_red_dry",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Red lentils, uncooked",
     "ar": "عدس أحمر (أصفر) جاف"
@@ -2579,6 +2753,12 @@
        "bytes": 27460
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Red_lentils_-_jules_%28cropped%29.jpg/120px-Red_lentils_-_jules_%28cropped%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Red_lentils_-_jules_%28cropped%29.jpg/500px-Red_lentils_-_jules_%28cropped%29.jpg",
+      "width": 2832,
+      "height": 2837
+     },
      "alt": {
       "en": "Dry split red lentils in a white ramekin",
       "ar": "عدس أحمر مجروش جاف في وعاء أبيض صغير"
@@ -2596,13 +2776,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chickpeas_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chickpeas, boiled",
     "ar": "حمص مسلوق"
@@ -2665,15 +2844,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-chickpeas"
+   "images": [
+    {
+     "id": "fimg_chickpeas_boiled_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/3/37/13-01-19-kichererbsensalat-03.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-03.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 2526
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-card.webp",
+       "width": 640,
+       "height": 425,
+       "bytes": 12340
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/13-01-19-kichererbsensalat-03.jpg/120px-13-01-19-kichererbsensalat-03.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/13-01-19-kichererbsensalat-03.jpg/500px-13-01-19-kichererbsensalat-03.jpg",
+      "width": 4288,
+      "height": 2848
+     },
+     "alt": {
+      "en": "Close-up of plain cooked chickpeas",
+      "ar": "لقطة قريبة لحمص مسلوق سادة"
+     },
+     "license": "CC-BY-SA-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+     "author": "Ralf Roletschek - fahrradmonteur.de",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:13-01-19-kichererbsensalat-03.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_chickpeas_canned",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chickpeas, canned, drained",
     "ar": "حمص معلّب مصفّى"
@@ -2729,8 +2948,50 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_chickpeas_canned_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/13-01-19-kichererbsensalat-04.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-04.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3402
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-card.webp",
+       "width": 640,
+       "height": 425,
+       "bytes": 17334
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/13-01-19-kichererbsensalat-04.jpg/120px-13-01-19-kichererbsensalat-04.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/13-01-19-kichererbsensalat-04.jpg/500px-13-01-19-kichererbsensalat-04.jpg",
+      "width": 4288,
+      "height": 2848
+     },
+     "alt": {
+      "en": "Close-up of drained canned chickpeas",
+      "ar": "لقطة قريبة لحمص معلّب مصفّى"
+     },
+     "license": "CC-BY-SA-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+     "author": "Ralf Roletschek - fahrradmonteur.de",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:13-01-19-kichererbsensalat-04.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_white_beans_boiled",
@@ -2793,8 +3054,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_kidney_beans_boiled",
@@ -2856,15 +3116,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-kidney-beans"
-   ]
+   "images": []
   },
   {
    "id": "ff_green_peas_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Green peas, cooked",
     "ar": "بازلاء مطبوخة"
@@ -2922,13 +3179,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_green_peas_cooked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Peas_(cooked_okay)_-_Massachusetts.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6050
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-card.webp",
+       "width": 640,
+       "height": 640,
+       "bytes": 45930
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg/120px-Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg/500px-Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+      "width": 2615,
+      "height": 2614
+     },
+     "alt": {
+      "en": "A bowl of plain cooked green peas",
+      "ar": "وعاء من البازلاء الخضراء المطبوخة السادة"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Daderot",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Peas (cooked okay) - Massachusetts.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_hummus",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Hummus (home recipe)",
     "ar": "حمص بالطحينة (وصفة منزلية)"
@@ -3017,6 +3316,12 @@
        "bytes": 21046
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Lebanese_style_hummus.jpg/120px-Lebanese_style_hummus.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Lebanese_style_hummus.jpg/500px-Lebanese_style_hummus.jpg",
+      "width": 2848,
+      "height": 1602
+     },
      "alt": {
       "en": "A bowl of hummus with olive oil and whole chickpeas",
       "ar": "طبق حمص بالطحينة مع زيت الزيتون وحبات الحمص"
@@ -3034,9 +3339,6 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-hummus"
    ]
   },
   {
@@ -3104,15 +3406,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-tahini"
-   ]
+   "images": []
   },
   {
    "id": "ff_falafel_chickpea",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Falafel (chickpea, home recipe)",
     "ar": "فلافل بالحمص (وصفة منزلية)"
@@ -3192,6 +3491,12 @@
        "bytes": 43016
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Falafels_2.jpg/120px-Falafels_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Falafels_2.jpg/500px-Falafels_2.jpg",
+      "width": 4160,
+      "height": 2340
+     },
      "alt": {
       "en": "Rows of deep-fried chickpea falafel",
       "ar": "صفوف من أقراص الفلافل بالحمص المقلية"
@@ -3209,13 +3514,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_taameya",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ta’ameya — Egyptian falafel (estimate)",
     "ar": "طعمية (تقدير)"
@@ -3292,6 +3596,12 @@
        "bytes": 26088
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Tameya_Karoleen_Lindberg.jpg/120px-Tameya_Karoleen_Lindberg.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Tameya_Karoleen_Lindberg.jpg/500px-Tameya_Karoleen_Lindberg.jpg",
+      "width": 2000,
+      "height": 1180
+     },
      "alt": {
       "en": "Fried Egyptian taameya patties on a white plate",
       "ar": "أقراص طعمية مصرية مقلية في طبق أبيض"
@@ -3309,15 +3619,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-falafel"
    ]
   },
   {
    "id": "ff_lentil_soup",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Lentil soup (estimate)",
     "ar": "شوربة عدس (تقدير)"
@@ -3379,13 +3686,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_lentil_soup_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/S%C3%BCzme_mercimek_soup.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:S%C3%BCzme_mercimek_soup.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_lentil_soup/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 1376
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_lentil_soup/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 8730
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/S%C3%BCzme_mercimek_soup.jpg/120px-S%C3%BCzme_mercimek_soup.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/S%C3%BCzme_mercimek_soup.jpg/500px-S%C3%BCzme_mercimek_soup.jpg",
+      "width": 2560,
+      "height": 1920
+     },
+     "alt": {
+      "en": "A cup of smooth red lentil soup with a lemon wedge",
+      "ar": "كوب من شوربة العدس الناعمة مع شريحة ليمون"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "E4024",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Süzme mercimek soup.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_beef_ground_90_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ground beef 90% lean, raw",
     "ar": "لحم بقري مفروم ٩٠٪ قليل الدهن، نيء"
@@ -3452,6 +3801,12 @@
        "bytes": 17934
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Hakket-oksekoed.jpg/120px-Hakket-oksekoed.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Hakket-oksekoed.jpg/500px-Hakket-oksekoed.jpg",
+      "width": 1277,
+      "height": 916
+     },
      "alt": {
       "en": "Raw lean ground beef on a cutting board",
       "ar": "لحم بقري مفروم نيء قليل الدهن على لوح تقطيع"
@@ -3469,8 +3824,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_beef_ground_90_cooked",
@@ -3525,13 +3879,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_beef_ground_80_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ground beef 80% lean, raw",
     "ar": "لحم بقري مفروم ٨٠٪، نيء"
@@ -3597,6 +3950,12 @@
        "bytes": 30198
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Hackfleisch-1.jpg/120px-Hackfleisch-1.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Hackfleisch-1.jpg/500px-Hackfleisch-1.jpg",
+      "width": 2905,
+      "height": 2211
+     },
      "alt": {
       "en": "Raw ground beef on a white plate",
       "ar": "لحم بقري مفروم نيء في طبق أبيض"
@@ -3614,8 +3973,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_beef_ground_80_cooked",
@@ -3669,13 +4027,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_beef_sirloin_lean_grilled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Beef steak (top sirloin), lean, grilled",
     "ar": "ستيك لحم بقري (توب سيرلوين) قليل الدهن، مشوي"
@@ -3747,6 +4104,12 @@
        "bytes": 62082
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg/120px-Grilled_Sirloin_Steak_with_Vegetables.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg/500px-Grilled_Sirloin_Steak_with_Vegetables.jpg",
+      "width": 4032,
+      "height": 3024
+     },
      "alt": {
       "en": "Grilled sirloin steak with grill marks on a plate",
       "ar": "شريحة ستيك سيرلوين مشوية عليها علامات الشواية في طبق"
@@ -3764,13 +4127,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_beef_round_lean_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Beef round (eye of round), lean, roasted",
     "ar": "لحم بقري (فخذ) قليل الدهن، مشوي في الفرن"
@@ -3841,6 +4203,12 @@
        "bytes": 47440
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Roast_topside_of_beef.jpg/120px-Roast_topside_of_beef.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Roast_topside_of_beef.jpg/500px-Roast_topside_of_beef.jpg",
+      "width": 3084,
+      "height": 3084
+     },
      "alt": {
       "en": "Sliced lean roast beef on a white plate",
       "ar": "شرائح لحم بقري قليل الدهن محمّر في الفرن في طبق أبيض"
@@ -3858,8 +4226,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_veal_leg_roasted",
@@ -3910,13 +4277,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_lamb_leg_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Lamb leg, lean, roasted",
     "ar": "لحم ضأن (فخذ) قليل الدهن، مشوي"
@@ -3984,6 +4350,12 @@
        "bytes": 41328
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Roast_lamb_leg.jpg/120px-Roast_lamb_leg.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Roast_lamb_leg.jpg/500px-Roast_lamb_leg.jpg",
+      "width": 2736,
+      "height": 3648
+     },
      "alt": {
       "en": "Whole roasted leg of lamb with rosemary",
       "ar": "فخذ ضأن كامل مشوي في الفرن مع إكليل الجبل"
@@ -4001,8 +4373,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_beef_liver_fried",
@@ -4064,15 +4435,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-beef-liver"
-   ]
+   "images": []
   },
   {
    "id": "ff_chicken_breast_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chicken breast, skinless, raw",
     "ar": "صدر دجاج منزوع الجلد، نيء"
@@ -4139,6 +4507,12 @@
        "bytes": 13746
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Raw_chicken_slices.jpg/120px-Raw_chicken_slices.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Raw_chicken_slices.jpg/500px-Raw_chicken_slices.jpg",
+      "width": 3888,
+      "height": 2592
+     },
      "alt": {
       "en": "Three raw skinless chicken breast fillets on a white plate",
       "ar": "ثلاث قطع صدر دجاج نيئة منزوعة الجلد في طبق أبيض"
@@ -4156,13 +4530,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chicken_breast_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chicken breast, skinless, roasted",
     "ar": "صدر دجاج منزوع الجلد، مشوي"
@@ -4256,6 +4629,12 @@
        "bytes": 44386
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg/120px-Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg/500px-Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+      "width": 1000,
+      "height": 1506
+     },
      "alt": {
       "en": "Sliced roasted skinless chicken breast",
       "ar": "شرائح صدر دجاج مشوي منزوع الجلد"
@@ -4273,15 +4652,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-chicken-breast"
    ]
   },
   {
    "id": "ff_chicken_thigh_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chicken thigh, skinless, roasted",
     "ar": "ورك دجاج منزوع الجلد، مشوي"
@@ -4359,6 +4735,12 @@
        "bytes": 60500
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg/120px-Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg/500px-Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+      "width": 5563,
+      "height": 3709
+     },
      "alt": {
       "en": "Boneless chicken thighs cooking on a grill",
       "ar": "أفخاذ دجاج منزوعة العظم تُشوى على الشواية"
@@ -4376,13 +4758,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chicken_with_skin_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chicken (meat and skin), roasted",
     "ar": "دجاج بالجلد، مشوي"
@@ -4459,6 +4840,12 @@
        "bytes": 50700
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Stuffed_roast_chicken.jpg/120px-Stuffed_roast_chicken.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Stuffed_roast_chicken.jpg/500px-Stuffed_roast_chicken.jpg",
+      "width": 2919,
+      "height": 1841
+     },
      "alt": {
       "en": "Whole roast chicken with golden skin on a platter",
       "ar": "دجاجة كاملة مشوية بجلدها الذهبي في طبق تقديم"
@@ -4476,8 +4863,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chicken_liver",
@@ -4539,13 +4925,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_turkey_breast_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Turkey breast, roasted",
     "ar": "صدر ديك رومي مشوي"
@@ -4611,6 +4996,12 @@
        "bytes": 35398
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg/120px-Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg/500px-Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+      "width": 5712,
+      "height": 4284
+     },
      "alt": {
       "en": "Sliced roast turkey breast on a serving platter",
       "ar": "شرائح صدر ديك رومي مشوي في طبق تقديم"
@@ -4628,15 +5019,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-turkey-breast"
    ]
   },
   {
    "id": "ff_tuna_water",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tuna (light) canned in water, drained",
     "ar": "تونة لايت معلّبة في ماء، مصفّاة"
@@ -4695,15 +5083,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-tuna-can"
+   "images": [
+    {
+     "id": "fimg_tuna_water_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_tuna_water/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5464
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_tuna_water/r1-card.webp",
+       "width": 640,
+       "height": 543,
+       "bytes": 34496
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/120px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/500px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+      "width": 1382,
+      "height": 1171
+     },
+     "alt": {
+      "en": "Close-up of flaked canned tuna",
+      "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "IgorCalzone1",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Thunfisch (in geöffneter Dose) 2.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_tuna_oil",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tuna (light) canned in oil, drained",
     "ar": "تونة معلّبة في زيت، مصفّاة"
@@ -4760,13 +5188,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_tuna_oil_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_tuna_oil/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5464
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_tuna_oil/r1-card.webp",
+       "width": 640,
+       "height": 543,
+       "bytes": 34496
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/120px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/500px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+      "width": 1382,
+      "height": 1171
+     },
+     "alt": {
+      "en": "Close-up of flaked canned tuna",
+      "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "IgorCalzone1",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Thunfisch (in geöffneter Dose) 2.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_tilapia_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tilapia, baked or grilled",
     "ar": "سمك بلطي مشوي"
@@ -4849,6 +5319,12 @@
        "bytes": 69756
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Grilled_Tilapia_2.jpg/120px-Grilled_Tilapia_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Grilled_Tilapia_2.jpg/500px-Grilled_Tilapia_2.jpg",
+      "width": 3120,
+      "height": 4160
+     },
      "alt": {
       "en": "Whole grilled tilapia with charred skin",
       "ar": "سمكة بلطي كاملة مشوية بجلد محمّر"
@@ -4866,15 +5342,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-tilapia"
    ]
   },
   {
    "id": "ff_tilapia_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tilapia, raw",
     "ar": "سمك بلطي نيء"
@@ -4950,6 +5423,12 @@
        "bytes": 62980
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg/120px-Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg/500px-Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+      "width": 1368,
+      "height": 1824
+     },
      "alt": {
       "en": "Whole raw tilapia fish piled at a market",
       "ar": "أسماك بلطي كاملة نيئة مكدّسة في السوق"
@@ -4967,8 +5446,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_mullet_grilled",
@@ -5037,13 +5515,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_salmon_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Salmon (Atlantic, farmed), cooked",
     "ar": "سلمون أطلسي مستزرع، مطبوخ"
@@ -5089,15 +5566,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-salmon"
+   "images": [
+    {
+     "id": "fimg_salmon_cooked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_salmon_cooked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5440
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_salmon_cooked/r1-card.webp",
+       "width": 640,
+       "height": 854,
+       "bytes": 79550
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg/120px-Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg/500px-Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+      "width": 3024,
+      "height": 4032
+     },
+     "alt": {
+      "en": "A cooked salmon fillet on a white platter",
+      "ar": "فيليه سلمون مطبوخ على طبق أبيض"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Gatorfan252525",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Grilled salmon garnished with lemon and parsley.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_shrimp_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Shrimp, cooked",
     "ar": "جمبري مطبوخ"
@@ -5162,6 +5679,12 @@
        "bytes": 41828
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Cooked_shrimp.jpg/120px-Cooked_shrimp.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Cooked_shrimp.jpg/500px-Cooked_shrimp.jpg",
+      "width": 4000,
+      "height": 3000
+     },
      "alt": {
       "en": "Peeled cooked shrimp, close-up",
       "ar": "جمبري مطبوخ مقشّر، صورة مقرّبة"
@@ -5179,15 +5702,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-shrimp"
    ]
   },
   {
    "id": "ff_sardines_oil",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sardines canned in oil, drained",
     "ar": "سردين معلّب في زيت، مصفّى"
@@ -5244,15 +5764,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-sardines"
+   "images": [
+    {
+     "id": "fimg_sardines_oil_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Canned_sardines_with_lemon.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Canned_sardines_with_lemon.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_sardines_oil/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6090
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_sardines_oil/r1-card.webp",
+       "width": 640,
+       "height": 443,
+       "bytes": 73818
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Canned_sardines_with_lemon.jpg/120px-Canned_sardines_with_lemon.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Canned_sardines_with_lemon.jpg/500px-Canned_sardines_with_lemon.jpg",
+      "width": 4055,
+      "height": 2804
+     },
+     "alt": {
+      "en": "An opened tin of whole sardines in oil",
+      "ar": "علبة مفتوحة من السردين الكامل في الزيت"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Pannet",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Canned sardines with lemon.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_mackerel_cooked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mackerel, cooked",
     "ar": "سمك ماكريل مطبوخ"
@@ -5329,6 +5889,12 @@
        "bytes": 83690
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Grilled_mackerel_on_a_BBQ.jpg/120px-Grilled_mackerel_on_a_BBQ.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Grilled_mackerel_on_a_BBQ.jpg/500px-Grilled_mackerel_on_a_BBQ.jpg",
+      "width": 4096,
+      "height": 3072
+     },
      "alt": {
       "en": "Three whole mackerel grilled over charcoal",
       "ar": "ثلاث سمكات ماكريل كاملة مشوية على الفحم"
@@ -5345,13 +5911,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_renga",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Renga — smoked herring (estimate)",
     "ar": "رنجة مدخنة (تقدير)"
@@ -5414,13 +5979,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_renga_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/3/30/Buckling.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Buckling.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_renga/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3770
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_renga/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 36932
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Buckling.jpg/120px-Buckling.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Buckling.jpg/500px-Buckling.jpg",
+      "width": 1280,
+      "height": 960
+     },
+     "alt": {
+      "en": "Two whole golden smoked herrings on a plate",
+      "ar": "سمكتا رنجة مدخنة كاملتان ذهبيتا اللون على طبق"
+     },
+     "license": "CC-BY-SA-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "author": "Christopher Bertram",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Buckling.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_egg_whole_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Egg, whole, raw",
     "ar": "بيض كامل، نيء"
@@ -5509,6 +6116,12 @@
        "bytes": 17956
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Eggs_Chicken.jpg/120px-Eggs_Chicken.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Eggs_Chicken.jpg/500px-Eggs_Chicken.jpg",
+      "width": 3984,
+      "height": 2656
+     },
      "alt": {
       "en": "Fresh brown eggs in a paper egg tray",
       "ar": "بيض بني طازج في كرتونة بيض ورقية"
@@ -5526,15 +6139,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-whole-egg"
    ]
   },
   {
    "id": "ff_egg_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Egg, hard-boiled",
     "ar": "بيض مسلوق"
@@ -5612,6 +6222,12 @@
        "bytes": 10618
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Boiled_Egg_-_Crossection.jpg/120px-Boiled_Egg_-_Crossection.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Boiled_Egg_-_Crossection.jpg/500px-Boiled_Egg_-_Crossection.jpg",
+      "width": 2048,
+      "height": 1536
+     },
      "alt": {
       "en": "A hard-boiled egg cut in half",
       "ar": "بيضة مسلوقة جيدًا مقطوعة نصفين"
@@ -5629,13 +6245,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_egg_fried",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Egg, fried",
     "ar": "بيض مقلي"
@@ -5693,13 +6308,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_egg_fried_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill,_Fairfax_County,_Virginia.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_egg_fried/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6584
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_egg_fried/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 65538
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/120px-2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/500px-2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+      "width": 4032,
+      "height": 3024
+     },
+     "alt": {
+      "en": "Two sunny-side-up fried eggs on a plate",
+      "ar": "بيضتان مقليتان (عيون) على طبق"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Famartin",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:2022-04-08 19 21 15 Two sunny-side up eggs on a plate in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_egg_scrambled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Egg, scrambled",
     "ar": "بيض مخفوق مطبوخ (أومليت)"
@@ -5778,6 +6435,12 @@
        "bytes": 32254
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scrambled_eggs_with_basil.jpg/120px-Scrambled_eggs_with_basil.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scrambled_eggs_with_basil.jpg/500px-Scrambled_eggs_with_basil.jpg",
+      "width": 1960,
+      "height": 2614
+     },
      "alt": {
       "en": "Scrambled eggs on a white plate",
       "ar": "بيض مخفوق مطبوخ في طبق أبيض"
@@ -5795,8 +6458,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_egg_white_raw",
@@ -5858,15 +6520,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-egg-white"
-   ]
+   "images": []
   },
   {
    "id": "ff_egg_yolk_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Egg yolk, raw",
     "ar": "صفار بيض نيء"
@@ -5943,6 +6602,12 @@
        "bytes": 11998
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Yolks.jpg/120px-Yolks.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Yolks.jpg/500px-Yolks.jpg",
+      "width": 2802,
+      "height": 1868
+     },
      "alt": {
       "en": "Six raw egg yolks in a steel bowl",
       "ar": "ستة صفار بيض نيء في وعاء معدني"
@@ -5960,13 +6625,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_milk_whole",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Whole milk (3.25% fat)",
     "ar": "حليب كامل الدسم (٣٫٢٥٪)"
@@ -6045,6 +6709,12 @@
        "bytes": 13298
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+      "width": 1566,
+      "height": 1570
+     },
      "alt": {
       "en": "A glass of milk",
       "ar": "كوب من الحليب"
@@ -6062,15 +6732,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-whole-milk"
    ]
   },
   {
    "id": "ff_milk_2",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Reduced-fat milk (2%)",
     "ar": "حليب نصف دسم (٢٪)"
@@ -6148,6 +6815,12 @@
        "bytes": 13298
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+      "width": 1566,
+      "height": 1570
+     },
      "alt": {
       "en": "A glass of milk",
       "ar": "كوب من الحليب"
@@ -6165,13 +6838,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_milk_skim",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Skim milk (fat-free)",
     "ar": "حليب خالي الدسم"
@@ -6250,6 +6922,12 @@
        "bytes": 13298
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+      "width": 1566,
+      "height": 1570
+     },
      "alt": {
       "en": "A glass of milk",
       "ar": "كوب من الحليب"
@@ -6267,15 +6945,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-skim-milk"
    ]
   },
   {
    "id": "ff_laban_rayeb",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Laban rayeb — cultured milk (estimate)",
     "ar": "لبن رايب (تقدير)"
@@ -6358,6 +7033,12 @@
        "bytes": 10056
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/A_cup_of_laban_rayeb.jpg/120px-A_cup_of_laban_rayeb.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/A_cup_of_laban_rayeb.jpg/500px-A_cup_of_laban_rayeb.jpg",
+      "width": 4160,
+      "height": 3120
+     },
      "alt": {
       "en": "A glass of laban rayeb (cultured milk)",
       "ar": "كوب من اللبن الرايب"
@@ -6375,13 +7056,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_yogurt_plain_whole",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Plain yogurt, whole milk",
     "ar": "زبادي سادة كامل الدسم"
@@ -6460,6 +7140,12 @@
        "bytes": 10144
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/120px-Joghurt.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/500px-Joghurt.jpg",
+      "width": 2000,
+      "height": 1679
+     },
      "alt": {
       "en": "Plain yogurt spooned onto a white plate",
       "ar": "زبادي سادة على طبق أبيض"
@@ -6477,13 +7163,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_yogurt_plain_lowfat",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Plain yogurt, low-fat",
     "ar": "زبادي سادة قليل الدسم"
@@ -6560,6 +7245,12 @@
        "bytes": 10144
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/120px-Joghurt.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/500px-Joghurt.jpg",
+      "width": 2000,
+      "height": 1679
+     },
      "alt": {
       "en": "Plain yogurt spooned onto a white plate",
       "ar": "زبادي سادة على طبق أبيض"
@@ -6577,13 +7268,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_greek_yogurt_nonfat",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Greek yogurt, plain, fat-free",
     "ar": "زبادي يوناني سادة خالي الدسم"
@@ -6661,6 +7351,12 @@
        "bytes": 6590
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/120px-Fresh_greek_yoghurt.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/500px-Fresh_greek_yoghurt.jpg",
+      "width": 3920,
+      "height": 2204
+     },
      "alt": {
       "en": "A spoonful of thick plain Greek yogurt over a bowl",
       "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
@@ -6678,15 +7374,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-greek-yogurt"
    ]
   },
   {
    "id": "ff_greek_yogurt_whole",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Greek yogurt, plain, whole milk",
     "ar": "زبادي يوناني سادة كامل الدسم"
@@ -6751,6 +7444,12 @@
        "bytes": 6590
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/120px-Fresh_greek_yoghurt.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/500px-Fresh_greek_yoghurt.jpg",
+      "width": 3920,
+      "height": 2204
+     },
      "alt": {
       "en": "A spoonful of thick plain Greek yogurt over a bowl",
       "ar": "ملعقة من الزبادي اليوناني السادة الكثيف فوق وعاء"
@@ -6768,13 +7467,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_cottage_cheese_4",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cottage cheese (4% fat)",
     "ar": "جبن كوتيج (٤٪ دسم)"
@@ -6852,6 +7550,12 @@
        "bytes": 25876
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/120px-Cottagecheese200px.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/500px-Cottagecheese200px.jpg",
+      "width": 2274,
+      "height": 1808
+     },
      "alt": {
       "en": "A glass bowl of cottage cheese with a spoon",
       "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
@@ -6869,15 +7573,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-cottage-cheese"
    ]
   },
   {
    "id": "ff_cottage_cheese_1",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cottage cheese, low-fat (1%)",
     "ar": "جبن كوتيج قليل الدسم (١٪)"
@@ -6953,6 +7654,12 @@
        "bytes": 25876
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/120px-Cottagecheese200px.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/500px-Cottagecheese200px.jpg",
+      "width": 2274,
+      "height": 1808
+     },
      "alt": {
       "en": "A glass bowl of cottage cheese with a spoon",
       "ar": "وعاء زجاجي من جبن الكوتيج مع ملعقة"
@@ -6970,8 +7677,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_areesh_cheese",
@@ -7027,13 +7733,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_feta",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Feta cheese",
     "ar": "جبن فيتا"
@@ -7110,6 +7815,12 @@
        "bytes": 9432
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Feta_siers.JPG/120px-Feta_siers.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Feta_siers.JPG/500px-Feta_siers.JPG",
+      "width": 2342,
+      "height": 1595
+     },
      "alt": {
       "en": "Feta cheese block and cubes",
       "ar": "قالب جبن فيتا ومكعبات منه"
@@ -7127,13 +7838,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_white_cheese_domiati",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "White cheese — Domiati (estimate)",
     "ar": "جبن أبيض دمياطي (تقدير)"
@@ -7217,6 +7927,12 @@
        "bytes": 24994
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Domiati_cheese.jpg/120px-Domiati_cheese.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Domiati_cheese.jpg/500px-Domiati_cheese.jpg",
+      "width": 2182,
+      "height": 1850
+     },
      "alt": {
       "en": "A piece of soft white Domiati cheese on a plate",
       "ar": "قطعة جبن أبيض دمياطي طري في طبق"
@@ -7234,15 +7950,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-feta"
    ]
   },
   {
    "id": "ff_mozzarella_part_skim",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mozzarella, part-skim",
     "ar": "جبن موتزاريلا نصف دسم"
@@ -7329,6 +8042,12 @@
        "bytes": 16534
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Mozzarella_cheese_%281%29.jpg/120px-Mozzarella_cheese_%281%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Mozzarella_cheese_%281%29.jpg/500px-Mozzarella_cheese_%281%29.jpg",
+      "width": 1280,
+      "height": 960
+     },
      "alt": {
       "en": "A log of mozzarella cheese with one slice cut",
       "ar": "قطعة أسطوانية من جبن الموتزاريلا مع شريحة مقطوعة"
@@ -7345,13 +8064,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_cheddar",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cheddar cheese",
     "ar": "جبن شيدر"
@@ -7418,15 +8136,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-cheese-cheddar"
+   "images": [
+    {
+     "id": "fimg_cheddar_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/2022-05-11-Cheddar-.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:2022-05-11-Cheddar-.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_cheddar/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3152
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_cheddar/r1-card.webp",
+       "width": 640,
+       "height": 426,
+       "bytes": 25448
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/2022-05-11-Cheddar-.jpg/120px-2022-05-11-Cheddar-.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/2022-05-11-Cheddar-.jpg/500px-2022-05-11-Cheddar-.jpg",
+      "width": 6431,
+      "height": 4280
+     },
+     "alt": {
+      "en": "A wedge of mature orange cheddar cheese",
+      "ar": "قطعة مثلثة من جبن الشيدر البرتقالي المعتّق"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Superbass",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:2022-05-11-Cheddar-.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_parmesan",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Parmesan (hard)",
     "ar": "جبن بارميزان"
@@ -7472,13 +8230,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_parmesan_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_parmesan/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 1632
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_parmesan/r1-card.webp",
+       "width": 640,
+       "height": 427,
+       "bytes": 11948
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg/120px-15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg/500px-15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+      "width": 5184,
+      "height": 3456
+     },
+     "alt": {
+      "en": "A wedge of Parmesan cheese on slate",
+      "ar": "قطعة مثلثة من جبن البارميزان على لوح حجري"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Mario M. Lommersum",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:15-01 Parmigiano Reggiano Lokal K 01.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_cream_cheese",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cream cheese",
     "ar": "جبن كريمي"
@@ -7535,13 +8335,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_cream_cheese_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling,_Loudoun_County,_Virginia.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_cream_cheese/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3240
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_cream_cheese/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 27672
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg/120px-2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg/500px-2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+      "width": 4032,
+      "height": 3024
+     },
+     "alt": {
+      "en": "An opened tub of plain cream cheese",
+      "ar": "علبة مفتوحة من الجبن الكريمي السادة"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Famartin",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:2019-10-12 15 31 00 A open carton of Harris Teeter Plain Cream Cheese Spread in the Dulles section of Sterling, Loudoun County, Virginia.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_ricotta_part_skim",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ricotta, part-skim",
     "ar": "جبن ريكوتا نصف دسم"
@@ -7617,6 +8459,12 @@
        "bytes": 24932
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Ricotta_pugliese.jpg/120px-Ricotta_pugliese.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Ricotta_pugliese.jpg/500px-Ricotta_pugliese.jpg",
+      "width": 2736,
+      "height": 2675
+     },
      "alt": {
       "en": "Three basket-moulded fresh ricotta cheeses in a dish",
       "ar": "ثلاث قطع من جبن الريكوتا الطازج المشكّل في سلال في طبق"
@@ -7634,8 +8482,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_processed_cheese_spread",
@@ -7699,13 +8546,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_tofu_firm",
    "status": "published",
-   "rev": 3,
+   "rev": 4,
    "name": {
     "en": "Tofu, firm (uncooked)",
     "ar": "توفو صلب (غير مطبوخ)"
@@ -7751,15 +8597,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-tofu"
+   "images": [
+    {
+     "id": "fimg_tofu_firm_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Tofu_slices.png",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Tofu_slices.png",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_tofu_firm/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 2020
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_tofu_firm/r1-card.webp",
+       "width": 640,
+       "height": 609,
+       "bytes": 19406
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tofu_slices.png/120px-Tofu_slices.png",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tofu_slices.png/500px-Tofu_slices.png",
+      "width": 1212,
+      "height": 1154
+     },
+     "alt": {
+      "en": "Three slices of plain firm tofu",
+      "ar": "ثلاث شرائح من التوفو الصلب السادة"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Tiia Monto",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Tofu slices.png"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_tomato_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tomato, raw",
     "ar": "طماطم طازجة"
@@ -7846,6 +8732,12 @@
        "bytes": 13704
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/120px-Tomato_je.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/500px-Tomato_je.jpg",
+      "width": 1800,
+      "height": 1497
+     },
      "alt": {
       "en": "Fresh red tomatoes on the vine",
       "ar": "طماطم حمراء طازجة على العنقود"
@@ -7863,15 +8755,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-tomato"
    ]
   },
   {
    "id": "ff_cucumber_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cucumber, raw (with peel)",
     "ar": "خيار طازج بالقشر"
@@ -7948,6 +8837,12 @@
        "bytes": 62818
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Cucumbers_%28Unsplash%29.jpg/120px-Cucumbers_%28Unsplash%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Cucumbers_%28Unsplash%29.jpg/500px-Cucumbers_%28Unsplash%29.jpg",
+      "width": 4160,
+      "height": 3120
+     },
      "alt": {
       "en": "Whole fresh cucumbers",
       "ar": "خيار طازج كامل"
@@ -7965,15 +8860,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-cucumber"
    ]
   },
   {
    "id": "ff_lettuce_romaine",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Romaine lettuce, raw",
     "ar": "خس روماني طازج"
@@ -8051,6 +8943,12 @@
        "bytes": 45160
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Romaine_lettuce.jpg/120px-Romaine_lettuce.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Romaine_lettuce.jpg/500px-Romaine_lettuce.jpg",
+      "width": 2136,
+      "height": 2520
+     },
      "alt": {
       "en": "A fresh head of romaine lettuce",
       "ar": "رأس خس روماني طازج"
@@ -8068,13 +8966,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_cabbage_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cabbage, raw",
     "ar": "كرنب طازج"
@@ -8151,6 +9048,12 @@
        "bytes": 55500
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/A_halved_head_of_white_cabbage.jpg/120px-A_halved_head_of_white_cabbage.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/A_halved_head_of_white_cabbage.jpg/500px-A_halved_head_of_white_cabbage.jpg",
+      "width": 2336,
+      "height": 3253
+     },
      "alt": {
       "en": "A raw white cabbage cut in half",
       "ar": "رأس كرنب أبيض طازج مقطوع نصفين"
@@ -8168,13 +9071,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_carrot_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Carrot, raw",
     "ar": "جزر طازج"
@@ -8261,6 +9163,12 @@
        "bytes": 31854
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/120px-Vegetable-Carrot-Bundle-wStalks.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/500px-Vegetable-Carrot-Bundle-wStalks.jpg",
+      "width": 6700,
+      "height": 3800
+     },
      "alt": {
       "en": "A bunch of fresh carrots with green tops",
       "ar": "حزمة جزر طازج بأوراقه الخضراء"
@@ -8277,9 +9185,6 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-carrot"
    ]
   },
   {
@@ -8345,13 +9250,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_onion_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Onion, raw",
     "ar": "بصل طازج"
@@ -8438,6 +9342,12 @@
        "bytes": 24050
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Onion_on_White.JPG/120px-Onion_on_White.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Onion_on_White.JPG/500px-Onion_on_White.JPG",
+      "width": 2793,
+      "height": 2793
+     },
      "alt": {
       "en": "A whole brown onion",
       "ar": "بصلة كاملة بقشرها"
@@ -8455,13 +9365,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_onion_sauteed",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Onion, sautéed",
     "ar": "بصل مقلي (مشوّح)"
@@ -8543,6 +9452,12 @@
        "bytes": 21216
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Caramelizing_onions.jpg/120px-Caramelizing_onions.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Caramelizing_onions.jpg/500px-Caramelizing_onions.jpg",
+      "width": 4916,
+      "height": 2765
+     },
      "alt": {
       "en": "Sliced onions softened in a frying pan",
       "ar": "شرائح بصل مشوّحة في مقلاة"
@@ -8560,13 +9475,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_garlic_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Garlic, raw",
     "ar": "ثوم طازج"
@@ -8643,6 +9557,12 @@
        "bytes": 19776
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Garlic_bulbs_and_cloves.jpg/120px-Garlic_bulbs_and_cloves.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Garlic_bulbs_and_cloves.jpg/500px-Garlic_bulbs_and_cloves.jpg",
+      "width": 8256,
+      "height": 5504
+     },
      "alt": {
       "en": "Garlic bulbs with a peeled clove",
       "ar": "رؤوس ثوم وفص مقشّر"
@@ -8660,13 +9580,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_potato_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Potato, boiled in skin",
     "ar": "بطاطس مسلوقة بالقشر"
@@ -8728,15 +9647,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-potato"
+   "images": [
+    {
+     "id": "fimg_potato_boiled_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Hot_Potatoes_%28199407793%29.jpeg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Hot_Potatoes_(199407793).jpeg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_potato_boiled/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3056
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_potato_boiled/r1-card.webp",
+       "width": 640,
+       "height": 429,
+       "bytes": 24690
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Hot_Potatoes_%28199407793%29.jpeg/120px-Hot_Potatoes_%28199407793%29.jpeg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Hot_Potatoes_%28199407793%29.jpeg/500px-Hot_Potatoes_%28199407793%29.jpeg",
+      "width": 2048,
+      "height": 1371
+     },
+     "alt": {
+      "en": "Whole potatoes boiling in their skins in a pot",
+      "ar": "بطاطس كاملة تُسلق بقشرها في قِدر"
+     },
+     "license": "CC-BY-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+     "author": "Babil Sahoui",
+     "credit": "Imported from 500px (archived version) by the Archive Team",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Hot Potatoes (199407793).jpeg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_potato_baked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Potato, baked (flesh and skin)",
     "ar": "بطاطس مشوية في الفرن بالقشر"
@@ -8804,13 +9763,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_potato_baked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Baked_potatoes_cooked_in_an_air_fryer.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_potato_baked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5646
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_potato_baked/r1-card.webp",
+       "width": 640,
+       "height": 611,
+       "bytes": 79406
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg/120px-Baked_potatoes_cooked_in_an_air_fryer.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg/500px-Baked_potatoes_cooked_in_an_air_fryer.jpg",
+      "width": 3024,
+      "height": 2885
+     },
+     "alt": {
+      "en": "Three whole baked potatoes in their skins",
+      "ar": "ثلاث حبات بطاطس كاملة مشوية بقشرها"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Gatorfan252525",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Baked potatoes cooked in an air fryer.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_french_fries_oven",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "French fries, oven-baked (frozen)",
     "ar": "بطاطس صوابع مخبوزة في الفرن (مجمدة)"
@@ -8882,6 +9883,12 @@
        "bytes": 25506
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Oven_roasted_french_fries_%283862654181%29.jpg/120px-Oven_roasted_french_fries_%283862654181%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Oven_roasted_french_fries_%283862654181%29.jpg/500px-Oven_roasted_french_fries_%283862654181%29.jpg",
+      "width": 4752,
+      "height": 3168
+     },
      "alt": {
       "en": "Oven-baked potato fries on a tray",
       "ar": "أصابع بطاطس مخبوزة في الفرن على صينية"
@@ -8899,13 +9906,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_sweet_potato_baked",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sweet potato, baked",
     "ar": "بطاطا حلوة مشوية"
@@ -8962,9 +9968,49 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-sweet-potato"
+   "images": [
+    {
+     "id": "fimg_sweet_potato_baked_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/GebackeneSuesskartoffel.JPG_05.JPG",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:GebackeneSuesskartoffel.JPG_05.JPG",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 2018
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-card.webp",
+       "width": 640,
+       "height": 360,
+       "bytes": 13498
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/GebackeneSuesskartoffel.JPG_05.JPG/120px-GebackeneSuesskartoffel.JPG_05.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/GebackeneSuesskartoffel.JPG_05.JPG/500px-GebackeneSuesskartoffel.JPG_05.JPG",
+      "width": 4000,
+      "height": 2248
+     },
+     "alt": {
+      "en": "A baked sweet potato split open on a plate",
+      "ar": "حبة بطاطا حلوة مشوية مفتوحة على طبق"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Helfmann",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:GebackeneSuesskartoffel.JPG 05.JPG"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
@@ -9031,10 +10077,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-zucchini"
-   ]
+   "images": []
   },
   {
    "id": "ff_eggplant_boiled",
@@ -9100,8 +10143,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_okra_boiled",
@@ -9167,13 +10209,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_spinach_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Spinach, raw",
     "ar": "سبانخ طازجة"
@@ -9229,15 +10270,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-spinach"
+   "images": [
+    {
+     "id": "fimg_spinach_raw_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Spinach_leaves.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Spinach_leaves.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_spinach_raw/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6022
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_spinach_raw/r1-card.webp",
+       "width": 640,
+       "height": 473,
+       "bytes": 51338
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Spinach_leaves.jpg/120px-Spinach_leaves.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Spinach_leaves.jpg/500px-Spinach_leaves.jpg",
+      "width": 2439,
+      "height": 1800
+     },
+     "alt": {
+      "en": "A bowl of fresh raw spinach leaves",
+      "ar": "وعاء من أوراق السبانخ الطازجة النيئة"
+     },
+     "license": "CC-BY-3.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+     "author": "Nillerdk",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Spinach leaves.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_spinach_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Spinach, boiled",
     "ar": "سبانخ مسلوقة"
@@ -9317,6 +10398,12 @@
        "bytes": 59272
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Boiled_spinach.jpg/120px-Boiled_spinach.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Boiled_spinach.jpg/500px-Boiled_spinach.jpg",
+      "width": 1280,
+      "height": 960
+     },
      "alt": {
       "en": "Boiled spinach on a white plate",
       "ar": "سبانخ مسلوقة في طبق أبيض"
@@ -9334,8 +10421,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_jute_leaves_boiled",
@@ -9402,13 +10488,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_green_beans_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Green beans, boiled",
     "ar": "فاصوليا خضراء مسلوقة"
@@ -9470,15 +10555,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-green-beans"
+   "images": [
+    {
+     "id": "fimg_green_beans_boiled_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Green_beans_-_Massachusetts.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Green_beans_-_Massachusetts.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6482
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-card.webp",
+       "width": 640,
+       "height": 640,
+       "bytes": 48274
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Green_beans_-_Massachusetts.jpg/120px-Green_beans_-_Massachusetts.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Green_beans_-_Massachusetts.jpg/500px-Green_beans_-_Massachusetts.jpg",
+      "width": 2904,
+      "height": 2904
+     },
+     "alt": {
+      "en": "A plate of plain cooked green beans",
+      "ar": "طبق من الفاصوليا الخضراء المطبوخة السادة"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Daderot",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Green beans - Massachusetts.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_pepper_green_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Green bell pepper, raw",
     "ar": "فلفل أخضر رومي طازج"
@@ -9556,6 +10681,12 @@
        "bytes": 13888
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Green-Bell-Pepper.jpg/120px-Green-Bell-Pepper.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Green-Bell-Pepper.jpg/500px-Green-Bell-Pepper.jpg",
+      "width": 1900,
+      "height": 2660
+     },
      "alt": {
       "en": "A whole green bell pepper",
       "ar": "فلفل رومي أخضر كامل"
@@ -9572,13 +10703,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_pepper_red_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Red bell pepper, raw",
     "ar": "فلفل أحمر رومي طازج"
@@ -9655,6 +10785,12 @@
        "bytes": 14396
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Red-Pepper.jpg/120px-Red-Pepper.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Red-Pepper.jpg/500px-Red-Pepper.jpg",
+      "width": 2480,
+      "height": 2420
+     },
      "alt": {
       "en": "A whole red bell pepper",
       "ar": "فلفل رومي أحمر كامل"
@@ -9672,15 +10808,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-bell-pepper"
    ]
   },
   {
    "id": "ff_broccoli_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Broccoli, boiled",
     "ar": "بروكلي مسلوق"
@@ -9760,6 +10893,12 @@
        "bytes": 52908
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Cooked_Broccoli_1_2021-05-06.jpeg/120px-Cooked_Broccoli_1_2021-05-06.jpeg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Cooked_Broccoli_1_2021-05-06.jpeg/500px-Cooked_Broccoli_1_2021-05-06.jpeg",
+      "width": 4032,
+      "height": 3024
+     },
      "alt": {
       "en": "Cooked broccoli florets in a pan",
       "ar": "زهرات بروكلي مطبوخة في قدر"
@@ -9777,9 +10916,6 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-broccoli"
    ]
   },
   {
@@ -9846,13 +10982,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_beets_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Beetroot, boiled",
     "ar": "بنجر مسلوق"
@@ -9928,6 +11063,12 @@
        "bytes": 27338
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Beetroot_boiled_and_peeled.JPG/120px-Beetroot_boiled_and_peeled.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Beetroot_boiled_and_peeled.JPG/500px-Beetroot_boiled_and_peeled.JPG",
+      "width": 2560,
+      "height": 1920
+     },
      "alt": {
       "en": "Whole boiled and peeled beetroots",
       "ar": "بنجر مسلوق ومقشّر"
@@ -9945,8 +11086,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_taro_cooked",
@@ -10012,13 +11152,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_corn_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sweet corn, boiled",
     "ar": "ذرة حلوة مسلوقة"
@@ -10107,6 +11246,12 @@
        "bytes": 35652
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Boiled_corn_on_a_white_plate.jpg/120px-Boiled_corn_on_a_white_plate.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Boiled_corn_on_a_white_plate.jpg/500px-Boiled_corn_on_a_white_plate.jpg",
+      "width": 3024,
+      "height": 4032
+     },
      "alt": {
       "en": "A boiled ear of sweet corn on a plate",
       "ar": "كوز ذرة حلوة مسلوق في طبق"
@@ -10124,15 +11269,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-corn"
    ]
   },
   {
    "id": "ff_mushrooms_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mushrooms (white), raw",
     "ar": "مشروم أبيض طازج"
@@ -10189,13 +11331,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_mushrooms_raw_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Agaricus_bisporus_%281%29.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Agaricus_bisporus_(1).jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 2744
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-card.webp",
+       "width": 640,
+       "height": 640,
+       "bytes": 20598
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Agaricus_bisporus_%281%29.jpg/120px-Agaricus_bisporus_%281%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Agaricus_bisporus_%281%29.jpg/500px-Agaricus_bisporus_%281%29.jpg",
+      "width": 3000,
+      "height": 3000
+     },
+     "alt": {
+      "en": "A pile of fresh white button mushrooms",
+      "ar": "كومة من فطر المشروم الأبيض الطازج"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Fumikas Sagisavas",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Agaricus bisporus (1).jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_artichoke_boiled",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Artichoke, boiled",
     "ar": "خرشوف مسلوق"
@@ -10271,6 +11455,12 @@
        "bytes": 45658
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Cooked_artichokes.jpg/120px-Cooked_artichokes.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Cooked_artichokes.jpg/500px-Cooked_artichokes.jpg",
+      "width": 4320,
+      "height": 3240
+     },
      "alt": {
       "en": "Whole boiled globe artichokes on a plate",
       "ar": "خرشوف كامل مسلوق في طبق"
@@ -10288,13 +11478,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_grape_leaves_raw",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Grape leaves, raw",
     "ar": "ورق عنب طازج"
@@ -10370,6 +11559,12 @@
        "bytes": 26040
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Grape_leaf_leaves_green.jpg/120px-Grape_leaf_leaves_green.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Grape_leaf_leaves_green.jpg/500px-Grape_leaf_leaves_green.jpg",
+      "width": 1280,
+      "height": 960
+     },
      "alt": {
       "en": "Fresh green grape leaves on the vine",
       "ar": "أوراق عنب خضراء طازجة على الكرمة"
@@ -10386,13 +11581,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_parsley_fresh",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Parsley, fresh",
     "ar": "بقدونس طازج"
@@ -10468,6 +11662,12 @@
        "bytes": 46308
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Parsley_Leaves.jpg/120px-Parsley_Leaves.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Parsley_Leaves.jpg/500px-Parsley_Leaves.jpg",
+      "width": 1920,
+      "height": 2560
+     },
      "alt": {
       "en": "A bunch of fresh flat-leaf parsley",
       "ar": "حزمة بقدونس طازج"
@@ -10485,13 +11685,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_banana",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Banana",
     "ar": "موز"
@@ -10578,6 +11777,12 @@
        "bytes": 23584
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Banana_Fruit.JPG/120px-Banana_Fruit.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Banana_Fruit.JPG/500px-Banana_Fruit.JPG",
+      "width": 2413,
+      "height": 1768
+     },
      "alt": {
       "en": "A bunch of ripe yellow bananas",
       "ar": "عنقود من الموز الأصفر الناضج"
@@ -10594,15 +11799,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-banana"
    ]
   },
   {
    "id": "ff_apple",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Apple (with skin)",
     "ar": "تفاح بالقشر"
@@ -10689,6 +11891,12 @@
        "bytes": 28242
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/120px-Red_Apple.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/500px-Red_Apple.jpg",
+      "width": 2418,
+      "height": 2192
+     },
      "alt": {
       "en": "A whole red apple with its skin",
       "ar": "تفاحة حمراء كاملة بقشرها"
@@ -10706,15 +11914,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-apple"
    ]
   },
   {
    "id": "ff_orange",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Orange",
     "ar": "برتقال"
@@ -10792,6 +11997,12 @@
        "bytes": 15994
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Orange-Fruit-Pieces.jpg/120px-Orange-Fruit-Pieces.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Orange-Fruit-Pieces.jpg/500px-Orange-Fruit-Pieces.jpg",
+      "width": 3520,
+      "height": 2260
+     },
      "alt": {
       "en": "A whole orange with orange halves and wedges",
       "ar": "برتقالة كاملة مع أنصاف وشرائح برتقال"
@@ -10809,15 +12020,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-orange"
    ]
   },
   {
    "id": "ff_mango",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mango",
     "ar": "مانجو"
@@ -10894,6 +12102,12 @@
        "bytes": 6408
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Mango_fruit_Nam_Dok_Mai.jpg/120px-Mango_fruit_Nam_Dok_Mai.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Mango_fruit_Nam_Dok_Mai.jpg/500px-Mango_fruit_Nam_Dok_Mai.jpg",
+      "width": 8256,
+      "height": 5504
+     },
      "alt": {
       "en": "A whole ripe yellow mango",
       "ar": "ثمرة مانجو صفراء ناضجة كاملة"
@@ -10911,15 +12125,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-mango"
    ]
   },
   {
    "id": "ff_guava",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Guava",
     "ar": "جوافة"
@@ -10996,6 +12207,12 @@
        "bytes": 29994
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Fresh_Guava.jpg/120px-Fresh_Guava.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Fresh_Guava.jpg/500px-Fresh_Guava.jpg",
+      "width": 4032,
+      "height": 3024
+     },
      "alt": {
       "en": "Two fresh green guavas with leaves",
       "ar": "ثمرتا جوافة خضراء طازجة مع أوراقها"
@@ -11013,13 +12230,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_dates_medjool",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Dates, Medjool",
     "ar": "تمر مجدول"
@@ -11096,6 +12312,12 @@
        "bytes": 21510
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/DATES_MEDJOOL.jpg/120px-DATES_MEDJOOL.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/DATES_MEDJOOL.jpg/500px-DATES_MEDJOOL.jpg",
+      "width": 4928,
+      "height": 3264
+     },
      "alt": {
       "en": "Medjool dates in a white bowl",
       "ar": "تمر مجدول في وعاء أبيض"
@@ -11113,13 +12335,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_dates_deglet",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Dates, Deglet Noor (semi-dry)",
     "ar": "تمر دقلة نور (نصف جاف)"
@@ -11198,6 +12419,12 @@
        "bytes": 16042
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Dattes_deglet_from_Biskra.jpg/120px-Dattes_deglet_from_Biskra.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Dattes_deglet_from_Biskra.jpg/500px-Dattes_deglet_from_Biskra.jpg",
+      "width": 2816,
+      "height": 2112
+     },
      "alt": {
       "en": "Semi-dry amber Deglet Noor dates on a white plate",
       "ar": "تمر دقلة نور نصف جاف على طبق أبيض"
@@ -11215,15 +12442,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-dates"
    ]
   },
   {
    "id": "ff_grapes",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Grapes (red or green)",
     "ar": "عنب"
@@ -11309,6 +12533,12 @@
        "bytes": 7796
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Grapes_%282%29.jpg/120px-Grapes_%282%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Grapes_%282%29.jpg/500px-Grapes_%282%29.jpg",
+      "width": 2724,
+      "height": 1884
+     },
      "alt": {
       "en": "A bunch of green grapes",
       "ar": "عنقود عنب أخضر"
@@ -11325,15 +12555,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-grapes"
    ]
   },
   {
    "id": "ff_watermelon",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Watermelon",
     "ar": "بطيخ"
@@ -11420,6 +12647,12 @@
        "bytes": 18798
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Sliced_Watermelon.jpg/120px-Sliced_Watermelon.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Sliced_Watermelon.jpg/500px-Sliced_Watermelon.jpg",
+      "width": 3872,
+      "height": 2592
+     },
      "alt": {
       "en": "Wedges of red watermelon with seeds",
       "ar": "شرائح بطيخ أحمر ببذوره"
@@ -11437,15 +12670,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-watermelon"
    ]
   },
   {
    "id": "ff_cantaloupe",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cantaloupe",
     "ar": "كنتالوب"
@@ -11523,6 +12753,12 @@
        "bytes": 55596
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg/120px-Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg/500px-Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+      "width": 2700,
+      "height": 1809
+     },
      "alt": {
       "en": "Whole cantaloupes with a halved melon and slices",
       "ar": "شمام كامل مع نصف ثمرة وشرائح"
@@ -11539,13 +12775,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_strawberries",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Strawberries",
     "ar": "فراولة"
@@ -11621,6 +12856,12 @@
        "bytes": 18782
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Strawberries-1239306.jpg/120px-Strawberries-1239306.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Strawberries-1239306.jpg/500px-Strawberries-1239306.jpg",
+      "width": 3292,
+      "height": 2044
+     },
      "alt": {
       "en": "A whole strawberry and a halved strawberry",
       "ar": "حبة فراولة كاملة وأخرى مقطوعة نصفين"
@@ -11638,15 +12879,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-strawberries"
    ]
   },
   {
    "id": "ff_blueberries",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Blueberries",
     "ar": "توت أزرق"
@@ -11723,6 +12961,12 @@
        "bytes": 30000
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Dish_of_blueberries.jpg/120px-Dish_of_blueberries.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Dish_of_blueberries.jpg/500px-Dish_of_blueberries.jpg",
+      "width": 4592,
+      "height": 3448
+     },
      "alt": {
       "en": "Fresh blueberries in a white bowl",
       "ar": "توت أزرق طازج في وعاء أبيض"
@@ -11740,15 +12984,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-blueberries"
    ]
   },
   {
    "id": "ff_pomegranate",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pomegranate",
     "ar": "رمان"
@@ -11825,6 +13066,12 @@
        "bytes": 19722
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg/120px-Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg/500px-Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+      "width": 6000,
+      "height": 4000
+     },
      "alt": {
       "en": "A whole pomegranate beside an opened piece showing red seeds",
       "ar": "رمانة كاملة بجانب قطعة مفتوحة تظهر حبوبها الحمراء"
@@ -11842,15 +13089,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-pomegranate"
    ]
   },
   {
    "id": "ff_figs",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Figs, fresh",
     "ar": "تين طازج"
@@ -11927,6 +13171,12 @@
        "bytes": 27036
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Fresh_figs_on_a_deep_dish.jpg/120px-Fresh_figs_on_a_deep_dish.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Fresh_figs_on_a_deep_dish.jpg/500px-Fresh_figs_on_a_deep_dish.jpg",
+      "width": 3888,
+      "height": 2592
+     },
      "alt": {
       "en": "Fresh figs in a white bowl, one cut open",
       "ar": "تين طازج في وعاء أبيض وحبة مقطوعة"
@@ -11944,13 +13194,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_apricots",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Apricots, fresh",
     "ar": "مشمش طازج"
@@ -12026,6 +13275,12 @@
        "bytes": 10168
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Apricot_whole444.jpg/120px-Apricot_whole444.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Apricot_whole444.jpg/500px-Apricot_whole444.jpg",
+      "width": 1600,
+      "height": 1200
+     },
      "alt": {
       "en": "A single fresh apricot",
       "ar": "حبة مشمش طازجة"
@@ -12043,13 +13298,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_peach",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Peach",
     "ar": "خوخ"
@@ -12126,6 +13380,12 @@
        "bytes": 23170
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/White-Peaches-Bunch.jpg/120px-White-Peaches-Bunch.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/White-Peaches-Bunch.jpg/500px-White-Peaches-Bunch.jpg",
+      "width": 3880,
+      "height": 1940
+     },
      "alt": {
       "en": "Whole peaches and a halved peach showing its stone",
       "ar": "خوخ كامل ونصف خوخة تظهر نواتها"
@@ -12143,13 +13403,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_pear",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pear",
     "ar": "كمثرى"
@@ -12226,6 +13485,12 @@
        "bytes": 12512
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Four_pears.jpg/120px-Four_pears.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Four_pears.jpg/500px-Four_pears.jpg",
+      "width": 4426,
+      "height": 2080
+     },
      "alt": {
       "en": "Four whole pears of different varieties",
       "ar": "أربع حبات كمثرى كاملة من أصناف مختلفة"
@@ -12243,13 +13508,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_kiwi",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Kiwi",
     "ar": "كيوي"
@@ -12325,6 +13589,12 @@
        "bytes": 23666
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kiwifruit_cross_section.jpg/120px-Kiwifruit_cross_section.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kiwifruit_cross_section.jpg/500px-Kiwifruit_cross_section.jpg",
+      "width": 6880,
+      "height": 5500
+     },
      "alt": {
       "en": "A halved green kiwi fruit",
       "ar": "ثمرة كيوي خضراء مقطوعة نصفين"
@@ -12342,13 +13612,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_pineapple",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pineapple",
     "ar": "أناناس"
@@ -12424,6 +13693,12 @@
        "bytes": 28488
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Pineapple_Chunks.jpg/120px-Pineapple_Chunks.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Pineapple_Chunks.jpg/500px-Pineapple_Chunks.jpg",
+      "width": 3024,
+      "height": 4032
+     },
      "alt": {
       "en": "Fresh pineapple chunks on a plate",
       "ar": "قطع أناناس طازجة على طبق"
@@ -12441,15 +13716,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-pineapple"
    ]
   },
   {
    "id": "ff_prickly_pear",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Prickly pear (cactus fruit)",
     "ar": "تين شوكي"
@@ -12525,6 +13797,12 @@
        "bytes": 56288
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Prickly_pears.jpg/120px-Prickly_pears.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Prickly_pears.jpg/500px-Prickly_pears.jpg",
+      "width": 3504,
+      "height": 2336
+     },
      "alt": {
       "en": "Peeled prickly pears of several colours on small plates",
       "ar": "تين شوكي مقشر بألوان مختلفة على أطباق صغيرة"
@@ -12542,13 +13820,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_avocado",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Avocado",
     "ar": "أفوكادو"
@@ -12624,6 +13901,12 @@
        "bytes": 22512
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/120px-Avocado_Hass_-_single_and_halved.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/500px-Avocado_Hass_-_single_and_halved.jpg",
+      "width": 8256,
+      "height": 5504
+     },
      "alt": {
       "en": "A whole avocado and a halved avocado with its pit",
       "ar": "ثمرة أفوكادو كاملة ونصف ثمرة بنواتها"
@@ -12641,15 +13924,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-avocado"
    ]
   },
   {
    "id": "ff_lemon_juice",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Lemon juice, fresh",
     "ar": "عصير ليمون طازج"
@@ -12706,13 +13986,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_lemon_juice_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Lemon_juice.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Lemon_juice.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_lemon_juice/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 4564
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_lemon_juice/r1-card.webp",
+       "width": 640,
+       "height": 426,
+       "bytes": 25518
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Lemon_juice.jpg/120px-Lemon_juice.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Lemon_juice.jpg/500px-Lemon_juice.jpg",
+      "width": 2635,
+      "height": 1752
+     },
+     "alt": {
+      "en": "Fresh lemon juice in a glass citrus squeezer",
+      "ar": "عصير ليمون طازج في عصّارة ليمون زجاجية"
+     },
+     "license": "CC-BY-2.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+     "author": "David Goehring",
+     "credit": "https://www.flickr.com/photos/carbonnyc/5309716658/",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Lemon juice.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_raisins",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Raisins (dark, seedless)",
     "ar": "زبيب"
@@ -12788,6 +14110,12 @@
        "bytes": 44558
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Raisins_01.jpg/120px-Raisins_01.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Raisins_01.jpg/500px-Raisins_01.jpg",
+      "width": 3223,
+      "height": 2025
+     },
      "alt": {
       "en": "A glass bowl of raisins",
       "ar": "وعاء زجاجي من الزبيب"
@@ -12805,13 +14133,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_figs_dried",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Figs, dried",
     "ar": "تين مجفف"
@@ -12888,6 +14215,12 @@
        "bytes": 93934
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Dried_Figs_%281%29.jpg/120px-Dried_Figs_%281%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Dried_Figs_%281%29.jpg/500px-Dried_Figs_%281%29.jpg",
+      "width": 2288,
+      "height": 1712
+     },
      "alt": {
       "en": "A pile of dried figs",
       "ar": "كومة من التين المجفف"
@@ -12905,13 +14238,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_apricots_dried",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Apricots, dried",
     "ar": "مشمش مجفف"
@@ -12988,6 +14320,12 @@
        "bytes": 55680
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Dried_apricot%2C_Malatya_01.jpg/120px-Dried_apricot%2C_Malatya_01.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Dried_apricot%2C_Malatya_01.jpg/500px-Dried_apricot%2C_Malatya_01.jpg",
+      "width": 3407,
+      "height": 2399
+     },
      "alt": {
       "en": "A pile of bright orange dried apricots",
       "ar": "كومة من المشمش المجفف البرتقالي"
@@ -13005,13 +14343,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_almonds",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Almonds",
     "ar": "لوز"
@@ -13087,6 +14424,12 @@
        "bytes": 23386
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg/120px-Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg/500px-Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg",
+      "width": 6000,
+      "height": 4000
+     },
      "alt": {
       "en": "Almonds in the shell, shelled and blanched",
       "ar": "لوز بقشره ومقشّر ومنزوع الجلد"
@@ -13104,15 +14447,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-almonds"
    ]
   },
   {
    "id": "ff_peanuts_roasted",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Peanuts, dry-roasted, unsalted",
     "ar": "فول سوداني محمص بدون ملح"
@@ -13170,13 +14510,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_peanuts_roasted_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Roasted_Peanuts_%2854251297906%29.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Roasted_Peanuts_(54251297906).jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3946
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-card.webp",
+       "width": 640,
+       "height": 427,
+       "bytes": 18846
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Roasted_Peanuts_%2854251297906%29.jpg/120px-Roasted_Peanuts_%2854251297906%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Roasted_Peanuts_%2854251297906%29.jpg/500px-Roasted_Peanuts_%2854251297906%29.jpg",
+      "width": 3600,
+      "height": 2400
+     },
+     "alt": {
+      "en": "A small plate of roasted peanuts",
+      "ar": "طبق صغير من الفول السوداني المحمص"
+     },
+     "license": "CC-BY-2.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+     "author": "Choo Yut Shing from Singapore, Singapore",
+     "credit": "Roasted Peanuts",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Roasted Peanuts (54251297906).jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_peanut_butter",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Peanut butter, smooth, unsalted",
     "ar": "زبدة فول سوداني ناعمة بدون ملح"
@@ -13254,6 +14636,12 @@
        "bytes": 18950
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/PeanutButter.jpg/120px-PeanutButter.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/PeanutButter.jpg/500px-PeanutButter.jpg",
+      "width": 1141,
+      "height": 850
+     },
      "alt": {
       "en": "Smooth peanut butter in an open jar",
       "ar": "زبدة فول سوداني ناعمة في برطمان مفتوح"
@@ -13271,15 +14659,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-peanut-butter"
    ]
   },
   {
    "id": "ff_walnuts",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Walnuts",
     "ar": "عين جمل"
@@ -13355,6 +14740,12 @@
        "bytes": 12048
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Whole_walnut_kernel_and_shell.jpg/120px-Whole_walnut_kernel_and_shell.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Whole_walnut_kernel_and_shell.jpg/500px-Whole_walnut_kernel_and_shell.jpg",
+      "width": 3308,
+      "height": 1916
+     },
      "alt": {
       "en": "A whole walnut kernel between its shell halves",
       "ar": "لبّ جوزة عين جمل كامل بين نصفي قشرتها"
@@ -13372,15 +14763,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-walnuts"
    ]
   },
   {
    "id": "ff_cashews_raw",
    "status": "published",
-   "rev": 3,
+   "rev": 4,
    "name": {
     "en": "Cashews, raw",
     "ar": "كاجو نيء"
@@ -13456,6 +14844,12 @@
        "bytes": 56892
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/CASHEW_NUTS.jpg/120px-CASHEW_NUTS.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/CASHEW_NUTS.jpg/500px-CASHEW_NUTS.jpg",
+      "width": 6144,
+      "height": 8160
+     },
      "alt": {
       "en": "A pile of raw cashew nuts",
       "ar": "كومة من الكاجو النيء"
@@ -13473,15 +14867,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-cashews"
    ]
   },
   {
    "id": "ff_pistachios",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pistachios, dry-roasted, unsalted",
     "ar": "فستق حلبي محمص بدون ملح"
@@ -13538,13 +14929,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_pistachios_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/LOOSE_PISTACHIO.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:LOOSE_PISTACHIO.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_pistachios/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 8838
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_pistachios/r1-card.webp",
+       "width": 640,
+       "height": 854,
+       "bytes": 102150
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/LOOSE_PISTACHIO.jpg/120px-LOOSE_PISTACHIO.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/LOOSE_PISTACHIO.jpg/500px-LOOSE_PISTACHIO.jpg",
+      "width": 2163,
+      "height": 2884
+     },
+     "alt": {
+      "en": "A pile of shelled pistachio kernels",
+      "ar": "كومة من حبات الفستق الحلبي المقشّر"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Ranjithkumar Murugesan",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:LOOSE PISTACHIO.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_mixed_nuts",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mixed nuts with peanuts, dry-roasted",
     "ar": "مكسرات مشكلة مع فول سوداني، محمصة"
@@ -13622,6 +15055,12 @@
        "bytes": 18786
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Mixed_nuts_small_white2.jpg/120px-Mixed_nuts_small_white2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Mixed_nuts_small_white2.jpg/500px-Mixed_nuts_small_white2.jpg",
+      "width": 1268,
+      "height": 1046
+     },
      "alt": {
       "en": "Roasted mixed nuts with peanuts in a glass bowl",
       "ar": "مكسرات مشكلة محمصة مع فول سوداني في وعاء زجاجي"
@@ -13639,15 +15078,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-mixed-nuts"
    ]
   },
   {
    "id": "ff_sunflower_seeds",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sunflower seed kernels",
     "ar": "لب سوري مقشر (بذور عباد الشمس)"
@@ -13724,6 +15160,12 @@
        "bytes": 16824
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Sunflower_Seeds_Kaldari.jpg/120px-Sunflower_Seeds_Kaldari.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Sunflower_Seeds_Kaldari.jpg/500px-Sunflower_Seeds_Kaldari.jpg",
+      "width": 1800,
+      "height": 1200
+     },
      "alt": {
       "en": "A shelled sunflower kernel beside a whole striped seed",
       "ar": "لبّ عباد الشمس مقشّر بجانب بذرة كاملة مخططة"
@@ -13740,13 +15182,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_pumpkin_seeds",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Pumpkin seed kernels",
     "ar": "لب أبيض مقشر (بذور القرع)"
@@ -13803,15 +15244,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-pumpkin-seeds"
+   "images": [
+    {
+     "id": "fimg_pumpkin_seeds_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Steirische_K%C3%BCrbiskerne.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Steirische_K%C3%BCrbiskerne.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6956
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-card.webp",
+       "width": 640,
+       "height": 480,
+       "bytes": 50212
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Steirische_K%C3%BCrbiskerne.jpg/120px-Steirische_K%C3%BCrbiskerne.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Steirische_K%C3%BCrbiskerne.jpg/500px-Steirische_K%C3%BCrbiskerne.jpg",
+      "width": 3968,
+      "height": 2976
+     },
+     "alt": {
+      "en": "Green pumpkin seed kernels spread out to dry",
+      "ar": "بذور قرع خضراء مقشّرة مفرودة لتجف"
+     },
+     "license": "CC-BY-SA-4.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+     "author": "Verena Como",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Steirische Kürbiskerne.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
    ]
   },
   {
    "id": "ff_sesame_seeds",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sesame seeds",
     "ar": "سمسم"
@@ -13887,6 +15368,12 @@
        "bytes": 29750
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Sa_white_sesame_seeds.jpg/120px-Sa_white_sesame_seeds.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Sa_white_sesame_seeds.jpg/500px-Sa_white_sesame_seeds.jpg",
+      "width": 3504,
+      "height": 2336
+     },
      "alt": {
       "en": "Close-up of white sesame seeds",
       "ar": "صورة مقرّبة لبذور سمسم بيضاء"
@@ -13904,13 +15391,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chia_seeds",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chia seeds",
     "ar": "بذور الشيا"
@@ -13987,6 +15473,12 @@
        "bytes": 90272
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Chia_Seeds_macro_2.jpg/120px-Chia_Seeds_macro_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Chia_Seeds_macro_2.jpg/500px-Chia_Seeds_macro_2.jpg",
+      "width": 5616,
+      "height": 3744
+     },
      "alt": {
       "en": "Close-up of dry chia seeds",
       "ar": "صورة مقرّبة لبذور الشيا الجافة"
@@ -14004,15 +15496,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-chia-seeds"
    ]
   },
   {
    "id": "ff_flaxseed",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Flaxseed",
     "ar": "بذر الكتان"
@@ -14099,6 +15588,12 @@
        "bytes": 76780
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Brown_Flax_Seeds.jpg/120px-Brown_Flax_Seeds.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Brown_Flax_Seeds.jpg/500px-Brown_Flax_Seeds.jpg",
+      "width": 3504,
+      "height": 2336
+     },
      "alt": {
       "en": "Close-up of whole brown flaxseeds",
       "ar": "صورة مقرّبة لبذور كتان بنية كاملة"
@@ -14116,13 +15611,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_olive_oil",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Olive oil",
     "ar": "زيت زيتون"
@@ -14209,6 +15703,12 @@
        "bytes": 37596
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg/120px-Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg/500px-Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg",
+      "width": 2360,
+      "height": 1770
+     },
      "alt": {
       "en": "Olive oil in a clear glass jug",
       "ar": "زيت زيتون في إبريق زجاجي شفاف"
@@ -14226,15 +15726,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-olive-oil"
    ]
   },
   {
    "id": "ff_sunflower_oil",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sunflower oil",
     "ar": "زيت عباد الشمس"
@@ -14303,8 +15800,50 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_sunflower_oil_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_(23716285949).jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_sunflower_oil/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 6782
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_sunflower_oil/r1-card.webp",
+       "width": 640,
+       "height": 429,
+       "bytes": 56952
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg/120px-Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg/500px-Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+      "width": 2126,
+      "height": 1424
+     },
+     "alt": {
+      "en": "A glass vessel of sunflower oil with sunflowers and seeds",
+      "ar": "وعاء زجاجي من زيت عباد الشمس مع زهور وبذور عباد الشمس"
+     },
+     "license": "CC-BY-2.0",
+     "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+     "author": "INRA DIST (photo: Jean Weber)",
+     "credit": "Tournesol Huile INAGRI 302-4-cliche Jean Weber",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Tournesol Huile INAGRI 302-4-cliche Jean Weber (23716285949).jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_corn_oil",
@@ -14375,13 +15914,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_butter",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Butter (salted)",
     "ar": "زبدة مملحة"
@@ -14457,6 +15995,12 @@
        "bytes": 14318
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Block_of_butter_2020-09-28_2951b.jpg/120px-Block_of_butter_2020-09-28_2951b.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Block_of_butter_2020-09-28_2951b.jpg/500px-Block_of_butter_2020-09-28_2951b.jpg",
+      "width": 3536,
+      "height": 2652
+     },
      "alt": {
       "en": "A block of butter on its opened wrapper",
       "ar": "قالب زبدة على غلافه المفتوح"
@@ -14474,8 +16018,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_ghee",
@@ -14543,13 +16086,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_mayonnaise",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Mayonnaise (regular)",
     "ar": "مايونيز عادي"
@@ -14625,6 +16167,12 @@
        "bytes": 15496
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Homemade_mayonnaise.jpg/120px-Homemade_mayonnaise.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Homemade_mayonnaise.jpg/500px-Homemade_mayonnaise.jpg",
+      "width": 3456,
+      "height": 2304
+     },
      "alt": {
       "en": "Thick mayonnaise in a bowl with a whisk",
       "ar": "مايونيز كثيف في وعاء مع مضرب يدوي"
@@ -14642,13 +16190,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_honey",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Honey",
     "ar": "عسل نحل"
@@ -14725,6 +16272,12 @@
        "bytes": 64450
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Runny_hunny.jpg/120px-Runny_hunny.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Runny_hunny.jpg/500px-Runny_hunny.jpg",
+      "width": 1780,
+      "height": 2700
+     },
      "alt": {
       "en": "A jar of honey with honey dripping from a wooden dipper",
       "ar": "وعاء زجاجي من العسل مع عسل يتقطر من مغرفة خشبية"
@@ -14741,15 +16294,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-honey"
    ]
   },
   {
    "id": "ff_sugar",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Sugar (white)",
     "ar": "سكر أبيض"
@@ -14826,6 +16376,12 @@
        "bytes": 25962
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Bowl_of_white_sugar.jpg/120px-Bowl_of_white_sugar.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Bowl_of_white_sugar.jpg/500px-Bowl_of_white_sugar.jpg",
+      "width": 2800,
+      "height": 2100
+     },
      "alt": {
       "en": "A bowl of white granulated sugar",
       "ar": "وعاء من السكر الأبيض المحبب"
@@ -14843,13 +16399,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_molasses",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Molasses (black honey)",
     "ar": "عسل أسود"
@@ -14926,6 +16481,12 @@
        "bytes": 17096
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Blackstrapmolasses.JPG/120px-Blackstrapmolasses.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Blackstrapmolasses.JPG/500px-Blackstrapmolasses.JPG",
+      "width": 2048,
+      "height": 1536
+     },
      "alt": {
       "en": "Dark molasses pouring from a spoon into a glass bowl",
       "ar": "عسل أسود يُسكب من ملعقة في وعاء زجاجي"
@@ -14943,13 +16504,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_jam",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Jam",
     "ar": "مربى"
@@ -15027,6 +16587,12 @@
        "bytes": 14054
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Strawberry_jam_on_a_dish.JPG/120px-Strawberry_jam_on_a_dish.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Strawberry_jam_on_a_dish.JPG/500px-Strawberry_jam_on_a_dish.JPG",
+      "width": 2592,
+      "height": 1952
+     },
      "alt": {
       "en": "Strawberry jam on a white plate",
       "ar": "مربى فراولة على طبق أبيض"
@@ -15044,8 +16610,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_dark_chocolate_70",
@@ -15096,10 +16661,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": [
-    "seed-food-dark-chocolate"
-   ]
+   "images": []
   },
   {
    "id": "ff_milk_chocolate",
@@ -15161,13 +16723,12 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": []
   },
   {
    "id": "ff_ice_cream_vanilla",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ice cream, vanilla",
     "ar": "آيس كريم فانيليا"
@@ -15244,6 +16805,12 @@
        "bytes": 17422
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg/120px-Vanilla_bean_ice_cream_%283086700978%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg/500px-Vanilla_bean_ice_cream_%283086700978%29.jpg",
+      "width": 1840,
+      "height": 1232
+     },
      "alt": {
       "en": "A scoop of vanilla ice cream with a mint sprig",
       "ar": "كرة آيس كريم فانيليا مع غصن نعناع"
@@ -15261,13 +16828,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_basbousa",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Basbousa (US survey recipe)",
     "ar": "بسبوسة (وصفة مسح USDA)"
@@ -15350,6 +16916,12 @@
        "bytes": 40862
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg/120px-Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg/500px-Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+      "width": 5184,
+      "height": 3456
+     },
      "alt": {
       "en": "Squares of basbousa topped with nuts on a white plate",
       "ar": "قطع بسبوسة مربعة مزينة بالمكسرات على طبق أبيض"
@@ -15367,13 +16939,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_orange_juice",
    "status": "published",
-   "rev": 3,
+   "rev": 4,
    "name": {
     "en": "Orange juice, fresh",
     "ar": "عصير برتقال طازج"
@@ -15450,6 +17021,12 @@
        "bytes": 33454
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Orange_juice_1_edit1.jpg/120px-Orange_juice_1_edit1.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Orange_juice_1_edit1.jpg/500px-Orange_juice_1_edit1.jpg",
+      "width": 1566,
+      "height": 2226
+     },
      "alt": {
       "en": "Orange juice being poured into a glass",
       "ar": "عصير برتقال يُسكب في كوب"
@@ -15466,15 +17043,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-orange-juice"
    ]
   },
   {
    "id": "ff_apple_juice",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Apple juice, unsweetened",
     "ar": "عصير تفاح غير محلى"
@@ -15530,13 +17104,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_apple_juice_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/d/df/Apple_juice_3.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Apple_juice_3.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_apple_juice/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 1422
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_apple_juice/r1-card.webp",
+       "width": 640,
+       "height": 1070,
+       "bytes": 11730
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Apple_juice_3.jpg/120px-Apple_juice_3.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Apple_juice_3.jpg/500px-Apple_juice_3.jpg",
+      "width": 2689,
+      "height": 4493
+     },
+     "alt": {
+      "en": "A glass of clear apple juice beside an apple",
+      "ar": "كوب من عصير التفاح الصافي بجانب تفاحة"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Bruno Glätsch",
+     "credit": "Pixabay (photo 1584168)",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Apple juice 3.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_cola_regular",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Cola (regular)",
     "ar": "مشروب كولا عادي"
@@ -15616,6 +17232,12 @@
        "bytes": 13560
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Glass_cola.jpg/120px-Glass_cola.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Glass_cola.jpg/500px-Glass_cola.jpg",
+      "width": 2200,
+      "height": 1704
+     },
      "alt": {
       "en": "A glass of cola with ice cubes and lemon",
       "ar": "كوب مشروب كولا مع مكعبات ثلج وشرائح ليمون"
@@ -15632,13 +17254,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_tea_black",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Black tea, brewed (no sugar)",
     "ar": "شاي أحمر بدون سكر"
@@ -15715,6 +17336,12 @@
        "bytes": 31174
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg/120px-A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg/500px-A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+      "width": 4624,
+      "height": 3472
+     },
      "alt": {
       "en": "A glass cup of plain black tea on a saucer",
       "ar": "كوب زجاجي من الشاي الأحمر السادة على صحن"
@@ -15732,13 +17359,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_tea_green",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Green tea, brewed (no sugar)",
     "ar": "شاي أخضر بدون سكر"
@@ -15815,6 +17441,12 @@
        "bytes": 9398
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/White_cup_with_green_tea_in_it.jpg/120px-White_cup_with_green_tea_in_it.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/White_cup_with_green_tea_in_it.jpg/500px-White_cup_with_green_tea_in_it.jpg",
+      "width": 2400,
+      "height": 1800
+     },
      "alt": {
       "en": "A small white cup of brewed green tea",
       "ar": "فنجان أبيض صغير من الشاي الأخضر المنقوع"
@@ -15832,15 +17464,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-green-tea"
    ]
   },
   {
    "id": "ff_coffee_black",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Coffee, brewed (black)",
     "ar": "قهوة سادة"
@@ -15918,6 +17547,12 @@
        "bytes": 5650
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/White_cup_of_black_coffee.jpg/120px-White_cup_of_black_coffee.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/White_cup_of_black_coffee.jpg/500px-White_cup_of_black_coffee.jpg",
+      "width": 2344,
+      "height": 2382
+     },
      "alt": {
       "en": "A white mug of plain black coffee",
       "ar": "كوب أبيض من القهوة السادة"
@@ -15935,15 +17570,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-black-coffee"
    ]
   },
   {
    "id": "ff_whey_protein",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Whey protein powder",
     "ar": "بودرة بروتين الشرش (واي)"
@@ -16027,6 +17659,12 @@
        "bytes": 44924
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg/120px-Whey_Protein_Scoop_%2849935767168%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg/500px-Whey_Protein_Scoop_%2849935767168%29.jpg",
+      "width": 5184,
+      "height": 3888
+     },
      "alt": {
       "en": "A measuring cup filled with chocolate-flavoured whey protein powder",
       "ar": "كوب قياس مملوء ببودرة بروتين الشرش بنكهة الشوكولاتة"
@@ -16044,15 +17682,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-whey"
    ]
   },
   {
    "id": "ff_tomato_paste",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tomato paste",
     "ar": "صلصة طماطم مركزة"
@@ -16129,6 +17764,12 @@
        "bytes": 18408
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Tomato_paste_on_spoon.jpg/120px-Tomato_paste_on_spoon.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Tomato_paste_on_spoon.jpg/500px-Tomato_paste_on_spoon.jpg",
+      "width": 2293,
+      "height": 1720
+     },
      "alt": {
       "en": "A spoonful of thick tomato paste",
       "ar": "ملعقة من صلصة الطماطم المركزة"
@@ -16146,13 +17787,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_tomato_sauce",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Tomato sauce (canned)",
     "ar": "صوص طماطم معلّب"
@@ -16210,13 +17850,55 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_tomato_sauce_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Fresh_Tomato_Sauce_(Unsplash).jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_tomato_sauce/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 5322
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_tomato_sauce/r1-card.webp",
+       "width": 640,
+       "height": 427,
+       "bytes": 41298
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg/120px-Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg/500px-Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+      "width": 3000,
+      "height": 2000
+     },
+     "alt": {
+      "en": "A glass jar of smooth tomato sauce",
+      "ar": "برطمان زجاجي من صوص الطماطم الناعم"
+     },
+     "license": "CC0-1.0",
+     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "author": "Dennis Klein",
+     "credit": "Unsplash (photo FzB_512zvP0)",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Fresh Tomato Sauce (Unsplash).jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_ketchup",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ketchup",
     "ar": "كاتشب"
@@ -16292,6 +17974,12 @@
        "bytes": 8374
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Ketchup_example_2.jpg/120px-Ketchup_example_2.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Ketchup_example_2.jpg/500px-Ketchup_example_2.jpg",
+      "width": 2000,
+      "height": 1500
+     },
      "alt": {
       "en": "A dollop of ketchup on a white plate",
       "ar": "كمية من الكاتشب على طبق أبيض"
@@ -16309,13 +17997,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_vinegar",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Vinegar (cider)",
     "ar": "خل تفاح"
@@ -16391,6 +18078,12 @@
        "bytes": 5616
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg/120px-Apple_Cider_Vinegar_%284108653248%29.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg/500px-Apple_Cider_Vinegar_%284108653248%29.jpg",
+      "width": 4272,
+      "height": 2848
+     },
      "alt": {
       "en": "Apple cider vinegar in a small glass bowl",
       "ar": "خل تفاح في وعاء زجاجي صغير"
@@ -16408,13 +18101,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_chicken_broth",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Chicken broth (ready-to-serve)",
     "ar": "مرق دجاج جاهز"
@@ -16491,6 +18183,12 @@
        "bytes": 30308
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Chicken_Stock.jpg/120px-Chicken_Stock.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Chicken_Stock.jpg/500px-Chicken_Stock.jpg",
+      "width": 2033,
+      "height": 3060
+     },
      "alt": {
       "en": "A white bowl of clear golden chicken broth",
       "ar": "وعاء أبيض من مرق الدجاج الصافي"
@@ -16508,13 +18206,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_ful_with_oil",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Ful medames with olive oil (estimate)",
     "ar": "فول مدمس بزيت الزيتون (تقدير)"
@@ -16625,6 +18322,12 @@
        "bytes": 62718
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Foul_Mohamed_Ahmed_-_foul.jpg/120px-Foul_Mohamed_Ahmed_-_foul.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Foul_Mohamed_Ahmed_-_foul.jpg/500px-Foul_Mohamed_Ahmed_-_foul.jpg",
+      "width": 3024,
+      "height": 4032
+     },
      "alt": {
       "en": "A metal plate of Egyptian ful medames glistening with oil",
       "ar": "طبق معدني من الفول المدمس المصري بالزيت"
@@ -16642,15 +18345,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": [
-    "seed-food-full-fava"
    ]
   },
   {
    "id": "ff_koshary",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Koshary (estimate)",
     "ar": "كشري (تقدير)"
@@ -16804,6 +18504,12 @@
        "bytes": 65816
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Egyptian_food_Koshary.jpg/120px-Egyptian_food_Koshary.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Egyptian_food_Koshary.jpg/500px-Egyptian_food_Koshary.jpg",
+      "width": 3031,
+      "height": 2101
+     },
      "alt": {
       "en": "A plate of Egyptian koshary topped with chickpeas, fried onions and tomato sauce",
       "ar": "طبق كشري مصري مزيّن بالحمص والبصل المقلي وصلصة الطماطم"
@@ -16821,13 +18527,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_molokhia_soup",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Molokhia with chicken broth (estimate)",
     "ar": "ملوخية بالمرق (تقدير)"
@@ -16949,6 +18654,12 @@
        "bytes": 55384
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Molokheya_Egypt%2C_2012.JPG/120px-Molokheya_Egypt%2C_2012.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Molokheya_Egypt%2C_2012.JPG/500px-Molokheya_Egypt%2C_2012.JPG",
+      "width": 2592,
+      "height": 1936
+     },
      "alt": {
       "en": "A clay bowl of green Egyptian molokhia soup with a spoon",
       "ar": "وعاء فخاري من الملوخية المصرية الخضراء مع ملعقة"
@@ -16966,13 +18677,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_mahshi_kousa",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Stuffed zucchini — mahshi (estimate)",
     "ar": "كوسة محشية (تقدير)"
@@ -17086,13 +18796,54 @@
     "review": "draft",
     "translation": "draft"
    },
-   "images": [],
-   "legacyIds": []
+   "images": [
+    {
+     "id": "fimg_mahshi_kousa_r1",
+     "role": "primary",
+     "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Kousa_Mahshi.jpg",
+     "sourcePage": "https://commons.wikimedia.org/wiki/File:Kousa_Mahshi.jpg",
+     "variants": {
+      "thumb": {
+       "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-thumb.webp",
+       "width": 160,
+       "height": 160,
+       "bytes": 3382
+      },
+      "card": {
+       "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-card.webp",
+       "width": 640,
+       "height": 410,
+       "bytes": 24804
+      }
+     },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Kousa_Mahshi.jpg/120px-Kousa_Mahshi.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Kousa_Mahshi.jpg/500px-Kousa_Mahshi.jpg",
+      "width": 1807,
+      "height": 1158
+     },
+     "alt": {
+      "en": "A platter of stuffed zucchini (mahshi kousa) cooked in tomato",
+      "ar": "طبق من الكوسة المحشية المطبوخة في صلصة الطماطم"
+     },
+     "license": "PD",
+     "author": "Bazel",
+     "credit": "Own work",
+     "source": {
+      "provider": "wikimedia-commons",
+      "id": "File:Kousa Mahshi.jpg"
+     },
+     "rights": "verified",
+     "review": "approved",
+     "publication": "published",
+     "rev": 1
+    }
+   ]
   },
   {
    "id": "ff_rice_vermicelli",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Rice with vermicelli (estimate)",
     "ar": "أرز بالشعرية (تقدير)"
@@ -17202,6 +18953,12 @@
        "bytes": 34446
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Lebanese_style_rice.jpg/120px-Lebanese_style_rice.jpg",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Lebanese_style_rice.jpg/500px-Lebanese_style_rice.jpg",
+      "width": 8000,
+      "height": 6000
+     },
      "alt": {
       "en": "A pot of white rice cooked with toasted vermicelli",
       "ar": "قدر من الأرز الأبيض المطبوخ بالشعرية المحمّرة"
@@ -17219,13 +18976,12 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   },
   {
    "id": "ff_grape_leaves_stuffed",
    "status": "published",
-   "rev": 2,
+   "rev": 3,
    "name": {
     "en": "Stuffed grape leaves with rice (US survey recipe)",
     "ar": "ورق عنب محشي بالأرز (وصفة مسح USDA)"
@@ -17308,6 +19064,12 @@
        "bytes": 32422
       }
      },
+     "remote": {
+      "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Mahshi.JPG/120px-Mahshi.JPG",
+      "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Mahshi.JPG/500px-Mahshi.JPG",
+      "width": 4928,
+      "height": 3264
+     },
      "alt": {
       "en": "Rolled stuffed grape leaves on a serving tray",
       "ar": "أصابع ورق عنب محشي على صينية تقديم"
@@ -17325,8 +19087,7 @@
      "publication": "published",
      "rev": 1
     }
-   ],
-   "legacyIds": []
+   ]
   }
  ]
 }

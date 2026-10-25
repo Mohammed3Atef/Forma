@@ -201,8 +201,9 @@ test.describe('B3.9 journeys', () => {
     await page.getByTestId('ex-name').fill(name);
     await page.getByTestId('ex-save').click();
     await expect(page.getByTestId('exercise-form')).toHaveCount(0, { timeout: 20_000 });
-    await page.getByTestId('lib-search').fill(name);
-    await page.getByTestId('coach-desktop-library').getByTestId('data-row').filter({ hasText: name }).first().click();
+    await page.getByTestId('lib-exercises-scope-mine').click();
+    await page.getByTestId('lib-exercises-search').fill(name);
+    await page.getByTestId('library-exercise-row').filter({ hasText: name }).first().getByTestId('library-row-main').click();
     await expect(page.getByTestId('exercise-view')).toBeVisible();
     await page.getByTestId('exercise-delete').click();
     await expect(page.getByTestId('confirm-dialog')).toBeVisible();

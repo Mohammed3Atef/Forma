@@ -19,7 +19,8 @@ const imageUrl = z
   .refine((v) => /^https:\/\/[^\s]+$/i.test(v) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/[^\s]*$/i.test(v), { message: 'Image links must be https:// links' });
 
 export const FoodImageRefSchema = z.object({
-  source: z.enum(['upload', 'forma-catalog']),
+  /** B4.2: `url` — a picture link the coach entered (any public https image; never Forma's own storage). */
+  source: z.enum(['upload', 'forma-catalog', 'url']),
   url: imageUrl,
   thumbUrl: imageUrl,
   width: z.number().int().positive().max(8192).optional(),
@@ -50,13 +51,22 @@ export function foodImageProblem(image: FoodImageRef, coachId: string | null): s
     const folder = `${base}/Forma/${coachId}/foods/`;
     return urls.every((u) => u.startsWith(folder) && !u.slice(folder.length).includes('..')) ? null : 'A food photo must be one of your own uploads';
   }
+  if (image.source === 'url') {
+    // A coach's own link: a public https picture — but nothing on Forma's storage (another coach's
+    // upload or a client's private media would otherwise be one paste away).
+    const base = uploadBase();
+    if (!urls.every((u) => /^https:\/\//i.test(u))) return 'Picture links must be https:// links';
+    if (base && urls.some((u) => u.startsWith(`${base}/`))) return 'A food photo must be one of your own uploads';
+    return null;
+  }
   const base = catalogMediaBase();
   const food = image.catalogFoodId ? loadCatalog().foodById.get(image.catalogFoodId) : undefined;
-  if (!base || !food) return 'This Forma food photo is not available';
+  if (!food) return 'This Forma food photo is not available';
+  // The catalog picture on Forma's CDN (once configured) or Wikimedia's own renditions of it (B4.2).
   const allowed = new Set(
     (food.images ?? [])
       .filter((i) => i.publication === 'published' && i.rights === 'verified' && i.review !== 'pending')
-      .flatMap((i) => [`${base}/${i.variants.card.cdnPath}`, `${base}/${i.variants.thumb.cdnPath}`]),
+      .flatMap((i) => [...(base ? [`${base}/${i.variants.card.cdnPath}`, `${base}/${i.variants.thumb.cdnPath}`] : []), ...(i.remote ? [i.remote.cardUrl, i.remote.thumbUrl] : [])]),
   );
   return urls.every((u) => allowed.has(u)) ? null : 'This Forma food photo is not available';
 }

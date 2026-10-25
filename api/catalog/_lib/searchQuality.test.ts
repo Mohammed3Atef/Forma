@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ExerciseDatasetSchema, FoodDatasetSchema } from './schemas.js';
+import { EdbDatasetSchema, ExerciseDatasetSchema, FoodDatasetSchema } from './schemas.js';
 import { indexDatasets } from './dataset.js';
 import { search } from './search.js';
-import { STARTER_FOODS } from '../../coach-assets/_lib/starterLibraryData.js';
 
 /**
- * B4 migration step E — shadow comparison of search, old vs new, on real queries (English, Modern
- * Standard Arabic, Egyptian Arabic, misspellings). "Old" = what a coach had: the nutrition editor's
- * substring match over the 84 legacy starter foods / the plan picker's substring match over the
- * 909 legacy starter exercises (English only). "New" = the catalog search. A result is relevant when
- * it is one of the query's expected catalog items (old: a legacy row mapped to one of them).
+ * Search quality on real queries (English, Modern Standard Arabic, Egyptian Arabic, misspellings).
+ * A result is relevant when it is one of the query's expected catalog items. (B4 step E compared
+ * this with the legacy starter library's substring search; B4.3 retired that library, so only the
+ * catalog search is measured now — its B4 results stay in data/catalog-reports/shadow-*.)
  *
  * Gates (new search): top-3 hit rate ≥ 90 % overall and ≥ 85 % for Arabic / Egyptian queries;
  * p95 latency < 15 ms per query in memory (the network round trip is ~100× that; the measured value is reported). `SHADOW_REPORT=1` also writes
@@ -19,7 +17,8 @@ import { STARTER_FOODS } from '../../coach-assets/_lib/starterLibraryData.js';
  */
 const ROOT = process.cwd();
 const read = (f: string) => JSON.parse(readFileSync(join(ROOT, 'data/catalog', f), 'utf8'));
-const loaded = indexDatasets(ExerciseDatasetSchema.parse(read('exercises.json')), FoodDatasetSchema.parse(read('foods.json')));
+// B4.2: measured on the FULL catalog — curated items plus the ExerciseDB layer competing in the same index.
+const loaded = indexDatasets(ExerciseDatasetSchema.parse(read('exercises.json')), FoodDatasetSchema.parse(read('foods.json')), EdbDatasetSchema.parse(read('exercisedb.json')));
 
 type Q = [query: string, expected: string[], lang: 'en' | 'ar' | 'eg' | 'typo'];
 const RICE = ['ff_rice_white_medium_cooked', 'ff_rice_white_long_cooked', 'ff_rice_white_dry'];
@@ -53,19 +52,14 @@ function p95(xs: number[]) {
   return s[Math.min(s.length - 1, Math.floor(s.length * 0.95))];
 }
 
-describe('food search — shadow comparison (B4 step E)', () => {
-  const legacyFoods = [...STARTER_FOODS].sort((a, b) => a.name.en.localeCompare(b.name.en));
-  const legacyFor = (ids: string[]) => new Set(ids.flatMap((id) => loaded.foodById.get(id)?.legacyIds ?? []));
+describe('food search quality', () => {
   const rows = FOOD_QUERIES.map(([q, expected, lang]) => {
     for (const id of expected) expect(loaded.foodById.has(id), `${q}: expected id ${id} is not a published food`).toBe(true);
     const t0 = performance.now();
     const res = search(loaded.foodIndex, q, { limit: 20 });
     const ms = performance.now() - t0;
     const top = res.hits.slice(0, 3).map((h) => h.item.id);
-    // Old: the nutrition editor's library picker (substring on the English name, raw substring on Arabic).
-    const old = legacyFoods.filter((f) => (f.name.en || '').toLowerCase().includes(q.toLowerCase()) || (f.name.ar || '').includes(q.trim())).slice(0, 3).map((f) => f.id);
-    const legacy = legacyFor(expected);
-    return { q, lang, expected, newTop3: top, newHit: top.some((id) => expected.includes(id)), newTotal: res.total, oldTop3: old, oldHit: old.some((id) => legacy.has(id)), ms };
+    return { q, lang, expected, newTop3: top, newHit: top.some((id) => expected.includes(id)), newTotal: res.total, ms };
   });
 
   it('new search: top-3 hit rate ≥ 90 % overall and ≥ 85 % for Arabic / Egyptian; p95 latency < 15 ms', () => {
@@ -78,11 +72,11 @@ describe('food search — shadow comparison (B4 step E)', () => {
   });
 });
 
-export function writeReport(kind: string, rows: { q: string; lang: string; newHit: boolean; oldHit: boolean; newTop3: string[]; oldTop3: string[]; ms: number }[]) {
+export function writeReport(kind: string, rows: { q: string; lang: string; newHit: boolean; newTop3: string[]; ms: number }[]) {
   const by = (lang?: string) => rows.filter((r) => !lang || r.lang === lang);
   const summary = ['all', 'en', 'ar', 'eg', 'typo'].map((lang) => {
     const set = by(lang === 'all' ? undefined : lang);
-    return { lang, queries: set.length, newTop3: pct(set.filter((r) => r.newHit).length, set.length), oldTop3: pct(set.filter((r) => r.oldHit).length, set.length) };
+    return { lang, queries: set.length, newTop3: pct(set.filter((r) => r.newHit).length, set.length) };
   });
   const dir = join(ROOT, 'data/catalog-reports');
   mkdirSync(dir, { recursive: true });
@@ -90,17 +84,17 @@ export function writeReport(kind: string, rows: { q: string; lang: string; newHi
   const file = join(dir, `shadow-${kind}.json`);
   writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), kind, summary, latencyMs: latency, rows }, null, 1)}\n`);
   const md = [
-    `# Shadow comparison — ${kind} search (generated)`,
+    `# Search quality — ${kind} (generated)`,
     '',
-    '| Queries | n | New: relevant in top 3 | Old: relevant in top 3 |',
-    '|---|---:|---:|---:|',
-    ...summary.map((s) => `| ${s.lang} | ${s.queries} | ${s.newTop3} % | ${s.oldTop3} % |`),
+    '| Queries | n | Relevant in top 3 |',
+    '|---|---:|---:|',
+    ...summary.map((s) => `| ${s.lang} | ${s.queries} | ${s.newTop3} % |`),
     '',
     `Latency per query (in memory): p50 ${latency.p50.toFixed(3)} ms, p95 ${latency.p95.toFixed(3)} ms.`,
     '',
-    '| Query | Lang | New top 3 | Old top 3 |',
-    '|---|---|---|---|',
-    ...rows.map((r) => `| ${r.q} | ${r.lang} | ${r.newHit ? '✓' : '✗'} ${r.newTop3.join(', ')} | ${r.oldHit ? '✓' : '✗'} ${r.oldTop3.join(', ')} |`),
+    '| Query | Lang | Top 3 |',
+    '|---|---|---|',
+    ...rows.map((r) => `| ${r.q} | ${r.lang} | ${r.newHit ? '✓' : '✗'} ${r.newTop3.join(', ')} |`),
     '',
   ];
   writeFileSync(join(dir, `shadow-${kind}.md`), md.join('\n'));
@@ -138,20 +132,14 @@ const EXERCISE_QUERIES: Q[] = [
   ['triceps push down', X('triceps_pushdown', 'rope_pushdown'), 'typo'], ['pullups', X('pull_up', 'chin_up'), 'typo'], ['shoulder pres', PRESS_SH, 'typo'], ['hip thust', X('barbell_hip_thrust', 'glute_bridge'), 'typo'], ['romanian dead lift', X('romanian_deadlift', 'dumbbell_romanian_deadlift', 'single_leg_romanian_deadlift'), 'typo'],
 ];
 
-describe('exercise search — shadow comparison (B4 step E)', () => {
-  const legacy = (JSON.parse(readFileSync(join(ROOT, 'public/data/exercise-library.json'), 'utf8')) as { id: string; name: string; targetMuscle?: string; category?: string; tags?: string[] }[]).sort((a, b) => a.name.localeCompare(b.name));
-  const legacyFor = (ids: string[]) => new Set(ids.flatMap((id) => loaded.exerciseById.get(id)?.legacyIds ?? []));
+describe('exercise search quality', () => {
   const rows = EXERCISE_QUERIES.map(([q, expected, lang]) => {
     for (const id of expected) expect(loaded.exerciseById.has(id), `${q}: expected id ${id} is not published`).toBe(true);
     const t0 = performance.now();
     const res = search(loaded.exerciseIndex, q, { limit: 20 });
     const ms = performance.now() - t0;
     const top = res.hits.slice(0, 3).map((h) => h.item.id);
-    // Old: the plan picker's filter over a coach library seeded from the legacy dataset (English only).
-    const n = q.toLowerCase();
-    const old = legacy.filter((e) => e.name.toLowerCase().includes(n) || (e.targetMuscle ?? '').toLowerCase().includes(n) || (e.category ?? '').toLowerCase().includes(n) || (e.tags ?? []).some((t) => t.toLowerCase().includes(n))).slice(0, 3).map((e) => e.id);
-    const lset = legacyFor(expected);
-    return { q, lang, expected, newTop3: top, newHit: top.some((id) => expected.includes(id)), newTotal: res.total, oldTop3: old, oldHit: old.some((id) => lset.has(id)), ms };
+    return { q, lang, expected, newTop3: top, newHit: top.some((id) => expected.includes(id)), newTotal: res.total, ms };
   });
 
   it('new search: top-3 hit rate ≥ 90 % overall and ≥ 85 % for Arabic / Egyptian; p95 latency < 15 ms', () => {

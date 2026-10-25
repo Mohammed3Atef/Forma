@@ -797,10 +797,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-73"
-   ]
+   }
   },
   {
    "id": "fx_incline_barbell_bench_press",
@@ -976,10 +973,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bench_press",
-   "legacyIds": [
-    "wger-538"
-   ]
+   "variantOf": "fx_barbell_bench_press"
   },
   {
    "id": "fx_decline_barbell_bench_press",
@@ -1123,10 +1117,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bench_press",
-   "legacyIds": [
-    "wger-185"
-   ]
+   "variantOf": "fx_barbell_bench_press"
   },
   {
    "id": "fx_dumbbell_bench_press",
@@ -1322,10 +1313,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bench_press",
-   "legacyIds": [
-    "wger-75"
-   ]
+   "variantOf": "fx_barbell_bench_press"
   },
   {
    "id": "fx_incline_dumbbell_press",
@@ -1496,10 +1484,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_bench_press",
-   "legacyIds": [
-    "wger-537"
-   ]
+   "variantOf": "fx_dumbbell_bench_press"
   },
   {
    "id": "fx_dumbbell_fly",
@@ -1642,10 +1627,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-238"
-   ]
+   }
   },
   {
    "id": "fx_cable_crossover",
@@ -1784,10 +1766,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_fly",
-   "legacyIds": [
-    "wger-323"
-   ]
+   "variantOf": "fx_dumbbell_fly"
   },
   {
    "id": "fx_low_to_high_cable_fly",
@@ -1883,10 +1862,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_cable_crossover",
-   "legacyIds": [
-    "wger-1296"
-   ]
+   "variantOf": "fx_cable_crossover"
   },
   {
    "id": "fx_machine_chest_press",
@@ -1982,10 +1958,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-129"
-   ]
+   }
   },
   {
    "id": "fx_pec_deck",
@@ -2083,10 +2056,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_fly",
-   "legacyIds": [
-    "wger-926"
-   ]
+   "variantOf": "fx_dumbbell_fly"
   },
   {
    "id": "fx_push_up",
@@ -2189,10 +2159,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1551"
-   ]
+   }
   },
   {
    "id": "fx_decline_push_up",
@@ -2290,10 +2257,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_push_up",
-   "legacyIds": [
-    "wger-1112"
-   ]
+   "variantOf": "fx_push_up"
   },
   {
    "id": "fx_chest_dip",
@@ -2511,10 +2475,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-194"
-   ]
+   }
   },
   {
    "id": "fx_smith_incline_press",
@@ -2616,10 +2577,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_incline_barbell_bench_press",
-   "legacyIds": [
-    "wger-925"
-   ]
+   "variantOf": "fx_incline_barbell_bench_press"
   },
   {
    "id": "fx_dumbbell_pullover",
@@ -2720,10 +2678,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-161"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_floor_press",
@@ -2818,10 +2773,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_bench_press",
-   "legacyIds": [
-    "wger-1084"
-   ]
+   "variantOf": "fx_dumbbell_bench_press"
   },
   {
    "id": "fx_pull_up",
@@ -2951,10 +2903,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-475"
-   ]
+   }
   },
   {
    "id": "fx_chin_up",
@@ -3101,11 +3050,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_pull_up",
-   "legacyIds": [
-    "wger-152",
-    "wger-1292"
-   ]
+   "variantOf": "fx_pull_up"
   },
   {
    "id": "fx_lat_pulldown",
@@ -3210,10 +3155,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-723"
-   ]
+   }
   },
   {
    "id": "fx_close_grip_lat_pulldown",
@@ -3312,11 +3254,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_lat_pulldown",
-   "legacyIds": [
-    "wger-158",
-    "wger-695"
-   ]
+   "variantOf": "fx_lat_pulldown"
   },
   {
    "id": "fx_straight_arm_pulldown",
@@ -3415,12 +3353,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1726",
-    "wger-628",
-    "wger-629"
-   ]
+   }
   },
   {
    "id": "fx_seated_cable_row",
@@ -3565,13 +3498,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-394",
-    "wger-1117",
-    "wger-1928",
-    "wger-395"
-   ]
+   }
   },
   {
    "id": "fx_barbell_bent_over_row",
@@ -3723,11 +3650,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-83",
-    "wger-1698"
-   ]
+   }
   },
   {
    "id": "fx_one_arm_dumbbell_row",
@@ -3829,11 +3752,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bent_over_row",
-   "legacyIds": [
-    "wger-81",
-    "wger-2642"
-   ]
+   "variantOf": "fx_barbell_bent_over_row"
   },
   {
    "id": "fx_chest_supported_dumbbell_row",
@@ -3934,11 +3853,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bent_over_row",
-   "legacyIds": [
-    "wger-1283",
-    "wger-310"
-   ]
+   "variantOf": "fx_barbell_bent_over_row"
   },
   {
    "id": "fx_t_bar_row",
@@ -4084,11 +3999,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bent_over_row",
-   "legacyIds": [
-    "wger-513",
-    "wger-919"
-   ]
+   "variantOf": "fx_barbell_bent_over_row"
   },
   {
    "id": "fx_machine_row",
@@ -4189,10 +4100,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_seated_cable_row",
-   "legacyIds": [
-    "wger-1725"
-   ]
+   "variantOf": "fx_seated_cable_row"
   },
   {
    "id": "fx_inverted_row",
@@ -4298,11 +4206,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1198",
-    "wger-1219"
-   ]
+   }
   },
   {
    "id": "fx_suspension_row",
@@ -4429,11 +4333,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_inverted_row",
-   "legacyIds": [
-    "wger-959",
-    "wger-674"
-   ]
+   "variantOf": "fx_inverted_row"
   },
   {
    "id": "fx_single_arm_cable_row",
@@ -4533,10 +4433,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_seated_cable_row",
-   "legacyIds": [
-    "wger-1621"
-   ]
+   "variantOf": "fx_seated_cable_row"
   },
   {
    "id": "fx_face_pull",
@@ -4706,10 +4603,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-222"
-   ]
+   }
   },
   {
    "id": "fx_deadlift",
@@ -4825,10 +4719,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-184"
-   ]
+   }
   },
   {
    "id": "fx_rack_pull",
@@ -4935,10 +4826,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_deadlift",
-   "legacyIds": [
-    "wger-484"
-   ]
+   "variantOf": "fx_deadlift"
   },
   {
    "id": "fx_back_extension",
@@ -5082,10 +4970,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-301"
-   ]
+   }
   },
   {
    "id": "fx_barbell_overhead_press",
@@ -5191,11 +5076,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1893",
-    "wger-687"
-   ]
+   }
   },
   {
    "id": "fx_seated_dumbbell_shoulder_press",
@@ -5341,10 +5222,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_overhead_press",
-   "legacyIds": [
-    "wger-567"
-   ]
+   "variantOf": "fx_barbell_overhead_press"
   },
   {
    "id": "fx_machine_shoulder_press",
@@ -5515,10 +5393,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_seated_dumbbell_shoulder_press",
-   "legacyIds": [
-    "wger-543"
-   ]
+   "variantOf": "fx_seated_dumbbell_shoulder_press"
   },
   {
    "id": "fx_arnold_press",
@@ -5622,10 +5497,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_seated_dumbbell_shoulder_press",
-   "legacyIds": [
-    "wger-20"
-   ]
+   "variantOf": "fx_seated_dumbbell_shoulder_press"
   },
   {
    "id": "fx_dumbbell_lateral_raise",
@@ -5799,11 +5671,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-348",
-    "wger-2658"
-   ]
+   }
   },
   {
    "id": "fx_cable_lateral_raise",
@@ -5901,11 +5769,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_lateral_raise",
-   "legacyIds": [
-    "wger-1378",
-    "wger-1730"
-   ]
+   "variantOf": "fx_dumbbell_lateral_raise"
   },
   {
    "id": "fx_machine_lateral_raise",
@@ -6002,11 +5866,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_lateral_raise",
-   "legacyIds": [
-    "wger-1744",
-    "wger-1654"
-   ]
+   "variantOf": "fx_dumbbell_lateral_raise"
   },
   {
    "id": "fx_dumbbell_front_raise",
@@ -6126,10 +5986,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-256"
-   ]
+   }
   },
   {
    "id": "fx_rear_delt_fly",
@@ -6273,12 +6130,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-487",
-    "wger-82",
-    "wger-2643"
-   ]
+   }
   },
   {
    "id": "fx_cable_rear_delt_fly",
@@ -6418,11 +6270,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_rear_delt_fly",
-   "legacyIds": [
-    "wger-822",
-    "wger-1709"
-   ]
+   "variantOf": "fx_rear_delt_fly"
   },
   {
    "id": "fx_reverse_pec_deck",
@@ -6521,11 +6369,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_rear_delt_fly",
-   "legacyIds": [
-    "wger-1775",
-    "wger-139"
-   ]
+   "variantOf": "fx_rear_delt_fly"
   },
   {
    "id": "fx_upright_row",
@@ -6629,10 +6473,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-693"
-   ]
+   }
   },
   {
    "id": "fx_barbell_shrug",
@@ -6772,10 +6613,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-571"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_shrug",
@@ -6912,10 +6750,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_shrug",
-   "legacyIds": [
-    "wger-572"
-   ]
+   "variantOf": "fx_barbell_shrug"
   },
   {
    "id": "fx_push_press",
@@ -7021,10 +6856,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_overhead_press",
-   "legacyIds": [
-    "wger-478"
-   ]
+   "variantOf": "fx_barbell_overhead_press"
   },
   {
    "id": "fx_pike_push_up",
@@ -7126,10 +6958,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-454"
-   ]
+   }
   },
   {
    "id": "fx_handstand_push_up",
@@ -7234,10 +7063,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_pike_push_up",
-   "legacyIds": [
-    "wger-282"
-   ]
+   "variantOf": "fx_pike_push_up"
   },
   {
    "id": "fx_barbell_curl",
@@ -7379,10 +7205,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-91"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_curl",
@@ -7553,10 +7376,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_curl",
-   "legacyIds": [
-    "wger-92"
-   ]
+   "variantOf": "fx_barbell_curl"
   },
   {
    "id": "fx_alternating_dumbbell_curl",
@@ -7654,11 +7474,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_curl",
-   "legacyIds": [
-    "wger-1192",
-    "wger-1012"
-   ]
+   "variantOf": "fx_dumbbell_curl"
   },
   {
    "id": "fx_hammer_curl",
@@ -7829,10 +7645,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_curl",
-   "legacyIds": [
-    "wger-272"
-   ]
+   "variantOf": "fx_dumbbell_curl"
   },
   {
    "id": "fx_cable_curl",
@@ -8003,11 +7816,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_curl",
-   "legacyIds": [
-    "wger-95",
-    "wger-912"
-   ]
+   "variantOf": "fx_barbell_curl"
   },
   {
    "id": "fx_ez_bar_curl",
@@ -8105,10 +7914,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_curl",
-   "legacyIds": [
-    "wger-94"
-   ]
+   "variantOf": "fx_barbell_curl"
   },
   {
    "id": "fx_preacher_curl",
@@ -8255,10 +8061,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_ez_bar_curl",
-   "legacyIds": [
-    "wger-465"
-   ]
+   "variantOf": "fx_ez_bar_curl"
   },
   {
    "id": "fx_concentration_curl",
@@ -8356,10 +8159,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_curl",
-   "legacyIds": [
-    "wger-202"
-   ]
+   "variantOf": "fx_dumbbell_curl"
   },
   {
    "id": "fx_incline_dumbbell_curl",
@@ -8461,10 +8261,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_curl",
-   "legacyIds": [
-    "wger-204"
-   ]
+   "variantOf": "fx_dumbbell_curl"
   },
   {
    "id": "fx_reverse_curl",
@@ -8561,11 +8358,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_curl",
-   "legacyIds": [
-    "wger-1290",
-    "wger-495"
-   ]
+   "variantOf": "fx_barbell_curl"
   },
   {
    "id": "fx_triceps_pushdown",
@@ -8662,10 +8455,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1185"
-   ]
+   }
   },
   {
    "id": "fx_rope_pushdown",
@@ -8761,11 +8551,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_triceps_pushdown",
-   "legacyIds": [
-    "wger-1900",
-    "wger-805"
-   ]
+   "variantOf": "fx_triceps_pushdown"
   },
   {
    "id": "fx_overhead_cable_triceps_extension",
@@ -8860,10 +8646,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_overhead_dumbbell_triceps_extension",
-   "legacyIds": [
-    "wger-1513"
-   ]
+   "variantOf": "fx_overhead_dumbbell_triceps_extension"
   },
   {
    "id": "fx_ez_bar_skullcrusher",
@@ -9103,10 +8886,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-246"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_skullcrusher",
@@ -9205,10 +8985,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_ez_bar_skullcrusher",
-   "legacyIds": [
-    "wger-245"
-   ]
+   "variantOf": "fx_ez_bar_skullcrusher"
   },
   {
    "id": "fx_overhead_dumbbell_triceps_extension",
@@ -9308,12 +9085,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-211",
-    "wger-1336",
-    "wger-549"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_kickback",
@@ -9442,10 +9214,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-655"
-   ]
+   }
   },
   {
    "id": "fx_bench_dip",
@@ -9589,10 +9358,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-197"
-   ]
+   }
   },
   {
    "id": "fx_close_grip_bench_press",
@@ -9737,10 +9503,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_bench_press",
-   "legacyIds": [
-    "wger-76"
-   ]
+   "variantOf": "fx_barbell_bench_press"
   },
   {
    "id": "fx_wrist_curl",
@@ -9836,11 +9599,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-51",
-    "wger-2452"
-   ]
+   }
   },
   {
    "id": "fx_diamond_push_up",
@@ -9944,10 +9703,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_push_up",
-   "legacyIds": [
-    "wger-386"
-   ]
+   "variantOf": "fx_push_up"
   },
   {
    "id": "fx_barbell_back_squat",
@@ -10065,11 +9821,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1801",
-    "wger-615"
-   ]
+   }
   },
   {
    "id": "fx_front_squat",
@@ -10328,10 +10080,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_back_squat",
-   "legacyIds": [
-    "wger-257"
-   ]
+   "variantOf": "fx_barbell_back_squat"
   },
   {
    "id": "fx_goblet_squat",
@@ -10434,10 +10183,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_back_squat",
-   "legacyIds": [
-    "wger-203"
-   ]
+   "variantOf": "fx_barbell_back_squat"
   },
   {
    "id": "fx_bodyweight_squat",
@@ -10539,10 +10285,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_back_squat",
-   "legacyIds": [
-    "wger-1312"
-   ]
+   "variantOf": "fx_barbell_back_squat"
   },
   {
    "id": "fx_leg_press",
@@ -10683,10 +10426,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-371"
-   ]
+   }
   },
   {
    "id": "fx_hack_squat",
@@ -10864,11 +10604,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_back_squat",
-   "legacyIds": [
-    "wger-375",
-    "wger-1414"
-   ]
+   "variantOf": "fx_barbell_back_squat"
   },
   {
    "id": "fx_smith_machine_squat",
@@ -10971,11 +10707,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_back_squat",
-   "legacyIds": [
-    "wger-1747",
-    "wger-341"
-   ]
+   "variantOf": "fx_barbell_back_squat"
   },
   {
    "id": "fx_bulgarian_split_squat",
@@ -11082,10 +10814,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1706"
-   ]
+   }
   },
   {
    "id": "fx_walking_lunge",
@@ -11262,10 +10991,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-206"
-   ]
+   }
   },
   {
    "id": "fx_reverse_lunge",
@@ -11366,11 +11092,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_walking_lunge",
-   "legacyIds": [
-    "wger-999",
-    "wger-1102"
-   ]
+   "variantOf": "fx_walking_lunge"
   },
   {
    "id": "fx_step_up",
@@ -11477,10 +11199,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-981"
-   ]
+   }
   },
   {
    "id": "fx_romanian_deadlift",
@@ -11589,11 +11308,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-507",
-    "wger-1700"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_romanian_deadlift",
@@ -11772,10 +11487,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_romanian_deadlift",
-   "legacyIds": [
-    "wger-1652"
-   ]
+   "variantOf": "fx_romanian_deadlift"
   },
   {
    "id": "fx_single_leg_romanian_deadlift",
@@ -11881,10 +11593,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_romanian_deadlift",
-   "legacyIds": [
-    "wger-1736"
-   ]
+   "variantOf": "fx_dumbbell_romanian_deadlift"
   },
   {
    "id": "fx_sumo_deadlift",
@@ -11995,10 +11704,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-630"
-   ]
+   }
   },
   {
    "id": "fx_trap_bar_deadlift",
@@ -12098,8 +11804,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_good_morning",
@@ -12245,10 +11950,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_romanian_deadlift",
-   "legacyIds": [
-    "wger-1392"
-   ]
+   "variantOf": "fx_romanian_deadlift"
   },
   {
    "id": "fx_lying_leg_curl",
@@ -12460,10 +12162,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-365"
-   ]
+   }
   },
   {
    "id": "fx_seated_leg_curl",
@@ -12632,10 +12331,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_lying_leg_curl",
-   "legacyIds": [
-    "wger-366"
-   ]
+   "variantOf": "fx_lying_leg_curl"
   },
   {
    "id": "fx_leg_extension",
@@ -12734,10 +12430,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-369"
-   ]
+   }
   },
   {
    "id": "fx_barbell_hip_thrust",
@@ -12878,10 +12571,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-294"
-   ]
+   }
   },
   {
    "id": "fx_glute_bridge",
@@ -12980,10 +12670,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_barbell_hip_thrust",
-   "legacyIds": [
-    "wger-265"
-   ]
+   "variantOf": "fx_barbell_hip_thrust"
   },
   {
    "id": "fx_cable_glute_kickback",
@@ -13082,10 +12769,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1131"
-   ]
+   }
   },
   {
    "id": "fx_hip_abduction_machine",
@@ -13182,11 +12866,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1748",
-    "wger-1672"
-   ]
+   }
   },
   {
    "id": "fx_hip_adduction_machine",
@@ -13319,10 +12999,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-12"
-   ]
+   }
   },
   {
    "id": "fx_standing_calf_raise",
@@ -13450,10 +13127,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-622"
-   ]
+   }
   },
   {
    "id": "fx_seated_calf_raise",
@@ -13583,11 +13257,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_standing_calf_raise",
-   "legacyIds": [
-    "wger-590",
-    "wger-2628"
-   ]
+   "variantOf": "fx_standing_calf_raise"
   },
   {
    "id": "fx_leg_press_calf_raise",
@@ -13685,10 +13355,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_standing_calf_raise",
-   "legacyIds": [
-    "wger-146"
-   ]
+   "variantOf": "fx_standing_calf_raise"
   },
   {
    "id": "fx_kettlebell_swing",
@@ -13800,12 +13467,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-960",
-    "wger-331",
-    "wger-9"
-   ]
+   }
   },
   {
    "id": "fx_pistol_squat",
@@ -13913,10 +13575,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_bodyweight_squat",
-   "legacyIds": [
-    "wger-456"
-   ]
+   "variantOf": "fx_bodyweight_squat"
   },
   {
    "id": "fx_plank",
@@ -14039,11 +13698,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-458",
-    "wger-1307"
-   ]
+   }
   },
   {
    "id": "fx_side_plank",
@@ -14146,11 +13801,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_plank",
-   "legacyIds": [
-    "wger-580",
-    "wger-1019"
-   ]
+   "variantOf": "fx_plank"
   },
   {
    "id": "fx_crunch",
@@ -14289,10 +13940,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-167"
-   ]
+   }
   },
   {
    "id": "fx_hanging_leg_raise",
@@ -14394,10 +14042,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-979"
-   ]
+   }
   },
   {
    "id": "fx_hanging_knee_raise",
@@ -14500,10 +14145,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_hanging_leg_raise",
-   "legacyIds": [
-    "wger-978"
-   ]
+   "variantOf": "fx_hanging_leg_raise"
   },
   {
    "id": "fx_lying_leg_raise",
@@ -14644,10 +14286,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-377"
-   ]
+   }
   },
   {
    "id": "fx_ab_wheel_rollout",
@@ -14751,10 +14390,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1573"
-   ]
+   }
   },
   {
    "id": "fx_russian_twist",
@@ -14858,10 +14494,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1193"
-   ]
+   }
   },
   {
    "id": "fx_pallof_press",
@@ -14959,10 +14592,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1194"
-   ]
+   }
   },
   {
    "id": "fx_dead_bug",
@@ -15058,10 +14688,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-178"
-   ]
+   }
   },
   {
    "id": "fx_bird_dog",
@@ -15179,11 +14806,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-957",
-    "wger-1572"
-   ]
+   }
   },
   {
    "id": "fx_hollow_hold",
@@ -15285,10 +14908,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-297"
-   ]
+   }
   },
   {
    "id": "fx_mountain_climber",
@@ -15391,10 +15011,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-996"
-   ]
+   }
   },
   {
    "id": "fx_dumbbell_side_bend",
@@ -15491,11 +15108,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1650",
-    "wger-1188"
-   ]
+   }
   },
   {
    "id": "fx_cable_crunch",
@@ -15592,10 +15205,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_crunch",
-   "legacyIds": [
-    "wger-173"
-   ]
+   "variantOf": "fx_crunch"
   },
   {
    "id": "fx_jumping_jack",
@@ -15697,11 +15307,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-320",
-    "wger-1314"
-   ]
+   }
   },
   {
    "id": "fx_high_knees",
@@ -15803,10 +15409,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-983"
-   ]
+   }
   },
   {
    "id": "fx_burpee",
@@ -15913,10 +15516,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-132"
-   ]
+   }
   },
   {
    "id": "fx_treadmill",
@@ -16027,11 +15627,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1615",
-    "wger-530"
-   ]
+   }
   },
   {
    "id": "fx_stationary_bike",
@@ -16135,12 +15731,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1618",
-    "wger-624",
-    "wger-1204"
-   ]
+   }
   },
   {
    "id": "fx_rowing_machine",
@@ -16249,10 +15840,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1093"
-   ]
+   }
   },
   {
    "id": "fx_jump_rope",
@@ -16357,11 +15945,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-993",
-    "wger-595"
-   ]
+   }
   },
   {
    "id": "fx_farmers_carry",
@@ -16470,10 +16054,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1116"
-   ]
+   }
   },
   {
    "id": "fx_wall_ball",
@@ -16579,10 +16160,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1100"
-   ]
+   }
   },
   {
    "id": "fx_box_jump",
@@ -16689,10 +16267,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1373"
-   ]
+   }
   },
   {
    "id": "fx_hip_flexor_stretch",
@@ -16796,10 +16371,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1867"
-   ]
+   }
   },
   {
    "id": "fx_pigeon_stretch",
@@ -16904,10 +16476,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1872"
-   ]
+   }
   },
   {
    "id": "fx_lying_hamstring_stretch",
@@ -17011,10 +16580,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1870"
-   ]
+   }
   },
   {
    "id": "fx_quad_stretch",
@@ -17116,10 +16682,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1873"
-   ]
+   }
   },
   {
    "id": "fx_childs_pose",
@@ -17222,10 +16785,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1002"
-   ]
+   }
   },
   {
    "id": "fx_cat_cow",
@@ -17328,11 +16888,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1938",
-    "wger-1244"
-   ]
+   }
   },
   {
    "id": "fx_foam_roll_quads",
@@ -17454,10 +17010,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": [
-    "wger-1858"
-   ]
+   }
   },
   {
    "id": "fx_sit_up",
@@ -17554,8 +17107,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_v_up",
@@ -17650,8 +17202,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_reverse_crunch",
@@ -17742,8 +17293,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_crunch",
-   "legacyIds": []
+   "variantOf": "fx_crunch"
   },
   {
    "id": "fx_bicycle_crunch",
@@ -17839,8 +17389,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_crunch",
-   "legacyIds": []
+   "variantOf": "fx_crunch"
   },
   {
    "id": "fx_flutter_kicks",
@@ -17936,8 +17485,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_incline_dumbbell_fly",
@@ -18031,8 +17579,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_fly",
-   "legacyIds": []
+   "variantOf": "fx_dumbbell_fly"
   },
   {
    "id": "fx_decline_dumbbell_bench_press",
@@ -18127,8 +17674,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_dumbbell_bench_press",
-   "legacyIds": []
+   "variantOf": "fx_dumbbell_bench_press"
   },
   {
    "id": "fx_incline_push_up",
@@ -18226,8 +17772,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_push_up",
-   "legacyIds": []
+   "variantOf": "fx_push_up"
   },
   {
    "id": "fx_reverse_grip_lat_pulldown",
@@ -18323,8 +17868,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_lat_pulldown",
-   "legacyIds": []
+   "variantOf": "fx_lat_pulldown"
   },
   {
    "id": "fx_dumbbell_forward_lunge",
@@ -18424,8 +17968,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_walking_lunge",
-   "legacyIds": []
+   "variantOf": "fx_walking_lunge"
   },
   {
    "id": "fx_stiff_leg_deadlift",
@@ -18528,8 +18071,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_romanian_deadlift",
-   "legacyIds": []
+   "variantOf": "fx_romanian_deadlift"
   },
   {
    "id": "fx_machine_t_bar_row",
@@ -18627,8 +18169,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_t_bar_row",
-   "legacyIds": []
+   "variantOf": "fx_t_bar_row"
   },
   {
    "id": "fx_triceps_dip",
@@ -18723,8 +18264,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_chest_dip",
-   "legacyIds": []
+   "variantOf": "fx_chest_dip"
   },
   {
    "id": "fx_machine_crunch",
@@ -18815,8 +18355,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_crunch",
-   "legacyIds": []
+   "variantOf": "fx_crunch"
   },
   {
    "id": "fx_machine_preacher_curl",
@@ -18910,8 +18449,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_preacher_curl",
-   "legacyIds": []
+   "variantOf": "fx_preacher_curl"
   },
   {
    "id": "fx_seated_dip_machine",
@@ -19006,8 +18544,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_kettlebell_deadlift",
@@ -19105,8 +18642,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_deadlift",
-   "legacyIds": []
+   "variantOf": "fx_deadlift"
   },
   {
    "id": "fx_stability_ball_leg_curl",
@@ -19202,8 +18738,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_lying_leg_curl",
-   "legacyIds": []
+   "variantOf": "fx_lying_leg_curl"
   },
   {
    "id": "fx_stability_ball_crunch",
@@ -19296,8 +18831,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_crunch",
-   "legacyIds": []
+   "variantOf": "fx_crunch"
   },
   {
    "id": "fx_elliptical",
@@ -19399,8 +18933,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_running",
@@ -19507,8 +19040,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_battle_ropes",
@@ -19614,8 +19146,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_standing_hamstring_stretch",
@@ -19711,8 +19242,7 @@
     "review": "draft",
     "translation": "draft"
    },
-   "variantOf": "fx_lying_hamstring_stretch",
-   "legacyIds": []
+   "variantOf": "fx_lying_hamstring_stretch"
   },
   {
    "id": "fx_doorway_chest_stretch",
@@ -19808,8 +19338,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_overhead_triceps_stretch",
@@ -19905,8 +19434,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_kneeling_lat_stretch",
@@ -20003,8 +19531,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_wall_calf_stretch",
@@ -20098,8 +19625,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_neck_side_stretch",
@@ -20193,8 +19719,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_butterfly_stretch",
@@ -20291,8 +19816,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   },
   {
    "id": "fx_seated_spinal_twist",
@@ -20390,8 +19914,7 @@
     "author": "Forma",
     "review": "draft",
     "translation": "draft"
-   },
-   "legacyIds": []
+   }
   }
  ]
 }

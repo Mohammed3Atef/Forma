@@ -4,29 +4,34 @@ import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
 import { Icon } from '@/components/Icon';
 import { Button, IconButton } from '@/components/ui/Button';
-import { SearchField, TextAreaField, TextInput } from '@/components/ui/Field';
+import { TextAreaField, TextInput } from '@/components/ui/Field';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { FoodThumb } from '@/components/food/FoodImage';
+import { LibraryFoodBrowser } from '@/components/library/LibraryFoodBrowser';
+import { useCatalogMeta } from '@/hooks/useCatalog';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { CollectionList, CollectionTable, type CollectionColumn } from '@/components/library/LibraryCollection';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { uid } from '@/lib/utils';
-import { collatorFor, filterGroups, localizedName, nextSort, normalizeSearch, sortFoods, sortGroups, type SortKey } from '@/lib/libraryModel';
-import { bulkDeleteFoodGroups, deleteFoodGroup, listFoodGroups, listFoods, saveFoodGroup } from '@/services/platform/coachAssetsApi';
+import { collatorFor, filterGroups, localizedName, nextSort, sortGroups, type SortKey } from '@/lib/libraryModel';
+import { bulkDeleteFoodGroups, deleteFoodGroup, listFoodGroups, saveFoodGroup } from '@/services/platform/coachAssetsApi';
+import type { LibraryFoodRow } from '@/services/platform/libraryApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
-import type { FoodGroup } from '@/types';
-import { DetailSheet, ListBody, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import type { FoodGroup, LibraryFood } from '@/types';
+import { DetailSheet, FirstItemPanel, ListBody, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
 
 /**
  * Library › Foods › Swap groups (B3.7): sets of interchangeable foods a client may swap between —
- * the same data and saves as before, inside Foods; read-first, then Edit; the form picks foods
- * from a searchable checklist.
+ * the same data and saves as before, inside Foods; read-first, then Edit. B4.3: the form picks foods
+ * from the ONE food list (Forma's foods and the coach's own); a group keeps a copy of each food.
  */
 interface GroupForm {
   id: string | null;
   name: string;
   notes: string;
-  foodIds: string[];
+  foods: LibraryFood[];
 }
 
 export default function SwapGroupsView({ coachId, query, setQuery, createSignal, onCreateHandled }: SegmentProps) {
@@ -43,7 +48,7 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
 
   useEffect(() => {
     if (createSignal <= 0) return;
-    setForm({ id: null, name: '', notes: '', foodIds: [] });
+    setForm({ id: null, name: '', notes: '', foods: [] });
     onCreateHandled();
   }, [createSignal, onCreateHandled]);
 
@@ -73,7 +78,7 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
     if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: gname(g) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(g.id);
   };
   const bulk = useBulkDelete((ids) => bulkDeleteFoodGroups(coachId, ids), () => void qc.invalidateQueries({ queryKey: ['foodGroups', coachId] }));
-  const edit = (g: FoodGroup) => setForm({ id: g.id, name: g.name, notes: g.notes ?? '', foodIds: g.foods.map((f) => f.id) });
+  const edit = (g: FoodGroup) => setForm({ id: g.id, name: g.name, notes: g.notes ?? '', foods: g.foods });
 
   const menu = (g: FoodGroup) => [
     { key: 'edit', label: t('common.edit'), icon: 'edit' as const, disabled: !canEdit, testId: 'row-edit', onSelect: () => edit(g) },
@@ -104,7 +109,7 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
         canSelect={canEdit && all.length > 0}
         count={all.length ? (query.q ? t('library.countOf', { n: filtered.length, total: all.length }) : t('library.count.groups', { count: all.length })) : null}
       />
-      <ListBody q={groups} total={all.length} matched={filtered.length} testId="lib-groups" onClear={() => setQuery({ q: '' })} empty={<StarterPanel createLabel={t('coachFoods.newGroup')} onCreate={() => setForm({ id: null, name: '', notes: '', foodIds: [] })} createTestId="group-new-first" />}>
+      <ListBody q={groups} total={all.length} matched={filtered.length} testId="lib-groups" onClear={() => setQuery({ q: '' })} empty={<FirstItemPanel kind="groups" createLabel={t('coachFoods.newGroup')} onCreate={() => setForm({ id: null, name: '', notes: '', foods: [] })} createTestId="group-new-first" />}>
         {desktop ? (
           <CollectionTable
             testId="coach-desktop-groups"
@@ -182,24 +187,24 @@ export default function SwapGroupsView({ coachId, query, setQuery, createSignal,
   );
 }
 
-/** The swap-group form: name, notes, and the foods in it — a searchable checklist (not a wall of chips). */
+/** The swap-group form: name, notes, and the foods in it — picked from the one food list. */
 function GroupFormBody({ coachId, form, orig, setForm, pending, onSave }: { coachId: string; form: GroupForm; orig: FoodGroup | null; setForm: (f: GroupForm) => void; pending: boolean; onSave: (g: FoodGroup) => void }) {
   const { t, i18n } = useTranslation();
-  const foods = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
-  const [search, setSearch] = useState('');
-  const collator = useMemo(() => collatorFor(i18n.language), [i18n.language]);
-  const list = useMemo(() => {
-    const q = normalizeSearch(search);
-    const sorted = sortFoods(foods.data ?? [], 'name', 'asc', collator, i18n.language);
-    // Picked foods first, so what is in the group is always visible.
-    const picked = sorted.filter((f) => form.foodIds.includes(f.id));
-    const rest = sorted.filter((f) => !form.foodIds.includes(f.id) && (!q || normalizeSearch(`${f.name.en} ${f.name.ar ?? ''}`).includes(q)));
-    return [...picked, ...rest];
-  }, [foods.data, search, form.foodIds, collator, i18n.language]);
+  const catalog = useCatalogMeta();
+  const picked = new Set(form.foods.map((f) => f.id));
+  const remove = (id: string) => setForm({ ...form, foods: form.foods.filter((f) => f.id !== id) });
+  /** A group keeps a copy of each food: the coach's own as it is, a Forma food at its first serving. */
+  const toggle = async (r: LibraryFoodRow) => {
+    if (picked.has(r.id)) return remove(r.id);
+    if (r.kind === 'own') return setForm({ ...form, foods: [...form.foods, { ...(r.food as unknown as LibraryFood), id: r.id }] });
+    const { foodPickFromCatalog } = await import('@/lib/catalogCopy'); // loads with the first Forma food
+    const portion = r.card.portions[0];
+    const p = foodPickFromCatalog(r.card, portion?.id ?? 'g', portion ? 1 : 100);
+    setForm({ ...form, foods: [...form.foods, { id: r.id, name: p.name, quantity: p.quantity, ...p.macros, ...p.provenance, ...(p.image ? { image: p.image } : {}) }] });
+  };
   const submit = () => {
-    const picked = (foods.data ?? []).filter((f) => form.foodIds.includes(f.id));
     const now = Date.now();
-    onSave({ id: form.id ?? uid('fgrp'), coachId, name: form.name.trim(), foods: picked, ...(form.notes.trim() ? { notes: form.notes.trim() } : {}), createdAt: orig?.createdAt ?? now, updatedAt: now });
+    onSave({ id: form.id ?? uid('fgrp'), coachId, name: form.name.trim(), foods: form.foods, ...(form.notes.trim() ? { notes: form.notes.trim() } : {}), createdAt: orig?.createdAt ?? now, updatedAt: now });
   };
   return (
     <div className="space-y-3" data-testid="group-form">
@@ -209,38 +214,26 @@ function GroupFormBody({ coachId, form, orig, setForm, pending, onSave }: { coac
         <div className="label mb-1.5 flex items-center justify-between">
           <span>{t('coachFoods.pickFoods')}</span>
           <span className="text-earth-subtle" data-testid="grp-picked-count">
-            {t('library.pickedCount', { n: form.foodIds.length })}
+            {t('library.pickedCount', { n: form.foods.length })}
           </span>
         </div>
-        {(foods.data?.length ?? 0) === 0 ? (
-          <p className="text-[12.5px] text-earth-subtle">{t('coachFoods.addFoodsFirst')}</p>
-        ) : (
-          <>
-            <SearchField fieldClassName="mb-2" aria-label={t('coachFoods.search')} placeholder={t('coachFoods.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-            <ul className="max-h-64 divide-y divide-white/[0.06] overflow-y-auto rounded-ui-surface border border-white/[0.07]" data-testid="grp-foods">
-              {list.map((f) => {
-                const on = form.foodIds.includes(f.id);
-                return (
-                  <li key={f.id}>
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={on}
-                      data-testid={`grp-food-${f.id}`}
-                      className={`flex min-h-ui-hit w-full items-center gap-3 px-3 text-start text-[14px] ${on ? 'bg-brand/10' : ''}`}
-                      onClick={() => setForm({ ...form, foodIds: on ? form.foodIds.filter((x) => x !== f.id) : [...form.foodIds, f.id] })}
-                    >
-                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${on ? 'border-brand bg-brand text-white' : 'border-line'}`}>{on ? <Icon name="check" size={13} /> : null}</span>
-                      <bdi className="min-w-0 flex-1 truncate">{localizedName(f.name, i18n.language)}</bdi>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
+        {/* What is in the group is always visible, above the list it is picked from. */}
+        {form.foods.length > 0 && (
+          <ul className="mb-3 divide-y divide-line-soft rounded-ui-surface border border-line-soft" data-testid="grp-foods">
+            {form.foods.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 ps-3">
+                <FoodThumb image={f.image} size="xs" />
+                <bdi className="min-w-0 flex-1 truncate text-[14px]">{localizedName(f.name, i18n.language)}</bdi>
+                <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center text-earth-subtle hover:text-danger" aria-label={t('library.removeFromGroup', { name: localizedName(f.name, i18n.language) })} data-testid={`grp-remove-${f.id}`} onClick={() => remove(f.id)}>
+                  <Icon name="close" size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
+        {catalog.taxonomy ? <LibraryFoodBrowser taxonomy={catalog.taxonomy} compact selected={picked} onOpen={(r) => void toggle(r)} testId="grp-library" /> : <LoadingState count={2} />}
       </div>
-      <SubmitButton type="button" data-testid="grp-save" disabled={!form.name.trim() || form.foodIds.length === 0} pending={pending} onClick={submit} fullWidth>
+      <SubmitButton type="button" data-testid="grp-save" disabled={!form.name.trim() || form.foods.length === 0} pending={pending} onClick={submit} fullWidth>
         {t('common.save')}
       </SubmitButton>
     </div>

@@ -23,11 +23,14 @@ import { uid } from '@/lib/utils';
 import { knownKind, normalizeWorkoutBody, serializeWorkoutBody } from '@/lib/workoutPlanModel';
 import { ADD_EXERCISE_PARAM, addLibraryExercise, exerciseTargets } from '@/lib/libraryHandoff';
 import { getClientWorkoutPlan, saveClientWorkoutPlan } from '@/services/platform/planApi';
-import { getExercise, saveClientPlanAsTemplate } from '@/services/platform/coachAssetsApi';
+import { saveClientPlanAsTemplate } from '@/services/platform/coachAssetsApi';
+import { catalogMetaQuery } from '@/services/platform/catalogApi';
+import { exerciseForPlan } from '@/lib/libraryUse';
+import { exerciseDisplayName } from '@/lib/catalogText';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
 import { useHandoffParam } from '@/hooks/useHandoffParam';
-import type { Exercise, SplitType, WorkoutGoal, WorkoutPlan } from '@/types';
+import type { SplitType, WorkoutGoal, WorkoutPlan } from '@/types';
 
 const notFound = (e: unknown) => (e as { data?: { code?: string } } | null)?.data?.code === 'NOT_FOUND';
 
@@ -44,7 +47,7 @@ function emptyPlan(): WorkoutPlan {
  * plans open unchanged (B34-R1, `lib/workoutPlanModel`).
  */
 export function CoachWorkoutEditor() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { clientId = '' } = useParams();
   const coachId = useSession((s) => s.account?.id ?? '');
   const client = useCoachClientHeader(clientId);
@@ -72,9 +75,10 @@ export function CoachWorkoutEditor() {
   // picks the day — as an unsaved change (the plan is saved, as always, by Save).
   const qc = useQueryClient();
   const [addId, clearAdd] = useHandoffParam(ADD_EXERCISE_PARAM);
+  // B4.3: a Forma exercise (catalog id) arrives as its snapshot; the coach's own one is library-linked.
   const addQ = useQuery({
     queryKey: ['exerciseLibraryItem', coachId, addId],
-    queryFn: async () => qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.find((e) => e.id === addId) ?? getExercise(coachId, addId!),
+    queryFn: () => exerciseForPlan(coachId, addId!, async () => (await qc.fetchQuery(catalogMetaQuery())).taxonomy),
     enabled: !!addId && !!coachId,
     retry: (n, e) => !notFound(e) && n < 2,
     staleTime: Infinity,
@@ -133,7 +137,7 @@ export function CoachWorkoutEditor() {
       <LibraryAddPrompt
         open={!!addId && (addQ.isSuccess || addQ.isError)}
         testId="library-add"
-        title={addQ.data ? t('library.add.exerciseTitle', { name: addQ.data.name }) : t('library.use.action')}
+        title={addQ.data ? t('library.add.exerciseTitle', { name: exerciseDisplayName(addQ.data.exercise, i18n.language) }) : t('library.use.action')}
         hint={t('library.add.exerciseHint', { name: client.name })}
         newLabel={t('library.add.newDay')}
         missing={addQ.isError ? t(notFound(addQ.error) ? 'library.add.exerciseMissing' : 'library.add.loadFailed') : null}
@@ -149,10 +153,10 @@ export function CoachWorkoutEditor() {
         }))}
         onCancel={clearAdd}
         onPick={(key) => {
-          const ex = addQ.data;
-          if (!ex) return;
+          const picked = addQ.data;
+          if (!picked) return;
           const target = key ? (([dayId, sectionId]) => ({ dayId, sectionId }))(JSON.parse(key) as [string, string]) : { newDayTitle: `${t('coachEditor.day')} ${plan.days.length + 1}` };
-          const res = addLibraryExercise(plan, target, ex);
+          const res = addLibraryExercise(plan, target, picked.exercise, picked.linked);
           setPlan((cur) => ({ ...cur, days: res.body.days, exercises: res.body.exercises }));
           setDayId(res.dayId);
           clearAdd();

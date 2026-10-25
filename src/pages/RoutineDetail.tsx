@@ -91,8 +91,9 @@ export function RoutineDetail() {
           className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-white/[0.03]"
           data-testid={`day-exercise-${id}`}
         >
-          {ex.imageUrl ? (
-            <img src={ex.imageUrl} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-ui-control bg-white/[0.06] object-cover" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+          {/* B4.2: the light list still (never an ExerciseDB GIF); the picture otherwise. */}
+          {ex.thumbUrl || ex.imageUrl ? (
+            <img src={ex.thumbUrl || ex.imageUrl!} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-ui-control bg-white/[0.06] object-cover" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
           ) : (
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-ui-control bg-white/[0.06] text-earth-muted" aria-hidden="true">
               <Icon name="dumbbell" size={20} />

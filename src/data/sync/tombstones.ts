@@ -31,10 +31,6 @@ export async function recordDeletion(collection: string, id: string): Promise<vo
   await store.setItem(key(collection, id), { collection, id, deletedAt: Date.now(), ...(baseRev != null ? { baseRev } : {}) });
 }
 
-export async function recordDeletions(collection: string, ids: string[]): Promise<void> {
-  await Promise.all(ids.map((id) => recordDeletion(collection, id)));
-}
-
 export async function listTombstones(): Promise<Tombstone[]> {
   const out: Tombstone[] = [];
   await store.iterate<Tombstone, void>((v) => {
@@ -47,6 +43,3 @@ export async function clearTombstone(collection: string, id: string): Promise<vo
   await store.removeItem(key(collection, id));
 }
 
-export async function clearAllTombstones(): Promise<void> {
-  await store.clear();
-}

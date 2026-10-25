@@ -11,7 +11,7 @@ import { bulkDeleteWorkoutTemplates, deleteWorkoutTemplate, duplicateWorkoutTemp
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { WorkoutTemplate } from '@/types';
-import { ListBody, SelectFilter, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { FirstItemPanel, ListBody, SelectFilter, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
 
 /** The template's own page (read-first; Edit is explicit — RM-27). */
@@ -123,7 +123,7 @@ export default function ProgramsSegment({ coachId, query, setQuery, createSignal
         matched={filtered.length}
         testId="lib-programs"
         onClear={() => setQuery({ q: '', goal: '' })}
-        empty={<StarterPanel createLabel={t('library.newProgram')} onCreate={() => navigate('/coach/templates/new')} createTestId="template-new-first" />}
+        empty={<FirstItemPanel kind="programs" createLabel={t('library.newProgram')} onCreate={() => navigate('/coach/templates/new')} createTestId="template-new-first" />}
       >
         {desktop ? (
           <CollectionTable

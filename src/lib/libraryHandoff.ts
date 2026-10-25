@@ -1,7 +1,6 @@
 import { addDay, addExercises, isPlainDay, type PlanBody } from './workoutPlanModel';
 import { pickFromLibrary } from './workoutPresets';
-import { applyFoodEdit } from './nutritionPlanModel';
-import type { Exercise, LibraryFood, LocalizedText, Meal, MealPlan, MealSlot } from '@/types';
+import type { Exercise } from '@/types';
 
 /**
  * "Use in a client plan" (B3.7, blueprint §6.6; owner decisions 2026-10-20): the Library hands one
@@ -10,18 +9,10 @@ import type { Exercise, LibraryFood, LocalizedText, Meal, MealPlan, MealSlot } f
  * set, drafts, conflict handling: `usePlanEditor`). The copy is made exactly as the editors' own
  * pickers make it, so a plan never gets a different shape depending on how the item was added:
  *  - an exercise: `pickFromLibrary` (a new plan id, library-linked, every field and language kept);
- *  - a food: the food sheet's library pick (`applyFoodEdit` from the library food, both languages).
+ *  - a food: `foodHandoff` (B4.3: its own module, so the nutrition editor loads no training code).
  */
 
-export const ADD_EXERCISE_PARAM = 'addExercise';
-export const ADD_FOOD_PARAM = 'addFood';
-
-/** The editor URL that receives the hand-off. */
-export function useInPlanPath(kind: 'exercise' | 'food', clientId: string, itemId: string): string {
-  const editor = kind === 'exercise' ? 'workout' : 'nutrition';
-  const param = kind === 'exercise' ? ADD_EXERCISE_PARAM : ADD_FOOD_PARAM;
-  return `/coach/client/${encodeURIComponent(clientId)}/${editor}?${param}=${encodeURIComponent(itemId)}`;
-}
+export { ADD_EXERCISE_PARAM, ADD_FOOD_PARAM, useInPlanPath } from './handoffParams';
 
 // ---- training ----------------------------------------------------------------------------------
 
@@ -49,11 +40,13 @@ export function exerciseTargets(body: PlanBody): DayTarget[] {
 /**
  * Adds a library-linked copy of `libEx` to the end of a day / section — or to a new day at the end
  * of the plan. Returns the new body (working shape) and where it went; the input is not changed.
+ * `linked: false` (B4.3): `libEx` is already the plan's copy — a Forma exercise's snapshot.
  */
 export function addLibraryExercise(
   body: PlanBody,
   target: { dayId: string; sectionId: string } | { newDayTitle: string },
   libEx: Exercise,
+  linked = true,
 ): { body: PlanBody; dayId: string; exerciseId: string } {
   let next = body;
   let dayId: string;
@@ -67,47 +60,6 @@ export function addLibraryExercise(
     dayId = target.dayId;
     sectionId = target.sectionId;
   }
-  const copy = pickFromLibrary(libEx);
+  const copy = linked ? pickFromLibrary(libEx) : libEx;
   return { body: addExercises(next, dayId, sectionId, [copy]), dayId, exerciseId: copy.id };
-}
-
-// ---- nutrition ---------------------------------------------------------------------------------
-
-export interface MealTarget {
-  mealId: string;
-  label: LocalizedText;
-  count: number;
-}
-
-export function mealTargets(plan: Pick<MealPlan, 'meals'>): MealTarget[] {
-  return plan.meals.map((m) => ({ mealId: m.id, label: m.label, count: m.items.length }));
-}
-
-/** The plan item a library food becomes — the same item the food sheet makes from a library pick. */
-export function foodFromLibrary(food: LibraryFood, newId: () => string) {
-  return applyFoodEdit(
-    null,
-    newId(),
-    { name: food.name, quantity: food.quantity ?? '', calories: Number(food.calories) || 0, protein: Number(food.protein) || 0, carbs: Number(food.carbs) || 0, fats: Number(food.fats) || 0, group: undefined, allowCustom: false, image: food.image ?? undefined },
-    newId,
-  );
-}
-
-/** Adds a library food to the end of a meal — or to a new meal at the end of the plan. */
-export function addLibraryFood(
-  plan: MealPlan,
-  target: { mealId: string } | { newMeal: { id: string; label: LocalizedText; slot: MealSlot } },
-  food: LibraryFood,
-  newId: () => string,
-): { plan: MealPlan; mealId: string; itemId: string } {
-  const item = foodFromLibrary(food, newId);
-  if ('newMeal' in target) {
-    const meal: Meal = { ...target.newMeal, items: [item] };
-    return { plan: { ...plan, meals: [...plan.meals, meal] }, mealId: meal.id, itemId: item.id };
-  }
-  return {
-    plan: { ...plan, meals: plan.meals.map((m) => (m.id === target.mealId ? { ...m, items: [...m.items, item] } : m)) },
-    mealId: target.mealId,
-    itemId: item.id,
-  };
 }

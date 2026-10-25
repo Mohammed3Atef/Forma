@@ -65,3 +65,32 @@ export async function prepareFoodPhoto(file: Blob): Promise<PreparedFoodPhoto> {
     bitmap.close();
   }
 }
+
+/**
+ * B4.2 — a coach's exercise demonstration picture: a still is prepared exactly like a food photo; an
+ * animated GIF is kept as it is (its frames are the demonstration; the server cleans its metadata)
+ * with a still of its first frame for lists. GIFs up to 4 MB (one upload request).
+ */
+export const DEMO_GIF_MAX_BYTES = 4 * 1024 * 1024;
+export async function prepareDemoPicture(file: Blob): Promise<PreparedFoodPhoto> {
+  if (file.type !== 'image/gif') return prepareFoodPhoto(file);
+  if (file.size > DEMO_GIF_MAX_BYTES) throw new FoodPhotoError('tooLarge');
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new FoodPhotoError('unreadable');
+  }
+  try {
+    if (bitmap.width < 64 || bitmap.height < 64) throw new FoodPhotoError('tooSmall');
+    const side = Math.min(bitmap.width, bitmap.height);
+    const edge = Math.min(THUMB, side);
+    const thumb = document.createElement('canvas');
+    thumb.width = edge;
+    thumb.height = edge;
+    thumb.getContext('2d')!.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, edge, edge);
+    return { full: file, thumb: await toBlob(thumb, 0.75), width: bitmap.width, height: bitmap.height };
+  } finally {
+    bitmap.close();
+  }
+}

@@ -7,14 +7,6 @@
  * browsers require before granting.
  */
 
-export async function isStoragePersisted(): Promise<boolean> {
-  try {
-    return (await navigator.storage?.persisted?.()) ?? false;
-  } catch {
-    return false;
-  }
-}
-
 export async function ensurePersistentStorage(): Promise<boolean> {
   try {
     if (!navigator.storage?.persist) return false;

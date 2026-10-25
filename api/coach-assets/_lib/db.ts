@@ -3,9 +3,9 @@ import { getDb } from '../../_lib/mongodb.js';
 import type {
   CoachBillingPlanDoc,
   CoachExerciseDoc,
+  CoachFavoriteDoc,
   CoachFoodDoc,
   CoachFoodGroupDoc,
-  CoachNutritionTemplateDoc,
   CoachSupplementDoc,
   CoachWorkoutTemplateDoc,
 } from './types.js';
@@ -30,7 +30,7 @@ import type {
  * creates the same index for a fresh/ops-provisioned database, but the app
  * no longer depends on that script having been run first.
  */
-const ASSET_COLLECTIONS = ['coachExercises', 'coachWorkoutTemplates', 'coachNutritionTemplates', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachBillingPlans'] as const;
+const ASSET_COLLECTIONS = ['coachExercises', 'coachWorkoutTemplates', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachBillingPlans', 'coachFavorites'] as const;
 
 async function ensureCoachAssetIndexes(db: Db): Promise<void> {
   await Promise.all(
@@ -50,12 +50,6 @@ export async function coachWorkoutTemplatesCol(): Promise<Collection<CoachWorkou
   return db.collection<CoachWorkoutTemplateDoc>('coachWorkoutTemplates');
 }
 
-export async function coachNutritionTemplatesCol(): Promise<Collection<CoachNutritionTemplateDoc>> {
-  const db = await getDb();
-  await ensureCoachAssetIndexes(db);
-  return db.collection<CoachNutritionTemplateDoc>('coachNutritionTemplates');
-}
-
 export async function coachFoodsCol(): Promise<Collection<CoachFoodDoc>> {
   const db = await getDb();
   await ensureCoachAssetIndexes(db);
@@ -72,6 +66,13 @@ export async function coachBillingPlansCol(): Promise<Collection<CoachBillingPla
   const db = await getDb();
   await ensureCoachAssetIndexes(db);
   return db.collection<CoachBillingPlanDoc>('coachBillingPlans');
+}
+
+/** B4.3: a coach's favourites — one light reference per item (`id` = `<kind>:<item id>`), never a copy. */
+export async function coachFavoritesCol(): Promise<Collection<CoachFavoriteDoc>> {
+  const db = await getDb();
+  await ensureCoachAssetIndexes(db);
+  return db.collection<CoachFavoriteDoc>('coachFavorites');
 }
 
 export async function coachSupplementsCol(): Promise<Collection<CoachSupplementDoc>> {

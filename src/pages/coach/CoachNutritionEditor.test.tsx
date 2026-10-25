@@ -30,7 +30,12 @@ vi.mock('@/services/platform/planApi', async (orig) => ({
   saveClientMealPlan: (id: string, p: MealPlan, o: unknown) => saveClientMealPlan(id, p, o),
 }));
 const libFoods = vi.hoisted(() => ({ list: [] as unknown[] }));
-vi.mock('@/services/platform/coachAssetsApi', () => ({ listFoodGroups: async () => [], listFoods: async () => libFoods.list, listSupplements: async () => [] }));
+vi.mock('@/services/platform/coachAssetsApi', () => ({
+  listFoodGroups: async () => [],
+  listSupplements: async () => [],
+  // B4.3: a hand-off reads the one food it adds (a Forma food or the coach's own).
+  getFood: async (_coach: string, id: string) => (libFoods.list as { id: string }[]).find((x) => x.id === id) ?? Promise.reject(Object.assign(new Error('Food not found'), { data: { code: 'NOT_FOUND' } })),
+}));
 vi.mock('@/components/coach/ClientContextPanel', () => ({ ClientContextPanel: () => null }));
 vi.mock('@/stores/dialogStore', () => ({ confirmDelete: async () => true, confirmDialog: async () => true }));
 

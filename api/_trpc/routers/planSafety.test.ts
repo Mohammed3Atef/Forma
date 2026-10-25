@@ -173,3 +173,25 @@ describe('food pictures in a nutrition plan (B4.1)', () => {
     await expect(asCoach.nutritionPlan.save({ clientId: 'client-1', name: 'Cut v3', meals: meal(`${CDN}/Forma/coach-1/foods/rice-r3.webp`), baseUpdatedAt: v2.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   });
 });
+
+describe('exercise demonstrations in a workout plan (B4.2)', () => {
+  const CDN = 'https://media.forma.test';
+  const saved = process.env.BUNNY_CDN_URL;
+  beforeEach(() => {
+    process.env.BUNNY_CDN_URL = CDN;
+  });
+  afterAll(() => {
+    if (saved === undefined) delete process.env.BUNNY_CDN_URL;
+    else process.env.BUNNY_CDN_URL = saved;
+  });
+  const plan = (imageUrl: string) => ({ clientId: 'client-1', name: 'Block', days: [], exercises: { e1: { id: 'e1', name: 'Curl', imageUrl, thumbUrl: '/catalog/edb/X1.webp' } } });
+
+  it('an ExerciseDB GIF and the coach’s own upload are kept; a client’s private photo or another coach’s file is refused', async () => {
+    const { asCoach } = await setup();
+    const ok = await asCoach.workoutPlan.save({ ...plan('https://static.exercisedb.dev/media/X1.gif'), baseUpdatedAt: null });
+    const v2 = await asCoach.workoutPlan.save({ ...plan(`${CDN}/Forma/coach-1/exercises/curl.gif`), baseUpdatedAt: ok.updatedAt as number });
+    await expect(asCoach.workoutPlan.save({ ...plan(`${CDN}/Forma/client-1/progress-front.jpg`), baseUpdatedAt: v2.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(asCoach.workoutPlan.save({ ...plan(`${CDN}/Forma/coach-2/exercises/x.gif`), baseUpdatedAt: v2.updatedAt as number })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect((await asCoach.workoutPlan.get({ clientId: 'client-1' }))?.updatedAt).toBe(v2.updatedAt); // nothing written
+  });
+});

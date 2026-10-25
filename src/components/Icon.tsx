@@ -47,6 +47,7 @@ type IconName =
   | 'globe'
   | 'shield'
   | 'columns'
+  | 'eye'
   // Glyphs that exist only in the approved website set (B2): rendered through
   // the glyph context below — client screens run inside it.
   | 'trash'
@@ -118,6 +119,9 @@ const PATHS: Partial<Record<IconName, string>> = {
   shield: 'M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3zM9.5 12l2 2 3.5-4',
   // Two side-by-side panels — a before/after photo compare, not a chart.
   columns: 'M4 4h7v16H4zM13 4h7v16h-7z',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  // A library favourite (B4.3) — also in the website set; this is the coach screens' fallback.
+  star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
 };
 
 /** Design-system size scale (px). Numeric sizes still accepted for fine control. */

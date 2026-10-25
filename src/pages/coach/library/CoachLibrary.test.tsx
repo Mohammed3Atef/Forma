@@ -5,9 +5,10 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { Exercise, WorkoutTemplate } from '@/types';
 
 /**
- * B3.7 Library: segments and URL, the first-run panel, honest demo states, explicit Select mode,
- * the persistent template-sync notice with Retry (TS-04), ⌘K create intents (DT-08) and the
- * "Use in a client plan" hand-off.
+ * B3.7 Library: segments and URL, first run, the persistent template-sync notice with Retry (TS-04),
+ * ⌘K create / open intents (DT-08) and the "Use in a client plan" hand-off.
+ * B4.3: Exercises is ONE list — Forma's shared exercises and the coach's own (All · Favourites ·
+ * Mine), searched and filtered on the server; nothing to import; Customise / Reset to Forma's version.
  */
 vi.mock('localforage', () => {
   const stores = new Map<string, Map<string, unknown>>();
@@ -27,31 +28,51 @@ vi.mock('localforage', () => {
 
 const h = vi.hoisted(() => ({
   desktop: true,
-  exercises: [] as unknown[],
+  rows: [] as unknown[],
+  total: 0,
   templates: [] as unknown[],
-  listExercises: vi.fn(),
+  listLibraryExercises: vi.fn(),
+  setLibraryFavorite: vi.fn(),
+  getCatalogExercise: vi.fn(),
   saveExercise: vi.fn(),
   getExercise: vi.fn(),
-  bulkDeleteExercises: vi.fn(),
+  deleteExercise: vi.fn(),
   listMyClients: vi.fn(),
 }));
 vi.mock('@/hooks/useMediaQuery', () => ({ useIsDesktop: () => h.desktop, useIsTabletUp: () => h.desktop, useMediaQuery: () => h.desktop }));
 vi.mock('@/hooks/useOnlineStatus', () => ({ useOnlineStatus: () => true }));
-vi.mock('@/components/coach/CoachPlanProvider', async () => {
-  const { useTranslation } = await import('react-i18next');
-  return { useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }), useWriteGate: () => { const { t } = useTranslation(); const reason = !(true) ? t('coachPlan.readOnly') : !(navigator.onLine) ? t('offline.actionDisabled') : undefined; return { canWrite: (true) && (navigator.onLine), planBlocked: !(true), online: navigator.onLine, reason }; } };
-});
+vi.mock('@/hooks/useDebouncedValue', () => ({ useDebouncedValue: <T,>(v: T) => v }));
+vi.mock('@/services/platform/mediaApi', () => ({ useUploadConfigured: () => false, uploadFile: vi.fn(), uploadExercisePicture: vi.fn(), UploadError: class extends Error {} }));
+vi.mock('@/components/coach/CoachPlanProvider', () => ({ useCoachPlan: () => ({ canWrite: true, state: 'active', daysLeft: 20, plan: null }), useWriteGate: () => ({ canWrite: true, planBlocked: false, online: true, reason: undefined }) }));
 vi.mock('@/services/platform/coachApi', async (orig) => ({ ...(await orig<typeof import('@/services/platform/coachApi')>()), listMyClients: h.listMyClients }));
 vi.mock('@/services/platform/coachAssetsApi', async (orig) => ({
   ...(await orig<typeof import('@/services/platform/coachAssetsApi')>()),
-  listExercises: h.listExercises,
   saveExercise: h.saveExercise,
   getExercise: h.getExercise,
-  bulkDeleteExercises: h.bulkDeleteExercises,
+  deleteExercise: h.deleteExercise,
   listWorkoutTemplates: async () => h.templates,
   listFoods: async () => [],
   listFoodGroups: async () => [],
   listSupplements: async () => [],
+}));
+const TAXONOMY = {
+  muscles: { chest: { en: 'Chest', ar: 'الصدر' }, lats: { en: 'Lats', ar: 'الظهر' } },
+  equipment: { barbell: { en: 'Barbell', ar: 'بار' }, bodyweight: { en: 'Bodyweight', ar: 'وزن الجسم' } },
+  bodyParts: { chest: { en: 'Chest', ar: 'الصدر' } },
+  difficulty: {},
+  foodCategories: {},
+  foodStates: {},
+};
+vi.mock('@/services/platform/catalogApi', async (orig) => ({
+  ...(await orig<typeof import('@/services/platform/catalogApi')>()),
+  catalogMetaQuery: () => ({ queryKey: ['catalog', 'meta'], queryFn: async () => ({ taxonomy: TAXONOMY, licenses: {} }), staleTime: Infinity }),
+  getCatalogExercise: h.getCatalogExercise,
+}));
+vi.mock('@/services/platform/libraryApi', () => ({
+  LIBRARY_KEY: ['library'],
+  listLibraryExercises: h.listLibraryExercises,
+  listLibraryFoods: async () => ({ total: 0, items: [] }),
+  setLibraryFavorite: h.setLibraryFavorite,
 }));
 
 import { useSession } from '@/services/auth/sessionStore';
@@ -61,6 +82,31 @@ import { CoachLibrary } from './CoachLibrary';
 const COACH = 'coach-1';
 const ex = (id: string, p: Partial<Exercise> = {}): Exercise =>
   ({ id, name: id, targetMuscle: 'Chest', warmupSets: '0', workingSets: 3, repRange: '8-12', rir: '', tempo: '', notes: { en: '', ar: '' }, restSec: 90, videoId: null, ...p }) as Exercise;
+const shared = (id: string, en: string, media: 'video' | 'animation' | 'image' | 'none' = 'none', favorite = false) => ({
+  kind: 'shared',
+  id,
+  favorite,
+  card: { id, origin: 'forma', rev: 1, name: { en, ar: `${en} (ar)` }, bodyPart: 'chest', primaryMuscles: ['chest'], equipment: ['barbell'], pattern: null, difficulty: null, media, videoCount: 0, demoCount: media === 'none' ? 0 : 1, variantOf: null, thumb: null },
+});
+const own = (e: Exercise, catalogId: string | null = null) => ({ kind: 'own', id: e.id, favorite: false, customized: !!catalogId, catalogId, exercise: { ...e, ...(catalogId ? { catalogId } : {}) }, muscles: ['chest'], equipment: [] });
+const BENCH_FULL = {
+  id: 'fx_bench',
+  origin: 'forma',
+  rev: 3,
+  name: { en: 'Barbell bench press', ar: 'ضغط البار' },
+  aliases: { en: [], ar: [], eg: ['بنش'] },
+  bodyPart: 'chest',
+  primaryMuscles: ['chest'],
+  secondaryMuscles: [],
+  equipment: ['barbell'],
+  pattern: null,
+  mechanics: null,
+  difficulty: null,
+  laterality: null,
+  instructions: { en: { setup: [], steps: ['Lower the bar.', 'Press.'], cues: [], mistakes: [], safety: [] }, ar: null },
+  media: [],
+  variantOf: null,
+};
 
 function Where() {
   const l = useLocation();
@@ -80,32 +126,37 @@ function renderAt(path: string) {
   );
 }
 const where = () => screen.getByTestId('where').textContent;
+const lastQuery = () => h.listLibraryExercises.mock.calls.at(-1)![0];
 
 beforeEach(() => {
   h.desktop = true;
   h.templates = [];
-  h.exercises = [
-    ex('e-video', { name: 'Bench press', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', equipment: 'Barbell' }),
-    ex('e-image', { name: 'Cable fly', images: ['https://img.test/fly.png'], equipment: 'Cable' }),
-    ex('e-none', { name: 'Dip', equipment: 'Bodyweight' }),
-    ex('e-drive', { name: 'Push-up', videoUrl: 'https://drive.google.com/file/d/x/view', sourceProvider: 'wger' }),
-  ];
-  h.listExercises.mockReset().mockImplementation(async () => h.exercises);
-  h.saveExercise.mockReset();
+  h.rows = [shared('fx_bench', 'Barbell bench press', 'video'), shared('edb_fly', 'Cable fly', 'animation'), shared('fx_dip', 'Dip'), own(ex('e-none', { name: 'Ring dip' }))];
+  h.total = 1343;
+  h.listLibraryExercises.mockReset().mockImplementation(async (q: { scope?: string; offset?: number; limit?: number }) => {
+    const rows = (h.rows as { kind: string; favorite: boolean }[]).filter((r) => (q.scope === 'mine' ? r.kind === 'own' : q.scope === 'favorites' ? r.favorite : true));
+    const offset = q.offset ?? 0;
+    return { total: q.scope && q.scope !== 'all' ? rows.length : h.total, items: rows.slice(offset, offset + (q.limit ?? 30)) };
+  });
+  h.setLibraryFavorite.mockReset().mockResolvedValue({ favorite: true });
+  h.getCatalogExercise.mockReset().mockResolvedValue(BENCH_FULL);
+  h.saveExercise.mockReset().mockResolvedValue({ status: 'success', affectedTemplates: 0 });
   h.getExercise.mockReset();
-  h.bulkDeleteExercises.mockReset().mockResolvedValue({ ok: 1, failed: 0 });
+  h.deleteExercise.mockReset().mockResolvedValue(undefined);
   h.listMyClients.mockReset().mockResolvedValue([{ id: 'c1', displayName: 'Aya Hassan', email: 'aya@x.test', role: 'client' }]);
   useSession.setState({ uid: COACH, account: { id: COACH, role: 'coach', accountStatus: 'active', displayName: 'Amira', email: 'amira@x.test' } as never });
 });
 
 describe('Library — segments and first run', () => {
-  it('opens on Programs; an empty library explains the starter library honestly and offers it up front', async () => {
+  it('opens on Programs; an empty list offers to create the first one — there is no starter library to import (B4.3)', async () => {
     renderAt('/coach/library');
-    const panel = await screen.findByTestId('lib-starter');
+    const panel = await screen.findByTestId('lib-first');
     expect(screen.getByTestId('lib-tab-programs')).toHaveAttribute('aria-selected', 'true');
-    expect(within(panel).getByText(/Most starter exercises don't have a demo video yet/)).toBeInTheDocument();
-    expect(within(panel).getByTestId('load-starter-library')).toBeEnabled();
-    expect(screen.queryByText(/many with video/i)).toBeNull(); // EX-23
+    expect(within(panel).getByText('No programs yet')).toBeInTheDocument();
+    expect(within(panel).getByTestId('template-new-first')).toBeEnabled();
+    expect(screen.queryByTestId('load-starter-library')).toBeNull();
+    expect(screen.queryByTestId('lib-load-starter')).toBeNull();
+    expect(screen.queryByText(/starter/i)).toBeNull();
   });
 
   it('the old ?tab=groups opens Foods › Swap groups and the URL says so', async () => {
@@ -134,56 +185,89 @@ describe('Library — segments and first run', () => {
   });
 });
 
-describe('Library › Exercises', () => {
-  it('each row says honestly what demo it has; "Has video" keeps only playable videos (in the URL)', async () => {
+describe('Library › Exercises — one shared library', () => {
+  it('a coach with nothing of their own sees Forma’s exercises at once (no import), with honest demo marks and the full count', async () => {
+    h.rows = h.rows.filter((r) => (r as { kind: string }).kind === 'shared');
     renderAt('/coach/library?tab=exercises');
-    const table = await screen.findByTestId('coach-desktop-library');
-    expect(within(table).getAllByTestId('demo-video')).toHaveLength(1);
-    expect(within(table).getAllByTestId('demo-image')).toHaveLength(1);
-    expect(within(table).getAllByTestId('demo-none')).toHaveLength(2); // nothing, and a Drive link that can't play
-    expect(within(table).getAllByText('No demo yet')).toHaveLength(2);
-    expect(screen.getByTestId('attribution')).toHaveTextContent('wger.de · CC BY-SA');
-    fireEvent.click(screen.getByTestId('lib-filter-video'));
-    await waitFor(() => expect(within(screen.getByTestId('coach-desktop-library')).getAllByTestId('data-row')).toHaveLength(1));
-    expect(where()).toContain('video=1');
-    expect(screen.getByTestId('lib-count')).toHaveTextContent('1 of 4');
+    const list = await screen.findByTestId('lib-exercises');
+    await waitFor(() => expect(within(list).getAllByTestId('library-exercise-row')).toHaveLength(3));
+    expect(screen.getByTestId('lib-exercises-count')).toHaveTextContent('1343 exercises');
+    expect(within(list).getAllByTestId('library-media-video')).toHaveLength(1);
+    expect(within(list).getAllByTestId('library-media-animation')).toHaveLength(1);
+    expect(within(list).getAllByTestId('library-media-none')).toHaveLength(1);
+    expect(lastQuery()).toMatchObject({ q: '', scope: 'all', lang: 'en', limit: 30 });
   });
 
-  it('headers are real column names and sort with aria-sort', async () => {
+  it('All · Favourites · My exercises, search and filters live in the URL and go to the server', async () => {
     renderAt('/coach/library?tab=exercises');
-    const table = await screen.findByTestId('coach-desktop-library');
-    const headers = within(table).getAllByRole('columnheader').map((th) => th.textContent?.trim());
-    expect(headers).toEqual(expect.arrayContaining(['Exercise', 'Muscle', 'Equipment', 'Demo']));
-    expect(headers.join(' ')).not.toMatch(/e\.g\./);
-    fireEvent.click(screen.getByTestId('sort-demo'));
-    await waitFor(() => expect(where()).toContain('sort=demo'));
-    expect(screen.getByTestId('sort-demo').closest('th')).toHaveAttribute('aria-sort', 'ascending');
-    expect(within(screen.getByTestId('coach-desktop-library')).getAllByTestId('data-row')[0]).toHaveTextContent('Bench press');
+    await screen.findAllByTestId('library-exercise-row');
+    fireEvent.click(screen.getByTestId('lib-exercises-scope-mine'));
+    await waitFor(() => expect(where()).toContain('scope=mine'));
+    await waitFor(() => expect(lastQuery()).toMatchObject({ scope: 'mine' }));
+    expect(await screen.findByText('Ring dip')).toBeInTheDocument();
+    expect(screen.getByTestId('library-badge-mine')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('lib-exercises-scope-all'));
+    fireEvent.change(screen.getByTestId('lib-exercises-search'), { target: { value: 'بنش' } });
+    fireEvent.change(screen.getByTestId('lib-exercises-muscle'), { target: { value: 'chest' } });
+    fireEvent.click(screen.getByTestId('lib-exercises-demo'));
+    await waitFor(() => expect(lastQuery()).toMatchObject({ q: 'بنش', scope: 'all', muscle: 'chest', demo: true }));
+    expect(where()).toContain('muscle=chest');
+    expect(where()).toContain('demo=1');
   });
 
-  it('bulk actions exist only in Select mode', async () => {
+  it('the star keeps a favourite (a light reference — nothing is copied)', async () => {
     renderAt('/coach/library?tab=exercises');
-    await screen.findByTestId('coach-desktop-library');
-    expect(screen.queryAllByTestId('row-select')).toHaveLength(0);
-    expect(screen.queryByTestId('bulk-delete')).toBeNull();
-    fireEvent.click(screen.getByTestId('lib-select'));
-    expect(screen.getAllByTestId('row-select')).toHaveLength(4);
-    fireEvent.click(screen.getAllByTestId('row-select')[2]);
-    fireEvent.click(screen.getByTestId('bulk-delete'));
+    const rows = await screen.findAllByTestId('library-exercise-row');
+    const star = within(rows[0]).getByTestId('library-favorite');
+    expect(star).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(star);
+    await waitFor(() => expect(h.setLibraryFavorite).toHaveBeenCalledWith('exercise', 'fx_bench', true));
+    expect(star).toHaveAttribute('aria-pressed', 'true');
+    expect(h.saveExercise).not.toHaveBeenCalled();
+  });
+
+  it('a Forma exercise opens read-first and goes straight into a client’s plan — nothing is saved here', async () => {
+    renderAt('/coach/library?tab=exercises');
+    fireEvent.click(within((await screen.findAllByTestId('library-exercise-row'))[0]).getByTestId('library-row-main'));
+    expect(await screen.findByText('Lower the bar.')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('exercise-use'));
+    fireEvent.click(await screen.findByTestId('use-client-client'));
+    expect(where()).toBe('/coach/client/c1/workout?addExercise=fx_bench');
+    expect(h.saveExercise).not.toHaveBeenCalled();
+  });
+
+  it('Customise makes the coach’s own version (cat-<id>, linked to the catalog item); Reset removes it', async () => {
+    renderAt('/coach/library?tab=exercises');
+    fireEvent.click(within((await screen.findAllByTestId('library-exercise-row'))[0]).getByTestId('library-row-main'));
+    fireEvent.click(await screen.findByTestId('catalog-customize'));
+    const name = await screen.findByTestId('ex-name');
+    expect(name).toHaveValue('Barbell bench press');
+    fireEvent.change(name, { target: { value: 'Paused bench' } });
+    fireEvent.click(screen.getByTestId('ex-save'));
+    await waitFor(() => expect(h.saveExercise).toHaveBeenCalled());
+    expect(h.saveExercise.mock.calls[0][1]).toMatchObject({ id: 'cat-fx_bench', catalogId: 'fx_bench', name: 'Paused bench' });
+
+    h.rows = [own(ex('cat-fx_bench', { name: 'Paused bench' }), 'fx_bench')];
+    fireEvent.click(screen.getByTestId('lib-exercises-scope-mine'));
+    fireEvent.click(within(await screen.findByTestId('library-badge-customized').then((b) => b.closest('li')!)).getByTestId('library-row-main'));
+    expect(await screen.findByTestId('exercise-customized-note')).toBeInTheDocument();
+    expect(screen.queryByTestId('exercise-delete')).toBeNull();
+    fireEvent.click(screen.getByTestId('exercise-reset'));
     fireEvent.click(await screen.findByTestId('confirm-accept'));
-    await waitFor(() => expect(h.bulkDeleteExercises).toHaveBeenCalledWith(COACH, ['e-none']));
+    await waitFor(() => expect(h.deleteExercise).toHaveBeenCalledWith(COACH, 'cat-fx_bench'));
   });
 
   it('TS-04: a template sync that failed stays on screen until Retry succeeds — Retry re-saves the copy that is on the server now', async () => {
     const view = renderAt('/coach/library?tab=exercises');
-    fireEvent.click(await screen.findByRole('button', { name: 'Dip' }));
+    const mine = (await screen.findAllByTestId('library-exercise-row')).find((r) => r.dataset.kind === 'own')!;
+    fireEvent.click(within(mine).getByTestId('library-row-main'));
     fireEvent.click(await screen.findByTestId('exercise-view-edit'));
-    fireEvent.change(await screen.findByTestId('ex-name'), { target: { value: 'Ring dip' } });
+    fireEvent.change(await screen.findByTestId('ex-name'), { target: { value: 'Ring dip 2' } });
     h.saveExercise.mockResolvedValueOnce({ status: 'failed', affectedTemplates: 0, error: 'boom' });
     fireEvent.click(screen.getByTestId('ex-save'));
     const notice = await screen.findByTestId('lib-sync-issue');
-    expect(notice).toHaveTextContent('“Ring dip” was saved, but its templates weren\'t updated');
-    expect(h.saveExercise.mock.calls[0][1]).toMatchObject({ id: 'e-none', name: 'Ring dip' });
+    expect(notice).toHaveTextContent('“Ring dip 2” was saved, but its templates weren\'t updated');
+    expect(h.saveExercise.mock.calls[0][1]).toMatchObject({ id: 'e-none', name: 'Ring dip 2' });
 
     // Still there after leaving and coming back.
     view.unmount();
@@ -206,30 +290,26 @@ describe('Library › Exercises', () => {
     expect(screen.getByTestId('ex-name')).toHaveValue('');
   });
 
-  it('?open=<id> (⌘K search) opens that exercise read-first', async () => {
-    renderAt('/coach/library?tab=exercises&open=e-image');
+  it('?open=<id> (⌘K search) opens the coach’s exercise read-first, or a Forma one by its catalog id', async () => {
+    h.getExercise.mockResolvedValueOnce(ex('e-image', { name: 'Cable fly', images: ['https://img.test/fly.png'] }));
+    const view = renderAt('/coach/library?tab=exercises&open=e-image');
     expect(await screen.findByTestId('exercise-view')).toBeInTheDocument();
     expect(screen.getByTestId('demo-image-view')).toHaveAttribute('src', 'https://img.test/fly.png');
     await waitFor(() => expect(where()).toBe('/coach/library?tab=exercises'));
+    view.unmount();
+    renderAt('/coach/library?tab=exercises&open=fx_bench');
+    expect(await screen.findByText('Lower the bar.')).toBeInTheDocument();
+    expect(h.getCatalogExercise).toHaveBeenCalledWith('fx_bench');
   });
 
-  it('"Use in a client plan" hands the exercise to that client\'s training editor — nothing is saved here', async () => {
-    renderAt('/coach/library?tab=exercises');
-    fireEvent.click(await screen.findByRole('button', { name: 'Bench press' }));
-    fireEvent.click(await screen.findByTestId('exercise-use'));
-    fireEvent.click(await screen.findByTestId('use-client-client'));
-    expect(where()).toBe('/coach/client/c1/workout?addExercise=e-video');
-    expect(h.saveExercise).not.toHaveBeenCalled();
-  });
-
-  it('phones: a list with the same honest badges; Show more pages through long libraries', async () => {
+  it('Show more asks the server for the next page', async () => {
     h.desktop = false;
-    h.exercises = Array.from({ length: 70 }, (_, i) => ex(`e${i}`, { name: `Exercise ${String(i).padStart(2, '0')}` }));
+    h.rows = Array.from({ length: 70 }, (_, i) => shared(`fx_e${i}`, `Exercise ${String(i).padStart(2, '0')}`));
+    h.total = 70;
     renderAt('/coach/library?tab=exercises');
-    const list = await screen.findByTestId('lib-list-exercises');
-    expect(within(list).getAllByTestId('lib-item')).toHaveLength(30);
-    fireEvent.click(screen.getByTestId('lib-show-more'));
-    expect(within(screen.getByTestId('lib-list-exercises')).getAllByTestId('lib-item')).toHaveLength(60);
-    expect(screen.getByTestId('lib-show-more')).toHaveTextContent('Show more (10)');
+    await waitFor(() => expect(screen.getAllByTestId('library-exercise-row')).toHaveLength(30));
+    fireEvent.click(screen.getByTestId('lib-exercises-show-more'));
+    await waitFor(() => expect(screen.getAllByTestId('library-exercise-row')).toHaveLength(60));
+    expect(lastQuery()).toMatchObject({ offset: 30 });
   });
 });

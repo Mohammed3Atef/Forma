@@ -473,3 +473,371 @@ On a library food (Library › Foods) and on a plan item (nutrition editor):
   - PWA check and coach / client offline boot all passed.
 - **Details** are in `B4_CERTIFICATION_REPORT.md` §B4.1.
 - **Nothing was staged, committed, pushed, deployed, uploaded or enabled.**
+
+---
+
+# B4.2 — ExerciseDB V1 integration, local JSON catalog, media (owner brief, 2026-10-24/25)
+
+**Provider decision:** ExerciseDB V1 (https://oss.exercisedb.dev), confirmed by the owner directly with the provider; not re-examined here.
+- The provider's documentation requires credit to AscendAPI, so every ExerciseDB demonstration and record carries that credit in the app.
+
+**State at start:**
+- `development` = `c12f5e8` (B0 … B4.1, committed by the owner) and `main` = `db19e96` (its merge).
+- Production was redeployed from `main` on 2026-10-24 23:06 (`dpl_BThUf5SKZvSTU56oTsPyQUZRd2vx`, www.useforma.fit). Verified read-only: the live entry bundle contains the B4.1 strings ("Use the Forma photo", "Email not sent") and no `dataAttribution`, so the B39A-S01 reset-link fix and the per-coach quotas are live.
+- `FORMA_CATALOG` and `FORMA_CATALOG_MEDIA_URL` remain unset (catalog off in production). Preview and Production still share `MONGODB_URI` (B4-R1).
+
+## Step 1 — import (repeatable, offline after the pull)
+
+| Script | Does | Output |
+|---|---|---|
+| `scripts/catalog/fetch-exercisedb.mjs` | `GET /api/v1/exercises?limit=25&after=<cursor>` to the end + the vocabulary lists. Sequential, 1.5 s apart, 429/5xx retried (`lib/fetchCache.mjs` gained `retries`), every response cached | `e2e-out/.cache/catalog/exercisedb-raw.json` (git-ignored) |
+| `scripts/catalog/fetch-exercisedb-media.mjs` | Each GIF downloaded once into the build cache: sha256, size, frames; a 120 px WebP still of the middle frame | `public/catalog/edb/<id>.webp` + `e2e-out/.cache/catalog/exercisedb-media.json` |
+| `scripts/catalog/import-exercisedb.mjs` | Normalise, validate, fold duplicates, link to curated items, mark variations, apply translations and reviewed overrides; ids stable across imports | `data/catalog/exercisedb.json` (versioned) + `data/catalog-reports/exercisedb-import.{json,md}` |
+
+**Pull:** 1,500 records advertised, 1,500 fetched (63 requests, no throttling); 1,500 GIF requests.
+
+**Normalisation:**
+- **Source vocabulary.** The provider's terms (10 body parts, 38 muscles, 30 equipment) map onto Forma's ids. An unmapped term fails the import, and the provider's terms are also kept verbatim (`terms`).
+- **Taxonomy additions.** Muscles `delts` (the provider says "deltoids"), `serratus`, `rotator-cuff`, `neck`, `cardio`; equipment `bosu-ball`, `added-weight`, `other`; body part `neck`.
+- **Names and steps.** Names in sentence case, with the source name kept (`sourceName`). Steps have the "Step:N" prefix stripped.
+
+| Records → exercises | Count |
+|---|---:|
+| Records | 1,500 |
+| Folded into the exercise they repeat (same name + equipment + target + body part) | 215 |
+| … a different GIF, kept as an alternate demonstration | 39 |
+| … a dead GIF link (HTTP 404 at the provider; its twin's GIF works) | 176 |
+| … an identical GIF (exact duplicate) | 0 |
+| **ExerciseDB exercises** | **1,285** (every source id kept in `sourceIds`) |
+| Linked to a curated Forma item (same movement: the curated item gains the GIF; nothing duplicated) | 106 |
+| Standalone | 1,179 |
+| Variations linked (`variantOf`, kept separate) | 255 |
+| **Final catalog** (164 curated + 1,179 ExerciseDB) | **1,343** |
+
+**Linking rules:**
+- **Automatic link.** Same normalised name (`lib/exerciseMatch.mjs`, shared with the B4.1 mapping), compatible loading equipment, and the same main muscle family. If several records match one curated item, the closest equipment wins.
+- **Reviewed overrides** (`curation/exercisedb-review.json`, 10 entries):
+  - Weighted pull-up, triceps dip and bench dip are kept as variations.
+  - "cable kickback" is a triceps move, not the glute kickback.
+  - "star jump" is not a jumping jack.
+  - Farmer's walk and flutter kicks are linked (the provider tags their muscles differently).
+  - Glute bridge and Smith incline press are linked after checking the demonstration.
+  - "cable lat pulldown full range of motion" is never linked: its demonstration is a standing two-pulley pull.
+
+**Arabic:**
+- All 1,285 names have a draft MSA name and 1–3 Egyptian aliases (`curation/exercisedb-ar/batch-1…8.json`, written to the style and vocabulary of the curated items).
+- They are marked `translation: draft` until a native review.
+- The steps stay English (`instructions.ar` null); nothing was machine-translated.
+
+**Demonstration coverage:**
+- 1,298 of 1,343 exercises have one with no CDN step: all 1,179 standalone ExerciseDB items, plus 119 of the 164 curated.
+- 106 curated items gained an ExerciseDB GIF.
+
+## Step 2 — media
+
+- **GIFs stay at their original URL** (`static.exercisedb.dev`, 180 × 180, 67–124 KB each). They load only when an exercise is opened. Never uploaded, never bundled, never precached.
+- **Lists show the app's own 120 px WebP still:** 1,324 files, 1.65 MB in total, ~1.2 KB each.
+  - Served from `public/catalog/edb/`, cached a week (`vercel.json`), not in any JS chunk or the precache.
+  - The service worker caches GIFs and stills at runtime once seen, so a client's plan works offline.
+- **Several demonstrations per exercise:** videos first, then GIFs, in one switcher.
+- **Broken links:**
+  - A broken GIF in the preview shows its still and says so; a broken still shows the icon.
+  - On the client exercise page a broken picture falls back to the still, then hides.
+- **Replaceable:**
+  - Every plan or library copy keeps `sourceMedia`, the demonstration it came with, so "Restore the original" works after a coach replaces it.
+  - The catalog's media is a list per exercise, so Forma-hosted demonstrations (`hosting: forma-cdn`) can be added later without changing the copies.
+
+## Step 3 — search and catalog
+
+- **Search.** One in-memory index on the server over curated + ExerciseDB items: English, MSA, Egyptian aliases, typos.
+  - Curated items rank first among equals.
+  - A curated item also answers to its linked ExerciseDB names.
+  - No external API call during a search.
+- **Filters:**
+  - muscle — a shoulder filter matches both vocabularies;
+  - equipment;
+  - body part;
+  - `origin` (curated / ExerciseDB);
+  - `demo` (has any demonstration);
+  - `video`.
+- **Paging:** 30 per page with "Show more" (offset cap raised to 2,000); never the whole catalog.
+- **Measured** on the full catalog (1,343 exercises; `e2e-out/b42-search-bench.json`):
+  - Cold start: 27 ms to parse the JSON and 102 ms to build the index, once per server instance.
+  - Query: p50 4 ms, p95 8.1 ms, max 24.6 ms (first query).
+- **Quality gates hold on the full catalog** (`searchQuality.test`): top-3 ≥ 90 % overall and ≥ 85 % Arabic/Egyptian, p95 < 15 ms.
+
+## Step 4 — coach customisation (`ExerciseForm`, Library)
+
+**What a coach can do:**
+- Select from the catalog (plan picker).
+- Save to "My exercises" (copy `cat-<id>`).
+- Create custom exercises.
+- **Picture:** upload a still or a GIF, enter an https link, or remove it.
+- **Video:** link or upload.
+- **Restore the original demonstration.**
+- **Steps:** edit them in English and Arabic, one per line.
+
+**How it behaves:**
+- Credits follow the media actually shown: a replaced ExerciseDB GIF drops its credit, and restoring it brings the credit back.
+- The shared catalog is read-only; a coach always edits their own copy.
+
+**Uploads:**
+- **Device:** a still is scaled and re-encoded on the device; a GIF is kept as it is, with a first-frame still made for lists.
+- **Server** (`sanitizeDemoImage`):
+  - **Stills** are cleaned like food photos: real type from the bytes, metadata stripped, size limits.
+  - **GIFs:** frames and the loop block are kept; comment and XMP/application blocks are dropped. Up to 4 MB, and the chunked path is refused for pictures.
+  - **Where:** stored in `Forma/<coachId>/exercises/`.
+
+**Ownership** (`api/coach-assets/_lib/exerciseMedia.ts`), checked on every save of a library exercise, workout template and client workout plan:
+- Any public https demonstration link, or the app's own ExerciseDB still, is fine.
+- A file on Forma's storage must come from the coach's own `exercises` folder — never another coach's, never a client's private media.
+- `javascript:` / `data:` links are refused.
+- Links already stored in the document are kept (e.g. after a transfer).
+- `imageUrl` / `images` are now validated like `videoUrl` (they were not validated before).
+
+**Pictures shown in:**
+- Library exercise lists (table and phone).
+- Plan-builder rows.
+- The client's day view and the workout session card (the still; never a GIF in a list).
+- The client exercise page (the GIF).
+
+## Food pictures
+
+- **Remote catalog pictures** (`scripts/catalog/food-image-remote.mjs`, 6 Commons API calls):
+  - All 127 reviewed pictures now carry Wikimedia's own renditions at its standard widths (120 px list, 500 px card; tracking parameters stripped).
+  - `servedFoodImage` serves them while Forma's catalog CDN is not configured, and the CDN copies once it is. So the catalog shows food pictures with nothing uploaded.
+  - Foods dataset `2026.10.24-2`; the 127 foods got a new revision, and plans keep the revision they were saved with.
+- **Coach-entered links:** a coach can enter any public https picture link for a library food or a plan item (source `url`). It may not point at Forma's storage.
+- **Referrers:** all food and exercise picture tags send no referrer (`referrerPolicy="no-referrer"`).
+
+## Tests added
+
+- **Server:**
+  - `exercisedb.test` (8): dataset contract, all 1,500 source ids accounted for, stills on disk, links valid, the merged catalog, search.
+  - `catalog.test` (+5): API.
+  - `exerciseMedia.test` (3).
+  - `imageSanitize.test` (+2): GIF and still demonstration pictures.
+  - `_media.test` (+1): exercise picture upload.
+  - `coachAssets.test` (+2) and `planSafety.test` (+1): ownership on library, template and plan saves.
+  - `foodImage.test` (+2): remote and URL sources.
+  - `media.test`: updated to the B4.2 serving rule.
+- **Client:**
+  - `CatalogEdb.test` (8): the GIF preview and its fallback, English-only steps, credit, copy, remove and restore, steps editing, link validation.
+  - `FoodImageEditor.test` (+1): the link flow.
+- **Browser:**
+  - e2e `100-b42-exercisedb` (5 journeys).
+  - `98-b4-catalog` updated: the bench press now has 4 demonstrations, and the Romanian deadlift shows its ExerciseDB GIF with the credit.
+
+**Fixes found by the browser runs:**
+- The "Show more" button was 95 × 32 px, under the 44 px target rule; it is now full size.
+- The form refused the local test CDN's loopback upload links that the server accepts; the form now accepts the same links as the server.
+
+## B4.2 certification (2026-10-25)
+
+- **Code frozen**, then:
+  - 1,372 / 1,372 unit tests passed; tsc and boundaries clean.
+  - Full e2e3 suite `b42-full-1` (389 tests): 386 passed, 2 failed, 1 skipped (Google). The failures were one B4.2 product regression — null picture fields reaching templates through library sync — fixed, and one Playwright worker crash (infrastructure).
+  - Re-runs on the final code: 18 / 18 (specs 22, 97, 98, 100) and 47 / 47 (40, 89, 92).
+- **Details** in `B4_CERTIFICATION_REPORT.md` §B4.2.
+
+## B4.3 — One shared library, food pictures, starter retirement, cleanup and hardening (2026-10-25)
+
+Uncommitted, on top of the uncommitted B4–B4.2 tree. Nothing was staged, committed, pushed, deployed
+or written to a shared database or storage. Architecture: `B43_UNIFIED_LIBRARY.md`. Deletions:
+`B43_DELETION_MANIFEST.md`. Reset plan and tool: `B43_FRESH_START_PLAN.md`.
+
+### B4.3-0 Investigation (root cause of "93 foods, no pictures")
+
+- **Why 93.** Library › Foods read only `coachFoods`: the 84 starter foods copied by "Add the
+  starter library", plus 9 of the coach's own. Starter foods have no picture fields.
+- **Where the catalog was.** The 190 catalog foods lived only in the nutrition editor's "Forma foods"
+  picker, behind `FORMA_CATALOG`. That switch defaulted to OFF in production, where it is unset.
+- **Remote pictures.** B4.2's remote pictures were uncommitted. All 254 remote picture URLs return an
+  image (`e2e-out/b43-remote-image-check.json`).
+- **Production, read-only, 2026-10-25.**
+  - `www.useforma.fit` = `dpl_BThUf5SKZvSTU56oTsPyQUZRd2vx`, created 2026-10-24 23:06 (+03).
+  - It is the Git deploy of `main` = `db19e96` (merge of `development` = `c12f5e8`, B0–B4.1).
+  - It contains the B39A-S01 fix (`api/_lib/appUrl.ts`).
+  - No `FORMA_CATALOG` and no `FORMA_CATALOG_MEDIA_URL` are set.
+
+### B4.3-1 One shared library (server)
+
+- **`api/_trpc/routers/library.ts`** (coach): `library.exercises.list`, `library.foods.list` and
+  `library.favorites.set`.
+  - Merges Forma's catalog with the coach's own items, then searches, ranks, filters and pages on
+    the server (30 per page, at most 50).
+  - Scopes: All / Favourites / Mine.
+  - A customised catalog item is listed once, as the coach's version.
+  - A linked ExerciseDB id resolves to its curated item.
+  - "Has a demonstration" follows the app's playable-link rule.
+- **`coachFavorites`** collection (references), with index `uniq_coachId_id` (manifest + runtime).
+- **The `FORMA_CATALOG` switch is retired.** The catalog IS the library (approval item: deploying
+  B4.3 turns it on in production).
+- Tests: `library.test.ts` (17) and the updated `catalog.test.ts`.
+
+### B4.3-2 One shared library (client)
+
+- **Shared list components.** `LibraryExerciseBrowser` and `LibraryFoodBrowser` (All / Favourites /
+  Mine, search, filters, count, server paging, favourite star, Mine / Customised badges, light stills
+  and pictures, honest offline / error / empty states).
+- **Library › Exercises / Foods** were rebuilt on them, with the filters in the URL.
+  - **Forma items:** read-first, Use in a client plan, Customise.
+  - **Own items:** Use / Edit / Delete.
+  - **Customised items:** Reset to Forma's version.
+- **Direct use everywhere:**
+  - the workout builder's and the template editor's exercise picker (one list, multi-select across
+    Forma and own items);
+  - the nutrition editor's food sheet (one list, plus a serving step for Forma foods);
+  - swap groups (one list);
+  - "Use in a client plan", which now accepts catalog ids. Forma exercises arrive as a snapshot,
+    Forma foods at their first serving with source and picture.
+- **⌘K** indexes the loaded library lists.
+
+### B4.3-3 Starter library retired
+
+The procedure, the 909-exercise and starter-food data, the UI (menu, first-run panel, header
+demotion), the hook and client API, and the scripts are removed. Empty Programs / Supplements / Swap
+groups now offer to create the first item (`FirstItemPanel`). A new coach has 1,343 exercises and
+190 foods on the first visit and no copied rows. This is pinned by `coachAssets.test`,
+`CoachLibrary.test` and e2e 22 / 92.
+
+### B4.3-4 Dead code
+
+See `B43_DELETION_MANIFEST.md`:
+
+- 12 files removed;
+- 4 procedures removed: seed, nutrition templates, catalog search, catalog `byIds`;
+- the switch;
+- `legacyIds`;
+- 11 unused helpers;
+- 48 translation keys per locale.
+
+### B4.3-5 Fresh-start plan
+
+`B43_FRESH_START_PLAN.md`, plus `scripts/fresh-start-reset.mjs`, with 7 tests:
+
+- classes A–E;
+- dependency order;
+- backups;
+- dry run by default, with the target printed;
+- production refused;
+- verification;
+- rollback limits;
+- post-reset init and the smoke checklist.
+
+### B4.3-6 Food pictures
+
+- **Review.** Sheet `food-images.e.json` reviewed the 63 foods without a picture: 31 approved, 32
+  left without one, each with its reason. The lead spot check was a contact sheet of every new
+  thumbnail and card (`e2e-out/b43-food-contact-e*.png`). All 31 were kept, including new photos
+  for the three foods rejected at the B4.1 spot check (boiled chickpeas, boiled potatoes; egg white
+  is still without one).
+- **Build changes.**
+  - A later sheet may decide a food an earlier one left without a picture (two approvals are still
+    an error).
+  - Spot-check rejections are pinned to the file.
+  - A transparent PNG gets a white ground.
+- **Coverage.** 158 of 190 foods have a reviewed, licensed, credited picture (156 approved + 2 flagged for a better photo), up from 127. 32 foods honestly have none and show the placeholder. All 62 new remote renditions answer with an image. `foods.json` is now 2026.10.25-1: only `images` and `rev` changed. Remote renditions come from `food-image-remote.mjs`.
+
+### B4.3-7 Media and release hardening (application code only; read-only checks)
+
+**MD-02 — signed delivery of personal media.** Built and dormant until the owner configures it.
+
+- **What it does.** `api/media/_lib/delivery.ts` signs links with Bunny token authentication
+  (`base64url(sha256(key + path + expires))`). Expiries are rounded to 5 minutes; the lifetime is
+  1 h by default (`MEDIA_URL_TTL_SECONDS`, clamped to 5 min – 6 h).
+- **What it covers.** Only personal media: avatars, progress / assessment / check-in photos and
+  message attachments. Library content (exercise demos, food photos) stays public by design.
+- **Who gets a link.** `media.sign` checks every URL against `canSeePersonalMedia`:
+  - the owner;
+  - the client's CURRENT coach;
+  - thread participants (for attachments);
+  - a client, for their coach's avatar;
+  - `users.read` oversight accounts.
+  
+  A former coach, another coach or another client gets nothing. Stored documents keep bare URLs, so
+  a token never reaches the database.
+- **Client side.** `useMediaSrc` / `MediaImg` is used by `Avatar`, the media viewer, message
+  attachments, check-in, assessment and progress photos.
+  - **Off:** the stored URL is used immediately and no request is made, so nothing changes.
+  - **On:** links are signed in batches and cached until a minute before expiry.
+- **Lapsed coaches.** `media.sign` is on the lapsed-coach allow-list: it is a read that travels as a
+  mutation.
+- **To turn it on (owner):**
+  1. Enable Token Authentication on the Bunny pull zone.
+  2. Set `BUNNY_URL_TOKEN_KEY` (and optionally `MEDIA_URL_TTL_SECONDS`) in Vercel.
+  3. Run the browser + provider check from the MD-02 acceptance. Old public links stop working at
+     that moment.
+- **Limit.** The first image after sign-in may load once unsigned and then switch to the signed link
+  (the hook learns that signing is on from `media.status`).
+- **Tests:** `delivery.test.ts`, `mediaSign.test.ts` and `mediaDelivery.test.tsx`.
+
+**MD-03 — personal media nothing references.** `media.personalMediaOrphans` (super-admin, report
+only):
+
+- It lists every personal file in the zone.
+- A file is reported when no stored document references it and it is older than 14 days.
+- **Attachments of deleted messages count as unreferenced.** The message row stays for audit; its
+  file does not need to.
+- Deleting the reported files is an owner-approved storage operation. Nothing deletes anything.
+
+**Re-checked, read-only, 2026-10-25:**
+
+| Check | Result |
+|---|---|
+| **Production deployment** | `dpl_BThUf5SKZvSTU56oTsPyQUZRd2vx` = `main` `db19e96`, which includes the B39A-S01 fix. |
+| **B39A-S01 incident** | Steps 2–5 of the incident checklist (§1.3: verify with a forged `Origin`, invalidate older reset tokens, review the Resend logs, act per affected user) are owner actions on production. **Not done.** |
+| **B4-R1** | Preview and Production still share `MONGODB_URI`. `MONGODB_DB` is set in neither (both use `forma`). |
+| **REL-03** | Production still carries every `E2E_*` credential. `APP_BASE_URL` is unset (the canonical fallback applies). |
+| **MD-01, Bunny 401** | Not re-testable without production writes or credentials. `BUNNY_*` names are unchanged since the 401 was recorded. |
+| **Catalog switches** | No `FORMA_CATALOG` variable; B4.3 retires the switch. No `FORMA_CATALOG_MEDIA_URL`, so food pictures come from Wikimedia renditions. |
+| **Indexes** | One new index (`coachFavorites.uniq_coachId_id`), also ensured at runtime. `index-preflight` needs a confirmed target and was not run. |
+
+### B4.3-8 Performance (measured)
+
+- **Server (in-memory MongoDB, real router and datasets, a coach with 60 own exercises, 25 foods
+  and 30 favourites).** Library list p50 / p95:
+
+  | Request | p50 ms | p95 ms |
+  |---|---:|---:|
+  | All exercises, no query | 11.5 | 16.9 |
+  | "bench press" | 17.6 | 32.2 |
+  | "بنش" | 8.0 | 17.9 |
+  | Typo | 10.7 | 16.4 |
+  | Filters | 5.7 | 8.6 |
+  | Favourites | 5.0 | 8.2 |
+  | Foods | 4–5 | 6–7 |
+
+  - A 30-row page is 5.8–15.6 KB of JSON.
+  - Opening / adding 5 exercises (`catalog.exercises.full`) takes 0.2 ms.
+  - Each list request makes 2 database reads: own rows by `coachId`, and favourites.
+  - Cold dataset load + index: ~190 ms once per server instance (RSS ~95 MB).
+- **Pictures and stills.**
+  - Food list thumbnails (Wikimedia 120 px): 6.0 KB average, 11 KB max.
+  - Cards (500 px, only when opened): 61 KB average.
+  - ExerciseDB list stills: 1.2 KB average (1,324 files).
+  - No GIF is loaded in any list.
+  - Datasets and stills are not in any JS bundle or in the precache. Precache: 225 entries,
+    2,582 KiB.
+- **Bundles** (gzip KB, budget → B4.2 → B4.3):
+
+  | Screen | Budget | B4.2 | B4.3 |
+  |---|---:|---:|---:|
+  | Nutrition editor | 30.05 | 32.63 | **26.28** — within budget |
+  | Library | 13.91 | 14.03 | **11.59** |
+  | Workout editor | 35.33 | 31.82 | 31.60 |
+  | Entry | 161.88 | 163.63 | 164.13 |
+
+  - **Nutrition editor:** the food sheet and the Library hand-off are now their own chunks, and the
+    hand-off helpers no longer pull in the workout model.
+  - **Entry:** the B4 strings, minus the removed ones, plus 0.5 KB for the MD-02 hook in `Avatar`.
+  - **Other screens are +0.1–1.5 %.** Vite's preload map now lists the new lazy chunks; the
+    check-in / assessment photo components gained the `MediaImg` hook.
+  - **No budget was raised** (B41-P1 remains an owner decision for these small overages).
+
+### B4.3-9 Verification
+
+See `B4_CERTIFICATION_REPORT.md` §B4.3:
+- tsc clean, 1,395 / 1,395 unit tests, build ok;
+- full e2e3 suite: 390 / 395 (1 failure = a real "Show more" race, fixed; 1 skipped Google; 3 serial follow-ups not run);
+- re-run of specs 22 / 92 / 98 / 100 / 101 on the final code: 35 / 36, the one failure a spec race (fixed), then 1 / 1.

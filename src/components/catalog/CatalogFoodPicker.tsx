@@ -89,7 +89,8 @@ export function CatalogFoodPicker({ taxonomy, onPick, testId = 'catalog-foods' }
   );
 }
 
-function ServingChooser({ card, taxonomy, onBack, onPick, testId }: { card: CatalogFoodCard; taxonomy: CatalogTaxonomy; onBack: () => void; onPick: (p: FoodPick) => void; testId: string }) {
+/** B4.3: also the coach food sheet's serving step for a Forma food picked from the unified list. */
+export function ServingChooser({ card, taxonomy, onBack, onPick, testId }: { card: CatalogFoodCard; taxonomy: CatalogTaxonomy; onBack: () => void; onPick: (p: FoodPick) => void; testId: string }) {
   const { t, i18n } = useTranslation();
   const label = useTaxonomyLabel();
   const ar = i18n.language.startsWith('ar');

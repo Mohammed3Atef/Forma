@@ -55,9 +55,28 @@ const CatalogExerciseLinkFields = {
   catalogId: z.string().trim().min(1).max(80).optional(),
   catalogRev: z.number().int().positive().optional(),
   names: LocalizedTextSchema.optional(),
-  instructions: z.object({ en: CatalogInstructionSetSchema, ar: CatalogInstructionSetSchema }).optional(),
+  instructions: z.object({ en: CatalogInstructionSetSchema, ar: CatalogInstructionSetSchema.nullable() }).optional(),
   mediaCredits: z.array(MediaCreditSchema).max(8).optional(),
 };
+
+/**
+ * B4.2 — an exercise picture / still / demonstration link: https (loopback http for the test CDN),
+ * or the app's own ExerciseDB list still (`/catalog/edb/<id>.webp`). Never javascript:, data: or
+ * a relative path elsewhere. Who may point at Forma's storage is checked on save (`exerciseMedia.ts`).
+ */
+export const MediaUrlSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((v) => v === '' || /^https:\/\/[^\s]+$/i.test(v) || /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\/[^\s]*$/i.test(v) || /^\/catalog\/edb\/[A-Za-z0-9]+\.webp$/.test(v), { message: 'Media links must be https:// links' });
+const SourceMediaSchema = z.object({
+  imageUrl: MediaUrlSchema.nullable(),
+  images: z.array(MediaUrlSchema).max(10),
+  thumbUrl: MediaUrlSchema.nullable(),
+  videoUrl: MediaUrlSchema.nullable(),
+  videoPosterUrl: MediaUrlSchema.nullable(),
+  mediaCredits: z.array(MediaCreditSchema).max(8),
+});
 
 const ExerciseFieldsSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -87,8 +106,11 @@ const ExerciseFieldsSchema = z.object({
   equipment: nullAsAbsent(z.string().max(100)),
   tags: z.array(z.string()).optional(),
   progressionNotes: z.string().optional(),
-  imageUrl: z.string().nullable().optional(),
-  images: nullAsAbsent(z.array(z.string())),
+  imageUrl: MediaUrlSchema.nullable().optional(),
+  images: nullAsAbsent(z.array(MediaUrlSchema).max(10)),
+  /** B4.2: a light list still, and the original demonstration of a catalog copy (restorable). */
+  thumbUrl: MediaUrlSchema.nullable().optional(),
+  sourceMedia: SourceMediaSchema.optional(),
   /** B4.1: the still shown before a catalog demonstration plays (https, as for videoUrl). */
   videoPosterUrl: z
     .string()
@@ -197,16 +219,6 @@ const LibrarySupplementFieldsSchema = z.object({
 });
 export const SupplementBodySchema = LibrarySupplementFieldsSchema.extend({ id: z.string().min(1) });
 export const SupplementBodyPatchSchema = LibrarySupplementFieldsSchema.partial();
-
-export const NutritionTemplateBodySchema = z.object({
-  id: z.string().min(1),
-  name: z.string().trim().min(1).max(200),
-  meals: z.array(MealSchema),
-  targets: MacrosSchema,
-  supplements: z.array(SupplementSchema),
-  waterTargetMl: z.number(),
-});
-export const NutritionTemplateBodyPatchSchema = NutritionTemplateBodySchema.omit({ id: true }).partial();
 
 const FoodFieldsSchema = z.object({
   name: LocalizedTextSchema,

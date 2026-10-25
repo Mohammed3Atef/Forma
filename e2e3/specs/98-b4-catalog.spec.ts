@@ -6,12 +6,13 @@ import { test, expect, ready, shot, type Db } from '../fixtures';
 import { allowDevModuleStorm, insertMany, LOCALE_OF, waitForLocaleSaved } from './_c-helpers';
 
 /**
- * B4 — the curated Forma catalog in a real browser (isolated stack; the catalog is on outside
- * production): the coach finds an exercise in Arabic / Egyptian words, previews its demonstration,
+ * B4 — the curated Forma catalog in a real browser (B4.3: always on — it IS the shared library):
+ * the coach finds an exercise in Arabic / Egyptian words in the ONE list, previews its demonstration,
  * Forma's instructions and the media credits, and adds it — the plan stores a full copy with its
- * catalog link; a catalog food is added as a computed serving with its provenance; the Library copies
- * a catalog exercise into the coach's own; the client reads the copy in Arabic on a phone (name,
- * instructions, credits; the serving in Arabic). Offline says so. axe, 44 px, no overflow.
+ * catalog link; a catalog food is added as a computed serving with its provenance; in the Library a
+ * coach customises a Forma exercise (their own version replaces Forma's in their list); the client
+ * reads the copy in Arabic on a phone (name, instructions, credits; the serving in Arabic). Offline
+ * says so. axe, 44 px, no overflow.
  *
  * Fixtures on coachPro use `e2e-b4-` ids and are removed in afterAll (with the one library copy).
  */
@@ -47,6 +48,7 @@ async function removeFixtures(db: Db) {
   for (const col of ['coachClients', 'clientProfiles', 'planVersions', 'notifications', 'syncRecords']) await db.deleteMany(col, { clientId: re });
   for (const col of ['clientWorkoutPlans', 'clientNutritionPlans', 'users']) await db.deleteMany(col, { _id: re });
   await db.deleteMany('coachExercises', { coachId: COACH, id: 'cat-fx_romanian_deadlift' });
+  await db.deleteMany('coachFavorites', { coachId: COACH });
 }
 async function axe(page: Page, selector: string) {
   const r = await new AxeBuilder({ page }).include(selector).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
@@ -80,21 +82,21 @@ test.describe('B4 Forma catalog', () => {
     await page.getByTestId('builder-add-exercise').click();
     const picker = page.getByTestId('exercise-picker');
     await expect(picker).toBeVisible();
-    await page.getByTestId('picker-source-forma').click();
-    await page.getByTestId('picker-catalog-search').fill('بنش مستوي');
-    const row = page.locator('[data-testid="catalog-exercise-row"][data-id="fx_barbell_bench_press"]');
+    await page.getByTestId('picker-library-search').fill('بنش مستوي');
+    const row = page.locator('[data-testid="library-exercise-row"][data-id="fx_barbell_bench_press"]');
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId('catalog-exercise-row').first()).toHaveAttribute('data-id', 'fx_barbell_bench_press');
+    await expect(picker.getByTestId('library-exercise-row').first()).toHaveAttribute('data-id', 'fx_barbell_bench_press');
     expect(await smallTargets(page, '[data-testid="exercise-picker"] button')).toEqual([]);
     expect(await axe(page, '[data-testid="exercise-picker"]')).toEqual([]);
-    await row.getByTestId('catalog-exercise-preview').click();
+    await row.getByTestId('library-row-preview').click();
     const view = page.getByTestId('catalog-exercise-view');
     await expect(view).toBeVisible();
     await expect(view.getByTestId('exercise-instructions')).toBeVisible();
     await expect(view.getByTestId('media-credits')).toContainText('Goulart'); // the H.264 MP4 demonstration
     await expect(view.getByTestId('media-credits')).toContainText('Everkinetic');
     // B4.1: every approved demonstration can be chosen; the video loads only when tapped (poster first).
-    await expect(view.getByTestId('catalog-demo-option')).toHaveCount(3);
+    // B4.2: the three videos and the ExerciseDB GIF of the same movement (linked, never a duplicate item).
+    await expect(view.getByTestId('catalog-demo-option')).toHaveCount(4);
     await expect(view.locator('video')).toHaveCount(0);
     await view.getByTestId('catalog-video-poster').click();
     await expect(view.locator('video')).toHaveCount(1);
@@ -125,10 +127,10 @@ test.describe('B4 Forma catalog', () => {
     await ready(page);
     await expect(page.getByTestId('coach-nutrition-editor')).toBeVisible();
     await page.getByTestId('nutrition-add-food').first().click();
-    await page.getByTestId('food-catalog-search').fill('رز طويل');
-    const rice = page.locator('[data-testid="catalog-food-row"][data-id="ff_rice_white_long_cooked"]');
+    await page.getByTestId('food-library-search').fill('رز طويل');
+    const rice = page.locator('[data-testid="library-food-row"][data-id="ff_rice_white_long_cooked"]');
     await expect(rice).toBeVisible({ timeout: 15_000 });
-    await rice.click();
+    await rice.getByTestId('library-row-main').click();
     await expect(page.getByTestId('food-catalog-portion')).toHaveValue('cup');
     await page.getByTestId('food-catalog-amount').fill('2');
     await page.getByTestId('food-catalog-amount').blur();
@@ -142,24 +144,33 @@ test.describe('B4 Forma catalog', () => {
       .toMatchObject({ catalogId: 'ff_rice_white_long_cooked', calories: 411, protein: 8.5, carbs: 89, fats: 0.9, portion: { id: 'cup', amount: 2, grams: 316 }, foodState: 'cooked', verification: 'source-values', source: { provider: 'forma-catalog' } });
   });
 
-  test('coach Library: browse the Forma library and copy an exercise into "My exercises" (a second copy is never made)', async ({ as, db, audit }) => {
+  test('coach Library: a Forma exercise opens read-first; "Customise" saves the coach\'s own version, which then replaces Forma\'s in their list; Reset brings Forma\'s back', async ({ as, db, audit }) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
     await page.goto('/coach/library?tab=exercises');
     await ready(page);
-    await page.getByTestId('lib-source-forma').click();
-    await page.getByTestId('lib-catalog-search').fill('الرفعة الرومانية');
-    const rdl = page.locator('[data-testid="catalog-exercise-row"][data-id="fx_romanian_deadlift"]');
+    await page.getByTestId('lib-exercises-search').fill('الرفعة الرومانية');
+    const rdl = page.locator('[data-testid="library-exercise-row"][data-id="fx_romanian_deadlift"]');
     await expect(rdl).toBeVisible({ timeout: 15_000 });
-    await rdl.locator('button').first().click();
-    await expect(page.getByTestId('catalog-no-demo')).toBeVisible(); // no licensed demonstration — said honestly
-    await page.getByTestId('catalog-copy').click();
-    await expect.poll(async () => (await db.findOne<{ catalogId?: string }>('coachExercises', { coachId: COACH, id: 'cat-fx_romanian_deadlift' }))?.catalogId, { timeout: 15_000 }).toBe('fx_romanian_deadlift');
-    await page.getByTestId('lib-source-forma').click();
-    await page.getByTestId('lib-catalog-search').fill('romanian deadlift');
-    await rdl.locator('button').first().click();
-    await expect(page.getByTestId('catalog-open-copy')).toBeVisible();
-    await expect(page.getByTestId('catalog-copy')).toHaveCount(0);
+    await rdl.getByTestId('library-row-main').click();
+    // B4.2: the ExerciseDB demonstration of the same movement, credited (B4.1 said "no demonstration yet" here).
+    await expect(page.getByTestId('catalog-gif')).toBeVisible();
+    await expect(page.getByTestId('credit-exercisedb')).toContainText('AscendAPI');
+    await page.getByTestId('catalog-customize').click();
+    await expect(page.getByTestId('ex-name')).toHaveValue('Barbell Romanian deadlift');
+    await page.getByTestId('ex-name').fill('Romanian deadlift (paused)');
+    await page.getByTestId('ex-save').click();
+    await expect.poll(async () => (await db.findOne<{ catalogId?: string; name?: string }>('coachExercises', { coachId: COACH, id: 'cat-fx_romanian_deadlift' }))?.catalogId, { timeout: 15_000 }).toBe('fx_romanian_deadlift');
+    await page.getByTestId('lib-exercises-search').fill('romanian deadlift');
+    const mine = page.locator('[data-testid="library-exercise-row"][data-id="cat-fx_romanian_deadlift"]');
+    await expect(mine).toContainText('Romanian deadlift (paused)');
+    await expect(mine.getByTestId('library-badge-customized')).toBeVisible();
+    await expect(rdl).toHaveCount(0); // listed once — as the coach's version
+    await mine.getByTestId('library-row-main').click();
+    await page.getByTestId('exercise-reset').click();
+    await page.getByTestId('confirm-accept').click();
+    await expect.poll(() => db.count('coachExercises', { coachId: COACH, id: 'cat-fx_romanian_deadlift' }), { timeout: 15_000 }).toBe(0);
+    await expect(rdl).toBeVisible();
   });
 
   test('offline: a Forma search says the library needs a connection — never stale results for a new search', async ({ as, audit }) => {
@@ -168,12 +179,11 @@ test.describe('B4 Forma catalog', () => {
     await page.goto(`/coach/client/${CLIENT.id}/workout`);
     await ready(page);
     await page.getByTestId('builder-add-exercise').click();
-    await page.getByTestId('picker-source-forma').click();
-    await page.getByTestId('picker-catalog-search').fill('squat');
-    await expect(page.getByTestId('catalog-exercise-row').first()).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId('picker-library-search').fill('squat');
+    await expect(page.getByTestId('library-exercise-row').first()).toBeVisible({ timeout: 15_000 });
     await context.setOffline(true);
-    await page.getByTestId('picker-catalog-search').fill('lunge');
-    await expect(page.getByTestId('picker-catalog-offline')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('picker-library-search').fill('lunge');
+    await expect(page.getByTestId('picker-library-offline')).toBeVisible({ timeout: 10_000 });
     await context.setOffline(false);
   });
 
@@ -220,14 +230,13 @@ test.describe('B4 Forma catalog', () => {
         // Phones and tablets show the days first; the desktop opens the first day itself.
         if (width < 1024) await page.getByTestId('builder-day-card').first().click();
         await page.getByTestId('builder-add-exercise').first().click();
-        await page.getByTestId('picker-source-forma').click();
-        await page.getByTestId('picker-catalog-search').fill(locale === 'en' ? 'press' : 'ضغط');
-        await expect(page.getByTestId('catalog-exercise-row').first()).toBeVisible({ timeout: 15_000 });
+        await page.getByTestId('picker-library-search').fill(locale === 'en' ? 'press' : 'ضغط');
+        await expect(page.getByTestId('library-exercise-row').first()).toBeVisible({ timeout: 15_000 });
         expect(await overflowOf(page), `overflow ${tag}`).toBeLessThanOrEqual(0);
         expect(await smallTargets(page, '[data-testid="exercise-picker"] button'), `targets ${tag}`).toEqual([]);
         expect(await axe(page, '[data-testid="exercise-picker"]'), `axe picker ${tag}`).toEqual([]);
         await visual(page, `picker-${tag}`);
-        await page.locator('[data-testid="catalog-exercise-row"][data-id="fx_barbell_bench_press"]').getByTestId('catalog-exercise-preview').click();
+        await page.locator('[data-testid="library-exercise-row"][data-id="fx_barbell_bench_press"]').getByTestId('library-row-preview').click();
         await expect(page.getByTestId('catalog-exercise-view')).toBeVisible();
         expect(await axe(page, '[data-testid="catalog-exercise-view"]'), `axe preview ${tag}`).toEqual([]);
         expect(await overflowOf(page), `overflow preview ${tag}`).toBeLessThanOrEqual(0);
@@ -236,8 +245,8 @@ test.describe('B4 Forma catalog', () => {
         await page.goto(`/coach/client/${CLIENT.id}/nutrition`);
         await ready(page);
         await page.getByTestId('nutrition-add-food').first().click();
-        await page.getByTestId('food-catalog-search').fill(locale === 'en' ? 'baladi' : 'عيش بلدي');
-        await page.locator('[data-testid="catalog-food-row"][data-id="ff_baladi_bread"]').click();
+        await page.getByTestId('food-library-search').fill(locale === 'en' ? 'baladi' : 'عيش بلدي');
+        await page.locator('[data-testid="library-food-row"][data-id="ff_baladi_bread"]').getByTestId('library-row-main').click();
         await expect(page.getByTestId('food-catalog-note')).toBeVisible(); // the estimate says what it was matched to
         expect(await smallTargets(page, '[data-testid="food-catalog-serving"] button'), `targets serving ${tag}`).toEqual([]);
         expect(await axe(page, '[data-testid="food-catalog-serving"]'), `axe serving ${tag}`).toEqual([]);

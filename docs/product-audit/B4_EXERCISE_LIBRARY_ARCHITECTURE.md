@@ -225,3 +225,60 @@ With the catalog off:
 - 36 published videos: 33 Forma-hosted, 3 at their source.
 - Exercises with a video: 3 today, 24 once the zone is set.
 - The 593 videos of the second source are blocked (`B4_MEDIA_RIGHTS_AND_QA.md` §6).
+
+## 11. B4.2: the ExerciseDB V1 layer (2026-10-25)
+
+**Two datasets, one catalog:**
+- `data/catalog/exercises.json`: 164 curated items, the B4 contract.
+- `data/catalog/exercisedb.json` (`edb-v1-<date>-<n>`, 1.83 MB): 1,285 ExerciseDB exercises (`EdbExerciseSchema`).
+- `loadCatalog()` merges them into one entry list (`ExerciseEntry = FormaEntry | EdbEntry`). The merged catalog has **1,343** exercises.
+
+**An ExerciseDB record holds only what the provider gives:**
+- `sourceIds`, the English name and `sourceName`.
+- Muscles, equipment and body part mapped to Forma ids, plus the provider's `terms` verbatim.
+- English steps and GIF media.
+- Arabic name + Egyptian aliases (draft).
+- `formaId` (same movement as a curated item) and `variantOf`.
+
+**Never invented:** no difficulty, pattern, mechanics, laterality or Arabic instructions. The API sends `null` and the UI omits them.
+
+**Ids:**
+- `edb_<first source id>`, reused on every re-import (the importer reads the previous file), so plans and library copies stay valid.
+- An ExerciseDB id linked to a curated item resolves to that item (`get`, `full`, `byIds`).
+
+**Media item** (`EdbMediaSchema`):
+- GIF `url` (the provider's address, never re-hosted), `width` / `height` / `bytes` / `frames` / `sha256`.
+- `thumb` (`/catalog/edb/<id>.webp`, the app's own list still) and `role`.
+- **Served as:** `kind: image`, `format: gif`, `license: EXERCISEDB`, author "ExerciseDB (AscendAPI)", with `thumbUrl`.
+- **On a curated item:** the linked GIFs come after its own videos and before its still images.
+
+**API:**
+- **Cards:** `origin`, `media: video | animation | image | none`, `demoCount`, `variantOf`, and a still thumbnail (never the GIF).
+- **Full items:** one shape for both origins; `credit` for ExerciseDB.
+- **Search filters:** `origin`, `demo`.
+- **Paging:** offset up to 2,000.
+
+**Search:**
+- One index. Curated items carry a +0.2 boost (complete bilingual instructions); ExerciseDB items with a GIF +0.05.
+- Measured: 27 ms parse + 102 ms index build per cold instance; p50 4 ms, p95 8.1 ms per query.
+
+**Copies** (`exerciseFromCatalog`):
+- `imageUrl` = the GIF (the exercise page); `thumbUrl` = the still (lists).
+- `sourceMedia` = the original, restorable.
+- `mediaCredits` with the AscendAPI credit.
+- `instructions.ar` null when only English steps exist; the reader sees the English, labelled.
+
+**Coach customisation and ownership:** see `B4_IMPLEMENTATION_LOG.md` §B4.2 Step 4 (`exerciseMedia.ts`, `sanitizeDemoImage`).
+
+## 12. B4.3: the catalog is the shared library (2026-10-25)
+
+- **The library.** The catalog is now the library every coach uses: All · Favourites · Mine, merged
+  with the coach's own exercises on the server (`library.exercises.list`). The `FORMA_CATALOG`
+  switch (§7) and `catalog.exercises.search` / `byIds` are retired. The legacy starter seed and its
+  mapping (§8) are removed; so are the datasets' `legacyIds`.
+- **Customising.** A coach customises a Forma exercise into their own version (`cat-<id>`), which
+  is listed instead of Forma's. "Reset to Forma's version" deletes it.
+- **Using in plans.** A Forma exercise goes into a plan as a snapshot, from the picker or from "Use
+  in a client plan", with no "save to my library" first.
+
+See `B43_UNIFIED_LIBRARY.md`.

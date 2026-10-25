@@ -39,17 +39,6 @@ export function exerciseDemo(ex: DemoFields): ExerciseDemo {
   return image ? { kind: 'image', url: image, brokenLink } : { kind: 'none', brokenLink };
 }
 
-/** The "Has video" filter: only a video Forma can actually play. */
-export function hasPlayableVideo(ex: DemoFields): boolean {
-  return exerciseDemo(ex).kind === 'video';
-}
-
-/** Sort rank for the Demo column: video, then image, then nothing. */
-export function demoRank(ex: DemoFields): number {
-  const k = exerciseDemo(ex).kind;
-  return k === 'video' ? 0 : k === 'image' ? 1 : 2;
-}
-
 /**
  * Where an exercise's content came from, for the attribution line. Known providers carry their
  * licence; any other provider string is shown by name only (a future catalog adds itself here).

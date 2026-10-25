@@ -21,7 +21,7 @@ export function FoodThumb({ image, size = 'sm', className = '', testId = 'food-t
   return (
     <span className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line-soft bg-surface-raised ${SIZES[size]} ${className}`} data-testid={testId} data-has-image={show ? 'true' : 'false'}>
       {show ? (
-        <img src={image.thumbUrl} alt={alt} loading="lazy" decoding="async" width={160} height={160} className="h-full w-full object-cover" onError={() => setBroken(true)} />
+        <img src={image.thumbUrl} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" width={160} height={160} className="h-full w-full object-cover" onError={() => setBroken(true)} />
       ) : (
         <Icon name="meal" size={18} className="text-earth-subtle" />
       )}
@@ -42,7 +42,7 @@ export function FoodCardImage({ image, credit, compact = false, testId = 'food-c
   return (
     <figure className="space-y-1" data-testid={testId}>
       <div className={`${compact ? 'h-36 sm:h-44' : 'aspect-[4/3]'} w-full overflow-hidden rounded-ui-control border border-line-soft bg-surface-raised`}>
-        <img src={src} alt={alt} loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+        <img src={src} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" onError={() => setBroken(true)} />
       </div>
       {credit ? <figcaption className="text-[11.5px] text-earth-subtle">{credit}</figcaption> : null}
     </figure>

@@ -6,9 +6,8 @@ import { router, authedProcedure } from '../trpc.js';
  * database (`/api/v2/ingredient/`, backed by Open Food Facts) — used by the
  * coach nutrition editor and the client's custom-food entry as a third
  * option alongside "type manually" / "pick from your library". Deliberately
- * a PROXY, not a bulk import (unlike the ~900-exercise starter catalog,
- * wger's ingredient set is far too large to import wholesale) — see
- * `scripts/importWgerExercises.mjs` for the exercise-side equivalent.
+ * a PROXY, not a bulk import (wger's ingredient set is far too large to
+ * import wholesale).
  *
  * LICENSING NOTE (see the implementation report): wger's exercise/ingredient
  * *metadata* is CC BY-SA 3.0, but the underlying ingredient VALUES are

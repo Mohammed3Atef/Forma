@@ -1,6 +1,9 @@
 import { uid } from './utils';
+import { move } from './listOps';
 import { copyExercise, SECTION_KINDS } from './workoutPresets';
 import type { Exercise, SectionKind, WorkoutDay, WorkoutSection } from '@/types';
+
+export { move };
 
 /**
  * The training editor's working shape vs the stored shape (B3.5; B34-R1, O-8 — sections stay in
@@ -86,13 +89,6 @@ function mapDay(p: PlanBody, dayId: string, fn: (d: WorkoutDay) => WorkoutDay): 
 }
 function mapSections(p: PlanBody, dayId: string, fn: (s: WorkoutSection[], d: WorkoutDay) => WorkoutSection[]): PlanBody {
   return mapDay(p, dayId, (d) => ({ ...d, sections: fn(d.sections ?? [], d) }));
-}
-export function move<T>(arr: T[], idx: number, dir: -1 | 1): T[] {
-  const j = idx + dir;
-  if (idx < 0 || j < 0 || j >= arr.length) return arr;
-  const next = [...arr];
-  [next[idx], next[j]] = [next[j], next[idx]];
-  return next;
 }
 function dropExercises(exercises: Record<string, Exercise>, ids: string[]): Record<string, Exercise> {
   if (!ids.length) return exercises;

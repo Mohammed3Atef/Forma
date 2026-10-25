@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { viewImages } from '@/stores/mediaViewerStore';
 import type { ClientAssessment } from '@/types';
+import { MediaImg } from '@/components/media/MediaImg';
 
 /** Calendar-accurate age in whole years from an ISO `YYYY-MM-DD` date of birth. */
 function ageFromDob(dob: string): number | null {
@@ -125,7 +126,7 @@ export function AssessmentView({ assessment }: { assessment: ClientAssessment | 
                 if (!url) return null;
                 return (
                   <button key={pose} type="button" className="block" onClick={() => viewImages(urls, urls.indexOf(url))}>
-                    <img src={url} alt={pose} loading="lazy" className="aspect-[3/4] w-full rounded-xl object-cover" />
+                    <MediaImg src={url} alt={pose} loading="lazy" className="aspect-[3/4] w-full rounded-xl object-cover" fallback={<span className="sk block aspect-[3/4] w-full rounded-xl" />} />
                     <span className="mt-1 block text-center text-[11px] text-earth-subtle">{t(`progress.${pose}`)}</span>
                   </button>
                 );

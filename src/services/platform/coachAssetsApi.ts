@@ -6,7 +6,6 @@ import type {
   FoodGroup,
   LibraryFood,
   LibrarySupplement,
-  NutritionTemplate,
   WorkoutDay,
   WorkoutPlan,
   WorkoutTemplate,
@@ -17,7 +16,6 @@ import type {
  * routes (was `coachAssets/{coachId}/...` in Firestore):
  *  - exercises          (Exercise library)
  *  - workoutTemplates   (WorkoutTemplate)
- *  - nutritionTemplates (NutritionTemplate)
  *
  * Writes always land on the CALLING coach's own collection — the backend
  * derives `coachId` from the authenticated user for every write route, so a
@@ -30,10 +28,6 @@ import type {
 
 // ---- Exercise library ------------------------------------------------------
 
-export async function listExercises(coachId: string): Promise<Exercise[]> {
-  const list = await trpc.coachAssets.exercises.list.query({ coachId });
-  return [...list].sort((a, b) => a.name.localeCompare(b.name));
-}
 
 /** Fetch a single library exercise — used by the template-side "reconnect/update from library" action (client-plan uses its own backend mutation, see `updatePlanExerciseFromLibrary` in `planApi.ts`). A bare id is only unique per coach, so `coachId` is required. */
 export async function getExercise(coachId: string, id: string): Promise<Exercise> {
@@ -190,9 +184,8 @@ export async function saveClientPlanAsTemplate(
 
 // ---- Food library + alternative groups -------------------------------------
 
-export async function listFoods(coachId: string): Promise<LibraryFood[]> {
-  const list = await trpc.coachAssets.foods.list.query({ coachId });
-  return [...list].sort((a, b) => a.name.en.localeCompare(b.name.en));
+export async function getFood(coachId: string, id: string): Promise<LibraryFood> {
+  return (await trpc.coachAssets.foods.get.query({ coachId, id })) as LibraryFood;
 }
 
 export async function saveFood(_coachId: string, food: LibraryFood): Promise<void> {
@@ -245,12 +238,6 @@ async function settle(promises: Promise<unknown>[]): Promise<BulkResult> {
   return { ok: results.length - failed, failed };
 }
 
-export function bulkDeleteExercises(coachId: string, ids: string[]): Promise<BulkResult> {
-  return settle(ids.map((id) => deleteExercise(coachId, id)));
-}
-export function bulkDeleteFoods(coachId: string, ids: string[]): Promise<BulkResult> {
-  return settle(ids.map((id) => deleteFood(coachId, id)));
-}
 export function bulkDeleteFoodGroups(coachId: string, ids: string[]): Promise<BulkResult> {
   return settle(ids.map((id) => deleteFoodGroup(coachId, id)));
 }
@@ -261,9 +248,4 @@ export function bulkDeleteWorkoutTemplates(coachId: string, ids: string[]): Prom
   return settle(ids.map((id) => deleteWorkoutTemplate(coachId, id)));
 }
 
-// ---- Nutrition templates (architecture; assign reuses MealPlan) ------------
-
-export async function listNutritionTemplates(coachId: string): Promise<NutritionTemplate[]> {
-  return trpc.coachAssets.nutritionTemplates.list.query({ coachId });
-}
 

@@ -11,6 +11,7 @@ import { confirmDialog, alertDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import { viewImages } from '@/stores/mediaViewerStore';
 import { formatDate } from '@/lib/format';
+import { useMediaSrc } from '@/services/platform/mediaDelivery';
 
 const POSES: PhotoPose[] = ['front', 'side', 'back'];
 
@@ -18,8 +19,10 @@ const POSES: PhotoPose[] = ['front', 'side', 'back'];
 function PhotoImg({ photo, className, onView }: { photo: ProgressPhoto; className?: string; onView?: (url: string) => void }) {
   const { t } = useTranslation();
   const url = usePhotos((s) => s.url);
-  const [src, setSrc] = useState<string | null>(null);
+  const [stored, setSrc] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
+  // MD-02: the uploaded copy through a signed URL when the server signs personal media.
+  const src = useMediaSrc(stored);
   useEffect(() => {
     let active = true;
     let made: string | null = null;

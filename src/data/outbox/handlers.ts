@@ -1,5 +1,5 @@
 import type { AttachmentKind } from '@/lib/attachmentKind';
-import type { Message, MessageAttachment, MessageCategory } from '@/types';
+import type { MessageAttachment, MessageCategory } from '@/types';
 import { blobStore } from '@/data/blobStore';
 import { isLocalRef, LOCAL_REF, localKeyOf } from '@/lib/mediaRef';
 import { getDataSource } from '@/data/dataSource';
@@ -103,11 +103,6 @@ export async function queueMessage(input: {
     blobKeys,
     dependencyIds: input.dependsOn ? [input.dependsOn] : undefined,
   });
-}
-
-/** The server message an acknowledged `message.send` produced. */
-export function ackedMessage(op: OutboxOp): Message | null {
-  return op.type === 'message.send' && op.status === 'acknowledged' && op.result ? (op.result as Message) : null;
 }
 
 // ---- checkin.submit ---------------------------------------------------------

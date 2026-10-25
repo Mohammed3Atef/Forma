@@ -1,0 +1,689 @@
+{
+  "_reviewer": "group e — second pass over the 63 foods still without a photo (incl. the 3 spot-check rejects: chickpeas boiled, egg white raw, potato boiled)",
+  "ff_rice_white_long_cooked": {
+    "status": "approved",
+    "file": "File:Basmati rice in pot.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Basmati_rice_in_pot.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/08/Basmati_rice_in_pot.jpg",
+    "width": 8160,
+    "height": 6144,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Anselm Schüler",
+    "credit": "Own work",
+    "alt": {
+      "en": "Plain cooked long-grain basmati rice in a pot",
+      "ar": "أرز بسمتي أبيض طويل الحبة مطبوخ في قِدر"
+    },
+    "note": "Top-down view of plain, fluffy cooked white basmati (long-grain) rice filling a steel pot, nothing added, neutral colour; matches long-grain white rice, cooked. CC BY-SA 4.0."
+  },
+  "ff_rice_brown_cooked": {
+    "status": "missing",
+    "reason": "Earlier reviewer rejected 'Bowl of Cooked Brown Rice.jpg' (white mixed with red rice) and 'Cooked Brown rice.jpg' (cling film). Viewed now: 'Brown rice cooked.JPG' (Bhutanese red rice, pink grains - not brown rice), 'Half a cup of rice. Brown rice is the best choice.JPG' (actually plain white rice) and 'Imdhqwfjbqw.JPG' (a pasta-like grain beside a measuring cup printed '1/2'). Category:Brown rice otherwise holds raw grains, packaging and par-cooked rice. No plain cooked brown rice photo found."
+  },
+  "ff_pasta_dry": {
+    "status": "approved",
+    "file": "File:Penne rigate.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Penne_rigate.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/61/Penne_rigate.jpg",
+    "width": 2526,
+    "height": 1902,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Stilfehler",
+    "credit": "Own work",
+    "alt": {
+      "en": "Uncooked penne rigate pasta",
+      "ar": "مكرونة بيني ريغاتي جافة غير مطبوخة"
+    },
+    "note": "A small heap of dry, uncooked penne rigate tubes on a pale glass surface; hard, matt yellow pasta that clearly reads as dry. Matches pasta, uncooked. CC BY-SA 3.0."
+  },
+  "ff_pasta_whole_wheat_cooked": {
+    "status": "missing",
+    "reason": "Earlier reviewer rejected 'Half a cup of Pasta. Wholemeal pasta...' (pale regular pasta) and 'Whole wheat penne, cooked and uncooked.jpg' (both states side by side). Four more searches (pasta integrale, whole grain pasta, Vollkornspaghetti, whole wheat pasta) returned only sauced dishes (pumpkin/aubergine, puntarelle, gorgonzola), a bento, farm photos of packaged organic pasta and mixed shop displays. No plain cooked whole-wheat pasta found."
+  },
+  "ff_oatmeal_cooked": {
+    "status": "approved",
+    "file": "File:Havregrød på vand.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Havregr%C3%B8d_p%C3%A5_vand.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG",
+    "width": 2560,
+    "height": 1920,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Nillerdk",
+    "credit": "Own work",
+    "alt": {
+      "en": "A plate of plain oatmeal porridge cooked with water",
+      "ar": "طبق من عصيدة الشوفان السادة المطبوخة بالماء"
+    },
+    "note": "Plain oat porridge in a white deep plate on a white background, no toppings; the uploader describes it as oats cooked in water with salt ('havregrød på vand'), matching oatmeal cooked with water. CC BY 3.0."
+  },
+  "ff_bulgur_cooked": {
+    "status": "missing",
+    "reason": "Category:Bulgur and Category:Bulgur pilav hold dry grains, village bulgur-making, packaging, tabbouleh and pilafs served with kebabs. Viewed 'Bulgur pilavı.JPG' (bulgur pilaf with meat and chickpeas) and 'Bulgur pilavı from Turkey.jpg' (tomato-red coarse bulgur beside a plate of white cheese); 'Bulgur on plate.jpg' is 375x500 (too small). No plain cooked bulgur found."
+  },
+  "ff_barley_cooked": {
+    "status": "missing",
+    "reason": "Searches (cooked pearl barley, boiled barley) and Category:Barley groats found dry groats, boil-in-bag packaging, barley sugar, rice-and-barley mixes, orzotto and dessert soup. Viewed 'Варено жито.jpg' (described as boiled pearl barley, but it is kolyva - grain mixed with crushed nuts for a church ritual, not plain barley). 'Kkongboribap (cooked barley).jpg' is under a Korean-ported CC BY-SA 2.0 KR licence (not on the allow-list) and is a bean-barley dish. No plain cooked pearl barley found."
+  },
+  "ff_bread_pita_whole_wheat": {
+    "status": "missing",
+    "reason": "Four searches (whole wheat pita, brown pita bread, pita integral, wholemeal pitta) found only whole-wheat pita used as a pizza base, two small brown-bread PNGs (about 520x570, under the size floor), a school-lunch deli display and recipe photos. An Egyptian baladi loaf was not substituted because baladi is a separate catalog item. No plain whole-wheat pita found."
+  },
+  "ff_fino_roll": {
+    "status": "missing",
+    "reason": "Searches in English and Arabic ('فينو', 'Egyptian fino bread', plus the earlier reviewer's four) return only places named Ouro Fino/Finow and a cheese sandwich in a Cairo restaurant. No photo of Egyptian fino bread on Commons; a generic Western roll would not honestly show fino."
+  },
+  "ff_fava_beans_boiled": {
+    "status": "missing",
+    "reason": "Category:Ful medames reviewed. Viewed: 'Ful Medames.JPG' (full breakfast plate with pita, eggs, olives, tomato), 'Ful Mudammas.jpg' (mashed ful dressed with oil and a mint garnish), 'Home Dammassa.jpg' (only the empty ful pot) and 'Foul Mdemmis, Tunisie, septembre 2020.jpg' (large Tunisian whole broad beans dusted with cumin, salad behind - not Egyptian plain ful). Other files are dressed ful (oil, tahini), street carts or under the size floor. No plain boiled ful found."
+  },
+  "ff_fava_beans_canned": {
+    "status": "missing",
+    "reason": "Searches for canned fava/broad beans return a Turkish sardine-and-broad-bean salad and old seed catalogues; earlier searches found only fresh pods, dried beans and botanical plates. Category:Ful medames has no canned product photo. A labelled can would be branded, and a dressed ful plate would misstate the canned product. No suitable photo found."
+  },
+  "ff_lentils_boiled": {
+    "status": "missing",
+    "reason": "Searches (boiled lentils, cooked brown lentils, lentilles cuites; earlier four more) return only dishes: lentils with caramelized onions or under cod liver, majadra, dal/curries, mercimek köfte, boiling red lentils or soup. The 'Liat Portal for Foodie Disorder' uploads (onion-topped lentils, an assorted-legume plate) were already judged doubtful in provenance and are not plain. No plain boiled brown lentils found."
+  },
+  "ff_chickpeas_boiled": {
+    "status": "approved",
+    "file": "File:13-01-19-kichererbsensalat-03.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-03.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/37/13-01-19-kichererbsensalat-03.jpg",
+    "width": 4288,
+    "height": 2848,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Ralf Roletschek - fahrradmonteur.de",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of plain cooked chickpeas",
+      "ar": "لقطة قريبة لحمص مسلوق سادة"
+    },
+    "note": "Frame-filling close-up of plain, glossy cooked chickpeas with nothing added, natural beige-yellow colour (no green cast); they are ready-boiled chickpeas from a tin (frame 03 of the same preparation series used for the canned item), which look the same as home-boiled ones. CC BY-SA 3.0."
+  },
+  "ff_chickpeas_canned": {
+    "status": "approved",
+    "file": "File:13-01-19-kichererbsensalat-04.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-04.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/13-01-19-kichererbsensalat-04.jpg",
+    "width": 4288,
+    "height": 2848,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "author": "Ralf Roletschek - fahrradmonteur.de",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of drained canned chickpeas",
+      "ar": "لقطة قريبة لحمص معلّب مصفّى"
+    },
+    "note": "Frame-filling close-up of glossy, plain chickpeas from a can (frame 04 of a chickpea-salad preparation series that starts with the opened tin), drained, with nothing added and no label in shot; matches canned, drained. CC BY-SA 3.0."
+  },
+  "ff_white_beans_boiled": {
+    "status": "missing",
+    "reason": "Searches (cooked cannellini beans, boiled white beans; earlier four more) return only white beans in stews, cholent, short-rib plates and breakfasts, or dry beans. No plain boiled white beans found."
+  },
+  "ff_kidney_beans_boiled": {
+    "status": "missing",
+    "reason": "Searches (boiled kidney beans, porotos hervidos, cooked red kidney beans bowl; earlier four more) return only the Argentine red-bean-stew series (with chorizo, bacon and bouillon), stew plates held in a hand, rajma curry and red beans and rice. No plain boiled red kidney beans found."
+  },
+  "ff_green_peas_cooked": {
+    "status": "approved",
+    "file": "File:Peas (cooked okay) - Massachusetts.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Peas_(cooked_okay)_-_Massachusetts.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+    "width": 2615,
+    "height": 2614,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Daderot",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of plain cooked green peas",
+      "ar": "وعاء من البازلاء الخضراء المطبوخة السادة"
+    },
+    "note": "Top-down, frame-filling bowl of plain cooked green garden peas, some skins slightly wrinkled from cooking, nothing added, white bowl; matches green peas, cooked. CC0."
+  },
+  "ff_tahini": {
+    "status": "missing",
+    "reason": "Category:Tahini and an Arabic search ('طحينة') reviewed (earlier reviewer also rejected 'Tahini with oil.JPG' as diluted sauce). Viewed: 'Tahini Coarsly grinded.jpg' (a dry, crumbly mound of coarse-ground sesame that reads as halva or oat meal), 'Tahini with roasted sesame.JPG' (a flat brown paste on a plate under a yellow cast - could pass for hummus or peanut butter) and 'Sesame paste.jpg' (an orange-cast surface close-up). Others are tahini sauce dishes, branded jars, production scenes with people, or Chinese black sesame paste. No unmistakable plain tahini paste found."
+  },
+  "ff_lentil_soup": {
+    "status": "approved",
+    "file": "File:Süzme mercimek soup.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:S%C3%BCzme_mercimek_soup.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f6/S%C3%BCzme_mercimek_soup.jpg",
+    "width": 2560,
+    "height": 1920,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "E4024",
+    "credit": "Own work",
+    "alt": {
+      "en": "A cup of smooth red lentil soup with a lemon wedge",
+      "ar": "كوب من شوربة العدس الناعمة مع شريحة ليمون"
+    },
+    "note": "Smooth, strained yellow-orange red-lentil soup (Turkish süzme mercimek) in a white cup on a saucer with a lemon wedge - the same blended soup and lemon serving as Egyptian shorbet ads, no text or logos. Borderline: a slightly soft phone photo with a cool cast on the white china. CC BY-SA 4.0."
+  },
+  "ff_beef_ground_90_cooked": {
+    "status": "missing",
+    "reason": "Earlier reviewer rejected the 'Cooking beef 1/2', 'Ground beef frying' and 'Crumbling ground beef in water' shots (still raw or half-cooked). Searches now (browned ground beef, fried minced meat pan, Hackfleisch angebraten, Daderot's ground-beef series) found only dishes (tacos, pasta, rice bowls, patties, dumplings, pizza). Viewed 'Ground Beef.jpg' (browned crumbled beef, but mixed with visible tomato pieces in a plastic tub, dim light) - not plain. No plain browned ground beef found."
+  },
+  "ff_beef_ground_80_cooked": {
+    "status": "missing",
+    "reason": "Earlier reviewer rejected the 'Cooking beef 1/2', 'Ground beef frying' and 'Crumbling ground beef in water' shots (still raw or half-cooked). Searches now (browned ground beef, fried minced meat pan, Hackfleisch angebraten, Daderot's ground-beef series) found only dishes (tacos, pasta, rice bowls, patties, dumplings, pizza). Viewed 'Ground Beef.jpg' (browned crumbled beef, but mixed with visible tomato pieces in a plastic tub, dim light) - not plain. No plain browned ground beef found. The 80% and 90% items would also look identical, so one photo could not tell them apart anyway."
+  },
+  "ff_veal_leg_roasted": {
+    "status": "missing",
+    "reason": "Searches (roast veal sliced, Kalbsbraten; earlier reviewer's set) return scanned cookbook pages, the veal Orloff preparation series (sauced), a restaurant plate of Kalbsbraten with rice and peas, and restaurant dishes. No plain roasted veal found; roast veal is also hard to tell from beef in a photo."
+  },
+  "ff_beef_liver_fried": {
+    "status": "missing",
+    "reason": "Searches (fried beef liver, gebratene Leber; earlier reviewer's set) return 'Fried cow liver.jpg' (720x960, under the size floor), restaurant plates where liver is under onions/gravy with fried potatoes and salad (Hattenheim, Bad Staffelstein), duck liver with a hamburger steak, and menus. No plain pan-fried beef liver found."
+  },
+  "ff_chicken_liver": {
+    "status": "missing",
+    "reason": "Searches (boiled chicken liver, cooked chicken livers; earlier reviewer's set) return the soy-simmered Koshu-style liver-and-gizzard dish, chicken livers with apples and cranberries, restaurant plates with onions/sumac, Thai skewers, bacon-wrapped livers and dishes with rice. No plain simmered chicken liver found."
+  },
+  "ff_tuna_water": {
+    "status": "approved",
+    "file": "File:Thunfisch (in geöffneter Dose) 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "width": 1382,
+    "height": 1171,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "IgorCalzone1",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of flaked canned tuna",
+      "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+    },
+    "note": "Frame-filling close-up of canned tuna chunks with their typical pressed, flaky layers, taken in an opened tin with no label, hand or liquid in frame; reads as drained canned tuna. The packing medium (water vs oil) cannot be seen, so the same photo serves both canned-tuna items. CC BY-SA 4.0."
+  },
+  "ff_tuna_oil": {
+    "status": "approved",
+    "file": "File:Thunfisch (in geöffneter Dose) 2.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "width": 1382,
+    "height": 1171,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "IgorCalzone1",
+    "credit": "Own work",
+    "alt": {
+      "en": "Close-up of flaked canned tuna",
+      "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+    },
+    "note": "Frame-filling close-up of canned tuna chunks with their typical pressed, flaky layers, in an opened tin with no label, hand or pooled oil in frame; drained tuna packed in oil looks the same, so this is the same photo as the in-water item (like the shared milk/yogurt photos). CC BY-SA 4.0."
+  },
+  "ff_mullet_grilled": {
+    "status": "missing",
+    "reason": "Searches (grilled mullet fish, Arabic 'بوري مشوي'; earlier reviewer's set) return only 'Grilled Mullet fish.jpg' (already rejected: an identifiable cook in frame and fish that look like crusted tilapia), Seychelles stamps, red mullet restaurant plates (a different fish) and mixed seafood plates. No faithful photo of grilled grey mullet (bouri) found."
+  },
+  "ff_salmon_cooked": {
+    "status": "approved",
+    "file": "File:Grilled salmon garnished with lemon and parsley.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+    "width": 3024,
+    "height": 4032,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Gatorfan252525",
+    "credit": "Own work",
+    "alt": {
+      "en": "A cooked salmon fillet on a white platter",
+      "ar": "فيليه سلمون مطبوخ على طبق أبيض"
+    },
+    "note": "A whole side of salmon, grilled until opaque and browned on top, on a white platter; the salmon is the clear subject and survives a square crop, no people or text. Matches salmon, cooked. Borderline: light garnish of lemon slices, chopped parsley and pan juices. CC BY-SA 4.0."
+  },
+  "ff_sardines_oil": {
+    "status": "approved",
+    "file": "File:Canned sardines with lemon.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Canned_sardines_with_lemon.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Canned_sardines_with_lemon.jpg",
+    "width": 4055,
+    "height": 2804,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Pannet",
+    "credit": "Own work",
+    "alt": {
+      "en": "An opened tin of whole sardines in oil",
+      "ar": "علبة مفتوحة من السردين الكامل في الزيت"
+    },
+    "note": "Top-down view of an opened, unlabelled tin of whole silvery sardines packed in golden oil on a dark slate; sharp and well lit, no lemon or brand in frame; matches sardines canned in oil. Borderline: a tiny embossed serving-suggestion line on the inner rim (top-left corner) is outside the square thumbnail crop and unreadable at card size. CC BY-SA 4.0."
+  },
+  "ff_renga": {
+    "status": "approved",
+    "file": "File:Buckling.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Buckling.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/30/Buckling.jpg",
+    "width": 1280,
+    "height": 960,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Christopher Bertram",
+    "credit": "Own work",
+    "alt": {
+      "en": "Two whole golden smoked herrings on a plate",
+      "ar": "سمكتا رنجة مدخنة كاملتان ذهبيتا اللون على طبق"
+    },
+    "note": "Two whole, golden-skinned smoked herrings (buckling) on a plain white plate, nothing else in frame; renga is this same whole smoked herring as sold in Egypt (golden wrinkled skin), so it reads faithfully. Borderline: these are headless, while Egyptian renga is often sold head-on. CC BY-SA 3.0."
+  },
+  "ff_egg_fried": {
+    "status": "approved",
+    "file": "File:2022-04-08 19 21 15 Two sunny-side up eggs on a plate in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill,_Fairfax_County,_Virginia.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+    "width": 4032,
+    "height": 3024,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Famartin",
+    "credit": "Own work",
+    "alt": {
+      "en": "Two sunny-side-up fried eggs on a plate",
+      "ar": "بيضتان مقليتان (عيون) على طبق"
+    },
+    "note": "Two plain sunny-side-up fried eggs with set whites and runny yolks on a blue-rimmed white plate on a wooden table, nothing else on the plate; sharp and evenly lit. Matches egg, fried. CC BY-SA 4.0."
+  },
+  "ff_egg_white_raw": {
+    "status": "missing",
+    "reason": "The previously approved 'Bowl of egg whites.jpg' (and its 'no bg' PNG copy) was rejected at spot check for a yellow cast. New candidates viewed: 'Eggehvitebolle0.jpg' and 'Eggehvitebolle1.jpg' (egg white in a blue-striped bowl whose yellow-green pattern shows through, so the white reads as oily green liquid), 'Egg white 1.jpg' (murky yellow-green liquid in a plastic tub, low quality), and 'ขั้นตอนแยกไข่.jpg' (hands separating many yolks over a bowl - people and yolks dominate). Category:Egg white and Category:Separating eggs hold nothing else usable (whole raw eggs, packaged whites, dishes). No clear photo of separated raw egg white found."
+  },
+  "ff_areesh_cheese": {
+    "status": "missing",
+    "reason": "Searches for areesh/karish in English and Arabic ('جبن قريش', 'Egyptian cheese karish areesh', plus the earlier reviewer's set) return only Western cottage cheese tubs and dishes (varenyky, pancakes, breakfasts). Areesh is a pressed, crumbly fresh-curd block that looks different, so cottage cheese was not substituted. No photo of Egyptian areesh on Commons."
+  },
+  "ff_cheddar": {
+    "status": "approved",
+    "file": "File:2022-05-11-Cheddar-.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:2022-05-11-Cheddar-.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f7/2022-05-11-Cheddar-.jpg",
+    "width": 6431,
+    "height": 4280,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Superbass",
+    "credit": "Own work",
+    "alt": {
+      "en": "A wedge of mature orange cheddar cheese",
+      "ar": "قطعة مثلثة من جبن الشيدر البرتقالي المعتّق"
+    },
+    "note": "A single wedge of mature English cheddar (annatto-coloured, clothbound rind) on a bamboo board against a plain white background; sharp studio-style shot, no labels. Matches cheddar cheese. Borderline: the deep orange colour and cloth rind are less familiar than a plain block. CC BY-SA 4.0."
+  },
+  "ff_parmesan": {
+    "status": "approved",
+    "file": "File:15-01 Parmigiano Reggiano Lokal K 01.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+    "width": 5184,
+    "height": 3456,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Mario M. Lommersum",
+    "credit": "Own work",
+    "alt": {
+      "en": "A wedge of Parmesan cheese on slate",
+      "ar": "قطعة مثلثة من جبن البارميزان على لوح حجري"
+    },
+    "note": "A single wedge of hard, granular, crystalline Parmigiano Reggiano on a slate board against a dark background; no rind stamps, labels or text, cheese fills the frame. Title and category say Parmigiano Reggiano; the page description 'Irish Cheddar' is a copy-paste slip from the same WikiCheese session (the cheddar has its own file, '15-01 Irish Chester Lokal K 01.jpg'), and the texture is clearly Parmesan. CC BY-SA 4.0."
+  },
+  "ff_cream_cheese": {
+    "status": "approved",
+    "file": "File:2019-10-12 15 31 00 A open carton of Harris Teeter Plain Cream Cheese Spread in the Dulles section of Sterling, Loudoun County, Virginia.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling,_Loudoun_County,_Virginia.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+    "width": 4032,
+    "height": 3024,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Famartin",
+    "credit": "Own work",
+    "alt": {
+      "en": "An opened tub of plain cream cheese",
+      "ar": "علبة مفتوحة من الجبن الكريمي السادة"
+    },
+    "note": "Top view of an opened tub of plain, unflavoured cream cheese with the foil seal peeled back (plain silver underside, no print visible) and a few scoops taken; the white, smooth spread fills the frame. Matches cream cheese. Borderline: a used, scooped tub rather than a styled serving. CC BY-SA 4.0."
+  },
+  "ff_processed_cheese_spread": {
+    "status": "missing",
+    "reason": "Category:Processed cheese reviewed (earlier reviewer also rejected 'Schmelzkäse-1' and 'Processed cheese 1'). Viewed: 'Eckerlkäse-01.jpg' (two half-unwrapped foil triangles, but the cheese is orange with herb/pepper flecks - a flavoured variety, not the plain pale spread) and 'Karper.jpg' (a branded six-portion box). Others are branded tubs/jars, sambal-flavoured spreads, sandwiches or an 'Attribution'-only licence. No plain processed cheese spread found."
+  },
+  "ff_tofu_firm": {
+    "status": "approved",
+    "file": "File:Tofu slices.png",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tofu_slices.png",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Tofu_slices.png",
+    "width": 1212,
+    "height": 1154,
+    "mime": "image/png",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Tiia Monto",
+    "credit": "Own work",
+    "alt": {
+      "en": "Three slices of plain firm tofu",
+      "ar": "ثلاث شرائح من التوفو الصلب السادة"
+    },
+    "note": "Three thick slices of plain, uncooked firm tofu with the pressed texture and cloth-press marks typical of firm tofu, nothing added; a real camera photo (Sony RX100) cut out onto a transparent background. Matches tofu, firm (uncooked). Borderline: PNG with an alpha channel - the build may want to flatten it onto white. CC BY-SA 4.0."
+  },
+  "ff_carrot_boiled": {
+    "status": "missing",
+    "reason": "Searches (boiled carrots, Möhren gekocht, steamed carrots, cooked-carrot categories; earlier reviewer's four) return only mixed plates (salads with eggs, tuna or sardines, rotini in broth), boiled peas-and-carrots mixes, sweet potato and carrot in fish sauce, and roasted carrots beside steak. No plain boiled carrots found."
+  },
+  "ff_potato_boiled": {
+    "status": "approved",
+    "file": "File:Hot Potatoes (199407793).jpeg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Hot_Potatoes_(199407793).jpeg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Hot_Potatoes_%28199407793%29.jpeg",
+    "width": 2048,
+    "height": 1371,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Babil Sahoui",
+    "credit": "Imported from 500px (archived version) by the Archive Team",
+    "alt": {
+      "en": "Whole potatoes boiling in their skins in a pot",
+      "ar": "بطاطس كاملة تُسلق بقشرها في قِدر"
+    },
+    "note": "Whole unpeeled potatoes in a pot of cooking water with foam on the surface; the skins are split and cracked from boiling, so they clearly read as cooked (unlike the rejected Pellkartoffeln shot). Matches boiled in skin. CC BY 3.0 (500px import)."
+  },
+  "ff_potato_baked": {
+    "status": "approved",
+    "file": "File:Baked potatoes cooked in an air fryer.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Baked_potatoes_cooked_in_an_air_fryer.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg",
+    "width": 3024,
+    "height": 2885,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Gatorfan252525",
+    "credit": "Own work",
+    "alt": {
+      "en": "Three whole baked potatoes in their skins",
+      "ar": "ثلاث حبات بطاطس كاملة مشوية بقشرها"
+    },
+    "note": "Three whole, plain russet potatoes baked in their skins (dry, wrinkled, browned skins) in an air-fryer basket, no toppings or butter; matches potato, baked (flesh and skin). CC BY-SA 4.0."
+  },
+  "ff_sweet_potato_baked": {
+    "status": "approved",
+    "file": "File:GebackeneSuesskartoffel.JPG 05.JPG",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:GebackeneSuesskartoffel.JPG_05.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b4/GebackeneSuesskartoffel.JPG_05.JPG",
+    "width": 4000,
+    "height": 2248,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Helfmann",
+    "credit": "Own work",
+    "alt": {
+      "en": "A baked sweet potato split open on a plate",
+      "ar": "حبة بطاطا حلوة مشوية مفتوحة على طبق"
+    },
+    "note": "A whole sweet potato baked in its skin and split open to show soft orange flesh, plain, on a white plate; the potato fills the centre of the frame. Matches sweet potato, baked. CC BY-SA 4.0."
+  },
+  "ff_zucchini_boiled": {
+    "status": "missing",
+    "reason": "Searches (steamed zucchini, boiled courgette, cooked zucchini, Daderot's zucchini set; earlier reviewer's four) return only mixed dishes (gravy bowls, kaiseki, couscous, stuffed sandal sefası, pickled courgettes) and a raw zucchini. No plain boiled zucchini found."
+  },
+  "ff_eggplant_boiled": {
+    "status": "missing",
+    "reason": "Searches (steamed eggplant, plus the earlier reviewer's boiled-eggplant set) return a Ugandan plate of steamed scarlet eggplants (Solanum aethiopicum, a different vegetable) with avocado and beans, Filipino buro side dishes, curries and kaiseki courses. No plain boiled aubergine found."
+  },
+  "ff_okra_boiled": {
+    "status": "missing",
+    "reason": "Searches (boiled okra; earlier reviewer's set) return 'BOILED OR STEAMED OKRA FROM GARDEN TO TABLE.jpg' (already rejected: bright, fuzzy pods that look raw), restaurant okra with an onsen egg, and okra extension bulletins. No plain boiled okra found."
+  },
+  "ff_spinach_raw": {
+    "status": "approved",
+    "file": "File:Spinach leaves.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Spinach_leaves.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Spinach_leaves.jpg",
+    "width": 2439,
+    "height": 1800,
+    "mime": "image/jpeg",
+    "license": "CC-BY-3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "author": "Nillerdk",
+    "credit": "Own work",
+    "alt": {
+      "en": "A bowl of fresh raw spinach leaves",
+      "ar": "وعاء من أوراق السبانخ الطازجة النيئة"
+    },
+    "note": "A steel bowl heaped with fresh, raw true spinach leaves (Spinacia oleracea, stems removed), bright green and clearly uncooked; nothing else in frame. Matches spinach, raw. CC BY 3.0."
+  },
+  "ff_jute_leaves_boiled": {
+    "status": "missing",
+    "reason": "Searches ('ملوخية', Corchorus olitorius leaves cooked; earlier reviewer's set) return only the growing plant, seeds, botanical plates, scanned bulletins and finished molokhia soup dishes (Egyptian 'Molokheya Egypt, 2012.JPG', Tunisian molokhia with veal). Following the earlier decision, the soup does not stand in for plain boiled leaves. No photo of boiled jute leaves found."
+  },
+  "ff_green_beans_boiled": {
+    "status": "approved",
+    "file": "File:Green beans - Massachusetts.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Green_beans_-_Massachusetts.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Green_beans_-_Massachusetts.jpg",
+    "width": 2904,
+    "height": 2904,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Daderot",
+    "credit": "Own work",
+    "alt": {
+      "en": "A plate of plain cooked green beans",
+      "ar": "طبق من الفاصوليا الخضراء المطبوخة السادة"
+    },
+    "note": "Top-down plate of trimmed whole thin green beans, vivid glossy emerald and sprinkled with a few salt flakes, as after boiling/blanching, nothing else added; the author files it as a cooked green-bean dish (his raw beans are filed separately). Matches green beans, boiled. Borderline: crisp-tender blanched beans can be mistaken for raw ones - the gloss, colour and salt are the cooked cues; worth a look at the lead's spot check. CC0."
+  },
+  "ff_cauliflower_boiled": {
+    "status": "missing",
+    "reason": "Searches (steamed cauliflower, Blumenkohl gekocht; earlier reviewer's four) return only sauced steamed cauliflower (mustard or green sauce), cauliflower cheese side dishes, roasted cauliflower on mixed plates, raw florets prepared for curry, a 1943 army-kitchen photo and scanned books. No plain boiled cauliflower found."
+  },
+  "ff_taro_cooked": {
+    "status": "missing",
+    "reason": "Searches ('قلقاس', boiled taro; earlier reviewer's set) return the growing plant and leaves, botanical plates, Vanuatu beef curry with taro, Thai sweets, a Himachali dish being peeled by hand, and 'Boiled taro.png' (the earlier reviewer's near-candidate: a soft, background-removed cut-out with a clipped bowl edge, left for a human). Egyptian qolqas is not shown faithfully by any of these, so left missing."
+  },
+  "ff_mushrooms_raw": {
+    "status": "approved",
+    "file": "File:Agaricus bisporus (1).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Agaricus_bisporus_(1).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/be/Agaricus_bisporus_%281%29.jpg",
+    "width": 3000,
+    "height": 3000,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Fumikas Sagisavas",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pile of fresh white button mushrooms",
+      "ar": "كومة من فطر المشروم الأبيض الطازج"
+    },
+    "note": "Frame-filling pile of fresh, raw white button mushrooms (cultivated Agaricus bisporus), clean caps with a little substrate on a few stems; a genuine phone photo (Huawei EXIF, located upload). Matches mushrooms (white), raw. CC0."
+  },
+  "ff_lemon_juice": {
+    "status": "approved",
+    "file": "File:Lemon juice.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Lemon_juice.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Lemon_juice.jpg",
+    "width": 2635,
+    "height": 1752,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "David Goehring",
+    "credit": "https://www.flickr.com/photos/carbonnyc/5309716658/",
+    "alt": {
+      "en": "Fresh lemon juice in a glass citrus squeezer",
+      "ar": "عصير ليمون طازج في عصّارة ليمون زجاجية"
+    },
+    "note": "Top view of a glass hand juicer holding freshly squeezed lemon juice (with a few seeds) and the pressed lemon half, on a wooden table; no text or people. Shows fresh lemon juice as made at home. Borderline: the pale juice layer is thin and the lemon half draws the eye. CC BY 2.0."
+  },
+  "ff_peanuts_roasted": {
+    "status": "approved",
+    "file": "File:Roasted Peanuts (54251297906).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Roasted_Peanuts_(54251297906).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Roasted_Peanuts_%2854251297906%29.jpg",
+    "width": 3600,
+    "height": 2400,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "Choo Yut Shing from Singapore, Singapore",
+    "credit": "Roasted Peanuts",
+    "alt": {
+      "en": "A small plate of roasted peanuts",
+      "ar": "طبق صغير من الفول السوداني المحمص"
+    },
+    "note": "A small white plate of shelled roasted peanut kernels (some with red skins, some skinless halves) on a plain grey background; no visible salt, coating, brand or text. Matches roasted peanuts. Borderline: the slight gloss could mean oil-roasting, which a photo cannot rule out. CC BY 2.0."
+  },
+  "ff_pistachios": {
+    "status": "approved",
+    "file": "File:LOOSE PISTACHIO.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:LOOSE_PISTACHIO.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fc/LOOSE_PISTACHIO.jpg",
+    "width": 2163,
+    "height": 2884,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Ranjithkumar Murugesan",
+    "credit": "Own work",
+    "alt": {
+      "en": "A pile of shelled pistachio kernels",
+      "ar": "كومة من حبات الفستق الحلبي المقشّر"
+    },
+    "note": "Frame-filling pile of shelled pistachio kernels with their typical green flesh and purple-brown skins, nothing else in frame, no text or salt crust; reads unmistakably as pistachios. Borderline: whether these were roasted cannot be seen in a photo. CC0."
+  },
+  "ff_pumpkin_seeds": {
+    "status": "approved",
+    "file": "File:Steirische Kürbiskerne.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Steirische_K%C3%BCrbiskerne.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/Steirische_K%C3%BCrbiskerne.jpg",
+    "width": 3968,
+    "height": 2976,
+    "mime": "image/jpeg",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Verena Como",
+    "credit": "Own work",
+    "alt": {
+      "en": "Green pumpkin seed kernels spread out to dry",
+      "ar": "بذور قرع خضراء مقشّرة مفرودة لتجف"
+    },
+    "note": "Frame-filling layer of green, hull-less Styrian pumpkin seed kernels laid out on a cloth to dry; these are the green kernels (pepitas) of the catalog item, not the white in-shell snack. Borderline: slightly dim, and Styrian kernels are a darker olive green than some shelled pepitas. CC BY-SA 4.0."
+  },
+  "ff_sunflower_oil": {
+    "status": "approved",
+    "file": "File:Tournesol Huile INAGRI 302-4-cliche Jean Weber (23716285949).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_(23716285949).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+    "width": 2126,
+    "height": 1424,
+    "mime": "image/jpeg",
+    "license": "CC-BY-2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "author": "INRA DIST (photo: Jean Weber)",
+    "credit": "Tournesol Huile INAGRI 302-4-cliche Jean Weber",
+    "alt": {
+      "en": "A glass vessel of sunflower oil with sunflowers and seeds",
+      "ar": "وعاء زجاجي من زيت عباد الشمس مع زهور وبذور عباد الشمس"
+    },
+    "note": "Styled INRA studio shot: a round glass vessel of clear golden sunflower oil in the centre, with sunflower heads behind and a scoop of black sunflower seeds; no bottle label, text or watermark. Reads clearly as sunflower oil. Borderline: a small dish of margarine at the left edge, mostly outside the square crop. CC BY 2.0."
+  },
+  "ff_corn_oil": {
+    "status": "missing",
+    "reason": "Searches ('corn oil', 'huile de maïs', category search; earlier reviewer's set) return only 'Corn oil.jpg' (704x1000, under the size floor), 'Corn oil (mais).jpg' (branded supermarket bottle, already rejected), Mazola adverts and store shelves, sardines in corn oil, production charts and factory visits. The sunflower-oil studio shot shows sunflowers, so it cannot stand in. No plain unlabelled corn oil found."
+  },
+  "ff_ghee": {
+    "status": "missing",
+    "reason": "Category:Ghee reviewed (earlier reviewer rejected 'Ghee 2.jpg' and 'Sliced clarified butter.png'). Viewed: 'Pure Ghee-Homemade-Maharashtra.jpg' (molten ghee in a steel tin with a greenish cast - reads as olive oil), 'Desi ghee.JPG' and 'Desi ghee1.JPG' (liquid golden ghee in a glass jar - indistinguishable from cooking oil or honey), 'Ghiu.jpg' (a shapeless yellow smear, unrecognisable) and 'Ghee Leila.JPG' (branded tin). No photo that reads unmistakably as ghee/samna was found."
+  },
+  "ff_dark_chocolate_70": {
+    "status": "missing",
+    "reason": "Category:Dark chocolate reviewed. Viewed: 'Chocolate.jpg' (mixed dark/milk/white squares embossed 'Alpia'), 'A large piece of dark chocolate from India.jpg' (embossed bar held in a hand), 'Chocolate pistoles.jpg' (trade-show bags with printed cards), 'Blocks of Couverture chocolate.jpg' (dark beside an embossed white block); the tempered couverture sample is 55% cocoa on a biscuit. Others are branded bars, pralines and desserts. No unbranded plain 70-85% dark chocolate found."
+  },
+  "ff_milk_chocolate": {
+    "status": "missing",
+    "reason": "Category:Milk chocolate reviewed. Viewed: 'Milchschokolade Läderach.jpg' (a factory chocolate fountain with printed 'Milchschokolade' text), 'Chocolate (blue background).jpg' (the mixed Alpia-embossed stack again) and 'Chocolate 3.jpg' (a wrapped branded sweet). Others are branded bars and sweets (Cadbury, Ritter Sport, Reese's, Royce'), pralines, refining machinery and almond bars. No unbranded plain milk chocolate found."
+  },
+  "ff_apple_juice": {
+    "status": "approved",
+    "file": "File:Apple juice 3.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Apple_juice_3.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Apple_juice_3.jpg",
+    "width": 2689,
+    "height": 4493,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Bruno Glätsch",
+    "credit": "Pixabay (photo 1584168)",
+    "alt": {
+      "en": "A glass of clear apple juice beside an apple",
+      "ar": "كوب من عصير التفاح الصافي بجانب تفاحة"
+    },
+    "note": "A tall glass of clear, golden filtered apple juice with a whole red-and-yellow apple beside it on a plain white background; no bottle, label or text. Matches the clear unsweetened apple juice of the record (not the cloudy pressings rejected earlier). CC0 (Pixabay import)."
+  },
+  "ff_tomato_sauce": {
+    "status": "approved",
+    "file": "File:Fresh Tomato Sauce (Unsplash).jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_Tomato_Sauce_(Unsplash).jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+    "width": 3000,
+    "height": 2000,
+    "mime": "image/jpeg",
+    "license": "CC0-1.0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "author": "Dennis Klein",
+    "credit": "Unsplash (photo FzB_512zvP0)",
+    "alt": {
+      "en": "A glass jar of smooth tomato sauce",
+      "ar": "برطمان زجاجي من صوص الطماطم الناعم"
+    },
+    "note": "A small glass jar filled with smooth red tomato sauce, with two cherry tomatoes and scattered dried herbs on a dark surface; no label or text. Reads as plain tomato sauce. Borderline: a few torn herb leaves on top, and the source calls it fresh rather than canned (served, it looks the same). CC0 (Unsplash, dated 2016, archived before the 2017 licence change)."
+  },
+  "ff_mahshi_kousa": {
+    "status": "approved",
+    "file": "File:Kousa Mahshi.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Kousa_Mahshi.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Kousa_Mahshi.jpg",
+    "width": 1807,
+    "height": 1158,
+    "mime": "image/jpeg",
+    "license": "PD",
+    "licenseUrl": "",
+    "author": "Bazel",
+    "credit": "Own work",
+    "alt": {
+      "en": "A platter of stuffed zucchini (mahshi kousa) cooked in tomato",
+      "ar": "طبق من الكوسة المحشية المطبوخة في صلصة الطماطم"
+    },
+    "note": "A platter of whole cored zucchini, stuffed and simmered in tomato broth until soft and olive-green - the same look as Egyptian mahshi kousa; no text or people. Not the Palestinian-style file rejected earlier; the uploader does not state the cuisine. Borderline: a mild warm cast from a 2007 camera, and plate rims at the frame edges. Public domain (PD-user)."
+  }
+}

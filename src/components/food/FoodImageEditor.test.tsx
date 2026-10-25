@@ -130,3 +130,16 @@ describe('FoodImageEditor', () => {
     expect(screen.getByTestId('fi')).toHaveTextContent("isn't available here yet");
   });
 });
+
+describe('FoodImageEditor — a picture link (B4.2)', () => {
+  it('an https link is used as the picture; anything else cannot be used', () => {
+    const onChange = vi.fn();
+    render(<FoodImageEditor value={null} onChange={onChange} name={name} testId="fi" />);
+    fireEvent.click(screen.getByTestId('fi-link'));
+    fireEvent.change(screen.getByTestId('fi-link-input'), { target: { value: 'javascript:alert(1)' } });
+    expect(screen.getByTestId('fi-link-use')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('fi-link-input'), { target: { value: ' https://images.example.com/ful.jpg ' } });
+    fireEvent.click(screen.getByTestId('fi-link-use'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ source: 'url', url: 'https://images.example.com/ful.jpg', thumbUrl: 'https://images.example.com/ful.jpg', rev: 1 }));
+  });
+});

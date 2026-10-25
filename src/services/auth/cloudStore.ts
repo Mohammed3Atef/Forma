@@ -28,15 +28,6 @@ interface CloudState {
   syncNow: (force?: boolean) => Promise<void>;
 }
 
-/** Derive the badge status from the current cloud state. */
-export function cloudStatus(s: Pick<CloudState, 'available' | 'user' | 'syncing' | 'lastSync' | 'error'>): CloudStatus {
-  if (s.user && s.error) return 'error';
-  if (!s.available || !s.user) return 'local';
-  if (s.syncing) return 'syncing';
-  if (s.lastSync) return 'synced';
-  return 'signedIn';
-}
-
 /** Guard so init() can be called from React effects (StrictMode re-runs them). */
 let initialized = false;
 

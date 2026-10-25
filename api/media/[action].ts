@@ -5,7 +5,7 @@ import { createContext, type AuthedUser } from '../_trpc/context.js';
 import { MediaError, isBunnyConfigured, putObject } from './_lib/bunny.js';
 import { limitFor, resolveUploadTarget, type UploadMeta } from './_lib/policy.js';
 import { CHUNK_BYTES, SESSION_TTL_MS, chunkId, mediaUploadChunksCol, mediaUploadsCol, toBinary } from './_lib/staging.js';
-import { ImageRejected, sanitizeFoodImage } from './_lib/imageSanitize.js';
+import { ImageRejected, sanitizeDemoImage, sanitizeFoodImage } from './_lib/imageSanitize.js';
 
 /**
  * The media upload function — the ONLY code path that writes to Bunny
@@ -113,6 +113,19 @@ async function upload(req: VercelRequest, res: VercelResponse, user: AuthedUser)
     send(res, 200, { url, path: target.path, size: clean.buffer.length, kind: 'image', name: target.name, mimeType: clean.mime, width: clean.width, height: clean.height });
     return;
   }
+  if (target.category === 'exercise' && target.kind === 'image') {
+    // B4.2: a coach's demonstration picture — its real type, sane size, no metadata (as a food photo; a GIF keeps its frames).
+    let clean;
+    try {
+      clean = sanitizeDemoImage(body, target.mimeType);
+    } catch (e) {
+      if (e instanceof ImageRejected) throw new MediaError(e.code === 'badDimensions' ? 422 : 415, e.code, e.message);
+      throw e;
+    }
+    const url = await putObject(target.path, clean.mime, clean.buffer);
+    send(res, 200, { url, path: target.path, size: clean.buffer.length, kind: 'image', name: target.name, mimeType: clean.mime, width: clean.width, height: clean.height });
+    return;
+  }
   const url = await putObject(target.path, target.mimeType, body);
   send(res, 200, { url, path: target.path, size: body.length, kind: target.kind, name: target.name, mimeType: target.mimeType });
 }
@@ -131,6 +144,8 @@ async function init(req: VercelRequest, res: VercelResponse, user: AuthedUser): 
   });
   // B4.1: food photos are sanitized whole, in one request (they are capped below one chunk).
   if (target.category === 'food') throw new MediaError(400, 'badRequest', 'Food photos are uploaded in one request');
+  // B4.2: so are exercise pictures — a picture never reaches storage without the metadata clean-up.
+  if (target.category === 'exercise' && target.kind === 'image') throw new MediaError(413, 'tooLarge', 'Pictures must be under 4 MB');
   const totalChunks = Math.ceil(target.size / CHUNK_BYTES);
   const now = Date.now();
   const sessions = await mediaUploadsCol();

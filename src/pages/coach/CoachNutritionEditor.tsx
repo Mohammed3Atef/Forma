@@ -1,5 +1,5 @@
 import { quantityText } from '@/lib/foodFormat';
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,37 +7,39 @@ import { PlanEditorGate } from '@/components/coach/PlanEditorStates';
 import { PlanEditorShell } from '@/components/coach/editor/PlanEditorShell';
 import { PlanHistorySheet } from '@/components/coach/editor/PlanHistorySheet';
 import { useHistoryParam } from '@/components/coach/editor/useHistoryParam';
-import { LibraryAddPrompt } from '@/components/coach/editor/LibraryAddPrompt';
 import { ClientContextPanel } from '@/components/coach/ClientContextPanel';
 import { usePlanEditor } from '@/hooks/usePlanEditor';
 import { Icon } from '@/components/Icon';
 import { Sheet } from '@/components/Sheet';
 import { Button, IconButton } from '@/components/ui/Button';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { SearchField, SelectField, TextAreaField, TextInput } from '@/components/ui/Field';
+import { SelectField, TextAreaField, TextInput } from '@/components/ui/Field';
 import { NumericField } from '@/components/ui/NumericField';
 import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
 import { Switch } from '@/components/ui/Switch';
-import { LazyFoodImageEditor, LazyFoodSearchPicker } from '@/components/food/LazyFood';
 import { FoodThumb } from '@/components/food/FoodImage';
-import { LazyCatalogFoodPicker, LazyServingEditor } from '@/components/catalog/LazyCatalog';
-import { useCatalogMeta } from '@/hooks/useCatalog';
-import { isEstimate, provenanceOf } from '@/lib/catalogText';
+import { provenanceOf } from '@/lib/catalogText';
+import type { FoodForm } from '@/components/coach/editor/NutritionFoodForm';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { useSession } from '@/services/auth/sessionStore';
 import { useCoachClientHeader } from '@/hooks/useCoachClientHeader';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
 import { useHandoffParam } from '@/hooks/useHandoffParam';
-import { ADD_FOOD_PARAM, addLibraryFood, mealTargets } from '@/lib/libraryHandoff';
+import { ADD_FOOD_PARAM } from '@/lib/handoffParams';
 import { uid } from '@/lib/utils';
-import { move } from '@/lib/workoutPlanModel';
-import { MACRO_KEYS, applyFoodEdit, cleanNotes, generatedMealLabel, mealCalories, normalizeMealPlan, plannedTotals, typeMealLabel, type MacroKey } from '@/lib/nutritionPlanModel';
+import { move } from '@/lib/listOps';
+import { MACRO_KEYS, applyFoodEdit, cleanNotes, generatedMealLabel, mealCalories, normalizeMealPlan, plannedTotals, typeMealLabel } from '@/lib/nutritionPlanModel';
 import { applyLocalizedEdit, secondLanguageStale, setLocalized, typeLocalized } from '@/lib/localizedText';
 import { getClientMealPlan, saveClientMealPlan } from '@/services/platform/planApi';
-import { listFoodGroups, listFoods, listSupplements } from '@/services/platform/coachAssetsApi';
+import { listFoodGroups, listSupplements } from '@/services/platform/coachAssetsApi';
 import { confirmDelete, confirmDialog } from '@/stores/dialogStore';
-import type { FoodImageRef, FoodItem, FoodProvenance, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
+import type { FoodItem, LocalizedText, Meal, MealPlan, MealSlot, SubstitutionPolicy, Supplement } from '@/types';
+
+// The food sheet and the Library hand-off load when used, not with the editor (bundle budget, B4.3).
+const NutritionFoodForm = lazy(() => import('@/components/coach/editor/NutritionFoodForm'));
+const NutritionLibraryAdd = lazy(() => import('@/components/coach/editor/NutritionLibraryAdd'));
 
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack', 'postWorkout'];
 // B3.9 (CO-19, owner D6): no "flag swaps for review" switch — nothing anywhere could review them.
@@ -58,29 +60,6 @@ function serializeMealPlan(p: MealPlan): MealPlan {
   };
 }
 
-interface FoodForm {
-  mealId: string;
-  orig: FoodItem | null;
-  id: string;
-  name: string;
-  nameOrig: LocalizedText | null;
-  nameAr: string;
-  nameArTouched: boolean;
-  quantity: string;
-  macros: Record<MacroKey, number | null>;
-  groupId: string | null;
-  groupTouched: boolean;
-  allowCustom: boolean;
-  /** B4: where the numbers come from (catalog / Open Food Facts serving), or null when typed by hand. */
-  provenance: FoodProvenance | null;
-  provTouched: boolean;
-  /** The coach typed a value over catalog / source numbers — shown, so the change is never silent. */
-  clearedByHand: boolean;
-  /** B4.1: the item's picture (a copy), whether it changed, and the Forma picture offered for it. */
-  image: FoodImageRef | null;
-  imageTouched: boolean;
-  formaImage: FoodImageRef | null;
-}
 interface SuppForm {
   orig: Supplement | null;
   name: string;
@@ -119,18 +98,13 @@ export function CoachNutritionEditor() {
   });
   const { plan, setPlan, dirty, save } = ed;
   const groups = useQuery({ queryKey: ['foodGroups', coachId], queryFn: () => listFoodGroups(coachId), enabled: !!coachId });
-  const lib = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
-  const catalog = useCatalogMeta();
-  // B3.7 "Use in a client plan": a food handed over from the Library, added only once the coach picks
-  // the meal — as an unsaved change (Save keeps it, as always).
+  // B3.7 "Use in a client plan": a food handed over from the Library (NutritionLibraryAdd).
   const [addFoodId, clearAddFood] = useHandoffParam(ADD_FOOD_PARAM);
-  const addFood = addFoodId ? lib.data?.find((f) => f.id === addFoodId) ?? null : null;
   const suppLib = useQuery({ queryKey: ['supplements', coachId], queryFn: () => listSupplements(coachId), enabled: !!coachId });
   // Meals are collapsed to name + kcal; the first one starts open (`undefined` = not chosen yet).
   const [openMealChoice, setOpenMealId] = useState<string | null | undefined>(undefined);
   const [food, setFood] = useState<FoodForm | null>(null);
   const [supp, setSupp] = useState<SuppForm | null>(null);
-  const [pick, setPick] = useState('');
   const [history, setHistory] = useHistoryParam(); // B3.9 (D10): ?history=1 opens it
   useUnsavedGuard(dirty, { title: t('coachEditor.unsavedTitle'), body: t('coachEditor.unsavedBody'), confirmLabel: t('coachEditor.leave') }, ed.discardDraft);
   const exit = useBack(`/coach/client/${clientId}/plan`, ed.discardDraft);
@@ -209,7 +183,6 @@ export function CoachNutritionEditor() {
     );
     patchItems(food.mealId, (items) => (items.some((i) => i.id === item.id) ? items.map((i) => (i.id === item.id ? item : i)) : [...items, item]));
     setFood(null);
-    setPick('');
   };
   const removeFood = async (mealId: string, f: FoodItem) => {
     if (!(await confirmDelete(show(f.name, t('coachEditor.untitledFood'))))) return;
@@ -559,24 +532,22 @@ export function CoachNutritionEditor() {
         </div>
       )}
 
-      <LibraryAddPrompt
-        open={!!addFoodId && (lib.isSuccess || lib.isError)}
-        testId="library-add"
-        title={addFood ? t('library.add.foodTitle', { name: show(addFood.name, t('coachEditor.untitledFood')) }) : t('library.use.action')}
-        hint={t('library.add.foodHint', { name: client.name })}
-        newLabel={t('library.add.newMeal')}
-        missing={!addFood ? t(lib.isError ? 'library.add.loadFailed' : 'library.add.foodMissing') : null}
-        targets={mealTargets(plan).map((m) => ({ key: m.mealId, title: <bdi>{show(m.label, t('coachEditor.meal'))}</bdi>, meta: t('library.add.foodsInMeal', { count: m.count }) }))}
-        onCancel={clearAddFood}
-        onPick={(key) => {
-          if (!addFood) return;
-          const target = key ? { mealId: key } : { newMeal: { id: uid('meal'), slot: 'breakfast' as MealSlot, label: generatedMealLabel(plan.meals.length + 1) } };
-          const res = addLibraryFood(plan, target, addFood, () => uid('food'));
-          setPlan((cur) => ({ ...cur, meals: res.plan.meals }));
-          setOpenMealId(res.mealId);
-          clearAddFood();
-        }}
-      />
+      {addFoodId && (
+        <Suspense fallback={null}>
+          <NutritionLibraryAdd
+            coachId={coachId}
+            foodId={addFoodId}
+            clientName={client.name}
+            plan={plan}
+            show={show}
+            onAdd={(meals, mealId) => {
+              setPlan((cur) => ({ ...cur, meals }));
+              setOpenMealId(mealId);
+            }}
+            onDone={clearAddFood}
+          />
+        </Suspense>
+      )}
       <PlanHistorySheet
         open={history}
         onClose={() => setHistory(false)}
@@ -589,128 +560,11 @@ export function CoachNutritionEditor() {
         onRestored={() => ed.reloadLatest()}
       />
 
-      <Sheet open={!!food} onClose={() => { setFood(null); setPick(''); }} size="lg" title={food?.orig ? t('coachEditor.editFood') : t('coachEditor.addFood')}>
+      <Sheet open={!!food} onClose={() => setFood(null)} size="lg" title={food?.orig ? t('coachEditor.editFood') : t('coachEditor.addFood')}>
         {food && (
-          <div className="space-y-4" data-testid="food-form">
-            {catalog.enabled && catalog.taxonomy && (
-              <div role="group" aria-labelledby="food-catalog-label">
-                <p className="label mb-1.5 block" id="food-catalog-label">
-                  {t('catalog.foods.title')}
-                </p>
-                <LazyCatalogFoodPicker
-                  taxonomy={catalog.taxonomy}
-                  testId="food-catalog"
-                  onPick={(p) => setFood({ ...food, name: p.name.en, nameOrig: p.name, nameAr: p.name.ar, nameArTouched: false, quantity: p.quantity, macros: p.macros, provenance: p.provenance, provTouched: true, clearedByHand: false, image: p.image, imageTouched: true, formaImage: p.image })}
-                />
-              </div>
-            )}
-            {(lib.data?.length ?? 0) > 0 && (
-              <div data-testid="food-library-picker" role="group" aria-labelledby="food-library-picker-label">
-                <p className="label mb-1.5 block" id="food-library-picker-label">{t('coachEditor.chooseFood')}</p>
-                <SearchField fieldClassName="mb-2" aria-label={t('coachEditor.searchFoods')} placeholder={t('coachEditor.searchFoods')} value={pick} onChange={(e) => setPick(e.target.value)} />
-                <div className="max-h-44 space-y-1 overflow-y-auto">
-                  {(lib.data ?? [])
-                    .filter((f) => {
-                      const q = pick.trim().toLowerCase();
-                      return !q || (f.name.en || '').toLowerCase().includes(q) || (f.name.ar || '').includes(pick.trim());
-                    })
-                    .slice(0, 40)
-                    .map((f) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        data-testid="food-lib-option"
-                        className="row min-h-ui-hit w-full gap-2 text-start"
-                        onClick={() => setFood({ ...food, name: f.name.en, nameOrig: f.name, nameAr: f.name.ar ?? '', nameArTouched: false, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats }, provenance: provenanceOf(f), provTouched: true, clearedByHand: false, image: f.image ?? null, imageTouched: true, formaImage: f.image?.source === 'forma-catalog' ? f.image : null })}
-                      >
-                        <FoodThumb image={f.image} size="xs" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            <bdi>{show(f.name)}</bdi>
-                          </span>
-                          <span className="block truncate text-[12px] text-earth-subtle">
-                            <bdi>{f.quantity}</bdi> · <bdi dir={ar ? 'rtl' : 'ltr'}>{macroLine(f)}</bdi>
-                          </span>
-                        </span>
-                        <Icon name="plus" size={16} className="text-brand" />
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-            {lib.isError && <p className="text-[12.5px] text-warn">{t('coachEditor.foodLibraryFailed')}</p>}
-            <div role="group" aria-labelledby="food-database-label">
-              <p className="label mb-1.5 block" id="food-database-label">{t('coachEditor.searchFoodDatabase')}</p>
-              <LazyFoodSearchPicker onPick={(f) => setFood({ ...food, name: f.name, nameOrig: null, nameAr: '', nameArTouched: false, quantity: f.quantity, macros: { calories: f.calories, protein: f.protein, carbs: f.carbs, fats: f.fats }, provenance: f.provenance, provTouched: true, clearedByHand: false, image: null, imageTouched: true, formaImage: null })} />
-            </div>
-            <div className="h-px bg-line-soft" />
-            <TextInput label={t('field.name')} data-testid="food-name" placeholder={t('coachEditor.foodName')} value={food.name} onChange={(e) => setFood({ ...food, name: e.target.value })} />
-            <SecondLanguageField lang="ar" testId="food-name-ar" value={food.nameAr} onChange={(v) => setFood({ ...food, nameAr: v, nameArTouched: true })} stale={!food.nameArTouched && secondLanguageStale(food.nameOrig, food.name, 'en')} />
-            {/* An upload finishes later: the update is functional, so typing meanwhile is kept. */}
-            <LazyFoodImageEditor value={food.image} formaImage={food.formaImage} name={{ en: food.name, ar: food.nameAr }} testId="food-image" onChange={(image) => setFood((cur) => (cur ? { ...cur, image, imageTouched: true } : cur))} />
-            {food.provenance?.per100g ? (
-              <div className="space-y-2 rounded-ui-control border border-line-soft p-3" data-testid="food-serving">
-                <p className="text-[12.5px] text-earth-muted">
-                  {food.provenance.source?.provider === 'open-food-facts' ? t('catalog.off.attribution') : t('catalog.foods.fromForma')}
-                  {isEstimate(food.provenance) && <span className="pill ms-2">{t('catalog.foods.estimate')}</span>}
-                </p>
-                {food.provenance.sourceNote && <p className="text-[12px] text-earth-subtle">{ar ? food.provenance.sourceNote.ar : food.provenance.sourceNote.en}</p>}
-                <LazyServingEditor
-                  key={food.id + (food.provenance.catalogId ?? '')}
-                  provenance={food.provenance}
-                  testId="food-serving-editor"
-                  onChange={(r) => setFood({ ...food, quantity: r.quantity, macros: r.macros, provenance: r.provenance, provTouched: true, clearedByHand: false })}
-                />
-              </div>
-            ) : (
-              <TextInput label={t('field.quantity')} data-testid="food-quantity" placeholder={t('coachEditor.quantity')} value={food.quantity} onChange={(e) => setFood({ ...food, quantity: e.target.value })} />
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              {MACRO_KEYS.map((k) => (
-                <NumericField
-                  key={k}
-                  label={k === 'calories' ? t('coachEditor.caloriesKcal') : t('coachEditor.macroGrams', { name: t(`nutrition.${k}`) })}
-                  testId={`food-${k}`}
-                  min={0}
-                  max={k === 'calories' ? 10000 : 1000}
-                  value={food.macros[k]}
-                  // A typed value makes the row the coach's own: the catalog / source claim is dropped.
-                  onChange={(v) => setFood({ ...food, macros: { ...food.macros, [k]: v }, ...(food.provenance ? { provenance: null, provTouched: true, clearedByHand: true } : {}) })}
-                />
-              ))}
-            </div>
-            {food.clearedByHand && (
-              <p className="text-[12px] text-earth-subtle" data-testid="food-by-hand">
-                {t('catalog.foods.byHand')}
-              </p>
-            )}
-            <div>
-              <p className="label mb-1.5 block" id="meal-allowed-group-label">{t('nutritionSub.approvedAlternatives')}</p>
-              <div className="flex flex-wrap gap-2" data-testid="meal-allowed-group" role="group" aria-labelledby="meal-allowed-group-label">
-                <button type="button" className={`chip ${!food.groupId ? 'chip-on' : ''}`} aria-pressed={!food.groupId} onClick={() => setFood({ ...food, groupId: null, groupTouched: true })}>
-                  {t('nutritionSub.noGroup')}
-                </button>
-                {(groups.data ?? []).map((g) => (
-                  <button key={g.id} type="button" data-testid={`group-opt-${g.id}`} aria-pressed={food.groupId === g.id} className={`chip ${food.groupId === g.id ? 'chip-on' : ''}`} onClick={() => setFood({ ...food, groupId: g.id, groupTouched: true })}>
-                    {g.name}
-                  </button>
-                ))}
-                {food.groupId && !food.groupTouched && !(groups.data ?? []).some((g) => g.id === food.groupId) && (
-                  <span className="chip chip-on" title={t('coachEditor.groupKept')}>
-                    {t('coachEditor.groupKeptShort', { n: food.orig?.allowedAlternatives?.length ?? 0 })}
-                  </span>
-                )}
-              </div>
-              {(groups.data?.length ?? 0) === 0 && <p className="mt-1 text-[12px] text-earth-subtle">{t('coachFoods.noGroups')}</p>}
-            </div>
-            <div className="flex min-h-ui-hit items-center gap-3">
-              <span className="min-w-0 flex-1 text-[13.5px]">{t('coachSettings.allowCustomFoods')}</span>
-              <Switch on={food.allowCustom} label={t('coachSettings.allowCustomFoods')} testId="food-allow-custom" onChange={() => setFood({ ...food, allowCustom: !food.allowCustom })} />
-            </div>
-            <Button data-testid="food-save" fullWidth disabled={!food.name.trim() && !food.nameAr.trim()} onClick={saveFood}>
-              {t('coachEditor.applyFood')}
-            </Button>
-          </div>
+          <Suspense fallback={<LoadingState count={4} />}>
+            <NutritionFoodForm food={food} setFood={setFood} groups={groups.data ?? []} onApply={saveFood} />
+          </Suspense>
         )}
       </Sheet>
 

@@ -80,23 +80,6 @@ describe('usage', () => {
 });
 
 describe('coachAssets — the factory-generated kinds not covered elsewhere', () => {
-  it('nutritionTemplates: save/list/get/update/delete round-trip, cross-coach isolation', async () => {
-    const a = await insertUser({ _id: 'a', role: 'coach' });
-    const b = await insertUser({ _id: 'b', role: 'coach' });
-    const body = { id: 'nt-1', name: 'Cut', meals: [], targets: { calories: 2000, protein: 150, carbs: 200, fats: 60 }, supplements: [], waterTargetMl: 3000 };
-    await caller(a).coachAssets.nutritionTemplates.save(body);
-    expect((await caller(a).coachAssets.nutritionTemplates.list({})).map((t) => t.id)).toEqual(['nt-1']);
-    expect((await caller(a).coachAssets.nutritionTemplates.get({ id: 'nt-1' })).name).toBe('Cut');
-    await caller(a).coachAssets.nutritionTemplates.update({ id: 'nt-1', name: 'Bulk' });
-    expect((await caller(a).coachAssets.nutritionTemplates.get({ id: 'nt-1' })).name).toBe('Bulk');
-    expect(await code(caller(b).coachAssets.nutritionTemplates.get({ id: 'nt-1', coachId: a._id }))).toBe('FORBIDDEN');
-    expect(await code(caller(b).coachAssets.nutritionTemplates.update({ id: 'nt-1', name: 'Hijack' }))).toBe('NOT_FOUND');
-    expect(await code(caller(b).coachAssets.nutritionTemplates.delete({ id: 'nt-1' }))).toBe('NOT_FOUND');
-    await caller(a).coachAssets.nutritionTemplates.delete({ id: 'nt-1' });
-    expect(await code(caller(a).coachAssets.nutritionTemplates.get({ id: 'nt-1' }))).toBe('NOT_FOUND');
-    expect(await code(caller(a).coachAssets.nutritionTemplates.save({ ...body, name: '' }))).toBe('BAD_REQUEST');
-  });
-
   it('foods / foodGroups / supplements / billingPlans / workoutTemplates: get/update/delete', async () => {
     const a = await insertUser({ _id: 'a', role: 'coach' });
     const b = await insertUser({ _id: 'b', role: 'coach' });

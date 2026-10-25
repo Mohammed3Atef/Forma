@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exerciseFromCatalog, foodPickFromCatalog, isEstimate, reserve, servingText } from './catalogCopy';
 import { applyFoodEdit, snapshotFood } from './nutritionPlanModel';
-import { foodFromLibrary } from './libraryHandoff';
+import { foodFromLibrary } from './foodHandoff';
 import { foodLine } from './foodFormat';
 import type { CatalogExercise, CatalogFoodCard, CatalogTaxonomy } from '@/services/platform/catalogApi';
 
@@ -48,12 +48,14 @@ describe('exercise copy', () => {
     expect(ex).toMatchObject({ name: 'Barbell bench press', names: { ar: 'ضغط البار على البنش المستوي' }, targetMuscle: 'Chest', equipment: 'Barbell, Bench', catalogId: 'fx_barbell_bench_press', catalogRev: 3, imageUrl: 'https://wger.de/a.png', videoUrl: 'https://wger.de/v.MP4' });
     expect(ex.libraryExerciseId).toBeUndefined(); // not the coach's library: no library sync link
     expect(ex.mediaCredits?.map((c) => [c.kind, c.author, c.license])).toEqual([['image', 'Everkinetic', 'CC-BY-SA-3.0'], ['video', 'Goulart', 'CC-BY-SA-4.0']]);
-    expect(ex.instructions?.ar.steps).toEqual(['ب', 'ج']);
+    expect(ex.instructions?.ar?.steps).toEqual(['ب', 'ج']);
     expect(ex.workingSets).toBe(3); // default programming, the coach sets it
   });
   it('an exercise with no media is copied with none (never another exercise’s)', () => {
     const ex = exerciseFromCatalog({ ...bench, media: [] } as unknown as CatalogExercise, taxonomy);
-    expect([ex.imageUrl, ex.videoUrl, ex.images, ex.mediaCredits]).toEqual([null, null, [], []]);
+    // None: absent (B4.2 — never null in a copy, library sync carries these into templates).
+    expect([ex.imageUrl ?? null, ex.thumbUrl ?? null, ex.videoUrl ?? null, ex.images, ex.mediaCredits]).toEqual([null, null, null, [], []]);
+    expect(ex.imageUrl).toBeUndefined();
   });
 });
 

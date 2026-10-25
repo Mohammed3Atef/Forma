@@ -169,16 +169,6 @@ export function Toolbar({
   );
 }
 
-/** A filter that is on or off (e.g. "Has video"). */
-export function ToggleFilter({ on, onChange, label, testId }: { on: boolean; onChange: (on: boolean) => void; label: string; testId: string }) {
-  return (
-    <button type="button" className={`chip ${on ? 'chip-on' : ''}`} aria-pressed={on} data-testid={testId} onClick={() => onChange(!on)}>
-      {on ? <Icon name="check" size={13} className="me-1 inline" /> : null}
-      {label}
-    </button>
-  );
-}
-
 /** A compact select filter ("Any muscle" …). */
 export function SelectFilter({ value, onChange, label, anyLabel, options, testId }: { value: string; onChange: (v: string) => void; label: string; anyLabel: string; options: { value: string; label: string }[]; testId: string }) {
   return (
@@ -239,7 +229,7 @@ export function ListBody({
   q: UseQueryResult<unknown>;
   total: number;
   matched: number;
-  /** What an empty library shows (the starter panel). */
+  /** What an empty list shows (`FirstItemPanel`). */
   empty: ReactNode;
   onClear: () => void;
   testId: string;
@@ -259,7 +249,7 @@ export function ListBody({
   if (q.isError && !q.data) {
     return online ? <ErrorState message={t('library.loadFailed')} onRetry={() => void q.refetch()} testId={`${testId}-error`} /> : <OfflineState onRetry={() => void q.refetch()} testId={`${testId}-offline`} />;
   }
-  if (total === 0) return <Suspense fallback={<Skeleton className="h-64 w-full rounded-ui-surface" />}>{empty}</Suspense>;
+  if (total === 0) return <>{empty}</>;
   if (matched === 0) {
     return (
       <EmptyState
@@ -280,8 +270,30 @@ export function ListBody({
 
 // ---- first run ----------------------------------------------------------------------------------
 
-/** The first-run panel (CO-23, EX-08, EX-23) — its own chunk: only an empty segment needs it. */
-export const StarterPanel = lazy(() => import('./StarterPanel'));
+const FIRST_ICON = { programs: 'calendar', groups: 'list', supplements: 'pill' } as const;
+/**
+ * An empty list's first run (CO-23): what goes here, and one action to add the first one. B4.3:
+ * nothing to import — exercises and foods come from Forma's shared library from the first visit.
+ */
+export function FirstItemPanel({ kind, createLabel, onCreate, createTestId }: { kind: keyof typeof FIRST_ICON; createLabel: string; onCreate?: () => void; createTestId?: string }) {
+  const { t } = useTranslation();
+  const { canEdit, reason } = useCanEdit();
+  return (
+    <EmptyState
+      icon={FIRST_ICON[kind]}
+      title={t(`library.first.${kind}.title`)}
+      message={t(`library.first.${kind}.body`)}
+      testId="lib-first"
+      action={
+        onCreate ? (
+          <Button icon="plus" disabled={!canEdit} title={reason} onClick={onCreate} data-testid={createTestId}>
+            {createLabel}
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+}
 
 // ---- sheets -------------------------------------------------------------------------------------
 

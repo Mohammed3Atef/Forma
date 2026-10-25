@@ -1,0 +1,49 @@
+{
+  "_about": "B4.2 — reviewed decisions on the ExerciseDB import, keyed by the source name (lowercase). formaId: the curated Forma item this is the SAME movement as (null = not the same). variantOf: the item this is a variation of (kept separate). They override the automatic matching in import-exercisedb.mjs.",
+  "weighted pull-up": {
+    "formaId": null,
+    "variantOf": "fx_pull_up",
+    "note": "loaded variation — kept separate"
+  },
+  "weighted triceps dips": {
+    "formaId": null,
+    "variantOf": "fx_triceps_dip",
+    "note": "loaded variation — kept separate"
+  },
+  "weighted bench dip": {
+    "formaId": null,
+    "variantOf": "fx_bench_dip",
+    "note": "loaded variation — kept separate"
+  },
+  "star jump": {
+    "formaId": null,
+    "variantOf": null,
+    "note": "an explosive jump, not a jumping jack"
+  },
+  "cable kickback": {
+    "formaId": null,
+    "variantOf": "fx_dumbbell_kickback",
+    "note": "a TRICEPS kickback on the cable (the Forma cable kickback is the glute one)"
+  },
+  "farmers walk": {
+    "formaId": "fx_farmers_carry",
+    "note": "same movement; ExerciseDB tags it quads, Forma forearms/traps/abs"
+  },
+  "flutter kicks": {
+    "formaId": "fx_flutter_kicks",
+    "note": "same movement; ExerciseDB tags it glutes, Forma abs/hip flexors"
+  },
+  "low glute bridge on floor": {
+    "formaId": "fx_glute_bridge",
+    "note": "same movement (checked on the demonstration)"
+  },
+  "smith incline bench press": {
+    "formaId": "fx_smith_incline_press",
+    "note": "same movement (checked on the demonstration)"
+  },
+  "cable lat pulldown full range of motion": {
+    "formaId": null,
+    "variantOf": null,
+    "note": "a standing two-pulley pull, NOT the seated lat pulldown — never linked to fx_lat_pulldown"
+  }
+}

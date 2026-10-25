@@ -64,6 +64,7 @@ export async function assertCoachCanWrite(user: { id: string; role: string; acco
  *  - account & sign-in: every `auth.*` (profile, password, sign-out, token refresh…);
  *  - Forma recovery: request / cancel a Forma subscription request, the idempotent trial bootstrap;
  *  - passive reads that write a marker: messages / notifications marked read, usage telemetry;
+ *  - reads that travel as a mutation: signed links to media the coach may already see (MD-02);
  *  - protecting the client: releasing a client, resolving a transfer request about a client who is
  *    leaving (reject, cancel, or accept — the RECEIVING coach's plan is still checked), withdrawing
  *    an open invite;
@@ -87,6 +88,7 @@ export const LAPSED_COACH_ALLOWED: ReadonlySet<string> = new Set([
   'notifications.markRead',
   'usage.bump',
   'usage.recordActiveDay',
+  'media.sign',
   'coachClients.end',
   'transfers.resolve',
   'invites.revoke',

@@ -1,7 +1,7 @@
 import type { Collection, Document } from 'mongodb';
 import { listAllImages, type CdnImage } from '../../media/_lib/bunny.js';
 import { clientNutritionPlansCol, planVersionsCol } from '../../client/_lib/db.js';
-import { coachFoodGroupsCol, coachFoodsCol, coachNutritionTemplatesCol } from './db.js';
+import { coachFoodGroupsCol, coachFoodsCol } from './db.js';
 
 /**
  * B4.1 — coach food photos that nothing shows any more. A replaced or removed photo is KEPT while a
@@ -62,7 +62,6 @@ export async function findFoodImageOrphans(cdnBase: string, now = Date.now()) {
   const cols = (c: unknown) => c as Collection<Document>;
   await scan(cols(await coachFoodsCol()), {}, cdnBase, referenced);
   await scan(cols(await coachFoodGroupsCol()), {}, cdnBase, referenced);
-  await scan(cols(await coachNutritionTemplatesCol()), {}, cdnBase, referenced);
   await scan(cols(await clientNutritionPlansCol()), {}, cdnBase, referenced);
   await scan(cols(await planVersionsCol()), { kind: 'nutrition' }, cdnBase, referenced);
   const orphans = foodImageOrphans(files, referenced, now);

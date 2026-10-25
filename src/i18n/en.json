@@ -286,15 +286,6 @@
     "noResults": "No results",
     "navigate": "Go to"
   },
-  "starter": {
-    "load": "Add the starter library",
-    "loading": "Loading…",
-    "confirm": "This copies the starter set into your library: starter workout programs, about 900 exercises (most without a demo video yet), common foods with swap groups, and supplements. Running it again only adds what's missing. Everything stays editable.",
-    "loadedTitle": "Starter library added",
-    "loaded": "Added {{exercises}} exercises, {{foods}} foods, {{groups}} swap groups, {{supplements}} supplements and {{templates}} programs.",
-    "loadedWithErrors": "Some parts didn't load ({{categories}}). Add the starter library again to retry — nothing is duplicated.",
-    "confirmCta": "Add it"
-  },
   "imageViewer": {
     "close": "Close"
   },
@@ -1000,7 +991,6 @@
     "duplicateDay": "Duplicate day",
     "moveToSection": "Move to section",
     "exerciseCount": "{{n}} exercises",
-    "sectionCount": "{{n}} sections",
     "dayCount": "{{n}} days",
     "emptyDays": "Add your first workout day",
     "selectSessionPrompt": "Select a session to edit it",
@@ -1021,7 +1011,6 @@
       "finisher": "Finisher"
     },
     "quickCreate": "Quick create",
-    "searchLibrary": "Search your library…",
     "nSelected": "{{n}} selected",
     "addNExercises": "Add {{n}} exercises",
     "pickerTruncated": "Showing {{shown}} of {{total}} — refine your search to see more.",
@@ -1045,7 +1034,6 @@
     "addFood": "Add food",
     "foodName": "Food name",
     "chooseFood": "Choose from your foods",
-    "searchFoods": "Search your foods…",
     "searchFoodDatabase": "Search a food database…",
     "foodSearchError": "Search failed — try again or enter it manually",
     "useThis": "Use this",
@@ -1075,13 +1063,9 @@
     "rirPlaceholder": "e.g. 2",
     "tempo": "Tempo",
     "tempoPlaceholder": "e.g. 3-1-1",
-    "hasMedia": "Has media",
     "hasVideo": "Has a video",
     "anyMuscle": "Any muscle",
     "anyEquipment": "Any equipment",
-    "libraryLoadFailed": "Your exercise library couldn't be loaded.",
-    "recentlyUsed": "Recently used",
-    "allExercises": "All exercises",
     "createNewExercise": "Create a new exercise",
     "createNewHint": "Adds it to your library and to this day",
     "createExerciseFailed": "Couldn't create the exercise — try again.",
@@ -1133,7 +1117,6 @@
     "beverageNotes": "Drinks",
     "beverageNotesHint": "What the client may drink — shown with their water target.",
     "editFood": "Edit food",
-    "foodLibraryFailed": "Your saved foods couldn't be loaded — you can still search for a food or enter it.",
     "groupKept": "This item keeps the alternatives it already has; that group was removed from your library.",
     "groupKeptShort": "{{n}} kept alternatives",
     "applyFood": "Done",
@@ -1178,12 +1161,10 @@
     },
     "exercise": "Exercise",
     "newExercise": "New exercise",
-    "search": "Search exercises",
     "tags": "Tags",
     "tagsPlaceholder": "Add a tag and press Enter",
     "noMeta": "No details",
     "noResults": "No exercises match your search",
-    "empty": "Create your first exercise",
     "templatesUpdated_one": "{{count}} template updated",
     "templatesUpdated_other": "{{count}} templates updated",
     "linkedToLibrary": "Linked to library",
@@ -1194,7 +1175,6 @@
     "sourceMissing": "Source exercise is no longer available in your library"
   },
   "coachFoods": {
-    "search": "Search foods",
     "newFood": "New food",
     "food": "Food",
     "serving": "Serving size (e.g. 100 g)",
@@ -1206,8 +1186,7 @@
     "pickFoods": "Foods in this group",
     "untitledGroup": "Untitled group",
     "foodCount": "{{n}} foods",
-    "noGroups": "No food groups yet",
-    "addFoodsFirst": "Add foods to your library first, then come back to build a group."
+    "noGroups": "No food groups yet"
   },
   "coachSupps": {
     "search": "Search supplements",
@@ -3245,7 +3224,6 @@
   "library": {
     "subtitle": "Your programs, exercises, foods and supplements — ready to use in any client's plan.",
     "sections": "Library sections",
-    "more": "More library actions",
     "newProgram": "New program",
     "select": "Select",
     "selectPage": "Select all on this page",
@@ -3292,21 +3270,12 @@
       "programs_other": "{{count}} programs"
     },
     "caption": {
-      "exercises": "Your exercises",
-      "foods": "Your foods",
       "groups": "Your swap groups",
       "supplements": "Your supplements",
       "programs": "Your workout programs"
     },
     "col": {
-      "exercise": "Exercise",
-      "muscle": "Muscle",
-      "equipment": "Equipment",
-      "demo": "Demo",
-      "defaults": "Default sets",
-      "food": "Food",
       "serving": "Serving",
-      "calories": "Calories",
       "group": "Swap group",
       "foods": "Foods",
       "includes": "Includes",
@@ -3315,25 +3284,12 @@
       "days": "Days",
       "updated": "Updated"
     },
-    "filter": {
-      "hasVideo": "Has video"
-    },
     "demo": {
       "video": "Video",
       "image": "Image",
       "none": "No demo yet",
-      "noneHint": "Add a video link when you edit this exercise."
-    },
-    "starter": {
-      "title": "Start with the starter library",
-      "body": "One tap copies a ready-made set into your library, so you can build plans right away. Everything stays yours to edit or delete.",
-      "includes": {
-        "programs": "Starter workout programs",
-        "exercises": "About 900 exercises from the open wger database",
-        "foods": "Common foods, with swap groups",
-        "supplements": "Common supplements"
-      },
-      "honesty": "Most starter exercises don't have a demo video yet — each one says so."
+      "noneHint": "Add a video link when you edit this exercise.",
+      "animation": "Animated demonstration"
     },
     "use": {
       "action": "Use in a client plan",
@@ -3373,9 +3329,63 @@
       "categoryHint": "e.g. Compound",
       "demo": "Demo",
       "demoHint": "A YouTube link or a link to a video file. Clients see it only when it can play.",
-      "defaultsHint": "Where a plan starts when you add this exercise. Each plan can change them."
+      "defaultsHint": "Where a plan starts when you add this exercise. Each plan can change them.",
+      "picture": "Picture",
+      "pictureUrl": "Picture link (https://…)",
+      "pictureInvalid": "Use an https:// link to an image.",
+      "uploadPicture": "Upload a picture or GIF",
+      "replacePicture": "Replace picture",
+      "removePicture": "Remove picture",
+      "restoreOriginal": "Restore the original demonstration",
+      "stepsEn": "Steps (English)",
+      "stepsAr": "Steps (Arabic)",
+      "stepsHint": "One step per line."
     },
-    "filters": "Filter & sort"
+    "filters": "Filter & sort",
+    "scope": {
+      "label": "Show",
+      "all": "All",
+      "favorites": "Favorites",
+      "myExercises": "My exercises",
+      "myFoods": "My foods"
+    },
+    "badge": {
+      "mine": "Mine",
+      "customized": "Customized"
+    },
+    "favorite": "Add {{name}} to favorites",
+    "unfavorite": "Remove {{name}} from favorites",
+    "favoriteFailed": "Couldn’t update your favorites. Try again.",
+    "searchExercises": "Search exercises — English or Arabic",
+    "searchFoods": "Search foods — English or Arabic",
+    "withDemo": "With a demonstration",
+    "offline": "You’re offline. The library will load when you’re back online.",
+    "empty": {
+      "favorites": "No favorites yet. Tap the star on any item to keep it here.",
+      "myExercises": "You haven’t made any exercises of your own yet. Forma’s exercises are ready to use — customize one, or create your own.",
+      "myFoods": "You haven’t made any foods of your own yet. Forma’s foods are ready to use — customize one, or create your own."
+    },
+    "customize": "Customize",
+    "customizeTitle": "Your version of {{name}}",
+    "customizedNote": "Your version of a Forma item. Reset it to go back to Forma’s.",
+    "reset": "Reset to Forma’s version",
+    "resetConfirm": "Remove your changes to “{{name}}” and use Forma’s version again? Plans that already use it keep their copy.",
+    "resetDone": "Back to Forma’s version",
+    "removeFromGroup": "Remove {{name}} from the group",
+    "first": {
+      "programs": {
+        "title": "No programs yet",
+        "body": "Build a program once and reuse it for any client. Exercises come straight from the library — nothing to import."
+      },
+      "groups": {
+        "title": "No swap groups yet",
+        "body": "A swap group lists foods a client may exchange for one another. Pick them from the food library."
+      },
+      "supplements": {
+        "title": "No supplements yet",
+        "body": "Add the supplements you recommend, with dose and timing, to reuse them in plans."
+      }
+    }
   },
   "business": {
     "title": "Business",
@@ -3704,11 +3714,6 @@
     "reload": "Reload"
   },
   "catalog": {
-    "formaLibrary": "Forma library",
-    "myLibrary": "My library",
-    "source": "Exercise source",
-    "searchExercises": "Search exercises (English or Arabic)",
-    "withVideo": "With video only",
     "offline": "The Forma library needs a connection. Your own exercises still work offline.",
     "loadFailed": "Couldn't load the Forma library.",
     "preview": "Exercise details",
@@ -3720,21 +3725,18 @@
     "demos": "Demonstrations",
     "demoN": "Demo {{n}}",
     "playDemo": "Play {{demo}} — {{name}}",
-    "videoCount": "{{n}} videos",
     "trains": "Trains",
     "writtenBy": "Instructions written by Forma.",
     "credits": "Media credits",
     "creditImage": "Image",
     "creditVideo": "Video",
-    "saveToMine": "Copy to my exercises",
-    "savedToMine": "Copied to your exercises",
-    "saveFailed": "Couldn't copy it — try again.",
     "instructions": {
       "setup": "Setup",
       "steps": "How to do it",
       "cues": "Coaching cues",
       "mistakes": "Common mistakes",
-      "safety": "Safety"
+      "safety": "Safety",
+      "englishOnly": "These steps are available in English only."
     },
     "foods": {
       "title": "Forma foods",
@@ -3754,13 +3756,16 @@
       "sourceRecipe": "Values: Forma recipe estimate from USDA FoodData Central ingredients",
       "noResults": "No foods match your search",
       "fromForma": "From Forma foods",
-      "byHand": "Values entered by hand",
-      "changeServing": "Change serving"
+      "byHand": "Values entered by hand"
     },
     "off": {
       "attribution": "Packaged-food values from Open Food Facts (via wger), available under the ODbL."
     },
-    "openCopy": "Open my copy"
+    "demoOf": "{{name}} — demonstration",
+    "demoUnavailable": "This demonstration can't be loaded right now.",
+    "fromExerciseDb": "Exercise data and steps: ExerciseDB by AscendAPI. The Arabic name is a Forma draft.",
+    "creditEdb": "Demonstration: ExerciseDB by AscendAPI",
+    "showMore": "Show more"
   },
   "foodImage": {
     "title": "Photo",
@@ -3788,6 +3793,9 @@
       "planSuspended": "Your Forma subscription is suspended — uploads are paused.",
       "noPlan": "A Forma subscription is needed to upload photos.",
       "failed": "The photo didn't upload. Check your connection and retry."
-    }
+    },
+    "useLink": "Use a picture link",
+    "linkLabel": "Picture link",
+    "useThisLink": "Use"
   }
 }

@@ -1,13 +1,15 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGuardedNav } from '@/hooks/useGuardedNav';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { listMyClients } from '@/services/platform/coachApi';
+import { LIBRARY_KEY } from '@/services/platform/libraryKeys';
+import type { LibraryExerciseRow, LibraryFoodRow } from '@/services/platform/libraryApi';
 import { CommandPalette, type CommandItem } from '@/components/ui/CommandPalette';
 import { useCommandStore } from '@/stores/commandStore';
 import { useSession } from '@/services/auth/sessionStore';
 import { coachPlanState } from '@/services/platform/coachPlanApi';
-import type { Exercise, LibraryFood, WorkoutTemplate } from '@/types';
+import type { WorkoutTemplate } from '@/types';
 import type { CoachPlan } from '@/types';
 import type { CoachAdminData } from '@/services/platform/adminCoachesApi';
 
@@ -88,12 +90,22 @@ export function CommandHost() {
       roster.data?.forEach((c) =>
         ents.push({ id: `cl-${c.id}`, label: c.displayName || c.email, icon: 'user', group: t('coach.clients'), keywords: c.email, run: go(`/coach/client/${c.id}`) }),
       );
-      qc.getQueryData<Exercise[]>(['exerciseLibrary', coachId])?.forEach((e) =>
-        ents.push({ id: `ex-${e.id}`, label: e.name, icon: 'dumbbell', group: t('coachLib.tabs.exercises'), keywords: `${e.targetMuscle} ${e.category ?? ''}`, run: go(`/coach/library?tab=exercises&open=${encodeURIComponent(e.id)}`) }),
-      );
-      qc.getQueryData<LibraryFood[]>(['foods', coachId])?.forEach((f) =>
-        ents.push({ id: `fd-${f.id}`, label: f.name.en, icon: 'meal', group: t('coachLib.tabs.foods'), keywords: f.name.ar ?? '', run: go(`/coach/library?tab=foods&open=${encodeURIComponent(f.id)}`) }),
-      );
+      // B4.3: exercises and foods the coach has already listed (Forma's and their own, any page).
+      const seen = new Set<string>();
+      for (const [, data] of qc.getQueriesData<InfiniteData<{ items: LibraryExerciseRow[] }>>({ queryKey: [...LIBRARY_KEY, 'exercises'] }))
+        for (const r of data?.pages.flatMap((p) => p.items) ?? []) {
+          if (seen.has(`ex-${r.id}`)) continue;
+          seen.add(`ex-${r.id}`);
+          const name = r.kind === 'shared' ? r.card.name : { en: r.exercise.name, ar: r.exercise.names?.ar ?? '' };
+          ents.push({ id: `ex-${r.id}`, label: name.en, icon: 'dumbbell', group: t('coachLib.tabs.exercises'), keywords: name.ar, run: go(`/coach/library?tab=exercises&open=${encodeURIComponent(r.id)}`) });
+        }
+      for (const [, data] of qc.getQueriesData<InfiniteData<{ items: LibraryFoodRow[] }>>({ queryKey: [...LIBRARY_KEY, 'foods'] }))
+        for (const r of data?.pages.flatMap((p) => p.items) ?? []) {
+          if (seen.has(`fd-${r.id}`)) continue;
+          seen.add(`fd-${r.id}`);
+          const name = r.kind === 'shared' ? r.card.name : r.food.name;
+          ents.push({ id: `fd-${r.id}`, label: name.en, icon: 'meal', group: t('coachLib.tabs.foods'), keywords: name.ar ?? '', run: go(`/coach/library?tab=foods&open=${encodeURIComponent(r.id)}`) });
+        }
       qc.getQueryData<WorkoutTemplate[]>(['workoutTemplates', coachId])?.forEach((tp) =>
         ents.push({ id: `tp-${tp.id}`, label: tp.name, icon: 'list', group: t('coachLib.tabs.programs'), run: go(`/coach/templates/${encodeURIComponent(tp.id)}`) }),
       );

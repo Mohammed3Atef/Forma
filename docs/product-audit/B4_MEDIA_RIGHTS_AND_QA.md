@@ -270,3 +270,72 @@ All 317 source exercises and their **593** videos are blocked. Every row in `dat
 **Orphaned coach food photos.**
 - Super admin `media.foodImageOrphans` lists photos no document references, older than 14 days.
 - Deleting them is part of MD-03 (ledger + reaper) and needs approval.
+
+---
+
+# B4.2 additions (2026-10-25)
+
+## 10. ExerciseDB V1 (owner decision)
+
+- **Use.** The owner confirmed the use with the provider directly (B4.2 brief); this document does not re-examine it.
+- **Credit.** The provider's documentation asks for credit to AscendAPI.
+  - **Where shown:** every ExerciseDB demonstration shows "Demonstration: ExerciseDB by AscendAPI · ascendapi.com", and every ExerciseDB record states that its data and steps come from ExerciseDB.
+  - **In copies:** plan and library copies carry the credit (`mediaCredits`, license `EXERCISEDB`) for as long as they show the GIF.
+- **Hosting:**
+  - **GIFs:** served from the provider's address, unchanged. Nothing uploaded.
+  - **Stills:** the app serves small WebP stills it made from each GIF's middle frame (`public/catalog/edb/`, 1,324 files, 1.65 MB), so lists stay light.
+- **176 provider records have a dead GIF link** (HTTP 404). Each belongs to a duplicate of an exercise whose other record's GIF works; it is listed in `data/catalog-reports/exercisedb-import.md`, never shown.
+- **Never another exercise's demonstration.** Links to curated items are by same movement only.
+  - **Reviewed exclusions:** e.g. the "cable kickback" GIF is a triceps kickback and is never attached to the glute kickback; the "full range" pulldown GIF is a standing two-pulley pull and is never attached to the seated lat pulldown.
+
+## B4.3 — 31 more food pictures (2026-10-25)
+
+**Review.** Sheet `scripts/catalog/curation/food-images.e.json` reviewed the 63 foods that had no
+picture. 31 were approved and 32 recorded as still having none, each with what was checked and why
+it failed. The rules are those of §6:
+- the right food in the right state;
+- a licence on the allow-list;
+- no brand, people, watermark or overlay text;
+- no AI imagery.
+
+The reviewer viewed every approved photo, at 960 px where text or state was in doubt.
+
+**Lead spot check.** A contact sheet of every new list thumbnail and card
+(`e2e-out/b43-food-contact-e*.png`). All 31 were kept.
+
+**Replacements for spot-check rejects.** Three B4.1 photos had been rejected at the spot check.
+Boiled chickpeas and boiled potatoes now have correct new photos. Raw egg white still has none: every
+candidate looked like oil or yolk.
+
+**Licences of the 31.**
+
+| Licence | Photos |
+|---|---:|
+| CC BY-SA 4.0 | 14 |
+| CC0 | 6 |
+| CC BY-SA 3.0 | 4 |
+| CC BY 3.0 | 3 |
+| CC BY 2.0 | 3 |
+| Public domain | 1 |
+
+**All 158 pictures by licence.**
+
+| Licence | Pictures |
+|---|---:|
+| CC BY-SA 4.0 | 47 |
+| CC BY-SA 3.0 | 40 |
+| CC0 | 18 |
+| CC BY 2.0 | 18 |
+| PD | 13 |
+| CC BY 3.0 | 10 |
+| CC BY-SA 2.0 | 7 |
+| CC BY 4.0 | 4 |
+| CC BY-SA 2.5 | 1 |
+
+Every picture is credited (author and licence) where it is shown large.
+
+**Build.** A later sheet may re-decide a food that an earlier one left without a picture.
+Spot-check rejections are pinned to the file. A transparent PNG (tofu) gets a white ground.
+
+**Coverage.** 158 / 190 foods (156 approved, 2 flagged for a better photo). Pictures are served from
+Wikimedia's own renditions (120 px lists, 500 px cards), so no hosting step is needed.

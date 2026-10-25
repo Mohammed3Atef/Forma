@@ -141,7 +141,12 @@ export default defineConfig({
             // Exercise demonstration IMAGES, immutable by path → cached on first view so a client's
             // plan shows them offline (B4 / MD-08): the catalog's reviewed wger.de images, and the
             // legacy GitHub-hosted images older library rows still point at. Videos are not cached.
-            urlPattern: ({ url }) => url.origin === 'https://raw.githubusercontent.com' || (url.origin === 'https://wger.de' && url.pathname.startsWith('/media/exercise-images/')),
+            // B4.2: plus ExerciseDB GIFs (at their original address) and the app's own list stills for them.
+            urlPattern: ({ url, sameOrigin }) =>
+              url.origin === 'https://raw.githubusercontent.com' ||
+              (url.origin === 'https://wger.de' && url.pathname.startsWith('/media/exercise-images/')) ||
+              (url.origin === 'https://static.exercisedb.dev' && url.pathname.startsWith('/media/')) ||
+              (sameOrigin && url.pathname.startsWith('/catalog/edb/')),
             handler: 'CacheFirst',
             options: {
               cacheName: 'exercise-images',

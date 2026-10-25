@@ -12,7 +12,7 @@
  * and what `libraryExerciseId` links against). The two are DELIBERATELY
  * separate: a bare `id` is only unique PER COACH, not globally — two coaches
  * legitimately have their own row with the same logical id (e.g. every coach
- * who seeds the starter library gets a row with `id: "wger-12"`). Every
+ * who customises the same Forma exercise has a row `id: "cat-fx_…"`). Every
  * lookup/write on these collections must therefore filter by `{ coachId, id }`
  * together, never by a bare `_id`/`id`. Enforced with a unique compound index
  * on `{ coachId: 1, id: 1 }` (see `./db.ts`'s `ensureCoachAssetIndexes` and
@@ -104,6 +104,9 @@ export interface ExerciseFields {
   imageUrl?: string | null;
   images?: string[];
   videoPosterUrl?: string | null;
+  /** B4.2: a light list still; the original demonstration of a catalog copy (restorable). */
+  thumbUrl?: string | null;
+  sourceMedia?: { imageUrl: string | null; images: string[]; thumbUrl: string | null; videoUrl: string | null; videoPosterUrl: string | null; mediaCredits: MediaCredit[] };
   // ---- Extra descriptive fields present on the seeded free-exercise-db
   // dataset (see `./exerciseLibrary.ts`) — not formally part of the
   // frontend `Exercise` type, but Firestore stored them verbatim on the doc.
@@ -128,8 +131,22 @@ export interface ExerciseFields {
   catalogRev?: number;
   /** Bilingual name from the catalog — the UI shows it in the reader's language (`name` stays the fallback). */
   names?: LocalizedText;
-  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet };
+  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet | null };
   mediaCredits?: MediaCredit[];
+}
+
+/**
+ * B4.3 `coachFavorites` — a coach's favourite exercise or food: a reference to a shared catalog item
+ * (`fx_…` / `edb_…` / `ff_…`) or to one of the coach's own items. Never a copy of the item.
+ */
+export interface CoachFavoriteDoc {
+  _id: ObjectId;
+  coachId: string;
+  /** `<kind>:<refId>` — unique per coach. */
+  id: string;
+  kind: 'exercise' | 'food';
+  refId: string;
+  createdAt: number;
 }
 
 /** `coachExercises` — was `coachAssets/{coachId}/exercises/{id}`. */
@@ -208,20 +225,6 @@ export interface CoachSupplementDoc extends LibrarySupplementFields {
   _id: ObjectId;
   id: string;
   coachId: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-/** `coachNutritionTemplates` — was `coachAssets/{coachId}/nutritionTemplates/{id}`. */
-export interface CoachNutritionTemplateDoc {
-  _id: ObjectId;
-  id: string;
-  coachId: string;
-  name: string;
-  meals: Meal[];
-  targets: Macros;
-  supplements: Supplement[];
-  waterTargetMl: number;
   createdAt: number;
   updatedAt: number;
 }

@@ -176,3 +176,88 @@ export function sanitizeFoodImage(buf: Buffer, declaredMime: string): SanitizedI
   }
   return { ...parsed, mime };
 }
+
+// ---- GIF (B4.2, exercise demonstrations only): keep the image data, the graphic-control blocks
+// (frame timing) and the NETSCAPE / ANIMEXTS loop block; drop comments and every other
+// application block (where XMP lives). The picture itself is never decoded or re-encoded.
+const GIF_KEEP_APP = new Set(['NETSCAPE2.0', 'ANIMEXTS1.0']);
+function gif(buf: Buffer): Omit<SanitizedImage, 'mime'> & { frames: number } {
+  const sig = buf.toString('latin1', 0, 6);
+  if (sig !== 'GIF87a' && sig !== 'GIF89a') throw new ImageRejected('badType', 'Not a GIF');
+  if (buf.length < 13) throw new ImageRejected('badImage', 'Truncated GIF');
+  const width = buf.readUInt16LE(6);
+  const height = buf.readUInt16LE(8);
+  const packed = buf[10];
+  let i = 13 + (packed & 0x80 ? 3 * (1 << ((packed & 0x07) + 1)) : 0);
+  const out: Buffer[] = [buf.subarray(0, i)];
+  const removed: string[] = [];
+  let frames = 0;
+  const subBlocks = (start: number): number => {
+    let p = start;
+    for (;;) {
+      if (p >= buf.length) throw new ImageRejected('badImage', 'Truncated GIF');
+      const n = buf[p];
+      p += 1 + n;
+      if (n === 0) return p;
+    }
+  };
+  for (;;) {
+    if (i >= buf.length) throw new ImageRejected('badImage', 'Truncated GIF');
+    const b = buf[i];
+    if (b === 0x3b) {
+      out.push(buf.subarray(i, i + 1));
+      break;
+    }
+    if (b === 0x2c) {
+      // image descriptor (10) + optional local colour table + LZW minimum code size + data sub-blocks
+      if (i + 10 > buf.length) throw new ImageRejected('badImage', 'Truncated GIF');
+      const p = buf[i + 9];
+      const start = i;
+      i += 10 + (p & 0x80 ? 3 * (1 << ((p & 0x07) + 1)) : 0) + 1;
+      i = subBlocks(i);
+      out.push(buf.subarray(start, i));
+      frames += 1;
+      continue;
+    }
+    if (b === 0x21) {
+      const label = buf[i + 1];
+      const start = i;
+      const end = subBlocks(i + 2);
+      const appId = label === 0xff ? buf.toString('latin1', i + 3, i + 14) : '';
+      if (label === 0xfe) removed.push('comment');
+      else if (label === 0xff && !GIF_KEEP_APP.has(appId)) removed.push(`app:${appId.trim()}`);
+      else out.push(buf.subarray(start, end));
+      i = end;
+      continue;
+    }
+    throw new ImageRejected('badImage', 'Malformed GIF');
+  }
+  if (!frames) throw new ImageRejected('badImage', 'A GIF with no picture');
+  return { buffer: Buffer.concat(out), width, height, removed, frames };
+}
+
+export type DemoImageMime = SanitizedMime | 'image/gif';
+
+/**
+ * B4.2 — an exercise demonstration picture a coach uploads: a still (JPEG / PNG / WebP, cleaned as
+ * a food photo) or an animated GIF (cleaned above). Same size limits; the type comes from the bytes.
+ */
+export function sanitizeDemoImage(buf: Buffer, declaredMime: string): Omit<SanitizedImage, 'mime'> & { mime: DemoImageMime } {
+  const isGif = buf.length >= 6 && /^GIF8[79]a$/.test(buf.toString('latin1', 0, 6));
+  if (!isGif) {
+    try {
+      return sanitizeFoodImage(buf, declaredMime);
+    } catch (e) {
+      if (e instanceof ImageRejected && e.code === 'badType' && !sniffImage(buf)) throw new ImageRejected('badType', 'Only JPEG, PNG, WebP or GIF pictures can be used');
+      throw e;
+    }
+  }
+  const declared = declaredMime.toLowerCase().split(';')[0].trim();
+  if (declared !== 'image/gif') throw new ImageRejected('badType', 'The file is not the type it claims to be');
+  const parsed = gif(buf);
+  const { minSide, maxSide, maxPixels } = FOOD_IMAGE_LIMITS;
+  if (parsed.width < minSide || parsed.height < minSide || parsed.width > maxSide || parsed.height > maxSide || parsed.width * parsed.height > maxPixels) {
+    throw new ImageRejected('badDimensions', `Pictures must be between ${minSide} and ${maxSide} pixels on each side`);
+  }
+  return { buffer: parsed.buffer, mime: 'image/gif', width: parsed.width, height: parsed.height, removed: parsed.removed };
+}
