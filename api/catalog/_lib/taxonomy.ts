@@ -30,6 +30,12 @@ export const MUSCLES = {
   abductors: { en: 'Abductors (outer hip)', ar: 'الورك الخارجي (المبعِّدات)' },
   calves: { en: 'Calves', ar: 'السمانة' },
   'hip-flexors': { en: 'Hip flexors', ar: 'مثنيات الورك' },
+  // B4.2 (ExerciseDB): sources that name the shoulder as a whole, and muscles outside the B4 list.
+  delts: { en: 'Shoulders (deltoids)', ar: 'عضلات الكتف (الدالية)' },
+  serratus: { en: 'Serratus anterior', ar: 'العضلة المنشارية الأمامية' },
+  'rotator-cuff': { en: 'Rotator cuff', ar: 'الكفة المدورة' },
+  neck: { en: 'Neck', ar: 'الرقبة' },
+  cardio: { en: 'Heart & lungs (cardio)', ar: 'القلب والرئتان (كارديو)' },
 } as const satisfies Record<string, Label>;
 export type MuscleId = keyof typeof MUSCLES;
 
@@ -61,6 +67,10 @@ export const EQUIPMENT = {
   rower: { en: 'Rowing machine', ar: 'جهاز التجديف' },
   elliptical: { en: 'Elliptical trainer', ar: 'جهاز الإليبتيكال' },
   'battle-ropes': { en: 'Battle ropes', ar: 'حبال المعركة' },
+  // B4.2 (ExerciseDB)
+  'bosu-ball': { en: 'BOSU ball', ar: 'كرة البوسو' },
+  'added-weight': { en: 'Added weight (plate, vest, belt)', ar: 'وزن إضافي (قرص، سترة، حزام)' },
+  other: { en: 'Other equipment', ar: 'أدوات أخرى' },
 } as const satisfies Record<string, Label>;
 export type EquipmentId = keyof typeof EQUIPMENT;
 
@@ -90,6 +100,7 @@ export const BODY_PARTS = {
   core: { en: 'Core', ar: 'البطن والجذع' },
   'full-body': { en: 'Full body', ar: 'الجسم كله' },
   cardio: { en: 'Cardio', ar: 'كارديو' },
+  neck: { en: 'Neck', ar: 'الرقبة' },
 } as const satisfies Record<string, Label>;
 export type BodyPartId = keyof typeof BODY_PARTS;
 
@@ -136,6 +147,8 @@ export const LICENSES = {
   'CC-BY-SA-3.0': { en: 'CC BY-SA 3.0', url: 'https://creativecommons.org/licenses/by-sa/3.0/' },
   'CC-BY-SA-4.0': { en: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
   'FORMA-PROPRIETARY': { en: '© Forma', url: 'https://www.useforma.fit/legal' },
+  // B4.2: ExerciseDB V1 — use confirmed by the owner with the provider; credit to AscendAPI required.
+  EXERCISEDB: { en: 'ExerciseDB (AscendAPI)', url: 'https://ascendapi.com' },
 } as const;
 export type LicenseId = keyof typeof LICENSES;
 

@@ -64,6 +64,11 @@ async function removeFixtures(db: Db) {
 }
 const plan = (db: Db) => db.findOne<PlanDoc>('clientNutritionPlans', { _id: CLIENT.id });
 const libFood = (db: Db) => db.findOne<FoodDoc>('coachFoods', { coachId: COACH, 'name.en': FOOD });
+/** Library › Foods: the coach's own food row (searched — one list with Forma's foods). */
+async function ownFoodRow(page: Page) {
+  await page.getByTestId('lib-foods-search').fill(FOOD);
+  return page.getByTestId('lib-foods').getByTestId('library-food-row').and(page.locator('[data-kind="own"]')).filter({ hasText: FOOD });
+}
 
 test.describe('B4.1 food pictures', () => {
   test.describe.configure({ mode: 'serial' });
@@ -87,12 +92,12 @@ test.describe('B4.1 food pictures', () => {
     await page.goto(`/coach/client/${CLIENT.id}/nutrition`);
     await ready(page);
     await page.getByTestId('nutrition-add-food').first().click();
-    await page.getByTestId('food-catalog-search').fill('كشري');
-    const row = page.locator('[data-testid="catalog-food-row"][data-id="ff_koshary"]');
+    await page.getByTestId('food-library-search').fill('كشري');
+    const row = page.locator('[data-testid="library-food-row"][data-id="ff_koshary"]');
     await expect(row).toBeVisible({ timeout: 15_000 });
     await expect(row.getByTestId('food-thumb')).toHaveAttribute('data-has-image', 'true');
-    await expect.poll(() => loaded(page, '[data-testid="catalog-food-row"][data-id="ff_koshary"] img')).toBe(true);
-    await row.click();
+    await expect.poll(() => loaded(page, '[data-testid="library-food-row"][data-id="ff_koshary"] img')).toBe(true);
+    await row.getByTestId('library-row-main').click();
     const card = page.getByTestId('food-catalog-image');
     await expect(card).toContainText('Dina Said');
     await expect.poll(() => loaded(page, '[data-testid="food-catalog-image"] img')).toBe(true);
@@ -141,13 +146,14 @@ test.describe('B4.1 food pictures', () => {
       expect(bytes.includes(Buffer.from('Exif')), 'no EXIF block').toBe(false);
       expect(bytes.includes(Buffer.from('Private Person')) || bytes.includes(Buffer.from('Forma test fixture')), 'no author / description').toBe(false);
     }
-    await expect(page.getByTestId('coach-desktop-foods').getByTestId('data-row').filter({ hasText: FOOD }).getByTestId('food-thumb')).toHaveAttribute('data-has-image', 'true');
+    await expect((await ownFoodRow(page)).getByTestId('food-thumb')).toHaveAttribute('data-has-image', 'true');
 
     // 2) Used in the client's plan: the item carries the same picture (a copy).
     await page.goto(`/coach/client/${CLIENT.id}/nutrition`);
     await ready(page);
     await page.getByTestId('nutrition-add-food').first().click();
-    await page.getByTestId('food-lib-option').filter({ hasText: FOOD }).click();
+    await page.getByTestId('food-library-search').fill(FOOD);
+    await page.getByTestId('food-library').getByTestId('library-food-row').and(page.locator('[data-kind="own"]')).filter({ hasText: FOOD }).getByTestId('library-row-main').click();
     await expect(page.getByTestId('food-image')).toHaveAttribute('data-source', 'upload');
     await page.getByTestId('food-save').click();
     await page.getByTestId('nutrition-save').click();
@@ -156,7 +162,7 @@ test.describe('B4.1 food pictures', () => {
     // 3) Replace the library photo: a new file (next revision); the plan keeps the one it was saved with.
     await page.goto('/coach/library?tab=foods');
     await ready(page);
-    await page.getByTestId('coach-desktop-foods').getByTestId('data-row').filter({ hasText: FOOD }).getByTestId('row-open').click();
+    await (await ownFoodRow(page)).getByTestId('library-row-main').click();
     await expect(page.getByTestId('food-view-image')).toBeVisible();
     await page.getByTestId('food-view-edit').click();
     await page.getByTestId('lf-image-file').setInputFiles({ name: 'mahshi-2.png', mimeType: 'image/png', buffer: png(320, 240) });
@@ -171,13 +177,13 @@ test.describe('B4.1 food pictures', () => {
     expect((await fetch(first.url)).status, 'the earlier file still exists for the plans that show it').toBe(200);
 
     // 4) Remove the library photo: the row falls back to the placeholder.
-    await page.getByTestId('coach-desktop-foods').getByTestId('data-row').filter({ hasText: FOOD }).getByTestId('row-open').click();
+    await (await ownFoodRow(page)).getByTestId('library-row-main').click();
     await page.getByTestId('food-view-edit').click();
     await page.getByTestId('lf-image-remove').click();
     await expect(page.getByTestId('lf-image')).toHaveAttribute('data-source', 'none');
     await page.getByTestId('lf-save').click();
     await expect.poll(async () => (await libFood(db))?.image ?? null, { timeout: 15_000 }).toBeNull();
-    await expect(page.getByTestId('coach-desktop-foods').getByTestId('data-row').filter({ hasText: FOOD }).getByTestId('food-thumb')).toHaveAttribute('data-has-image', 'false');
+    await expect((await ownFoodRow(page)).getByTestId('food-thumb')).toHaveAttribute('data-has-image', 'false');
     await shot(page, testInfo, 'library-after-remove-1440');
   });
 

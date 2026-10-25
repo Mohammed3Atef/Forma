@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/ui/Button';
+import { TextInput } from '@/components/ui/Field';
 import { FoodPhotoError, prepareFoodPhoto, type PreparedFoodPhoto } from '@/lib/foodImageProcess';
 import { uploadFoodPhoto, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
 import type { FoodImageRef, LocalizedText } from '@/types';
@@ -13,6 +14,8 @@ import type { FoodImageRef, LocalizedText } from '@/types';
  * their own folder: it never changes the shared catalog picture, and a replacement is a new file,
  * so plans saved earlier keep the picture they were saved with. The server checks every picture
  * again on save (`api/coach-assets/_lib/foodImage.ts`).
+ *
+ * B4.2: or a picture link the coach enters (any public https image), used as entered.
  */
 export function FoodImageEditor({
   value,
@@ -37,6 +40,16 @@ export function FoodImageEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PreparedFoodPhoto | null>(null);
   const [broken, setBroken] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [link, setLink] = useState('');
+  const linkOk = /^https:\/\/[^\s]+$/i.test(link.trim());
+  const useLink = () => {
+    if (!linkOk) return;
+    const url = link.trim();
+    onChange({ source: 'url', url, thumbUrl: url, alt: { en: name.en, ar: name.ar || name.en }, rev: (value?.rev ?? 0) + 1, uploadedAt: Date.now() });
+    setLink('');
+    setLinking(false);
+  };
   useEffect(() => setBroken(false), [value?.thumbUrl]);
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -122,11 +135,22 @@ export function FoodImageEditor({
                   {t('foodImage.useForma')}
                 </Button>
               )}
+              <Button variant="ghost" size="sm" onClick={() => setLinking((v) => !v)} aria-expanded={linking} data-testid={`${testId}-link`}>
+                {t('foodImage.useLink')}
+              </Button>
               {value && (
                 <Button variant="ghost" size="sm" icon="trash" className="text-danger" onClick={() => onChange(null)} data-testid={`${testId}-remove`}>
                   {t('foodImage.remove')}
                 </Button>
               )}
+            </div>
+          )}
+          {linking && !busy && (
+            <div className="flex items-end gap-2" data-testid={`${testId}-link-form`}>
+              <TextInput label={t('foodImage.linkLabel')} fieldClassName="min-w-0 flex-1" placeholder="https://" value={link} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && useLink()} dir="ltr" inputMode="url" data-testid={`${testId}-link-input`} />
+              <Button size="sm" disabled={!linkOk} onClick={useLink} data-testid={`${testId}-link-use`}>
+                {t('foodImage.useThisLink')}
+              </Button>
             </div>
           )}
           {credit && (

@@ -315,3 +315,175 @@ B4 and B4.1 are both uncommitted. Several files carry both (`src/i18n/*.json`, `
 | 5 | `docs: B4 + B4.1 implementation log, architecture, media rights, certification, backlog` | `docs/product-audit/B4_*.md`, `docs/product-audit/FORMA_MASTER_REMAINING_BACKLOG.md` |
 
 `api/_lib/commercialReason.ts` (the B4 `CATALOG_DISABLED` reason code) belongs to commit 3.
+
+---
+
+# B4.2 — certification (2026-10-25)
+
+**Scope:** the ExerciseDB V1 layer (import, media, search, coach customisation), remote food pictures and coach picture links, the production read-only verification.
+
+**Nothing was staged, committed, pushed, deployed, uploaded or enabled.**
+
+## B4.2-1. Production verification (read-only)
+
+| Check | Result |
+|---|---|
+| GitHub (HTTPS) | `development` = `c12f5e8`, `main` = `db19e96` (merge of `c12f5e8`, no content difference) |
+| Vercel production | `dpl_BThUf5SKZvSTU56oTsPyQUZRd2vx`, created 2026-10-24 23:06, aliased to www.useforma.fit and `forma-git-main-…`: the Git deploy of `main` |
+| Live bundle | Entry `index-DqxlKrI2.js`, 506,394 bytes (the local build of the same tree is 506.46 KB; the hash differs by Vercel's own `VITE_*` values). Contains the B4.1 strings; `dataAttribution` absent |
+| Security headers | `nosniff`, `DENY`, `strict-origin-when-cross-origin`, the Permissions-Policy; `sw.js` 200 |
+| Env (names only) | `FORMA_CATALOG`, `FORMA_CATALOG_MEDIA_URL`, `APP_BASE_URL` not set; `MONGODB_URI` shared by Preview and Production (B4-R1) |
+
+**What this means:**
+- The B39A-S01 reset-link fix and the per-coach quotas are now live.
+- The incident step for B39A-S01 (invalidate outstanding reset tokens, review logs) is an owner action on production data, and was not done.
+
+## B4.2-2. Static checks and unit tests (final tree)
+
+| Check | Result |
+|---|---|
+| `tsc -b --noEmit` | Clean |
+| `node scripts/check-boundaries.mjs` | OK |
+| `npx vitest run` | **150 files, 1,372 / 1,372 passed** (B4.1: 147 files, 1,338) |
+
+## B4.2-3. Browser
+
+**Focused runs while building:**
+- `b42-focus-1`: 8 passed, 2 failed, 6 did not run. Two findings:
+  - **Product defect, fixed:** "Show more" was 95 × 32 px, under the 44 px target rule.
+  - **Spec mistake, fixed:** after "Copy" the Library returns to the list.
+- `b42-focus-2` / `-3`: two more spec fixes, plus one product defect, fixed: the form refused the local test CDN's loopback upload link that the server accepts.
+- `b42-focus-4`: **5 / 5** (spec 100). Spec 98 passed in `b42-focus-2`.
+
+**Full e2e3 suite — `b42-full-1`** (2026-10-25 00:45–02:06, all 7 projects, 389 tests = 384 + the 5 of spec 100, `retries: 0`):
+- **Result:** 386 passed, 2 failed, 1 skipped (the approved Google sign-in skip).
+
+| Failure | Kind | What happened | Resolution |
+|---|---|---|---|
+| `22-library` "library sync …" | **Product (B4.2 regression)** | A video-only edit of a library exercise wrote `imageUrl: null` / `thumbUrl: null`; library sync copied the nulls into linked templates (the spec forbids null fields there). | Fixed: the form writes only what changed, and a removed picture is absent, never null. Catalog copies no longer store null for absent media either. New unit test "a video-only edit never touches the picture fields". |
+| `97-b39-certification` axe matrix | **Infrastructure** | The Playwright worker process crashed (Windows exit 0xC0000409) mid-test; no assertion failed. | Passed on re-run. |
+
+**Re-runs on the final code** (no edits during runs):
+- `b42-full-1r`: specs 22, 97, 98, 100 — **18 / 18 passed**.
+- `b42-full-1r2`: specs 40 (media), 89 (editors), 92 (library) — everything else that exercises the exercise form — **47 / 47 passed**.
+- **Coverage:** every other spec passed in the full run and is untouched by the fix (it changes only `ExerciseForm.media()` and the absent-instead-of-null fields of catalog copies).
+
+**Checked visually** (`e2e-out/b42-focus-4/b42-visual/`): the preview with its GIF demonstration (EN, 1440), and the client's exercise page (AR, 390) with the GIF, the "in English only" note, left-to-right English steps and the AscendAPI credit.
+
+## B4.2-4. Search performance (server, in memory)
+
+Full catalog: 1,343 exercises.
+
+| | |
+|---|---:|
+| JSON parse (3 datasets) | 27 ms |
+| Index build | 102 ms (once per cold instance) |
+| Query p50 / p95 / max (100 queries, EN / AR / EG / typos) | 4 ms / 8.1 ms / 24.6 ms |
+
+**Gates:** the search-quality gates still pass on the full catalog (top-3 ≥ 90 % overall, ≥ 85 % Arabic / Egyptian, p95 < 15 ms).
+
+## B4.2-5. Bundle (no budget raised)
+
+KB gzip; "B4.1 after" is the B4.1 certification build.
+
+| Screen | Budget | B4.1 after | B4.2 |
+|---|---:|---:|---:|
+| Entry | 161.88 | 163.41 | 163.63 (+0.22: new strings) |
+| Workout editor | 35.33 | 31.25 | 31.82 (+0.57: list stills) — within budget |
+| Nutrition editor | 30.05 | 32.57 | 32.63 |
+| Library | 13.91 | 14.01 | 14.03 |
+
+- **Elsewhere:** other screens changed by less than 0.05 KB.
+- **ExerciseDB data stays out of every JS bundle:** the dataset is server-side, the stills are static files, and the GIFs come from the provider.
+- **Precache:** 221 entries, 2,586 KiB (no image added to it).
+
+
+## B4.2-6. Proposed commit boundaries (nothing staged)
+
+72 paths on top of `c12f5e8`. `src/i18n/*.json`, `src/types/index.ts`, `api/catalog/_lib/{schemas,dataset}.ts` and `src/services/platform/mediaApi.ts` carry changes for more than one commit, so splitting them needs `git add -p`.
+
+| # | Commit | Paths |
+|---|---|---|
+| 1 | `feat(catalog): ExerciseDB V1 layer — import pipeline, versioned dataset, list stills` | `scripts/catalog/{fetch-exercisedb,fetch-exercisedb-media,import-exercisedb}.mjs`, `scripts/catalog/lib/{exerciseMatch,fetchCache}.mjs`, `scripts/catalog/fedb-mapping.mjs` (shared matcher), `scripts/catalog/curation/{exercisedb-ar/,exercisedb-review.json}`, `data/catalog/exercisedb.json`, `data/catalog-reports/exercisedb-import.*`, `public/catalog/edb/` (1,324 stills), `api/catalog/_lib/{schemas,taxonomy,dataset}.ts`, `api/catalog/_lib/{exercisedb,searchQuality}.test.ts`, `api/_trpc/routers/catalog{,.test}.ts`, `vercel.json`, `vite.config.ts` |
+| 2 | `feat(exercises): GIF demonstrations, paging, coach customisation, media ownership` | `src/components/catalog/*`, `src/components/library/{ExerciseInstructions,ExerciseThumb}.tsx`, `src/components/workout/ExerciseForm.tsx`, `src/components/coach/editor/TrainingBuilder.tsx`, `src/components/ExerciseCard.tsx`, `src/pages/{ExerciseDetail,RoutineDetail}.tsx`, `src/pages/coach/library/ExercisesSegment.tsx`, `src/lib/{catalogCopy,foodImageProcess,workoutPresets}.ts` + `catalogCopy.test.ts`, `src/services/platform/mediaApi.ts`, `api/coach-assets/_lib/{exerciseMedia,exerciseMedia.test,schemas,types,exerciseSync}.ts`, `api/_trpc/routers/{coachAssets,clientPlans}.ts` + `coachAssets.test` / `planSafety.test`, `api/media/{[action].ts,_media.test.ts,_lib/imageSanitize.ts,_lib/imageSanitize.test.ts}`, `e2e3/specs/{98-b4-catalog,100-b42-exercisedb}.spec.ts`, exercise hunks of `src/types` / i18n |
+| 3 | `feat(food): remote catalog pictures and coach picture links` | `scripts/catalog/{food-image-remote,build-foods}.mjs`, `data/catalog/foods.json`, `data/catalog-reports/{food-images,foods-build}.json`, `api/coach-assets/_lib/foodImage{,.test}.ts`, `api/catalog/_lib/media.test.ts`, `src/components/food/*`, food hunks of `src/types` / i18n |
+| 4 | `docs: B4.2 implementation log, architecture, media, certification, backlog` | `docs/product-audit/{B4_IMPLEMENTATION_LOG,B4_EXERCISE_LIBRARY_ARCHITECTURE,B4_FOOD_LIBRARY_ARCHITECTURE,B4_MEDIA_RIGHTS_AND_QA,B4_CERTIFICATION_REPORT,FORMA_MASTER_REMAINING_BACKLOG}.md` |
+
+## B4.3 — certification (2026-10-25)
+
+Uncommitted. Nothing was staged, committed, pushed or deployed. No shared database or storage was
+written. Production was checked read-only (`vercel ls` / `inspect` / `env ls` names only,
+`git ls-remote`).
+
+### B4.3-1. Verification
+
+| Check | Result |
+|---|---|
+| `tsc -b` | clean |
+| Unit / API (vitest) | **1,395 / 1,395** (155 files); boundaries OK |
+| Build | `vite build` ok. PWA precache: 225 entries, 2,582 KiB |
+| Full e2e3 `b43-full-1` (395 tests, every project) | **390 passed**, 1 failed, 1 skipped (Google sign-in), 3 not run (serial follow-ups of the failure). The failure was a real race: "Show more" could be pressed on the previous search's placeholder rows. Fixed: the button is disabled while rows are placeholder data |
+| Re-run on the final code `b43-rerun-1` (specs 22, 92, 98, 100, 101) | 35 / 36; the one failure was a race in the favourites spec's unstar loop (fixed: one row at a time) — re-run **1 / 1** |
+| Focused run `b43-focused-1` (before the media change and the UX polish) | 56 / 57; the one failure was a spec mistake (fixed) |
+
+### B4.3-2. New and changed tests
+
+**API:**
+- `library.test` (17): scopes, merge, customised items listed once (incl. a linked ExerciseDB id),
+  favourites as references (set / unset either way), ownership isolation, EN / AR / EG first hits,
+  typo, light rows, page cap, ExerciseDB still, both shoulder vocabularies, own "has a
+  demonstration" honesty, coach-only, 190 foods with ≥ 127 pictures.
+- `mediaSign.test` (3), `delivery.test` (4).
+- `coachAssets.test`: no starter procedure; two coaches customise one Forma exercise.
+- `certification.test`: concurrent customise.
+- `b38CoachP2.test`: `media.sign` on the read allow-list.
+- `fresh-start-reset.test` (7).
+- Updated: `catalog.test`, `media.test`, `_media.test`, `dataset.test`, `searchQuality.test`,
+  `coverage.test`.
+
+**UI:**
+- `CoachLibrary.test` (13): no starter; one list; scopes / filters in the URL and on the server;
+  favourite star; Forma item → client plan; customise → `cat-<id>` → reset; TS-04; ⌘K; open by
+  catalog id; Show more.
+- `ExercisePickerSheet.catalog.test` (4), `CoachNutritionEditor.catalog.test` (3),
+  `CoachNutritionEditor.test` (hand-off via `getFood`), `mediaDelivery.test` (3), `libraryModel` /
+  `libraryHandoff` / `libraryMedia` / `catalogCopy` updates.
+
+**e2e3:**
+- 22: shared library, no import.
+- 89: picker filters.
+- 92: rewritten for the unified Library, favourites, swap groups from the one list.
+- 96, 98: customise / reset.
+- 99, 100: customise / restore / upload.
+- **101 (new, 6):** Forma exercise and Forma food from the Library into a plan; a template from Forma
+  exercises; a customised food with a restored Forma picture; favourites in the picker; the client
+  view in Arabic.
+
+### B4.3-3. Visual QA
+
+The e2e 92 matrix ran Library segments, a detail, the editor prompt and a program at 360 / 390 / 430
+/ 768 / 1024 / 1440 × EN / AR (+ AR-EG). There was no overflow, and direction was correct (both
+asserted). The 98 matrix ran the picker, preview and food serving at 390 / 768 / 1440 × EN / AR /
+AR-EG: axe clean, 44 px targets.
+
+Polish applied after review:
+- the scope switch uses the neutral segmented style, at most 448 px wide;
+- food search and category stack on phones (the placeholder is no longer clipped);
+- the media-mark slot has a fixed width, so "Mine" badges line up.
+
+### B4.3-4. Open items and owner decisions
+
+1. **Deploying B4.3 turns the catalog on in production.** The switch is retired. Approve the deploy.
+2. **B4-R1.** Separate the Preview database before any Preview of `development`. Production also
+   still carries the `E2E_*` credentials (REL-03).
+3. **B39A-S01 incident checklist, steps 2–5** (production data).
+4. **MD-01.** Bunny key / env.
+5. **MD-02.** Enable pull-zone token authentication and `BUNNY_URL_TOKEN_KEY` on a non-production
+   zone first (B43-R1).
+6. **MD-03.** Review the orphan report and approve deletions.
+7. **B41-P1.** Small bundle overages remain: entry +1.4 %, other screens +0.1–1.5 %.
+8. **B43-R2.** Merged lists have no client-side sort, and Exercises / Foods have no bulk delete.
+9. **Fresh-start reset** of a non-production database (tool ready). Production uses a new database
+   (FORMA_CLEAN_LAUNCH_PLAN §3).
+10. **Production-pointing tooling** (`scripts/seed-demo-*.mjs`, old `e2e/`): remove (OPS-01 /
+    RM-14).

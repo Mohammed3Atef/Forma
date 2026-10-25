@@ -357,7 +357,7 @@ test.describe('B3.5 plan editors', () => {
     await expect(page.getByTestId('plan-history-sheet')).toBeVisible();
   });
 
-  test('no plan yet: create is deliberate, "Start from a template" goes to the templates; the picker filters, remembers recent picks and ends with "Create new"', async ({ as, audit }) => {
+  test('no plan yet: create is deliberate, "Start from a template" goes to the templates; the picker (one list with Forma’s) filters and ends with "Create new"', async ({ as, audit }) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
     await openEditor(page, 'workout', C.fresh.id);
@@ -380,14 +380,19 @@ test.describe('B3.5 plan editors', () => {
     await page.getByTestId('ex-save').click();
     await expect(page.getByTestId('builder-exercise-row')).toHaveCount(1);
     if (await picker.isVisible()) await page.getByTestId('sheet-close').last().click();
-    // Reopened: the new exercise is under "Recently used"; the muscle filter narrows the list.
+    // Reopened (B4.3): the new exercise is the coach's own ("My exercises"), in the one list with
+    // Forma's; the muscle filter narrows that list.
     await page.getByTestId('builder-add-exercise').click();
-    await expect(page.getByTestId('picker-recent')).toContainText('E2E-ED Hip thrust');
-    await page.getByTestId('picker-muscle').selectOption('Glutes');
-    await expect(picker.getByTestId('picker-recent')).toHaveCount(0);
-    const items = picker.getByTestId('picker-lib-item');
-    await expect(items.first()).toContainText('Glutes');
-    for (const txt of await items.allTextContents()) expect(txt).toContain('Glutes');
+    const items = picker.getByTestId('library-exercise-row');
+    await page.getByTestId('picker-library-scope-mine').click();
+    await expect(items.filter({ hasText: 'E2E-ED Hip thrust' })).toBeVisible();
+    await page.getByTestId('picker-library-scope-all').click();
+    await page.getByTestId('picker-library-search').fill('hip thrust');
+    await page.getByTestId('picker-library-muscle').selectOption('glutes');
+    await expect(items.filter({ hasText: 'E2E-ED Hip thrust' })).toBeVisible();
+    await expect(items.and(page.locator('[data-id="fx_barbell_hip_thrust"]'))).toBeVisible();
+    await page.getByTestId('picker-library-muscle').selectOption('chest');
+    await expect(items.filter({ hasText: 'E2E-ED Hip thrust' })).toHaveCount(0);
     await page.getByTestId('sheet-close').last().click();
     // Leaving the unsaved new plan asks first.
     await page.getByTestId('coach-workout-editor').getByRole('button', { name: 'Back' }).click();

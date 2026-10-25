@@ -125,7 +125,7 @@ function isImageFile(name: string): boolean {
  * server-side under the super_admin guard instead of in the browser with the
  * storage password.
  */
-export async function listAllImages(root = 'Forma', maxDepth = 4): Promise<CdnImage[]> {
+export async function listAllImages(root = 'Forma', maxDepth = 4, include: (name: string) => boolean = isImageFile): Promise<CdnImage[]> {
   const cfg = requireConfig();
   const out: CdnImage[] = [];
 
@@ -138,7 +138,7 @@ export async function listAllImages(root = 'Forma', maxDepth = 4): Promise<CdnIm
           if (depth < maxDepth) await walk(childRel, depth + 1);
           return;
         }
-        if (!isImageFile(it.ObjectName)) return;
+        if (!include(it.ObjectName)) return;
         const parts = childRel.split('/'); // ["Forma", "{clientId}", …, "file"]
         out.push({
           url: `${cfg.cdnUrl}/${childRel}`,

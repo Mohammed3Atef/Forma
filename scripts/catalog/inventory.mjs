@@ -83,7 +83,7 @@ try {
     target: redactUri(uri),
     db: dbName,
     at: new Date().toISOString(),
-    coachLibrary: { exercises, foods, foodGroups: await count('coachFoodGroups'), workoutTemplates: await count('coachWorkoutTemplates'), nutritionTemplates: await count('coachNutritionTemplates') },
+    coachLibrary: { exercises, foods, foodGroups: await count('coachFoodGroups'), workoutTemplates: await count('coachWorkoutTemplates') },
     embeddedExerciseCopies: { templates: await embedded('coachWorkoutTemplates'), clientPlans: await embedded('clientWorkoutPlans') },
     nutritionPlans: await plansWithFoods(),
     planVersions: { workout: await count('planVersions', { kind: 'workout' }), nutrition: await count('planVersions', { kind: 'nutrition' }) },

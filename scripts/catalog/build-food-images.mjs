@@ -30,11 +30,14 @@ const UPLOADS = resolve('data/catalog-reports/catalog-media-upload-foods.json');
 const UA = 'FormaCatalogBuilder/1.0 (https://www.useforma.fit; food image curation, low volume)';
 const LICENSES = new Set(['CC0-1.0', 'PD', 'CC-BY-2.0', 'CC-BY-2.5', 'CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-2.0', 'CC-BY-SA-2.5', 'CC-BY-SA-3.0', 'CC-BY-SA-4.0']);
 /** Approved but a better photo is wanted (still correct and licensed): shown, flagged for replacement. */
-/** Lead spot check of every processed thumbnail (contact sheets, 2026-10-24): would mislead a reader. */
+/**
+ * Lead spot check of every processed thumbnail (contact sheets, 2026-10-24): would mislead a reader.
+ * Keyed by food AND file (B4.3): a later review may approve a different photo for the same food.
+ */
 const SPOT_CHECK_REJECT = {
-  ff_chickpeas_boiled: 'the colour cast makes the chickpeas read as green peas — misleading',
-  ff_egg_white_raw: 'shown as a yellow liquid that reads as oil or yolk — misleading',
-  ff_potato_boiled: 'cannot be told from raw potatoes — a raw-looking photo for a cooked food',
+  ff_chickpeas_boiled: { file: 'File:Boiled sanag alu27.11.13. (74).JPG', reason: 'the colour cast makes the chickpeas read as green peas — misleading' },
+  ff_egg_white_raw: { file: 'File:Bowl of egg whites.jpg', reason: 'shown as a yellow liquid that reads as oil or yolk — misleading' },
+  ff_potato_boiled: { file: 'File:Pellkartoffeln 2.jpg', reason: 'cannot be told from raw potatoes — a raw-looking photo for a cooked food' },
 };
 const NEEDS_REPLACEMENT = {
   ff_ful_with_oil: 'authentic Egyptian ful, but a creamy layer may be tahini, which the recipe does not include — replace with ful dressed with oil only',
@@ -48,8 +51,10 @@ const decisions = {};
 for (const f of readdirSync(CURATION).filter((x) => /^food-images\.[a-z]\.json$/.test(x)).sort()) {
   for (const [id, d] of Object.entries(JSON.parse(readFileSync(join(CURATION, f), 'utf8')))) {
     if (id.startsWith('_')) continue;
-    if (decisions[id]) throw new Error(`${f}: ${id} decided twice`);
-    decisions[id] = { ...d, reviewer: f };
+    // A later sheet may re-decide a food an earlier one left without a picture (B4.3, sheet e: a new
+    // photo, or a newer reason it has none); a food whose approved photo passed the spot check is never re-decided.
+    if (decisions[id]?.status === 'approved' && SPOT_CHECK_REJECT[id]?.file !== decisions[id].file) throw new Error(`${f}: ${id} decided twice`);
+    decisions[id] = { ...d, reviewer: f, ...(decisions[id] ? { supersedes: `${decisions[id].reviewer} (${decisions[id].status})` } : {}) };
   }
 }
 const previous = existsSync(REPORT) ? JSON.parse(readFileSync(REPORT, 'utf8')) : { foods: {} };
@@ -93,8 +98,8 @@ for (const food of foods) {
     records[food.id] = { status: 'pending', reason: 'not reviewed yet' };
     continue;
   }
-  if (d.status === 'approved' && SPOT_CHECK_REJECT[food.id]) {
-    records[food.id] = { status: 'rejected', reason: `lead spot check: ${SPOT_CHECK_REJECT[food.id]}`, file: d.file, reviewer: d.reviewer };
+  if (d.status === 'approved' && SPOT_CHECK_REJECT[food.id]?.file === d.file) {
+    records[food.id] = { status: 'rejected', reason: `lead spot check: ${SPOT_CHECK_REJECT[food.id].reason}`, file: d.file, reviewer: d.reviewer };
     continue;
   }
   if (d.status !== 'approved') {
@@ -111,8 +116,9 @@ for (const food of foods) {
     const src = await source(food.id, d.file);
     const dir = join(OUT, food.id);
     mkdirSync(dir, { recursive: true });
-    const card = await sharp(src).rotate().resize({ width: 640, withoutEnlargement: true }).webp({ quality: 72 }).toBuffer({ resolveWithObject: true });
-    const thumb = await sharp(src).rotate().resize(160, 160, { fit: 'cover', position: 'centre' }).webp({ quality: 70 }).toBuffer({ resolveWithObject: true });
+    // A transparent cut-out (PNG) gets a white ground, like the other photos (B4.3).
+    const card = await sharp(src).rotate().flatten({ background: '#ffffff' }).resize({ width: 640, withoutEnlargement: true }).webp({ quality: 72 }).toBuffer({ resolveWithObject: true });
+    const thumb = await sharp(src).rotate().flatten({ background: '#ffffff' }).resize(160, 160, { fit: 'cover', position: 'centre' }).webp({ quality: 70 }).toBuffer({ resolveWithObject: true });
     const variants = {};
     for (const [name, out] of [['card', card], ['thumb', thumb]]) {
       const file = join(dir, `r${rev}-${name}.webp`);

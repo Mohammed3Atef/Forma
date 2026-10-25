@@ -84,23 +84,6 @@ export async function assignClientToCoach(coachId: string, clientId: string, _cr
   });
 }
 
-/**
- * Moves a client from one coach to another (ends the old link, opens a new one).
- *
- * Unused by any current component (superseded by `transferClientWithMode`,
- * which the admin transfer wizard actually calls). Kept for signature
- * compatibility, implemented as a thin "transfer with no explicit subscription
- * handling" call against the same admin-only endpoint `transferClientWithMode` uses.
- */
-export async function transferClient(
-  clientId: string,
-  fromCoachId: string | undefined,
-  toCoachId: string,
-  createdBy: string,
-): Promise<void> {
-  await transferClientWithMode(clientId, fromCoachId, toCoachId, 'keep_plans', 'keep', createdBy);
-}
-
 /** Removes a client's coach assignment. */
 export async function unassignClient(clientId: string, coachId: string, _createdBy: string): Promise<void> {
   await trpc.coachClients.end.mutate({ id: relId(coachId, clientId), reason: 'unassigned' });

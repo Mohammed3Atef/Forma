@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attributionOf, demoRank, exerciseDemo, hasPlayableVideo } from './libraryMedia';
+import { attributionOf, exerciseDemo } from './libraryMedia';
 
 /** B3.7 — the Library shows a demo only when there is one that can play; otherwise it says so (B0 honesty). */
 describe('exercise demo states', () => {
@@ -16,12 +16,6 @@ describe('exercise demo states', () => {
     expect(exerciseDemo({ videoUrl: 'http://example.com/a.mp4' })).toEqual({ kind: 'none', brokenLink: true }); // not https
     expect(exerciseDemo({})).toEqual({ kind: 'none', brokenLink: false });
     expect(exerciseDemo({ videoUrl: '  ', images: ['', 'data:image/png;base64,xx'] })).toEqual({ kind: 'none', brokenLink: false });
-  });
-
-  it('"Has video" and the demo sort use the same rule', () => {
-    expect(hasPlayableVideo({ videoUrl: 'https://cdn.test/a.webm' })).toBe(true);
-    expect(hasPlayableVideo({ videoUrl: 'https://vimeo.com/123', imageUrl: 'https://img.test/a.png' })).toBe(false);
-    expect([demoRank({ videoUrl: 'https://cdn.test/a.mp4' }), demoRank({ images: ['https://img.test/a.png'] }), demoRank({})]).toEqual([0, 1, 2]);
   });
 });
 

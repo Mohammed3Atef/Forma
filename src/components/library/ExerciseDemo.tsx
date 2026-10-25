@@ -9,26 +9,6 @@ import type { Attribution, ExerciseDemo } from '@/lib/libraryMedia';
  * these components.
  */
 
-/** The row / column indicator: Video, Image, or an honest "No demo yet". */
-export function DemoBadge({ demo, labelled = true }: { demo: ExerciseDemo; labelled?: boolean }) {
-  const { t } = useTranslation();
-  if (demo.kind === 'none') {
-    return (
-      <span className="whitespace-nowrap text-[12.5px] text-earth-subtle" data-testid="demo-none">
-        {t('library.demo.none')}
-      </span>
-    );
-  }
-  const video = demo.kind === 'video';
-  const label = t(video ? 'library.demo.video' : 'library.demo.image');
-  return (
-    <span className={`inline-flex shrink-0 items-center gap-1.5 text-[12.5px] ${video ? 'text-earth' : 'text-earth-muted'}`} data-testid={video ? 'demo-video' : 'demo-image'} title={labelled ? undefined : label}>
-      <Icon name={video ? 'video' : 'image'} size={15} className={video ? 'text-brand' : ''} />
-      {labelled ? <span>{label}</span> : <span className="sr-only">{label}</span>}
-    </span>
-  );
-}
-
 /** The detail sheet's demo: the player, the image, or a placeholder that says what is missing. */
 export function DemoBlock({ demo, title, videoUrl }: { demo: ExerciseDemo; title: string; videoUrl?: string | null }) {
   const { t } = useTranslation();

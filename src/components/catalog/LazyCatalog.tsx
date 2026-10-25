@@ -7,18 +7,10 @@ import { LoadingState } from '@/components/ui/LoadingState';
  * none of it (bundle budgets, `scripts/bundle-budgets.json`). The service worker precaches these
  * chunks like every other, so they still open offline.
  */
-const Browser = lazy(() => import('./CatalogExerciseBrowser').then((m) => ({ default: m.CatalogExerciseBrowser })));
 const Preview = lazy(() => import('./CatalogExercisePreview').then((m) => ({ default: m.CatalogExercisePreview })));
 const FoodPicker = lazy(() => import('./CatalogFoodPicker').then((m) => ({ default: m.CatalogFoodPicker })));
 const Serving = lazy(() => import('./CatalogFoodPicker').then((m) => ({ default: m.ServingEditor })));
-
-export function LazyCatalogExerciseBrowser(props: ComponentProps<typeof Browser>) {
-  return (
-    <Suspense fallback={<LoadingState count={3} />}>
-      <Browser {...props} />
-    </Suspense>
-  );
-}
+const Chooser = lazy(() => import('./CatalogFoodPicker').then((m) => ({ default: m.ServingChooser })));
 
 export function LazyCatalogExercisePreview(props: ComponentProps<typeof Preview>) {
   return (
@@ -40,6 +32,14 @@ export function LazyServingEditor(props: ComponentProps<typeof Serving>) {
   return (
     <Suspense fallback={<LoadingState count={1} />}>
       <Serving {...props} />
+    </Suspense>
+  );
+}
+
+export function LazyServingChooser(props: ComponentProps<typeof Chooser>) {
+  return (
+    <Suspense fallback={<LoadingState count={2} />}>
+      <Chooser {...props} />
     </Suspense>
   );
 }

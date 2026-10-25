@@ -31,9 +31,7 @@ describe('exercise dataset', () => {
     }
   });
 
-  it('a legacy starter id maps to at most one catalog exercise; variants point at real items', () => {
-    const legacy = exercises.items.flatMap((e) => e.legacyIds);
-    expect(new Set(legacy).size).toBe(legacy.length);
+  it('variants point at real items', () => {
     const ids = new Set(exercises.items.map((e) => e.id));
     for (const e of exercises.items) if (e.variantOf) expect(ids.has(e.variantOf), `${e.id} → ${e.variantOf}`).toBe(true);
   });
@@ -107,16 +105,13 @@ describe('food dataset', () => {
     expect(foods.items.length).toBeGreaterThan(100);
   });
 
-  it('ids and names are unique; a legacy food maps to at most one catalog food', () => {
+  it('ids and names are unique', () => {
     const ids = foods.items.map((f) => f.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const lang of ['en', 'ar'] as const) {
       const names = foods.items.map((f) => normalizeText(f.name[lang]));
       expect(new Set(names).size, `duplicate ${lang} name`).toBe(names.length);
     }
-    const legacy = foods.items.flatMap((f) => f.legacyIds);
-    expect(new Set(legacy).size).toBe(legacy.length);
-    for (const id of legacy) expect(id).toMatch(/^seed-food-/);
   });
 
   it('Arabic fields are Arabic; names in English carry no Arabic', () => {

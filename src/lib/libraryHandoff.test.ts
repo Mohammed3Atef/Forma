@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addLibraryExercise, addLibraryFood, exerciseTargets, foodFromLibrary, mealTargets, useInPlanPath } from './libraryHandoff';
+import { addLibraryExercise, exerciseTargets, useInPlanPath } from './libraryHandoff';
+import { addLibraryFood, foodFromLibrary, mealTargets } from './foodHandoff';
 import { normalizeWorkoutBody, serializeWorkoutBody } from './workoutPlanModel';
 import { pickFromLibrary } from './workoutPresets';
 import { withSyncResult } from '../data/librarySyncIssues';

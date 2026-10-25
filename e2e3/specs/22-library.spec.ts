@@ -3,14 +3,12 @@ import type { Page } from '@playwright/test';
 import { appReady, confirmYes, expectToast, fullAssessment, uniq } from './_b-helpers';
 
 /**
- * Starter library (two coaches, idempotent re-run) and library → template →
- * client-plan sync semantics on coachA.
+ * The shared library (B4.3: no starter import — every coach has Forma's exercises and foods from
+ * the first visit) and library → template → client-plan sync semantics on coachA.
  *
- * B3.7 selector changes (guarantees unchanged): the Library opens on Programs, so exercises are
- * `?tab=exercises`; "Add the starter library" is in the Library's menu (`lib-more`) or the
- * first-run panel (`load-starter-library`) and reports its result in a dialog (both entry points
- * now behave the same); `/coach/templates` is Library › Programs (a table on desktop); swap groups
- * are inside Foods; supplements and groups are tables on desktop like the rest.
+ * Selectors: the Library opens on Programs, so exercises are `?tab=exercises`; Exercises and Foods
+ * are ONE server-searched list each (`lib-exercises` / `lib-foods`, rows `library-exercise-row` /
+ * `library-food-row`); `/coach/templates` is Library › Programs; swap groups are inside Foods.
  */
 
 test.setTimeout(180_000);
@@ -18,7 +16,7 @@ test.setTimeout(180_000);
 const A = 'e2e-coach-a';
 const B = 'e2e-coach-b';
 const CA = 'e2e-client-a';
-const COLS = ['coachExercises', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachWorkoutTemplates'] as const;
+const COLS = ['coachExercises', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachWorkoutTemplates', 'coachFavorites'] as const;
 
 interface LibEx { id: string; name: string; videoUrl?: string }
 interface TplEx { name: string; videoUrl?: string; workingSets: number; repRange: string; libraryExerciseId?: string; librarySyncEnabled?: boolean }
@@ -28,81 +26,53 @@ test.beforeAll(async ({ db }) => {
   await db.updateOne('clientProfiles', { _id: CA }, { $set: { assessment: fullAssessment('Client Aya') } });
 });
 
-test('starter library: coachA and coachB both load it; shared ids; idempotent re-run', async ({ as, db }, testInfo) => {
-  // coachA — from the Library's menu.
-  const { page: a } = await as('coachA');
-  await a.goto('/coach/library?tab=exercises');
-  await appReady(a, 'lib-more');
-  await loadStarterFromMenu(a);
-  await expect(a.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
-  await shot(a, testInfo, '01-coachA-exercises');
+test('shared library: a coach has every Forma exercise and food at once — nothing to import, nothing copied', async ({ as, db }, testInfo) => {
+  const before: Record<string, number> = {};
+  for (const c of COLS) before[c] = await db.count(c, { coachId: B });
 
-  // coachB — from the first-run panel; the old Templates URL is Library › Programs.
+  // The old Templates URL is Library › Programs; an empty list offers to create, never to import.
   const { page: b } = await as('coachB');
   await b.goto('/coach/templates');
   await expect(b).toHaveURL(/\/coach\/library\?tab=programs$/);
-  await appReady(b, 'load-starter-library');
-  await b.getByTestId('load-starter-library').click();
-  await confirmYes(b);
-  const done = b.getByTestId('confirm-dialog');
-  await expect(done).toContainText('Starter library added', { timeout: 60_000 });
-  await expect(done).not.toContainText(/failed|Some categories/i);
-  await expect(done).not.toContainText(/duplicate key|E11000/i);
-  await shot(b, testInfo, '02-coachB-loaded-dialog');
-  await done.getByTestId('confirm-accept').click();
-  await expect(b.getByTestId('coach-desktop-templates').getByTestId('data-row').first()).toBeVisible();
-  await shot(b, testInfo, '03-coachB-templates');
+  await appReady(b, 'lib-tab-exercises');
+  await expect(b.getByTestId('load-starter-library')).toHaveCount(0);
+  await expect(b.getByTestId('lib-more')).toHaveCount(0);
+  await expect(b.getByText(/starter library/i)).toHaveCount(0);
 
-  // Every segment populated (coachB, UI).
+  // Exercises: Forma's 1,343 (plus anything coachB made), with pictures, on the first visit.
   await b.getByTestId('lib-tab-exercises').click();
-  await expect(b.getByTestId('coach-desktop-library').getByTestId('data-row').first()).toBeVisible({ timeout: 20_000 });
+  const ex = b.getByTestId('lib-exercises');
+  await expect(ex.getByTestId('library-exercise-row').first()).toBeVisible({ timeout: 20_000 });
+  const exCount = Number((await b.getByTestId('lib-exercises-count').innerText()).replace(/\D/g, ''));
+  expect(exCount).toBeGreaterThanOrEqual(1343);
+  await expect(ex.getByTestId('library-exercise-row')).toHaveCount(30);
+  await shot(b, testInfo, '01-coachB-exercises');
+
+  // Foods: all 190, most with their picture.
   await b.getByTestId('lib-tab-foods').click();
-  await expect(b.getByTestId('coach-desktop-foods').getByTestId('data-row').first()).toBeVisible();
-  await b.getByTestId('lib-foods-view-groups').click();
-  await expect(b.getByTestId('coach-desktop-groups').getByTestId('data-row').first()).toBeVisible();
-  await b.getByTestId('lib-tab-supplements').click();
-  await expect(b.getByTestId('coach-desktop-supplements').getByTestId('data-row').first()).toBeVisible();
-  await shot(b, testInfo, '04-coachB-supplements');
+  const foods = b.getByTestId('lib-foods');
+  await expect(foods.getByTestId('library-food-row').first()).toBeVisible({ timeout: 20_000 });
+  expect(Number((await b.getByTestId('lib-foods-count').innerText()).replace(/\D/g, ''))).toBeGreaterThanOrEqual(190);
+  expect(await foods.locator('[data-testid="food-thumb"][data-has-image="true"]').count()).toBeGreaterThan(15);
+  await shot(b, testInfo, '02-coachB-foods');
 
-  // DB: per-coach counts equal, same logical ids.
-  const counts: Record<string, [number, number]> = {};
-  for (const c of COLS) counts[c] = [await db.count(c, { coachId: A }), await db.count(c, { coachId: B })];
-  testInfo.annotations.push({ type: 'starter-counts', description: JSON.stringify(counts) });
-  for (const c of COLS) {
-    expect(counts[c][0], `${c} count coachA`).toBeGreaterThan(0);
-    expect(counts[c][0], `${c} per-coach counts equal`).toBe(counts[c][1]);
-  }
-  const idsA = new Set((await db.find<{ id: string }>('coachExercises', { coachId: A })).map((e) => e.id));
-  const idsB = (await db.find<{ id: string }>('coachExercises', { coachId: B })).map((e) => e.id);
-  const shared = idsB.filter((id) => idsA.has(id)).length;
-  expect(shared).toBeGreaterThan(0);
-  expect(shared).toBe(idsB.length);
-
-  // Re-run for coachA → idempotent.
-  await loadStarterFromMenu(a);
-  await a.waitForTimeout(1_000);
-  for (const c of COLS) expect(await db.count(c, { coachId: A }), `${c} unchanged after re-run`).toBe(counts[c][0]);
-  await shot(a, testInfo, '05-coachA-rerun');
+  // Nothing was copied into coachB's records by looking.
+  for (const c of COLS) expect(await db.count(c, { coachId: B }), `${c} unchanged`).toBe(before[c]);
 });
-
-/** The Library's menu → "Add the starter library" → confirm → the result dialog (no failed category). */
-async function loadStarterFromMenu(page: Page) {
-  await page.getByTestId('lib-more').click();
-  await page.getByTestId('lib-load-starter').click();
-  await confirmYes(page);
-  const done = page.getByTestId('confirm-dialog');
-  await expect(done).toContainText('Starter library added', { timeout: 60_000 });
-  await expect(done).not.toContainText(/didn't load|failed|E11000/i);
-  await done.getByTestId('confirm-accept').click();
-}
 
 /* ---------------- library sync ---------------- */
 
+/** Library › Exercises › My exercises, searched; opens the coach's own exercise. */
+async function openOwn(page: Page, name: string) {
+  await page.getByTestId('lib-exercises-scope-mine').click();
+  await page.getByTestId('lib-exercises-search').fill(name);
+  await page.getByTestId('library-exercise-row').filter({ hasText: name }).first().getByTestId('library-row-main').click();
+}
+
 async function openLibraryEdit(page: Page, name: string) {
   await page.goto('/coach/library?tab=exercises');
-  await appReady(page, 'lib-search');
-  await page.getByTestId('lib-search').fill(name);
-  await page.getByTestId('coach-desktop-library').getByTestId('data-row').filter({ hasText: name }).first().click();
+  await appReady(page, 'lib-exercises-search');
+  await openOwn(page, name);
   await expect(page.getByTestId('exercise-view')).toBeVisible();
   await page.getByTestId('exercise-view-edit').click();
   await expect(page.getByTestId('exercise-form')).toBeVisible();
@@ -114,6 +84,13 @@ async function editLibrary(page: Page, from: string, to: string, video: string) 
   await page.getByTestId('ex-video').fill(video);
   await page.getByTestId('ex-save').click();
   await expectToast(page, 'Saved');
+}
+
+/** The exercise picker: the coach's own exercise by name (one list with Forma's), added. */
+async function pickOwn(page: Page, name: string) {
+  await page.getByTestId('picker-library-search').fill(name);
+  await page.getByTestId('exercise-picker').getByTestId('library-exercise-row').filter({ hasText: name }).first().getByTestId('library-row-main').click();
+  await page.getByTestId('picker-add-selected').click();
 }
 
 /** In an open training editor: the first day — its sections are shown in the day (B3.5: no section level). */
@@ -146,8 +123,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   const libId = lib!.id;
 
   // Open it (view sheet).
-  await page.getByTestId('lib-search').fill(base);
-  await page.getByTestId('coach-desktop-library').getByTestId('data-row').filter({ hasText: base }).click();
+  await openOwn(page, base);
   await expect(page.getByTestId('exercise-view')).toBeVisible();
   await shot(page, testInfo, '01-library-exercise-view');
   await page.keyboard.press('Escape');
@@ -161,9 +137,7 @@ test('library sync: template follows library identity/media, keeps programming; 
   await page.getByTestId('builder-add-section').click();
   await page.getByTestId('section-title').fill('Main');
   await page.getByTestId('builder-add-exercise').click();
-  await page.getByTestId('picker-search').fill(base);
-  await page.getByTestId('picker-lib-item').filter({ hasText: base }).click();
-  await page.getByTestId('picker-add-selected').click();
+  await pickOwn(page, base);
   const section = page.getByTestId('builder-section');
   await exerciseRow(section, base).click();
   await expect(page.getByText('Linked to library')).toBeVisible();
@@ -296,9 +270,7 @@ test('library sync: override on a fresh (never-synced) template → not propagat
   await page.getByTestId('builder-add-section').click();
   await page.getByTestId('section-title').fill('Main');
   await page.getByTestId('builder-add-exercise').click();
-  await page.getByTestId('picker-search').fill(base);
-  await page.getByTestId('picker-lib-item').filter({ hasText: base }).click();
-  await page.getByTestId('picker-add-selected').click();
+  await pickOwn(page, base);
   // Override a synced field (name) → sync off, link kept.
   const custom = `${base} custom`;
   await exerciseRow(page.getByTestId('builder-section'), base).click();

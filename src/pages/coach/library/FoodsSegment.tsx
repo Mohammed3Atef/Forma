@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -8,29 +8,40 @@ import { NumericField } from '@/components/ui/NumericField';
 import { SegmentedControl } from '@/components/ui/Tabs';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { TagInput } from '@/components/TagInput';
 import { LazyFoodImageEditor } from '@/components/food/LazyFood';
-import { FoodCardImage, FoodThumb } from '@/components/food/FoodImage';
+import { FoodCardImage } from '@/components/food/FoodImage';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { CollectionList, CollectionTable, type CollectionColumn } from '@/components/library/LibraryCollection';
-import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { LibraryFoodBrowser, type FoodFilters } from '@/components/library/LibraryFoodBrowser';
+import { useCatalogMeta, useTaxonomyLabel } from '@/hooks/useCatalog';
 import { uid } from '@/lib/utils';
 import { applyLocalizedEdit, secondLanguageStale, setLocalized } from '@/lib/localizedText';
-import { collatorFor, filterFoods, localizedName, nextSort, segmentQuery, sortFoods, type SortKey } from '@/lib/libraryModel';
-import { bulkDeleteFoods, deleteFood, listFoods, saveFood } from '@/services/platform/coachAssetsApi';
+import { localizedName, segmentQuery } from '@/lib/libraryModel';
+import { PROVENANCE_KEYS } from '@/lib/catalogText';
+import { catalogFoodCard, isCatalogFoodId } from '@/lib/foodUse';
+import { deleteFood, getFood, saveFood } from '@/services/platform/coachAssetsApi';
+import { getCatalogFood, type CatalogTaxonomy } from '@/services/platform/catalogApi';
+import { LIBRARY_KEY, type LibraryFoodRow } from '@/services/platform/libraryApi';
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { FoodImageRef, LibraryFood, LocalizedText } from '@/types';
-import { DetailSheet, ListBody, StarterPanel, Toolbar, UseInPlanSheet, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { DetailSheet, UseInPlanSheet, useCanEdit, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
 
 // Swap groups load when that view is opened.
 const SwapGroupsView = lazy(() => import('./SwapGroupsView'));
 
+/** A Forma food as the library list sends it. */
+type LibraryFoodCard = Extract<LibraryFoodRow, { kind: 'shared' }>['card'];
+
 /**
- * Library › Foods (B3.7): the coach's foods and, inside the same segment, their swap groups (sets
- * of interchangeable foods a client may swap between). Same data, same saves as before; foods open
- * read-first and can be used in a client's nutrition plan.
+ * Library › Foods (B3.7; B4.3): ONE list — all of Forma's foods, with their pictures, and the coach's
+ * own — All · Favourites · My foods, searched in English and Arabic, by category. A Forma food opens
+ * read-first (picture and credit, values per 100 g with their source, household servings) and goes
+ * straight into a client's plan; "Customise" makes the coach's own version (name, serving, numbers,
+ * picture) and "Reset to Forma's version" removes it again — Forma's catalog itself never changes.
+ * Swap groups (sets of interchangeable foods a client may swap between) live in the same segment.
  */
 export default function FoodsSegment(props: SegmentProps) {
   const { t } = useTranslation();
@@ -59,12 +70,13 @@ export default function FoodsSegment(props: SegmentProps) {
   );
 }
 
-const macroLine = (f: Pick<LibraryFood, 'calories' | 'protein' | 'carbs' | 'fats'>, kcal: string) => `${f.calories} ${kcal} · P ${f.protein} · C ${f.carbs} · F ${f.fats}`;
-
 // ---- foods ----------------------------------------------------------------------------------------
 
 interface FoodForm {
-  id: string | null;
+  /** The stored food (or the customised Forma food) the form edits; null for a new one. */
+  base: LibraryFood | null;
+  isNew: boolean;
+  title: string;
   name: string;
   /** FD-01: the stored name, so an edit never copies English over a real Arabic name. */
   nameOrig: LocalizedText | null;
@@ -76,11 +88,12 @@ interface FoodForm {
   tags: string[];
   /** B4.1: the food's picture — the coach's own upload or the Forma picture it came with. */
   image: FoodImageRef | null;
+  /** Forma's picture of this food, which "Restore Forma's picture" brings back. */
   formaImage: FoodImageRef | null;
 }
-const blankFood = (): FoodForm => ({ id: null, name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', macros: { calories: null, protein: null, carbs: null, fats: null }, category: '', tags: [], image: null, formaImage: null });
-const formOf = (f: LibraryFood): FoodForm => ({
-  id: f.id,
+const blankFood = (): FoodForm => ({ base: null, isNew: true, title: '', name: '', nameOrig: null, nameAr: '', nameArTouched: false, quantity: '', macros: { calories: null, protein: null, carbs: null, fats: null }, category: '', tags: [], image: null, formaImage: null });
+const formOf = (f: LibraryFood, forma: FoodImageRef | null): Omit<FoodForm, 'isNew' | 'title'> => ({
+  base: f,
   name: f.name.en,
   nameOrig: f.name,
   nameAr: f.name.ar ?? '',
@@ -90,75 +103,103 @@ const formOf = (f: LibraryFood): FoodForm => ({
   category: f.category ?? '',
   tags: f.tags ?? [],
   image: f.image ?? null,
-  formaImage: f.image?.source === 'forma-catalog' ? f.image : null,
+  formaImage: forma,
 });
 
 function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, openId, onOpened }: SegmentProps) {
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
-  const desktop = useIsDesktop();
   const { canEdit, reason } = useCanEdit();
+  const catalog = useCatalogMeta();
   const lang = i18n.language;
-  const foods = useQuery({ queryKey: ['foods', coachId], queryFn: () => listFoods(coachId), enabled: !!coachId });
-  const all = useMemo(() => foods.data ?? [], [foods.data]);
-  const collator = useMemo(() => collatorFor(lang), [lang]);
+  const [shared, setShared] = useState<LibraryFoodCard | null>(null);
   const [viewing, setViewing] = useState<LibraryFood | null>(null);
   const [form, setForm] = useState<FoodForm | null>(null);
-  const [using, setUsing] = useState<LibraryFood | null>(null);
+  const [using, setUsing] = useState<{ id: string; name: string } | null>(null);
+  const name = (f: LibraryFood) => localizedName(f.name, lang) || t('coachEditor.untitledFood');
+
+  const filters: FoodFilters = { q: query.q, scope: query.scope, category: query.category };
+  const onFilters = (f: FoodFilters) => setQuery({ q: f.q, scope: f.scope, category: f.category });
 
   useEffect(() => {
     if (createSignal <= 0) return;
     setForm(blankFood());
     onCreateHandled();
   }, [createSignal, onCreateHandled]);
+  // ⌘K / a link to one food: a Forma food by its catalog id, an own one fetched.
   useEffect(() => {
-    if (!openId || !foods.data) return;
-    const f = foods.data.find((x) => x.id === openId);
-    if (f) setViewing(f);
+    if (!openId) return;
+    if (isCatalogFoodId(openId)) void getCatalogFood(openId).then((f) => setShared(catalogFoodCard(f)), () => undefined);
+    else void getFood(coachId, openId).then(setViewing, () => undefined);
     onOpened();
-  }, [openId, foods.data, onOpened]);
+  }, [openId, coachId, onOpened]);
 
-  const filtered = useMemo(() => sortFoods(filterFoods(all, query.q), query.sort, query.dir, collator, lang), [all, query.q, query.sort, query.dir, collator, lang]);
-  const { shown, footer } = usePaged(filtered, desktop, JSON.stringify([query.q, query.sort, query.dir]));
-  const name = (f: LibraryFood) => localizedName(f.name, lang) || t('coachEditor.untitledFood');
-
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: LIBRARY_KEY });
+  };
   const save = useMutation({
     mutationFn: (f: LibraryFood) => saveFood(coachId, f),
     onSuccess: () => {
       setForm(null);
-      void qc.invalidateQueries({ queryKey: ['foods', coachId] });
+      invalidate();
       showToast({ title: t('common.saved'), variant: 'success' });
     },
-    onError: (e) => void alertDialog({ title: t('coachFoods.newFood'), message: errorMessage(e, t, 'common.savedFailed') }),
+    onError: (e) => void alertDialog({ title: form?.title ?? t('coachFoods.newFood'), message: errorMessage(e, t, 'common.savedFailed') }),
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteFood(coachId, id),
-    onSuccess: () => {
+    onSuccess: (_v, id) => {
       setViewing(null);
-      void qc.invalidateQueries({ queryKey: ['foods', coachId] });
-      showToast({ title: t('common.removed'), variant: 'success' });
+      invalidate();
+      showToast({ title: id.startsWith('cat-') ? t('library.resetDone') : t('common.removed'), variant: 'success' });
     },
     onError: (e) => void alertDialog({ title: t('common.delete'), message: errorMessage(e, t) }),
   });
   const remove = async (f: LibraryFood) => {
-    if (await confirmDialog({ title: t('common.delete'), message: t('common.confirmDeleteName', { name: name(f) }), danger: true, confirmLabel: t('common.delete') })) del.mutate(f.id);
+    const reset = !!f.catalogId;
+    const ok = await confirmDialog(
+      reset
+        ? { title: t('library.reset'), message: t('library.resetConfirm', { name: name(f) }), confirmLabel: t('library.reset') }
+        : { title: t('common.delete'), message: t('common.confirmDeleteName', { name: name(f) }), danger: true, confirmLabel: t('common.delete') },
+    );
+    if (ok) del.mutate(f.id);
   };
-  const bulk = useBulkDelete((ids) => bulkDeleteFoods(coachId, ids), () => void qc.invalidateQueries({ queryKey: ['foods', coachId] }));
+
+  /** "Customise": the coach's version of a Forma food, from its first serving — saved only on Save. */
+  const customize = async (card: LibraryFoodCard) => {
+    const { foodPickFromCatalog } = await import('@/lib/catalogCopy'); // loads with the first customisation
+    const portion = card.portions[0];
+    const p = foodPickFromCatalog(card, portion?.id ?? 'g', portion ? 1 : 100);
+    const base: LibraryFood = { id: `cat-${card.id}`, name: p.name, quantity: p.quantity, ...p.macros, ...p.provenance, ...(p.image ? { image: p.image } : {}) };
+    setShared(null);
+    setForm({ ...formOf(base, p.image), isNew: true, title: t('library.customizeTitle', { name: localizedName(card.name, lang) }) });
+  };
+  /** Edit an own food; a customised one can restore Forma's picture. */
+  const edit = async (f: LibraryFood) => {
+    setViewing(null);
+    let forma: FoodImageRef | null = f.image?.source === 'forma-catalog' ? f.image : null;
+    if (!forma && f.catalogId) {
+      const [card, { foodImageFromCatalog }] = await Promise.all([getCatalogFood(f.catalogId).catch(() => null), import('@/lib/catalogCopy')]);
+      forma = card ? foodImageFromCatalog(card.id, card.image) : null;
+    }
+    setForm({ ...formOf(f, forma), isNew: false, title: t('library.editFood') });
+  };
 
   const submit = () => {
     if (!form) return;
-    const orig = form.id ? all.find((f) => f.id === form.id) : undefined;
+    const base = form.base;
+    const macros = { calories: Math.max(0, form.macros.calories ?? 0), protein: Math.max(0, form.macros.protein ?? 0), carbs: Math.max(0, form.macros.carbs ?? 0), fats: Math.max(0, form.macros.fats ?? 0) };
     const food: LibraryFood = {
-      ...(orig ?? {}),
-      id: form.id ?? uid('food'),
+      ...(base ?? {}),
+      id: base?.id ?? uid('food'),
       // FD-01: never copy the English name over a real Arabic one.
       name: form.nameArTouched ? setLocalized(form.name, form.nameAr) : applyLocalizedEdit(form.nameOrig, form.name, 'en'),
       quantity: form.quantity.trim(),
-      calories: Math.max(0, form.macros.calories ?? 0),
-      protein: Math.max(0, form.macros.protein ?? 0),
-      carbs: Math.max(0, form.macros.carbs ?? 0),
-      fats: Math.max(0, form.macros.fats ?? 0),
+      ...macros,
     };
+    // Typed numbers make the values the coach's own: the source claim goes (the catalog link stays — it is what "Reset" undoes).
+    const typed = base && (food.quantity !== (base.quantity ?? '').trim() || (['calories', 'protein', 'carbs', 'fats'] as const).some((k) => macros[k] !== base[k]));
+    if (typed) for (const k of PROVENANCE_KEYS) if (k !== 'catalogId' && k !== 'catalogRev') delete food[k];
     if (form.category.trim()) food.category = form.category.trim();
     else delete food.category;
     if (form.tags.length) food.tags = form.tags;
@@ -168,87 +209,48 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
     save.mutate(food);
   };
 
-  const menu = (f: LibraryFood) => [
-    { key: 'use', label: t('library.use.action'), icon: 'users' as const, disabled: !canEdit, testId: 'row-use', onSelect: () => setUsing(f) },
-    { key: 'edit', label: t('common.edit'), icon: 'edit' as const, disabled: !canEdit, testId: 'row-edit', onSelect: () => setForm(formOf(f)) },
-    { key: 'del', label: t('common.delete'), icon: 'trash' as const, danger: true, disabled: !canEdit, testId: 'row-delete', onSelect: () => void remove(f) },
-  ];
-  const num = (v: number) => <span className="font-mono tabular-nums text-earth-muted">{v}</span>;
-  const columns: CollectionColumn<LibraryFood>[] = [
-    { key: 'name', header: t('library.col.food'), sortKey: 'name', primary: true, className: 'w-[34%]', lead: (f) => <FoodThumb image={f.image} size="xs" />, cell: (f) => <bdi>{name(f)}</bdi> },
-    { key: 'serving', header: t('library.col.serving'), className: 'w-[16%]', cell: (f) => <span className="block truncate text-earth-muted"><bdi>{f.quantity || '—'}</bdi></span> },
-    { key: 'kcal', header: t('library.col.calories'), sortKey: 'calories', align: 'end', className: 'w-[13%]', cell: (f) => num(f.calories) },
-    { key: 'p', header: t('nutrition.protein'), sortKey: 'protein', align: 'end', className: 'w-[13%]', cell: (f) => num(f.protein) },
-    { key: 'c', header: t('nutrition.carbs'), align: 'end', className: 'hidden w-[11%] xl:table-cell', cell: (f) => num(f.carbs) },
-    { key: 'f', header: t('nutrition.fats'), align: 'end', className: 'hidden w-[11%] xl:table-cell', cell: (f) => num(f.fats) },
-  ];
-
+  if (!catalog.taxonomy) return <LoadingState count={4} />;
+  const taxonomy = catalog.taxonomy;
   return (
     <>
-      <Toolbar
-        hidden={all.length === 0}
-        query={query}
-        setQuery={setQuery}
-        placeholder={t('coachFoods.search')}
-        searchTestId="food-search"
-        desktop={desktop}
-        sorts={[
-          { key: 'name' as SortKey, label: t('library.col.food') },
-          { key: 'calories' as SortKey, label: t('library.col.calories') },
-          { key: 'protein' as SortKey, label: t('nutrition.protein') },
-        ]}
-        selecting={bulk.selecting}
-        onSelecting={bulk.setSelecting}
-        canSelect={canEdit && all.length > 0}
-        count={all.length ? (query.q ? t('library.countOf', { n: filtered.length, total: all.length }) : t('library.count.foods', { count: all.length })) : null}
+      <LibraryFoodBrowser
+        taxonomy={taxonomy}
+        filters={filters}
+        onFilters={onFilters}
+        onOpen={(r) => (r.kind === 'shared' ? setShared(r.card) : setViewing(r.food as unknown as LibraryFood))}
+        emptyMine={
+          <Button icon="plus" disabled={!canEdit} title={reason} onClick={() => setForm(blankFood())} data-testid="food-new-first">
+            {t('coachFoods.newFood')}
+          </Button>
+        }
+        testId="lib-foods"
       />
-      <ListBody q={foods} total={all.length} matched={filtered.length} testId="lib-foods" onClear={() => setQuery({ q: '' })} empty={<StarterPanel createLabel={t('coachFoods.newFood')} onCreate={() => setForm(blankFood())} createTestId="food-new-first" />}>
-        {desktop ? (
-          <CollectionTable
-            testId="coach-desktop-foods"
-            caption={t('library.caption.foods')}
-            columns={columns}
-            rows={shown}
-            rowKey={(f) => f.id}
-            rowName={name}
-            onOpen={setViewing}
-            sort={query.sort}
-            dir={query.dir}
-            onSort={(k) => setQuery(nextSort(query, k as SortKey))}
-            selecting={bulk.selecting}
-            selection={bulk.sel}
-            menu={menu}
-          />
-        ) : (
-          <CollectionList
-            testId="lib-list-foods"
-            rowTestId="food-item"
-            rows={shown}
-            rowKey={(f) => f.id}
-            rowName={name}
-            onOpen={setViewing}
-            selecting={bulk.selecting}
-            selection={bulk.sel}
-            render={(f) => ({
-              lead: <FoodThumb image={f.image} size="sm" />,
-              title: <bdi>{name(f)}</bdi>,
-              meta: (
-                <>
-                  {f.quantity ? (
-                    <>
-                      <bdi>{f.quantity}</bdi> ·{' '}
-                    </>
-                  ) : null}
-                  <bdi dir="ltr">{macroLine(f, t('common.kcal'))}</bdi>
-                </>
-              ),
-            })}
-          />
-        )}
-        {footer}
-      </ListBody>
-      {bulk.bar}
 
+      {/* A Forma food: read-first, then use it or make it your own. */}
+      <DetailSheet
+        open={!!shared}
+        onClose={() => setShared(null)}
+        title={shared ? localizedName(shared.name, lang) : t('coachFoods.food')}
+        testId="food-shared-view"
+        primary={
+          shared ? (
+            <Button icon="users" fullWidth disabled={!canEdit} title={reason} data-testid="food-use" onClick={() => { setUsing({ id: shared.id, name: localizedName(shared.name, lang) }); setShared(null); }}>
+              {t('library.use.action')}
+            </Button>
+          ) : null
+        }
+        secondary={
+          shared ? (
+            <Button variant="secondary" icon="edit" disabled={!canEdit} title={reason} data-testid="food-customize" onClick={() => void customize(shared)}>
+              {t('library.customize')}
+            </Button>
+          ) : null
+        }
+      >
+        {shared && <SharedFoodDetail card={shared} taxonomy={taxonomy} />}
+      </DetailSheet>
+
+      {/* The coach's own food (or their version of a Forma one). */}
       <DetailSheet
         open={!!viewing}
         onClose={() => setViewing(null)}
@@ -256,7 +258,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
         testId="food-view"
         primary={
           viewing ? (
-            <Button icon="users" fullWidth disabled={!canEdit} title={reason} data-testid="food-use" onClick={() => { setUsing(viewing); setViewing(null); }}>
+            <Button icon="users" fullWidth disabled={!canEdit} title={reason} data-testid="food-use" onClick={() => { setUsing({ id: viewing.id, name: name(viewing) }); setViewing(null); }}>
               {t('library.use.action')}
             </Button>
           ) : null
@@ -264,10 +266,16 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
         secondary={
           viewing ? (
             <>
-              <Button variant="secondary" icon="edit" disabled={!canEdit} title={reason} data-testid="food-view-edit" onClick={() => { setForm(formOf(viewing)); setViewing(null); }}>
+              <Button variant="secondary" icon="edit" disabled={!canEdit} title={reason} data-testid="food-view-edit" onClick={() => void edit(viewing)}>
                 {t('common.edit')}
               </Button>
-              <IconButton icon="trash" label={t('library.deleteItem', { name: name(viewing) })} className="text-danger" disabled={!canEdit || del.isPending} data-testid="food-delete" onClick={() => void remove(viewing)} />
+              {viewing.catalogId ? (
+                <Button variant="ghost" icon="rotate" disabled={!canEdit || del.isPending} title={reason} data-testid="food-reset" onClick={() => void remove(viewing)}>
+                  {t('library.reset')}
+                </Button>
+              ) : (
+                <IconButton icon="trash" label={t('library.deleteItem', { name: name(viewing) })} className="text-danger" disabled={!canEdit || del.isPending} data-testid="food-delete" onClick={() => void remove(viewing)} />
+              )}
             </>
           ) : null
         }
@@ -275,7 +283,7 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
         {viewing && <FoodDetail food={viewing} />}
       </DetailSheet>
 
-      <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={form?.id ? t('library.editFood') : t('coachFoods.newFood')}>
+      <Sheet open={!!form} onClose={() => setForm(null)} size="md" title={form?.title ?? t('coachFoods.newFood')}>
         {form && (
           <div className="space-y-3" data-testid="food-lib-form">
             <TextInput label={t('field.name')} data-testid="lf-name" placeholder={t('coachEditor.foodName')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} dir="auto" />
@@ -307,8 +315,64 @@ function FoodsView({ coachId, query, setQuery, createSignal, onCreateHandled, op
           </div>
         )}
       </Sheet>
-      <UseInPlanSheet coachId={coachId} item={using ? { kind: 'food', id: using.id, name: name(using) } : null} onClose={() => setUsing(null)} />
+      <UseInPlanSheet coachId={coachId} item={using ? { kind: 'food', ...using } : null} onClose={() => setUsing(null)} />
     </>
+  );
+}
+
+const macroCell = (label: string, value: number, unit: string) => (
+  <div className="rounded-ui-control border border-line-soft bg-surface-raised px-3 py-2.5 text-center">
+    <div className="font-mono text-[18px] font-semibold tabular-nums">{value}</div>
+    <div className="text-[12px] uppercase tracking-wide text-earth-subtle">
+      {label} {unit ? `(${unit})` : ''}
+    </div>
+  </div>
+);
+
+/** A Forma food: its picture and credit, values per 100 g with their source, and its household servings. */
+function SharedFoodDetail({ card, taxonomy }: { card: LibraryFoodCard; taxonomy: CatalogTaxonomy }) {
+  const { t, i18n } = useTranslation();
+  const label = useTaxonomyLabel();
+  const ar = i18n.language.startsWith('ar');
+  const other = ar ? card.name.en : card.name.ar;
+  const note = card.matchNote ?? card.recipeNote;
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return (
+    <div className="space-y-4">
+      <FoodCardImage image={card.image} credit={card.image ? t('foodImage.credit', { author: card.image.author, license: card.image.license }) : null} compact testId="food-shared-image" />
+      {other?.trim() ? (
+        <p className="text-[13.5px] text-earth-muted">
+          <bdi>{other}</bdi>
+        </p>
+      ) : null}
+      <p className="text-[12.5px] text-earth-subtle">
+        {label(taxonomy, 'foodCategories', card.category)} · {label(taxonomy, 'foodStates', card.state)} · {t('catalog.foods.per100')}
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="food-shared-per100">
+        {macroCell(t('nutrition.calories'), Math.round(card.per100g.kcal), t('common.kcal'))}
+        {macroCell(t('nutrition.protein'), r1(card.per100g.protein), 'g')}
+        {macroCell(t('nutrition.carbs'), r1(card.per100g.carbs), 'g')}
+        {macroCell(t('nutrition.fats'), r1(card.per100g.fat), 'g')}
+      </div>
+      {card.portions.length > 0 && (
+        <div>
+          <p className="label mb-1.5">{t('catalog.foods.serving')}</p>
+          <ul className="flex flex-wrap gap-1.5">
+            {card.portions.map((p) => (
+              <li key={p.id} className="rounded-full border border-line px-2.5 py-1 text-[12px] text-earth-muted">
+                <bdi>{ar ? p.label.ar : p.label.en}</bdi> <bdi dir="ltr">({p.grams} g)</bdi>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {note && (
+        <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-[12.5px] leading-relaxed">
+          <span className="font-semibold">{t('catalog.foods.estimate')}:</span> {ar ? note.ar : note.en}
+        </p>
+      )}
+      <p className="text-[12px] text-earth-subtle">{t(card.verification === 'recipe-estimate' ? 'catalog.foods.sourceRecipe' : 'catalog.foods.source')}</p>
+    </div>
   );
 }
 

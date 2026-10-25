@@ -1017,6 +1017,10 @@ export interface Exercise {
   images?: string[];
   /** B4.1: the still shown before a catalog demonstration (`videoUrl`) plays. */
   videoPosterUrl?: string | null;
+  /** B4.2: a light still for lists (an ExerciseDB GIF's WebP); the detail shows `imageUrl` / `videoUrl`. */
+  thumbUrl?: string | null;
+  /** B4.2: the demonstration the copy came with (catalog), kept so a coach can restore it after replacing it. */
+  sourceMedia?: ExerciseSourceMedia;
   // ---- Import provenance (seeded/imported exercises only) -------------------
   /** External catalog id this row was imported from (e.g. a wger exercise id). */
   sourceId?: string;
@@ -1040,8 +1044,19 @@ export interface Exercise {
   catalogRev?: number;
   /** Bilingual name from the catalog — the UI shows it in the reader's language (`name` stays the fallback). */
   names?: LocalizedText;
-  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet };
+  /** `ar` is null when only English steps exist (ExerciseDB): the reader sees the English, labelled. */
+  instructions?: { en: CatalogInstructionSet; ar: CatalogInstructionSet | null };
   mediaCredits?: MediaCredit[];
+}
+
+/** B4.2 — the original demonstration of a catalog copy (restorable). */
+export interface ExerciseSourceMedia {
+  imageUrl: string | null;
+  images: string[];
+  thumbUrl: string | null;
+  videoUrl: string | null;
+  videoPosterUrl: string | null;
+  mediaCredits: MediaCredit[];
 }
 
 /** A logical block inside a workout day, e.g. Chest / Warm-up / Finisher. */
@@ -1127,19 +1142,6 @@ export interface FoodGroup {
 /** How a logged meal item compares to the coach's plan (for adherence). */
 export type SubstitutionSource = 'matched_plan' | 'approved_substitution' | 'client_custom_substitution';
 
-/** Coach-owned reusable nutrition template at `coachAssets/{coachId}/nutritionTemplates`. */
-export interface NutritionTemplate {
-  id: string;
-  coachId: string;
-  name: string;
-  meals: Meal[];
-  targets: Macros;
-  supplements: Supplement[];
-  waterTargetMl: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
 // ---------------------------------------------------------------------------
 // Workout logging
 // ---------------------------------------------------------------------------
@@ -1217,7 +1219,8 @@ export interface FoodItem extends FoodProvenance {
  * Who may use which picture is enforced by the server on every save.
  */
 export interface FoodImageRef {
-  source: 'upload' | 'forma-catalog';
+  /** B4.2: `url` — a picture link the coach entered. */
+  source: 'upload' | 'forma-catalog' | 'url';
   url: string;
   thumbUrl: string;
   width?: number;

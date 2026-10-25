@@ -1,0 +1,1662 @@
+{
+  "version": "edb-v1-2026.10.24-2",
+  "generatedAt": "2026-10-24T21:22:30.367Z",
+  "source": {
+    "advertised": 1500,
+    "fetched": 1500,
+    "fetchedAt": "2026-10-24T20:48:08.068Z"
+  },
+  "records": 1500,
+  "duplicateRecordsFolded": 215,
+  "exactDuplicatesRemoved": 0,
+  "alternateDemonstrationsMerged": 39,
+  "items": 1285,
+  "linkedToFormaItems": 106,
+  "formaItemsGainingADemonstration": 106,
+  "standaloneItems": 1179,
+  "variantsLinked": 255,
+  "finalCatalogCount": 1343,
+  "formaCurated": 164,
+  "media": {
+    "itemsWithGif": 1285,
+    "itemsWithoutGif": 0,
+    "gifs": 1324,
+    "brokenLinks": 176,
+    "gifBytesAtSource": 128741397,
+    "thumbBytes": 1653416
+  },
+  "translation": {
+    "draft": 1285,
+    "missing": 0,
+    "egAliases": 1285
+  },
+  "byBodyPart": {
+    "arms": 321,
+    "back": 200,
+    "core": 164,
+    "chest": 157,
+    "glutes": 140,
+    "legs": 138,
+    "shoulders": 134,
+    "cardio": 29,
+    "neck": 2
+  },
+  "byEquipment": {
+    "bodyweight": 333,
+    "dumbbell": 283,
+    "cable": 158,
+    "barbell": 147,
+    "machine": 91,
+    "stability-ball": 76,
+    "bench": 72,
+    "band": 62,
+    "smith-machine": 47,
+    "kettlebell": 41,
+    "pull-up-bar": 38,
+    "added-weight": 35,
+    "dip-station": 24,
+    "ez-bar": 22,
+    "medicine-ball": 13,
+    "other": 12,
+    "foam-roller": 8,
+    "suspension": 5,
+    "bosu-ball": 3,
+    "ab-wheel": 2,
+    "battle-ropes": 1,
+    "jump-rope": 1,
+    "bike": 1,
+    "trap-bar": 1,
+    "elliptical": 1
+  },
+  "datasetBytes": 1825010,
+  "brokenMedia": [
+    {
+      "sourceId": "0I5fUyn",
+      "name": "band underhand pulldown",
+      "url": "https://static.exercisedb.dev/media/0I5fUyn.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "0MlxeMn",
+      "name": "cable pulldown (pro lat bar)",
+      "url": "https://static.exercisedb.dev/media/0MlxeMn.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "fjjY3N4",
+      "name": "inverse leg curl (on pull-up cable machine)",
+      "url": "https://static.exercisedb.dev/media/fjjY3N4.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Qj0HRAZ",
+      "name": "band seated hip abduction",
+      "url": "https://static.exercisedb.dev/media/Qj0HRAZ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "gTGciXz",
+      "name": "bear crawl",
+      "url": "https://static.exercisedb.dev/media/gTGciXz.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1IFV9h3",
+      "name": "push-up on lower arms",
+      "url": "https://static.exercisedb.dev/media/1IFV9h3.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "4QqYaJW",
+      "name": "prone twist on stability ball",
+      "url": "https://static.exercisedb.dev/media/4QqYaJW.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1oE78pm",
+      "name": "barbell upright row",
+      "url": "https://static.exercisedb.dev/media/1oE78pm.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1RIkUHT",
+      "name": "dumbbell iron cross",
+      "url": "https://static.exercisedb.dev/media/1RIkUHT.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1TVoin7",
+      "name": "barbell lying triceps extension",
+      "url": "https://static.exercisedb.dev/media/1TVoin7.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1u36hhy",
+      "name": "machine narrow grip seated row",
+      "url": "https://static.exercisedb.dev/media/1u36hhy.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "iCPqbki",
+      "name": "machine narrow grip seated row",
+      "url": "https://static.exercisedb.dev/media/iCPqbki.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "1YUWDNZ",
+      "name": "inverted row",
+      "url": "https://static.exercisedb.dev/media/1YUWDNZ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "hjWjJEm",
+      "name": "exercise ball hip flexor stretch",
+      "url": "https://static.exercisedb.dev/media/hjWjJEm.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "79AmJsI",
+      "name": "dumbbell hammer curl",
+      "url": "https://static.exercisedb.dev/media/79AmJsI.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "2Ty4idJ",
+      "name": "dumbbell stiff leg deadlift",
+      "url": "https://static.exercisedb.dev/media/2Ty4idJ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "3nvEbbF",
+      "name": "cable twisting pull",
+      "url": "https://static.exercisedb.dev/media/3nvEbbF.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "3pqGMQj",
+      "name": "band alternating v-up",
+      "url": "https://static.exercisedb.dev/media/3pqGMQj.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "UI81amT",
+      "name": "band alternating v-up",
+      "url": "https://static.exercisedb.dev/media/UI81amT.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "3QgteDK",
+      "name": "barbell wide reverse-grip bench press",
+      "url": "https://static.exercisedb.dev/media/3QgteDK.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "9Z23cLE",
+      "name": "barbell incline bench press",
+      "url": "https://static.exercisedb.dev/media/9Z23cLE.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "w7obpWd",
+      "name": "cable pushdown",
+      "url": "https://static.exercisedb.dev/media/w7obpWd.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "4H86mXM",
+      "name": "sled 45 degrees single-leg press",
+      "url": "https://static.exercisedb.dev/media/4H86mXM.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "EqHIIjJ",
+      "name": "barbell reverse preacher curl",
+      "url": "https://static.exercisedb.dev/media/EqHIIjJ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "6vcvsLS",
+      "name": "hanging straight-leg raise",
+      "url": "https://static.exercisedb.dev/media/6vcvsLS.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "58rdhvL",
+      "name": "band jack knife sit-up",
+      "url": "https://static.exercisedb.dev/media/58rdhvL.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "5ipN0iE",
+      "name": "assisted pull-up",
+      "url": "https://static.exercisedb.dev/media/5ipN0iE.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "5lE7XRz",
+      "name": "smith bent over row",
+      "url": "https://static.exercisedb.dev/media/5lE7XRz.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "afv0ZAS",
+      "name": "smith incline bench press",
+      "url": "https://static.exercisedb.dev/media/afv0ZAS.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "9vz4JlC",
+      "name": "weighted lunge with swing",
+      "url": "https://static.exercisedb.dev/media/9vz4JlC.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "I6Ca0a7",
+      "name": "ez-bar lying close-grip triceps extension behind head",
+      "url": "https://static.exercisedb.dev/media/I6Ca0a7.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "6Wr0F3W",
+      "name": "twisted leg raise",
+      "url": "https://static.exercisedb.dev/media/6Wr0F3W.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "MDFxU4b",
+      "name": "quads (bodyweight squat)",
+      "url": "https://static.exercisedb.dev/media/MDFxU4b.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "gSO0KpB",
+      "name": "sit-up with arms on chest",
+      "url": "https://static.exercisedb.dev/media/gSO0KpB.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "XE93sQZ",
+      "name": "dumbbell step up single leg balance with biceps curl",
+      "url": "https://static.exercisedb.dev/media/XE93sQZ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7858za8",
+      "name": "dumbbell step-up lunge",
+      "url": "https://static.exercisedb.dev/media/7858za8.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7AnZtSv",
+      "name": "dumbbell over bench single-arm wrist curl",
+      "url": "https://static.exercisedb.dev/media/7AnZtSv.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "pNIKolI",
+      "name": "exercise ball seated triceps stretch",
+      "url": "https://static.exercisedb.dev/media/pNIKolI.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7R4NIjL",
+      "name": "assisted standing triceps extension (with towel)",
+      "url": "https://static.exercisedb.dev/media/7R4NIjL.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7i4msxz",
+      "name": "cocoons",
+      "url": "https://static.exercisedb.dev/media/7i4msxz.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "LlSe9IK",
+      "name": "assisted standing chin-up",
+      "url": "https://static.exercisedb.dev/media/LlSe9IK.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "jCBOdh0",
+      "name": "cable decline fly",
+      "url": "https://static.exercisedb.dev/media/jCBOdh0.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7WcQgkm",
+      "name": "smith machine incline triceps extension",
+      "url": "https://static.exercisedb.dev/media/7WcQgkm.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "7y9JIMj",
+      "name": "machine reverse-grip preacher curl",
+      "url": "https://static.exercisedb.dev/media/7y9JIMj.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "89HVjEp",
+      "name": "kettlebell seated press",
+      "url": "https://static.exercisedb.dev/media/89HVjEp.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "8gQo5Ss",
+      "name": "cable standing crunch (with rope attachment)",
+      "url": "https://static.exercisedb.dev/media/8gQo5Ss.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "8IbNZwc",
+      "name": "band hip lift",
+      "url": "https://static.exercisedb.dev/media/8IbNZwc.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "iFsqlCD",
+      "name": "medicine ball close-grip push up",
+      "url": "https://static.exercisedb.dev/media/iFsqlCD.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "8yBgwBS",
+      "name": "cable concentration curl",
+      "url": "https://static.exercisedb.dev/media/8yBgwBS.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "VRBGPHB",
+      "name": "smith shoulder press",
+      "url": "https://static.exercisedb.dev/media/VRBGPHB.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "9fCHfSc",
+      "name": "cable palm rotational row",
+      "url": "https://static.exercisedb.dev/media/9fCHfSc.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "mpYUPkA",
+      "name": "lying leg-hip raise",
+      "url": "https://static.exercisedb.dev/media/mpYUPkA.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "9tvVVM9",
+      "name": "cable triceps pushdown (v-bar)",
+      "url": "https://static.exercisedb.dev/media/9tvVVM9.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "9ZGnq1w",
+      "name": "triceps dip (between benches)",
+      "url": "https://static.exercisedb.dev/media/9ZGnq1w.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "A3P4O0R",
+      "name": "cable seated row",
+      "url": "https://static.exercisedb.dev/media/A3P4O0R.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "AdxxqfF",
+      "name": "barbell standing reverse-grip curl",
+      "url": "https://static.exercisedb.dev/media/AdxxqfF.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Aj9vWh7",
+      "name": "assisted seated pectoralis major stretch with stability ball",
+      "url": "https://static.exercisedb.dev/media/Aj9vWh7.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "r4RZKpF",
+      "name": "dumbbell single-arm fly on exercise ball",
+      "url": "https://static.exercisedb.dev/media/r4RZKpF.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "AwAIlSo",
+      "name": "reverse-grip machine lat pulldown",
+      "url": "https://static.exercisedb.dev/media/AwAIlSo.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "b5uBMv2",
+      "name": "exercise ball alternating arm ups",
+      "url": "https://static.exercisedb.dev/media/b5uBMv2.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "lFBTISi",
+      "name": "hanging oblique knee raise",
+      "url": "https://static.exercisedb.dev/media/lFBTISi.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "gWcZD4q",
+      "name": "dumbbell standing alternate overhead press",
+      "url": "https://static.exercisedb.dev/media/gWcZD4q.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "ntjtCfu",
+      "name": "barbell seated alternate leg raise",
+      "url": "https://static.exercisedb.dev/media/ntjtCfu.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "MqNdIbe",
+      "name": "wrist rollerer",
+      "url": "https://static.exercisedb.dev/media/MqNdIbe.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "BeReYBf",
+      "name": "side-to-side chin",
+      "url": "https://static.exercisedb.dev/media/BeReYBf.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "ninBEOY",
+      "name": "side-to-side chin",
+      "url": "https://static.exercisedb.dev/media/ninBEOY.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "qlZUaZ8",
+      "name": "dumbbell incline single-arm press on exercise ball",
+      "url": "https://static.exercisedb.dev/media/qlZUaZ8.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "sJElUUI",
+      "name": "dumbbell incline single-arm press on exercise ball",
+      "url": "https://static.exercisedb.dev/media/sJElUUI.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "LFIOery",
+      "name": "dumbbell sumo pull through",
+      "url": "https://static.exercisedb.dev/media/LFIOery.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "syUwUKY",
+      "name": "dumbbell pronate-grip triceps extension",
+      "url": "https://static.exercisedb.dev/media/syUwUKY.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "IH2kr7n",
+      "name": "dumbbell decline shrug",
+      "url": "https://static.exercisedb.dev/media/IH2kr7n.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "cuC7529",
+      "name": "single-leg squat",
+      "url": "https://static.exercisedb.dev/media/cuC7529.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "C8Crfa4",
+      "name": "smith close-grip bench press",
+      "url": "https://static.exercisedb.dev/media/C8Crfa4.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "EnPivTL",
+      "name": "barbell bent arm pullover",
+      "url": "https://static.exercisedb.dev/media/EnPivTL.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "EpKrFiv",
+      "name": "incline push up depth jump",
+      "url": "https://static.exercisedb.dev/media/EpKrFiv.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "V7rWsT5",
+      "name": "machine military press",
+      "url": "https://static.exercisedb.dev/media/V7rWsT5.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "xOXZJRZ",
+      "name": "clock push-up",
+      "url": "https://static.exercisedb.dev/media/xOXZJRZ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "nFHk9fU",
+      "name": "cable lateral pulldown (with rope attachment)",
+      "url": "https://static.exercisedb.dev/media/nFHk9fU.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "CUmLRTA",
+      "name": "cable kneeling crunch",
+      "url": "https://static.exercisedb.dev/media/CUmLRTA.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "vpleANJ",
+      "name": "pelvic tilt into bridge",
+      "url": "https://static.exercisedb.dev/media/vpleANJ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "dAJscVq",
+      "name": "cable incline bench row",
+      "url": "https://static.exercisedb.dev/media/dAJscVq.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "TBNaSNs",
+      "name": "ez-bar decline close-grip face press",
+      "url": "https://static.exercisedb.dev/media/TBNaSNs.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "DICPHtq",
+      "name": "single leg calf raise (on a dumbbell)",
+      "url": "https://static.exercisedb.dev/media/DICPHtq.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "O3INw8V",
+      "name": "sphinx",
+      "url": "https://static.exercisedb.dev/media/O3INw8V.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "DoEYq4s",
+      "name": "sissy squat",
+      "url": "https://static.exercisedb.dev/media/DoEYq4s.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "drfGhTV",
+      "name": "cable incline fly",
+      "url": "https://static.exercisedb.dev/media/drfGhTV.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "dVeWXf2",
+      "name": "chin-up",
+      "url": "https://static.exercisedb.dev/media/dVeWXf2.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "IU4QNJ6",
+      "name": "chin-up",
+      "url": "https://static.exercisedb.dev/media/IU4QNJ6.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Dx2RIva",
+      "name": "sled single-leg calf press on leg press",
+      "url": "https://static.exercisedb.dev/media/Dx2RIva.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "echClj7",
+      "name": "barbell squat (on knees)",
+      "url": "https://static.exercisedb.dev/media/echClj7.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "qFHvMnv",
+      "name": "barbell speed squat",
+      "url": "https://static.exercisedb.dev/media/qFHvMnv.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "eZ79rbI",
+      "name": "cable kneeling rear delt row (with rope)",
+      "url": "https://static.exercisedb.dev/media/eZ79rbI.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "F56Xpw3",
+      "name": "weighted straight bar dip",
+      "url": "https://static.exercisedb.dev/media/F56Xpw3.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Y8dOJlH",
+      "name": "cable squat row (with rope attachment)",
+      "url": "https://static.exercisedb.dev/media/Y8dOJlH.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "woLo1QN",
+      "name": "incline push-up (on box)",
+      "url": "https://static.exercisedb.dev/media/woLo1QN.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "jvEXp4N",
+      "name": "single-arm dip",
+      "url": "https://static.exercisedb.dev/media/jvEXp4N.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "fBnPpzd",
+      "name": "assisted prone hamstring",
+      "url": "https://static.exercisedb.dev/media/fBnPpzd.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "fF6GKVh",
+      "name": "chair leg extended stretch",
+      "url": "https://static.exercisedb.dev/media/fF6GKVh.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "FSF9WOs",
+      "name": "wide-grip chest dip on high parallel bars",
+      "url": "https://static.exercisedb.dev/media/FSF9WOs.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "G1qWW6M",
+      "name": "weighted one hand pull-up",
+      "url": "https://static.exercisedb.dev/media/G1qWW6M.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "J1vH2X0",
+      "name": "weighted one hand pull-up",
+      "url": "https://static.exercisedb.dev/media/J1vH2X0.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "UoX77uR",
+      "name": "dumbbell seated single-leg calf raise - hammer grip",
+      "url": "https://static.exercisedb.dev/media/UoX77uR.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "kLiIFdB",
+      "name": "band vertical pallof press",
+      "url": "https://static.exercisedb.dev/media/kLiIFdB.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "gdPIyyO",
+      "name": "hanging pike",
+      "url": "https://static.exercisedb.dev/media/gdPIyyO.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Sa8mzWc",
+      "name": "hanging pike",
+      "url": "https://static.exercisedb.dev/media/Sa8mzWc.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "QoSZo2Y",
+      "name": "cable single-arm incline press",
+      "url": "https://static.exercisedb.dev/media/QoSZo2Y.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "gMyx3Qn",
+      "name": "scapula push-up",
+      "url": "https://static.exercisedb.dev/media/gMyx3Qn.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "KenZJQV",
+      "name": "barbell high bar squat",
+      "url": "https://static.exercisedb.dev/media/KenZJQV.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Gu2ENkm",
+      "name": "smith machine reverse decline close-grip bench press",
+      "url": "https://static.exercisedb.dev/media/Gu2ENkm.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "mAYqY4M",
+      "name": "full planche push-up",
+      "url": "https://static.exercisedb.dev/media/mAYqY4M.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "tuIZFDt",
+      "name": "kneeling plank tap shoulder",
+      "url": "https://static.exercisedb.dev/media/tuIZFDt.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "M8IolhQ",
+      "name": "ez-bar close-grip preacher curl",
+      "url": "https://static.exercisedb.dev/media/M8IolhQ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "oMwyl17",
+      "name": "barbell straight-leg deadlift",
+      "url": "https://static.exercisedb.dev/media/oMwyl17.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "hTLtkXL",
+      "name": "band seated shoulder press",
+      "url": "https://static.exercisedb.dev/media/hTLtkXL.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "WM6TvvW",
+      "name": "cable low seated row",
+      "url": "https://static.exercisedb.dev/media/WM6TvvW.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "hVzPY5j",
+      "name": "battling ropes",
+      "url": "https://static.exercisedb.dev/media/hVzPY5j.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "QQwxa8g",
+      "name": "dumbbell preacher curl over exercise ball",
+      "url": "https://static.exercisedb.dev/media/QQwxa8g.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "HZgQPxh",
+      "name": "suspended abdominal fallout",
+      "url": "https://static.exercisedb.dev/media/HZgQPxh.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "v6EKk0O",
+      "name": "half knee bends",
+      "url": "https://static.exercisedb.dev/media/v6EKk0O.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "IBj3nsn",
+      "name": "quick feet",
+      "url": "https://static.exercisedb.dev/media/IBj3nsn.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "iDGtjyi",
+      "name": "chest and front of shoulder stretch",
+      "url": "https://static.exercisedb.dev/media/iDGtjyi.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "iqH55N8",
+      "name": "forward lunge",
+      "url": "https://static.exercisedb.dev/media/iqH55N8.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Ql4g5s8",
+      "name": "forward lunge",
+      "url": "https://static.exercisedb.dev/media/Ql4g5s8.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "IxsFgRT",
+      "name": "cable judo flip",
+      "url": "https://static.exercisedb.dev/media/IxsFgRT.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "j6uIfep",
+      "name": "kettlebell extended range single-arm press on floor",
+      "url": "https://static.exercisedb.dev/media/j6uIfep.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "o80Xu9C",
+      "name": "kettlebell extended range single-arm press on floor",
+      "url": "https://static.exercisedb.dev/media/o80Xu9C.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "xmWQIlT",
+      "name": "dumbbell alternating seated biceps curl on exercise ball",
+      "url": "https://static.exercisedb.dev/media/xmWQIlT.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "vN5HB0s",
+      "name": "cable standing crunch",
+      "url": "https://static.exercisedb.dev/media/vN5HB0s.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "JxrY9mC",
+      "name": "band kneeling single-arm pulldown",
+      "url": "https://static.exercisedb.dev/media/JxrY9mC.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "kk39rUy",
+      "name": "push-up to side plank",
+      "url": "https://static.exercisedb.dev/media/kk39rUy.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "kKYTkjJ",
+      "name": "exercise ball single-leg prone lower body rotation",
+      "url": "https://static.exercisedb.dev/media/kKYTkjJ.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "pgIdT6i",
+      "name": "band single-arm standing low row",
+      "url": "https://static.exercisedb.dev/media/pgIdT6i.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "KQfySvS",
+      "name": "dumbbell reverse-grip row",
+      "url": "https://static.exercisedb.dev/media/KQfySvS.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "lRcrlH8",
+      "name": "band straight-leg deadlift",
+      "url": "https://static.exercisedb.dev/media/lRcrlH8.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "KWyEjtI",
+      "name": "machine bent-over row with v-bar",
+      "url": "https://static.exercisedb.dev/media/KWyEjtI.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "L68dTQj",
+      "name": "band seated twist",
+      "url": "https://static.exercisedb.dev/media/L68dTQj.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "qBl14UC",
+      "name": "push-up (wall)",
+      "url": "https://static.exercisedb.dev/media/qBl14UC.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "PDHE73u",
+      "name": "band straight back stiff leg deadlift",
+      "url": "https://static.exercisedb.dev/media/PDHE73u.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "ookVu2D",
+      "name": "dumbbell pullover hip extension on exercise ball",
+      "url": "https://static.exercisedb.dev/media/ookVu2D.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "XqYQ9JA",
+      "name": "dumbbell single-arm prone hammer curl",
+      "url": "https://static.exercisedb.dev/media/XqYQ9JA.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "YA2HKGz",
+      "name": "barbell reverse wrist curl",
+      "url": "https://static.exercisedb.dev/media/YA2HKGz.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "LzX8YEz",
+      "name": "all fours squad stretch",
+      "url": "https://static.exercisedb.dev/media/LzX8YEz.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "N3EirIW",
+      "name": "machine assisted pull-up",
+      "url": "https://static.exercisedb.dev/media/N3EirIW.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Mr8d4KA",
+      "name": "kettlebell arnold press",
+      "url": "https://static.exercisedb.dev/media/Mr8d4KA.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "MRaFiZP",
+      "name": "smith seated shoulder press",
+      "url": "https://static.exercisedb.dev/media/MRaFiZP.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "myJeTAe",
+      "name": "cable single-arm lateral raise",
+      "url": "https://static.exercisedb.dev/media/myJeTAe.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "N6dZN2I",
+      "name": "cable high row (kneeling)",
+      "url": "https://static.exercisedb.dev/media/N6dZN2I.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "numr601",
+      "name": "machine standing chest press",
+      "url": "https://static.exercisedb.dev/media/numr601.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "o6LqKKP",
+      "name": "barbell romanian deadlift",
+      "url": "https://static.exercisedb.dev/media/o6LqKKP.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "omsF3RN",
+      "name": "band side triceps extension",
+      "url": "https://static.exercisedb.dev/media/omsF3RN.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "OJFgZJ0",
+      "name": "barbell lying back of the head triceps extension",
+      "url": "https://static.exercisedb.dev/media/OJFgZJ0.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "xcLntTC",
+      "name": "leg pull in flat bench",
+      "url": "https://static.exercisedb.dev/media/xcLntTC.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "p0OCXGb",
+      "name": "sled 45° leg wide press",
+      "url": "https://static.exercisedb.dev/media/p0OCXGb.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "p5v6rdT",
+      "name": "iron cross stretch",
+      "url": "https://static.exercisedb.dev/media/p5v6rdT.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "P7zSvul",
+      "name": "push up on bosu ball",
+      "url": "https://static.exercisedb.dev/media/P7zSvul.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "PCUYOMs",
+      "name": "walk elliptical cross trainer",
+      "url": "https://static.exercisedb.dev/media/PCUYOMs.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "pFuK3by",
+      "name": "walk elliptical cross trainer",
+      "url": "https://static.exercisedb.dev/media/pFuK3by.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "vocve3e",
+      "name": "dumbbell single-leg fly on exercise ball",
+      "url": "https://static.exercisedb.dev/media/vocve3e.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "PKlXuJW",
+      "name": "band push sit-up",
+      "url": "https://static.exercisedb.dev/media/PKlXuJW.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "znf7t8E",
+      "name": "kipping muscle up",
+      "url": "https://static.exercisedb.dev/media/znf7t8E.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "vobtVkm",
+      "name": "calf push stretch with hands against wall",
+      "url": "https://static.exercisedb.dev/media/vobtVkm.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "w44vFvP",
+      "name": "smith single-arm row",
+      "url": "https://static.exercisedb.dev/media/w44vFvP.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "WFucoe6",
+      "name": "hanging straight twisting leg hip raise",
+      "url": "https://static.exercisedb.dev/media/WFucoe6.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "qU8bYp7",
+      "name": "cable standing single-arm triceps extension",
+      "url": "https://static.exercisedb.dev/media/qU8bYp7.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Uywa4S5",
+      "name": "dumbbell lunge",
+      "url": "https://static.exercisedb.dev/media/Uywa4S5.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Rsxr3xl",
+      "name": "single-arm against wall",
+      "url": "https://static.exercisedb.dev/media/Rsxr3xl.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "u1iHcoD",
+      "name": "dumbbell upright shoulder external rotation",
+      "url": "https://static.exercisedb.dev/media/u1iHcoD.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "u3UuCZu",
+      "name": "kettlebell two-arm row",
+      "url": "https://static.exercisedb.dev/media/u3UuCZu.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Ul5OFSV",
+      "name": "band leg extension",
+      "url": "https://static.exercisedb.dev/media/Ul5OFSV.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Um8xUAc",
+      "name": "barbell prone incline curl",
+      "url": "https://static.exercisedb.dev/media/Um8xUAc.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "UOphC6N",
+      "name": "cable side bend",
+      "url": "https://static.exercisedb.dev/media/UOphC6N.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "Xd65M9w",
+      "name": "dumbbell around pullover",
+      "url": "https://static.exercisedb.dev/media/Xd65M9w.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "vNPJbDA",
+      "name": "cable rope incline triceps extension",
+      "url": "https://static.exercisedb.dev/media/vNPJbDA.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "VsopqcV",
+      "name": "close-grip push-up",
+      "url": "https://static.exercisedb.dev/media/VsopqcV.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "W1p7BND",
+      "name": "chest stretch with exercise ball",
+      "url": "https://static.exercisedb.dev/media/W1p7BND.gif",
+      "error": "HTTP 404"
+    },
+    {
+      "sourceId": "W7yh3Yo",
+      "name": "dumbbell single-arm french press on exercise ball",
+      "url": "https://static.exercisedb.dev/media/W7yh3Yo.gif",
+      "error": "HTTP 404"
+    }
+  ],
+  "links": [
+    {
+      "id": "edb_EIeI8Vf",
+      "name": "Barbell bench press",
+      "formaId": "fx_barbell_bench_press"
+    },
+    {
+      "id": "edb_eZyBC3j",
+      "name": "Barbell bent over row",
+      "formaId": "fx_barbell_bent_over_row"
+    },
+    {
+      "id": "edb_J6Dx1Mu",
+      "name": "Barbell close-grip bench press",
+      "formaId": "fx_close_grip_bench_press"
+    },
+    {
+      "id": "edb_25GPyDY",
+      "name": "Barbell curl",
+      "formaId": "fx_barbell_curl"
+    },
+    {
+      "id": "edb_ila4NZS",
+      "name": "Barbell deadlift",
+      "formaId": "fx_deadlift"
+    },
+    {
+      "id": "edb_GrO65fd",
+      "name": "Barbell decline bench press",
+      "formaId": "fx_decline_barbell_bench_press"
+    },
+    {
+      "id": "edb_zG0zs85",
+      "name": "Barbell front squat",
+      "formaId": "fx_front_squat"
+    },
+    {
+      "id": "edb_XlZ4lAC",
+      "name": "Barbell good morning",
+      "formaId": "fx_good_morning"
+    },
+    {
+      "id": "edb_Gnfo4FM",
+      "name": "Barbell high bar squat",
+      "formaId": "fx_barbell_back_squat"
+    },
+    {
+      "id": "edb_3TZduzM",
+      "name": "Barbell incline bench press",
+      "formaId": "fx_incline_barbell_bench_press"
+    },
+    {
+      "id": "edb_qOgPVf6",
+      "name": "Barbell preacher curl",
+      "formaId": "fx_preacher_curl"
+    },
+    {
+      "id": "edb_za9Ni4z",
+      "name": "Barbell rack pull",
+      "formaId": "fx_rack_pull"
+    },
+    {
+      "id": "edb_xNrS20v",
+      "name": "Barbell reverse curl",
+      "formaId": "fx_reverse_curl"
+    },
+    {
+      "id": "edb_o6LqKKP",
+      "name": "Barbell romanian deadlift",
+      "formaId": "fx_romanian_deadlift"
+    },
+    {
+      "id": "edb_dG7tG5y",
+      "name": "Barbell shrug",
+      "formaId": "fx_barbell_shrug"
+    },
+    {
+      "id": "edb_hrVQWvE",
+      "name": "Barbell straight-leg deadlift",
+      "formaId": "fx_stiff_leg_deadlift"
+    },
+    {
+      "id": "edb_KgI0tqW",
+      "name": "Barbell sumo deadlift",
+      "formaId": "fx_sumo_deadlift"
+    },
+    {
+      "id": "edb_1oE78pm",
+      "name": "Barbell upright row",
+      "formaId": "fx_upright_row"
+    },
+    {
+      "id": "edb_6kSxYnw",
+      "name": "Barbell wrist curl",
+      "formaId": "fx_wrist_curl"
+    },
+    {
+      "id": "edb_1ZFqTDN",
+      "name": "Bicycle crunch",
+      "formaId": "fx_bicycle_crunch"
+    },
+    {
+      "id": "edb_dK9394r",
+      "name": "Burpee",
+      "formaId": "fx_burpee"
+    },
+    {
+      "id": "edb_0CXGHya",
+      "name": "Cable crossover",
+      "formaId": "fx_cable_crossover"
+    },
+    {
+      "id": "edb_G08RZcQ",
+      "name": "Cable curl",
+      "formaId": "fx_cable_curl"
+    },
+    {
+      "id": "edb_CUmLRTA",
+      "name": "Cable kneeling crunch",
+      "formaId": "fx_cable_crunch"
+    },
+    {
+      "id": "edb_goJ6ezq",
+      "name": "Cable lateral raise",
+      "formaId": "fx_cable_lateral_raise"
+    },
+    {
+      "id": "edb_3ZflifB",
+      "name": "Cable pushdown",
+      "formaId": "fx_triceps_pushdown"
+    },
+    {
+      "id": "edb_A3P4O0R",
+      "name": "Cable seated row",
+      "formaId": "fx_seated_cable_row"
+    },
+    {
+      "id": "edb_DT14T9T",
+      "name": "Cable straight arm pulldown (with rope)",
+      "formaId": "fx_straight_arm_pulldown"
+    },
+    {
+      "id": "edb_xBYcQHj",
+      "name": "Cable underhand pulldown",
+      "formaId": "fx_reverse_grip_lat_pulldown"
+    },
+    {
+      "id": "edb_9WTm7dq",
+      "name": "Chest dip",
+      "formaId": "fx_chest_dip"
+    },
+    {
+      "id": "edb_dVeWXf2",
+      "name": "Chin-up",
+      "formaId": "fx_chin_up"
+    },
+    {
+      "id": "edb_MCUhf1F",
+      "name": "Crunch (on stability ball)",
+      "formaId": "fx_stability_ball_crunch"
+    },
+    {
+      "id": "edb_TFqbd8t",
+      "name": "Crunch floor",
+      "formaId": "fx_crunch"
+    },
+    {
+      "id": "edb_iny3m5y",
+      "name": "Dead bug",
+      "formaId": "fx_dead_bug"
+    },
+    {
+      "id": "edb_i5cEhka",
+      "name": "Decline push-up",
+      "formaId": "fx_decline_push_up"
+    },
+    {
+      "id": "edb_soIB2rj",
+      "name": "Diamond push-up",
+      "formaId": "fx_diamond_push_up"
+    },
+    {
+      "id": "edb_BU15nH4",
+      "name": "Dumbbell alternate biceps curl",
+      "formaId": "fx_alternating_dumbbell_curl"
+    },
+    {
+      "id": "edb_eOrFCnx",
+      "name": "Dumbbell arnold press",
+      "formaId": "fx_arnold_press"
+    },
+    {
+      "id": "edb_SpYC0Kp",
+      "name": "Dumbbell bench press",
+      "formaId": "fx_dumbbell_bench_press"
+    },
+    {
+      "id": "edb_NbVPDMW",
+      "name": "Dumbbell biceps curl",
+      "formaId": "fx_dumbbell_curl"
+    },
+    {
+      "id": "edb_gvsWLQw",
+      "name": "Dumbbell concentration curl",
+      "formaId": "fx_concentration_curl"
+    },
+    {
+      "id": "edb_DwhEmmE",
+      "name": "Dumbbell decline bench press",
+      "formaId": "fx_decline_dumbbell_bench_press"
+    },
+    {
+      "id": "edb_yz9nUhF",
+      "name": "Dumbbell fly",
+      "formaId": "fx_dumbbell_fly"
+    },
+    {
+      "id": "edb_3eGE2JC",
+      "name": "Dumbbell front raise",
+      "formaId": "fx_dumbbell_front_raise"
+    },
+    {
+      "id": "edb_yn8yg1r",
+      "name": "Dumbbell goblet squat",
+      "formaId": "fx_goblet_squat"
+    },
+    {
+      "id": "edb_2NpxjC1",
+      "name": "Dumbbell hammer curl",
+      "formaId": "fx_hammer_curl"
+    },
+    {
+      "id": "edb_B3Rxp6L",
+      "name": "Dumbbell incline bench press",
+      "formaId": "fx_incline_dumbbell_press"
+    },
+    {
+      "id": "edb_ae9UoXQ",
+      "name": "Dumbbell incline curl",
+      "formaId": "fx_incline_dumbbell_curl"
+    },
+    {
+      "id": "edb_ESOd5Pl",
+      "name": "Dumbbell incline fly",
+      "formaId": "fx_incline_dumbbell_fly"
+    },
+    {
+      "id": "edb_7vG5o25",
+      "name": "Dumbbell incline row",
+      "formaId": "fx_chest_supported_dumbbell_row"
+    },
+    {
+      "id": "edb_DsgkuIt",
+      "name": "Dumbbell lateral raise",
+      "formaId": "fx_dumbbell_lateral_raise"
+    },
+    {
+      "id": "edb_mpKZGWz",
+      "name": "Dumbbell lying triceps extension",
+      "formaId": "fx_dumbbell_skullcrusher"
+    },
+    {
+      "id": "edb_9XjtHvS",
+      "name": "Dumbbell pullover",
+      "formaId": "fx_dumbbell_pullover"
+    },
+    {
+      "id": "edb_mu5Guxt",
+      "name": "Dumbbell rear delt raise",
+      "formaId": "fx_rear_delt_fly"
+    },
+    {
+      "id": "edb_rR0LJzx",
+      "name": "Dumbbell romanian deadlift",
+      "formaId": "fx_dumbbell_romanian_deadlift"
+    },
+    {
+      "id": "edb_znQUdHY",
+      "name": "Dumbbell seated shoulder press",
+      "formaId": "fx_seated_dumbbell_shoulder_press"
+    },
+    {
+      "id": "edb_NJzBsGJ",
+      "name": "Dumbbell shrug",
+      "formaId": "fx_dumbbell_shrug"
+    },
+    {
+      "id": "edb_IpONWYv",
+      "name": "Dumbbell side bend",
+      "formaId": "fx_dumbbell_side_bend"
+    },
+    {
+      "id": "edb_gKozT8X",
+      "name": "Dumbbell single leg deadlift",
+      "formaId": "fx_single_leg_romanian_deadlift"
+    },
+    {
+      "id": "edb_bQy2Eni",
+      "name": "Dumbbell single-arm kickback",
+      "formaId": "fx_dumbbell_kickback"
+    },
+    {
+      "id": "edb_FQXdXzY",
+      "name": "Dumbbells seated triceps extension",
+      "formaId": "fx_overhead_dumbbell_triceps_extension"
+    },
+    {
+      "id": "edb_6TG6x2w",
+      "name": "Ez-bar curl",
+      "formaId": "fx_ez_bar_curl"
+    },
+    {
+      "id": "edb_qPEzJjA",
+      "name": "Farmers walk",
+      "formaId": "fx_farmers_carry"
+    },
+    {
+      "id": "edb_UVo2Qs2",
+      "name": "Flutter kicks",
+      "formaId": "fx_flutter_kicks"
+    },
+    {
+      "id": "edb_rQxwMxO",
+      "name": "Handstand push-up",
+      "formaId": "fx_handstand_push_up"
+    },
+    {
+      "id": "edb_4Ml7QFO",
+      "name": "Hanging straight-leg raise",
+      "formaId": "fx_hanging_leg_raise"
+    },
+    {
+      "id": "edb_zhMwOwE",
+      "name": "Hyperextension",
+      "formaId": "fx_back_extension"
+    },
+    {
+      "id": "edb_B1EVP9F",
+      "name": "Incline push-up",
+      "formaId": "fx_incline_push_up"
+    },
+    {
+      "id": "edb_1YUWDNZ",
+      "name": "Inverted row",
+      "formaId": "fx_inverted_row"
+    },
+    {
+      "id": "edb_mbkgB44",
+      "name": "Jackknife sit-up",
+      "formaId": "fx_v_up"
+    },
+    {
+      "id": "edb_e1e76I2",
+      "name": "Jump rope",
+      "formaId": "fx_jump_rope"
+    },
+    {
+      "id": "edb_UHJlbu3",
+      "name": "Kettlebell swing",
+      "formaId": "fx_kettlebell_swing"
+    },
+    {
+      "id": "edb_f38OEuO",
+      "name": "Kneeling lat stretch",
+      "formaId": "fx_kneeling_lat_stretch"
+    },
+    {
+      "id": "edb_u0cNiij",
+      "name": "Low glute bridge on floor",
+      "formaId": "fx_glute_bridge"
+    },
+    {
+      "id": "edb_7B4F5nZ",
+      "name": "Machine calf press",
+      "formaId": "fx_leg_press_calf_raise"
+    },
+    {
+      "id": "edb_DOoWcnA",
+      "name": "Machine chest press",
+      "formaId": "fx_machine_chest_press"
+    },
+    {
+      "id": "edb_dRTfGZT",
+      "name": "Machine lateral raise",
+      "formaId": "fx_machine_lateral_raise"
+    },
+    {
+      "id": "edb_my33uHU",
+      "name": "Machine leg extension",
+      "formaId": "fx_leg_extension"
+    },
+    {
+      "id": "edb_17lJ1kr",
+      "name": "Machine lying leg curl",
+      "formaId": "fx_lying_leg_curl"
+    },
+    {
+      "id": "edb_b6hQYMb",
+      "name": "Machine preacher curl",
+      "formaId": "fx_machine_preacher_curl"
+    },
+    {
+      "id": "edb_bOOdeyc",
+      "name": "Machine seated calf raise",
+      "formaId": "fx_seated_calf_raise"
+    },
+    {
+      "id": "edb_eXFXCY0",
+      "name": "Machine seated crunch",
+      "formaId": "fx_machine_crunch"
+    },
+    {
+      "id": "edb_BRImeP8",
+      "name": "Machine seated dip",
+      "formaId": "fx_seated_dip_machine"
+    },
+    {
+      "id": "edb_CHpahtl",
+      "name": "Machine seated hip abduction",
+      "formaId": "fx_hip_abduction_machine"
+    },
+    {
+      "id": "edb_oHsrypV",
+      "name": "Machine seated hip adduction",
+      "formaId": "fx_hip_adduction_machine"
+    },
+    {
+      "id": "edb_Zg3XY7P",
+      "name": "Machine seated leg curl",
+      "formaId": "fx_seated_leg_curl"
+    },
+    {
+      "id": "edb_7I6LNUG",
+      "name": "Machine seated row",
+      "formaId": "fx_machine_row"
+    },
+    {
+      "id": "edb_67n3r98",
+      "name": "Machine shoulder press",
+      "formaId": "fx_machine_shoulder_press"
+    },
+    {
+      "id": "edb_ykUOVze",
+      "name": "Machine standing calf raise",
+      "formaId": "fx_standing_calf_raise"
+    },
+    {
+      "id": "edb_aaXr7ld",
+      "name": "Machine T bar row",
+      "formaId": "fx_machine_t_bar_row"
+    },
+    {
+      "id": "edb_RJgzwny",
+      "name": "Mountain climber",
+      "formaId": "fx_mountain_climber"
+    },
+    {
+      "id": "edb_x2chWLO",
+      "name": "Neck side stretch",
+      "formaId": "fx_neck_side_stretch"
+    },
+    {
+      "id": "edb_lBDjFxJ",
+      "name": "Pull-up",
+      "formaId": "fx_pull_up"
+    },
+    {
+      "id": "edb_I4hDWkc",
+      "name": "Push-up",
+      "formaId": "fx_push_up"
+    },
+    {
+      "id": "edb_nCU1Ekp",
+      "name": "Reverse crunch",
+      "formaId": "fx_reverse_crunch"
+    },
+    {
+      "id": "edb_XVDdcoj",
+      "name": "Russian twist",
+      "formaId": "fx_russian_twist"
+    },
+    {
+      "id": "edb_RKjH6Lt",
+      "name": "Side bridge",
+      "formaId": "fx_side_plank"
+    },
+    {
+      "id": "edb_C31LMnP",
+      "name": "Single-leg squat",
+      "formaId": "fx_pistol_squat"
+    },
+    {
+      "id": "edb_Bn6TXyO",
+      "name": "Sit-up",
+      "formaId": "fx_sit_up"
+    },
+    {
+      "id": "edb_Qa55kX1",
+      "name": "Sled hack squat",
+      "formaId": "fx_hack_squat"
+    },
+    {
+      "id": "edb_5v7KYld",
+      "name": "Smith incline bench press",
+      "formaId": "fx_smith_incline_press"
+    },
+    {
+      "id": "edb_jFtipLl",
+      "name": "Smith squat",
+      "formaId": "fx_smith_machine_squat"
+    },
+    {
+      "id": "edb_jQGwmxN",
+      "name": "Trap bar deadlift",
+      "formaId": "fx_trap_bar_deadlift"
+    },
+    {
+      "id": "edb_X6C6i5Y",
+      "name": "Triceps dip",
+      "formaId": "fx_triceps_dip"
+    },
+    {
+      "id": "edb_uOV3Itw",
+      "name": "Triceps stretch",
+      "formaId": "fx_overhead_triceps_stretch"
+    },
+    {
+      "id": "edb_NAgVB3t",
+      "name": "Wheel rollout",
+      "formaId": "fx_ab_wheel_rollout"
+    }
+  ]
+}

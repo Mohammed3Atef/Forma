@@ -1,3 +1,5 @@
+import { useMediaSrc } from '@/services/platform/mediaDelivery';
+
 /** Avatar: shows a profile photo when present, else the name's initials. */
 const SIZES = {
   xs: 'h-7 w-7 text-[10px]',
@@ -30,8 +32,10 @@ export function Avatar({
 }) {
   const ringCls = ring ? 'shadow-[0_0_0_2px_#0C0A09,0_0_0_3.5px_#FF8B02]' : '';
   const base = `${SIZES[size]} ${rounded} shrink-0 overflow-hidden border border-line bg-surface-raised flex items-center justify-center font-mono text-brand ${ringCls} ${className}`;
-  const content = photoUrl ? (
-    <img src={photoUrl} alt={name ?? ''} className="h-full w-full object-cover" loading="lazy" />
+  // MD-02: a signed URL when the server signs personal media (initials while it is fetched).
+  const src = useMediaSrc(photoUrl);
+  const content = src ? (
+    <img src={src} alt={name ?? ''} className="h-full w-full object-cover" loading="lazy" />
   ) : (
     initialsOf(name)
   );

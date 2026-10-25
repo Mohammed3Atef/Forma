@@ -200,39 +200,15 @@ describe('coachAssets router — billingPlans (keepMeta resource: response keeps
   });
 });
 
-describe('coachAssets router — seedStarterLibrary', () => {
-  it('is idempotent: seeding twice only inserts once', async () => {
-    const asCoachA = appRouter.createCaller(ctxFor(coachA));
-    const first = await asCoachA.coachAssets.seedStarterLibrary();
-    expect(first.exercises.inserted).toBeGreaterThan(0);
-
-    const second = await asCoachA.coachAssets.seedStarterLibrary();
-    expect(second.exercises.inserted).toBe(0);
-    expect(second.exercises.skipped).toBe(first.exercises.inserted);
-
-    const list = await asCoachA.coachAssets.exercises.list({});
-    expect(list.length).toBe(first.exercises.inserted);
-  });
-
-  it('is role-gated to coaches', async () => {
-    const asClient = appRouter.createCaller(ctxFor(client));
-    await expect(asClient.coachAssets.seedStarterLibrary()).rejects.toMatchObject({ code: 'FORBIDDEN' });
-  });
-
-  it('seeds all five categories in one call — exercises, foods, food groups, supplements, and templates (not exercises only)', async () => {
-    const asCoachA = appRouter.createCaller(ctxFor(coachA));
-    const result = await asCoachA.coachAssets.seedStarterLibrary();
-    expect(result.exercises.inserted).toBeGreaterThan(0);
-    expect(result.foods.inserted).toBeGreaterThan(0);
-    expect(result.groups.inserted).toBeGreaterThan(0);
-    expect(result.supplements.inserted).toBeGreaterThan(0);
-    expect(result.templates.inserted).toBeGreaterThan(0);
-    for (const key of ['exercises', 'foods', 'groups', 'supplements', 'templates'] as const) expect(result[key].error).toBeUndefined();
-
-    expect((await asCoachA.coachAssets.foods.list({})).length).toBe(result.foods.inserted);
-    expect((await asCoachA.coachAssets.foodGroups.list({})).length).toBe(result.groups.inserted);
-    expect((await asCoachA.coachAssets.supplements.list({})).length).toBe(result.supplements.inserted);
-    expect((await asCoachA.coachAssets.workoutTemplates.list({})).length).toBe(result.templates.inserted);
+describe('coachAssets router — no starter import (B4.3)', () => {
+  it('the bulk "starter library" seed is retired: no such procedure, and a new coach owns no copied rows', async () => {
+    expect(Object.keys(appRouter._def.procedures).filter((p) => /starter/i.test(p))).toEqual([]);
+    const real = appRouter.createCaller(ctxFor(coachA));
+    expect(await real.coachAssets.exercises.list({})).toEqual([]);
+    expect(await real.coachAssets.foods.list({})).toEqual([]);
+    // …yet the shared library is all there (library.test.ts covers the lists in full).
+    expect((await real.library.exercises.list({ limit: 1 })).total).toBeGreaterThan(1300);
+    expect((await real.library.foods.list({ limit: 1 })).total).toBe(190);
   });
 });
 
@@ -425,32 +401,19 @@ describe('coachAssets router — multi-tenant asset identity ({coachId, id}, not
     expect((await asCoachB.coachAssets.foodGroups.list({})).find((g) => g.id === 'group-shared')?.name).toBe('B');
   });
 
-  it('two different coaches can both seed the starter library without colliding, and each can safely re-seed themselves', async () => {
+  it('two coaches can both customise the same Forma exercise (same id) without colliding; each edits only their own', async () => {
     const asCoachA = appRouter.createCaller(ctxFor(coachA));
     const asCoachB = appRouter.createCaller(ctxFor(coachB));
-
-    const a1 = await asCoachA.coachAssets.seedStarterLibrary();
-    expect(a1.exercises.inserted).toBeGreaterThan(0);
-
-    // The bug this whole pass fixes: coach B seeding after coach A used to
-    // throw E11000 on the very first shared starter id and insert nothing.
-    const b1 = await asCoachB.coachAssets.seedStarterLibrary();
-    expect(b1.exercises.inserted).toBe(a1.exercises.inserted);
-    expect(b1.templates.inserted).toBe(a1.templates.inserted);
-
-    // Re-seeding the SAME coach again stays idempotent (no duplicates).
-    const a2 = await asCoachA.coachAssets.seedStarterLibrary();
-    expect(a2.exercises.inserted).toBe(0);
-    expect(a2.exercises.skipped).toBe(a1.exercises.inserted);
-
-    const listA = await asCoachA.coachAssets.exercises.list({});
-    const listB = await asCoachB.coachAssets.exercises.list({});
-    expect(listA.length).toBe(a1.exercises.inserted);
-    expect(listB.length).toBe(a1.exercises.inserted);
-    // Editing coach A's seeded copy never touches coach B's copy of the same starter id.
-    const sharedId = listA[0].id;
+    // A customised catalog item is the coach's own row `cat-<catalogId>` — the same id for every coach.
+    const sharedId = 'cat-fx_barbell_bench_press';
+    const custom = { ...exerciseInput, id: sharedId, catalogId: 'fx_barbell_bench_press' };
+    await asCoachA.coachAssets.exercises.save(custom);
+    await asCoachB.coachAssets.exercises.save(custom);
+    await asCoachA.coachAssets.exercises.save(custom); // saving again replaces, never duplicates
+    expect((await asCoachA.coachAssets.exercises.list({})).filter((e) => e.id === sharedId)).toHaveLength(1);
+    expect((await asCoachB.coachAssets.exercises.list({})).filter((e) => e.id === sharedId)).toHaveLength(1);
     await asCoachA.coachAssets.exercises.update({ id: sharedId, name: 'A-customized' });
-    expect((await asCoachB.coachAssets.exercises.list({})).find((e) => e.id === sharedId)?.name).not.toBe('A-customized');
+    expect((await asCoachB.coachAssets.exercises.list({})).find((e) => e.id === sharedId)?.name).toBe(exerciseInput.name);
   });
 
   it('cross-coach save/update/delete attempts are rejected (FORBIDDEN or NOT_FOUND, never silently applied to the wrong coach)', async () => {
@@ -494,5 +457,44 @@ describe('coachAssets router — food pictures (B4.1)', () => {
     const asB = appRouter.createCaller(ctxFor(coachB));
     await expect(asB.coachAssets.foods.update({ id: 'food-rice', image: pic('coach-b') })).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect((await asA.coachAssets.foods.get({ id: 'food-rice' })).image).toBeNull();
+  });
+});
+
+describe('coachAssets router — exercise demonstrations (B4.2)', () => {
+  const CDN = 'https://media.forma.test';
+  const saved = process.env.BUNNY_CDN_URL;
+  beforeEach(() => {
+    process.env.BUNNY_CDN_URL = CDN;
+  });
+  afterAll(() => {
+    if (saved === undefined) delete process.env.BUNNY_CDN_URL;
+    else process.env.BUNNY_CDN_URL = saved;
+  });
+  const own = (coach: string, f = 'demo.gif') => `${CDN}/Forma/${coach}/exercises/${f}`;
+
+  it('a coach adds, replaces and removes THEIR demonstration and restores the original; another coach’s or a client’s file is refused', async () => {
+    const asA = appRouter.createCaller(ctxFor(coachA));
+    const original = { imageUrl: 'https://static.exercisedb.dev/media/EIeI8Vf.gif', images: ['https://static.exercisedb.dev/media/EIeI8Vf.gif'], thumbUrl: '/catalog/edb/EIeI8Vf.webp', videoUrl: null, videoPosterUrl: null, mediaCredits: [{ url: 'https://static.exercisedb.dev/media/EIeI8Vf.gif', kind: 'image' as const, author: 'ExerciseDB (AscendAPI)', license: 'EXERCISEDB', sourcePage: 'https://ascendapi.com' }] };
+    const copy = { ...exerciseInput, id: 'cat-edb_EIeI8Vf', imageUrl: original.imageUrl, images: original.images, thumbUrl: original.thumbUrl, sourceMedia: original };
+    expect((await asA.coachAssets.exercises.save(copy)).exercise).toMatchObject({ thumbUrl: '/catalog/edb/EIeI8Vf.webp' });
+    // Replace with their own upload, then with a link of their choosing.
+    expect((await asA.coachAssets.exercises.update({ id: copy.id, imageUrl: own('coach-a'), images: [own('coach-a')], thumbUrl: own('coach-a', 'demo-t.webp') })).exercise.imageUrl).toBe(own('coach-a'));
+    expect((await asA.coachAssets.exercises.update({ id: copy.id, videoUrl: 'https://www.youtube.com/watch?v=abc' })).exercise.videoUrl).toBe('https://www.youtube.com/watch?v=abc');
+    await expect(asA.coachAssets.exercises.update({ id: copy.id, imageUrl: own('coach-b') })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(asA.coachAssets.exercises.update({ id: copy.id, images: [`${CDN}/Forma/client-1/progress.jpg`] })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(asA.coachAssets.exercises.update({ id: copy.id, imageUrl: 'javascript:alert(1)' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    // Remove, then restore the ExerciseDB demonstration from the kept snapshot.
+    expect((await asA.coachAssets.exercises.update({ id: copy.id, imageUrl: null, images: [], thumbUrl: null })).exercise.imageUrl).toBeNull();
+    const restored = (await asA.coachAssets.exercises.update({ id: copy.id, imageUrl: original.imageUrl, images: original.images, thumbUrl: original.thumbUrl, videoUrl: null, mediaCredits: original.mediaCredits })).exercise;
+    expect(restored).toMatchObject({ imageUrl: original.imageUrl, thumbUrl: original.thumbUrl, sourceMedia: original });
+    // Coach B can never change coach A's exercise.
+    await expect(appRouter.createCaller(ctxFor(coachB)).coachAssets.exercises.update({ id: copy.id, imageUrl: own('coach-b') })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('a workout template is checked the same way', async () => {
+    const asA = appRouter.createCaller(ctxFor(coachA));
+    const tpl = (videoUrl: string) => ({ id: 'tpl-demo', name: 'Demo', goal: 'hypertrophy' as const, splitType: 'full_body' as const, days: [], exercises: { e1: { ...exerciseInput, id: 'e1', videoUrl } } });
+    await expect(asA.coachAssets.workoutTemplates.save(tpl(own('coach-a', 'v.mp4')))).resolves.toBeTruthy();
+    await expect(asA.coachAssets.workoutTemplates.save(tpl(`${CDN}/Forma/client-1/messages/v.mp4`))).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   });
 });

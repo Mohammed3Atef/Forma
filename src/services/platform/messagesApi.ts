@@ -50,13 +50,6 @@ function withBroadcastFlag(m: Message): Message {
   return m.category ? { ...m, broadcast: true } : m;
 }
 
-/** Messages in a client's 1:1 thread, oldest first. */
-export async function listMessages(clientId: string, max = 200): Promise<Message[]> {
-  const { messages } = await trpc.messages.list.query({ clientId });
-  const flagged = messages.map(withBroadcastFlag);
-  return flagged.slice(Math.max(0, flagged.length - max));
-}
-
 /**
  * Polling replacement for the old Firestore listener: fetches the thread on an
  * interval and re-emits the (trimmed) list, oldest first. Returns an
@@ -378,12 +371,6 @@ export function subscribeCoachThreadsSummary(
 /** Run the shared summary poll now (a screen's Refresh / Retry); no-op when nothing subscribes. */
 export function refreshCoachThreadsSummary(coachId: string): Promise<void> {
   return summaryMux.get(coachId)?.poll() ?? Promise.resolve();
-}
-
-/** Total unread messages addressed to the coach across all their client threads. */
-export async function coachUnreadCount(coachId: string): Promise<number> {
-  const rows = await coachThreadsSummary(coachId);
-  return rows.reduce((sum, r) => sum + r.unreadForCoach, 0);
 }
 
 /** Polling total of unread client→coach messages across all the coach's active threads. */

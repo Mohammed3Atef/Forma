@@ -7,6 +7,7 @@ import { TextInput } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Sheet } from '@/components/Sheet';
 import { ExerciseProgrammingSheet } from './ExerciseProgrammingSheet';
+import { ExerciseThumb } from '@/components/library/ExerciseThumb';
 import { SECTION_KINDS, SYNCED_EXERCISE_FIELDS } from '@/lib/workoutPresets';
 import {
   addDay,
@@ -199,6 +200,7 @@ export function TrainingBuilder({
     return (
       <li key={exId} className="flex items-center gap-1 py-1.5" data-testid="builder-exercise-row">
         <button type="button" data-testid="builder-exercise-open" className="flex min-h-ui-hit min-w-0 flex-1 items-center gap-2 rounded-ui-control px-1 text-start hover:bg-surface-hover" onClick={() => setEditing(exId)}>
+          <ExerciseThumb ex={ex} />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium">
               <bdi>{name}</bdi>
@@ -234,6 +236,7 @@ export function TrainingBuilder({
             <tr key={exId} data-testid="builder-exercise-row" className="hover:bg-surface-hover/50">
               <td className="py-1.5 pe-2">
                 <button type="button" data-testid="builder-exercise-open" className="flex min-h-ui-hit w-full items-center gap-2 text-start" onClick={() => setEditing(exId)}>
+                  <ExerciseThumb ex={ex} />
                   <span className="min-w-0 flex-1 truncate font-medium">
                     <bdi>{name}</bdi>
                   </span>

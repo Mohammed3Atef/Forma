@@ -8,6 +8,7 @@ import { safeExternalUrl } from '@/lib/videoSource';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaViewer } from '@/stores/mediaViewerStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useMediaSrc } from '@/services/platform/mediaDelivery';
 
 /**
  * The one full-screen media viewer (B1.11), mounted once at the app root and
@@ -150,8 +151,14 @@ function useLocalBlobUrl(key: string | null): string | null | undefined {
 /** One item, resolved through the media seam. */
 export function MediaItem({ item }: { item: MediaRef }) {
   const { t } = useTranslation();
-  const resolved = resolveMedia(item);
+  // MD-02: stored personal media through a signed URL when the server signs it.
+  const stored = resolveMedia(item).status !== 'not_uploaded';
+  const signed = useMediaSrc(stored ? item.ref : null);
+  const shown = stored && signed ? { ...item, ref: signed } : item;
+  const resolved = resolveMedia(shown);
   const localUrl = useLocalBlobUrl(resolved.status === 'not_uploaded' ? resolved.localKey : null);
+  if (stored && signed === undefined) return <MediaNotice state="loading" text={t('media.loading')} />;
+  if (stored && signed === null) return <MediaNotice state="failed" text={t('media.failed')} />;
 
   if (resolved.status === 'not_uploaded') {
     if (localUrl === undefined) return <MediaNotice state="loading" text={t('media.loading')} />;
@@ -164,9 +171,9 @@ export function MediaItem({ item }: { item: MediaRef }) {
     );
   }
   // Remote video keeps the B0-certified honest player (YouTube / file / unsupported link, CL-20).
-  if (item.kind === 'video') return <VideoSourcePlayer url={item.ref} title={item.name || t('workout.watchVideo')} autoPlay />;
+  if (item.kind === 'video') return <VideoSourcePlayer url={shown.ref} title={item.name || t('workout.watchVideo')} autoPlay />;
   if (resolved.status === 'unsupported') {
-    const href = safeExternalUrl(item.ref);
+    const href = safeExternalUrl(shown.ref);
     return (
       <MediaNotice state="unsupported" text={t('media.unsupported')}>
         {href && (

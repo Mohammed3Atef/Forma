@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type { Message, MessageCategory, Role } from "@/types";
 import { MESSAGE_EDIT_WINDOW_MS, MESSAGE_REACTIONS } from "@/types";
+import { useMediaSrc } from "@/services/platform/mediaDelivery";
 import {
   deleteMessage,
   editMessage,
@@ -1630,8 +1631,12 @@ function FloatingActionMenu({
  */
 function Attachment({ attachment, onLoad, voice = false }: { attachment: NonNullable<Message["attachment"]>; onLoad?: () => void; /** B3.6: the compact voice-note player. */ voice?: boolean }) {
   const { t } = useTranslation();
-  const { url, name } = attachment;
+  const { name } = attachment;
+  // MD-02: a signed URL when the server signs personal media; nothing while it is fetched.
+  const signed = useMediaSrc(attachment.url);
+  const url = signed ?? '';
   const kind = getAttachmentKind({ mimeType: attachment.mimeType, name: attachment.name, fallbackKind: attachment.kind });
+  if (signed === undefined) return <span className="sk block h-24 w-48 max-w-full" data-testid="attachment-loading" />;
   // Never render a non-web address as a link or media source (B3.6 — the server refuses them now).
   if (!isWebUrl(url)) {
     return (

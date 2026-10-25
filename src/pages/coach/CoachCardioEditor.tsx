@@ -21,7 +21,7 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard';
 import { useBack } from '@/hooks/useBack';
 import { uid } from '@/lib/utils';
-import { move } from '@/lib/workoutPlanModel';
+import { move } from '@/lib/listOps';
 import { getClientCardioPlan, saveClientCardioPlan } from '@/services/platform/planApi';
 import type { CardioPlan, CardioSession, CardioType } from '@/types';
 import { focusItem, rovingIndex } from '@/lib/rovingKeys';

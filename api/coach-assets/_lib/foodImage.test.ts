@@ -66,4 +66,22 @@ describe('food picture ownership', () => {
     expect(() => assertFoodImagesAllowed(withCatalog, 'coach-a', withCatalog)).not.toThrow();
     expect(() => assertFoodImagesAllowed(withCatalog, 'coach-a')).toThrow(/not available/);
   });
+
+  it('B4.2: a catalog picture may also be Wikimedia’s own renditions of that same file (no CDN needed) — still only for its own food', () => {
+    delete process.env.FORMA_CATALOG_MEDIA_URL;
+    const r = pictured.images[0].remote!;
+    expect(r).toBeTruthy();
+    const remote: FoodImageRef = { source: 'forma-catalog', catalogFoodId: pictured.id, url: r.cardUrl, thumbUrl: r.thumbUrl, rev: 1, uploadedAt: 1 };
+    expect(foodImageProblem(remote, 'coach-a')).toBeNull();
+    expect(foodImageProblem({ ...remote, catalogFoodId: other.id }, 'coach-a')).toMatch(/not available/);
+    expect(foodImageProblem({ ...remote, url: 'https://upload.wikimedia.org/wikipedia/commons/x/xy/Other.jpg' }, 'coach-a')).toMatch(/not available/);
+  });
+
+  it('B4.2: a coach’s own picture link is any public https image — never Forma’s storage, never javascript:', () => {
+    const link = (url: string): FoodImageRef => ({ source: 'url', url, thumbUrl: url, rev: 1, uploadedAt: 1 });
+    expect(foodImageProblem(link('https://images.example.com/koshary.jpg'), 'coach-a')).toBeNull();
+    expect(foodImageProblem(link(`${CDN}/Forma/client-1/progress1.jpg`), 'coach-a')).toMatch(/your own uploads/);
+    expect(foodImageProblem(link(`${CDN}/Forma/coach-b/foods/x.webp`), 'coach-a')).toMatch(/your own uploads/);
+    expect(() => assertFoodImagesAllowed({ image: link('javascript:alert(1)') }, 'coach-a')).toThrow(/Invalid food photo/);
+  });
 });

@@ -4,6 +4,7 @@ import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
 import { withSyncResult } from '@/data/librarySyncIssues';
 import { getExercise, saveExercise } from '@/services/platform/coachAssetsApi';
+import { LIBRARY_KEY } from '@/services/platform/libraryApi';
 import { useCanEdit, useSyncIssues } from './parts';
 
 /**
@@ -33,7 +34,8 @@ export default function SyncIssuesNotice({ coachId }: { coachId: string }) {
     },
     onSuccess: async (left) => {
       await set(left);
-      for (const k of ['workoutTemplates', 'workoutTemplate', 'exerciseLibrary']) void qc.invalidateQueries({ queryKey: [k, coachId] });
+      for (const k of ['workoutTemplates', 'workoutTemplate']) void qc.invalidateQueries({ queryKey: [k, coachId] });
+      void qc.invalidateQueries({ queryKey: LIBRARY_KEY });
     },
   });
   if (!issues.length) return null;

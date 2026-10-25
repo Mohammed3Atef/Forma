@@ -51,6 +51,8 @@ function imagesFor(id) {
       url: r.originalUrl,
       sourcePage: r.pageUrl,
       variants: { thumb: variant(r.variants.thumb), card: variant(r.variants.card) },
+      // B4.2: Wikimedia's own renditions (food-image-remote.mjs), served while the catalog CDN is not set.
+      ...(r.remote ? { remote: r.remote } : {}),
       alt: r.alt,
       license: r.license,
       ...(r.licenseUrl ? { licenseUrl: r.licenseUrl } : {}),
@@ -159,7 +161,6 @@ for (const pass of ['record', 'recipe']) {
       ...(recipe ? { recipe } : {}),
       content: { license: 'FORMA-PROPRIETARY', author: 'Forma', review: 'draft', translation: 'draft' },
       images: imagesFor(s.id),
-      legacyIds: s.replaces ?? [],
     };
     const prev = prevById.get(s.id);
     const rev = !prev ? 1 : contentHash(prev) === contentHash(body) ? prev.rev : prev.rev + 1;
@@ -202,7 +203,6 @@ const report = {
   portions: items.reduce((n, i) => n + i.portions.length, 0),
   withImage: items.filter((i) => i.images.length).length,
   imagesNeedReplacement: items.filter((i) => i.images.some((m) => m.review === 'needs-replacement')).length,
-  legacyMapped: items.reduce((n, i) => n + i.legacyIds.length, 0),
   problems,
 };
 if (problems.length) {

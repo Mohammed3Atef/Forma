@@ -17,6 +17,10 @@ import { getCatalogExercise, type CatalogExercise, type CatalogTaxonomy } from '
  * B4.1: every approved demonstration of THIS exercise (primary first) can be chosen; one video at a
  * time, loaded only when Play is tapped (poster until then), muted, looping and inline. The
  * instructions stay below, visible while it plays.
+ *
+ * B4.2: ExerciseDB GIFs are demonstrations too (after the videos): only the chosen one loads — from
+ * its original address, when the exercise is opened — and a broken link falls back to its light
+ * still, said honestly. ExerciseDB items credit AscendAPI and show their English steps.
  */
 export function CatalogExercisePreview({ id, taxonomy, actions }: { id: string; taxonomy: CatalogTaxonomy; actions?: (e: CatalogExercise) => React.ReactNode }) {
   const { t } = useTranslation();
@@ -32,37 +36,43 @@ export function CatalogExerciseView({ e, taxonomy, actions }: { e: CatalogExerci
   const { t, i18n } = useTranslation();
   const ar = i18n.language.startsWith('ar');
   const label = useTaxonomyLabel();
-  const name = ar ? e.name.ar : e.name.en;
-  const videos = e.media.filter((m) => m.kind === 'video');
-  const images = e.media.filter((m) => m.kind === 'image');
+  const name = ar ? e.name.ar || e.name.en : e.name.en;
+  const other = ar ? e.name.en : e.name.ar;
+  // Demonstrations: videos first, then GIFs (served in that order); still images only when there is no demonstration.
+  const demos = e.media.filter((m) => m.kind === 'video' || m.format === 'gif');
+  const images = e.media.filter((m) => m.kind === 'image' && m.format !== 'gif');
   const [demo, setDemo] = useState(0);
-  const video = videos[Math.min(demo, videos.length - 1)];
+  const current = demos[Math.min(demo, demos.length - 1)];
   const demoName = (i: number) => {
-    const l = videos[i]?.label;
+    const l = demos[i]?.label;
     return l ? (ar ? l.ar : l.en) : t('catalog.demoN', { n: i + 1 });
   };
   const chips = [
     ...e.primaryMuscles.map((m) => label(taxonomy, 'muscles', m)),
     ...e.equipment.map((q) => label(taxonomy, 'equipment', q)),
-    label(taxonomy, 'difficulty', e.difficulty),
+    ...(e.difficulty ? [label(taxonomy, 'difficulty', e.difficulty)] : []),
   ];
   return (
     <article className="space-y-4" data-testid="catalog-exercise-view" data-id={e.id}>
-      {video ? (
-        <div className="space-y-2" data-testid="catalog-demo" data-demo={video.id}>
-          <VideoFilePlayer
-            url={video.url}
-            poster={video.posterUrl}
-            lazy
-            muted
-            loop
-            aspect={video.width && video.height ? video.width / video.height : 16 / 9}
-            playLabel={t('catalog.playDemo', { name, demo: demoName(Math.min(demo, videos.length - 1)) })}
-            testId="catalog-video"
-          />
-          {videos.length > 1 && (
+      {current ? (
+        <div className="space-y-2" data-testid="catalog-demo" data-demo={current.id}>
+          {current.kind === 'video' ? (
+            <VideoFilePlayer
+              url={current.url}
+              poster={current.posterUrl}
+              lazy
+              muted
+              loop
+              aspect={current.width && current.height ? current.width / current.height : 16 / 9}
+              playLabel={t('catalog.playDemo', { name, demo: demoName(Math.min(demo, demos.length - 1)) })}
+              testId="catalog-video"
+            />
+          ) : (
+            <DemoGif key={current.id} url={current.url} still={current.thumbUrl} alt={t('catalog.demoOf', { name })} />
+          )}
+          {demos.length > 1 && (
             <div className="flex flex-wrap gap-2" role="group" aria-label={t('catalog.demos')} data-testid="catalog-demo-switch">
-              {videos.map((v, i) => (
+              {demos.map((v, i) => (
                 <button key={v.id} type="button" className={`chip min-h-ui-hit ${i === demo ? 'chip-on' : ''}`} aria-pressed={i === demo} onClick={() => setDemo(i)} data-testid="catalog-demo-option">
                   {demoName(i)}
                 </button>
@@ -87,9 +97,11 @@ export function CatalogExerciseView({ e, taxonomy, actions }: { e: CatalogExerci
         <h2 className="text-[20px] font-semibold leading-tight">
           <bdi>{name}</bdi>
         </h2>
-        <p className="text-[12.5px] text-earth-subtle">
-          <bdi>{ar ? e.name.en : e.name.ar}</bdi>
-        </p>
+        {other && other !== name ? (
+          <p className="text-[12.5px] text-earth-subtle">
+            <bdi>{other}</bdi>
+          </p>
+        ) : null}
         <ul className="flex flex-wrap gap-1.5" aria-label={t('catalog.trains')}>
           {chips.map((c, i) => (
             <li key={`${c}-${i}`} className="pill">
@@ -101,7 +113,40 @@ export function CatalogExerciseView({ e, taxonomy, actions }: { e: CatalogExerci
       {actions?.(e)}
       <ExerciseInstructions instructions={e.instructions} />
       <MediaCredits credits={e.media.map((m) => ({ url: m.url, kind: m.kind, author: m.author, license: m.license, sourcePage: m.sourcePage }))} />
-      <p className="text-[12px] text-earth-subtle">{t('catalog.writtenBy')}</p>
+      <p className="text-[12px] text-earth-subtle" data-testid="catalog-text-credit">
+        {e.origin === 'exercisedb' ? t('catalog.fromExerciseDb') : t('catalog.writtenBy')}
+      </p>
     </article>
+  );
+}
+
+/**
+ * An ExerciseDB GIF: loaded when shown (the exercise was opened), square, on white like the
+ * provider's frames. A broken link shows the light still instead and says so — never another
+ * exercise's picture, never an empty frame.
+ */
+function DemoGif({ url, still, alt }: { url: string; still: string | null; alt: string }) {
+  const { t } = useTranslation();
+  const [broken, setBroken] = useState(false);
+  const [stillBroken, setStillBroken] = useState(false);
+  return (
+    <figure className="mx-auto w-full max-w-xs" data-testid="catalog-gif" data-broken={broken || undefined}>
+      <div className="aspect-square w-full overflow-hidden rounded-xl border border-line-soft bg-white">
+        {!broken ? (
+          <img src={url} alt={alt} decoding="async" className="h-full w-full object-contain" onError={() => setBroken(true)} />
+        ) : still && !stillBroken ? (
+          <img src={still} alt={alt} className="h-full w-full object-contain" onError={() => setStillBroken(true)} />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-earth-subtle">
+            <Icon name="dumbbell" size={28} />
+          </span>
+        )}
+      </div>
+      {broken && (
+        <figcaption className="mt-1 text-center text-[12px] text-earth-subtle" data-testid="catalog-gif-unavailable">
+          {t('catalog.demoUnavailable')}
+        </figcaption>
+      )}
+    </figure>
   );
 }

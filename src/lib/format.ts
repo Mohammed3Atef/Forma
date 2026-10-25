@@ -23,9 +23,6 @@ const isArabic = (lang: string | undefined) => !!lang && lang.toLowerCase().star
 export function intlLocale(lang: AppLanguage | undefined): string {
   return isArabic(lang) ? 'ar-EG-u-nu-latn' : 'en-GB-u-nu-latn';
 }
-export function isRtlLanguage(lang: AppLanguage | undefined): boolean {
-  return isArabic(lang);
-}
 
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 /** A Date for a timestamp, a Date, or a `YYYY-MM-DD` day key (local midnight). */

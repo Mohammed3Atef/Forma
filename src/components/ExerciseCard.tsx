@@ -1,4 +1,5 @@
 import { exerciseDisplayName } from '@/lib/catalogText';
+import { ExerciseThumb } from '@/components/library/ExerciseThumb';
 import { useState } from "react";
 import { NumericField } from "@/components/ui/NumericField";
 import { useTranslation } from "react-i18next";
@@ -75,7 +76,12 @@ export function ExerciseCard({
   return (
     <section className="space-y-4" data-testid="exercise-card">
       <header className="flex items-start gap-3">
-        <span className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(exercise.targetMuscle) }} aria-hidden="true" />
+        {/* B4.2: the exercise's still (never a GIF here) when it has one; otherwise its muscle colour. */}
+        {exercise.thumbUrl || exercise.imageUrl ? (
+          <ExerciseThumb ex={exercise} size="md" />
+        ) : (
+          <span className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleColor(exercise.targetMuscle) }} aria-hidden="true" />
+        )}
         <div className="min-w-0 flex-1">
           <h2 className="text-[22px] font-bold leading-tight tracking-[-0.01em]">{name}</h2>
           <p className="mt-1 text-[14px] leading-snug text-earth-muted">{prescription}</p>

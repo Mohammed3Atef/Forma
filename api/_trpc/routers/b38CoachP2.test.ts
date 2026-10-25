@@ -89,11 +89,11 @@ describe('the policy itself', () => {
     for (const p of [...LAPSED_COACH_ALLOWED, ...GATED_IN_HANDLER]) expect(MUTATIONS, p).toContain(p);
   });
 
-  it('the allow-list is exactly the recovery / read-marker / client-protecting set', () => {
+  it('the allow-list is exactly the recovery / read-marker / client-protecting set (+ signed media links, a read — MD-02)', () => {
     expect([...LAPSED_COACH_ALLOWED].sort()).toEqual([
       'auth.changePassword', 'auth.confirmPasswordReset', 'auth.googleSignIn', 'auth.login', 'auth.logout', 'auth.refresh', 'auth.requestPasswordReset', 'auth.signup', 'auth.updateProfile',
       'coachClients.end', 'coachPlanRequests.cancel', 'coachPlanRequests.submitSubscription', 'coachPlans.createTrial', 'contact.submit', 'invites.revoke',
-      'messages.markRead', 'notifications.markRead', 'transfers.resolve', 'usage.bump', 'usage.recordActiveDay',
+      'media.sign', 'messages.markRead', 'notifications.markRead', 'transfers.resolve', 'usage.bump', 'usage.recordActiveDay',
     ].sort());
   });
 });

@@ -184,3 +184,30 @@ Nothing is remapped automatically. A food is never silently swapped for a nutrit
 - `FoodThumb` (xs / sm / md, placeholder on missing or broken).
 - `FoodCardImage` (4:3, or a compact fixed band in sheets, with credit).
 - `FoodImageEditor` (add / replace / remove / use the Forma photo, progress, cancel, retry). It loads lazily with the food sheet (`food/LazyFood`).
+
+## 11. B4.2: remote pictures and coach links (2026-10-25)
+
+**Catalog pictures:**
+- Each reviewed picture now also carries `remote: { thumbUrl, cardUrl, width, height }`: Wikimedia's own renditions at its standard widths (120 px list, 500 px card), resolved by `scripts/catalog/food-image-remote.mjs`.
+- `servedFoodImage` serves the CDN variants when `FORMA_CATALOG_MEDIA_URL` is set, and the remote renditions otherwise. So pictures show with nothing uploaded.
+- The save-time check accepts a catalog picture by either address.
+
+**Coach pictures:**
+- New `FoodImageRef.source = 'url'`: a picture link a coach enters.
+- Any public https image; never Forma's storage (that is `upload`, own folder only).
+
+**Privacy:** every food and exercise picture tag sends no referrer.
+
+## 12. B4.3: one food library, more pictures (2026-10-25)
+
+- **The library.** The 190 catalog foods are the food library every coach uses. Library › Foods
+  shows them with their pictures, merged with the coach's own foods (`library.foods.list`). This
+  replaces the 84 starter foods (§8, retired).
+- **Customising.** A coach customises a food (their name, serving, numbers and picture; "use Forma's
+  picture" restores the original), and "Reset to Forma's version" removes it.
+- **Using in plans.** The nutrition editor's food sheet and swap groups pick from the same list. A
+  Forma food goes through the serving step, with computed macros, its source and its picture.
+- **Pictures.** 158 of 190 foods now have a reviewed picture (sheet e: 31 more). 32 have none and
+  show the placeholder. Picture records are unchanged (§10, §11).
+
+See `B43_UNIFIED_LIBRARY.md`.

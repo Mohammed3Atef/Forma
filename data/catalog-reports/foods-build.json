@@ -1,5 +1,5 @@
 {
- "version": "2026.10.24-1",
+ "version": "2026.10.25-1",
  "changed": true,
  "curated": 190,
  "published": 190,
@@ -35,8 +35,7 @@
   "drinks": 7
  },
  "portions": 190,
- "withImage": 127,
+ "withImage": 158,
  "imagesNeedReplacement": 2,
- "legacyMapped": 72,
  "problems": []
 }

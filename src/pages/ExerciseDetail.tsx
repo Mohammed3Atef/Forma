@@ -83,7 +83,19 @@ export function ExerciseDetail() {
         <VideoFilePlayer url={ex.videoUrl!} poster={ex.videoPosterUrl ?? ex.imageUrl ?? null} lazy muted loop aspect={16 / 9} playLabel={t('workout.watchVideo')} testId="exercise-demo-video" />
       ) : ex.imageUrl && (
         // B4: catalog demonstrations are line drawings — shown whole, on white, never cropped.
-        <img src={ex.imageUrl} alt="" className={`aspect-[16/10] w-full rounded-ui-surface ${ex.catalogId ? 'bg-white object-contain' : 'bg-white/[0.04] object-cover'}`} onError={(e) => (e.currentTarget.style.display = 'none')} />
+        // B4.2: a broken picture (e.g. a GIF link that went away) falls back to its light still, then hides.
+        <img
+          src={ex.imageUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          data-testid="exercise-demo-image"
+          className={`aspect-[16/10] w-full rounded-ui-surface ${ex.catalogId ? 'bg-white object-contain' : 'bg-white/[0.04] object-cover'}`}
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (ex.thumbUrl && !img.src.endsWith(ex.thumbUrl)) img.src = ex.thumbUrl;
+            else img.style.display = 'none';
+          }}
+        />
       )}
       <header>
         <p className="flex items-center gap-2 text-[14px] text-earth-muted">

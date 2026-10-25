@@ -106,7 +106,7 @@ export const INDEXES = [
   { collection: 'clientPayments', key: { coachId: 1, paidAt: -1 }, options: { name: 'coachId_paidAt' }, note: 'a coach’s ledger', since: 'B3.8', runtime: true },
   { collection: 'clientPayments', key: { relationshipId: 1, termId: 1 }, options: { name: 'relationshipId_termId' }, note: 'payments of a term', since: 'B3.8', runtime: true },
 
-  ...['coachExercises', 'coachWorkoutTemplates', 'coachNutritionTemplates', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachBillingPlans'].map((collection) => ({
+  ...['coachExercises', 'coachWorkoutTemplates', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachBillingPlans', 'coachFavorites'].map((collection) => ({
     collection,
     key: { coachId: 1, id: 1 },
     options: { name: 'uniq_coachId_id', unique: true },

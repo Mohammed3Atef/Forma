@@ -18,16 +18,26 @@ export { exerciseDisplayName, isEstimate, PROVENANCE_KEYS, provenanceOf, serving
 
 const en = <T extends Record<string, { en: string; ar: string }>>(table: T, id: string): string => (table as Record<string, { en: string }>)[id]?.en ?? id;
 
-/** A plan exercise copied from the catalog: fresh id, default programming, catalog identity and media. */
+/**
+ * A plan exercise copied from the catalog: fresh id, default programming, catalog identity and media.
+ * B4.2: an ExerciseDB GIF is the picture the exercise page shows (it moves); lists get a light still
+ * (`thumbUrl`) — never the GIF; the demonstration the copy came with is kept (`sourceMedia`) so a
+ * coach who replaces it can restore it.
+ */
 export function exerciseFromCatalog(e: CatalogExercise, taxonomy: CatalogTaxonomy): Exercise {
   // The media a reader may see now (the server sends only that — B4.1 `servedMedia`), primary first.
   const images = e.media.filter((m) => m.kind === 'image');
+  const gif = images.find((m) => m.format === 'gif');
+  const still = images.find((m) => m.format !== 'gif');
   const video = e.media.find((m) => m.kind === 'video');
   const equipment = e.equipment.map((q) => en(taxonomy.equipment, q));
+  const imageUrl = gif?.url ?? still?.url ?? null;
+  const thumbUrl = still?.url ?? gif?.thumbUrl ?? video?.posterUrl ?? null;
+  const mediaCredits = e.media.map((m) => ({ url: m.url, kind: m.kind, author: m.author, license: m.license, sourcePage: m.sourcePage }));
   return {
     ...blankExercise(),
     name: e.name.en,
-    names: { en: e.name.en, ar: e.name.ar },
+    names: { en: e.name.en, ar: e.name.ar || e.name.en },
     // English labels, as every existing view expects ("Chest", "Lats" …); the reader's language
     // comes from `muscleLabel` / the taxonomy.
     targetMuscle: en(taxonomy.muscles, e.primaryMuscles[0]),
@@ -36,11 +46,14 @@ export function exerciseFromCatalog(e: CatalogExercise, taxonomy: CatalogTaxonom
     equipmentList: equipment,
     muscles: e.primaryMuscles.map((m) => en(taxonomy.muscles, m)),
     secondaryMuscles: e.secondaryMuscles.map((m) => en(taxonomy.muscles, m)),
-    imageUrl: images[0]?.url ?? null,
+    // Absent media stays ABSENT (never null): library sync copies these fields into linked templates.
+    imageUrl: imageUrl ?? undefined,
     images: images.map((m) => m.url),
+    thumbUrl: thumbUrl ?? undefined,
     videoUrl: video?.url ?? null,
-    videoPosterUrl: video?.posterUrl ?? null,
-    mediaCredits: e.media.map((m) => ({ url: m.url, kind: m.kind, author: m.author, license: m.license, sourcePage: m.sourcePage })),
+    videoPosterUrl: video?.posterUrl ?? undefined,
+    mediaCredits,
+    sourceMedia: { imageUrl, images: images.map((m) => m.url), thumbUrl, videoUrl: video?.url ?? null, videoPosterUrl: video?.posterUrl ?? null, mediaCredits },
     instructions: e.instructions,
     catalogId: e.id,
     catalogRev: e.rev,

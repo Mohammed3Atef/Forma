@@ -1,29 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  collatorFor,
-  equipmentOptions,
-  filterExercises,
-  filterFoods,
-  filterGroups,
-  filterPrograms,
-  filterSupplements,
-  goalOptions,
-  libraryParams,
-  localizedName,
-  muscleOptions,
-  nextSort,
-  normalizeSearch,
-  parseLibraryQuery,
-  segmentQuery,
-  sortExercises,
-  sortFoods,
-  sortPrograms,
-} from './libraryModel';
-import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement, WorkoutTemplate } from '@/types';
+import { collatorFor, filterGroups, filterPrograms, filterSupplements, goalOptions, libraryParams, localizedName, nextSort, normalizeSearch, parseLibraryQuery, segmentQuery, sortPrograms } from './libraryModel';
+import type { FoodGroup, LibraryFood, LibrarySupplement, WorkoutTemplate } from '@/types';
 
-const ex = (id: string, p: Partial<Exercise> = {}): Exercise =>
-  ({ id, name: id, targetMuscle: '', warmupSets: '0', workingSets: 3, repRange: '8-12', rir: '', tempo: '', notes: { en: '', ar: '' }, restSec: 90, videoId: null, ...p }) as Exercise;
-const label = (m: string) => ({ chest: 'الصدر', quads: 'الفخذ الأمامي' })[m.toLowerCase()] ?? m;
 const en = collatorFor('en');
 
 describe('Library URL (B3.7)', () => {
@@ -35,12 +13,17 @@ describe('Library URL (B3.7)', () => {
     expect(libraryParams(legacy).toString()).toBe('tab=foods&view=groups');
   });
 
-  it('keeps search, filters and sort; drops what does not belong to the segment; unknown sorts fall back', () => {
-    const q = parseLibraryQuery(new URLSearchParams('tab=exercises&q=press&muscle=Chest&equipment=Barbell&video=1&sort=demo&dir=desc&goal=strength'));
-    expect(q).toMatchObject({ segment: 'exercises', q: 'press', muscle: 'Chest', equipment: 'Barbell', video: true, goal: '', sort: 'demo', dir: 'desc' });
-    expect(libraryParams(q).toString()).toBe('tab=exercises&q=press&muscle=Chest&equipment=Barbell&video=1&sort=demo&dir=desc');
-    expect(parseLibraryQuery(new URLSearchParams('tab=foods&sort=demo')).sort).toBe('name');
-    expect(parseLibraryQuery(new URLSearchParams('tab=programs&muscle=Chest')).muscle).toBe('');
+  it('keeps search, scope and filters; drops what does not belong to the segment; unknown sorts fall back', () => {
+    const q = parseLibraryQuery(new URLSearchParams('tab=exercises&q=press&scope=favorites&muscle=chest&equipment=barbell&demo=1&sort=demo&goal=strength&category=grains'));
+    expect(q).toMatchObject({ segment: 'exercises', q: 'press', scope: 'favorites', muscle: 'chest', equipment: 'barbell', demo: true, goal: '', category: '', sort: 'name', dir: 'asc' });
+    expect(libraryParams(q).toString()).toBe('tab=exercises&q=press&scope=favorites&muscle=chest&equipment=barbell&demo=1');
+    const foods = parseLibraryQuery(new URLSearchParams('tab=foods&scope=mine&category=grains&sort=calories&muscle=chest'));
+    expect(foods).toMatchObject({ scope: 'mine', category: 'grains', sort: 'name', muscle: '' });
+    expect(libraryParams(foods).toString()).toBe('tab=foods&scope=mine&category=grains');
+    // Swap groups, programs and supplements have no scope; an unknown scope is "all".
+    expect(parseLibraryQuery(new URLSearchParams('tab=foods&view=groups&scope=mine&category=grains'))).toMatchObject({ scope: 'all', category: '' });
+    expect(parseLibraryQuery(new URLSearchParams('tab=exercises&scope=everything')).scope).toBe('all');
+    expect(parseLibraryQuery(new URLSearchParams('tab=programs&muscle=Chest&scope=mine'))).toMatchObject({ muscle: '', scope: 'all' });
   });
 
   it('a "most first" sort starts descending and only a different direction is written to the URL', () => {
@@ -61,26 +44,8 @@ describe('search', () => {
     expect(normalizeSearch('سلطة')).toBe(normalizeSearch('سلطه'));
   });
 
-  it('exercises: name, muscle (also its translated label), equipment, tags; filters combine', () => {
-    const list = [
-      ex('a', { name: 'Incline dumbbell press', targetMuscle: 'Chest', equipment: 'Dumbbell', videoUrl: 'https://youtu.be/dQw4w9WgXcQ' }),
-      ex('b', { name: 'Bench press', targetMuscle: 'Chest', equipment: 'Barbell', tags: ['strength'] }),
-      ex('c', { name: 'Front squat', targetMuscle: 'Quads', equipment: 'Barbell', videoUrl: 'https://drive.google.com/x' }),
-    ];
-    const run = (q: Partial<Parameters<typeof filterExercises>[1]>) => filterExercises(list, { q: '', muscle: '', equipment: '', video: false, ...q }, label).map((e) => e.id);
-    expect(run({ q: 'dumbbell incline' })).toEqual([]); // one phrase, in order (synonyms are B4 search quality)
-    expect(run({ q: 'press' })).toEqual(['a', 'b']);
-    expect(run({ q: 'الصدر' })).toEqual(['a', 'b']);
-    expect(run({ q: 'STRENGTH' })).toEqual(['b']);
-    expect(run({ equipment: 'Barbell' })).toEqual(['b', 'c']);
-    expect(run({ muscle: 'Chest', equipment: 'Barbell' })).toEqual(['b']);
-    expect(run({ video: true })).toEqual(['a']); // a Drive link is not a playable video
-  });
-
-  it('foods search both languages; groups search their foods; supplements their dose', () => {
+  it('groups search their foods; supplements their dose (exercises and foods are searched on the server — library.test.ts)', () => {
     const foods = [{ id: 'f1', name: { en: 'Oats', ar: 'شوفان' }, quantity: '80 g', calories: 300, protein: 10, carbs: 54, fats: 6 }] as LibraryFood[];
-    expect(filterFoods(foods, 'شوفان')).toHaveLength(1);
-    expect(filterFoods(foods, 'oat')).toHaveLength(1);
     const groups = [{ id: 'g1', coachId: 'c', name: 'Carbs', foods, createdAt: 0, updatedAt: 0 }] as FoodGroup[];
     expect(filterGroups(groups, 'oats')).toHaveLength(1);
     const supps = [{ id: 's1', name: 'Creatine', dose: { en: '5 g', ar: '٥ جم' } }] as LibrarySupplement[];
@@ -98,35 +63,14 @@ describe('search', () => {
 });
 
 describe('sorting', () => {
-  it('names sort naturally; demo puts videos, then images, then none; ties fall back to the name', () => {
-    const list = [
-      ex('n10', { name: 'Row 10' }),
-      ex('n2', { name: 'Row 2', images: ['https://img.test/r.png'] }),
-      ex('v', { name: 'Zercher squat', videoUrl: 'https://cdn.test/z.mp4' }),
-    ];
-    expect(sortExercises(list, 'name', 'asc', en, label).map((e) => e.id)).toEqual(['n2', 'n10', 'v']);
-    expect(sortExercises(list, 'demo', 'asc', en, label).map((e) => e.id)).toEqual(['v', 'n2', 'n10']);
-    expect(sortExercises(list, 'name', 'desc', en, label).map((e) => e.id)).toEqual(['v', 'n10', 'n2']);
-  });
-
-  it('foods by calories, programs by last update', () => {
-    const f = (id: string, calories: number) => ({ id, name: { en: id, ar: '' }, quantity: '', calories, protein: 0, carbs: 0, fats: 0 }) as LibraryFood;
-    expect(sortFoods([f('a', 100), f('b', 300)], 'calories', 'desc', en, 'en').map((x) => x.id)).toEqual(['b', 'a']);
+  it('programs by name (naturally) and by last update', () => {
     const p = (id: string, updatedAt: number) => ({ id, name: id, goal: 'custom', days: [], updatedAt }) as unknown as WorkoutTemplate;
     expect(sortPrograms([p('old', 1), p('new', 5)], 'updated', 'desc', en, (g) => g).map((x) => x.id)).toEqual(['new', 'old']);
+    expect(sortPrograms([p('Row 10', 1), p('Row 2', 1)], 'name', 'asc', en, (g) => g).map((x) => x.id)).toEqual(['Row 2', 'Row 10']);
   });
 });
 
 describe('options and names', () => {
-  it('muscle options are the stored values with translated labels; equipment is de-duplicated', () => {
-    const list = [ex('a', { targetMuscle: 'Chest', equipment: 'Barbell' }), ex('b', { targetMuscle: 'Chest ', equipment: ' Barbell' }), ex('c', { targetMuscle: 'Quads' })];
-    expect(muscleOptions(list, label, collatorFor('ar'))).toEqual([
-      { value: 'Chest', label: 'الصدر' },
-      { value: 'Quads', label: 'الفخذ الأمامي' },
-    ]);
-    expect(equipmentOptions(list, en)).toEqual(['Barbell']);
-  });
-
   it('a name shows in the reader’s language, falling back to the other', () => {
     expect(localizedName({ en: 'Oats', ar: 'شوفان' }, 'ar-eg')).toBe('شوفان');
     expect(localizedName({ en: 'Oats', ar: '' }, 'ar')).toBe('Oats');

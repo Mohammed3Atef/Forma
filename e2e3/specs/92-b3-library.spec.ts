@@ -9,11 +9,11 @@ import { procsOf } from './_d-helpers';
 
 /**
  * B3.7 — the coach Library (blueprint §6.6, owner brief 2026-10-20): Programs · Exercises · Foods
- * (swap groups inside) · Supplements; search, filters, sort, paging, an explicit Select mode;
- * honest demo states and attribution; the first-run starter library; "Use in a client plan" into
- * the client's existing editors as an unsaved change (Journey I); templates read-first (RM-27);
- * a persistent template-sync notice with Retry (TS-04); ⌘K create commands (DT-08); EN / AR / AR-EG,
- * 360–1440, axe.
+ * (swap groups inside) · Supplements; "Use in a client plan" into the client's existing editors as
+ * an unsaved change (Journey I); templates read-first (RM-27); a persistent template-sync notice with
+ * Retry (TS-04); ⌘K create commands (DT-08); EN / AR / AR-EG, 360–1440, axe.
+ * B4.3 — Exercises and Foods are ONE shared library each (Forma's catalog + the coach's own; All ·
+ * Favourites · Mine), searched, filtered and paged on the server; no starter import; favourites.
  *
  * Fixtures on coachPro use `e2e-lib-` ids / "E2E-LIB" names and are removed in afterAll; the
  * first-run test signs in a coach it creates (and removes) itself.
@@ -114,6 +114,7 @@ async function removeFixtures(db: Db) {
   const re = { $regex: `^${PFX}` };
   for (const col of ['coachClients', 'clientProfiles', 'planVersions', 'notifications', 'syncRecords']) await db.deleteMany(col, { clientId: re });
   for (const col of ['clientWorkoutPlans', 'clientNutritionPlans', 'users', 'coachPlans']) await db.deleteMany(col, { _id: re });
+  await db.deleteMany('coachFavorites', { coachId: { $in: [COACH, NEW_COACH.id] } });
   for (const col of ['coachExercises', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachWorkoutTemplates']) {
     await db.deleteMany(col, { coachId: NEW_COACH.id });
     await db.deleteMany(col, { coachId: COACH, $or: [{ id: re }, { name: { $regex: '^E2E-LIB' } }] });
@@ -131,8 +132,10 @@ async function openLibrary(page: Page, qs = '') {
   await ready(page);
   await expect(page.getByTestId('coach-library')).toBeVisible();
 }
-const table = (page: Page) => page.getByTestId('coach-desktop-library');
-const rows = (page: Page) => table(page).getByTestId('data-row');
+/** Library › Exercises rows (Forma's and the coach's own, one list). */
+const rows = (page: Page) => page.getByTestId('lib-exercises').getByTestId('library-exercise-row');
+/** The coach's own rows only. */
+const own = (page: Page) => rows(page).and(page.locator('[data-kind="own"]'));
 const overflowOf = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 async function axeScan(page: Page) {
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -160,7 +163,7 @@ function visualSink(testInfo: TestInfo) {
   };
 }
 
-test.describe('B3.7 Library', () => {
+test.describe('B3.7 Library (B4.3: one shared library)', () => {
   test.describe.configure({ timeout: 180_000 });
   test.beforeAll(async ({ db, env }) => {
     await removeFixtures(db);
@@ -170,8 +173,8 @@ test.describe('B3.7 Library', () => {
     await removeFixtures(db);
   });
 
-  test('first run (CO-23, EX-08, EX-23): a new coach sees what the starter library is — honestly — and adds it in one tap; adding it again duplicates nothing', async ({ as, db, audit }, testInfo) => {
-    test.setTimeout(420_000); // six fresh app contexts plus two starter-library runs
+  test('first run (B4.3): a new coach has Forma\'s exercises and foods at once — no starter offer, nothing copied; empty lists offer to create; no clipping or overflow', async ({ as, db, audit }, testInfo) => {
+    test.setTimeout(420_000); // five fresh app contexts
     allowDevModuleStorm(audit);
     const now = Date.now();
     await db.insertOne('users', { _id: NEW_COACH.id, email: `${NEW_COACH.id}@e2e.test`, emailLower: `${NEW_COACH.id}@e2e.test`, displayName: 'Nour Coach', displayNameLower: 'nour coach', role: 'coach', accountStatus: 'active', permissions: [], featureFlags: {}, phone: '+201240099002', currency: 'EGP', passwordHash: 'not-a-login', createdBy: 'e2e-lib', createdAt: now - DAY, updatedAt: now });
@@ -183,13 +186,12 @@ test.describe('B3.7 Library', () => {
       if (lang === 'ar') await setLanguage(page, 'العربية');
       try {
         await openLibrary(page);
-        const panel = page.getByTestId('lib-starter');
-        await expect(panel).toBeVisible();
-        await expect(page.getByTestId('load-starter-library')).toBeVisible();
         const copy = lang === 'ar' ? ar : en;
-        await expect(panel).toContainText(copy.library.starter.honesty);
-        await expect(page.getByText(/many with video|كثير منها بفيديو/)).toHaveCount(0);
-        // The repro: no clipped segment, no squeezed search.
+        // Programs: nothing yet — the offer is to create, never to import.
+        await expect(page.getByTestId('lib-first')).toContainText(copy.library.first.programs.title);
+        await expect(page.getByTestId('load-starter-library')).toHaveCount(0);
+        await expect(page.getByTestId('lib-more')).toHaveCount(0);
+        // The repro: no clipped segment.
         for (const seg of ['programs', 'exercises', 'foods', 'supplements']) {
           const clipped = await page.getByTestId(`lib-tab-${seg}`).evaluate((el) => {
             const label = el.querySelector('span.truncate') as HTMLElement;
@@ -197,9 +199,17 @@ test.describe('B3.7 Library', () => {
           });
           expect(clipped, `${seg} label fits (${w} ${lang})`).toBe(false);
         }
-        // Nothing to search yet: no search, sort or Select — just the offer (B3.3 rule for empty lists).
-        await expect(page.getByTestId('template-search')).toHaveCount(0);
-        await expect(page.getByTestId('lib-select')).toHaveCount(0);
+        // Exercises: the whole shared library, the search on its own full-width row (CO-23).
+        await page.getByTestId('lib-tab-exercises').click();
+        await expect(page.getByTestId('library-exercise-row').first()).toBeVisible({ timeout: 20_000 });
+        expect(Number((await page.getByTestId('lib-exercises-count').innerText()).replace(/\D/g, ''))).toBeGreaterThanOrEqual(1343);
+        const search = await page.getByTestId('lib-exercises-search').boundingBox();
+        const content = await page.getByTestId('coach-library').boundingBox();
+        expect(search!.width, `search width at ${w}`).toBeGreaterThan(content!.width * 0.9);
+        // My exercises: empty, with "New exercise" — not an import.
+        await page.getByTestId('lib-exercises-scope-mine').click();
+        await expect(page.getByTestId('lib-exercises-empty')).toContainText(copy.library.empty.myExercises);
+        await expect(page.getByTestId('lib-new-first')).toBeVisible();
         expect(await overflowOf(page)).toBeLessThanOrEqual(0);
         await shot(page, testInfo, `first-run-${w}-${lang}`, true);
       } finally {
@@ -207,123 +217,67 @@ test.describe('B3.7 Library', () => {
         await context.close();
       }
     }
-
-    const { page } = await as(NEW_COACH, sized(1440));
-    await openLibrary(page);
-    await page.getByTestId('load-starter-library').click();
-    await confirmYes(page);
-    const done = page.getByTestId('confirm-dialog');
-    await expect(done).toContainText('Starter library added', { timeout: 60_000 });
-    await expect(done).not.toContainText(/didn't load|E11000/);
-    await done.getByTestId('confirm-accept').click();
-    await expect(page.getByTestId('coach-desktop-templates').getByTestId('data-row').first()).toBeVisible();
-    await expect(page.getByTestId('lib-starter')).toHaveCount(0);
-    const cols = ['coachExercises', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachWorkoutTemplates'];
-    const counts = await Promise.all(cols.map((c) => db.count(c, { coachId: NEW_COACH.id })));
-    testInfo.annotations.push({ type: 'starter-counts', description: JSON.stringify(Object.fromEntries(cols.map((c, i) => [c, counts[i]]))) });
-    for (const n of counts) expect(n).toBeGreaterThan(0);
-    // Again, from the Library's menu: nothing is duplicated.
-    await page.getByTestId('lib-more').click();
-    await page.getByTestId('lib-load-starter').click();
-    await confirmYes(page);
-    await expect(page.getByTestId('confirm-dialog')).toContainText('Starter library added', { timeout: 60_000 });
-    await page.getByTestId('confirm-accept').click();
-    expect(await Promise.all(cols.map((c) => db.count(c, { coachId: NEW_COACH.id })))).toEqual(counts);
-    // The exercises the starter added say honestly that most have no demo.
-    await page.getByTestId('lib-tab-exercises').click();
-    await expect(rows(page).first()).toBeVisible({ timeout: 20_000 });
-    await expect(table(page).getByTestId('demo-none').first()).toBeVisible();
-    await expect(page.getByTestId('attribution')).toContainText('wger.de');
-    await shot(page, testInfo, 'starter-exercises-1440');
-    // With content, the search has its own full-width row — never squeezed (CO-23) — at 360 and 1440.
-    for (const w of [360, 1440]) {
-      const ctx = await as(NEW_COACH, w < 1024 ? { ...phone, viewport: { width: w, height: 780 } } : sized(w));
-      await openLibrary(ctx.page, '?tab=exercises');
-      const search = await ctx.page.getByTestId('lib-search').boundingBox();
-      const content = await ctx.page.getByTestId('coach-library').boundingBox();
-      expect(search!.width, `search width at ${w}`).toBeGreaterThan(content!.width * 0.9);
-      expect(await overflowOf(ctx.page)).toBeLessThanOrEqual(0);
-      await shot(ctx.page, testInfo, `starter-exercises-${w}`);
-      await ctx.context.close();
-    }
+    for (const c of ['coachExercises', 'coachFoods', 'coachFoodGroups', 'coachSupplements', 'coachWorkoutTemplates', 'coachFavorites']) expect(await db.count(c, { coachId: NEW_COACH.id }), c).toBe(0);
   });
 
-  test('TB-04 / EX-15: 200+ exercises — real column names, sort with aria-sort, filters, pages of 50; the view lives in the URL', async ({ as, audit }, testInfo) => {
+  test('TB-04 / EX-15: 200+ own exercises among Forma\'s — server pages of 30 with Show more, filters by catalog muscle / equipment / demonstration; the view lives in the URL; no overflow 360–1440', async ({ as, audit }, testInfo) => {
     test.setTimeout(480_000); // seven fresh app contexts (360 → 1440) after the desktop checks
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
-    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Gen')}`);
-    await expect(rows(page)).toHaveCount(50);
-    await expect(page.getByTestId('lib-count')).toHaveText(/^210 of \d+$/);
-    await expect(page.getByTestId('pagination-status')).toHaveText('Page 1 / 5');
-    const headers = (await table(page).getByRole('columnheader').allTextContents()).map((s) => s.trim()).filter(Boolean);
-    expect(headers).toEqual(['Exercise', 'Muscle', 'Equipment', 'Demo', 'Default sets', 'Actions']); // the last is the row menu's (visually hidden) header
-    // No bulk controls on rows until Select; the row menu holds the rest.
-    await expect(page.getByTestId('row-select')).toHaveCount(0);
-    await expect(rows(page).first().getByTestId('row-menu')).toBeVisible();
+    await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Gen')}`);
+    await expect(rows(page)).toHaveCount(30);
+    await expect(page.getByTestId('lib-exercises-count')).toHaveText('210 exercises');
+    await page.getByTestId('lib-exercises-show-more').click();
+    await expect(rows(page)).toHaveCount(60);
 
-    await page.getByTestId('sort-muscle').click();
-    await expect(page).toHaveURL(/sort=muscle/);
-    // B3.9.0: the column header that holds the sort button, by role (was `xpath=ancestor::th`).
-    const muscleHeader = table(page).getByRole('columnheader').filter({ has: page.getByTestId('sort-muscle') });
-    await expect(muscleHeader).toHaveAttribute('aria-sort', 'ascending');
-    await expect(rows(page).first()).toContainText('Back');
-    await page.getByTestId('sort-muscle').click();
-    await expect(muscleHeader).toHaveAttribute('aria-sort', 'descending');
-    await expect(rows(page).first()).toContainText('Shoulders');
-    await page.getByTestId('pagination-next').click();
-    await expect(page.getByTestId('pagination-status')).toHaveText('Page 2 / 5');
-
-    await page.getByTestId('lib-filter-equipment').selectOption('Barbell');
-    await expect(page).toHaveURL(/equipment=Barbell/);
-    await expect(page.getByTestId('pagination-status')).toHaveCount(0); // 45 rows: one page
+    await page.getByTestId('lib-exercises-equipment').selectOption('barbell');
+    await expect(page).toHaveURL(/equipment=barbell/);
+    await expect(page.getByTestId('lib-exercises-count')).toHaveText('45 exercises');
     for (const r of await rows(page).all()) await expect(r).toContainText('Barbell');
-    await page.getByTestId('lib-filter-video').click();
-    const withVideo = await rows(page).count();
-    expect(withVideo).toBeGreaterThan(0);
-    await expect(table(page).getByTestId('demo-video')).toHaveCount(withVideo);
+    await page.getByTestId('lib-exercises-demo').check();
+    await expect(page).toHaveURL(/demo=1/);
+    const withDemo = await rows(page).count();
+    expect(withDemo).toBeGreaterThan(0);
+    await expect(page.getByTestId('library-media-video')).toHaveCount(withDemo); // their demos are YouTube links
     const before = await rows(page).allTextContents();
     await page.reload();
     await ready(page);
+    await expect(rows(page)).toHaveCount(withDemo);
     expect(await rows(page).allTextContents()).toEqual(before);
-    await expect(page.getByTestId('lib-filter-video')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('lib-exercises-demo')).toBeChecked();
+    await expect(page.getByTestId('lib-exercises-scope-mine')).toHaveAttribute('aria-checked', 'true');
     await shot(page, testInfo, 'tb04-filtered-1440');
 
-    // No horizontal scroll anywhere from 360 to 1440 (table from 1024, list below).
+    // No horizontal scroll anywhere from 360 to 1440.
     for (const [w, h] of [[360, 780], [390, 844], [430, 932], [768, 1024], [1024, 800], [1280, 900], [1440, 900]] as const) {
       const ctx = await as('coachPro', w <= 430 ? { ...phone, viewport: { width: w, height: h } } : sized(w, h));
       await openLibrary(ctx.page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Gen')}`);
-      await expect(ctx.page.getByTestId(w >= 1024 ? 'coach-desktop-library' : 'lib-list-exercises')).toBeVisible();
+      await expect(rows(ctx.page)).toHaveCount(30);
       expect(await overflowOf(ctx.page), `overflow at ${w}`).toBeLessThanOrEqual(0);
-      if (w < 1024) {
-        await expect(ctx.page.getByTestId('lib-item')).toHaveCount(30);
-        await ctx.page.getByTestId('lib-show-more').click();
-        await expect(ctx.page.getByTestId('lib-item')).toHaveCount(60);
-      }
       await ctx.context.close();
     }
   });
 
-  test('media honesty: Video / Image / "No demo yet"; a link that cannot play is never offered as a video; the source is credited', async ({ as, audit }, testInfo) => {
+  test('media honesty: own exercises are marked by what Forma can show; a link that cannot play is never offered as a video; the source is credited', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
-    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Demo')}`);
+    await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Demo')}`);
     await expect(rows(page)).toHaveCount(4);
     const row = (name: string) => rows(page).filter({ hasText: name });
-    await expect(row('Demo Video').getByTestId('demo-video')).toBeVisible();
-    await expect(row('Demo Image').getByTestId('demo-image')).toBeVisible();
-    await expect(row('Demo None').getByTestId('demo-none')).toHaveText('No demo yet');
-    await expect(row('Demo Drive').getByTestId('demo-none')).toHaveText('No demo yet');
+    await expect(row('Demo Video').getByTestId('library-media-video')).toBeVisible();
+    await expect(row('Demo Image').getByTestId('library-media-image')).toBeVisible();
+    await expect(row('Demo None').getByTestId('library-media-none')).toHaveCount(1);
+    await expect(row('Demo Drive').getByTestId('library-media-none')).toHaveCount(1);
     await shot(page, testInfo, 'demo-rows-1440');
 
-    await row('Demo Image').getByTestId('row-open').click();
+    await row('Demo Image').getByTestId('library-row-main').click();
     await expect(page.getByTestId('demo-image-view')).toBeVisible();
     await expect.poll(() => page.getByTestId('demo-image-view').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     await page.keyboard.press('Escape');
-    await row('Demo None').getByTestId('row-open').click();
+    await row('Demo None').getByTestId('library-row-main').click();
     await expect(page.getByTestId('demo-placeholder')).toContainText('No demo yet');
     await page.keyboard.press('Escape');
-    await row('Demo Drive').getByTestId('row-open').click();
+    await row('Demo Drive').getByTestId('library-row-main').click();
     await expect(page.getByTestId('video-unsupported')).toBeVisible(); // explained, never a dead player
     await expect(page.getByTestId('exercise-view').locator('video, iframe')).toHaveCount(0);
     await expect(page.getByTestId('exercise-view').getByTestId('attribution')).toContainText('wger.de · CC BY-SA');
@@ -334,9 +288,11 @@ test.describe('B3.7 Library', () => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
     await openLibrary(page, '?tab=exercises');
-    await page.getByTestId('lib-search').fill('E2E-LIB Bench');
-    await expect(rows(page)).toHaveCount(1);
-    await rows(page).first().getByTestId('row-open').click();
+    await page.getByTestId('lib-exercises-search').fill('E2E-LIB Bench');
+    const mine = own(page).filter({ hasText: 'E2E-LIB Bench press' });
+    await expect(mine).toHaveCount(1);
+    await expect(rows(page).first()).toHaveAttribute('data-kind', 'own'); // the coach's own ranks first among equals
+    await mine.getByTestId('library-row-main').click();
     await page.getByTestId('exercise-use').click();
     await page.getByTestId('use-client-search').fill('Salma');
     await page.getByTestId('use-client-client').filter({ hasText: CLIENT.name }).click();
@@ -346,7 +302,7 @@ test.describe('B3.7 Library', () => {
     const targets = prompt.getByTestId('library-add-target');
     await expect(targets).toHaveText([/Upper/, /Lower › Warm-up/, /Lower › Main/]);
     await shot(page, testInfo, 'journey-i-choose-day');
-    await targets.filter({ hasText: 'Lower › Main' }).click(); // B3.9.0: the target by its name (the order is asserted just above), not nth(2)
+    await targets.filter({ hasText: 'Lower › Main' }).click();
     await expect(page.getByTestId('workout-unsaved')).toBeVisible();
     await expect(page.getByTestId('builder-section').filter({ hasText: 'Main' })).toContainText('E2E-LIB Bench press');
     const stored = () => db.findOne<{ days: { id: string; exerciseIds: string[]; sections?: { id: string; exerciseIds: string[] }[] }[]; exercises: Record<string, Record<string, unknown>> }>('clientWorkoutPlans', { _id: CLIENT.id });
@@ -365,17 +321,17 @@ test.describe('B3.7 Library', () => {
     // Back returns to the Library as it was left.
     await page.getByTestId('coach-workout-editor').getByRole('button', { name: 'Back' }).click();
     await expect(page).toHaveURL(/\/coach\/library\?tab=exercises&q=E2E-LIB/);
-    await expect(rows(page)).toHaveCount(1);
+    await expect(own(page).filter({ hasText: 'E2E-LIB Bench press' })).toHaveCount(1);
   });
 
   test('Journey I (food): search → Use in a client plan → meal → Save; the plan item keeps both languages and the library food is unchanged', async ({ as, db, audit }) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
     await openLibrary(page, '?tab=foods');
-    await page.getByTestId('food-search').fill('زبادي');
-    const foodRows = page.getByTestId('coach-desktop-foods').getByTestId('data-row');
-    await expect(foodRows).toHaveCount(1);
-    await foodRows.first().getByTestId('row-open').click();
+    await page.getByTestId('lib-foods-search').fill('زبادي');
+    const yogurt = page.getByTestId('library-food-row').and(page.locator(`[data-id="${YOGURT.id}"]`));
+    await expect(yogurt).toHaveCount(1);
+    await yogurt.getByTestId('library-row-main').click();
     await expect(page.getByTestId('food-view')).toContainText('170 g');
     await page.getByTestId('food-use').click();
     await page.getByTestId('use-client-client').filter({ hasText: CLIENT.name }).click();
@@ -470,8 +426,8 @@ test.describe('B3.7 Library', () => {
       await route.fulfill({ status: res.status(), contentType: 'application/json', body: JSON.stringify(mark(body)) });
     };
     await page.route(/\/api\/trpc\//, handler);
-    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Bench')}`);
-    await rows(page).first().getByTestId('row-open').click();
+    await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Bench')}`);
+    await rows(page).first().getByTestId('library-row-main').click();
     await page.getByTestId('exercise-view-edit').click();
     await page.getByTestId('ex-progression').fill('Add 2.5 kg when all sets hit 8');
     await page.getByTestId('ex-save').click();
@@ -493,9 +449,12 @@ test.describe('B3.7 Library', () => {
     await expect(page.getByTestId('lib-sync-issue')).toHaveCount(0);
   });
 
-  test('DT-08: ⌘K "New exercise" and "New food" open the creation forms themselves; a searched exercise opens read-first', async ({ as, audit }) => {
+  test('DT-08: ⌘K "New exercise" and "New food" open the creation forms themselves; an exercise already listed opens read-first (own or Forma\'s)', async ({ as, audit }) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
+    // ⌘K searches what the Library has already listed (no extra reads).
+    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Demo')}`);
+    await expect(rows(page)).not.toHaveCount(0);
     await page.goto('/coach/me');
     await ready(page);
     await page.keyboard.press('Control+k');
@@ -516,29 +475,40 @@ test.describe('B3.7 Library', () => {
     await page.getByRole('option', { name: 'E2E-LIB Demo Image' }).click();
     await expect(page.getByTestId('exercise-view')).toBeVisible();
     await expect(page.getByTestId('demo-image-view')).toBeVisible();
+    // A Forma exercise opens its catalog page by id.
+    await page.goto(`/coach/library?tab=exercises&open=fx_barbell_bench_press`);
+    await ready(page);
+    await expect(page.getByTestId('catalog-exercise-view')).toBeVisible();
+    await expect(page).toHaveURL(/\/coach\/library\?tab=exercises$/);
   });
 
-  test('Select mode: bulk actions only after Select; only the selected item is deleted', async ({ as, db, audit }) => {
+  test('favourites: a star keeps an own and a Forma exercise in Favourites — references only, nothing copied; unstarring removes them', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
-    await insertMany('coachExercises', [libExercise('tmp-1', 'E2E-LIB Temp one'), libExercise('tmp-2', 'E2E-LIB Temp two')]);
     const { page } = await as('coachPro', phone);
-    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Temp')}`);
-    const items = page.getByTestId('lib-item');
-    await expect(items).toHaveCount(2);
-    await expect(page.getByTestId('row-select')).toHaveCount(0);
-    await page.getByTestId('lib-select').click();
-    await expect(page.getByTestId('row-select')).toHaveCount(2);
-    await items.filter({ hasText: 'Temp one' }).getByTestId('row-open').click(); // in Select mode a tap selects
-    await expect(page.getByTestId('exercise-view')).toHaveCount(0);
-    await expect(page.getByTestId('bulk-count')).toHaveText('1 selected');
-    await page.getByTestId('bulk-delete').click();
-    await confirmYes(page);
-    await expect(items).toHaveCount(1);
-    expect(await db.count('coachExercises', { coachId: COACH, id: `${PFX}tmp-1` })).toBe(0);
-    expect(await db.count('coachExercises', { coachId: COACH, id: `${PFX}tmp-2` })).toBe(1);
+    const exercisesBefore = await db.count('coachExercises', { coachId: COACH });
+    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Bench')}`);
+    await own(page).filter({ hasText: 'E2E-LIB Bench press' }).getByTestId('library-favorite').click();
+    await page.getByTestId('lib-exercises-search').fill('barbell bench press');
+    const forma = rows(page).and(page.locator('[data-id="fx_barbell_bench_press"]'));
+    await forma.getByTestId('library-favorite').click();
+    await expect(forma.getByTestId('library-favorite')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('lib-exercises-search').fill('');
+    await page.getByTestId('lib-exercises-scope-favorites').click();
+    await expect(page).toHaveURL(/scope=favorites/);
+    await expect(rows(page)).toHaveCount(2);
+    await shot(page, testInfo, 'favorites-390', true);
+    expect(await db.count('coachFavorites', { coachId: COACH })).toBe(2);
+    expect(await db.count('coachExercises', { coachId: COACH })).toBe(exercisesBefore);
+    // Unstar one at a time: the Favourites list refetches after each, so the next star is a new row.
+    for (const left of [1, 0]) {
+      await rows(page).first().getByTestId('library-favorite').click();
+      await expect(rows(page)).toHaveCount(left);
+    }
+    await expect(page.getByTestId('lib-exercises-empty')).toBeVisible();
+    expect(await db.count('coachFavorites', { coachId: COACH })).toBe(0);
   });
 
-  test('swap groups live inside Foods (the old ?tab=groups opens them); a group is built from a searchable checklist and saved with its foods', async ({ as, db, audit }) => {
+  test('swap groups live inside Foods (the old ?tab=groups opens them); a group is built from the one food list — the coach\'s own food and a Forma food — and saved with copies of both', async ({ as, db, audit }) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', sized(1440));
     await openLibrary(page, '?tab=groups');
@@ -547,20 +517,26 @@ test.describe('B3.7 Library', () => {
     await expect(page.getByTestId('lib-foods-view-groups')).toHaveAttribute('aria-checked', 'true');
     await page.getByTestId('group-new').click();
     await page.getByTestId('grp-name').fill('E2E-LIB Dairy swaps');
-    await page.getByTestId('group-form').getByPlaceholder('Search foods').fill('greek');
-    await page.getByTestId(`grp-food-${YOGURT.id}`).click();
+    const list = page.getByTestId('grp-library');
+    await list.getByTestId('grp-library-search').fill('greek');
+    await list.getByTestId('library-food-row').and(page.locator(`[data-id="${YOGURT.id}"]`)).getByTestId('library-row-main').click();
     await expect(page.getByTestId('grp-picked-count')).toHaveText('1 picked');
+    await list.getByTestId('grp-library-search').fill('cottage cheese');
+    await list.getByTestId('library-food-row').and(page.locator('[data-id="ff_cottage_cheese_1"]')).getByTestId('library-row-main').click();
+    await expect(page.getByTestId('grp-picked-count')).toHaveText('2 picked');
+    await expect(page.getByTestId('grp-foods').getByRole('listitem')).toHaveCount(2);
     await page.getByTestId('grp-save').click();
     await expect(page.getByTestId('coach-desktop-groups').getByTestId('data-row').filter({ hasText: 'E2E-LIB Dairy swaps' })).toBeVisible();
-    const g = await db.findOne<{ foods: { id: string; name: unknown }[] }>('coachFoodGroups', { coachId: COACH, name: 'E2E-LIB Dairy swaps' });
-    expect(g!.foods).toEqual([expect.objectContaining({ id: YOGURT.id, name: YOGURT.name })]);
+    const g = await db.findOne<{ foods: Record<string, unknown>[] }>('coachFoodGroups', { coachId: COACH, name: 'E2E-LIB Dairy swaps' });
+    expect(g!.foods).toEqual([expect.objectContaining({ id: YOGURT.id, name: YOGURT.name }), expect.objectContaining({ id: 'ff_cottage_cheese_1', catalogId: 'ff_cottage_cheese_1', per100g: expect.any(Object) })]);
+    expect(await db.count('coachFoods', { coachId: COACH, id: 'ff_cottage_cheese_1' })).toBe(0); // the group holds a copy; the library is not touched
   });
 
   test('CO-26-R: the exercise form is metadata-first; changing a default keeps every other field, the Arabic and the library link', async ({ as, db, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     const { page } = await as('coachPro', phone);
-    await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Bench')}`);
-    await page.getByTestId('lib-item').first().getByTestId('row-open').click();
+    await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Bench')}`);
+    await rows(page).first().getByTestId('library-row-main').click();
     await page.getByTestId('exercise-view-edit').click();
     await expect(page.getByTestId('exercise-form').locator('legend')).toHaveCount(4); // the form loads on first use
     const legends = (await page.getByTestId('exercise-form').locator('legend').allTextContents()).map((s) => s.trim());
@@ -573,13 +549,13 @@ test.describe('B3.7 Library', () => {
     expect(stored).toMatchObject({ workingSets: 5, notes: BENCH.notes, name: BENCH.name, equipment: 'Barbell', category: 'Push', videoUrl: BENCH.videoUrl, tags: ['strength'] });
   });
 
-  test('offline: the loaded Library stays readable, writes wait for the network; opening Programs downloads no exercise list (PF-11 not worse)', async ({ as, audit }, testInfo) => {
+  test('offline: the loaded Library stays readable, writes wait for the network; opening Programs asks for no exercise list', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     const { context, page } = await as('coachPro', sized(1440));
     const lists: { proc: string; bytes: number }[] = [];
     page.on('response', async (r) => {
       const procs = procsOf(r.url());
-      if (procs.some((p) => p === 'coachAssets.exercises.list')) lists.push({ proc: 'coachAssets.exercises.list', bytes: (await r.body().catch(() => Buffer.alloc(0))).length });
+      if (procs.some((p) => p === 'library.exercises.list')) lists.push({ proc: 'library.exercises.list', bytes: (await r.body().catch(() => Buffer.alloc(0))).length });
     });
     await openLibrary(page);
     await expect(page.getByTestId('coach-desktop-templates')).toBeVisible();
@@ -588,32 +564,29 @@ test.describe('B3.7 Library', () => {
     await page.getByTestId('lib-tab-exercises').click();
     await expect(rows(page).first()).toBeVisible();
     await expect.poll(() => lists.length).toBe(1);
-    testInfo.annotations.push({ type: 'exercise-list-bytes', description: String(lists[0].bytes) });
+    testInfo.annotations.push({ type: 'exercise-page-bytes', description: String(lists[0].bytes) });
+    expect(lists[0].bytes, 'one page of 30 rows stays light').toBeLessThan(40_000);
     await context.setOffline(true);
     await expect(page.getByTestId('lib-new')).toBeDisabled();
-    await expect(page.getByTestId('lib-select')).toHaveCount(0);
     await expect(rows(page).first()).toBeVisible();
     await shot(page, testInfo, 'offline-1440');
     await context.setOffline(false);
     await expect(page.getByTestId('lib-new')).toBeEnabled();
   });
 
-  test('Arabic: a right-to-left Library — translated segments, columns and demo states; the reader\'s food names; no overflow (390 + 1440)', async ({ as, audit }, testInfo) => {
+  test('Arabic: a right-to-left Library — translated segments, scopes and search; the reader\'s exercise and food names; no overflow (390 + 1440)', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     for (const w of [1440, 390]) {
       const { context, page } = await as('coachPro', w === 390 ? phone : sized(w));
       await setLanguage(page, 'العربية');
       try {
-        await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Demo')}`);
+        await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('بنش')}`);
         await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
         await expect(page.getByTestId('lib-tab-programs')).toHaveText(ar.coachLib.tabs.programs);
-        await expect(page.getByTestId('lib-tab-supplements')).toHaveText(ar.coachLib.tabs.supplements);
-        await expect(page.getByText(ar.library.demo.none).first()).toBeVisible();
-        if (w === 1440) {
-          await expect(page.getByTestId('sort-name')).toHaveText(ar.library.col.exercise);
-          const box = await page.getByTestId('sort-name').boundingBox();
-          expect(box!.x).toBeGreaterThan(page.viewportSize()!.width / 2); // the first column sits on the right
-        }
+        await expect(page.getByTestId('lib-exercises-scope-mine')).toHaveText(ar.library.scope.myExercises);
+        await expect(page.getByTestId('lib-exercises-search')).toHaveAttribute('placeholder', ar.library.searchExercises);
+        // Egyptian gym words find Forma's bench press, shown in Arabic.
+        await expect(rows(page).and(page.locator('[data-id="fx_barbell_bench_press"]'))).toContainText('ضغط البار');
         expect(await overflowOf(page)).toBeLessThanOrEqual(0);
         await shot(page, testInfo, `ar-exercises-${w}`, true);
         await openLibrary(page, `?tab=foods&q=${encodeURIComponent('زبادي')}`);
@@ -626,7 +599,7 @@ test.describe('B3.7 Library', () => {
     }
   });
 
-  test('accessibility: segments, table, list, detail, "Use in a client plan", the editor prompt and a program read-first — no axe violations (WCAG 2.1 A / AA, EN + AR, 390 + 1440)', async ({ as, audit }, testInfo) => {
+  test('accessibility: segments, the lists, a detail, "Use in a client plan", the editor prompt and a program read-first — no axe violations (WCAG 2.1 A / AA, EN + AR, 390 + 1440)', async ({ as, audit }, testInfo) => {
     allowDevModuleStorm(audit);
     const found: Record<string, Awaited<ReturnType<typeof axeScan>>> = {};
     for (const lang of ['en', 'ar'] as const) {
@@ -637,8 +610,13 @@ test.describe('B3.7 Library', () => {
           await openLibrary(page, `?tab=programs&q=E2E-LIB`);
           found[`${lang}-${w}-programs`] = await axeScan(page);
           await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Demo')}`);
+          await expect(rows(page).first()).toBeVisible();
           found[`${lang}-${w}-exercises`] = await axeScan(page);
-          await page.getByTestId('row-open').filter({ hasText: 'Demo Drive' }).click();
+          await openLibrary(page, `?tab=foods&q=${encodeURIComponent('rice')}`);
+          await expect(page.getByTestId('library-food-row').first()).toBeVisible();
+          found[`${lang}-${w}-foods`] = await axeScan(page);
+          await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Demo Drive')}`);
+          await rows(page).first().getByTestId('library-row-main').click();
           await expect(page.getByTestId('exercise-view')).toBeVisible();
           found[`${lang}-${w}-detail`] = await axeScan(page);
           await page.getByTestId('exercise-use').click();
@@ -681,10 +659,12 @@ test.describe('B3.7 Library', () => {
         try {
           await openLibrary(page, '?tab=programs&q=E2E-LIB');
           await sink.capture(page, `programs-${w}-${lang}`);
-          await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB')}`);
+          await openLibrary(page, '?tab=exercises');
+          await expect(rows(page).first()).toBeVisible();
           await sink.capture(page, `exercises-${w}-${lang}`);
           if (lang !== 'ar-eg' || w === 390) {
-            await openLibrary(page, `?tab=foods&q=${encodeURIComponent('E2E-LIB')}`);
+            await openLibrary(page, '?tab=foods');
+            await expect(page.getByTestId('library-food-row').first()).toBeVisible();
             await sink.capture(page, `foods-${w}-${lang}`);
             await openLibrary(page, '?tab=foods&view=groups');
             await sink.capture(page, `groups-${w}-${lang}`);
@@ -692,8 +672,8 @@ test.describe('B3.7 Library', () => {
             await sink.capture(page, `supplements-${w}-${lang}`);
           }
           if (w === 390 || w === 1440) {
-            await openLibrary(page, `?tab=exercises&q=${encodeURIComponent('E2E-LIB Demo Image')}`);
-            await page.getByTestId('row-open').first().click();
+            await openLibrary(page, `?tab=exercises&scope=mine&q=${encodeURIComponent('E2E-LIB Demo Image')}`);
+            await rows(page).first().getByTestId('library-row-main').click();
             await expect(page.getByTestId('exercise-view')).toBeVisible();
             await sink.capture(page, `detail-${w}-${lang}`);
             await page.goto(`/coach/templates/${PFX}tpl`);
@@ -712,6 +692,6 @@ test.describe('B3.7 Library', () => {
         }
       }
     }
-    await sink.finish('b37-library');
+    await sink.finish('b43-library');
   });
 });

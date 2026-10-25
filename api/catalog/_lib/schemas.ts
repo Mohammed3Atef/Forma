@@ -131,8 +131,6 @@ export const CatalogExerciseSchema = z
     content: ContentSchema,
     /** Another catalog id this is a variation of (grouping; never a merge). */
     variantOf: z.string().regex(/^fx_[a-z0-9_]+$/).optional(),
-    /** Ids this replaces in the legacy starter dataset (`wger-<n>`), for the reviewed mapping. */
-    legacyIds: z.array(z.string()).max(10),
   })
   .refine((e) => !e.primaryMuscles.some((m) => e.secondaryMuscles.includes(m)), 'a muscle is primary or secondary, not both')
   .refine((e) => e.media.every((m) => e.sources.some((s) => s.provider === m.source.provider && s.role === 'media')), 'media must trace to a listed media source');
@@ -153,6 +151,18 @@ export const FoodImageSchema = z
     url: https,
     sourcePage: https,
     variants: z.object({ thumb: ImageVariantSchema, card: ImageVariantSchema }),
+    /**
+     * B4.2: Wikimedia's own renditions of the same file (standard widths: 120 px list, 500 px card),
+     * served while Forma's catalog CDN is not configured — nothing copied, nothing uploaded.
+     */
+    remote: z
+      .object({
+        thumbUrl: https.refine((u) => /^(upload|thumb)\.wikimedia\.org$/.test(new URL(u).hostname), 'Wikimedia files only'),
+        cardUrl: https.refine((u) => /^(upload|thumb)\.wikimedia\.org$/.test(new URL(u).hostname), 'Wikimedia files only'),
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+      .optional(),
     alt: BilingualSchema,
     license: z.enum(['CC0-1.0', 'PD', 'CC-BY-2.0', 'CC-BY-2.5', 'CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-2.0', 'CC-BY-SA-2.5', 'CC-BY-SA-3.0', 'CC-BY-SA-4.0']),
     licenseUrl: https.optional(),
@@ -218,7 +228,6 @@ export const CatalogFoodSchema = z
       .optional(),
     content: ContentSchema,
     images: z.array(FoodImageSchema).max(4),
-    legacyIds: z.array(z.string()).max(10),
   })
   .refine((f) => f.images.every((i) => i.variants.thumb.cdnPath.startsWith(`catalog/foods/${f.id}/`) && i.variants.card.cdnPath.startsWith(`catalog/foods/${f.id}/`)), "a food's pictures live in its own folder")
   .refine((f) => (f.verification === 'recipe-estimate') === !!f.recipe, 'a recipe estimate has a recipe, and only it')
@@ -238,4 +247,67 @@ const DatasetMetaSchema = z.object({
 export const ExerciseDatasetSchema = DatasetMetaSchema.extend({ kind: z.literal('exercises'), items: z.array(CatalogExerciseSchema) });
 export const FoodDatasetSchema = DatasetMetaSchema.extend({ kind: z.literal('foods'), items: z.array(CatalogFoodSchema) });
 export type ExerciseDataset = z.infer<typeof ExerciseDatasetSchema>;
+
+/**
+ * B4.2 — the ExerciseDB V1 layer (`data/catalog/exercisedb.json`, written by
+ * `scripts/catalog/import-exercisedb.mjs`). Kept apart from the curated items above: its records
+ * carry the provider's own fields (English steps, its muscle / equipment terms, a GIF) — nothing is
+ * invented to fill the curated contract (no difficulty, pattern or Arabic instructions). Every source
+ * id is kept; ids never change between imports; a record that is the same movement as a curated
+ * item is linked to it (`formaId`) instead of duplicating it.
+ */
+export const EdbMediaSchema = z.object({
+  id: z.string().regex(/^gif_[a-z0-9]+_[0-9a-f]{6}$/),
+  sourceId: z.string().regex(/^[A-Za-z0-9]{4,16}$/),
+  /** The provider's GIF, at its original address (never re-hosted, never bundled). */
+  url: https.refine((u) => new URL(u).hostname === 'static.exercisedb.dev', 'ExerciseDB GIFs only'),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  bytes: z.number().int().positive(),
+  frames: z.number().int().positive(),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  /** The light still for lists, served with the app (`public/catalog/edb/`). */
+  thumb: z.string().regex(/^\/catalog\/edb\/[A-Za-z0-9]+\.webp$/),
+  thumbBytes: z.number().int().positive(),
+  role: z.enum(['primary', 'alternate']),
+});
+export const EdbExerciseSchema = z
+  .object({
+    id: z.string().regex(/^edb_[A-Za-z0-9]+$/),
+    sourceIds: z.array(z.string().regex(/^[A-Za-z0-9]{4,16}$/)).min(1),
+    name: z.object({ en: text, ar: z.string().trim().max(400) }),
+    sourceName: text,
+    aliases: z.object({ en: words, ar: words, eg: words }),
+    bodyPart: BodyPartIdSchema,
+    primaryMuscles: z.array(MuscleIdSchema).min(1).max(3),
+    secondaryMuscles: z.array(MuscleIdSchema).max(6),
+    equipment: z.array(EquipmentIdSchema).min(1).max(4),
+    /** The provider's own vocabulary, verbatim. */
+    terms: z.object({ bodyParts: z.array(z.string()), targetMuscles: z.array(z.string()), secondaryMuscles: z.array(z.string()), equipments: z.array(z.string()) }),
+    instructions: z.object({ en: z.array(text).min(1).max(12) }),
+    media: z.array(EdbMediaSchema).max(6),
+    formaId: z.string().regex(/^fx_[a-z0-9_]+$/).nullable(),
+    variantOf: z.string().regex(/^(fx|edb)_[A-Za-z0-9_]+$/).nullable(),
+    /** The Arabic name: `draft` (written, not yet native-reviewed) or `missing` (English shown). */
+    translation: z.enum(['draft', 'missing', 'native-reviewed']),
+  })
+  .refine((e) => !e.primaryMuscles.some((m) => e.secondaryMuscles.includes(m)), 'a muscle is primary or secondary, not both')
+  .refine((e) => e.translation === 'missing' || /\p{Script=Arabic}/u.test(e.name.ar), 'a translated name must be Arabic')
+  .refine((e) => e.media.filter((m) => m.role === 'primary').length === Math.min(1, e.media.length), 'exactly one primary demonstration');
+export type EdbExercise = z.infer<typeof EdbExerciseSchema>;
+export const EdbDatasetSchema = z.object({
+  version: z.string().regex(/^edb-v1-\d{4}\.\d{2}\.\d{2}-\d+$/),
+  contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+  source: z.object({
+    provider: z.literal('exercisedb'),
+    name: z.string(),
+    api: https,
+    fetchedAt: z.string(),
+    advertised: z.number().int().positive(),
+    attribution: z.object({ en: text, ar: text, url: https }),
+    decision: z.string(),
+  }),
+  items: z.array(EdbExerciseSchema),
+});
+export type EdbDataset = z.infer<typeof EdbDatasetSchema>;
 export type FoodDataset = z.infer<typeof FoodDatasetSchema>;

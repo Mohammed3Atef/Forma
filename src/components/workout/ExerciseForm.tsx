@@ -7,9 +7,12 @@ import { NumericField } from '@/components/ui/NumericField';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Icon } from '@/components/Icon';
 import { EXERCISE_PRESETS } from '@/lib/workoutPresets';
-import { uploadFile, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
+import { uploadExercisePicture, uploadFile, useUploadConfigured, UploadError } from '@/services/platform/mediaApi';
+import { FoodPhotoError, prepareDemoPicture } from '@/lib/foodImageProcess';
+import { ExerciseThumb } from '@/components/library/ExerciseThumb';
+import { Button } from '@/components/ui/Button';
 import { alertDialog } from '@/stores/dialogStore';
-import type { Exercise } from '@/types';
+import type { CatalogInstructionSet, Exercise, MediaCredit } from '@/types';
 import { SecondLanguageField } from '@/components/ui/SecondLanguageField';
 import { applyLocalizedEdit, localizedEqual, secondLanguageStale, setLocalized } from '@/lib/localizedText';
 
@@ -19,7 +22,15 @@ import { applyLocalizedEdit, localizedEqual, secondLanguageStale, setLocalized }
  * category, tags), its demo, how to do it (instructions EN / AR), then the defaults a plan starts
  * from (presets, sets, reps, rest, progression). Same fields as before; numbers accept Arabic
  * digits. Calls `onSave` with the assembled Exercise (id and every untouched field preserved).
+ *
+ * B4.2 — the coach's own copy can be customised: a picture (upload a still or a GIF, or a link; or
+ * remove it), the video link / upload, and the steps in English and Arabic. A copy of a catalog
+ * exercise keeps its original demonstration (`sourceMedia`): "Restore the original" brings it back.
+ * The shared catalog itself is never changed. Credits follow the media that is actually shown.
  */
+const EMPTY_SET: CatalogInstructionSet = { setup: [], steps: [], cues: [], mistakes: [], safety: [] };
+const lines = (v: string) => v.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 8);
+const sameList = (a: string[] | undefined, b: string[] | undefined) => (a ?? []).join('\n') === (b ?? []).join('\n');
 export function ExerciseForm({
   initial,
   onSave,
@@ -55,7 +66,15 @@ export function ExerciseForm({
     notesArTouched: false,
     progressionNotes: initial.progressionNotes ?? '',
     tags: initial.tags ?? [],
+    imageUrl: initial.imageUrl ?? '',
+    thumbUrl: initial.thumbUrl ?? null,
+    stepsEn: (initial.instructions?.en.steps ?? []).join('\n'),
+    stepsAr: (initial.instructions?.ar?.steps ?? []).join('\n'),
   });
+  const [picturing, setPicturing] = useState(false);
+  const pictureRef = useRef<HTMLInputElement>(null);
+  const source = initial.sourceMedia;
+  const mediaChanged = !!source && ((f.imageUrl || null) !== source.imageUrl || (f.videoUrl.trim() || null) !== source.videoUrl);
 
   // Set counts stay integer (they render N set rows); rest seconds allow decimals.
   const int = (n: number | null) => Math.max(0, Math.round(n ?? 0));
@@ -80,10 +99,30 @@ export function ExerciseForm({
     }
   };
 
+  const onPickPicture = async (file: File | undefined) => {
+    if (!file || !coachId) return;
+    setPicturing(true);
+    try {
+      // A still is scaled and re-encoded on the device; a GIF is kept (its frames are the demonstration).
+      const { url, thumbUrl } = await uploadExercisePicture(await prepareDemoPicture(file));
+      setF((cur) => ({ ...cur, imageUrl: url, thumbUrl }));
+    } catch (e) {
+      const code = e instanceof FoodPhotoError ? `foodImage.error.${e.code}` : e instanceof UploadError ? `foodImage.error.${['badType', 'badDimensions', 'tooLarge', 'notConfigured', 'forbidden'].includes(e.code) ? e.code : 'failed'}` : 'foodImage.error.failed';
+      await alertDialog({ title: t('library.form.picture'), message: t(code) });
+    } finally {
+      setPicturing(false);
+      if (pictureRef.current) pictureRef.current.value = '';
+    }
+  };
+  const restoreOriginal = () =>
+    source && setF((cur) => ({ ...cur, imageUrl: source.imageUrl ?? '', thumbUrl: source.thumbUrl, videoUrl: source.videoUrl ?? '' }));
+
   // Only links that can actually play inside Forma (B0 / CL-20, MD-09).
   const videoInvalid = !!f.videoUrl.trim() && !isPlayableVideoUrl(f.videoUrl);
+  // The same links the server accepts (`MediaUrlSchema`): https — or loopback http, the local test CDN.
+  const imageInvalid = !!f.imageUrl.trim() && !/^https:\/\/[^\s]+$/i.test(f.imageUrl.trim()) && !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\/[^\s]*$/i.test(f.imageUrl.trim()) && f.imageUrl !== initial.imageUrl;
   const save = () => {
-    if (videoInvalid) return;
+    if (videoInvalid || imageInvalid) return;
     const warmupSetCount = int(f.warmupSets);
     // Untouched fields keep their ORIGINAL value exactly (B1.8 / EX-06): a
     // normalised copy (trimmed name, `null` for an absent link, the English
@@ -108,8 +147,57 @@ export function ExerciseForm({
       notes: keep(initial.notes, notes, localizedEqual(notes, initial.notes)),
       progressionNotes: f.progressionNotes.trim() || undefined,
       tags: f.tags,
+      ...media(),
+      ...steps(),
     });
   };
+
+  /**
+   * The picture fields: only what changed is written. An untouched picture keeps its fields exactly
+   * (a video-only edit never touches them); a removed picture leaves its fields ABSENT, never null —
+   * library sync copies these fields into linked templates (no null there, e2e 22). Credits list only
+   * the media still shown, and stay exactly as they were when that list is unchanged.
+   */
+  function media(): Partial<Exercise> {
+    const imageUrl = f.imageUrl.trim() || null;
+    const videoUrl = f.videoUrl.trim() || null;
+    const imageSame = imageUrl === (initial.imageUrl ?? null) && f.thumbUrl === (initial.thumbUrl ?? null);
+    const videoSame = videoUrl === (initial.videoUrl?.trim() || null);
+    if (imageSame && videoSame) return {};
+    const restored = !!source && imageUrl === source.imageUrl && videoUrl === source.videoUrl;
+    const out: Partial<Exercise> = {};
+    let images = initial.images ?? [];
+    if (!imageSame || restored) {
+      images = restored ? source!.images : imageUrl ? (imageUrl === initial.imageUrl ? (initial.images ?? [imageUrl]) : [imageUrl]) : [];
+      out.imageUrl = imageUrl ?? undefined;
+      out.images = images.length ? images : undefined;
+      out.thumbUrl = (restored ? source!.thumbUrl : imageUrl ? f.thumbUrl : null) ?? undefined;
+      if (restored) out.videoPosterUrl = source!.videoPosterUrl ?? undefined;
+    }
+    const shown = new Set([imageUrl, ...images, videoUrl].filter(Boolean) as string[]);
+    const pool: MediaCredit[] = [...(initial.mediaCredits ?? []), ...(source?.mediaCredits ?? [])];
+    const credits = pool.filter((c, i) => shown.has(c.url) && pool.findIndex((x) => x.url === c.url) === i);
+    const sameCredits = credits.length === (initial.mediaCredits ?? []).length && credits.every((c, i) => c.url === initial.mediaCredits![i].url);
+    if (!sameCredits) out.mediaCredits = credits.length ? credits : undefined;
+    return out;
+  }
+
+  /** The steps, edited in either language; a language with no steps stays as it was (Arabic: null when none). */
+  function steps(): Partial<Exercise> {
+    const en = lines(f.stepsEn);
+    const ar = lines(f.stepsAr);
+    const cur = initial.instructions;
+    if (sameList(en, cur?.en.steps) && sameList(ar, cur?.ar?.steps)) return {};
+    if (!en.length && !ar.length && !cur) return {};
+    const arChanged = !sameList(ar, cur?.ar?.steps);
+    return {
+      instructions: {
+        en: { ...(cur?.en ?? EMPTY_SET), steps: en },
+        // Arabic cleared → no Arabic steps (the reader then sees the English, labelled).
+        ar: !arChanged ? (cur?.ar ?? null) : ar.length ? { ...(cur?.ar ?? EMPTY_SET), steps: ar } : null,
+      },
+    };
+  }
 
   const group = (title: string, children: React.ReactNode, hint?: string) => (
     <fieldset className="space-y-3 rounded-ui-surface border border-line-soft p-3.5">
@@ -139,7 +227,39 @@ export function ExerciseForm({
 
       {group(
         t('library.form.demo'),
-        <div>
+        <div className="space-y-3">
+          <div data-testid="ex-picture">
+            <p className="label mb-1.5 block">{t('library.form.picture')}</p>
+            <div className="flex items-start gap-3">
+              <ExerciseThumb ex={{ thumbUrl: f.thumbUrl, imageUrl: f.imageUrl || null }} size="md" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <TextInput label={t('library.form.pictureUrl')} srOnlyLabel data-testid="ex-image-url" placeholder={t('library.form.pictureUrl')} value={f.imageUrl} onChange={(e) => setF({ ...f, imageUrl: e.target.value, thumbUrl: null })} dir="ltr" />
+                {imageInvalid && (
+                  <p className="text-[12px] text-danger" role="alert" data-testid="ex-image-invalid">
+                    {t('library.form.pictureInvalid')}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {canUpload && (
+                    <Button variant="secondary" size="sm" icon="image" pending={picturing} onClick={() => pictureRef.current?.click()} data-testid="ex-image-upload">
+                      {f.imageUrl ? t('library.form.replacePicture') : t('library.form.uploadPicture')}
+                    </Button>
+                  )}
+                  {f.imageUrl && (
+                    <Button variant="ghost" size="sm" icon="trash" className="text-danger" onClick={() => setF({ ...f, imageUrl: '', thumbUrl: null })} data-testid="ex-image-remove">
+                      {t('library.form.removePicture')}
+                    </Button>
+                  )}
+                  {mediaChanged && (
+                    <Button variant="ghost" size="sm" icon="rotate" onClick={restoreOriginal} data-testid="ex-media-restore">
+                      {t('library.form.restoreOriginal')}
+                    </Button>
+                  )}
+                </div>
+                <input ref={pictureRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => void onPickPicture(e.target.files?.[0])} data-testid="ex-image-file" />
+              </div>
+            </div>
+          </div>
           <TextInput label={t('field.videoUrl')} data-testid="ex-video" placeholder={t('coachEditor.videoUrl')} value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} dir="ltr" />
           {videoInvalid && (
             <p className="mt-1 text-[12px] text-danger" role="alert" data-testid="ex-video-invalid">
@@ -162,6 +282,8 @@ export function ExerciseForm({
       {group(
         t('coachEditor.instructions'),
         <>
+          <TextAreaField label={t('library.form.stepsEn')} helper={t('library.form.stepsHint')} className="min-h-24" data-testid="ex-steps-en" value={f.stepsEn} onChange={(e) => setF({ ...f, stepsEn: e.target.value })} dir="ltr" lang="en" />
+          <TextAreaField label={t('library.form.stepsAr')} className="min-h-24" data-testid="ex-steps-ar" value={f.stepsAr} onChange={(e) => setF({ ...f, stepsAr: e.target.value })} dir="rtl" lang="ar" />
           <TextAreaField label={t('field.notes')} className="min-h-20" data-testid="ex-notes" placeholder={t('coachEditor.instructions')} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} dir="auto" />
           <SecondLanguageField lang="ar" multiline testId="ex-notes-ar" value={f.notesAr} onChange={(v) => setF({ ...f, notesAr: v, notesArTouched: true })} stale={!f.notesArTouched && secondLanguageStale(initial.notes, f.notes, 'en')} />
         </>,
@@ -190,7 +312,7 @@ export function ExerciseForm({
 
       {extra}
 
-      <SubmitButton type="button" data-testid="ex-save" disabled={!f.name.trim() || videoInvalid} pending={pending} onClick={save} fullWidth>
+      <SubmitButton type="button" data-testid="ex-save" disabled={!f.name.trim() || videoInvalid || imageInvalid || picturing} pending={pending} onClick={save} fullWidth>
         {saveLabel ?? t('common.save')}
       </SubmitButton>
     </div>

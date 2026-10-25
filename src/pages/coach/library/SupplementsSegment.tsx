@@ -15,7 +15,7 @@ import { bulkDeleteSupplements, deleteSupplement, listSupplements, saveSupplemen
 import { alertDialog, confirmDialog } from '@/stores/dialogStore';
 import { showToast } from '@/stores/toastStore';
 import type { LibrarySupplement, LocalizedText } from '@/types';
-import { DetailSheet, ListBody, StarterPanel, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
+import { DetailSheet, FirstItemPanel, ListBody, Toolbar, useBulkDelete, useCanEdit, usePaged, type SegmentProps } from './parts';
 import { errorMessage } from '@/lib/errorMessage';
 
 interface SuppForm {
@@ -133,7 +133,7 @@ export default function SupplementsSegment({ coachId, query, setQuery, createSig
         canSelect={canEdit && all.length > 0}
         count={all.length ? (query.q ? t('library.countOf', { n: filtered.length, total: all.length }) : t('library.count.supplements', { count: all.length })) : null}
       />
-      <ListBody q={supps} total={all.length} matched={filtered.length} testId="lib-supps" onClear={() => setQuery({ q: '' })} empty={<StarterPanel createLabel={t('coachSupps.newSupp')} onCreate={() => setForm(blank())} createTestId="supp-new-first" />}>
+      <ListBody q={supps} total={all.length} matched={filtered.length} testId="lib-supps" onClear={() => setQuery({ q: '' })} empty={<FirstItemPanel kind="supplements" createLabel={t('coachSupps.newSupp')} onCreate={() => setForm(blank())} createTestId="supp-new-first" />}>
         {desktop ? (
           <CollectionTable
             testId="coach-desktop-supplements"

@@ -49,8 +49,7 @@ export type CommercialReasonCode =
   // B3.8 security (B36-R4 / B39A-S01)
   | 'RATE_LIMITED' // too many requests in the current window — `data.retryAfter` says how many seconds to wait
   | 'DESTINATION_CAPACITY_REACHED' // a transfer's RECEIVING coach has no free client place (B3.9)
-  | 'DESTINATION_NOT_ACCEPTING' // a transfer's receiving coach has no active Forma plan (B3.9)
-  | 'CATALOG_DISABLED'; // the curated catalog is switched off here (production until the owner approves, B4)
+  | 'DESTINATION_NOT_ACCEPTING'; // a transfer's receiving coach has no active Forma plan (B3.9)
 
 export class CommercialReason extends Error {
   readonly reason: CommercialReasonCode | string;

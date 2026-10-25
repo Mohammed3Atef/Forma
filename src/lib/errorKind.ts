@@ -103,8 +103,3 @@ export function classifyError(e: unknown): ClassifiedError {
   return { kind: 'server', retryable: true };
 }
 
-/** Connection-level failures: the device couldn't reach the server at all. */
-export function isConnectivityError(e: unknown): boolean {
-  const k = classifyError(e).kind;
-  return k === 'network' || k === 'timeout';
-}

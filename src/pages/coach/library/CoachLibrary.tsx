@@ -2,14 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { ActionMenu } from '@/components/ui/ActionMenu';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSession } from '@/services/auth/sessionStore';
 import { LIBRARY_SEGMENTS, libraryParams, parseLibraryQuery, segmentQuery, type LibraryQuery, type LibrarySegment } from '@/lib/libraryModel';
 import { SyncIssuesNotice, useCanEdit, type SegmentProps } from './parts';
-import { useStarterLibrary } from './useStarterLibrary';
-import { StarterShownContext } from './starterSignal';
 
 // Each segment is its own chunk: opening the Library loads only the one on screen (budget §9).
 const ProgramsSegment = lazy(() => import('./ProgramsSegment'));
@@ -30,6 +27,9 @@ const PANEL_ID = 'library-panel';
  * in the URL (`lib/libraryModel`), so Back from a program, a reload or a link restores the same
  * view; `/coach/templates` redirects here (`?tab=programs`). Links may also ask to create (`?new=1`
  * — ⌘K "New exercise / New food", DT-08) or open one item (`?open=<id>`); both are consumed once.
+ *
+ * B4.3: Exercises and Foods are Forma's shared library plus the coach's own items — a new coach has
+ * everything from the first visit, with nothing to import (the B3 "starter library" is retired).
  */
 export function CoachLibrary() {
   const { t } = useTranslation();
@@ -37,8 +37,6 @@ export function CoachLibrary() {
   const [params, setParams] = useSearchParams();
   const query = useMemo(() => parseLibraryQuery(params), [params]);
   const { canEdit, reason } = useCanEdit();
-  const starter = useStarterLibrary();
-  const [starterShown, setStarterShown] = useState(false);
 
   // One-shot intents carried by the URL, removed as soon as they are read (Back / reload never repeat them).
   // A pending "New …" request: > 0 until the segment on screen has opened its form (then back to 0,
@@ -82,14 +80,9 @@ export function CoachLibrary() {
           <p className="mt-0.5 hidden text-[14px] text-earth-muted sm:block">{t('library.subtitle')}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button icon="plus" variant={starterShown ? 'secondary' : 'primary'} data-testid={newTestId} aria-label={newLabel} title={reason} disabled={!canEdit} onClick={() => setCreateSignal((n) => n + 1)}>
+          <Button icon="plus" data-testid={newTestId} aria-label={newLabel} title={reason} disabled={!canEdit} onClick={() => setCreateSignal((n) => n + 1)}>
             <span className="hidden sm:inline">{newLabel}</span>
           </Button>
-          <ActionMenu
-            label={t('library.more')}
-            testId="lib-more"
-            items={[{ key: 'starter', label: t('starter.load'), icon: 'download', disabled: !canEdit || starter.pending, testId: 'lib-load-starter', onSelect: () => void starter.run() }]}
-          />
         </div>
       </header>
 
@@ -116,9 +109,7 @@ export function CoachLibrary() {
             </div>
           }
         >
-          <StarterShownContext.Provider value={setStarterShown}>
-            <Segment key={seg} coachId={coachId} query={query} setQuery={setQuery} createSignal={createSignal} onCreateHandled={onCreateHandled} openId={openId} onOpened={onOpened} />
-          </StarterShownContext.Provider>
+          <Segment key={seg} coachId={coachId} query={query} setQuery={setQuery} createSignal={createSignal} onCreateHandled={onCreateHandled} openId={openId} onOpened={onOpened} />
         </Suspense>
       </div>
     </div>

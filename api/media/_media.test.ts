@@ -166,7 +166,7 @@ describe('media upload — gate', () => {
       expect(r.status).toBe(503);
       expect(r.json.error).toBe('notConfigured');
       const anon = appRouter.createCaller({ req: {} as VercelRequest, res: {} as VercelResponse, user: { id: client._id, role: 'client', accountStatus: 'active', permissions: [], doc: client } });
-      expect(await anon.media.status()).toEqual({ configured: false });
+      expect(await anon.media.status()).toEqual({ configured: false, signedDelivery: false }); // MD-02 dormant without BUNNY_URL_TOKEN_KEY
     } finally {
       process.env.BUNNY_API_KEY = saved;
     }
@@ -400,5 +400,22 @@ describe('media upload — food photos (B4.1)', () => {
     const init = await call('init', { token: tokenFor(coach), body: JSON.stringify({ category: 'food', mimeType: 'image/jpeg', size: 1000 }), contentType: 'application/json' });
     expect(init.status).toBe(400);
     expect(puts).toHaveLength(0);
+  });
+});
+
+/** B4.2 — a coach's exercise picture (still or GIF) is cleaned like a food photo; one request only. */
+describe('media upload — exercise pictures (B4.2)', () => {
+  const fixture = (name: string) => readFileSync(new URL(`./_lib/__fixtures__/${name}`, import.meta.url));
+
+  it('a still loses its EXIF; the chunked path is refused for pictures; a mislabelled file is refused', async () => {
+    const coach = await insertUser({ _id: 'coach-1', role: 'coach' });
+    const r = await call('upload', { token: tokenFor(coach), body: fixture('exif.jpg'), contentType: 'image/jpeg', query: { category: 'exercise', name: 'demo.jpg' } });
+    expect(r.status).toBe(200);
+    expect(puts[0].url).toMatch(/\/Forma\/coach-1\/exercises\/[A-Za-z0-9_-]+\.jpg$/);
+    expect(puts[0].body.includes(Buffer.from('Exif'))).toBe(false);
+    const init = await call('init', { token: tokenFor(coach), body: JSON.stringify({ category: 'exercise', mimeType: 'image/png', size: 4_500_000 }), contentType: 'application/json' });
+    expect(init.status).toBe(413);
+    expect((await call('upload', { token: tokenFor(coach), body: fixture('exif.jpg'), contentType: 'image/gif', query: { category: 'exercise' } })).status).toBe(415);
+    expect(puts).toHaveLength(1);
   });
 });

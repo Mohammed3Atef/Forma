@@ -2,6 +2,7 @@
 
 > **Owner direction (2026-10-17):** every user, coach, client, subscription, message, workout and progress record that exists today is **disposable test data**. The goal is a clean production launch, not preserving the testing dataset. The release starts with **clean user data** but keeps all required system configuration, approved exercise / food content, product settings and administrative setup.
 > **Status: PLAN ONLY.** Nothing here has been executed. No production reset, database drop, storage deletion or destructive migration runs without the owner's explicit approval **and** verified environment targeting (§3). Development keeps using the isolated e2e3 fixtures; the current testing data is **not** deleted before the release phase.
+> **B4.3:** the collection classes (A–E), the order, the dry-run-by-default reset tool (`scripts/fresh-start-reset.mjs`, refuses production), its checks and limits are in `B43_FRESH_START_PLAN.md`.
 > Executed in the **Release hardening** phase, after B3–B5 and after the release blockers (MD-01 / 02 / 03, real-device checks, REL-02 security review) are closed.
 
 ## 1. Principles for every milestone until launch
@@ -22,14 +23,14 @@
 | Capacity add-on catalogue | `coachCapacityPackages` | Re-create the approved packages only |
 | Feature flags | `featureFlags` | Re-create with launch values (review each) |
 | Product banners / announcements | `banners` | Start empty; add launch banners deliberately |
-| Approved exercise library and starter templates | bundled in code (`api/coach-assets/_lib/starterLibraryData.ts`, seeded per coach on demand) + B4 curated library | Ships with the build; B4 decides the curated set, media and licences (EX-19) |
-| Approved food content | bundled starter foods (B4: FD-*) | Ships with the build |
+| Approved exercise library | B4 catalog datasets `data/catalog/exercises.json` + `exercisedb.json` (1,343), read by every coach — B4.3 retired the per-coach starter seed | Ships with the build (nothing to seed) |
+| Approved food content | B4 catalog `data/catalog/foods.json` (190, reviewed pictures) | Ships with the build (nothing to seed) |
 | Initial super-admin | `scripts/seed-mongo-admin.mjs` (bootstrap only path) | Run once against the new database with the owner's real admin identity |
 | Indexes | `scripts/mongo-init-indexes.mjs` (43) + indexes self-ensured at runtime | Run on the new database; coverage audit in §5 |
 
 ### 2.2 Remove (user data — all disposable)
 
-All of: `users` (except the new super-admin), `coachClients`, `coachPlans`, `coachPlanRequests`, `coachCapacityEntitlements`, `coachBillingPlans`, `clientProfiles`, `clientWorkoutPlans`, `clientNutritionPlans`, `clientCardioPlans`, `coachTargets`, `coachNotes`, `checkIns`, `measurementLogs`, `planVersions`, `archivedClientData`, `messages`, `notifications`, `signupInvites`, `transferRequests`, `subscriptionRequests`, `syncRecords`, `syncDeletions`, `syncSingletons`, coach libraries (`coachExercises`, `coachFoods`, `coachFoodGroups`, `coachSupplements`, `coachWorkoutTemplates`, `coachNutritionTemplates`), sessions and tokens (`refreshTokens`, `passwordResets`), operational counters (`rateLimits`, `usageStats`, `activeDays`, `ping`), upload staging (`mediaUploads`, `mediaUploadChunks`), and the test-era `adminAuditLogs` (the new database starts its own audit trail with a "launch reset" entry).
+All of: `users` (except the new super-admin), `coachClients`, `coachPlans`, `coachPlanRequests`, `coachCapacityEntitlements`, `coachBillingPlans`, `clientProfiles`, `clientWorkoutPlans`, `clientNutritionPlans`, `clientCardioPlans`, `coachTargets`, `coachNotes`, `checkIns`, `measurementLogs`, `planVersions`, `archivedClientData`, `messages`, `notifications`, `signupInvites`, `transferRequests`, `subscriptionRequests`, `syncRecords`, `syncDeletions`, `syncSingletons`, coach libraries (`coachExercises`, `coachFoods`, `coachFoodGroups`, `coachSupplements`, `coachWorkoutTemplates`, `coachFavorites`; `coachNutritionTemplates` is retired — B4.3), sessions and tokens (`refreshTokens`, `passwordResets`), operational counters (`rateLimits`, `usageStats`, `activeDays`, `ping`), upload staging (`mediaUploads`, `mediaUploadChunks`), and the test-era `adminAuditLogs` (the new database starts its own audit trail with a "launch reset" entry).
 
 Media: every object under the current Bunny storage zone (`Forma/<uid>/…`: avatars, progress / assessment / check-in photos, message attachments, coach exercise uploads) is test data.
 

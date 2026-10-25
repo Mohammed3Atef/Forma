@@ -7,7 +7,7 @@
  *
  *   node scripts/catalog/build-exercises.mjs [--dry-run]
  *
- * Then validate: `npx vitest run api/catalog` (schema, licences, duplicates, legacy mapping).
+ * Then validate: `npx vitest run api/catalog` (schema, licences, duplicates).
  * Outputs: data/catalog/exercises.json, data/catalog-reports/exercises-build.json
  */
 import { createHash } from 'node:crypto';
@@ -19,14 +19,12 @@ import { candidateMedia, loadExerciseSheets, loadMediaReview } from './lib/curat
 const DRY = process.argv.includes('--dry-run');
 const OUT = resolve('data/catalog/exercises.json');
 const REPORT = resolve('data/catalog-reports/exercises-build.json');
-const LEGACY = resolve('public/data/exercise-library.json');
 
 const snapshot = JSON.parse(readFileSync(join(CACHE_ROOT, 'wger-snapshot.json'), 'utf8'));
 const review = loadMediaReview();
 const sheets = await loadExerciseSheets();
 const previous = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : null;
 const prevById = new Map((previous?.items ?? []).map((i) => [i.id, i]));
-const legacyIds = new Set(JSON.parse(readFileSync(LEGACY, 'utf8')).map((e) => e.id));
 
 const LICENSE = { 1: 'CC-BY-SA-3.0', 2: 'CC-BY-SA-4.0', 3: 'CC0-1.0' };
 const MIME = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4' };
@@ -162,7 +160,6 @@ for (const s of sheets) {
     const rec = wgerById.get(w);
     sources.push({ provider: 'wger', id: String(w), url: `https://wger.de/en/exercise/${w}/view/`, role: 'media', license: LICENSE[rec?.license] ?? 'CC-BY-SA-4.0', description: rec?.names?.[2] ?? 'wger exercise' });
   }
-  const legacy = [s.wger, ...(s.replaces ?? [])].filter(Boolean).map((n) => `wger-${n}`).filter((id) => legacyIds.has(id));
 
   const body = {
     id: s.id,
@@ -182,7 +179,6 @@ for (const s of sheets) {
     sources,
     content: { license: 'FORMA-PROPRIETARY', author: 'Forma', review: s.review ?? 'draft', translation: s.translation ?? 'draft' },
     ...(s.variantOf ? { variantOf: s.variantOf } : {}),
-    legacyIds: legacy,
   };
   const prev = prevById.get(s.id);
   const rev = !prev ? 1 : contentHash(prev) === contentHash(body) ? prev.rev : prev.rev + 1;
@@ -231,7 +227,6 @@ const report = {
   wgerTotal: snapshot.exercises.length,
   wgerUsed: used.size,
   wgerNotSelected: snapshot.exercises.length - used.size,
-  legacyMapped: items.reduce((n, i) => n + i.legacyIds.length, 0),
   problems,
 };
 

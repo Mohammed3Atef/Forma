@@ -6,7 +6,7 @@
  *    admin / super_admin × active / pending / suspended)
  *  - tenant isolation (coach↔coach, client↔client, unassigned coach)
  *  - the transfer-request ownership guard
- *  - idempotency + concurrency (message retry, starter seed, invite claim,
+ *  - idempotency + concurrency (message retry, customised-exercise save, invite claim,
  *    payment confirm, transfer accept)
  *  - the cron endpoint's auth + behaviour
  *  - rate limiting, input validation, error-message semantics
@@ -397,17 +397,13 @@ describe('idempotency and races', () => {
     expect(await code(caller(client).messages.send({ clientId: client._id, text: '', attachment: { url: 'https://x/y.png', kind: 'image' } }))).toBe('OK');
   });
 
-  it('seedStarterLibrary: two concurrent seeds never duplicate a row (unique {coachId,id}) and converge to one full library', async () => {
+  it('customising a Forma exercise twice at once never duplicates the row (unique {coachId,id}) — B4.3 overrides', async () => {
     const coach = await insertUser({ _id: 'coach', role: 'coach' });
     await givePlan(coach._id); // B38F-R3: a real coach always has a plan
-    await Promise.allSettled([caller(coach).coachAssets.seedStarterLibrary(), caller(coach).coachAssets.seedStarterLibrary()]);
-    const third = await caller(coach).coachAssets.seedStarterLibrary(); // fills any gap the race left
-    expect(third.exercises.inserted).toBe(0);
+    const body = { id: 'cat-fx_barbell_bench_press', catalogId: 'fx_barbell_bench_press', name: 'My bench', targetMuscle: 'Chest', warmupSets: '', workingSets: 3, repRange: '8-12', rir: '', tempo: '', notes: { en: '', ar: '' }, restSec: 90, videoId: null };
+    await Promise.allSettled([caller(coach).coachAssets.exercises.save(body), caller(coach).coachAssets.exercises.save({ ...body, name: 'My bench 2' })]);
     const col = await coachExercisesCol();
-    const total = await col.countDocuments({ coachId: coach._id });
-    const distinct = await col.distinct('id', { coachId: coach._id });
-    expect(total).toBeGreaterThan(0);
-    expect(total).toBe(distinct.length);
+    expect(await col.countDocuments({ coachId: coach._id, id: body.id })).toBe(1);
   });
 
   it('invites.claim: two concurrent claims of ONE code → exactly one account + one relationship', async () => {

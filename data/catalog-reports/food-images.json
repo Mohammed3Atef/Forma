@@ -2,13 +2,13 @@
  "generatedBy": "scripts/catalog/build-food-images.mjs",
  "summary": {
   "foods": 190,
-  "approved": 125,
+  "approved": 156,
   "needsReplacement": 2,
   "pendingReview": 0,
-  "missing": 60,
-  "rejected": 3,
-  "withImage": 127,
-  "requests": 0
+  "missing": 32,
+  "rejected": 0,
+  "withImage": 158,
+  "requests": 62
  },
  "foods": {
   "ff_rice_white_medium_cooked": {
@@ -42,12 +42,52 @@
      "bytes": 1462,
      "sha256": "44d57160d42dd6f1604bda6ff1dc0eb92280a14f71c5cc9777271ba30a5d101a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bowl_of_white_rice_01.jpg/120px-Bowl_of_white_rice_01.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Bowl_of_white_rice_01.jpg/500px-Bowl_of_white_rice_01.jpg",
+    "width": 3544,
+    "height": 3000
    }
   },
   "ff_rice_white_long_cooked": {
-   "status": "missing",
-   "reason": "Reviewed two licensed candidates: the steamed basmati photo has a heavy orange colour cast and readable text on the serving spoon; Basmati Rice 2 actually shows uncooked (parboiled) grains. No clean licensed photo of plain cooked long-grain rice found within the search budget.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Basmati rice in pot.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Basmati_rice_in_pot.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/08/Basmati_rice_in_pot.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Anselm Schüler",
+   "credit": "Own work",
+   "alt": {
+    "en": "Plain cooked long-grain basmati rice in a pot",
+    "ar": "أرز بسمتي أبيض طويل الحبة مطبوخ في قِدر"
+   },
+   "reviewNote": "Top-down view of plain, fluffy cooked white basmati (long-grain) rice filling a steel pot, nothing added, neutral colour; matches long-grain white rice, cooked. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-card.webp",
+     "width": 640,
+     "height": 482,
+     "bytes": 42162,
+     "sha256": "be3bf31213a2c3d830c1c1767041e45477cc30d46d4ffc32b85c317bb6cdfb60"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_rice_white_long_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5702,
+     "sha256": "7492f8f4ff173d05bfb3deca0afc676fd0c4d524cb0990d10ce73dff21f6b0f9"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Basmati_rice_in_pot.jpg/120px-Basmati_rice_in_pot.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Basmati_rice_in_pot.jpg/500px-Basmati_rice_in_pot.jpg",
+    "width": 8160,
+    "height": 6144
+   }
   },
   "ff_rice_white_dry": {
    "status": "approved",
@@ -80,12 +120,18 @@
      "bytes": 7484,
      "sha256": "6b42ee70e695368b84bcf39a8064951fc8e4c5f6066b2ed02060923ab81bc9cf"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/WhiteRice.jpg/120px-WhiteRice.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/WhiteRice.jpg/500px-WhiteRice.jpg",
+    "width": 1194,
+    "height": 798
    }
   },
   "ff_rice_brown_cooked": {
    "status": "missing",
-   "reason": "Bowl of Cooked Brown Rice actually shows white rice mixed with red rice; Cooked Brown rice.jpg is plain brown rice but under cling film with reflections and other dishes in frame. No clean licensed photo of plain cooked brown rice found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Earlier reviewer rejected 'Bowl of Cooked Brown Rice.jpg' (white mixed with red rice) and 'Cooked Brown rice.jpg' (cling film). Viewed now: 'Brown rice cooked.JPG' (Bhutanese red rice, pink grains - not brown rice), 'Half a cup of rice. Brown rice is the best choice.JPG' (actually plain white rice) and 'Imdhqwfjbqw.JPG' (a pasta-like grain beside a measuring cup printed '1/2'). Category:Brown rice otherwise holds raw grains, packaging and par-cooked rice. No plain cooked brown rice photo found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_pasta_cooked": {
    "status": "approved",
@@ -118,17 +164,57 @@
      "bytes": 5390,
      "sha256": "5137aaa84edbbe99580e9f936206095095e0c7831e31c96f6c3d6c1e2b619a99"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Cooked_spaghetti_%28horizontal%29.jpg/120px-Cooked_spaghetti_%28horizontal%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Cooked_spaghetti_%28horizontal%29.jpg/500px-Cooked_spaghetti_%28horizontal%29.jpg",
+    "width": 3840,
+    "height": 2527
    }
   },
   "ff_pasta_dry": {
-   "status": "missing",
-   "reason": "Searches for dry/uncooked pasta returned mostly cooked dishes, shop displays and spaghetti-bridge craft photos; both penne candidates viewed were cooked dishes with sauce (one with a date stamp). No licensed photo of plain dry pasta found within the search budget.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Penne rigate.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Penne_rigate.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/61/Penne_rigate.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Stilfehler",
+   "credit": "Own work",
+   "alt": {
+    "en": "Uncooked penne rigate pasta",
+    "ar": "مكرونة بيني ريغاتي جافة غير مطبوخة"
+   },
+   "reviewNote": "A small heap of dry, uncooked penne rigate tubes on a pale glass surface; hard, matt yellow pasta that clearly reads as dry. Matches pasta, uncooked. CC BY-SA 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pasta_dry/r1-card.webp",
+     "width": 640,
+     "height": 482,
+     "bytes": 8570,
+     "sha256": "69cee12ce6fb518e7aff19346c41fc30e8d31f62c4ac88e05b655d84406afa45"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pasta_dry/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1638,
+     "sha256": "c42a7cf7b97163eb23ac189499c20bb686b14f424ab3b5ed0841de7a5e6e150b"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Penne_rigate.jpg/120px-Penne_rigate.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/Penne_rigate.jpg/500px-Penne_rigate.jpg",
+    "width": 2526,
+    "height": 1902
+   }
   },
   "ff_pasta_whole_wheat_cooked": {
    "status": "missing",
-   "reason": "The only plain cooked spaghetti found under a wholemeal title visibly shows regular (pale) pasta, not whole-wheat; the other candidate shows cooked and uncooked penne side by side. No licensed photo of plain cooked whole-wheat pasta found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Earlier reviewer rejected 'Half a cup of Pasta. Wholemeal pasta...' (pale regular pasta) and 'Whole wheat penne, cooked and uncooked.jpg' (both states side by side). Four more searches (pasta integrale, whole grain pasta, Vollkornspaghetti, whole wheat pasta) returned only sauced dishes (pumpkin/aubergine, puntarelle, gorgonzola), a bento, farm photos of packaged organic pasta and mixed shop displays. No plain cooked whole-wheat pasta found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_oats_dry": {
    "status": "approved",
@@ -161,17 +247,57 @@
      "bytes": 5290,
      "sha256": "7b3a6814b19610dcab1117d09e33aab22211c93703ce6b4c2240011615301ef4"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Rolled_oats_in_bowl_2.jpg/120px-Rolled_oats_in_bowl_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Rolled_oats_in_bowl_2.jpg/500px-Rolled_oats_in_bowl_2.jpg",
+    "width": 5152,
+    "height": 3864
    }
   },
   "ff_oatmeal_cooked": {
-   "status": "missing",
-   "reason": "Licensed oatmeal photos all carry toppings (fruit, nuts, chia, sugar); the one plain bowl of porridge sits on a placemat with large readable text. No clean licensed photo of plain oatmeal cooked in water found.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Havregrød på vand.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Havregr%C3%B8d_p%C3%A5_vand.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Nillerdk",
+   "credit": "Own work",
+   "alt": {
+    "en": "A plate of plain oatmeal porridge cooked with water",
+    "ar": "طبق من عصيدة الشوفان السادة المطبوخة بالماء"
+   },
+   "reviewNote": "Plain oat porridge in a white deep plate on a white background, no toppings; the uploader describes it as oats cooked in water with salt ('havregrød på vand'), matching oatmeal cooked with water. CC BY 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 25264,
+     "sha256": "54f2f7a81e68b29ad8469870e6c9140317572eae4c91594054d8e651b90a9032"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_oatmeal_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4234,
+     "sha256": "f57c910ec4163259b0f388745561cd74e3dba7fe0f1a6326a0857018f1e9e249"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG/120px-Havregr%C3%B8d_p%C3%A5_vand.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Havregr%C3%B8d_p%C3%A5_vand.JPG/500px-Havregr%C3%B8d_p%C3%A5_vand.JPG",
+    "width": 2560,
+    "height": 1920
+   }
   },
   "ff_bulgur_cooked": {
    "status": "missing",
-   "reason": "Cooked bulgur on Commons appears only as pilafs with meat, chickpeas or vermicelli, or alongside other dishes. No licensed photo of plain cooked bulgur found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Category:Bulgur and Category:Bulgur pilav hold dry grains, village bulgur-making, packaging, tabbouleh and pilafs served with kebabs. Viewed 'Bulgur pilavı.JPG' (bulgur pilaf with meat and chickpeas) and 'Bulgur pilavı from Turkey.jpg' (tomato-red coarse bulgur beside a plate of white cheese); 'Bulgur on plate.jpg' is 375x500 (too small). No plain cooked bulgur found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_bulgur_dry": {
    "status": "approved",
@@ -204,6 +330,12 @@
      "bytes": 5552,
      "sha256": "0d6eb086f2f9f329e4fac1d51e95ed45a759449dd9d701abf12434375f1dd6f4"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Bulgur_close-up.jpg/120px-Bulgur_close-up.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Bulgur_close-up.jpg/500px-Bulgur_close-up.jpg",
+    "width": 5184,
+    "height": 3888
    }
   },
   "ff_couscous_cooked": {
@@ -237,6 +369,12 @@
      "bytes": 7232,
      "sha256": "54c1790fe2dbec287186cc16516c0bf28fa525c0b95b2c56c921f5736fc387ee"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg/120px-Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg/500px-Liat_Portal_for_Foodie_Disorder_-_Couscous_%28Prepared%29.jpg",
+    "width": 3024,
+    "height": 4032
    }
   },
   "ff_quinoa_cooked": {
@@ -270,12 +408,18 @@
      "bytes": 7848,
      "sha256": "e7b346c5ea7ffcc49ee88527c99a36f9a882c91dcc2aaf4a8818f50cd804ce1a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Quinoa_2.jpg/120px-Quinoa_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Quinoa_2.jpg/500px-Quinoa_2.jpg",
+    "width": 3920,
+    "height": 2204
    }
   },
   "ff_barley_cooked": {
    "status": "missing",
-   "reason": "Four searches found only dry pearl barley (several in branded packaging), barley soup, rice-and-barley mixes and barley sugar. No licensed photo of plain cooked pearl barley found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches (cooked pearl barley, boiled barley) and Category:Barley groats found dry groats, boil-in-bag packaging, barley sugar, rice-and-barley mixes, orzotto and dessert soup. Viewed 'Варено жито.jpg' (described as boiled pearl barley, but it is kolyva - grain mixed with crushed nuts for a church ritual, not plain barley). 'Kkongboribap (cooked barley).jpg' is under a Korean-ported CC BY-SA 2.0 KR licence (not on the allow-list) and is a bean-barley dish. No plain cooked pearl barley found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_popcorn_air": {
    "status": "approved",
@@ -308,6 +452,12 @@
      "bytes": 4334,
      "sha256": "9cb400ce47fd8d4f83c6426f36a6007546d109b7710d6791db6b54ba5d0efb83"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg/120px-Air-Popped_Popcorn_%2845813595124%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Air-Popped_Popcorn_%2845813595124%29.jpg/500px-Air-Popped_Popcorn_%2845813595124%29.jpg",
+    "width": 7106,
+    "height": 4709
    }
   },
   "ff_rice_cakes_plain": {
@@ -341,6 +491,12 @@
      "bytes": 2900,
      "sha256": "8c1b9ad43b5c5135d5014d4bc6262daf9bd43971385f77dc969328aacd360211"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Puffed_Rice_Cakes.jpg/120px-Puffed_Rice_Cakes.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Puffed_Rice_Cakes.jpg/500px-Puffed_Rice_Cakes.jpg",
+    "width": 1450,
+    "height": 1210
    }
   },
   "ff_bread_pita_white": {
@@ -374,12 +530,18 @@
      "bytes": 3146,
      "sha256": "08a06e2c5388e609bfaf92c640437db5146832225cbaf299be06f1290bd8a714"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Pita_Bread.jpg/120px-Pita_Bread.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Pita_Bread.jpg/500px-Pita_Bread.jpg",
+    "width": 2560,
+    "height": 1920
    }
   },
   "ff_bread_pita_whole_wheat": {
    "status": "missing",
-   "reason": "Three searches found only whole-wheat pita used as a pizza base and two small brown-bread PNGs (about 520x570, under the size floor). No licensed photo of plain whole-wheat pita found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Four searches (whole wheat pita, brown pita bread, pita integral, wholemeal pitta) found only whole-wheat pita used as a pizza base, two small brown-bread PNGs (about 520x570, under the size floor), a school-lunch deli display and recipe photos. An Egyptian baladi loaf was not substituted because baladi is a separate catalog item. No plain whole-wheat pita found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_baladi_bread": {
    "status": "approved",
@@ -412,12 +574,18 @@
      "bytes": 4770,
      "sha256": "6416dc3005e0b45c804d4c7caf150a0670e9d2130a15459e603bcaaef95c45f9"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Eish_baladi.jpg/120px-Eish_baladi.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Eish_baladi.jpg/500px-Eish_baladi.jpg",
+    "width": 1200,
+    "height": 1600
    }
   },
   "ff_fino_roll": {
    "status": "missing",
-   "reason": "Four searches (English and Arabic) found no photo of Egyptian fino bread on Commons; the only hit is a cheese sandwich in a Cairo restaurant. A generic Western roll would not honestly show fino.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches in English and Arabic ('فينو', 'Egyptian fino bread', plus the earlier reviewer's four) return only places named Ouro Fino/Finow and a cheese sandwich in a Cairo restaurant. No photo of Egyptian fino bread on Commons; a generic Western roll would not honestly show fino.",
+   "reviewer": "food-images.e.json"
   },
   "ff_bread_white": {
    "status": "approved",
@@ -450,6 +618,12 @@
      "bytes": 4014,
      "sha256": "9c4de03085edd0190e7dcdfc91f2fbc4a47dfd83afbe2bc7de22d45704d3ae70"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg/120px-Tin_Loaf_-_one_slash_in_the_crust.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Tin_Loaf_-_one_slash_in_the_crust.jpg/500px-Tin_Loaf_-_one_slash_in_the_crust.jpg",
+    "width": 4752,
+    "height": 3168
    }
   },
   "ff_bread_whole_wheat": {
@@ -483,6 +657,12 @@
      "bytes": 5624,
      "sha256": "89a57ab78e00fdbcc031dd73be0f4e755252333b07c005bafe700b49e2f0610d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Whole_Wheat_Bread_01.jpg/120px-Whole_Wheat_Bread_01.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Whole_Wheat_Bread_01.jpg/500px-Whole_Wheat_Bread_01.jpg",
+    "width": 4000,
+    "height": 3000
    }
   },
   "ff_bread_french": {
@@ -516,17 +696,23 @@
      "bytes": 6340,
      "sha256": "0e1ef2e30de4b00c375ac948fe69caf93dc8faf43ec9cbf0bea95ed186add2d5"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Brot_001_2016_07_03.jpg/120px-Brot_001_2016_07_03.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Brot_001_2016_07_03.jpg/500px-Brot_001_2016_07_03.jpg",
+    "width": 4460,
+    "height": 3149
    }
   },
   "ff_fava_beans_boiled": {
    "status": "missing",
-   "reason": "The licensed Egyptian ful photos all show dressed ful: one is a full breakfast plate (eggs, olives, bread, salad), the other an authentic Alexandria ful plate sitting in a visible pool of oil. The catalog item is plain ful boiled with no oil, so these would misstate it. No licensed photo of plain boiled ful found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Category:Ful medames reviewed. Viewed: 'Ful Medames.JPG' (full breakfast plate with pita, eggs, olives, tomato), 'Ful Mudammas.jpg' (mashed ful dressed with oil and a mint garnish), 'Home Dammassa.jpg' (only the empty ful pot) and 'Foul Mdemmis, Tunisie, septembre 2020.jpg' (large Tunisian whole broad beans dusted with cumin, salad behind - not Egyptian plain ful). Other files are dressed ful (oil, tahini), street carts or under the size floor. No plain boiled ful found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_fava_beans_canned": {
    "status": "missing",
-   "reason": "No unbranded photo of canned fava beans found; searches returned fresh pods, dried beans and botanical plates. A labelled can would be branded.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches for canned fava/broad beans return a Turkish sardine-and-broad-bean salad and old seed catalogues; earlier searches found only fresh pods, dried beans and botanical plates. Category:Ful medames has no canned product photo. A labelled can would be branded, and a dressed ful plate would misstate the canned product. No suitable photo found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_fava_beans_dry": {
    "status": "approved",
@@ -559,12 +745,18 @@
      "bytes": 5134,
      "sha256": "c128e822594bafaa3b12a7d538408ae7ce328e4760f000c7dd6ebf561f03c0b3"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Fava_Beans_Dried.JPG/120px-Fava_Beans_Dried.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Fava_Beans_Dried.JPG/500px-Fava_Beans_Dried.JPG",
+    "width": 2816,
+    "height": 2112
    }
   },
   "ff_lentils_boiled": {
    "status": "missing",
-   "reason": "Four searches found cooked lentils only as dishes (topped with caramelized onions, cooked with goose fat under other foods, dal, curries, soups, lentils with rice). No licensed photo of plain boiled brown lentils found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches (boiled lentils, cooked brown lentils, lentilles cuites; earlier four more) return only dishes: lentils with caramelized onions or under cod liver, majadra, dal/curries, mercimek köfte, boiling red lentils or soup. The 'Liat Portal for Foodie Disorder' uploads (onion-topped lentils, an assorted-legume plate) were already judged doubtful in provenance and are not plain. No plain boiled brown lentils found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_lentils_brown_dry": {
    "status": "approved",
@@ -597,6 +789,12 @@
      "bytes": 3536,
      "sha256": "974e1f612d49ed2c27b24414ac51a85e2b141adb4e2c39f917609ce017bda478"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Brown_lentils.JPG/120px-Brown_lentils.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Brown_lentils.JPG/500px-Brown_lentils.JPG",
+    "width": 4676,
+    "height": 3110
    }
   },
   "ff_lentils_red_dry": {
@@ -630,33 +828,140 @@
      "bytes": 3478,
      "sha256": "fa48cb8968a6018c23094eb0cfb6d59f99f6224a184a65bb08f09eb1c817a504"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Red_lentils_-_jules_%28cropped%29.jpg/120px-Red_lentils_-_jules_%28cropped%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Red_lentils_-_jules_%28cropped%29.jpg/500px-Red_lentils_-_jules_%28cropped%29.jpg",
+    "width": 2832,
+    "height": 2837
    }
   },
   "ff_chickpeas_boiled": {
-   "status": "rejected",
-   "reason": "lead spot check: the colour cast makes the chickpeas read as green peas — misleading",
-   "file": "File:Boiled sanag alu27.11.13. (74).JPG",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:13-01-19-kichererbsensalat-03.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-03.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/37/13-01-19-kichererbsensalat-03.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Ralf Roletschek - fahrradmonteur.de",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of plain cooked chickpeas",
+    "ar": "لقطة قريبة لحمص مسلوق سادة"
+   },
+   "reviewNote": "Frame-filling close-up of plain, glossy cooked chickpeas with nothing added, natural beige-yellow colour (no green cast); they are ready-boiled chickpeas from a tin (frame 03 of the same preparation series used for the canned item), which look the same as home-boiled ones. CC BY-SA 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-card.webp",
+     "width": 640,
+     "height": 425,
+     "bytes": 12340,
+     "sha256": "b7455dba0f2f231bffc855a76be771ffad8600dc6e2cd76c80fbd161b45bb953"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chickpeas_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2526,
+     "sha256": "9eca556e94376b3a6ce785dcd11d085402da847ad1db9289f55e5be82742a5c1"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/13-01-19-kichererbsensalat-03.jpg/120px-13-01-19-kichererbsensalat-03.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/13-01-19-kichererbsensalat-03.jpg/500px-13-01-19-kichererbsensalat-03.jpg",
+    "width": 4288,
+    "height": 2848
+   }
   },
   "ff_chickpeas_canned": {
-   "status": "missing",
-   "reason": "The only canned-chickpea photos found show a branded can with a readable label; no unbranded photo of drained canned chickpeas found.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:13-01-19-kichererbsensalat-04.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:13-01-19-kichererbsensalat-04.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/13-01-19-kichererbsensalat-04.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Ralf Roletschek - fahrradmonteur.de",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of drained canned chickpeas",
+    "ar": "لقطة قريبة لحمص معلّب مصفّى"
+   },
+   "reviewNote": "Frame-filling close-up of glossy, plain chickpeas from a can (frame 04 of a chickpea-salad preparation series that starts with the opened tin), drained, with nothing added and no label in shot; matches canned, drained. CC BY-SA 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-card.webp",
+     "width": 640,
+     "height": 425,
+     "bytes": 17334,
+     "sha256": "9a3d8feb674f3d4519f734cf36de2ba04eeb52e56ae8fe724485953d1ef537e2"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_chickpeas_canned/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3402,
+     "sha256": "477f50944bc3a97bde09a83f3b3480ca8fe09367298cd167242042b12eeee7a1"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/13-01-19-kichererbsensalat-04.jpg/120px-13-01-19-kichererbsensalat-04.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/13-01-19-kichererbsensalat-04.jpg/500px-13-01-19-kichererbsensalat-04.jpg",
+    "width": 4288,
+    "height": 2848
+   }
   },
   "ff_white_beans_boiled": {
    "status": "missing",
-   "reason": "Four searches found white beans only in stews, cholent and breakfasts, or dry beans. No licensed photo of plain boiled white beans found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches (cooked cannellini beans, boiled white beans; earlier four more) return only white beans in stews, cholent, short-rib plates and breakfasts, or dry beans. No plain boiled white beans found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_kidney_beans_boiled": {
    "status": "missing",
-   "reason": "Cooked kidney beans on Commons appear only in stews (Argentine red bean stew series, rajma curry, red beans and rice). No licensed photo of plain boiled red kidney beans found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Searches (boiled kidney beans, porotos hervidos, cooked red kidney beans bowl; earlier four more) return only the Argentine red-bean-stew series (with chorizo, bacon and bouillon), stew plates held in a hand, rajma curry and red beans and rice. No plain boiled red kidney beans found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_green_peas_cooked": {
-   "status": "missing",
-   "reason": "The only plain boiled-pea photo shows dried (olive-yellow) peas in dark cooking water, not cooked green garden peas; the rest are mixed dishes. No licensed photo of plain cooked green peas found.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Peas (cooked okay) - Massachusetts.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Peas_(cooked_okay)_-_Massachusetts.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Daderot",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of plain cooked green peas",
+    "ar": "وعاء من البازلاء الخضراء المطبوخة السادة"
+   },
+   "reviewNote": "Top-down, frame-filling bowl of plain cooked green garden peas, some skins slightly wrinkled from cooking, nothing added, white bowl; matches green peas, cooked. CC0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-card.webp",
+     "width": 640,
+     "height": 640,
+     "bytes": 45930,
+     "sha256": "9df60191cc42699b9736230553684c074b269bb83e44884f3e6aa8059ab94617"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_green_peas_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6050,
+     "sha256": "cc7baed974c9cc1ce74e9f437555b1d54b05ddb601ce1456f58a5ad3547ad6af"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg/120px-Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Peas_%28cooked_okay%29_-_Massachusetts.jpg/500px-Peas_%28cooked_okay%29_-_Massachusetts.jpg",
+    "width": 2615,
+    "height": 2614
+   }
   },
   "ff_hummus": {
    "status": "approved",
@@ -689,12 +994,18 @@
      "bytes": 4530,
      "sha256": "dba5973d31cffc3a0aa061f31a4deae627271059c4b9da7fe03695d7fc441d38"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Lebanese_style_hummus.jpg/120px-Lebanese_style_hummus.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Lebanese_style_hummus.jpg/500px-Lebanese_style_hummus.jpg",
+    "width": 2848,
+    "height": 1602
    }
   },
   "ff_tahini": {
    "status": "missing",
-   "reason": "Tahini with oil.JPG looks like whipped/diluted tahini sauce rather than the undiluted paste the catalog item describes; the other tahini photos show production machinery with labelled jars, tahini sauce dishes, or Chinese toasted sesame paste. No licensed photo of plain raw tahini paste found.",
-   "reviewer": "food-images.a.json"
+   "reason": "Category:Tahini and an Arabic search ('طحينة') reviewed (earlier reviewer also rejected 'Tahini with oil.JPG' as diluted sauce). Viewed: 'Tahini Coarsly grinded.jpg' (a dry, crumbly mound of coarse-ground sesame that reads as halva or oat meal), 'Tahini with roasted sesame.JPG' (a flat brown paste on a plate under a yellow cast - could pass for hummus or peanut butter) and 'Sesame paste.jpg' (an orange-cast surface close-up). Others are tahini sauce dishes, branded jars, production scenes with people, or Chinese black sesame paste. No unmistakable plain tahini paste found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_falafel_chickpea": {
    "status": "approved",
@@ -727,6 +1038,12 @@
      "bytes": 5810,
      "sha256": "5a580f2841e08d5e482c149f110e82ca7c400d017bb1a31a5c4e14cdd7d01072"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Falafels_2.jpg/120px-Falafels_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Falafels_2.jpg/500px-Falafels_2.jpg",
+    "width": 4160,
+    "height": 2340
    }
   },
   "ff_taameya": {
@@ -760,12 +1077,52 @@
      "bytes": 3440,
      "sha256": "2d9870450c6eba43f83a857aedd82dde1d31564c5c1e7610b67f1e971225115d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Tameya_Karoleen_Lindberg.jpg/120px-Tameya_Karoleen_Lindberg.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Tameya_Karoleen_Lindberg.jpg/500px-Tameya_Karoleen_Lindberg.jpg",
+    "width": 2000,
+    "height": 1180
    }
   },
   "ff_lentil_soup": {
-   "status": "missing",
-   "reason": "Reviewed two licensed candidates: the smooth Turkish mercimek (closest to Egyptian shorbet ads) shows a restaurant logo and a placemat with readable text; the jules red lentil soup is a chunky tomato version topped with a dollop of yogurt, not the plain/Egyptian soup. Other hits add dumplings or vegetables. No suitable licensed photo found.",
-   "reviewer": "food-images.a.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Süzme mercimek soup.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:S%C3%BCzme_mercimek_soup.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f6/S%C3%BCzme_mercimek_soup.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "E4024",
+   "credit": "Own work",
+   "alt": {
+    "en": "A cup of smooth red lentil soup with a lemon wedge",
+    "ar": "كوب من شوربة العدس الناعمة مع شريحة ليمون"
+   },
+   "reviewNote": "Smooth, strained yellow-orange red-lentil soup (Turkish süzme mercimek) in a white cup on a saucer with a lemon wedge - the same blended soup and lemon serving as Egyptian shorbet ads, no text or logos. Borderline: a slightly soft phone photo with a cool cast on the white china. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lentil_soup/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 8730,
+     "sha256": "e4bfa2957a155c24796cab382c8beeaee991459ad1cba8f187c6ea92e38fe83c"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lentil_soup/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1376,
+     "sha256": "a3ed32045ec276a3416c88c42bc414f41a0ebddcb32e220664943734619539fe"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/S%C3%BCzme_mercimek_soup.jpg/120px-S%C3%BCzme_mercimek_soup.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/S%C3%BCzme_mercimek_soup.jpg/500px-S%C3%BCzme_mercimek_soup.jpg",
+    "width": 2560,
+    "height": 1920
+   }
   },
   "ff_beef_ground_90_raw": {
    "status": "approved",
@@ -798,12 +1155,18 @@
      "bytes": 3176,
      "sha256": "45acb57e998fa3cdcc2c3ac9e56c0beb2857594ca8b250580802eb6dc8f1222a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Hakket-oksekoed.jpg/120px-Hakket-oksekoed.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Hakket-oksekoed.jpg/500px-Hakket-oksekoed.jpg",
+    "width": 1277,
+    "height": 916
    }
   },
   "ff_beef_ground_90_cooked": {
    "status": "missing",
-   "reason": "No fully browned plain ground beef found: 'Cooking beef 1' is still raw in the pan, 'Cooking beef 2' is half-cooked with pink patches and seasoning; other hits are dishes (burgers, noodles, stir-fries) or packaged product.",
-   "reviewer": "food-images.b.json"
+   "reason": "Earlier reviewer rejected the 'Cooking beef 1/2', 'Ground beef frying' and 'Crumbling ground beef in water' shots (still raw or half-cooked). Searches now (browned ground beef, fried minced meat pan, Hackfleisch angebraten, Daderot's ground-beef series) found only dishes (tacos, pasta, rice bowls, patties, dumplings, pizza). Viewed 'Ground Beef.jpg' (browned crumbled beef, but mixed with visible tomato pieces in a plastic tub, dim light) - not plain. No plain browned ground beef found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_beef_ground_80_raw": {
    "status": "approved",
@@ -836,12 +1199,18 @@
      "bytes": 3896,
      "sha256": "c92889b864971efad7725f3f237a5e7b8dded5a03706607deb282cfc29d1a07c"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Hackfleisch-1.jpg/120px-Hackfleisch-1.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Hackfleisch-1.jpg/500px-Hackfleisch-1.jpg",
+    "width": 2905,
+    "height": 2211
    }
   },
   "ff_beef_ground_80_cooked": {
    "status": "missing",
-   "reason": "No browned, drained ground beef found: 'Ground beef frying' is still a raw block in the pan, 'Crumbling ground beef in water' is raw with a hand in shot; other hits are meatballs or dishes.",
-   "reviewer": "food-images.b.json"
+   "reason": "Earlier reviewer rejected the 'Cooking beef 1/2', 'Ground beef frying' and 'Crumbling ground beef in water' shots (still raw or half-cooked). Searches now (browned ground beef, fried minced meat pan, Hackfleisch angebraten, Daderot's ground-beef series) found only dishes (tacos, pasta, rice bowls, patties, dumplings, pizza). Viewed 'Ground Beef.jpg' (browned crumbled beef, but mixed with visible tomato pieces in a plastic tub, dim light) - not plain. No plain browned ground beef found. The 80% and 90% items would also look identical, so one photo could not tell them apart anyway.",
+   "reviewer": "food-images.e.json"
   },
   "ff_beef_sirloin_lean_grilled": {
    "status": "approved",
@@ -874,6 +1243,12 @@
      "bytes": 6774,
      "sha256": "840d2c78b49b039a932667f528859679ce2ef0ba3425c1757e1d020a70bb16cd"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg/120px-Grilled_Sirloin_Steak_with_Vegetables.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Grilled_Sirloin_Steak_with_Vegetables.jpg/500px-Grilled_Sirloin_Steak_with_Vegetables.jpg",
+    "width": 4032,
+    "height": 3024
    }
   },
   "ff_beef_round_lean_roasted": {
@@ -907,12 +1282,18 @@
      "bytes": 4286,
      "sha256": "44f5ddec57ebbecfb06a7846ef1200b217a44f0beaace6595909cdcc614e9d54"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Roast_topside_of_beef.jpg/120px-Roast_topside_of_beef.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Roast_topside_of_beef.jpg/500px-Roast_topside_of_beef.jpg",
+    "width": 3084,
+    "height": 3084
    }
   },
   "ff_veal_leg_roasted": {
    "status": "missing",
-   "reason": "No plain roasted veal found: hits are restaurant plates with sauces/dumplings, veal Orloff, street-food carcass roasts or scanned cookbooks. Roast veal is also hard to tell apart from beef in a photo.",
-   "reviewer": "food-images.b.json"
+   "reason": "Searches (roast veal sliced, Kalbsbraten; earlier reviewer's set) return scanned cookbook pages, the veal Orloff preparation series (sauced), a restaurant plate of Kalbsbraten with rice and peas, and restaurant dishes. No plain roasted veal found; roast veal is also hard to tell from beef in a photo.",
+   "reviewer": "food-images.e.json"
   },
   "ff_lamb_leg_roasted": {
    "status": "approved",
@@ -945,12 +1326,18 @@
      "bytes": 3640,
      "sha256": "aa8887723b58053a12eccf554e16df3347f8ca1f47242ba61df3786676cc846d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Roast_lamb_leg.jpg/120px-Roast_lamb_leg.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Roast_lamb_leg.jpg/500px-Roast_lamb_leg.jpg",
+    "width": 2736,
+    "height": 3648
    }
   },
   "ff_beef_liver_fried": {
    "status": "missing",
-   "reason": "No plain pan-fried beef liver found: 'Fried cow liver' is too small (720x960); other hits are liver-and-onion/bacon restaurant plates with sides, a person in shot, or a mixed liver-onion stew where the liver type is unclear.",
-   "reviewer": "food-images.b.json"
+   "reason": "Searches (fried beef liver, gebratene Leber; earlier reviewer's set) return 'Fried cow liver.jpg' (720x960, under the size floor), restaurant plates where liver is under onions/gravy with fried potatoes and salad (Hattenheim, Bad Staffelstein), duck liver with a hamburger steak, and menus. No plain pan-fried beef liver found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_chicken_breast_raw": {
    "status": "approved",
@@ -983,6 +1370,12 @@
      "bytes": 2146,
      "sha256": "e91d3bf374d58c8529f1848305bb5dabded25c1aa92c771b3acb3dd3880bc38f"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Raw_chicken_slices.jpg/120px-Raw_chicken_slices.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Raw_chicken_slices.jpg/500px-Raw_chicken_slices.jpg",
+    "width": 3888,
+    "height": 2592
    }
   },
   "ff_chicken_breast_roasted": {
@@ -1016,6 +1409,12 @@
      "bytes": 6002,
      "sha256": "905b28d9ac15f9acb3afb299ee6174237570b94d82658ee624327aebacb03f3b"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg/120px-Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Grilled_Chicken_Breasts_%2828905381261%29.jpg/500px-Grilled_Chicken_Breasts_%2828905381261%29.jpg",
+    "width": 1000,
+    "height": 1506
    }
   },
   "ff_chicken_thigh_roasted": {
@@ -1049,6 +1448,12 @@
      "bytes": 8312,
      "sha256": "6cbb6c9f80662ed00a97f4c7565fb37502d555355a2cd9fd95c0782603e35e5d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg/120px-Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg/500px-Grilled_Chicken_Thigh_at_2026_BIFC_20260905151916.jpg",
+    "width": 5563,
+    "height": 3709
    }
   },
   "ff_chicken_with_skin_roasted": {
@@ -1082,12 +1487,18 @@
      "bytes": 6308,
      "sha256": "85dbf410e65c495acb68b00de9750b652bf705460fe46f7acefcc606e717789a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Stuffed_roast_chicken.jpg/120px-Stuffed_roast_chicken.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Stuffed_roast_chicken.jpg/500px-Stuffed_roast_chicken.jpg",
+    "width": 2919,
+    "height": 1841
    }
   },
   "ff_chicken_liver": {
    "status": "missing",
-   "reason": "No plain simmered chicken liver found: candidates are a restaurant plate of sautéed livers buried in raw onion and sumac, a soy-glazed liver/gizzard/quail-egg dish, and mixed dishes with rice or bacon.",
-   "reviewer": "food-images.b.json"
+   "reason": "Searches (boiled chicken liver, cooked chicken livers; earlier reviewer's set) return the soy-simmered Koshu-style liver-and-gizzard dish, chicken livers with apples and cranberries, restaurant plates with onions/sumac, Thai skewers, bacon-wrapped livers and dishes with rice. No plain simmered chicken liver found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_turkey_breast_roasted": {
    "status": "approved",
@@ -1120,17 +1531,91 @@
      "bytes": 3930,
      "sha256": "04993797f1c417c18fb52d6e0af14aafe3cc025c6b1c5f88b39f816c88588f25"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg/120px-Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg/500px-Cooked_turkey_breast_-_November_2023_-_Sarah_Stierch.jpg",
+    "width": 5712,
+    "height": 4284
    }
   },
   "ff_tuna_water": {
-   "status": "missing",
-   "reason": "Every canned-tuna photo found shows a branded tin (Calvo, Albo, Galeão, Loblaws, Pirkka) or supermarket shelves; no unbranded drained light tuna in water. Fresh tuna steaks would misrepresent the canned state.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Thunfisch (in geöffneter Dose) 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "IgorCalzone1",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of flaked canned tuna",
+    "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+   },
+   "reviewNote": "Frame-filling close-up of canned tuna chunks with their typical pressed, flaky layers, taken in an opened tin with no label, hand or liquid in frame; reads as drained canned tuna. The packing medium (water vs oil) cannot be seen, so the same photo serves both canned-tuna items. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tuna_water/r1-card.webp",
+     "width": 640,
+     "height": 543,
+     "bytes": 34496,
+     "sha256": "6c608afad802ea7793317561630319a6d8605014903629e5eb1c7dd17706cea3"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tuna_water/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5464,
+     "sha256": "1aa6913d69537eb73818a7cc80734027d58eb2dd80d0b98e25ef585591f3a8ba"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/120px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/500px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "width": 1382,
+    "height": 1171
+   }
   },
   "ff_tuna_oil": {
-   "status": "missing",
-   "reason": "No unbranded drained canned tuna in oil found: hits are branded tins (Galeão, Kooddoo, Calvo), fresh tuna steak dishes, and a fish-market scene with people. Fresh tuna would misrepresent the canned state.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Thunfisch (in geöffneter Dose) 2.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Thunfisch_(in_ge%C3%B6ffneter_Dose)_2.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "IgorCalzone1",
+   "credit": "Own work",
+   "alt": {
+    "en": "Close-up of flaked canned tuna",
+    "ar": "لقطة قريبة لتونة معلّبة مقطّعة"
+   },
+   "reviewNote": "Frame-filling close-up of canned tuna chunks with their typical pressed, flaky layers, in an opened tin with no label, hand or pooled oil in frame; drained tuna packed in oil looks the same, so this is the same photo as the in-water item (like the shared milk/yogurt photos). CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tuna_oil/r1-card.webp",
+     "width": 640,
+     "height": 543,
+     "bytes": 34496,
+     "sha256": "6c608afad802ea7793317561630319a6d8605014903629e5eb1c7dd17706cea3"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tuna_oil/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5464,
+     "sha256": "1aa6913d69537eb73818a7cc80734027d58eb2dd80d0b98e25ef585591f3a8ba"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/120px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg/500px-Thunfisch_%28in_ge%C3%B6ffneter_Dose%29_2.jpg",
+    "width": 1382,
+    "height": 1171
+   }
   },
   "ff_tilapia_cooked": {
    "status": "approved",
@@ -1163,6 +1648,12 @@
      "bytes": 4686,
      "sha256": "b9a9b21ac35c7dc7a2dbb4496eed0549e925f43975319d0cbfcbef2988e99a01"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Grilled_Tilapia_2.jpg/120px-Grilled_Tilapia_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Grilled_Tilapia_2.jpg/500px-Grilled_Tilapia_2.jpg",
+    "width": 3120,
+    "height": 4160
    }
   },
   "ff_tilapia_raw": {
@@ -1196,17 +1687,57 @@
      "bytes": 4922,
      "sha256": "e6e564fa1c0e0ab389598b16794a022f05dfa31d68b37270ff38e6361cca7e8f"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg/120px-Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Oreochromis_niloticus_at_Kanchanaburi_market.jpg/500px-Oreochromis_niloticus_at_Kanchanaburi_market.jpg",
+    "width": 1368,
+    "height": 1824
    }
   },
   "ff_mullet_grilled": {
    "status": "missing",
-   "reason": "No grilled grey mullet (bouri) found: the one 'Grilled Mullet fish' photo includes an identifiable cook and the fish look like crusted tilapia; other hits are red mullet (a different fish), stamps, or mixed seafood plates.",
-   "reviewer": "food-images.b.json"
+   "reason": "Searches (grilled mullet fish, Arabic 'بوري مشوي'; earlier reviewer's set) return only 'Grilled Mullet fish.jpg' (already rejected: an identifiable cook in frame and fish that look like crusted tilapia), Seychelles stamps, red mullet restaurant plates (a different fish) and mixed seafood plates. No faithful photo of grilled grey mullet (bouri) found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_salmon_cooked": {
-   "status": "missing",
-   "reason": "No clean cooked salmon found within budget: 'Grilled salmon (27426046515)' is actually raw salmon on a cedar plank before grilling; 'Grilled salmon.jpg' is skin-side-up and ringed by potato wedges that dominate the frame; other hits are mixed plates (chips, rice, pasta, salads).",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Grilled salmon garnished with lemon and parsley.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Gatorfan252525",
+   "credit": "Own work",
+   "alt": {
+    "en": "A cooked salmon fillet on a white platter",
+    "ar": "فيليه سلمون مطبوخ على طبق أبيض"
+   },
+   "reviewNote": "A whole side of salmon, grilled until opaque and browned on top, on a white platter; the salmon is the clear subject and survives a square crop, no people or text. Matches salmon, cooked. Borderline: light garnish of lemon slices, chopped parsley and pan juices. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_salmon_cooked/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 79550,
+     "sha256": "80cb356075dac4abb0f7b587825ae166196f48be0b32d42f13a4debe9a6ca674"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_salmon_cooked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5440,
+     "sha256": "fc77485c1ef29117315e130ab90396864352c8911a653cca1df02c7980e67e37"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg/120px-Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Grilled_salmon_garnished_with_lemon_and_parsley.jpg/500px-Grilled_salmon_garnished_with_lemon_and_parsley.jpg",
+    "width": 3024,
+    "height": 4032
+   }
   },
   "ff_shrimp_cooked": {
    "status": "approved",
@@ -1239,12 +1770,52 @@
      "bytes": 4444,
      "sha256": "83f409ae6b014e8559cfbf56975cbf1e25a5d513022518d49ca8275d49fb8fcc"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Cooked_shrimp.jpg/120px-Cooked_shrimp.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Cooked_shrimp.jpg/500px-Cooked_shrimp.jpg",
+    "width": 4000,
+    "height": 3000
    }
   },
   "ff_sardines_oil": {
-   "status": "missing",
-   "reason": "Only branded or shop-display sardine tins found (Mayflower, Connétable, Parmentier, La Quiberonnaise, Lisbon souvenir tins); no unbranded drained canned sardines. Fresh/grilled sardines would misrepresent the canned state.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Canned sardines with lemon.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Canned_sardines_with_lemon.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Canned_sardines_with_lemon.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Pannet",
+   "credit": "Own work",
+   "alt": {
+    "en": "An opened tin of whole sardines in oil",
+    "ar": "علبة مفتوحة من السردين الكامل في الزيت"
+   },
+   "reviewNote": "Top-down view of an opened, unlabelled tin of whole silvery sardines packed in golden oil on a dark slate; sharp and well lit, no lemon or brand in frame; matches sardines canned in oil. Borderline: a tiny embossed serving-suggestion line on the inner rim (top-left corner) is outside the square thumbnail crop and unreadable at card size. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sardines_oil/r1-card.webp",
+     "width": 640,
+     "height": 443,
+     "bytes": 73818,
+     "sha256": "e10aff80cad60aba26bb2104ae561001dd556c01c769bb3dbee9017220021a93"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sardines_oil/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6090,
+     "sha256": "d1eeb2a3437b37abcf426699f5bd14f2e48002677c5cd5ccea338e7dfee4f08a"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Canned_sardines_with_lemon.jpg/120px-Canned_sardines_with_lemon.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Canned_sardines_with_lemon.jpg/500px-Canned_sardines_with_lemon.jpg",
+    "width": 4055,
+    "height": 2804
+   }
   },
   "ff_mackerel_cooked": {
    "status": "approved",
@@ -1277,12 +1848,52 @@
      "bytes": 9358,
      "sha256": "d06d207b2de061fe3e1891724ce9ea35e96204966a2fed879c66c1bf727ccfd9"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Grilled_mackerel_on_a_BBQ.jpg/120px-Grilled_mackerel_on_a_BBQ.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Grilled_mackerel_on_a_BBQ.jpg/500px-Grilled_mackerel_on_a_BBQ.jpg",
+    "width": 4096,
+    "height": 3072
    }
   },
   "ff_renga": {
-   "status": "missing",
-   "reason": "No usable image of Egyptian renga. The closest look-alike (German Bückling, whole golden smoked herring in Büsum) has a readable price sign in frame; other hits are herring species plates, larvae, mixed Massachusetts dishes, or packaged product sold in Italy (also under 800 px).",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Buckling.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Buckling.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/3/30/Buckling.jpg",
+   "license": "CC-BY-SA-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+   "author": "Christopher Bertram",
+   "credit": "Own work",
+   "alt": {
+    "en": "Two whole golden smoked herrings on a plate",
+    "ar": "سمكتا رنجة مدخنة كاملتان ذهبيتا اللون على طبق"
+   },
+   "reviewNote": "Two whole, golden-skinned smoked herrings (buckling) on a plain white plate, nothing else in frame; renga is this same whole smoked herring as sold in Egypt (golden wrinkled skin), so it reads faithfully. Borderline: these are headless, while Egyptian renga is often sold head-on. CC BY-SA 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_renga/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 36932,
+     "sha256": "ffe3f443e0598ad82e807695bd23b819e43988dad1dd322599dcab1c78c8e7b5"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_renga/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3770,
+     "sha256": "e96a72d60bba96bfed5a177f49e98f77606602e61aaf3ec0d912db83ad538b4d"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Buckling.jpg/120px-Buckling.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Buckling.jpg/500px-Buckling.jpg",
+    "width": 1280,
+    "height": 960
+   }
   },
   "ff_egg_whole_raw": {
    "status": "approved",
@@ -1315,6 +1926,12 @@
      "bytes": 2944,
      "sha256": "5bc3c770ed3877b6334f918be09388639804f1170cb05192459fc479466ed91a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Eggs_Chicken.jpg/120px-Eggs_Chicken.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/Eggs_Chicken.jpg/500px-Eggs_Chicken.jpg",
+    "width": 3984,
+    "height": 2656
    }
   },
   "ff_egg_boiled": {
@@ -1348,12 +1965,52 @@
      "bytes": 1642,
      "sha256": "6a2f84b8f6a87b12b63f24c30f173f0e560b6b0adc46ca06c7575387ff5174c3"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Boiled_Egg_-_Crossection.jpg/120px-Boiled_Egg_-_Crossection.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Boiled_Egg_-_Crossection.jpg/500px-Boiled_Egg_-_Crossection.jpg",
+    "width": 2048,
+    "height": 1536
    }
   },
   "ff_egg_fried": {
-   "status": "missing",
-   "reason": "Both previewed CC0 'Fried egg sunny side up' photos are full breakfast plates (potatoes, sauce, meat under the eggs) and one has a person in frame; thumbnail budget used up. Fried eggs alone likely exist on Commons — worth a targeted second pass (e.g. 'fried egg in pan').",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:2022-04-08 19 21 15 Two sunny-side up eggs on a plate in the Franklin Farm section of Oak Hill, Fairfax County, Virginia.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill,_Fairfax_County,_Virginia.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Famartin",
+   "credit": "Own work",
+   "alt": {
+    "en": "Two sunny-side-up fried eggs on a plate",
+    "ar": "بيضتان مقليتان (عيون) على طبق"
+   },
+   "reviewNote": "Two plain sunny-side-up fried eggs with set whites and runny yolks on a blue-rimmed white plate on a wooden table, nothing else on the plate; sharp and evenly lit. Matches egg, fried. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_egg_fried/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 65538,
+     "sha256": "6925590d4515c64934fd63d3e396f08750bc14f7f646e1ec9b943e06b6bf2718"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_egg_fried/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6584,
+     "sha256": "9424ab09d1536a8b76ed0692dbdbd87d96ed404c4ee77f7d7fa37fb1089409a9"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/120px-2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg/500px-2022-04-08_19_21_15_Two_sunny-side_up_eggs_on_a_plate_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg",
+    "width": 4032,
+    "height": 3024
+   }
   },
   "ff_egg_scrambled": {
    "status": "approved",
@@ -1386,13 +2043,18 @@
      "bytes": 4308,
      "sha256": "a6c47f0e674588ed98bc113cb5724df99e97abf4d25e211ff8ce557f417453cb"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scrambled_eggs_with_basil.jpg/120px-Scrambled_eggs_with_basil.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Scrambled_eggs_with_basil.jpg/500px-Scrambled_eggs_with_basil.jpg",
+    "width": 1960,
+    "height": 2614
    }
   },
   "ff_egg_white_raw": {
-   "status": "rejected",
-   "reason": "lead spot check: shown as a yellow liquid that reads as oil or yolk — misleading",
-   "file": "File:Bowl of egg whites.jpg",
-   "reviewer": "food-images.b.json"
+   "status": "missing",
+   "reason": "The previously approved 'Bowl of egg whites.jpg' (and its 'no bg' PNG copy) was rejected at spot check for a yellow cast. New candidates viewed: 'Eggehvitebolle0.jpg' and 'Eggehvitebolle1.jpg' (egg white in a blue-striped bowl whose yellow-green pattern shows through, so the white reads as oily green liquid), 'Egg white 1.jpg' (murky yellow-green liquid in a plastic tub, low quality), and 'ขั้นตอนแยกไข่.jpg' (hands separating many yolks over a bowl - people and yolks dominate). Category:Egg white and Category:Separating eggs hold nothing else usable (whole raw eggs, packaged whites, dishes). No clear photo of separated raw egg white found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_egg_yolk_raw": {
    "status": "approved",
@@ -1425,6 +2087,12 @@
      "bytes": 2096,
      "sha256": "1b06734c105b08ccda2a5f9d5ae0dcd25f85a3ef2079bfdffd005bf9e0b3810d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Yolks.jpg/120px-Yolks.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c0/Yolks.jpg/500px-Yolks.jpg",
+    "width": 2802,
+    "height": 1868
    }
   },
   "ff_milk_whole": {
@@ -1458,6 +2126,12 @@
      "bytes": 1450,
      "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570
    }
   },
   "ff_milk_2": {
@@ -1491,6 +2165,12 @@
      "bytes": 1450,
      "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570
    }
   },
   "ff_milk_skim": {
@@ -1524,6 +2204,12 @@
      "bytes": 1450,
      "sha256": "4fcfea72638fea498ba4f03eab85a5b4562fcf3983153ed53b98da53d657c3c1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/120px-Glass_of_Milk_%2833657535532%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg",
+    "width": 1566,
+    "height": 1570
    }
   },
   "ff_laban_rayeb": {
@@ -1557,6 +2243,12 @@
      "bytes": 1080,
      "sha256": "e97eed40a0fce4822fdb9f16cd2d6ce71da0053f6163f280e14f750e79310763"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/A_cup_of_laban_rayeb.jpg/120px-A_cup_of_laban_rayeb.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/A_cup_of_laban_rayeb.jpg/500px-A_cup_of_laban_rayeb.jpg",
+    "width": 4160,
+    "height": 3120
    }
   },
   "ff_yogurt_plain_whole": {
@@ -1590,6 +2282,12 @@
      "bytes": 1680,
      "sha256": "508ee382c051110009c3294400e002bf27ded2ac0d7f6065b05563bbcc747fd1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/120px-Joghurt.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/500px-Joghurt.jpg",
+    "width": 2000,
+    "height": 1679
    }
   },
   "ff_yogurt_plain_lowfat": {
@@ -1623,6 +2321,12 @@
      "bytes": 1680,
      "sha256": "508ee382c051110009c3294400e002bf27ded2ac0d7f6065b05563bbcc747fd1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/120px-Joghurt.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Joghurt.jpg/500px-Joghurt.jpg",
+    "width": 2000,
+    "height": 1679
    }
   },
   "ff_greek_yogurt_nonfat": {
@@ -1656,6 +2360,12 @@
      "bytes": 1562,
      "sha256": "9be8537e9a4ce2558d77abbb6678f6c0db352c29441c77a46770e60e59e7b13a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/120px-Fresh_greek_yoghurt.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/500px-Fresh_greek_yoghurt.jpg",
+    "width": 3920,
+    "height": 2204
    }
   },
   "ff_greek_yogurt_whole": {
@@ -1689,6 +2399,12 @@
      "bytes": 1562,
      "sha256": "9be8537e9a4ce2558d77abbb6678f6c0db352c29441c77a46770e60e59e7b13a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/120px-Fresh_greek_yoghurt.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Fresh_greek_yoghurt.jpg/500px-Fresh_greek_yoghurt.jpg",
+    "width": 3920,
+    "height": 2204
    }
   },
   "ff_cottage_cheese_4": {
@@ -1722,6 +2438,12 @@
      "bytes": 3840,
      "sha256": "2b8a179e2afa28b1cb0e94451c72ce319fe3a00de651546a5ba11d42176fe5a3"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/120px-Cottagecheese200px.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/500px-Cottagecheese200px.jpg",
+    "width": 2274,
+    "height": 1808
    }
   },
   "ff_cottage_cheese_1": {
@@ -1755,12 +2477,18 @@
      "bytes": 3840,
      "sha256": "2b8a179e2afa28b1cb0e94451c72ce319fe3a00de651546a5ba11d42176fe5a3"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/120px-Cottagecheese200px.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/16/Cottagecheese200px.jpg/500px-Cottagecheese200px.jpg",
+    "width": 2274,
+    "height": 1808
    }
   },
   "ff_areesh_cheese": {
    "status": "missing",
-   "reason": "No photo of Egyptian areesh (karish) cheese on Commons: searches for 'areesh cheese', 'Karish cheese' and the Arabic 'جبنة قريش' return nothing or only Western cottage cheese, which looks different (areesh is a pressed, crumbly fresh curd block). Not substituted with cottage cheese.",
-   "reviewer": "food-images.b.json"
+   "reason": "Searches for areesh/karish in English and Arabic ('جبن قريش', 'Egyptian cheese karish areesh', plus the earlier reviewer's set) return only Western cottage cheese tubs and dishes (varenyky, pancakes, breakfasts). Areesh is a pressed, crumbly fresh-curd block that looks different, so cottage cheese was not substituted. No photo of Egyptian areesh on Commons.",
+   "reviewer": "food-images.e.json"
   },
   "ff_feta": {
    "status": "approved",
@@ -1793,6 +2521,12 @@
      "bytes": 1794,
      "sha256": "8d6cc38e7c93ed4411d59ae14a471a53761f30d2aed5c2057e8bdb78dbcdb341"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Feta_siers.JPG/120px-Feta_siers.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Feta_siers.JPG/500px-Feta_siers.JPG",
+    "width": 2342,
+    "height": 1595
    }
   },
   "ff_white_cheese_domiati": {
@@ -1826,6 +2560,12 @@
      "bytes": 2436,
      "sha256": "89cc0ba0a76d72c722fd6ab989dabe7ea2a093f253687f0f64dd0947a5f1298b"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Domiati_cheese.jpg/120px-Domiati_cheese.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Domiati_cheese.jpg/500px-Domiati_cheese.jpg",
+    "width": 2182,
+    "height": 1850
    }
   },
   "ff_mozzarella_part_skim": {
@@ -1859,22 +2599,130 @@
      "bytes": 2328,
      "sha256": "25d5fc4febbb7d0561a313290d9f473cc76e731f7e9848870422f1c8cde64945"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Mozzarella_cheese_%281%29.jpg/120px-Mozzarella_cheese_%281%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Mozzarella_cheese_%281%29.jpg/500px-Mozzarella_cheese_%281%29.jpg",
+    "width": 1280,
+    "height": 960
    }
   },
   "ff_cheddar": {
-   "status": "missing",
-   "reason": "No clean cheddar photo found: 'White cheddar cheese sliced' shows thin translucent yellow squares that do not read as cheddar; Jon Sullivan's white cheddar block has a stack of crackers on it and is only 1024x768; Somerset wedge is 879x628; other hits are branded blocks, people, sandwiches or cheese boards.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:2022-05-11-Cheddar-.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:2022-05-11-Cheddar-.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f7/2022-05-11-Cheddar-.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Superbass",
+   "credit": "Own work",
+   "alt": {
+    "en": "A wedge of mature orange cheddar cheese",
+    "ar": "قطعة مثلثة من جبن الشيدر البرتقالي المعتّق"
+   },
+   "reviewNote": "A single wedge of mature English cheddar (annatto-coloured, clothbound rind) on a bamboo board against a plain white background; sharp studio-style shot, no labels. Matches cheddar cheese. Borderline: the deep orange colour and cloth rind are less familiar than a plain block. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cheddar/r1-card.webp",
+     "width": 640,
+     "height": 426,
+     "bytes": 25448,
+     "sha256": "d9e3715b1f17986e95a904f212ec99ae2a2342e5fce78a322402ca61b36e9696"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cheddar/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3152,
+     "sha256": "fac2c823c7f7b931b5611d72797f154957cfa6d38d8a8b66f9844d1f1d8cd616"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/2022-05-11-Cheddar-.jpg/120px-2022-05-11-Cheddar-.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/2022-05-11-Cheddar-.jpg/500px-2022-05-11-Cheddar-.jpg",
+    "width": 6431,
+    "height": 4280
+   }
   },
   "ff_parmesan": {
-   "status": "missing",
-   "reason": "Previewed Parmesan photos both carry readable text: a whole wheel covered in the 'PARMIGIANO REGGIANO' rind stamps, and a restaurant chunk with a printed name card and a branded barrel behind. Other hits are market wheels, buffets or under 800 px.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:15-01 Parmigiano Reggiano Lokal K 01.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mario M. Lommersum",
+   "credit": "Own work",
+   "alt": {
+    "en": "A wedge of Parmesan cheese on slate",
+    "ar": "قطعة مثلثة من جبن البارميزان على لوح حجري"
+   },
+   "reviewNote": "A single wedge of hard, granular, crystalline Parmigiano Reggiano on a slate board against a dark background; no rind stamps, labels or text, cheese fills the frame. Title and category say Parmigiano Reggiano; the page description 'Irish Cheddar' is a copy-paste slip from the same WikiCheese session (the cheddar has its own file, '15-01 Irish Chester Lokal K 01.jpg'), and the texture is clearly Parmesan. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_parmesan/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 11948,
+     "sha256": "e1f9cbe5502c687a0a72659a45cd7badb5145a5754103fb7a13b813056c77adf"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_parmesan/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1632,
+     "sha256": "f942defa47bd30aed9f5947f9c9336f370f5bfdd85f0f6d0ecdb0dc5264efeec"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg/120px-15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/15-01_Parmigiano_Reggiano_Lokal_K_01.jpg/500px-15-01_Parmigiano_Reggiano_Lokal_K_01.jpg",
+    "width": 5184,
+    "height": 3456
+   }
   },
   "ff_cream_cheese": {
-   "status": "missing",
-   "reason": "No unbranded plain cream cheese found: the opened brick is a branded (Philadelphia) foil pack with printed text; other hits are branded cartons, flavoured vegan products, bagels/sandwiches, a composition diagram, or other fresh cheeses (quark, farmer cheese) that are not cream cheese.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:2019-10-12 15 31 00 A open carton of Harris Teeter Plain Cream Cheese Spread in the Dulles section of Sterling, Loudoun County, Virginia.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling,_Loudoun_County,_Virginia.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Famartin",
+   "credit": "Own work",
+   "alt": {
+    "en": "An opened tub of plain cream cheese",
+    "ar": "علبة مفتوحة من الجبن الكريمي السادة"
+   },
+   "reviewNote": "Top view of an opened tub of plain, unflavoured cream cheese with the foil seal peeled back (plain silver underside, no print visible) and a few scoops taken; the white, smooth spread fills the frame. Matches cream cheese. Borderline: a used, scooped tub rather than a styled serving. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_cream_cheese/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 27672,
+     "sha256": "ebae7a1a52bed6a5d3cb188f20d957621cfa9e6e7c7abb0882698cb948196771"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_cream_cheese/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3240,
+     "sha256": "fb78b3e1785be31ae09ea13ce064c525e3e2e628b37beb96efc8d2db6d1aac9b"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg/120px-2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg/500px-2019-10-12_15_31_00_A_open_carton_of_Harris_Teeter_Plain_Cream_Cheese_Spread_in_the_Dulles_section_of_Sterling%2C_Loudoun_County%2C_Virginia.jpg",
+    "width": 4032,
+    "height": 3024
+   }
   },
   "ff_ricotta_part_skim": {
    "status": "approved",
@@ -1907,17 +2755,57 @@
      "bytes": 1936,
      "sha256": "86656f09b503e623cafe63c6dd362d1ee329f5532cbf9361b6950c9ca2325d08"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Ricotta_pugliese.jpg/120px-Ricotta_pugliese.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Ricotta_pugliese.jpg/500px-Ricotta_pugliese.jpg",
+    "width": 2736,
+    "height": 2675
    }
   },
   "ff_processed_cheese_spread": {
    "status": "missing",
-   "reason": "No photo of spreadable processed cheese (triangles/jar spread) alone: 'Schmelzkäse-1' mixes wrapped processed slices with one foil wedge, 'Processed cheese 1' shows processed slices (a different product); other hits are branded tubs/jars, sandwiches, or a non-accepted 'Attribution' licence.",
-   "reviewer": "food-images.b.json"
+   "reason": "Category:Processed cheese reviewed (earlier reviewer also rejected 'Schmelzkäse-1' and 'Processed cheese 1'). Viewed: 'Eckerlkäse-01.jpg' (two half-unwrapped foil triangles, but the cheese is orange with herb/pepper flecks - a flavoured variety, not the plain pale spread) and 'Karper.jpg' (a branded six-portion box). Others are branded tubs/jars, sambal-flavoured spreads, sandwiches or an 'Attribution'-only licence. No plain processed cheese spread found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_tofu_firm": {
-   "status": "missing",
-   "reason": "No plain firm tofu block found: the only firm-tofu candidate is a production scene (fresh curd in a cloth-lined tray, hand and knife in frame); other hits are silken tofu, pressed/dried tofu (dou gan, a different product), cooked dishes, branded bags, or images under 800 px.",
-   "reviewer": "food-images.b.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tofu slices.png",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tofu_slices.png",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Tofu_slices.png",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Tiia Monto",
+   "credit": "Own work",
+   "alt": {
+    "en": "Three slices of plain firm tofu",
+    "ar": "ثلاث شرائح من التوفو الصلب السادة"
+   },
+   "reviewNote": "Three thick slices of plain, uncooked firm tofu with the pressed texture and cloth-press marks typical of firm tofu, nothing added; a real camera photo (Sony RX100) cut out onto a transparent background. Matches tofu, firm (uncooked). Borderline: PNG with an alpha channel - the build may want to flatten it onto white. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tofu_firm/r1-card.webp",
+     "width": 640,
+     "height": 609,
+     "bytes": 19406,
+     "sha256": "54fe14e570e95132f1da4a68c2334e6636f3d71a07d7a16408dc65961da8c602"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tofu_firm/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2020,
+     "sha256": "ebd21515c5e4ae6cbb82d3183e0c01b2bc70134e16b424dd3955dc87e5ef23b8"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tofu_slices.png/120px-Tofu_slices.png",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Tofu_slices.png/500px-Tofu_slices.png",
+    "width": 1212,
+    "height": 1154
+   }
   },
   "ff_tomato_raw": {
    "status": "approved",
@@ -1950,6 +2838,12 @@
      "bytes": 2270,
      "sha256": "0d9ff196b7dd7738e012a02836cb8ec079783227b43fcbb6f359292cdf015dfa"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/120px-Tomato_je.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/500px-Tomato_je.jpg",
+    "width": 1800,
+    "height": 1497
    }
   },
   "ff_cucumber_raw": {
@@ -1983,6 +2877,12 @@
      "bytes": 6058,
      "sha256": "e4026731def1e819440221ded3685c7e1302883e7ac60974cf61dcaf1a5270f5"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Cucumbers_%28Unsplash%29.jpg/120px-Cucumbers_%28Unsplash%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Cucumbers_%28Unsplash%29.jpg/500px-Cucumbers_%28Unsplash%29.jpg",
+    "width": 4160,
+    "height": 3120
    }
   },
   "ff_lettuce_romaine": {
@@ -2016,6 +2916,12 @@
      "bytes": 3508,
      "sha256": "ca8ffb589cca26b118d574d1f8453fe3eca009752d629ed26639d0eee7f453ac"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Romaine_lettuce.jpg/120px-Romaine_lettuce.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Romaine_lettuce.jpg/500px-Romaine_lettuce.jpg",
+    "width": 2136,
+    "height": 2520
    }
   },
   "ff_cabbage_raw": {
@@ -2049,6 +2955,12 @@
      "bytes": 3968,
      "sha256": "6ef8e8247907fdf6eca4acb95a8f65e3db95a676628902de7cc8416bf7e9a398"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/A_halved_head_of_white_cabbage.jpg/120px-A_halved_head_of_white_cabbage.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/A_halved_head_of_white_cabbage.jpg/500px-A_halved_head_of_white_cabbage.jpg",
+    "width": 2336,
+    "height": 3253
    }
   },
   "ff_carrot_raw": {
@@ -2082,12 +2994,18 @@
      "bytes": 4676,
      "sha256": "0dfdd83a307f545c61a2bbcfefdf227037039f864a5244244d825cc7b968eb69"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/120px-Vegetable-Carrot-Bundle-wStalks.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/500px-Vegetable-Carrot-Bundle-wStalks.jpg",
+    "width": 6700,
+    "height": 3800
    }
   },
   "ff_carrot_boiled": {
    "status": "missing",
-   "reason": "4 searches (boiled / cooked / steamed carrots, plain side dish) found only mixed plates, soups, salads or roasted carrots; nothing showing plain boiled carrots alone.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches (boiled carrots, Möhren gekocht, steamed carrots, cooked-carrot categories; earlier reviewer's four) return only mixed plates (salads with eggs, tuna or sardines, rotini in broth), boiled peas-and-carrots mixes, sweet potato and carrot in fish sauce, and roasted carrots beside steak. No plain boiled carrots found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_onion_raw": {
    "status": "approved",
@@ -2120,6 +3038,12 @@
      "bytes": 1876,
      "sha256": "bea6b24e54208c036564b84205ef6d7499a1a3d4a3cd06915225606551e8c5f0"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Onion_on_White.JPG/120px-Onion_on_White.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/Onion_on_White.JPG/500px-Onion_on_White.JPG",
+    "width": 2793,
+    "height": 2793
    }
   },
   "ff_onion_sauteed": {
@@ -2153,6 +3077,12 @@
      "bytes": 3320,
      "sha256": "dd585c8e7f5071d0fd20257d7616d9554032c7aadfcfe77cdc6d5ecce16a961d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Caramelizing_onions.jpg/120px-Caramelizing_onions.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Caramelizing_onions.jpg/500px-Caramelizing_onions.jpg",
+    "width": 4916,
+    "height": 2765
    }
   },
   "ff_garlic_raw": {
@@ -2186,18 +3116,91 @@
      "bytes": 3038,
      "sha256": "db704ac5c38a8f9fbfd4905e013a7d4baf06e9ed70352fdaad825023978776d5"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Garlic_bulbs_and_cloves.jpg/120px-Garlic_bulbs_and_cloves.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Garlic_bulbs_and_cloves.jpg/500px-Garlic_bulbs_and_cloves.jpg",
+    "width": 8256,
+    "height": 5504
    }
   },
   "ff_potato_boiled": {
-   "status": "rejected",
-   "reason": "lead spot check: cannot be told from raw potatoes — a raw-looking photo for a cooked food",
-   "file": "File:Pellkartoffeln 2.jpg",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Hot Potatoes (199407793).jpeg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Hot_Potatoes_(199407793).jpeg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Hot_Potatoes_%28199407793%29.jpeg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Babil Sahoui",
+   "credit": "Imported from 500px (archived version) by the Archive Team",
+   "alt": {
+    "en": "Whole potatoes boiling in their skins in a pot",
+    "ar": "بطاطس كاملة تُسلق بقشرها في قِدر"
+   },
+   "reviewNote": "Whole unpeeled potatoes in a pot of cooking water with foam on the surface; the skins are split and cracked from boiling, so they clearly read as cooked (unlike the rejected Pellkartoffeln shot). Matches boiled in skin. CC BY 3.0 (500px import).",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_potato_boiled/r1-card.webp",
+     "width": 640,
+     "height": 429,
+     "bytes": 24690,
+     "sha256": "2dbc3942042311f72f2d13548f5b237bba99bf9524d145f4652fce2c0cf94010"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_potato_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3056,
+     "sha256": "495777ba0148b5ee694ea45b11231fd3cc20145eb7215f85853401b06aca8d3c"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Hot_Potatoes_%28199407793%29.jpeg/120px-Hot_Potatoes_%28199407793%29.jpeg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Hot_Potatoes_%28199407793%29.jpeg/500px-Hot_Potatoes_%28199407793%29.jpeg",
+    "width": 2048,
+    "height": 1371
+   }
   },
   "ff_potato_baked": {
-   "status": "missing",
-   "reason": "Every baked/jacket potato found on Commons is topped (cheese, beans, chili, butter, chicken mayo) or part of a restaurant plate; no plain baked potato with skin.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Baked potatoes cooked in an air fryer.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Baked_potatoes_cooked_in_an_air_fryer.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Gatorfan252525",
+   "credit": "Own work",
+   "alt": {
+    "en": "Three whole baked potatoes in their skins",
+    "ar": "ثلاث حبات بطاطس كاملة مشوية بقشرها"
+   },
+   "reviewNote": "Three whole, plain russet potatoes baked in their skins (dry, wrinkled, browned skins) in an air-fryer basket, no toppings or butter; matches potato, baked (flesh and skin). CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_potato_baked/r1-card.webp",
+     "width": 640,
+     "height": 611,
+     "bytes": 79406,
+     "sha256": "0ceff6d59ee6c647b0576acea0f95716fd91c7c4380bdd107c0e9410fafb2af1"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_potato_baked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5646,
+     "sha256": "8ac4591a822520e505369d1a77e27c3beeb20bf9d9b3359d2bb7ed8bdfa43dc7"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg/120px-Baked_potatoes_cooked_in_an_air_fryer.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Baked_potatoes_cooked_in_an_air_fryer.jpg/500px-Baked_potatoes_cooked_in_an_air_fryer.jpg",
+    "width": 3024,
+    "height": 2885
+   }
   },
   "ff_french_fries_oven": {
    "status": "approved",
@@ -2230,32 +3233,106 @@
      "bytes": 4872,
      "sha256": "eb2780419279ea7b09e4c36c0dd43a9837837b2522f9530b99b8cfacd9112fc1"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Oven_roasted_french_fries_%283862654181%29.jpg/120px-Oven_roasted_french_fries_%283862654181%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Oven_roasted_french_fries_%283862654181%29.jpg/500px-Oven_roasted_french_fries_%283862654181%29.jpg",
+    "width": 4752,
+    "height": 3168
    }
   },
   "ff_sweet_potato_baked": {
-   "status": "missing",
-   "reason": "Only found topped/salad dishes, sweet-potato fries, USDA market-event photos, and a Japanese yakiimo street stall with people and price signs; no clean plain baked sweet potato.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:GebackeneSuesskartoffel.JPG 05.JPG",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:GebackeneSuesskartoffel.JPG_05.JPG",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b4/GebackeneSuesskartoffel.JPG_05.JPG",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Helfmann",
+   "credit": "Own work",
+   "alt": {
+    "en": "A baked sweet potato split open on a plate",
+    "ar": "حبة بطاطا حلوة مشوية مفتوحة على طبق"
+   },
+   "reviewNote": "A whole sweet potato baked in its skin and split open to show soft orange flesh, plain, on a white plate; the potato fills the centre of the frame. Matches sweet potato, baked. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-card.webp",
+     "width": 640,
+     "height": 360,
+     "bytes": 13498,
+     "sha256": "f608adfa15901ba28f10da2cac1f62e3a92e0f797f93b3de41b8b3bff0307cf9"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sweet_potato_baked/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2018,
+     "sha256": "20afc571d3785c5e9ee0397559bfbe83c72e34de318b659176e6c74b5eeb7194"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/GebackeneSuesskartoffel.JPG_05.JPG/120px-GebackeneSuesskartoffel.JPG_05.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/GebackeneSuesskartoffel.JPG_05.JPG/500px-GebackeneSuesskartoffel.JPG_05.JPG",
+    "width": 4000,
+    "height": 2248
+   }
   },
   "ff_zucchini_boiled": {
    "status": "missing",
-   "reason": "4 searches (boiled zucchini, steamed zucchini, cooked courgette, zucchine lesse) returned only mixed dishes, stews and recipes; no plain boiled zucchini.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches (steamed zucchini, boiled courgette, cooked zucchini, Daderot's zucchini set; earlier reviewer's four) return only mixed dishes (gravy bowls, kaiseki, couscous, stuffed sandal sefası, pickled courgettes) and a raw zucchini. No plain boiled zucchini found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_eggplant_boiled": {
    "status": "missing",
-   "reason": "Only boiled 'garden eggs' (Solanum aethiopicum - a different vegetable), salads and curries; no plain boiled aubergine.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches (steamed eggplant, plus the earlier reviewer's boiled-eggplant set) return a Ugandan plate of steamed scarlet eggplants (Solanum aethiopicum, a different vegetable) with avocado and beans, Filipino buro side dishes, curries and kaiseki courses. No plain boiled aubergine found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_okra_boiled": {
    "status": "missing",
-   "reason": "The one 'boiled or steamed okra' file actually shows bright, fuzzy, apparently raw pods in a pot - state not verifiable, rejected. No other plain boiled okra found.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches (boiled okra; earlier reviewer's set) return 'BOILED OR STEAMED OKRA FROM GARDEN TO TABLE.jpg' (already rejected: bright, fuzzy pods that look raw), restaurant okra with an onsen egg, and okra extension bulletins. No plain boiled okra found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_spinach_raw": {
-   "status": "missing",
-   "reason": "Candidates rejected: '1 cup of raw salad leaves' (raw baby spinach, but a measuring cup with readable '1 CUP' text), 'Fresh Spinach leaves' (WLA 2025 - actually amaranth greens held in a hand, not Spinacia), and a series of promotional 'Liat Portal for Foodie Disorder' uploads (brand in title; authorship/licence provenance doubtful).",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Spinach leaves.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Spinach_leaves.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Spinach_leaves.jpg",
+   "license": "CC-BY-3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Nillerdk",
+   "credit": "Own work",
+   "alt": {
+    "en": "A bowl of fresh raw spinach leaves",
+    "ar": "وعاء من أوراق السبانخ الطازجة النيئة"
+   },
+   "reviewNote": "A steel bowl heaped with fresh, raw true spinach leaves (Spinacia oleracea, stems removed), bright green and clearly uncooked; nothing else in frame. Matches spinach, raw. CC BY 3.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_spinach_raw/r1-card.webp",
+     "width": 640,
+     "height": 473,
+     "bytes": 51338,
+     "sha256": "88db6bd3b0b083953520bc790577c8b77629d873283404c2ddf633634e713564"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_spinach_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6022,
+     "sha256": "d3f9629d2a5070d4f9fc42b69690621db4a53a00cc10a399f533be53bff54cbd"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Spinach_leaves.jpg/120px-Spinach_leaves.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Spinach_leaves.jpg/500px-Spinach_leaves.jpg",
+    "width": 2439,
+    "height": 1800
+   }
   },
   "ff_spinach_boiled": {
    "status": "approved",
@@ -2288,17 +3365,57 @@
      "bytes": 5892,
      "sha256": "b5779baf22c1b09678adaf9ce7299ec1b6405fdd69e8822c313d14c3a8fca261"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Boiled_spinach.jpg/120px-Boiled_spinach.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Boiled_spinach.jpg/500px-Boiled_spinach.jpg",
+    "width": 1280,
+    "height": 960
    }
   },
   "ff_jute_leaves_boiled": {
    "status": "missing",
-   "reason": "Commons has only the growing Corchorus plant, seeds, botanical plates and finished molokhia soup/stew dishes (Egyptian and Tunisian). Nothing shows plain boiled jute leaves, and the soup must not stand in for the leaves.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches ('ملوخية', Corchorus olitorius leaves cooked; earlier reviewer's set) return only the growing plant, seeds, botanical plates, scanned bulletins and finished molokhia soup dishes (Egyptian 'Molokheya Egypt, 2012.JPG', Tunisian molokhia with veal). Following the earlier decision, the soup does not stand in for plain boiled leaves. No photo of boiled jute leaves found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_green_beans_boiled": {
-   "status": "missing",
-   "reason": "Only raw trimmed beans, Turkish olive-oil green-bean dishes, mixed plates and a 'boiled beans' shot of dry beans; no plain boiled green beans.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Green beans - Massachusetts.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Green_beans_-_Massachusetts.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Green_beans_-_Massachusetts.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Daderot",
+   "credit": "Own work",
+   "alt": {
+    "en": "A plate of plain cooked green beans",
+    "ar": "طبق من الفاصوليا الخضراء المطبوخة السادة"
+   },
+   "reviewNote": "Top-down plate of trimmed whole thin green beans, vivid glossy emerald and sprinkled with a few salt flakes, as after boiling/blanching, nothing else added; the author files it as a cooked green-bean dish (his raw beans are filed separately). Matches green beans, boiled. Borderline: crisp-tender blanched beans can be mistaken for raw ones - the gloss, colour and salt are the cooked cues; worth a look at the lead's spot check. CC0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-card.webp",
+     "width": 640,
+     "height": 640,
+     "bytes": 48274,
+     "sha256": "8bbf8c96edb71ace95b8fdc89ba7ab9811380cc6438e349121e4ad35e69c088f"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_green_beans_boiled/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6482,
+     "sha256": "4685669e8475571e64874b5887f48abc8085dcf61a8850e818204fd267e8003d"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Green_beans_-_Massachusetts.jpg/120px-Green_beans_-_Massachusetts.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Green_beans_-_Massachusetts.jpg/500px-Green_beans_-_Massachusetts.jpg",
+    "width": 2904,
+    "height": 2904
+   }
   },
   "ff_pepper_green_raw": {
    "status": "approved",
@@ -2331,6 +3448,12 @@
      "bytes": 1498,
      "sha256": "81cd92e7a5d224ca9637b6ab76f6f097d9d9d4b23f2e6974824416fb60169f90"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Green-Bell-Pepper.jpg/120px-Green-Bell-Pepper.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Green-Bell-Pepper.jpg/500px-Green-Bell-Pepper.jpg",
+    "width": 1900,
+    "height": 2660
    }
   },
   "ff_pepper_red_raw": {
@@ -2364,6 +3487,12 @@
      "bytes": 2406,
      "sha256": "68884ffb719aee0b846f1e6d3091fe6edca6f9aab5b59c9498adebffb76ba6cd"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Red-Pepper.jpg/120px-Red-Pepper.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Red-Pepper.jpg/500px-Red-Pepper.jpg",
+    "width": 2480,
+    "height": 2420
    }
   },
   "ff_broccoli_boiled": {
@@ -2397,12 +3526,18 @@
      "bytes": 5852,
      "sha256": "3006a2bf6a782d7ca138f9029188120f47450c188ed896f0e9e75ec51a5c296a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Cooked_Broccoli_1_2021-05-06.jpeg/120px-Cooked_Broccoli_1_2021-05-06.jpeg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Cooked_Broccoli_1_2021-05-06.jpeg/500px-Cooked_Broccoli_1_2021-05-06.jpeg",
+    "width": 4032,
+    "height": 3024
    }
   },
   "ff_cauliflower_boiled": {
    "status": "missing",
-   "reason": "4 searches found only curries, rice plates, cauliflower 'rice', sauced steamed cauliflower and archival photos; no plain boiled cauliflower.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches (steamed cauliflower, Blumenkohl gekocht; earlier reviewer's four) return only sauced steamed cauliflower (mustard or green sauce), cauliflower cheese side dishes, roasted cauliflower on mixed plates, raw florets prepared for curry, a 1943 army-kitchen photo and scanned books. No plain boiled cauliflower found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_beets_boiled": {
    "status": "approved",
@@ -2435,12 +3570,18 @@
      "bytes": 2812,
      "sha256": "7ad6632b234b96b664f7235c407c93ef0109908620ad5606aea653bfb3dff045"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Beetroot_boiled_and_peeled.JPG/120px-Beetroot_boiled_and_peeled.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Beetroot_boiled_and_peeled.JPG/500px-Beetroot_boiled_and_peeled.JPG",
+    "width": 2560,
+    "height": 1920
    }
   },
   "ff_taro_cooked": {
    "status": "missing",
-   "reason": "Only near-candidate: 'Boiled taro.png' (CC BY-SA 4.0) - plain boiled taro chunks in a bowl, but it is a soft, background-removed cut-out with a clipped bowl edge. Given the rule that Egyptian vegetables must clearly look like the real thing, left missing; a human could reconsider it. Everything else was the plant, leaves, curry or historic book scans.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches ('قلقاس', boiled taro; earlier reviewer's set) return the growing plant and leaves, botanical plates, Vanuatu beef curry with taro, Thai sweets, a Himachali dish being peeled by hand, and 'Boiled taro.png' (the earlier reviewer's near-candidate: a soft, background-removed cut-out with a clipped bowl edge, left for a human). Egyptian qolqas is not shown faithfully by any of these, so left missing.",
+   "reviewer": "food-images.e.json"
   },
   "ff_corn_boiled": {
    "status": "approved",
@@ -2473,12 +3614,52 @@
      "bytes": 3744,
      "sha256": "da799244c7cc2c806f2b94a986a82db9f39c366c6180d7d5d58215e37ed9b547"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Boiled_corn_on_a_white_plate.jpg/120px-Boiled_corn_on_a_white_plate.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Boiled_corn_on_a_white_plate.jpg/500px-Boiled_corn_on_a_white_plate.jpg",
+    "width": 3024,
+    "height": 4032
    }
   },
   "ff_mushrooms_raw": {
-   "status": "missing",
-   "reason": "Rejected: a mature brown, soil-covered Agaricus (not the white button mushroom as sold), chopped mushrooms held in a hand, wild/unidentified white mushrooms (unsafe to show as food), and a 1024x768 file below the size floor.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Agaricus bisporus (1).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Agaricus_bisporus_(1).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/be/Agaricus_bisporus_%281%29.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Fumikas Sagisavas",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pile of fresh white button mushrooms",
+    "ar": "كومة من فطر المشروم الأبيض الطازج"
+   },
+   "reviewNote": "Frame-filling pile of fresh, raw white button mushrooms (cultivated Agaricus bisporus), clean caps with a little substrate on a few stems; a genuine phone photo (Huawei EXIF, located upload). Matches mushrooms (white), raw. CC0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-card.webp",
+     "width": 640,
+     "height": 640,
+     "bytes": 20598,
+     "sha256": "f08170ee0062cd01676fcb99f37a7eb49e418c1df0af8c87067f6a9183946ddd"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mushrooms_raw/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 2744,
+     "sha256": "c41088a5ee7968ee8955fbf6d0a5e57de4723bf6e96fc4948bb699a002b417ba"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Agaricus_bisporus_%281%29.jpg/120px-Agaricus_bisporus_%281%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Agaricus_bisporus_%281%29.jpg/500px-Agaricus_bisporus_%281%29.jpg",
+    "width": 3000,
+    "height": 3000
+   }
   },
   "ff_artichoke_boiled": {
    "status": "approved",
@@ -2511,6 +3692,12 @@
      "bytes": 6114,
      "sha256": "c9f23203b6be73fccdc253dfb8076aece9f7f22f6ed52647260c85aff7056092"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Cooked_artichokes.jpg/120px-Cooked_artichokes.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/Cooked_artichokes.jpg/500px-Cooked_artichokes.jpg",
+    "width": 4320,
+    "height": 3240
    }
   },
   "ff_grape_leaves_raw": {
@@ -2544,6 +3731,12 @@
      "bytes": 3720,
      "sha256": "b1c2d07d6b7b790cc87c21686871e4397c92f89883b4782e7e13e51b917fff32"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Grape_leaf_leaves_green.jpg/120px-Grape_leaf_leaves_green.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Grape_leaf_leaves_green.jpg/500px-Grape_leaf_leaves_green.jpg",
+    "width": 1280,
+    "height": 960
    }
   },
   "ff_parsley_fresh": {
@@ -2577,6 +3770,12 @@
      "bytes": 4396,
      "sha256": "2ae2f28fda5afb76bac614b62851ef17d8a8b9d980170f48a413bfade362da12"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Parsley_Leaves.jpg/120px-Parsley_Leaves.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9c/Parsley_Leaves.jpg/500px-Parsley_Leaves.jpg",
+    "width": 1920,
+    "height": 2560
    }
   },
   "ff_banana": {
@@ -2610,6 +3809,12 @@
      "bytes": 4056,
      "sha256": "d4234ea5bc51293b25c8e314ece780a95a01b704aa89c3e63e15b3c2a07919ad"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Banana_Fruit.JPG/120px-Banana_Fruit.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Banana_Fruit.JPG/500px-Banana_Fruit.JPG",
+    "width": 2413,
+    "height": 1768
    }
   },
   "ff_apple": {
@@ -2643,6 +3848,12 @@
      "bytes": 2954,
      "sha256": "bc358e25301c985f336db81d0b04abddd98c67da0c7dd90c1bd5abba489a44fd"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/120px-Red_Apple.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/500px-Red_Apple.jpg",
+    "width": 2418,
+    "height": 2192
    }
   },
   "ff_orange": {
@@ -2676,6 +3887,12 @@
      "bytes": 2816,
      "sha256": "c40f78fabc74cf5ff213a9e2a9f87c4de034fdc19920cd1a1d8362a9d04b106c"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Orange-Fruit-Pieces.jpg/120px-Orange-Fruit-Pieces.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Orange-Fruit-Pieces.jpg/500px-Orange-Fruit-Pieces.jpg",
+    "width": 3520,
+    "height": 2260
    }
   },
   "ff_mango": {
@@ -2709,6 +3926,12 @@
      "bytes": 1094,
      "sha256": "d6482929a2a2640cad451ac9a5730bfed0f0ae1281c6c6ab7caa4250fe065a87"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Mango_fruit_Nam_Dok_Mai.jpg/120px-Mango_fruit_Nam_Dok_Mai.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Mango_fruit_Nam_Dok_Mai.jpg/500px-Mango_fruit_Nam_Dok_Mai.jpg",
+    "width": 8256,
+    "height": 5504
    }
   },
   "ff_guava": {
@@ -2742,6 +3965,12 @@
      "bytes": 4044,
      "sha256": "9559efed0455fd24e53885ad4d31d9582ace6282728dc5d34d34265ee2860bcc"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Fresh_Guava.jpg/120px-Fresh_Guava.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Fresh_Guava.jpg/500px-Fresh_Guava.jpg",
+    "width": 4032,
+    "height": 3024
    }
   },
   "ff_dates_medjool": {
@@ -2775,6 +4004,12 @@
      "bytes": 4302,
      "sha256": "8f451d1e3ea7ef83a2cd837d5cb03f41c402705a5dc97dc5d508db8dade2dfba"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/DATES_MEDJOOL.jpg/120px-DATES_MEDJOOL.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/DATES_MEDJOOL.jpg/500px-DATES_MEDJOOL.jpg",
+    "width": 4928,
+    "height": 3264
    }
   },
   "ff_dates_deglet": {
@@ -2808,6 +4043,12 @@
      "bytes": 3026,
      "sha256": "7bc5ef2d411fa8caab23fd5e3cfceb38fcc6d982b5aab31d0d4a74fbfdba4b2e"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Dattes_deglet_from_Biskra.jpg/120px-Dattes_deglet_from_Biskra.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Dattes_deglet_from_Biskra.jpg/500px-Dattes_deglet_from_Biskra.jpg",
+    "width": 2816,
+    "height": 2112
    }
   },
   "ff_grapes": {
@@ -2841,6 +4082,12 @@
      "bytes": 1684,
      "sha256": "aba530cd93fb1ba58223c4e5909f2a19c9a3212563875ed5b4e30aff9294345b"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Grapes_%282%29.jpg/120px-Grapes_%282%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Grapes_%282%29.jpg/500px-Grapes_%282%29.jpg",
+    "width": 2724,
+    "height": 1884
    }
   },
   "ff_watermelon": {
@@ -2874,6 +4121,12 @@
      "bytes": 3380,
      "sha256": "358bf386e16df818659444b71d43a881a27a990800a19598d32d59d53acb3f74"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Sliced_Watermelon.jpg/120px-Sliced_Watermelon.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Sliced_Watermelon.jpg/500px-Sliced_Watermelon.jpg",
+    "width": 3872,
+    "height": 2592
    }
   },
   "ff_cantaloupe": {
@@ -2907,6 +4160,12 @@
      "bytes": 5136,
      "sha256": "f4905c3d10fb56eba80255a1ffaaa4e30378226f7aecb1173be958620ce4944a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg/120px-Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg/500px-Cucumis_melo_var._reticulatus_%28photo_by_Scott_Bauer%29.jpg",
+    "width": 2700,
+    "height": 1809
    }
   },
   "ff_strawberries": {
@@ -2940,6 +4199,12 @@
      "bytes": 2942,
      "sha256": "3ba1329d53a9304f0b365d0859aaa58c9d6fec7e103442b1afb444c83a7401b5"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Strawberries-1239306.jpg/120px-Strawberries-1239306.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Strawberries-1239306.jpg/500px-Strawberries-1239306.jpg",
+    "width": 3292,
+    "height": 2044
    }
   },
   "ff_blueberries": {
@@ -2973,6 +4238,12 @@
      "bytes": 3382,
      "sha256": "fbb5ab1e6a3270229cd361f6613c255e386b8a29eb51778dcd0fb95f4a50dab4"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Dish_of_blueberries.jpg/120px-Dish_of_blueberries.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Dish_of_blueberries.jpg/500px-Dish_of_blueberries.jpg",
+    "width": 4592,
+    "height": 3448
    }
   },
   "ff_pomegranate": {
@@ -3006,6 +4277,12 @@
      "bytes": 2842,
      "sha256": "3618ebd02c96afeb887f202ce892dc3a113f57e7bd9f65721569bbafcacf41df"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg/120px-Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Pomegranate_fruit_-_whole_and_piece_with_arils.jpg/500px-Pomegranate_fruit_-_whole_and_piece_with_arils.jpg",
+    "width": 6000,
+    "height": 4000
    }
   },
   "ff_figs": {
@@ -3039,6 +4316,12 @@
      "bytes": 4360,
      "sha256": "f4dae1e561e70aeff456272772babbd262a7fb9d513bfb8cafdb39905f956e10"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Fresh_figs_on_a_deep_dish.jpg/120px-Fresh_figs_on_a_deep_dish.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Fresh_figs_on_a_deep_dish.jpg/500px-Fresh_figs_on_a_deep_dish.jpg",
+    "width": 3888,
+    "height": 2592
    }
   },
   "ff_apricots": {
@@ -3072,6 +4355,12 @@
      "bytes": 986,
      "sha256": "6160d1a3b7968364827ac95c76a5c6f70e73e9ad5aaa2b0bcb9844d74058ffe0"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Apricot_whole444.jpg/120px-Apricot_whole444.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Apricot_whole444.jpg/500px-Apricot_whole444.jpg",
+    "width": 1600,
+    "height": 1200
    }
   },
   "ff_peach": {
@@ -3105,6 +4394,12 @@
      "bytes": 3406,
      "sha256": "cfff1496dcb4bd6323a044698301ba0f913c1f4cb550346b14c604b5759f52d9"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/White-Peaches-Bunch.jpg/120px-White-Peaches-Bunch.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/White-Peaches-Bunch.jpg/500px-White-Peaches-Bunch.jpg",
+    "width": 3880,
+    "height": 1940
    }
   },
   "ff_pear": {
@@ -3138,6 +4433,12 @@
      "bytes": 2430,
      "sha256": "be19342ca2c4321284203e645ddbe67c7ca02f9bf7333c1cc187a02f800f333a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Four_pears.jpg/120px-Four_pears.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Four_pears.jpg/500px-Four_pears.jpg",
+    "width": 4426,
+    "height": 2080
    }
   },
   "ff_kiwi": {
@@ -3171,6 +4472,12 @@
      "bytes": 2862,
      "sha256": "efdff4a1f4e9c4fd6b951afaa40af98d0975d38b0f0af5e97f60ba2409385302"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kiwifruit_cross_section.jpg/120px-Kiwifruit_cross_section.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Kiwifruit_cross_section.jpg/500px-Kiwifruit_cross_section.jpg",
+    "width": 6880,
+    "height": 5500
    }
   },
   "ff_pineapple": {
@@ -3204,6 +4511,12 @@
      "bytes": 3278,
      "sha256": "fd3225f54a43f589e1321f5f1ce1a95248b05933c4412c3228644e096a136aef"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Pineapple_Chunks.jpg/120px-Pineapple_Chunks.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Pineapple_Chunks.jpg/500px-Pineapple_Chunks.jpg",
+    "width": 3024,
+    "height": 4032
    }
   },
   "ff_prickly_pear": {
@@ -3237,6 +4550,12 @@
      "bytes": 7168,
      "sha256": "8ff6f713684bbf8568f231d1adff070506a14a4301c36082f3d0af6701116e9d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Prickly_pears.jpg/120px-Prickly_pears.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Prickly_pears.jpg/500px-Prickly_pears.jpg",
+    "width": 3504,
+    "height": 2336
    }
   },
   "ff_avocado": {
@@ -3270,12 +4589,52 @@
      "bytes": 2842,
      "sha256": "ae850709235d884a949715039cbecfeae9277e9fe2236c02d53e736e86d5e7fa"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/120px-Avocado_Hass_-_single_and_halved.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/500px-Avocado_Hass_-_single_and_halved.jpg",
+    "width": 8256,
+    "height": 5504
    }
   },
   "ff_lemon_juice": {
-   "status": "missing",
-   "reason": "No qualifying photo of plain fresh lemon juice: candidates were branded/labelled bottles, lemonade-style drinks (a different food), or street-stall scenes with people and text.",
-   "reviewer": "food-images.d.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Lemon juice.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Lemon_juice.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Lemon_juice.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "David Goehring",
+   "credit": "https://www.flickr.com/photos/carbonnyc/5309716658/",
+   "alt": {
+    "en": "Fresh lemon juice in a glass citrus squeezer",
+    "ar": "عصير ليمون طازج في عصّارة ليمون زجاجية"
+   },
+   "reviewNote": "Top view of a glass hand juicer holding freshly squeezed lemon juice (with a few seeds) and the pressed lemon half, on a wooden table; no text or people. Shows fresh lemon juice as made at home. Borderline: the pale juice layer is thin and the lemon half draws the eye. CC BY 2.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_lemon_juice/r1-card.webp",
+     "width": 640,
+     "height": 426,
+     "bytes": 25518,
+     "sha256": "d91da1db3d60d411fd6c88511b44c71ab8f78183f0c16aa61d0e81d810e07ef5"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_lemon_juice/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 4564,
+     "sha256": "2a788417c307b460021b7daf5436b1a2462391869661771551de345888ed0f89"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Lemon_juice.jpg/120px-Lemon_juice.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Lemon_juice.jpg/500px-Lemon_juice.jpg",
+    "width": 2635,
+    "height": 1752
+   }
   },
   "ff_raisins": {
    "status": "approved",
@@ -3308,6 +4667,12 @@
      "bytes": 6074,
      "sha256": "5999d305c098d966dcf88f1155f2d641c21d31a17400b6d3ba890939d0bdf13a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Raisins_01.jpg/120px-Raisins_01.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Raisins_01.jpg/500px-Raisins_01.jpg",
+    "width": 3223,
+    "height": 2025
    }
   },
   "ff_figs_dried": {
@@ -3341,6 +4706,12 @@
      "bytes": 8942,
      "sha256": "d133251fd7809faca60e63ba663a2e4c1741df812a8e0a835ebae084007392c9"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Dried_Figs_%281%29.jpg/120px-Dried_Figs_%281%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Dried_Figs_%281%29.jpg/500px-Dried_Figs_%281%29.jpg",
+    "width": 2288,
+    "height": 1712
    }
   },
   "ff_apricots_dried": {
@@ -3374,6 +4745,12 @@
      "bytes": 6192,
      "sha256": "46129b90ca6e565c120aaf0a6262708792fe9bf39d4eb93ffb60f08ffe4503b0"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Dried_apricot%2C_Malatya_01.jpg/120px-Dried_apricot%2C_Malatya_01.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ac/Dried_apricot%2C_Malatya_01.jpg/500px-Dried_apricot%2C_Malatya_01.jpg",
+    "width": 3407,
+    "height": 2399
    }
   },
   "ff_almonds": {
@@ -3407,12 +4784,52 @@
      "bytes": 3318,
      "sha256": "1566435b60a50a59bfa6d4998e4eb52c9efa2dc0048528afdcccf72d162ecec4"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg/120px-Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg/500px-Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg",
+    "width": 6000,
+    "height": 4000
    }
   },
   "ff_peanuts_roasted": {
-   "status": "missing",
-   "reason": "Both 'roasted peanuts' previews were batter/masala-coated spiced peanuts (wrong food); other hits were in-shell sand-roasted, raw peanuts (Ivar Leidus studio shot is raw, not roasted), a description naming a peanut brand, or tiny FDA recall images. No plain dry-roasted unsalted kernels found.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Roasted Peanuts (54251297906).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Roasted_Peanuts_(54251297906).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Roasted_Peanuts_%2854251297906%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Choo Yut Shing from Singapore, Singapore",
+   "credit": "Roasted Peanuts",
+   "alt": {
+    "en": "A small plate of roasted peanuts",
+    "ar": "طبق صغير من الفول السوداني المحمص"
+   },
+   "reviewNote": "A small white plate of shelled roasted peanut kernels (some with red skins, some skinless halves) on a plain grey background; no visible salt, coating, brand or text. Matches roasted peanuts. Borderline: the slight gloss could mean oil-roasting, which a photo cannot rule out. CC BY 2.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 18846,
+     "sha256": "1538d4105473e363eb6702a23dab82856a2472bf4b6295979baf25e4eed9e86d"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_peanuts_roasted/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3946,
+     "sha256": "990775068d29187a8528da42c8863895812396369bb548a2437a2db9dd3957bc"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Roasted_Peanuts_%2854251297906%29.jpg/120px-Roasted_Peanuts_%2854251297906%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Roasted_Peanuts_%2854251297906%29.jpg/500px-Roasted_Peanuts_%2854251297906%29.jpg",
+    "width": 3600,
+    "height": 2400
+   }
   },
   "ff_peanut_butter": {
    "status": "approved",
@@ -3445,6 +4862,12 @@
      "bytes": 2892,
      "sha256": "665553e7b18df5d1fafd549fd688b49a016b876b736581ab9a2b715c558f6809"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/PeanutButter.jpg/120px-PeanutButter.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/PeanutButter.jpg/500px-PeanutButter.jpg",
+    "width": 1141,
+    "height": 850
    }
   },
   "ff_walnuts": {
@@ -3478,6 +4901,12 @@
      "bytes": 2704,
      "sha256": "27e2b7c5cb8f833f316f4e5bebe7ffe3fdef840834de4e04ae3c04fdb3675514"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Whole_walnut_kernel_and_shell.jpg/120px-Whole_walnut_kernel_and_shell.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Whole_walnut_kernel_and_shell.jpg/500px-Whole_walnut_kernel_and_shell.jpg",
+    "width": 3308,
+    "height": 1916
    }
   },
   "ff_cashews_raw": {
@@ -3511,12 +4940,52 @@
      "bytes": 5628,
      "sha256": "ac2a41f96f8c81538e0bf0079b32e6cb0aa8f08ee53062ca85d2e8ad0bb0f2d8"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/CASHEW_NUTS.jpg/120px-CASHEW_NUTS.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/CASHEW_NUTS.jpg/500px-CASHEW_NUTS.jpg",
+    "width": 6144,
+    "height": 8160
    }
   },
   "ff_pistachios": {
-   "status": "missing",
-   "reason": "Previewed two: 'Roasted pistachio.jpg' (CC0, good roasted in-shell pistachios but laid out above a measuring ruler with printed numbers - readable text) and 'Pistachio Nuts (Unsplash).jpg' (CC0, roasted kernels in a small bowl filling only the bottom fifth of a tall frame; any square crop would show blurred city background). Other hits were GFDL-only macros, a branded 'Gold Emblem' sample, fried pistachios, or hand-held. A human could reconsider the Unsplash file with a bottom crop.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:LOOSE PISTACHIO.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:LOOSE_PISTACHIO.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fc/LOOSE_PISTACHIO.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Ranjithkumar Murugesan",
+   "credit": "Own work",
+   "alt": {
+    "en": "A pile of shelled pistachio kernels",
+    "ar": "كومة من حبات الفستق الحلبي المقشّر"
+   },
+   "reviewNote": "Frame-filling pile of shelled pistachio kernels with their typical green flesh and purple-brown skins, nothing else in frame, no text or salt crust; reads unmistakably as pistachios. Borderline: whether these were roasted cannot be seen in a photo. CC0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pistachios/r1-card.webp",
+     "width": 640,
+     "height": 854,
+     "bytes": 102150,
+     "sha256": "1cc3563e5768977caf08a1395e31a764aebb68c7de5133aad2b5ebc77abd49e2"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pistachios/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 8838,
+     "sha256": "a7db2969987b882f2d56c2641447b0b1ac43ec862b884256cc7db1b6a6ca62b3"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/LOOSE_PISTACHIO.jpg/120px-LOOSE_PISTACHIO.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/LOOSE_PISTACHIO.jpg/500px-LOOSE_PISTACHIO.jpg",
+    "width": 2163,
+    "height": 2884
+   }
   },
   "ff_mixed_nuts": {
    "status": "approved",
@@ -3549,6 +5018,12 @@
      "bytes": 3446,
      "sha256": "ae19bb597b55b95f173f6c720b01a6c44d9e1c5d56025a625682f57c53654f02"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Mixed_nuts_small_white2.jpg/120px-Mixed_nuts_small_white2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Mixed_nuts_small_white2.jpg/500px-Mixed_nuts_small_white2.jpg",
+    "width": 1268,
+    "height": 1046
    }
   },
   "ff_sunflower_seeds": {
@@ -3582,12 +5057,52 @@
      "bytes": 2402,
      "sha256": "0f0c2074549461bc23d81a60a2bee7f134e7750a611886d09056fc25c8d9128f"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Sunflower_Seeds_Kaldari.jpg/120px-Sunflower_Seeds_Kaldari.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Sunflower_Seeds_Kaldari.jpg/500px-Sunflower_Seeds_Kaldari.jpg",
+    "width": 1800,
+    "height": 1200
    }
   },
   "ff_pumpkin_seeds": {
-   "status": "missing",
-   "reason": "The catalog item is shelled (green) kernels. The previewed 'Pumpkin seed. img 029' shows whole white in-shell seeds (the unshelled 'lib abyad' snack) - wrong state. Other hits were the in-shell roasted macro, oil-pumpkin plants, people named Pepita and archival scans; no photo of green pumpkin-seed kernels found.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Steirische Kürbiskerne.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Steirische_K%C3%BCrbiskerne.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/Steirische_K%C3%BCrbiskerne.jpg",
+   "license": "CC-BY-SA-4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Verena Como",
+   "credit": "Own work",
+   "alt": {
+    "en": "Green pumpkin seed kernels spread out to dry",
+    "ar": "بذور قرع خضراء مقشّرة مفرودة لتجف"
+   },
+   "reviewNote": "Frame-filling layer of green, hull-less Styrian pumpkin seed kernels laid out on a cloth to dry; these are the green kernels (pepitas) of the catalog item, not the white in-shell snack. Borderline: slightly dim, and Styrian kernels are a darker olive green than some shelled pepitas. CC BY-SA 4.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-card.webp",
+     "width": 640,
+     "height": 480,
+     "bytes": 50212,
+     "sha256": "e4de4f83c0df994403adc13eb602cf7aceac8ec6e9ae585ccb62b3f538afd9ad"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_pumpkin_seeds/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6956,
+     "sha256": "2281b4b8afd66adf7df0345731a758745ccf57711fcf01ef0bd471bb0adb40c1"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Steirische_K%C3%BCrbiskerne.jpg/120px-Steirische_K%C3%BCrbiskerne.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Steirische_K%C3%BCrbiskerne.jpg/500px-Steirische_K%C3%BCrbiskerne.jpg",
+    "width": 3968,
+    "height": 2976
+   }
   },
   "ff_sesame_seeds": {
    "status": "approved",
@@ -3620,6 +5135,12 @@
      "bytes": 5068,
      "sha256": "9db28301dccbd0b802a1707da0e824267a18ece0d7795385bf4b7ea71ca67287"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Sa_white_sesame_seeds.jpg/120px-Sa_white_sesame_seeds.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Sa_white_sesame_seeds.jpg/500px-Sa_white_sesame_seeds.jpg",
+    "width": 3504,
+    "height": 2336
    }
   },
   "ff_chia_seeds": {
@@ -3653,6 +5174,12 @@
      "bytes": 9078,
      "sha256": "6177366b72a2deda8d69930636b85342d9974f1fd24e8b2da598e367a8f3471d"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Chia_Seeds_macro_2.jpg/120px-Chia_Seeds_macro_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Chia_Seeds_macro_2.jpg/500px-Chia_Seeds_macro_2.jpg",
+    "width": 5616,
+    "height": 3744
    }
   },
   "ff_flaxseed": {
@@ -3686,6 +5213,12 @@
      "bytes": 9170,
      "sha256": "712bfc13bbad1ea6ef864483d510331037e98f1805de4b57df048e2dcdba1801"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Brown_Flax_Seeds.jpg/120px-Brown_Flax_Seeds.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Brown_Flax_Seeds.jpg/500px-Brown_Flax_Seeds.jpg",
+    "width": 3504,
+    "height": 2336
    }
   },
   "ff_olive_oil": {
@@ -3719,17 +5252,57 @@
      "bytes": 4548,
      "sha256": "7079b13a347e20e8927dcf615a6a5204898e0f0bd029a584b58bfdce79cfa17a"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg/120px-Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg/500px-Oliven%C3%B6l_Wei%C3%9Fbrot_und_grobes_Salz_%281%29.jpg",
+    "width": 2360,
+    "height": 1770
    }
   },
   "ff_sunflower_oil": {
-   "status": "missing",
-   "reason": "Previewed two: a labelled supermarket bottle (brand label, nutrition panel, barcode) and a torange.biz styled shot whose subject is a sunflower head with a corner watermark. Other hits were branded bottles, a street vendor (person), a production map and bottling-date close-ups. No plain unlabelled sunflower oil found.",
-   "reviewer": "food-images.c.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Tournesol Huile INAGRI 302-4-cliche Jean Weber (23716285949).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_(23716285949).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+   "license": "CC-BY-2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "author": "INRA DIST (photo: Jean Weber)",
+   "credit": "Tournesol Huile INAGRI 302-4-cliche Jean Weber",
+   "alt": {
+    "en": "A glass vessel of sunflower oil with sunflowers and seeds",
+    "ar": "وعاء زجاجي من زيت عباد الشمس مع زهور وبذور عباد الشمس"
+   },
+   "reviewNote": "Styled INRA studio shot: a round glass vessel of clear golden sunflower oil in the centre, with sunflower heads behind and a scoop of black sunflower seeds; no bottle label, text or watermark. Reads clearly as sunflower oil. Borderline: a small dish of margarine at the left edge, mostly outside the square crop. CC BY 2.0.",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_sunflower_oil/r1-card.webp",
+     "width": 640,
+     "height": 429,
+     "bytes": 56952,
+     "sha256": "126fadfbf81e3b34d158ef50958ff0e146624c67d208e710c153d04a438c1674"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_sunflower_oil/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 6782,
+     "sha256": "2a96d6bc45c888c843ea3cc6f5ce5ae2398acd0a31976bace999abfa319f2eea"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg/120px-Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg/500px-Tournesol_Huile_INAGRI_302-4-cliche_Jean_Weber_%2823716285949%29.jpg",
+    "width": 2126,
+    "height": 1424
+   }
   },
   "ff_corn_oil": {
    "status": "missing",
-   "reason": "The only photo titled 'Corn oil (mais)' is a branded 5-litre supermarket bottle on a shelf (rejected). 'Corn oil.jpg' is 704x1000 (below the size floor) and the rest are Mazola adverts/store shots, production maps and oil wells in corn fields. No plain unlabelled corn oil found.",
-   "reviewer": "food-images.c.json"
+   "reason": "Searches ('corn oil', 'huile de maïs', category search; earlier reviewer's set) return only 'Corn oil.jpg' (704x1000, under the size floor), 'Corn oil (mais).jpg' (branded supermarket bottle, already rejected), Mazola adverts and store shelves, sardines in corn oil, production charts and factory visits. The sunflower-oil studio shot shows sunflowers, so it cannot stand in. No plain unlabelled corn oil found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_butter": {
    "status": "approved",
@@ -3762,12 +5335,18 @@
      "bytes": 2496,
      "sha256": "949b70f9c4ee3d163ceb98ec6c930bfc1d59e02406c5d02d8b52f2ebf0c30253"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Block_of_butter_2020-09-28_2951b.jpg/120px-Block_of_butter_2020-09-28_2951b.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Block_of_butter_2020-09-28_2951b.jpg/500px-Block_of_butter_2020-09-28_2951b.jpg",
+    "width": 3536,
+    "height": 2652
    }
   },
   "ff_ghee": {
    "status": "missing",
-   "reason": "Previewed two: 'Ghee 2.jpg' (pale scraped ghee in a tub - unrecognisable, reads as ice cream) and 'Sliced clarified butter.png' (CC BY-SA 4.0, claimed own work; content is right - solid golden clarified butter in a bowl - but it is a recompressed, soft PNG at an odd 1147x867 size that looks lifted from the web, so provenance is doubtful). Other hits were ghee lamps, kettles, sweets and people/places named Ghee. A human could verify the PNG's provenance and reconsider.",
-   "reviewer": "food-images.c.json"
+   "reason": "Category:Ghee reviewed (earlier reviewer rejected 'Ghee 2.jpg' and 'Sliced clarified butter.png'). Viewed: 'Pure Ghee-Homemade-Maharashtra.jpg' (molten ghee in a steel tin with a greenish cast - reads as olive oil), 'Desi ghee.JPG' and 'Desi ghee1.JPG' (liquid golden ghee in a glass jar - indistinguishable from cooking oil or honey), 'Ghiu.jpg' (a shapeless yellow smear, unrecognisable) and 'Ghee Leila.JPG' (branded tin). No photo that reads unmistakably as ghee/samna was found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_mayonnaise": {
    "status": "approved",
@@ -3800,6 +5379,12 @@
      "bytes": 2954,
      "sha256": "7adf6a4ae4ab1bdd7afe11d030df39a5695cd33ad427ec7517aabffd0c8678e8"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Homemade_mayonnaise.jpg/120px-Homemade_mayonnaise.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Homemade_mayonnaise.jpg/500px-Homemade_mayonnaise.jpg",
+    "width": 3456,
+    "height": 2304
    }
   },
   "ff_honey": {
@@ -3833,6 +5418,12 @@
      "bytes": 5272,
      "sha256": "a6501205c88fc9583f619fbc036a229d0f8aedd9bdfdbf4f62b9f0848c56604e"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Runny_hunny.jpg/120px-Runny_hunny.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Runny_hunny.jpg/500px-Runny_hunny.jpg",
+    "width": 1780,
+    "height": 2700
    }
   },
   "ff_sugar": {
@@ -3866,6 +5457,12 @@
      "bytes": 2206,
      "sha256": "0fc567709f933bc925733e4993dcea3aebd40380868092815b1cc02cf1d54560"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Bowl_of_white_sugar.jpg/120px-Bowl_of_white_sugar.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Bowl_of_white_sugar.jpg/500px-Bowl_of_white_sugar.jpg",
+    "width": 2800,
+    "height": 2100
    }
   },
   "ff_molasses": {
@@ -3899,6 +5496,12 @@
      "bytes": 2882,
      "sha256": "cfc7913b96e84813d929ee26a9358bd4796b905fa46f2715de3baed6895e13b2"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Blackstrapmolasses.JPG/120px-Blackstrapmolasses.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Blackstrapmolasses.JPG/500px-Blackstrapmolasses.JPG",
+    "width": 2048,
+    "height": 1536
    }
   },
   "ff_jam": {
@@ -3932,17 +5535,23 @@
      "bytes": 2732,
      "sha256": "e8a36119e5243f37f9969c5eb34ca69876729cc9cbe1639b9907ae0e32af7821"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Strawberry_jam_on_a_dish.JPG/120px-Strawberry_jam_on_a_dish.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Strawberry_jam_on_a_dish.JPG/500px-Strawberry_jam_on_a_dish.JPG",
+    "width": 2592,
+    "height": 1952
    }
   },
   "ff_dark_chocolate_70": {
    "status": "missing",
-   "reason": "Every dark-chocolate photo found was a branded bar or had a brand embossed on the squares (Green & Black's, Ritter Sport, Amul, Bellarom); the remaining candidates were desserts or low-cocoa cooking chocolate.",
-   "reviewer": "food-images.d.json"
+   "reason": "Category:Dark chocolate reviewed. Viewed: 'Chocolate.jpg' (mixed dark/milk/white squares embossed 'Alpia'), 'A large piece of dark chocolate from India.jpg' (embossed bar held in a hand), 'Chocolate pistoles.jpg' (trade-show bags with printed cards), 'Blocks of Couverture chocolate.jpg' (dark beside an embossed white block); the tempered couverture sample is 55% cocoa on a biscuit. Others are branded bars, pralines and desserts. No unbranded plain 70-85% dark chocolate found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_milk_chocolate": {
    "status": "missing",
-   "reason": "Every milk-chocolate photo found was branded (Reese's, Ghirardelli, Cadbury, Russell Stover) or had a brand embossed on the pieces (Alpia, also mixed with dark and white chocolate).",
-   "reviewer": "food-images.d.json"
+   "reason": "Category:Milk chocolate reviewed. Viewed: 'Milchschokolade Läderach.jpg' (a factory chocolate fountain with printed 'Milchschokolade' text), 'Chocolate (blue background).jpg' (the mixed Alpia-embossed stack again) and 'Chocolate 3.jpg' (a wrapped branded sweet). Others are branded bars and sweets (Cadbury, Ritter Sport, Reese's, Royce'), pralines, refining machinery and almond bars. No unbranded plain milk chocolate found.",
+   "reviewer": "food-images.e.json"
   },
   "ff_ice_cream_vanilla": {
    "status": "approved",
@@ -3975,6 +5584,12 @@
      "bytes": 2472,
      "sha256": "c1e8a94801641a906a780fa2b204f2da9ef2e123cc209af32cc7f67cd2307deb"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg/120px-Vanilla_bean_ice_cream_%283086700978%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Vanilla_bean_ice_cream_%283086700978%29.jpg/500px-Vanilla_bean_ice_cream_%283086700978%29.jpg",
+    "width": 1840,
+    "height": 1232
    }
   },
   "ff_basbousa": {
@@ -4008,6 +5623,12 @@
      "bytes": 3216,
      "sha256": "3e14ebde1b2674eab1b59cbb37433393ea41f5d6e1878077df30a032345e46fe"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg/120px-Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg/500px-Basboussa_-_harisa_-_%D8%A8%D8%B3%D8%A8%D9%88%D8%B3%D8%A9_photo2.jpg",
+    "width": 5184,
+    "height": 3456
    }
   },
   "ff_orange_juice": {
@@ -4041,12 +5662,52 @@
      "bytes": 3296,
      "sha256": "593ac9a55cf37b0d43ee4381ae0efefaf58b02555b9a96b3c214f5a176648771"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Orange_juice_1_edit1.jpg/120px-Orange_juice_1_edit1.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Orange_juice_1_edit1.jpg/500px-Orange_juice_1_edit1.jpg",
+    "width": 1566,
+    "height": 2226
    }
   },
   "ff_apple_juice": {
-   "status": "missing",
-   "reason": "Candidates showed cloudy pale juice (homemade/russet pressing) that does not read as the clear, bottled unsweetened apple juice of the USDA record and could be mistaken for another juice; the rest were branded cups, mixed breakfast scenes or people drinking.",
-   "reviewer": "food-images.d.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Apple juice 3.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Apple_juice_3.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Apple_juice_3.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Bruno Glätsch",
+   "credit": "Pixabay (photo 1584168)",
+   "alt": {
+    "en": "A glass of clear apple juice beside an apple",
+    "ar": "كوب من عصير التفاح الصافي بجانب تفاحة"
+   },
+   "reviewNote": "A tall glass of clear, golden filtered apple juice with a whole red-and-yellow apple beside it on a plain white background; no bottle, label or text. Matches the clear unsweetened apple juice of the record (not the cloudy pressings rejected earlier). CC0 (Pixabay import).",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_apple_juice/r1-card.webp",
+     "width": 640,
+     "height": 1070,
+     "bytes": 11730,
+     "sha256": "7175c5751ae0e95331b1d5ab87e8b18fdb84962e837ae5a38157d2259400f6b3"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_apple_juice/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 1422,
+     "sha256": "e443d4079026102f83375390e2f05a90ae72d5b5654dc64ce1f8d3ba0a03faf1"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Apple_juice_3.jpg/120px-Apple_juice_3.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Apple_juice_3.jpg/500px-Apple_juice_3.jpg",
+    "width": 2689,
+    "height": 4493
+   }
   },
   "ff_cola_regular": {
    "status": "approved",
@@ -4079,6 +5740,12 @@
      "bytes": 2242,
      "sha256": "fc8efad39310ebabd0a83a038a4e00b18930e2e23bb220d968d2fdf1d0948c78"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Glass_cola.jpg/120px-Glass_cola.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Glass_cola.jpg/500px-Glass_cola.jpg",
+    "width": 2200,
+    "height": 1704
    }
   },
   "ff_tea_black": {
@@ -4112,6 +5779,12 @@
      "bytes": 4892,
      "sha256": "e93660bc4bc3476cc67b2e9e5df70e8281c5fc03365f603317f6f31dd65690ce"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg/120px-A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg/500px-A_cup_of_black_tea_from_Srimangal_Bangladesh.jpg",
+    "width": 4624,
+    "height": 3472
    }
   },
   "ff_tea_green": {
@@ -4145,6 +5818,12 @@
      "bytes": 1426,
      "sha256": "e1c179f48bcfc40fb0d9e3e31a100a268b0f1bb4f1abbc7826cdeaa8b3c85dea"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/White_cup_with_green_tea_in_it.jpg/120px-White_cup_with_green_tea_in_it.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/White_cup_with_green_tea_in_it.jpg/500px-White_cup_with_green_tea_in_it.jpg",
+    "width": 2400,
+    "height": 1800
    }
   },
   "ff_coffee_black": {
@@ -4178,6 +5857,12 @@
      "bytes": 1080,
      "sha256": "5afa69c1d6f087c43235f0743dfdb535599869f50e4d8cc951906cc5706c59df"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/White_cup_of_black_coffee.jpg/120px-White_cup_of_black_coffee.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/White_cup_of_black_coffee.jpg/500px-White_cup_of_black_coffee.jpg",
+    "width": 2344,
+    "height": 2382
    }
   },
   "ff_whey_protein": {
@@ -4212,6 +5897,12 @@
      "bytes": 4632,
      "sha256": "cae9dcad87e113d00d2f3b50cc82d47fc9598c1d77b6bd959e6a4b9e3a63ebf2"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg/120px-Whey_Protein_Scoop_%2849935767168%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Whey_Protein_Scoop_%2849935767168%29.jpg/500px-Whey_Protein_Scoop_%2849935767168%29.jpg",
+    "width": 5184,
+    "height": 3888
    }
   },
   "ff_tomato_paste": {
@@ -4245,12 +5936,52 @@
      "bytes": 2632,
      "sha256": "e396f570729a57b5df87830442a0f7942bae13f97ad85a3e30d9b9c9e64301d3"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Tomato_paste_on_spoon.jpg/120px-Tomato_paste_on_spoon.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/Tomato_paste_on_spoon.jpg/500px-Tomato_paste_on_spoon.jpg",
+    "width": 2293,
+    "height": 1720
    }
   },
   "ff_tomato_sauce": {
-   "status": "missing",
-   "reason": "No photo of plain canned tomato sauce: results were pasta/meat dishes with sauce, branded jars or cans (Del Monte, Pomì), or a simmering homemade sauce from a bulk uploader whose photos could not be confidently verified as genuine photographs.",
-   "reviewer": "food-images.d.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Fresh Tomato Sauce (Unsplash).jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Fresh_Tomato_Sauce_(Unsplash).jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+   "license": "CC0-1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Dennis Klein",
+   "credit": "Unsplash (photo FzB_512zvP0)",
+   "alt": {
+    "en": "A glass jar of smooth tomato sauce",
+    "ar": "برطمان زجاجي من صوص الطماطم الناعم"
+   },
+   "reviewNote": "A small glass jar filled with smooth red tomato sauce, with two cherry tomatoes and scattered dried herbs on a dark surface; no label or text. Reads as plain tomato sauce. Borderline: a few torn herb leaves on top, and the source calls it fresh rather than canned (served, it looks the same). CC0 (Unsplash, dated 2016, archived before the 2017 licence change).",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_tomato_sauce/r1-card.webp",
+     "width": 640,
+     "height": 427,
+     "bytes": 41298,
+     "sha256": "0d01c96f48a895ac1cf9ed21e503842befb177f6357f7e7766a40dffd7a94251"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_tomato_sauce/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 5322,
+     "sha256": "26cf87b4619a321ce1a3dd3acf2ba4b6b228994d4f88e0b765e9f02ef429b9ae"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg/120px-Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fresh_Tomato_Sauce_%28Unsplash%29.jpg/500px-Fresh_Tomato_Sauce_%28Unsplash%29.jpg",
+    "width": 3000,
+    "height": 2000
+   }
   },
   "ff_ketchup": {
    "status": "approved",
@@ -4283,6 +6014,12 @@
      "bytes": 1426,
      "sha256": "ca8e5b6c90a6a8ff950240b81845360f459d38cc3b62e1198d8f8e6063141bac"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Ketchup_example_2.jpg/120px-Ketchup_example_2.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Ketchup_example_2.jpg/500px-Ketchup_example_2.jpg",
+    "width": 2000,
+    "height": 1500
    }
   },
   "ff_vinegar": {
@@ -4316,6 +6053,12 @@
      "bytes": 1228,
      "sha256": "7d0aa314f0c22ebdc237768d2c63ead48eda814dc1a6e4444ac0bd26c3c1f346"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg/120px-Apple_Cider_Vinegar_%284108653248%29.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Apple_Cider_Vinegar_%284108653248%29.jpg/500px-Apple_Cider_Vinegar_%284108653248%29.jpg",
+    "width": 4272,
+    "height": 2848
    }
   },
   "ff_chicken_broth": {
@@ -4349,6 +6092,12 @@
      "bytes": 3404,
      "sha256": "889b8432653d269f74d16ef0b0f199a6fdf2a0a65bbb63be97b090241c246609"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Chicken_Stock.jpg/120px-Chicken_Stock.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Chicken_Stock.jpg/500px-Chicken_Stock.jpg",
+    "width": 2033,
+    "height": 3060
    }
   },
   "ff_ful_with_oil": {
@@ -4383,6 +6132,12 @@
      "bytes": 4532,
      "sha256": "052b135e61f20abf5aec856f69af5cece5f39b899fc69de873eed8cf644ff171"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Foul_Mohamed_Ahmed_-_foul.jpg/120px-Foul_Mohamed_Ahmed_-_foul.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Foul_Mohamed_Ahmed_-_foul.jpg/500px-Foul_Mohamed_Ahmed_-_foul.jpg",
+    "width": 3024,
+    "height": 4032
    }
   },
   "ff_koshary": {
@@ -4416,6 +6171,12 @@
      "bytes": 7068,
      "sha256": "2e09a752afbccb0a98dd28940b0f31e7656b21f28c7ec7e52638eed730565c47"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Egyptian_food_Koshary.jpg/120px-Egyptian_food_Koshary.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Egyptian_food_Koshary.jpg/500px-Egyptian_food_Koshary.jpg",
+    "width": 3031,
+    "height": 2101
    }
   },
   "ff_molokhia_soup": {
@@ -4449,12 +6210,52 @@
      "bytes": 4798,
      "sha256": "a708b6be60d8b81300beaaa90bf0f022169e408353957c01c6d1a11f89ec734c"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Molokheya_Egypt%2C_2012.JPG/120px-Molokheya_Egypt%2C_2012.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Molokheya_Egypt%2C_2012.JPG/500px-Molokheya_Egypt%2C_2012.JPG",
+    "width": 2592,
+    "height": 1936
    }
   },
   "ff_mahshi_kousa": {
-   "status": "missing",
-   "reason": "No photo of Egyptian mahshi kousa found: results were Iraqi, Iranian, Greek or Bengali dolma, a Palestinian-style stuffed zucchini (different cuisine, so not acceptable), and one undersized phone image.",
-   "reviewer": "food-images.d.json"
+   "status": "approved",
+   "rev": 1,
+   "file": "File:Kousa Mahshi.jpg",
+   "pageUrl": "https://commons.wikimedia.org/wiki/File:Kousa_Mahshi.jpg",
+   "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Kousa_Mahshi.jpg",
+   "license": "PD",
+   "licenseUrl": null,
+   "author": "Bazel",
+   "credit": "Own work",
+   "alt": {
+    "en": "A platter of stuffed zucchini (mahshi kousa) cooked in tomato",
+    "ar": "طبق من الكوسة المحشية المطبوخة في صلصة الطماطم"
+   },
+   "reviewNote": "A platter of whole cored zucchini, stuffed and simmered in tomato broth until soft and olive-green - the same look as Egyptian mahshi kousa; no text or people. Not the Palestinian-style file rejected earlier; the uploader does not state the cuisine. Borderline: a mild warm cast from a 2007 camera, and plate rims at the frame edges. Public domain (PD-user).",
+   "reviewer": "food-images.e.json",
+   "variants": {
+    "card": {
+     "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-card.webp",
+     "width": 640,
+     "height": 410,
+     "bytes": 24804,
+     "sha256": "e9bd192ae209b5d849e99708b1515028ba4b0d034c40e19355d6f8f54c2416d6"
+    },
+    "thumb": {
+     "cdnPath": "catalog/foods/ff_mahshi_kousa/r1-thumb.webp",
+     "width": 160,
+     "height": 160,
+     "bytes": 3382,
+     "sha256": "31fbcf6b847f4fa0baf83e7dabd5618d1fd3e805c450c2065bdfaa53490e8b7c"
+    }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Kousa_Mahshi.jpg/120px-Kousa_Mahshi.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/Kousa_Mahshi.jpg/500px-Kousa_Mahshi.jpg",
+    "width": 1807,
+    "height": 1158
+   }
   },
   "ff_rice_vermicelli": {
    "status": "approved",
@@ -4487,6 +6288,12 @@
      "bytes": 4508,
      "sha256": "2cb08552d867e71d6c1b37d8a1ccceabc4d0b966abeca70c555b944bdfee5152"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Lebanese_style_rice.jpg/120px-Lebanese_style_rice.jpg",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Lebanese_style_rice.jpg/500px-Lebanese_style_rice.jpg",
+    "width": 8000,
+    "height": 6000
    }
   },
   "ff_grape_leaves_stuffed": {
@@ -4520,6 +6327,12 @@
      "bytes": 4680,
      "sha256": "905b8ac40a561afdad4d3f1141a391c4a7318bf4032953223cdb14b251f33d85"
     }
+   },
+   "remote": {
+    "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Mahshi.JPG/120px-Mahshi.JPG",
+    "cardUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Mahshi.JPG/500px-Mahshi.JPG",
+    "width": 4928,
+    "height": 3264
    }
   }
  }

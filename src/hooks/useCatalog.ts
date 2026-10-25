@@ -3,19 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { catalogMetaQuery, type CatalogTaxonomy } from '@/services/platform/catalogApi';
 
 /**
- * B4 — whether the curated Forma catalog is on here, and its bilingual vocabulary. `enabled` is
- * false while loading, offline before the first fetch, and wherever the owner has not switched the
- * catalog on (production until approval) — callers then show exactly what they showed before B4.
+ * The catalog's bilingual vocabulary (muscles, equipment, food categories …). B4.3: the catalog is
+ * always on (it is the shared library); `enabled` only says the vocabulary has loaded.
  */
 export function useCatalogMeta() {
   const q = useQuery(catalogMetaQuery());
   const meta = q.data;
-  return {
-    enabled: !!meta?.enabled,
-    taxonomy: meta?.enabled ? meta.taxonomy : null,
-    licenses: meta?.enabled ? meta.licenses : null,
-    loading: q.isLoading,
-  };
+  return { enabled: !!meta, taxonomy: meta?.taxonomy ?? null, licenses: meta?.licenses ?? null, loading: q.isLoading };
 }
 
 type Table = Record<string, { en: string; ar: string }>;

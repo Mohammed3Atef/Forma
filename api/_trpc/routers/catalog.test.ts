@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { TRPCError } from '@trpc/server';
 import { appRouter } from '../router.js';
 import type { AuthedUser, Context } from '../context.js';
-import { catalogEnabled } from '../../catalog/_lib/dataset.js';
 
 /**
- * B4 — the read-only catalog API over the committed datasets: the production switch, search in
- * English / Arabic / Egyptian Arabic, filters, page caps (no session downloads the catalog), and
- * the error contract. No database is involved.
+ * B4 — the read-only catalog API over the committed datasets: vocabulary, full items, food search
+ * (clients log custom foods with it), page caps and the error contract. No database is involved.
+ * B4.3: exercise SEARCH is the coach's unified library (`library.exercises.list` — library.test.ts).
  */
 const user = (role: AuthedUser['role'] = 'coach', accountStatus: AuthedUser['accountStatus'] = 'active'): AuthedUser => ({ id: `u-${role}`, role, accountStatus, permissions: [], doc: {} as AuthedUser['doc'] });
 const caller = (u: AuthedUser | null = user()) => appRouter.createCaller({ req: { headers: {} } as unknown as VercelRequest, res: {} as VercelResponse, user: u } as Context);
@@ -27,58 +25,27 @@ afterEach(() => {
   }
 });
 
-describe('the production switch (B4 approval gate)', () => {
-  it('off in production unless FORMA_CATALOG=on; on elsewhere unless FORMA_CATALOG=off', () => {
-    expect(catalogEnabled({ VERCEL_ENV: 'production' })).toBe(false);
-    expect(catalogEnabled({ VERCEL_ENV: 'production', FORMA_CATALOG: 'on' })).toBe(true);
-    expect(catalogEnabled({ VERCEL_ENV: 'preview' })).toBe(true);
-    expect(catalogEnabled({})).toBe(true);
-    expect(catalogEnabled({ FORMA_CATALOG: 'off' })).toBe(false);
-  });
-
-  it('switched off: meta says so and every read is refused with CATALOG_DISABLED', async () => {
+describe('always on (B4.3 — the shared library; the B4 FORMA_CATALOG switch is retired)', () => {
+  it('serves in production too, whatever FORMA_CATALOG says', async () => {
     process.env.VERCEL_ENV = 'production';
-    expect(await caller().catalog.meta()).toEqual({ enabled: false });
-    const err = (await caller().catalog.foods.search({ q: 'rice' }).catch((e) => e)) as TRPCError & { cause?: { reason?: string } };
-    expect(err.code).toBe('PRECONDITION_FAILED');
-    expect(err.cause?.reason).toBe('CATALOG_DISABLED');
+    process.env.FORMA_CATALOG = 'off';
+    expect((await caller().catalog.meta()).exercises.count).toBeGreaterThan(1000);
+    expect((await caller().catalog.foods.search({ q: 'rice' })).items.length).toBeGreaterThan(0);
   });
 });
 
 describe('exercises', () => {
   it('meta: versions, counts and the bilingual vocabulary', async () => {
     const m = await caller().catalog.meta();
-    if (!m.enabled) throw new Error('expected enabled');
     expect(m.exercises.count).toBeGreaterThan(10);
     expect(m.taxonomy.muscles.chest).toEqual({ en: 'Chest', ar: 'الصدر' });
   });
 
-  it('English, Arabic and Egyptian Arabic find the same exercise; a typo still does', async () => {
-    const first = async (q: string) => (await caller().catalog.exercises.search({ q })).items[0]?.id;
-    expect(await first('bench press')).toBe('fx_barbell_bench_press');
-    expect(await first('ضغط البار على البنش المستوي')).toBe('fx_barbell_bench_press');
-    expect(await first('بنش مستوي')).toBe('fx_barbell_bench_press');
-    expect(await first('bnech press')).toBe('fx_barbell_bench_press');
-    expect(await first('incline db press')).toBe('fx_incline_dumbbell_press');
-    expect(await first('بنش عالي دمبل')).toBe('fx_incline_dumbbell_press');
-  });
-
-  it('filters by muscle / equipment / video, and cards are light (no instructions)', async () => {
-    const r = await caller().catalog.exercises.search({ q: '', equipment: 'dumbbell', limit: 50 });
-    expect(r.items.length).toBeGreaterThan(0);
-    expect(r.items.every((c) => c.equipment.includes('dumbbell'))).toBe(true);
-    expect(r.items[0]).not.toHaveProperty('instructions');
-    const v = await caller().catalog.exercises.search({ q: '', video: true, limit: 50 });
-    expect(v.items.every((c) => c.media === 'video')).toBe(true);
-    expect(JSON.stringify(r).length / r.items.length).toBeLessThan(800); // bytes per card
-  });
-
-  it('pages are capped at 50; get returns the full item; unknown ids are NOT_FOUND / absent', async () => {
-    await expect(caller().catalog.exercises.search({ q: '', limit: 500 })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  it('get returns the full item; unknown ids are NOT_FOUND; full() takes at most 30 ids', async () => {
     const e = await caller().catalog.exercises.get({ id: 'fx_barbell_bench_press' });
-    expect(e.instructions.ar.steps.length).toBeGreaterThan(1);
+    expect(e.instructions.ar?.steps.length).toBeGreaterThan(1);
     await expect(caller().catalog.exercises.get({ id: 'fx_nope' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    expect((await caller().catalog.exercises.byIds({ ids: ['fx_barbell_bench_press', 'fx_nope'] })).map((c) => c.id)).toEqual(['fx_barbell_bench_press']);
+    await expect(caller().catalog.exercises.full({ ids: Array.from({ length: 31 }, (_, i) => `fx_${i}`) })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   });
 });
 
@@ -116,10 +83,38 @@ describe('foods', () => {
 describe('access', () => {
   it('requires an active account', async () => {
     await expect(caller(null).catalog.meta()).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
-    await expect(caller(user('coach', 'suspended')).catalog.exercises.search({ q: 'x' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(caller(user('coach', 'suspended')).catalog.exercises.get({ id: 'fx_barbell_bench_press' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
   it('clients can search foods (custom food entry)', async () => {
     const r = await caller(user('client')).catalog.foods.search({ q: 'banana', limit: 1 });
     expect(r.items[0]?.id).toBe('ff_banana');
+  });
+});
+
+describe('ExerciseDB layer through the API (B4.2)', () => {
+  it('meta counts the merged catalog and names the ExerciseDB version and credit', async () => {
+    const m = await caller().catalog.meta();
+    expect(m.exercises.count).toBeGreaterThan(1000);
+    expect(m.exercisedb?.attribution.en).toMatch(/AscendAPI/);
+  });
+
+  it('get: English steps, no invented Arabic instructions or difficulty, the GIF with its credit', async () => {
+    const { readFileSync } = await import('node:fs');
+    const edb = JSON.parse(readFileSync('data/catalog/exercisedb.json', 'utf8')) as { items: { id: string; name: { en: string } }[] };
+    const id = edb.items.find((x) => x.name.en === 'Reverse-grip pull-up')!.id;
+    const e = await caller().catalog.exercises.get({ id });
+    expect(e).toMatchObject({ origin: 'exercisedb', difficulty: null, pattern: null, credit: { provider: 'exercisedb' } });
+    expect(e.instructions.ar).toBeNull();
+    expect(e.instructions.en.steps.length).toBeGreaterThan(2);
+    expect(e.instructions.en.steps[0]).not.toMatch(/^step/i);
+    expect(e.media[0]).toMatchObject({ format: 'gif', license: 'EXERCISEDB', author: 'ExerciseDB (AscendAPI)' });
+  });
+
+  it('an ExerciseDB id linked to a curated item resolves to that item (no duplicate), once', async () => {
+    const { readFileSync } = await import('node:fs');
+    const edb = JSON.parse(readFileSync('data/catalog/exercisedb.json', 'utf8')) as { items: { id: string; formaId: string | null }[] };
+    const linked = edb.items.find((x) => x.formaId === 'fx_barbell_bench_press')!;
+    expect((await caller().catalog.exercises.get({ id: linked.id })).id).toBe('fx_barbell_bench_press');
+    expect((await caller().catalog.exercises.full({ ids: ['fx_barbell_bench_press', linked.id] })).map((e) => e.id)).toEqual(['fx_barbell_bench_press']);
   });
 });

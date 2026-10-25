@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/Sheet';
 import { ClientPickList } from '@/components/coach/ClientPickList';
-import { useInPlanPath } from '@/lib/libraryHandoff';
+import { useInPlanPath } from '@/lib/handoffParams';
 
 /**
  * "Use in a client plan" for one exercise or food: choose the client, then their training (or

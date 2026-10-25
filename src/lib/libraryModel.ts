@@ -1,11 +1,14 @@
-import { demoRank, hasPlayableVideo } from './libraryMedia';
-import type { Exercise, FoodGroup, LibraryFood, LibrarySupplement, LocalizedText, WorkoutTemplate } from '@/types';
+import type { FoodGroup, LibrarySupplement, LocalizedText, WorkoutTemplate } from '@/types';
 
 /**
  * The coach Library's rules (B3.7, blueprint §6.6): one screen, four segments — Programs ·
  * Exercises · Foods (swap groups inside) · Supplements — with search, filters and sorting kept in
  * the URL so a reload, Back from a template or a deep link restores the same view. Everything
  * here is pure: the screen renders what these functions return.
+ *
+ * B4.3: Exercises and Foods are the ONE shared library (Forma's catalog + the coach's own items),
+ * searched, filtered and ranked on the server (`library.ts`) — All · Favourites · Mine (`scope`).
+ * Their muscle / equipment / category filters are catalog ids; they have no client-side sort.
  */
 
 export type LibrarySegment = 'programs' | 'exercises' | 'foods' | 'supplements';
@@ -13,31 +16,37 @@ export const LIBRARY_SEGMENTS: LibrarySegment[] = ['programs', 'exercises', 'foo
 export type FoodsView = 'foods' | 'groups';
 export type SortDir = 'asc' | 'desc';
 
+export type LibraryScope = 'all' | 'favorites' | 'mine';
+const SCOPES: LibraryScope[] = ['all', 'favorites', 'mine'];
+
 export const SORTS = {
   programs: ['name', 'goal', 'days', 'updated'],
-  exercises: ['name', 'muscle', 'equipment', 'demo'],
-  foods: ['name', 'calories', 'protein'],
+  exercises: ['name'],
+  foods: ['name'],
   groups: ['name', 'count'],
   supplements: ['name'],
 } as const;
 export type ProgramSort = (typeof SORTS.programs)[number];
-export type ExerciseSort = (typeof SORTS.exercises)[number];
-export type FoodSort = (typeof SORTS.foods)[number];
 export type GroupSort = (typeof SORTS.groups)[number];
-export type SortKey = ProgramSort | ExerciseSort | FoodSort | GroupSort;
+export type SortKey = ProgramSort | GroupSort;
 
 /** The sort a list starts with; a key whose natural order is "most first" starts descending. */
-export const DEFAULT_DIR: Partial<Record<SortKey, SortDir>> = { updated: 'desc', calories: 'desc', protein: 'desc', count: 'desc' };
+export const DEFAULT_DIR: Partial<Record<SortKey, SortDir>> = { updated: 'desc', count: 'desc' };
 
 export interface LibraryQuery {
   segment: LibrarySegment;
   /** Foods only: the foods list or the swap groups. */
   view: FoodsView;
   q: string;
+  /** Exercises / Foods: all of the library, the coach's favourites, or only their own items. */
+  scope: LibraryScope;
+  /** Exercises: catalog muscle / equipment ids. */
   muscle: string;
   equipment: string;
-  /** Exercises: only those with a video Forma can play. */
-  video: boolean;
+  /** Exercises: only those with a demonstration (video, animation or picture). */
+  demo: boolean;
+  /** Foods: a catalog food category id. */
+  category: string;
   /** Programs: one goal. */
   goal: string;
   sort: SortKey;
@@ -64,13 +73,17 @@ export function parseLibraryQuery(params: URLSearchParams): LibraryQuery {
   const sort = ((allowed as readonly string[]).includes(rawSort) ? rawSort : 'name') as SortKey;
   const rawDir = params.get('dir');
   const dir: SortDir = rawDir === 'asc' || rawDir === 'desc' ? rawDir : DEFAULT_DIR[sort] ?? 'asc';
+  const shared = segment === 'exercises' || (segment === 'foods' && view === 'foods');
+  const rawScope = params.get('scope') ?? '';
   return {
     segment,
     view,
     q: params.get('q') ?? '',
+    scope: shared && (SCOPES as string[]).includes(rawScope) ? (rawScope as LibraryScope) : 'all',
     muscle: segment === 'exercises' ? params.get('muscle') ?? '' : '',
     equipment: segment === 'exercises' ? params.get('equipment') ?? '' : '',
-    video: segment === 'exercises' && params.get('video') === '1',
+    demo: segment === 'exercises' && params.get('demo') === '1',
+    category: segment === 'foods' && view === 'foods' ? params.get('category') ?? '' : '',
     goal: segment === 'programs' ? params.get('goal') ?? '' : '',
     sort,
     dir,
@@ -86,9 +99,11 @@ export function libraryParams(q: LibraryQuery): URLSearchParams {
   p.set('tab', q.segment);
   if (q.segment === 'foods' && q.view === 'groups') p.set('view', 'groups');
   if (q.q) p.set('q', q.q);
+  if (q.scope !== 'all') p.set('scope', q.scope);
   if (q.muscle) p.set('muscle', q.muscle);
   if (q.equipment) p.set('equipment', q.equipment);
-  if (q.video) p.set('video', '1');
+  if (q.demo) p.set('demo', '1');
+  if (q.category) p.set('category', q.category);
   if (q.goal) p.set('goal', q.goal);
   if (q.sort !== 'name') p.set('sort', q.sort);
   if (q.dir !== (DEFAULT_DIR[q.sort] ?? 'asc')) p.set('dir', q.dir);
@@ -97,7 +112,7 @@ export function libraryParams(q: LibraryQuery): URLSearchParams {
 
 /** A fresh view of a segment: search, filters and sort reset (they belong to the list that set them). */
 export function segmentQuery(segment: LibrarySegment, view: FoodsView = 'foods'): LibraryQuery {
-  return { segment, view: segment === 'foods' ? view : 'foods', q: '', muscle: '', equipment: '', video: false, goal: '', sort: 'name', dir: 'asc' };
+  return { segment, view: segment === 'foods' ? view : 'foods', q: '', scope: 'all', muscle: '', equipment: '', demo: false, category: '', goal: '', sort: 'name', dir: 'asc' };
 }
 
 /** Clicking a column: the same key flips the direction; a new key starts in its natural order. */
@@ -140,59 +155,7 @@ function sortList<T>(list: T[], dir: SortDir, cmp: (a: T, b: T) => number, byNam
   return [...list].sort((a, b) => sign * cmp(a, b) || byName(a, b));
 }
 
-// ---- exercises -----------------------------------------------------------------------------------
-
-export interface MuscleOption {
-  value: string;
-  label: string;
-}
-
-/** Muscle filter options: the stored values, labelled in the UI's language. */
-export function muscleOptions(list: Exercise[], label: (muscle: string) => string, collator: Intl.Collator): MuscleOption[] {
-  const values = [...new Set(list.map((e) => e.targetMuscle?.trim()).filter((v): v is string => !!v))];
-  return values.map((value) => ({ value, label: label(value) || value })).sort((a, b) => collator.compare(a.label, b.label));
-}
-
-export function equipmentOptions(list: Exercise[], collator: Intl.Collator): string[] {
-  return [...new Set(list.map((e) => e.equipment?.trim()).filter((v): v is string => !!v))].sort((a, b) => collator.compare(a, b));
-}
-
-export function filterExercises(list: Exercise[], q: Pick<LibraryQuery, 'q' | 'muscle' | 'equipment' | 'video'>, muscleLabel: (muscle: string) => string): Exercise[] {
-  const needle = normalizeSearch(q.q);
-  return list.filter(
-    (e) =>
-      (!q.muscle || e.targetMuscle?.trim() === q.muscle) &&
-      (!q.equipment || e.equipment?.trim() === q.equipment) &&
-      (!q.video || hasPlayableVideo(e)) &&
-      hit(needle, e.name, e.targetMuscle, muscleLabel(e.targetMuscle ?? ''), e.category, e.equipment, ...(e.tags ?? []), ...(e.muscles ?? [])),
-  );
-}
-
-export function sortExercises(list: Exercise[], sort: SortKey, dir: SortDir, collator: Intl.Collator, muscleLabel: (muscle: string) => string): Exercise[] {
-  const byName = (a: Exercise, b: Exercise) => collator.compare(a.name, b.name);
-  const cmp =
-    sort === 'muscle'
-      ? (a: Exercise, b: Exercise) => collator.compare(muscleLabel(a.targetMuscle ?? ''), muscleLabel(b.targetMuscle ?? ''))
-      : sort === 'equipment'
-        ? (a: Exercise, b: Exercise) => collator.compare(a.equipment ?? '', b.equipment ?? '')
-        : sort === 'demo'
-          ? (a: Exercise, b: Exercise) => demoRank(a) - demoRank(b)
-          : byName;
-  return sortList(list, dir, cmp, byName);
-}
-
-// ---- foods, swap groups, supplements, programs ---------------------------------------------------
-
-export function filterFoods(list: LibraryFood[], q: string): LibraryFood[] {
-  const needle = normalizeSearch(q);
-  return list.filter((f) => hit(needle, ...loc(f.name), f.category, ...(f.tags ?? [])));
-}
-
-export function sortFoods(list: LibraryFood[], sort: SortKey, dir: SortDir, collator: Intl.Collator, lang: string): LibraryFood[] {
-  const byName = (a: LibraryFood, b: LibraryFood) => collator.compare(localizedName(a.name, lang), localizedName(b.name, lang));
-  const num = (k: 'calories' | 'protein') => (a: LibraryFood, b: LibraryFood) => (Number(a[k]) || 0) - (Number(b[k]) || 0);
-  return sortList(list, dir, sort === 'calories' ? num('calories') : sort === 'protein' ? num('protein') : byName, byName);
-}
+// ---- swap groups, supplements, programs ---------------------------------------------------------
 
 export function filterGroups(list: FoodGroup[], q: string): FoodGroup[] {
   const needle = normalizeSearch(q);

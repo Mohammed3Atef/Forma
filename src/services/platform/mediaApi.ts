@@ -108,12 +108,6 @@ export function useUploadConfigured(): boolean {
   return configured;
 }
 
-/** Non-hook variant for stores: resolves the flag (fetching it if needed). */
-export async function ensureUploadConfig(): Promise<boolean> {
-  await useUploadConfig.getState().load();
-  return useUploadConfig.getState().configured;
-}
-
 // ---- transport -----------------------------------------------------------
 
 interface RawResponse {
@@ -276,9 +270,18 @@ export async function uploadImage(file: Blob, target: UploadTarget, opts: Upload
  * stored under the coach's own foods folder. Progress covers both; a failure leaves nothing referenced.
  */
 export async function uploadFoodPhoto(photo: { full: Blob; thumb: Blob }, opts: Pick<UploadOptions, 'onProgress' | 'signal'> = {}): Promise<{ url: string; thumbUrl: string }> {
-  const ext = (b: Blob) => (b.type === 'image/webp' ? 'webp' : 'jpg');
-  const full = await uploadFile(photo.full, { category: 'food' }, { name: `food.${ext(photo.full)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(Math.round(p * 0.85)) });
-  const thumb = await uploadFile(photo.thumb, { category: 'food' }, { name: `food-thumb.${ext(photo.thumb)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(85 + Math.round(p * 0.15)) });
+  return uploadPicturePair(photo, { category: 'food' }, 'food', opts);
+}
+
+/** B4.2 — a coach's exercise demonstration picture (a still or a GIF) + its list still, in their own exercises folder. */
+export async function uploadExercisePicture(photo: { full: Blob; thumb: Blob }, opts: Pick<UploadOptions, 'onProgress' | 'signal'> = {}): Promise<{ url: string; thumbUrl: string }> {
+  return uploadPicturePair(photo, { category: 'exercise' }, 'exercise', opts);
+}
+
+async function uploadPicturePair(photo: { full: Blob; thumb: Blob }, target: UploadTarget, stem: string, opts: Pick<UploadOptions, 'onProgress' | 'signal'>): Promise<{ url: string; thumbUrl: string }> {
+  const ext = (b: Blob) => (b.type === 'image/webp' ? 'webp' : b.type === 'image/gif' ? 'gif' : b.type === 'image/png' ? 'png' : 'jpg');
+  const full = await uploadFile(photo.full, target, { name: `${stem}.${ext(photo.full)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(Math.round(p * 0.85)) });
+  const thumb = await uploadFile(photo.thumb, target, { name: `${stem}-thumb.${ext(photo.thumb)}`, signal: opts.signal, onProgress: (p) => opts.onProgress?.(85 + Math.round(p * 0.15)) });
   return { url: full.url, thumbUrl: thumb.url };
 }
 

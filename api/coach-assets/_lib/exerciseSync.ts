@@ -15,6 +15,8 @@ export const SYNCED_EXERCISE_FIELDS = [
   'videoPosterUrl',
   'imageUrl',
   'images',
+  'thumbUrl',
+  'sourceMedia',
   'targetMuscle',
   'category',
   'equipment',

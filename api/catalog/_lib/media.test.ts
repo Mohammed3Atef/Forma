@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appRouter } from '../../_trpc/router.js';
 import type { AuthedUser, Context } from '../../_trpc/context.js';
-import { catalogMediaBase, indexDatasets, servedMedia, setCatalogForTests } from './dataset.js';
+import { catalogMediaBase, indexDatasets, loadCatalog, servedMedia, setCatalogForTests } from './dataset.js';
+import { exerciseCard } from '../../_trpc/routers/catalog.js';
 import { MediaSchema, type CatalogExercise, type CatalogMedia, type ExerciseDataset, type FoodDataset } from './schemas.js';
 
 /**
@@ -85,16 +86,16 @@ describe('catalog API serves only the servable media (B4.1)', () => {
   it('a Forma-hosted demo is invisible until the CDN is configured — no card claims a video it cannot play', async () => {
     install();
     delete process.env.FORMA_CATALOG_MEDIA_URL;
-    const card = (await caller().catalog.exercises.search({ q: 'barbell bench press', limit: 1 })).items[0];
+    // The card is what every list row carries (the coach library — `library.exercises.list`).
+    const card = exerciseCard(loadCatalog().exerciseById.get(bench.id)!);
     expect(card).toMatchObject({ id: bench.id, media: 'none', videoCount: 0, thumb: null });
     expect((await caller().catalog.exercises.get({ id: bench.id })).media).toEqual([]);
-    expect((await caller().catalog.exercises.search({ q: 'bench press', video: true, limit: 50 })).items.map((i) => i.id)).not.toContain(bench.id);
   });
 
   it('once configured: the card shows the poster and the count; the full item carries CDN urls and never the pending file', async () => {
     install();
     process.env.FORMA_CATALOG_MEDIA_URL = 'https://cdn.forma.test';
-    const card = (await caller().catalog.exercises.search({ q: 'barbell bench press', limit: 1 })).items[0];
+    const card = exerciseCard(loadCatalog().exerciseById.get(bench.id)!);
     expect(card).toMatchObject({ media: 'video', videoCount: 1, thumb: { url: 'https://cdn.forma.test/catalog/exercises/fx_barbell_bench_press/vid-2-poster.webp', author: 'Goulart' } });
     const full = await caller().catalog.exercises.get({ id: bench.id });
     expect(full.media.map((m) => [m.id, m.url])).toEqual([['vid_t_2', 'https://cdn.forma.test/catalog/exercises/fx_barbell_bench_press/vid-2.mp4']]);
@@ -111,10 +112,13 @@ describe('food pictures are served like demonstrations (B4.1)', () => {
     else process.env.FORMA_CATALOG_MEDIA_URL = saved;
   });
 
-  it('no picture until the catalog CDN is configured; then the light variants with the credit, never the image records', async () => {
+  it('B4.2: Wikimedia’s own renditions until the catalog CDN is configured; then the light variants with the credit, never the image records', async () => {
     const withPicture = foods.items.find((f) => f.images.length)!;
     delete process.env.FORMA_CATALOG_MEDIA_URL;
-    expect((await caller().catalog.foods.search({ q: withPicture.name.en, limit: 5 })).items.find((c) => c.id === withPicture.id)?.image).toBeNull();
+    const remote = (await caller().catalog.foods.search({ q: withPicture.name.en, limit: 5 })).items.find((c) => c.id === withPicture.id)!.image!;
+    expect(remote).toMatchObject({ thumbUrl: withPicture.images[0].remote!.thumbUrl, cardUrl: withPicture.images[0].remote!.cardUrl, author: withPicture.images[0].author });
+    expect(new URL(remote.thumbUrl).hostname).toMatch(/\.wikimedia\.org$/);
+    expect(remote.thumbUrl).not.toContain('?');
     process.env.FORMA_CATALOG_MEDIA_URL = 'https://cdn.forma.test';
     const card = (await caller().catalog.foods.search({ q: withPicture.name.en, limit: 5 })).items.find((c) => c.id === withPicture.id)!;
     const i = withPicture.images[0];

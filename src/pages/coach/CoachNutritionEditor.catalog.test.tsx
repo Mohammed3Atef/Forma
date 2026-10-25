@@ -5,9 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { FoodItem, MealPlan } from '@/types';
 
 /**
- * B4 — the nutrition editor with the Forma food catalog on: a pick's numbers are computed from the
- * USDA per-100 g values and a food-specific portion, saved WITH their provenance; changing the
- * serving recomputes; typing a value by hand drops every catalog claim (and says so).
+ * B4 — the nutrition editor's Forma foods: a pick's numbers are computed from the USDA per-100 g
+ * values and a food-specific portion, saved WITH their provenance; changing the serving recomputes;
+ * typing a value by hand drops every catalog claim (and says so). B4.3: Forma foods are picked from
+ * the ONE food list (the shared catalog and the coach's own foods, server-searched).
  */
 vi.mock('localforage', () => {
   const stores = new Map<string, Map<string, unknown>>();
@@ -25,7 +26,8 @@ vi.mock('@/services/platform/planApi', async (orig) => ({
   getClientMealPlan: (id: string) => getClientMealPlan(id),
   saveClientMealPlan: (id: string, p: MealPlan, o: unknown) => saveClientMealPlan(id, p, o),
 }));
-vi.mock('@/services/platform/coachAssetsApi', () => ({ listFoodGroups: async () => [], listFoods: async () => [], listSupplements: async () => [] }));
+vi.mock('@/services/platform/coachAssetsApi', () => ({ listFoodGroups: async () => [], listSupplements: async () => [], getFood: vi.fn() }));
+vi.mock('@/hooks/useDebouncedValue', () => ({ useDebouncedValue: <T,>(v: T) => v }));
 vi.mock('@/components/coach/ClientContextPanel', () => ({ ClientContextPanel: () => null }));
 vi.mock('@/stores/dialogStore', () => ({ confirmDelete: async () => true, confirmDialog: async () => true }));
 
@@ -42,13 +44,14 @@ const rice = {
   matchNote: null,
   recipeNote: null,
 };
-const searchCatalogFoods = vi.fn(async (_input: unknown) => ({ total: 1, items: [rice], version: 'v' }));
+const foods = vi.hoisted(() => ({ cards: [] as unknown[] }));
+const listLibraryFoods = vi.fn(async (_input: unknown) => ({ total: foods.cards.length, items: foods.cards.map((card) => ({ kind: 'shared', id: (card as { id: string }).id, favorite: false, card })) }));
+vi.mock('@/services/platform/libraryApi', () => ({ LIBRARY_KEY: ['library'], listLibraryFoods: (input: unknown) => listLibraryFoods(input as never), setLibraryFavorite: vi.fn() }));
 vi.mock('@/services/platform/catalogApi', () => ({
   catalogMetaQuery: () => ({
     queryKey: ['catalog', 'meta'],
-    queryFn: async () => ({ enabled: true, taxonomy: { foodCategories: { grains: label('Grains') }, foodStates: { cooked: label('Cooked', 'مطبوخ') }, muscles: {}, equipment: {}, patterns: {}, bodyParts: {}, difficulty: {} }, licenses: {} }),
+    queryFn: async () => ({ taxonomy: { foodCategories: { grains: label('Grains') }, foodStates: { cooked: label('Cooked', 'مطبوخ') }, muscles: {}, equipment: {}, patterns: {}, bodyParts: {}, difficulty: {} }, licenses: {} }),
   }),
-  searchCatalogFoods: (input: unknown) => searchCatalogFoods(input as never),
 }));
 
 import { CoachNutritionEditor } from './CoachNutritionEditor';
@@ -76,6 +79,7 @@ async function savePlan(): Promise<FoodItem> {
 }
 
 beforeEach(async () => {
+  foods.cards = [{ ...rice, image: null }];
   getClientMealPlan.mockReset();
   saveClientMealPlan.mockReset();
   getClientMealPlan.mockResolvedValue(plan);
@@ -86,8 +90,9 @@ describe('nutrition editor × Forma foods (B4)', () => {
   async function pickRice(cups: string) {
     renderEditor();
     fireEvent.click(await screen.findByTestId('nutrition-add-food'));
-    fireEvent.change(await screen.findByTestId('food-catalog-search'), { target: { value: 'rice' } });
-    fireEvent.click(await screen.findByTestId('catalog-food-row'));
+    fireEvent.change(await screen.findByTestId('food-library-search'), { target: { value: 'rice' } });
+    await waitFor(() => expect(listLibraryFoods).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'rice', scope: 'all' })));
+    fireEvent.click(await screen.findByTestId('library-row-main'));
     const amount = await screen.findByTestId('food-catalog-amount');
     fireEvent.change(amount, { target: { value: cups } });
     fireEvent.blur(amount);
@@ -118,11 +123,11 @@ describe('nutrition editor × Forma foods (B4)', () => {
 
   it('a recipe estimate says what it assumes and that it is a Forma recipe, not one USDA record', async () => {
     const koshary = { ...rice, id: 'ff_koshary', name: label('Koshary (estimate)', 'كشري (تقدير)'), category: 'dishes', state: 'prepared', verification: 'recipe-estimate', portions: [{ id: 'plate', label: label('1 medium plate', 'طبق متوسط'), grams: 450 }], recipeNote: label('A medium plate with 2 tsp oil.', 'طبق متوسط بملعقتين صغيرتين زيت.') };
-    searchCatalogFoods.mockResolvedValueOnce({ total: 1, items: [koshary], version: 'v' } as never);
+    foods.cards = [{ ...koshary, image: null }];
     renderEditor();
     fireEvent.click(await screen.findByTestId('nutrition-add-food'));
-    fireEvent.change(await screen.findByTestId('food-catalog-search'), { target: { value: 'koshary' } });
-    fireEvent.click(await screen.findByTestId('catalog-food-row'));
+    fireEvent.change(await screen.findByTestId('food-library-search'), { target: { value: 'koshary' } });
+    fireEvent.click(await screen.findByTestId('library-row-main'));
     expect(await screen.findByTestId('food-catalog-note')).toHaveTextContent('A medium plate with 2 tsp oil.');
     expect(screen.getByTestId('food-catalog-source')).toHaveTextContent('Forma recipe estimate');
   });

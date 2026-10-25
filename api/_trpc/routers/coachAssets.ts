@@ -8,7 +8,6 @@ import {
   coachExercisesCol,
   coachFoodGroupsCol,
   coachFoodsCol,
-  coachNutritionTemplatesCol,
   coachSupplementsCol,
   coachWorkoutTemplatesCol,
 } from '../../coach-assets/_lib/db.js';
@@ -21,18 +20,14 @@ import {
   FoodBodySchema,
   FoodGroupBodyPatchSchema,
   FoodGroupBodySchema,
-  NutritionTemplateBodyPatchSchema,
-  NutritionTemplateBodySchema,
   SupplementBodyPatchSchema,
   SupplementBodySchema,
   WorkoutTemplateBodyPatchSchema,
   WorkoutTemplateBodySchema,
 } from '../../coach-assets/_lib/schemas.js';
 import { assertFoodImagesAllowed } from '../../coach-assets/_lib/foodImage.js';
-import { loadStarterExercises } from '../../coach-assets/_lib/exerciseLibrary.js';
-import { STARTER_FOODS, STARTER_FOOD_GROUPS, STARTER_SUPPLEMENTS, STARTER_TEMPLATES, type StarterFood } from '../../coach-assets/_lib/starterLibraryData.js';
-import { buildTemplate, groupByMuscle } from '../../coach-assets/_lib/starterLibraryBuild.js';
-import type { CoachExerciseDoc, CoachFoodDoc, CoachFoodGroupDoc, CoachSupplementDoc, StoredFood } from '../../coach-assets/_lib/types.js';
+import { assertExerciseMediaAllowed } from '../../coach-assets/_lib/exerciseMedia.js';
+import type { CoachExerciseDoc } from '../../coach-assets/_lib/types.js';
 import { propagateExerciseToTemplates } from '../../coach-assets/_lib/exerciseSync.js';
 
 /**
@@ -55,7 +50,7 @@ interface AssetResourceConfig<TDoc extends AssetDoc, TPublic> {
    * Whether the public shape keeps `coachId`/`createdAt`/`updatedAt` — the
    * original REST handlers were inconsistent about this per resource
    * (matching whether the frontend type declares those fields at all:
-   * `WorkoutTemplate`/`FoodGroup`/`NutritionTemplate`/`CoachSubscriptionPlan`
+   * `WorkoutTemplate`/`FoodGroup`/`CoachSubscriptionPlan`
    * have them, `Exercise`/`LibraryFood`/`LibrarySupplement` don't). A function
    * (rather than a boolean flag) so each resource's concrete return shape —
    * and thus its compatibility with the frontend type it feeds — is inferred
@@ -78,7 +73,7 @@ function stripMeta<TDoc extends AssetDoc>(doc: TDoc) {
   return fields;
 }
 
-/** For resources whose frontend type keeps coachId/createdAt/updatedAt (WorkoutTemplate, FoodGroup, NutritionTemplate, CoachSubscriptionPlan). `_id` is still dropped — same reason as `stripMeta`. */
+/** For resources whose frontend type keeps coachId/createdAt/updatedAt (WorkoutTemplate, FoodGroup, CoachSubscriptionPlan). `_id` is still dropped — same reason as `stripMeta`. */
 function keepMeta<TDoc extends AssetDoc>(doc: TDoc) {
   const { _id, ...fields } = doc;
   return fields;
@@ -203,6 +198,8 @@ const exercisesRouter = router({
       const now = Date.now();
       const filter = { coachId: ctx.user.id, id: input.id };
       const existing = await col.findOne(filter);
+      // B4.2: a demonstration on Forma's storage must be this coach's own upload.
+      assertExerciseMediaAllowed(input, ctx.user.id, existing);
       const doc = {
         ...input,
         id: input.id,
@@ -222,6 +219,7 @@ const exercisesRouter = router({
       const filter = { coachId: ctx.user.id, id };
       const existing = await col.findOne(filter);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Exercise not found' });
+      assertExerciseMediaAllowed(patch, ctx.user.id, existing);
       const updated: CoachExerciseDoc = { ...existing, ...patch, updatedAt: Date.now() };
       await col.replaceOne(filter, updated);
       const sync = await propagateExerciseToTemplates(updated, existing);
@@ -236,16 +234,7 @@ const workoutTemplatesRouter = makeAssetRouter({
   sort: (a, b) => b.updatedAt - a.updatedAt,
   notFound: 'Workout template not found',
   toPublic: keepMeta,
-});
-
-const nutritionTemplatesRouter = makeAssetRouter({
-  col: coachNutritionTemplatesCol,
-  bodySchema: NutritionTemplateBodySchema,
-  patchSchema: NutritionTemplateBodyPatchSchema,
-  sort: (a, b) => b.updatedAt - a.updatedAt,
-  notFound: 'Nutrition template not found',
-  toPublic: keepMeta,
-  validate: assertFoodImagesAllowed,
+  validate: assertExerciseMediaAllowed,
 });
 
 const foodsRouter = makeAssetRouter({
@@ -286,117 +275,11 @@ const billingPlansRouter = makeAssetRouter({
   toPublic: keepMeta,
 });
 
-async function existingIds<T extends { id: string }>(col: Collection<T>, coachId: string, ids: string[]): Promise<Set<string>> {
-  if (ids.length === 0) return new Set();
-  const rows = await col
-    .find({ coachId, id: { $in: ids } } as unknown as Parameters<typeof col.find>[0], { projection: { id: 1 } })
-    .toArray();
-  return new Set(rows.map((r) => r.id));
-}
-
-interface SeedStepResult {
-  inserted: number;
-  skipped: number;
-  error?: string;
-}
-
-/**
- * Runs one seed category in isolation: a failure here (a transient Mongo
- * error, a bad-data edge case, etc.) is reported on ITS OWN key instead of
- * throwing and aborting the whole mutation — otherwise a failure in, say,
- * templates would silently prevent foods/groups/supplements from ever being
- * inserted, with the coach seeing no exercises-succeeded feedback at all to
- * explain why "load starter library" looked like it only did part of the
- * job. Each step is independently safe to retry (idempotent via `existingIds`).
- */
-async function runSeedStep(fn: () => Promise<{ inserted: number; skipped: number }>): Promise<SeedStepResult> {
-  try {
-    return await fn();
-  } catch (err) {
-    return { inserted: 0, skipped: 0, error: err instanceof Error ? err.message : 'Unknown error' };
-  }
-}
-
-/**
- * Seeds the shared exercise dataset, static starter foods/food-groups/
- * supplements, and the muscle-blueprint workout templates into the calling
- * coach's own collections. Non-destructive: only inserts rows the coach
- * doesn't already have (by id) — never touches existing docs, seeded or
- * coach-authored. Each of the 5 categories runs independently (see
- * `runSeedStep`) so a problem in one never hides/blocks the others.
- */
-const seedStarterLibrary = roleProcedure('coach').mutation(async ({ ctx }) => {
-  const coachId = ctx.user.id;
-  const now = Date.now();
-
-  const exercises = loadStarterExercises();
-  const exercisesResult = await runSeedStep(async () => {
-    const exCol = await coachExercisesCol();
-    const haveIds = await existingIds(exCol, coachId, exercises.map((e) => e.id));
-    const rows = exercises
-      .filter((e) => !haveIds.has(e.id))
-      .map((e) => ({ ...e, id: e.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachExerciseDoc);
-    if (rows.length) await exCol.insertMany(rows);
-    return { inserted: rows.length, skipped: exercises.length - rows.length };
-  });
-
-  const foodById = new Map<string, StarterFood>(STARTER_FOODS.map((f) => [f.id, f]));
-  const foodsResult = await runSeedStep(async () => {
-    const foodsCol = await coachFoodsCol();
-    const haveIds = await existingIds(foodsCol, coachId, STARTER_FOODS.map((f) => f.id));
-    const rows = STARTER_FOODS.filter((f) => !haveIds.has(f.id)).map(
-      (f) => ({ ...f, id: f.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachFoodDoc,
-    );
-    if (rows.length) await foodsCol.insertMany(rows);
-    return { inserted: rows.length, skipped: STARTER_FOODS.length - rows.length };
-  });
-
-  const groupsResult = await runSeedStep(async () => {
-    const fgCol = await coachFoodGroupsCol();
-    const haveIds = await existingIds(fgCol, coachId, STARTER_FOOD_GROUPS.map((g) => g.id));
-    const rows = STARTER_FOOD_GROUPS.filter((g) => !haveIds.has(g.id)).map((g) => {
-      const foods: StoredFood[] = g.foodIds.map((id) => foodById.get(id)).filter((f): f is StarterFood => Boolean(f));
-      return { id: g.id, coachId, name: g.name, foods, ...(g.notes ? { notes: g.notes } : {}), createdAt: now, updatedAt: now } as unknown as CoachFoodGroupDoc;
-    });
-    if (rows.length) await fgCol.insertMany(rows);
-    return { inserted: rows.length, skipped: STARTER_FOOD_GROUPS.length - rows.length };
-  });
-
-  const supplementsResult = await runSeedStep(async () => {
-    const suppCol = await coachSupplementsCol();
-    const haveIds = await existingIds(suppCol, coachId, STARTER_SUPPLEMENTS.map((s) => s.id));
-    const rows = STARTER_SUPPLEMENTS.filter((s) => !haveIds.has(s.id)).map(
-      (s) => ({ ...s, id: s.id, coachId, createdAt: now, updatedAt: now }) as unknown as CoachSupplementDoc,
-    );
-    if (rows.length) await suppCol.insertMany(rows);
-    return { inserted: rows.length, skipped: STARTER_SUPPLEMENTS.length - rows.length };
-  });
-
-  const templatesResult = await runSeedStep(async () => {
-    const byMuscle = groupByMuscle(exercises);
-    const wtCol = await coachWorkoutTemplatesCol();
-    const haveIds = await existingIds(wtCol, coachId, STARTER_TEMPLATES.map((t) => t.id));
-    const rows = STARTER_TEMPLATES.filter((t) => !haveIds.has(t.id)).map((t) => buildTemplate(t, byMuscle, coachId, now));
-    if (rows.length) await wtCol.insertMany(rows);
-    return { inserted: rows.length, skipped: STARTER_TEMPLATES.length - rows.length };
-  });
-
-  return {
-    exercises: exercisesResult,
-    foods: foodsResult,
-    groups: groupsResult,
-    supplements: supplementsResult,
-    templates: templatesResult,
-  };
-});
-
 export const coachAssetsRouter = router({
   exercises: exercisesRouter,
   workoutTemplates: workoutTemplatesRouter,
-  nutritionTemplates: nutritionTemplatesRouter,
   foods: foodsRouter,
   foodGroups: foodGroupsRouter,
   supplements: supplementsRouter,
   billingPlans: billingPlansRouter,
-  seedStarterLibrary,
 });
